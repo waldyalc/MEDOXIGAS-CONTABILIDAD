@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatoMoneda } from "@/lib/facturacion/formato";
@@ -35,13 +36,14 @@ export function AjustesTabla({ ajustes, puedeEscribir }: { ajustes: AjusteLista[
               <TableHead>Fecha</TableHead>
               <TableHead>Almacén</TableHead>
               <TableHead className="text-right">Total ajustado</TableHead>
+              <TableHead>Estado</TableHead>
               <TableHead>Observaciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {ajustes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
+                <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
                   No hay ajustes de inventario todavía.
                 </TableCell>
               </TableRow>
@@ -54,6 +56,11 @@ export function AjustesTabla({ ajustes, puedeEscribir }: { ajustes: AjusteLista[
                   <TableCell>{formatoDia(ajuste.fecha)}</TableCell>
                   <TableCell>{ajuste.almacen_nombre}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatoMoneda(ajuste.total)}</TableCell>
+                  <TableCell>
+                    <Badge variant={ajuste.estado === "anulada" ? "destructive" : "secondary"}>
+                      {ajuste.estado === "anulada" ? "Anulado" : "Activo"}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-muted-foreground max-w-[360px] truncate">
                     {ajuste.observaciones?.trim() || "—"}
                   </TableCell>
