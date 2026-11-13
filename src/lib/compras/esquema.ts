@@ -35,6 +35,10 @@ export const esquemaFacturaProveedor = z
     contacto_id: id,
     fecha,
     vencimiento: fecha,
+    almacen_id: z
+      .union([id, z.literal("")])
+      .optional()
+      .transform((valor) => valor || null),
     ncf: z
       .string()
       .trim()

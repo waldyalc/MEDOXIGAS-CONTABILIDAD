@@ -31,6 +31,12 @@ export interface CuentaOpcion {
   es_caja_banco: boolean;
 }
 
+export interface AlmacenOpcion {
+  id: string;
+  nombre: string;
+  es_principal: boolean;
+}
+
 export interface CuentaAsiento {
   codigo: string;
   nombre: string;
@@ -141,6 +147,7 @@ export interface OpcionesFactura {
   contactos: ContactoOpcion[];
   productos: ProductoOpcion[];
   cuentasGasto: CuentaOpcion[];
+  almacenes: AlmacenOpcion[];
 }
 
 export interface OpcionesPago {

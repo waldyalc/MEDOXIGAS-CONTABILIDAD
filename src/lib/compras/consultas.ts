@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 import type {
+  AlmacenOpcion,
   AsientoDetalle,
   AsientoLinea,
   ContactoOpcion,
@@ -117,7 +118,7 @@ export async function listarPagosProveedor(): Promise<PagoLista[]> {
 
 export async function cargarOpcionesFactura(): Promise<OpcionesFactura> {
   const supabase = await cliente();
-  const [contactos, productos, cuentasGasto] = await Promise.all([
+  const [contactos, productos, cuentasGasto, almacenes] = await Promise.all([
     supabase
       .from("contactos")
       .select("id, nombre, rnc_cedula")
@@ -139,16 +140,25 @@ export async function cargarOpcionesFactura(): Promise<OpcionesFactura> {
       .eq("activa", true)
       .order("codigo")
       .returns<CuentaOpcion[]>(),
+    supabase
+      .from("almacenes")
+      .select("id, nombre, es_principal")
+      .eq("activo", true)
+      .order("es_principal", { ascending: false })
+      .order("nombre")
+      .returns<AlmacenOpcion[]>(),
   ]);
 
   if (contactos.error) throw new Error(contactos.error.message);
   if (productos.error) throw new Error(productos.error.message);
   if (cuentasGasto.error) throw new Error(cuentasGasto.error.message);
+  if (almacenes.error) throw new Error(almacenes.error.message);
 
   return {
     contactos: contactos.data ?? [],
     productos: productos.data ?? [],
     cuentasGasto: cuentasGasto.data ?? [],
+    almacenes: almacenes.data ?? [],
   };
 }
 

@@ -20,6 +20,7 @@ export interface ContactoResumen {
   rnc_cedula: string | null;
   direccion: string | null;
   telefono?: string | null;
+  lista_precio_id?: string | null;
 }
 
 export interface ProductoResumen {
@@ -28,6 +29,14 @@ export interface ProductoResumen {
   referencia: string | null;
   precio: number;
   itbis_tasa: number;
+  precios: { lista_id: string; precio: number }[];
+}
+
+export interface ListaPrecioResumen {
+  id: string;
+  nombre: string;
+  es_principal: boolean;
+  tipo: "fijo" | "porcentaje";
 }
 
 export interface CuentaCajaBanco {

@@ -42,6 +42,7 @@ export const crearFacturaSchema = z
     contacto_id: z.uuid(),
     fecha: z.iso.date(),
     vencimiento: z.iso.date(),
+    almacen_id: z.uuid().optional(),
     notas: textoOpcionalSchema,
     terminos: textoOpcionalSchema,
     pie: textoOpcionalSchema,

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 
-import { esquemaContacto } from "./contactos";
+import { esquemaContacto, SIN_LISTA_PRECIO } from "./contactos";
 
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };
 
@@ -14,6 +14,8 @@ function texto(formData: FormData, campo: string) {
 }
 
 function datosDesdeFormulario(formData: FormData) {
+  const lista = texto(formData, "lista_precio_id");
+
   return {
     nombre: texto(formData, "nombre"),
     tipo: texto(formData, "tipo") || "cliente",
@@ -21,6 +23,7 @@ function datosDesdeFormulario(formData: FormData) {
     telefono: texto(formData, "telefono"),
     correo: texto(formData, "correo"),
     direccion: texto(formData, "direccion"),
+    lista_precio_id: lista === SIN_LISTA_PRECIO ? "" : lista,
   };
 }
 

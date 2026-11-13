@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { aNumero } from "@/lib/facturacion/formato";
+import type { ExistenciaAlmacen } from "@/lib/inventario/tipos";
 import { createClient } from "@/lib/supabase/server";
 
 import {
@@ -259,7 +260,7 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
   if (error) throw new Error(error.message);
   if (!producto) return null;
 
-  const [lineasVenta, lineasCompra, lineasCotizacion, lineasRemision] = await Promise.all([
+  const [lineasVenta, lineasCompra, lineasCotizacion, lineasRemision, existenciasRes] = await Promise.all([
     supabase
       .from("factura_lineas")
       .select("factura_id, cantidad, costo_unitario")
@@ -272,12 +273,36 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
       .returns<LineaCompraFila[]>(),
     supabase.from("cotizacion_lineas").select("cotizacion_id").eq("producto_id", id).returns<LineaCotizacionFila[]>(),
     supabase.from("remision_lineas").select("remision_id").eq("producto_id", id).returns<LineaRemisionFila[]>(),
+    supabase
+      .from("existencias")
+      .select("almacen_id, cantidad, almacenes(nombre, es_principal)")
+      .eq("producto_id", id)
+      .returns<
+        {
+          almacen_id: string;
+          cantidad: number;
+          almacenes: { nombre: string; es_principal: boolean } | null;
+        }[]
+      >(),
   ]);
 
   if (lineasVenta.error) throw new Error(lineasVenta.error.message);
   if (lineasCompra.error) throw new Error(lineasCompra.error.message);
   if (lineasCotizacion.error) throw new Error(lineasCotizacion.error.message);
   if (lineasRemision.error) throw new Error(lineasRemision.error.message);
+  if (existenciasRes.error) throw new Error(existenciasRes.error.message);
+
+  const existencias: ExistenciaAlmacen[] = (existenciasRes.data ?? [])
+    .map((fila) => ({
+      almacen_id: fila.almacen_id,
+      almacen_nombre: fila.almacenes?.nombre ?? "—",
+      es_principal: fila.almacenes?.es_principal ?? false,
+      cantidad: aNumero(fila.cantidad),
+    }))
+    .sort(
+      (a, b) =>
+        Number(b.es_principal) - Number(a.es_principal) || a.almacen_nombre.localeCompare(b.almacen_nombre, "es"),
+    );
 
   const configuracion = await cargarConfiguracionFicha();
   const cuentaIds = [
@@ -338,6 +363,7 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
     facturasCompra: facturasCompraDb.map((fila) => documentoDesdeFila(fila, cantidadesCompra)),
     cotizaciones: cotizacionesDb,
     conduces: conducesDb,
+    existencias,
     kardex: construirKardex(productoFicha.inventariable ? productoFicha.cantidad : 0, movimientos),
   };
 }
