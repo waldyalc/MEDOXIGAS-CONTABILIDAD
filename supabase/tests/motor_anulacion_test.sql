@@ -1,6 +1,9 @@
 begin;
 select plan(14);
 
+create temp table _ids (clave text primary key, id uuid) on commit drop;
+grant select, insert, update, delete on _ids to authenticated;
+
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'admin@prueba.local'),
   ('22222222-2222-2222-2222-222222222222', 'contador@prueba.local'),
@@ -13,12 +16,14 @@ insert into public.perfiles (user_id, nombre, rol) values
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
 
-select public.crear_contacto(jsonb_build_object(
+insert into _ids (clave, id)
+select 'contacto', public.crear_contacto(jsonb_build_object(
   'tipo', 'cliente',
   'nombre', 'Anula Cliente'
 ));
 
-select public.crear_producto(jsonb_build_object(
+insert into _ids (clave, id)
+select 'producto', public.crear_producto(jsonb_build_object(
   'tipo', 'producto',
   'nombre', 'Anula Producto',
   'precio', 650.00::numeric,
@@ -28,31 +33,47 @@ select public.crear_producto(jsonb_build_object(
   'costo', 390.00::numeric
 ));
 
-select public.crear_producto(jsonb_build_object(
+insert into _ids (clave, id)
+select 'servicio', public.crear_producto(jsonb_build_object(
   'tipo', 'servicio',
   'nombre', 'Anula Servicio',
   'precio', 1000.00::numeric,
   'itbis_tasa', 18.00::numeric
 ));
 
-select public.crear_factura(jsonb_build_object(
+insert into _ids (clave, id)
+select 'factura1', public.crear_factura(jsonb_build_object(
   'tipo_comprobante', '02',
-  'contacto_id', (select id from public.contactos where nombre = 'Anula Cliente'),
+  'contacto_id', (select id from _ids where clave = 'contacto'),
   'fecha', '2026-11-13',
   'vencimiento', '2026-12-13',
   'lineas', jsonb_build_array(
     jsonb_build_object(
-      'producto_id', (select id from public.productos where nombre = 'Anula Producto'),
+      'producto_id', (select id from _ids where clave = 'producto'),
       'cantidad', 2.00::numeric,
       'precio', 650.00::numeric
     )
   )
 ));
 
-select public.anular_documento('factura', (select id from public.facturas where ncf = 'B0200000001'));
+insert into _ids (clave, id)
+select 'asiento1', asiento_id
+from public.facturas
+where id = (select id from _ids where clave = 'factura1');
+
+insert into _ids (clave, id)
+select 'factura1_anulada', public.anular_documento(
+  'factura',
+  (select id from _ids where clave = 'factura1')
+);
+
+insert into _ids (clave, id)
+select 'asiento_anulacion', id
+from public.asientos
+where anula_asiento_id = (select id from _ids where clave = 'asiento1');
 
 select is(
-  (select estado from public.facturas where ncf = 'B0200000001'),
+  (select estado from public.facturas where id = (select id from _ids where clave = 'factura1')),
   'anulada',
   'factura anulada queda en estado anulada'
 );
@@ -62,7 +83,7 @@ select ok(
     select 1
     from public.asientos a
     where a.origen_tipo = 'anulacion'
-      and a.anula_asiento_id = (select asiento_id from public.facturas where ncf = 'B0200000001')
+      and a.anula_asiento_id = (select id from _ids where clave = 'asiento1')
   ),
   'existe asiento de anulación con anula_asiento_id del asiento original'
 );
@@ -71,7 +92,7 @@ select is(
   (select coalesce(sum(al.debito), 0)::numeric(14,2)
    from public.asiento_lineas al
    join public.cuentas c on c.id = al.cuenta_id
-   where al.asiento_id = (select id from public.asientos where origen_tipo = 'anulacion' order by numero desc limit 1)
+   where al.asiento_id = (select id from _ids where clave = 'asiento_anulacion')
      and c.codigo = '4101'),
   1300.00::numeric(14,2),
   'anulación: debe ventas de productos 4101'
@@ -81,7 +102,7 @@ select is(
   (select coalesce(sum(al.debito), 0)::numeric(14,2)
    from public.asiento_lineas al
    join public.cuentas c on c.id = al.cuenta_id
-   where al.asiento_id = (select id from public.asientos where origen_tipo = 'anulacion' order by numero desc limit 1)
+   where al.asiento_id = (select id from _ids where clave = 'asiento_anulacion')
      and c.codigo = '2102'),
   234.00::numeric(14,2),
   'anulación: debe ITBIS por pagar 2102'
@@ -91,7 +112,7 @@ select is(
   (select coalesce(sum(al.credito), 0)::numeric(14,2)
    from public.asiento_lineas al
    join public.cuentas c on c.id = al.cuenta_id
-   where al.asiento_id = (select id from public.asientos where origen_tipo = 'anulacion' order by numero desc limit 1)
+   where al.asiento_id = (select id from _ids where clave = 'asiento_anulacion')
      and c.codigo = '1103'),
   1534.00::numeric(14,2),
   'anulación: haber cuentas por cobrar 1103'
@@ -101,7 +122,7 @@ select is(
   (select coalesce(sum(al.credito), 0)::numeric(14,2)
    from public.asiento_lineas al
    join public.cuentas c on c.id = al.cuenta_id
-   where al.asiento_id = (select id from public.asientos where origen_tipo = 'anulacion' order by numero desc limit 1)
+   where al.asiento_id = (select id from _ids where clave = 'asiento_anulacion')
      and c.codigo = '5101'),
   780.00::numeric(14,2),
   'anulación: haber costo de ventas 5101'
@@ -111,14 +132,16 @@ select is(
   (select coalesce(sum(al.debito), 0)::numeric(14,2)
    from public.asiento_lineas al
    join public.cuentas c on c.id = al.cuenta_id
-   where al.asiento_id = (select id from public.asientos where origen_tipo = 'anulacion' order by numero desc limit 1)
+   where al.asiento_id = (select id from _ids where clave = 'asiento_anulacion')
      and c.codigo = '1104'),
   780.00::numeric(14,2),
   'anulación: debe inventario 1104'
 );
 
 select is(
-  (select cantidad::numeric(14,2) from public.productos where nombre = 'Anula Producto'),
+  (select cantidad::numeric(14,2)
+   from public.productos
+   where id = (select id from _ids where clave = 'producto')),
   10.00::numeric(14,2),
   'existencia del producto restaurada a 10'
 );
@@ -130,14 +153,15 @@ select is(
   'suma global de asiento_lineas cuadrada'
 );
 
-select public.crear_factura(jsonb_build_object(
+insert into _ids (clave, id)
+select 'factura2', public.crear_factura(jsonb_build_object(
   'tipo_comprobante', '02',
-  'contacto_id', (select id from public.contactos where nombre = 'Anula Cliente'),
+  'contacto_id', (select id from _ids where clave = 'contacto'),
   'fecha', '2026-11-13',
   'vencimiento', '2026-12-13',
   'lineas', jsonb_build_array(
     jsonb_build_object(
-      'producto_id', (select id from public.productos where nombre = 'Anula Servicio'),
+      'producto_id', (select id from _ids where clave = 'servicio'),
       'cantidad', 1.00::numeric,
       'precio', 1000.00::numeric
     )
@@ -150,10 +174,10 @@ select public.crear_factura(jsonb_build_object(
   )
 ));
 
-select throws_ok($q$select public.anular_documento('factura', (select id from public.facturas where ncf='B0200000002'))$q$, null, null, 'factura con pago activo no se anula');
+select throws_ok($q$select public.anular_documento('factura', (select id from _ids where clave = 'factura2'))$q$, null, null, 'factura con pago activo no se anula');
 
 select is(
-  (select estado from public.facturas where ncf = 'B0200000002'),
+  (select estado from public.facturas where id = (select id from _ids where clave = 'factura2')),
   'pagada',
   'factura con pago activo sigue pagada'
 );
