@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ArrowLeft, BookOpen } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,9 @@ import { rutaAsiento, rutaContacto, rutaCuenta } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import { obtenerGasto } from "@/lib/gastos/detalle";
+import { puedeAnularDocumento } from "@/lib/pagos/anulacion";
+
+import { AccionesGasto } from "./_components/acciones-gasto";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,6 +25,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   const gasto = await obtenerGasto(id);
   if (!gasto) notFound();
+
+  const puedeAnular = puedeAnularDocumento(rol, gasto.estado);
 
   return (
     <div className="flex flex-col gap-6">
@@ -36,12 +42,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               {gasto.estado === "anulado" ? "Anulado" : "Activo"}
             </Badge>
           </div>
-          {gasto.asiento_id ? (
-            <Button variant="outline" render={<Link href={rutaAsiento(gasto.asiento_id)} prefetch={false} />}>
-              <BookOpen data-icon="inline-start" />
-              Ver asiento
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {gasto.asiento_id ? (
+              <Button variant="outline" render={<Link href={rutaAsiento(gasto.asiento_id)} prefetch={false} />}>
+                <BookOpen data-icon="inline-start" />
+                Ver asiento
+              </Button>
+            ) : null}
+            {puedeAnular ? <AccionesGasto gastoId={gasto.id} numero={gasto.numero} /> : null}
+          </div>
         </div>
       </div>
 
@@ -60,36 +69,22 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <dt className="text-muted-foreground">Proveedor</dt>
             <dd>
               {gasto.contacto_id ? (
-                <Link
-                  href={rutaContacto(gasto.contacto_id)}
-                  prefetch={false}
-                  className="hover:text-foreground hover:underline"
-                >
-                  {gasto.contacto?.nombre ?? "—"}
-                </Link>
+                <Enlace href={rutaContacto(gasto.contacto_id)}>{gasto.contacto?.nombre ?? "—"}</Enlace>
               ) : (
                 "—"
               )}
             </dd>
             <dt className="text-muted-foreground">Cuenta de gasto</dt>
             <dd>
-              <Link
-                href={rutaCuenta(gasto.cuenta_gasto_id)}
-                prefetch={false}
-                className="hover:text-foreground hover:underline"
-              >
+              <Enlace href={rutaCuenta(gasto.cuenta_gasto_id)}>
                 {gasto.cuenta_gasto ? `${gasto.cuenta_gasto.codigo} · ${gasto.cuenta_gasto.nombre}` : "—"}
-              </Link>
+              </Enlace>
             </dd>
             <dt className="text-muted-foreground">Cuenta de pago</dt>
             <dd>
-              <Link
-                href={rutaCuenta(gasto.cuenta_pago_id)}
-                prefetch={false}
-                className="hover:text-foreground hover:underline"
-              >
+              <Enlace href={rutaCuenta(gasto.cuenta_pago_id)}>
                 {gasto.cuenta_pago ? `${gasto.cuenta_pago.codigo} · ${gasto.cuenta_pago.nombre}` : "—"}
-              </Link>
+              </Enlace>
             </dd>
           </dl>
           <div className="flex flex-col gap-2 rounded-lg border p-4">

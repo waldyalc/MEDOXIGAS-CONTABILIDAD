@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { z } from "zod";
+
 import { getRol } from "@/lib/auth/rol";
 import { mensajeErrorRpc } from "@/lib/facturacion/errores";
 import { avisoSaldoCuenta } from "@/lib/reportes/saldos";
@@ -102,4 +104,19 @@ export async function anularFacturaProveedor(id: string): Promise<ResultadoAccio
 
   revalidarCompras(id);
   return { ok: true };
+}
+
+export async function anularPagoProveedor(id: string): Promise<ResultadoAccion> {
+  if (!(await puedeEscribir())) return { ok: false, error: "No tienes permiso para anular documentos." };
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "Pago inválido." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("anular_documento", { p_tipo: "pago_proveedor", p_id: id });
+
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
+
+  revalidatePath("/dashboard/compras");
+  revalidatePath("/dashboard/compras/pagos");
+  revalidatePath(`/dashboard/compras/pagos/${id}`);
+  return { ok: true, id };
 }

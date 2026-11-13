@@ -16,6 +16,7 @@ import {
   parsearFiltrosEstadoCuenta,
 } from "@/lib/contactos/estado-cuenta";
 import { obtenerEstadoCuentaContacto } from "@/lib/contactos/estado-cuenta-consultas";
+import { rutaContacto } from "@/lib/enlaces";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
@@ -58,7 +59,7 @@ export default async function Page({
           variant="ghost"
           size="sm"
           className="w-fit print:hidden"
-          render={<Link href={`/dashboard/contactos/${datos.contacto.id}`} prefetch={false} />}
+          render={<Link href={rutaContacto(datos.contacto.id)} prefetch={false} />}
         >
           <ArrowLeft data-icon="inline-start" />
           {datos.contacto.nombre}

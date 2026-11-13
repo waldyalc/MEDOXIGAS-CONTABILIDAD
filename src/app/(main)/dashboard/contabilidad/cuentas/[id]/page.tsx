@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ArrowLeft } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,23 +116,13 @@ export default async function Page({
                   <TableRow key={movimiento.id}>
                     <TableCell className="pl-(--card-spacing) tabular-nums">{formatoDia(movimiento.fecha)}</TableCell>
                     <TableCell>
-                      <Link
-                        href={rutaAsiento(movimiento.asiento_id)}
-                        prefetch={false}
-                        className="hover:text-foreground tabular-nums hover:underline"
-                      >
+                      <Enlace href={rutaAsiento(movimiento.asiento_id)} className="tabular-nums">
                         #{movimiento.numero}
-                      </Link>
+                      </Enlace>
                     </TableCell>
                     <TableCell className="whitespace-normal">
                       {movimiento.contacto ? (
-                        <Link
-                          href={rutaContacto(movimiento.contacto.id)}
-                          prefetch={false}
-                          className="hover:text-foreground hover:underline"
-                        >
-                          {movimiento.contacto.nombre}
-                        </Link>
+                        <Enlace href={rutaContacto(movimiento.contacto.id)}>{movimiento.contacto.nombre}</Enlace>
                       ) : (
                         "—"
                       )}
