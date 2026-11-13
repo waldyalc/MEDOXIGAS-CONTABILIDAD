@@ -13,6 +13,14 @@
 - pgTAP nuevos: `notas_debito_venta_test.sql` (18 asserts) y `facturas_recurrentes_test.sql` (22). No se pudieron correr en esta máquina (sin Docker/Supabase CLI). `typecheck`, Biome de los archivos tocados y los Vitest de validación en verde.
 - Nota al aplicar: `asientos.origen_tipo` ya admite `nota_debito`; la migración vuelve a declarar el CHECK completo. Aplicada al proyecto remoto el 13 nov 2026 tras dry run (pgTAP 40/40 en verde dentro de BEGIN/ROLLBACK).
 
+## Reportes fiscales y «Para trabajar» (14 nov 2026)
+
+- Nuevas pantallas de solo lectura: 606, 607 y 608 (`/dashboard/reportes/606|607|608`) con período mensual, Excel/PDF compartido y TXT separado por pipes con encabezado DGII; el 606 incluye los gastos menores B13. Las columnas oficiales viven en `src/lib/reportes/fiscales/formatos/` con su fuente y las marcas `// VERIFICAR con instructivo DGII`.
+- Reporte detallado de impuestos (4 tablas por tasa y detalle con NCF enlazado al documento), Impuestos y retenciones (pestañas Ventas/Compras con «Ver detalles») e IT-1 de solo lectura (Anexo A y casillas principales; no crea borradores ni envía nada).
+- «Exportar para el contador» con rango de fechas (mes por defecto): facturas de venta, compras y libro diario en Excel/PDF.
+- Cálculos y consultas en `src/lib/reportes/fiscales/`, con 23 tests Vitest. Sin migración. En la portada de Reportes solo se agregaron los enlaces de las tarjetas Fiscales y Para trabajar.
+- `typecheck`, Biome, `test` (410) y `build` en verde.
+
 ## Ajustes de diseño del formulario de factura (13 nov 2026)
 
 - Logo a 96 px en escritorio y 72 px en móvil; RD$ y % van dentro del campo con `InputGroup`; los `NativeSelect` (NCF, cuenta, método e ITBIS) pasan al `Select` de shadcn.

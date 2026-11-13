@@ -17,7 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type CategoriaReporte, filtrarReportes, reportesPorCategoria } from "@/lib/reportes/catalogo-reportes";
+import {
+  type CategoriaReporte,
+  filtrarReportes,
+  REPORTES,
+  reportesPorCategoria,
+} from "@/lib/reportes/catalogo-reportes";
 
 import { AvisoSaldoNegativo } from "./_components/aviso-saldo-negativo";
 
@@ -30,6 +35,24 @@ const ICONOS: Record<CategoriaReporte, LucideIcon> = {
   "Para trabajar": Wrench,
 };
 
+const ENLACES_FISCALES: Record<string, string> = {
+  "Reporte 606": "/dashboard/reportes/606",
+  "Reporte 607": "/dashboard/reportes/607",
+  "Reporte 608": "/dashboard/reportes/608",
+  "Reporte IT1": "/dashboard/reportes/it1",
+  "Reporte detallado de impuestos": "/dashboard/reportes/impuestos-detallados",
+  "Impuestos y retenciones": "/dashboard/reportes/impuestos-retenciones",
+  "Exportar facturas": "/dashboard/reportes/exportar-contador",
+  "Informe contador": "/dashboard/reportes/exportar-contador",
+};
+
+function conEnlacesFiscales(reportes: typeof REPORTES) {
+  return reportes.map((reporte) => {
+    const href = ENLACES_FISCALES[reporte.nombre];
+    return href == null ? reporte : { ...reporte, href };
+  });
+}
+
 interface Props {
   searchParams: Promise<{ q?: string | string[] }>;
 }
@@ -37,7 +60,7 @@ interface Props {
 export default async function Page({ searchParams }: Props) {
   const parametros = await searchParams;
   const busqueda = (Array.isArray(parametros.q) ? parametros.q[0] : parametros.q) ?? "";
-  const grupos = reportesPorCategoria(filtrarReportes(busqueda));
+  const grupos = reportesPorCategoria(filtrarReportes(busqueda, conEnlacesFiscales(REPORTES)));
 
   return (
     <div className="flex flex-col gap-6">
