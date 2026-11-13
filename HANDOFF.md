@@ -1,5 +1,12 @@
 # Handoff — Medoxigas Contabilidad
 
+## Rango de fechas único en reportes (14 nov 2026)
+
+- Nuevo `reportes/_components/selector-fechas.tsx`: `SelectorRangoFechas` (botón con el rango, Popover con atajos Hoy…Personalizado y Calendar de shadcn en rango con dos meses), `SelectorFechaCorte` (Hoy, Fin de mes anterior, Fin de año anterior) y `SelectorFechaFormulario` para fechas opcionales dentro de un formulario GET.
+- Atajos y etiquetas en `src/lib/fechas/rangos.ts`, puros y con Vitest (cambio de año, trimestres, febrero). La semana empieza el lunes y las fechas van en `America/Santo_Domingo`; `hoyRd` de reportes ahora reexporta `hoyEnRd`.
+- Las fechas siguen en la URL (`?desde=&hasta=`; `hasta`/`corte` en los reportes de corte). Migrados todos los reportes con fechas: se borraron `filtro-fechas.tsx`, `libros/campos-fecha.tsx` y todos los `input type="date"` de `reportes/**`. Reporte anual conserva su selector de año (no es un rango).
+- Sin migración ni cambios de datos. `typecheck`, `test` (501), Biome y `build` en verde.
+
 ## Inventario: ajustes, almacenes y categorías (14 nov 2026)
 
 - Nuevo módulo `/dashboard/inventario`: Ajustes de inventario (lista, nuevo y
