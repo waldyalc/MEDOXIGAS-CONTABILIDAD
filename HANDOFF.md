@@ -1,5 +1,13 @@
 # Handoff — Medoxigas Contabilidad
 
+## Skills para agentes y motor de código (13 nov 2026)
+
+- Skills de OpenCode en `.opencode/skills/`: `localhost`, `probar-cambios`, `flujo-git`, `diseno-ui`, `motor-contable` y `supabase-migraciones`. `AGENTS.md` tiene la lista y un checklist de arranque.
+- El motor de código pasó a **T3 Code en la PC de Waldy** (Windows, MSI), modelo `opencode-go/deepseek-v4.1-flash` variante `max`. Ya no se programa con OpenCode en el box. Waldy habla solo con Coder; Coder lanza y revisa las sesiones.
+- En curso: rama `feat/fac-ajustes` (logo más grande, `RD$`/`%` dentro del input, `Select` en vez de lista nativa, calendario al estilo de las medidas de `docs/alegra/css-factura/GUIA-CALENDARIO.md`). Aún no está en `prueba`.
+- Se agregó a `docs/alegra/` la guía de calendario y las capturas `calendario-*.png` (sin el HTML/CSS original de Alegra).
+
+
 ## Diseño del formulario de factura (13 nov 2026)
 
 - `factura-form.tsx` ahora es una sola tarjeta (máx. 1040 px) con el logo de

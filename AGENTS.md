@@ -18,6 +18,23 @@ Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y O
 - Roles: **Coder** (tech lead) diseña y revisa el diff; **OpenCode** (`opencode-go/deepseek-v4.1-flash`, variante `max`) escribe el código. Waldy aprueba lo irreversible: deploy a producción, migraciones que borran o cambian datos, borrar datos, planes pagos.
 - Fiscal RD: la facturación debe cumplir con la DGII (e-CF / NCF, reportes 606 y 607). Se diseña con Contable antes de programar.
 
+## Antes de empezar
+
+- [ ] Lee este `AGENTS.md` y el `HANDOFF.md`.
+- [ ] Carga la skill de `.opencode/skills/` que aplique (ver abajo).
+- [ ] Si el cambio es de UI, lee también `docs/plantilla-diseno.md` y, si toca factura o fechas, `docs/alegra/css-factura/`.
+
+## Skills
+
+Viven en `.opencode/skills/<nombre>/SKILL.md`. Cárgalas con la herramienta `skill` de OpenCode (el id es el nombre de la carpeta):
+
+- `localhost` — levantar el dev server en un worktree de T3 (puerto 3001, `.env.local`, login y la misma base de producción).
+- `probar-cambios` — comandos de test, lint, typecheck y build, y los hooks de husky (nunca `--no-verify`).
+- `flujo-git` — rama `feat/*` desde `origin/prueba`, commits chicos, empujar la rama; no fusionar ni hacer force-push.
+- `diseno-ui` — shadcn tal cual (`InputGroup`, `Select`, calendario), colores Medoxigas e inspiración de `docs/alegra/`, sin copiar código de Alegra.
+- `motor-contable` — motor de doble partida (archivos, cuentas por defecto, invariantes) y tests antes de cambiar un cálculo.
+- `supabase-migraciones` — cómo escribir una migración; no aplicarla en el remoto ni usar `service_role`; RLS en tablas nuevas.
+
 ## Módulos (menú lateral)
 
 Hechos en la beta 1: Inicio, Contactos, Productos, Facturación, Pagos recibidos, Compras (facturas y pagos a proveedores), Gastos menores, Contabilidad y Reportes. El motor contable se resume en `docs/motor-contable.md`; tablas y RPC en `supabase/AGENTS.md`.
@@ -58,8 +75,7 @@ Próximos: datos de la empresa (RNC, dirección, logo), numeraciones B14/B15/B16
 
 ## Git y despliegue
 
-- Trabajo en ramas `feat/*` → merge a `prueba` (Waldy revisa) → `main` solo por fast-forward con OK de Waldy. Nunca force-push.
-- Las tareas de OpenCode no hacen commit; el coordinador junta y hace un solo commit.
+- Trabajo en ramas `feat/*` desde `origin/prueba`. El agente hace commits chicos y empuja **su rama**. Coder revisa y fusiona a `prueba` (Waldy prueba). `main` solo por fast-forward con OK de Waldy. Nunca force-push ni fusionar a `prueba`/`main` desde una tarea. Ver skill `flujo-git`.
 
 ## Antes de decir "listo"
 
