@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Plus } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -72,15 +73,11 @@ export function FacturasTabla({ facturas, puedeEscribir }: { facturas: FacturaFi
               facturas.map((factura) => (
                 <TableRow key={factura.id}>
                   <TableCell className="font-medium">
-                    <Link className="hover:underline" href={rutaFactura(factura.id)}>
-                      {factura.numero}
-                    </Link>
+                    <Enlace href={rutaFactura(factura.id)}>{factura.numero}</Enlace>
                   </TableCell>
                   <TableCell className="font-mono text-xs">{factura.ncf ?? "—"}</TableCell>
                   <TableCell>
-                    <Link className="hover:underline" href={rutaContacto(factura.contacto_id)}>
-                      {factura.cliente_nombre}
-                    </Link>
+                    <Enlace href={rutaContacto(factura.contacto_id)}>{factura.cliente_nombre}</Enlace>
                   </TableCell>
                   <TableCell>{formatoDia(factura.fecha)}</TableCell>
                   <TableCell>{formatoDia(factura.vencimiento)}</TableCell>

@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { z } from "zod";
+
 import { getRol } from "@/lib/auth/rol";
 import { centavosAValor, valorACentavos } from "@/lib/facturacion/calculo";
 import { mensajeErrorRpc } from "@/lib/facturacion/errores";
@@ -40,4 +42,20 @@ export async function registrarPago(entrada: unknown): Promise<ResultadoPago> {
   revalidatePath("/dashboard/facturacion");
   revalidatePath(`/dashboard/facturacion/${datos.factura_id}`);
   return { ok: true, id: data };
+}
+
+export async function anularPagoRecibido(id: string): Promise<ResultadoPago> {
+  const rol = await getRol();
+  if (rol !== "admin" && rol !== "contador") return { ok: false, error: "No tienes permiso para anular pagos." };
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "Pago inválido." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("anular_documento", { p_tipo: "pago_recibido", p_id: id });
+
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
+
+  revalidatePath("/dashboard/pagos-recibidos");
+  revalidatePath(`/dashboard/pagos-recibidos/${id}`);
+  revalidatePath("/dashboard/facturacion");
+  return { ok: true, id };
 }
