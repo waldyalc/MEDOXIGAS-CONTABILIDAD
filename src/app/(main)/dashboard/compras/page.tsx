@@ -44,7 +44,7 @@ export default async function Page() {
             <TableHeader>
               <TableRow>
                 <TableHead className="pl-(--card-spacing)">Número</TableHead>
-                <TableHead>NCF</TableHead>
+                <TableHead>No. / NCF</TableHead>
                 <TableHead>Proveedor</TableHead>
                 <TableHead>Fecha</TableHead>
                 <TableHead>Vencimiento</TableHead>

@@ -13,6 +13,7 @@ export const crearGastoMenorSchema = z.object({
     })
     .default(0),
   cuenta_gasto_id: z.uuid().optional(),
+  cuenta_pago_id: z.uuid().optional(),
   contacto_id: z.uuid().optional(),
 });
 

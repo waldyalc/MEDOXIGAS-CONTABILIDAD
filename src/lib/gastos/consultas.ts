@@ -1,18 +1,21 @@
 import type { ContactoResumen } from "@/lib/facturacion/tipos";
 import { createClient } from "@/lib/supabase/server";
 
-import type { CuentaGasto, DatosFormularioGasto, GastoLista } from "./tipos";
+import {
+  elegirCuentaGastoPorDefecto,
+  elegirCuentaPagoPorDefecto,
+  filtrarCuentasCajaBanco,
+  filtrarCuentasGasto,
+} from "./seleccion";
+import type { CuentaContable, DatosFormularioGasto, GastoLista } from "./tipos";
 
-export async function getCuentasGasto(): Promise<CuentaGasto[]> {
+async function getCuentas(): Promise<CuentaContable[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("cuentas")
-    .select("id, codigo, nombre")
-    .eq("tipo", "gasto")
-    .eq("activa", true)
-    .eq("acepta_movimientos", true)
+    .select("id, codigo, nombre, tipo, acepta_movimientos, activa, es_caja_banco")
     .order("codigo")
-    .returns<CuentaGasto[]>();
+    .returns<CuentaContable[]>();
 
   if (error) throw new Error(error.message);
   return data;
@@ -33,26 +36,37 @@ export async function getProveedores(): Promise<ContactoResumen[]> {
 }
 
 export async function getDatosFormularioGasto(): Promise<DatosFormularioGasto> {
-  const [cuentas, proveedores] = await Promise.all([getCuentasGasto(), getProveedores()]);
-  const porDefecto = cuentas.find((cuenta) => cuenta.codigo === "6101") ?? cuentas[0];
+  const [cuentasContables, proveedores] = await Promise.all([getCuentas(), getProveedores()]);
+  const cuentas = filtrarCuentasGasto(cuentasContables);
+  const cuentasCajaBanco = filtrarCuentasCajaBanco(cuentasContables);
 
-  return { cuentas, proveedores, cuentaPorDefecto: porDefecto?.id ?? "" };
+  return {
+    cuentas,
+    cuentasCajaBanco,
+    proveedores,
+    cuentaPorDefecto: elegirCuentaGastoPorDefecto(cuentas)?.id ?? "",
+    cuentaPagoPorDefecto: elegirCuentaPagoPorDefecto(cuentasCajaBanco)?.id ?? "",
+  };
 }
 
 export async function getGastosLista(): Promise<GastoLista[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("gastos_menores")
-    .select("id, numero, fecha, contacto_id, cuenta_gasto_id, descripcion, subtotal, itbis, total, estado")
+    .select(
+      "id, numero, ncf, fecha, contacto_id, cuenta_gasto_id, cuenta_pago_id, descripcion, subtotal, itbis, total, estado",
+    )
     .order("numero", { ascending: false })
     .limit(300)
     .returns<
       {
         id: string;
         numero: number;
+        ncf: string | null;
         fecha: string;
         contacto_id: string | null;
         cuenta_gasto_id: string;
+        cuenta_pago_id: string;
         descripcion: string;
         subtotal: number;
         itbis: number;
@@ -64,7 +78,7 @@ export async function getGastosLista(): Promise<GastoLista[]> {
   if (error) throw new Error(error.message);
 
   const contactoIds = [...new Set(data.map((gasto) => gasto.contacto_id).filter((id): id is string => id !== null))];
-  const cuentaIds = [...new Set(data.map((gasto) => gasto.cuenta_gasto_id))];
+  const cuentaIds = [...new Set(data.flatMap((gasto) => [gasto.cuenta_gasto_id, gasto.cuenta_pago_id]))];
 
   const [contactos, cuentas] = await Promise.all([
     contactoIds.length > 0
@@ -89,5 +103,6 @@ export async function getGastosLista(): Promise<GastoLista[]> {
     ...gasto,
     proveedor_nombre: gasto.contacto_id ? (nombresContactos.get(gasto.contacto_id) ?? "—") : "—",
     cuenta_nombre: nombresCuentas.get(gasto.cuenta_gasto_id) ?? "—",
+    cuenta_pago_nombre: nombresCuentas.get(gasto.cuenta_pago_id) ?? "—",
   }));
 }
