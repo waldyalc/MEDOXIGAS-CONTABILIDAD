@@ -26,10 +26,10 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
-import { registrarDeposito, transferirEntreCuentas } from "@/lib/bancos/acciones";
+import { crearCuentaBanco, registrarDeposito, transferirEntreCuentas } from "@/lib/bancos/acciones";
 import { tipoCuenta } from "@/lib/bancos/formato";
 import type { CuentaBanco, CuentaSeleccion } from "@/lib/bancos/tipos";
-import { validarDeposito, validarTransferencia } from "@/lib/bancos/validacion";
+import { validarCuentaBanco, validarDeposito, validarTransferencia } from "@/lib/bancos/validacion";
 import { rutaCuenta } from "@/lib/enlaces";
 import { centavosAValor, parsearCentavos } from "@/lib/facturacion/calculo";
 import { centavos, formatearRd } from "@/lib/reportes/dinero";
@@ -50,6 +50,179 @@ function opciones(cuentas: CuentaSeleccion[]) {
   ));
 }
 
+function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
+  const router = useRouter();
+  const [abierto, setAbierto] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [tipo, setTipo] = useState("banco");
+  const [numeroCuenta, setNumeroCuenta] = useState("");
+  const [saldo, setSaldo] = useState("");
+  const [fecha, setFecha] = useState(fechaHoy);
+  const [descripcion, setDescripcion] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pendiente, iniciar] = useTransition();
+
+  function reiniciar() {
+    setNombre("");
+    setTipo("banco");
+    setNumeroCuenta("");
+    setSaldo("");
+    setFecha(fechaHoy);
+    setDescripcion("");
+    setError(null);
+  }
+
+  function cambiarAbierto(abrir: boolean) {
+    if (abrir) reiniciar();
+    setAbierto(abrir);
+  }
+
+  function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    setError(null);
+
+    const saldoCentavos = parsearCentavos(saldo);
+    if (saldoCentavos === null) {
+      setError("Escribe un saldo inicial válido.");
+      return;
+    }
+
+    const validacion = validarCuentaBanco({
+      nombre,
+      tipo_banco: tipo,
+      saldoCentavos,
+      fecha_saldo_inicial: fecha,
+    });
+    if (validacion) {
+      setError(validacion);
+      return;
+    }
+
+    iniciar(async () => {
+      const resultado = await crearCuentaBanco({
+        nombre: nombre.trim(),
+        tipo_banco: tipo,
+        saldo_inicial: centavosAValor(saldoCentavos),
+        fecha_saldo_inicial: fecha,
+        ...(numeroCuenta.trim() ? { numero_cuenta: numeroCuenta.trim() } : {}),
+        ...(descripcion.trim() ? { descripcion: descripcion.trim() } : {}),
+      });
+
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+
+      setAbierto(false);
+      router.refresh();
+    });
+  }
+
+  return (
+    <Dialog open={abierto} onOpenChange={cambiarAbierto}>
+      <DialogTrigger render={<Button variant="outline" />}>
+        <Plus />
+        Nueva cuenta
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Nueva cuenta</DialogTitle>
+          <DialogDescription>Crea una cuenta de banco o caja con su cuenta contable.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={enviar} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="cuenta-nombre">Nombre de la cuenta *</Label>
+            <Input
+              id="cuenta-nombre"
+              placeholder="Ej. Banco Popular"
+              value={nombre}
+              onChange={(evento) => setNombre(evento.target.value)}
+              maxLength={150}
+              required
+              disabled={pendiente}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="cuenta-tipo">Tipo de cuenta *</Label>
+              <NativeSelect
+                id="cuenta-tipo"
+                className="w-full"
+                value={tipo}
+                onChange={(evento) => setTipo(evento.target.value)}
+                required
+                disabled={pendiente}
+              >
+                <NativeSelectOption value="banco">Banco</NativeSelectOption>
+                <NativeSelectOption value="efectivo">Efectivo</NativeSelectOption>
+                <NativeSelectOption value="tarjeta">Tarjeta</NativeSelectOption>
+              </NativeSelect>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="cuenta-numero">Número de cuenta</Label>
+              <Input
+                id="cuenta-numero"
+                placeholder="Opcional"
+                value={numeroCuenta}
+                onChange={(evento) => setNumeroCuenta(evento.target.value)}
+                maxLength={60}
+                disabled={pendiente}
+              />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="cuenta-saldo">Saldo inicial *</Label>
+              <Input
+                id="cuenta-saldo"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={saldo}
+                onChange={(evento) => setSaldo(evento.target.value)}
+                required
+                disabled={pendiente}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="cuenta-fecha">Fecha de saldo inicial *</Label>
+              <Input
+                id="cuenta-fecha"
+                type="date"
+                value={fecha}
+                onChange={(evento) => setFecha(evento.target.value)}
+                required
+                disabled={pendiente}
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="cuenta-descripcion">Descripción</Label>
+            <Input
+              id="cuenta-descripcion"
+              placeholder="Opcional"
+              value={descripcion}
+              onChange={(evento) => setDescripcion(evento.target.value)}
+              disabled={pendiente}
+            />
+          </div>
+          {error ? (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" disabled={pendiente} />}>Cancelar</DialogClose>
+            <Button type="submit" disabled={pendiente}>
+              {pendiente ? <Loader2 className="animate-spin" /> : null}
+              Crear cuenta
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[]; fechaHoy: string }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
@@ -58,6 +231,8 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
   const [monto, setMonto] = useState("");
   const [fecha, setFecha] = useState(fechaHoy);
   const [notas, setNotas] = useState("");
+  const [numeracionIngreso, setNumeracionIngreso] = useState("");
+  const [numeracionEgreso, setNumeracionEgreso] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
   const sinCuentas = cuentas.length < 2;
@@ -68,6 +243,8 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
     setMonto("");
     setFecha(fechaHoy);
     setNotas("");
+    setNumeracionIngreso("");
+    setNumeracionEgreso("");
     setError(null);
   }
 
@@ -103,6 +280,8 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
         monto: centavosAValor(montoCentavos),
         fecha,
         ...(notas.trim() ? { descripcion: notas.trim() } : {}),
+        ...(numeracionIngreso.trim() ? { numeracion_ingreso: numeracionIngreso.trim() } : {}),
+        ...(numeracionEgreso.trim() ? { numeracion_egreso: numeracionEgreso.trim() } : {}),
       });
 
       if (!resultado.ok) {
@@ -190,15 +369,41 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
               <ChevronDown className="size-4" />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="flex flex-col gap-2 pt-2">
-                <Label htmlFor="transferencia-notas">Notas / descripción</Label>
-                <Input
-                  id="transferencia-notas"
-                  placeholder="Ej. Paso de caja a banco"
-                  value={notas}
-                  onChange={(evento) => setNotas(evento.target.value)}
-                  disabled={pendiente}
-                />
+              <div className="flex flex-col gap-4 pt-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="transferencia-notas">Notas / descripción</Label>
+                  <Input
+                    id="transferencia-notas"
+                    placeholder="Ej. Paso de caja a banco"
+                    value={notas}
+                    onChange={(evento) => setNotas(evento.target.value)}
+                    disabled={pendiente}
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="transferencia-num-ingreso">Numeración ingreso</Label>
+                    <Input
+                      id="transferencia-num-ingreso"
+                      placeholder="Opcional"
+                      value={numeracionIngreso}
+                      onChange={(evento) => setNumeracionIngreso(evento.target.value)}
+                      maxLength={60}
+                      disabled={pendiente}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="transferencia-num-egreso">Numeración egreso</Label>
+                    <Input
+                      id="transferencia-num-egreso"
+                      placeholder="Opcional"
+                      value={numeracionEgreso}
+                      onChange={(evento) => setNumeracionEgreso(evento.target.value)}
+                      maxLength={60}
+                      disabled={pendiente}
+                    />
+                  </div>
+                </div>
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -403,6 +608,7 @@ export function PanelBancos({ cuentas, cuentasCajaBanco, cuentasMovimiento, pued
     <div className="flex flex-col gap-4">
       {puedeEscribir ? (
         <div className="flex flex-wrap justify-end gap-2">
+          <DialogoNuevaCuenta fechaHoy={fechaHoy} />
           <DialogoTransferencia cuentas={cuentasCajaBanco} fechaHoy={fechaHoy} />
           <DialogoDeposito
             cuentasDestino={cuentasCajaBanco}
@@ -439,9 +645,12 @@ export function PanelBancos({ cuentas, cuentasCajaBanco, cuentasMovimiento, pued
                         {cuenta.nombre}
                       </Link>
                       <span className="text-muted-foreground ml-2 text-xs">{cuenta.codigo}</span>
+                      {cuenta.numeroCuenta ? (
+                        <span className="text-muted-foreground block text-xs">N.º {cuenta.numeroCuenta}</span>
+                      ) : null}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{tipoCuenta(cuenta.nombre)}</Badge>
+                      <Badge variant="secondary">{tipoCuenta(cuenta.nombre, cuenta.tipoBanco)}</Badge>
                     </TableCell>
                     <TableCell
                       className={`text-right font-medium tabular-nums ${saldoCentavos < 0 ? "text-destructive" : ""}`}

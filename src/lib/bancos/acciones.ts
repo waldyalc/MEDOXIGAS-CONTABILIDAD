@@ -11,7 +11,14 @@ import { mensajeValidacion } from "@/lib/facturacion/validacion";
 import { avisoSaldoCuenta } from "@/lib/reportes/saldos";
 import { createClient } from "@/lib/supabase/server";
 
-import { depositoSchema, transferenciaSchema, validarDeposito, validarTransferencia } from "./validacion";
+import {
+  cuentaBancoSchema,
+  depositoSchema,
+  transferenciaSchema,
+  validarCuentaBanco,
+  validarDeposito,
+  validarTransferencia,
+} from "./validacion";
 
 export type ResultadoBanco = { ok: true; id: string; aviso?: string } | { ok: false; error: string };
 
@@ -45,6 +52,8 @@ export async function transferirEntreCuentas(entrada: unknown): Promise<Resultad
     monto: centavosAValor(montoCentavos),
     fecha: datos.fecha,
     ...(datos.descripcion ? { descripcion: datos.descripcion } : {}),
+    ...(datos.numeracion_ingreso ? { numeracion_ingreso: datos.numeracion_ingreso } : {}),
+    ...(datos.numeracion_egreso ? { numeracion_egreso: datos.numeracion_egreso } : {}),
   };
 
   const supabase = (await createClient()) as unknown as SupabaseClient;
@@ -57,6 +66,44 @@ export async function transferirEntreCuentas(entrada: unknown): Promise<Resultad
 
   revalidatePath("/dashboard/bancos");
   return { ok: true, id: data, ...(aviso ? { aviso } : {}) };
+}
+
+export async function crearCuentaBanco(entrada: unknown): Promise<ResultadoBanco> {
+  const rol = await getRol();
+  if (rol !== "admin" && rol !== "contador") {
+    return { ok: false, error: "No tienes permiso para crear cuentas de banco." };
+  }
+
+  const resultado = cuentaBancoSchema.safeParse(entrada);
+  if (!resultado.success) return { ok: false, error: mensajeValidacion(resultado.error) };
+
+  const datos = resultado.data;
+  const saldoCentavos = valorACentavos(datos.saldo_inicial);
+  const errorValidacion = validarCuentaBanco({
+    nombre: datos.nombre,
+    tipo_banco: datos.tipo_banco,
+    saldoCentavos,
+    fecha_saldo_inicial: datos.fecha_saldo_inicial,
+  });
+  if (errorValidacion) return { ok: false, error: errorValidacion };
+
+  const payload = {
+    nombre: datos.nombre,
+    tipo_banco: datos.tipo_banco,
+    saldo_inicial: centavosAValor(saldoCentavos),
+    fecha_saldo_inicial: datos.fecha_saldo_inicial,
+    ...(datos.numero_cuenta ? { numero_cuenta: datos.numero_cuenta } : {}),
+    ...(datos.descripcion ? { descripcion: datos.descripcion } : {}),
+  };
+
+  const supabase = (await createClient()) as unknown as SupabaseClient;
+  const { data, error } = await supabase.rpc("crear_cuenta_banco", { p: payload }).returns<string>();
+
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
+  if (typeof data !== "string") return { ok: false, error: "No se pudo crear la cuenta de banco." };
+
+  revalidatePath("/dashboard/bancos");
+  return { ok: true, id: data };
 }
 
 export async function registrarDeposito(entrada: unknown): Promise<ResultadoBanco> {
