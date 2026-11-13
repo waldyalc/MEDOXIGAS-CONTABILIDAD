@@ -11,6 +11,7 @@ function factura(cambios: Partial<FacturaAbierta> & Pick<FacturaAbierta, "id">):
     vencimiento: "2026-11-30",
     total: 100,
     pagado: 0,
+    credito: 0,
     contacto_id: "proveedor-1",
     contactos: null,
     ...cambios,

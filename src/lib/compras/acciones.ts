@@ -26,7 +26,10 @@ function revalidarCompras(id?: string) {
   if (id) revalidatePath(`/dashboard/compras/${id}`);
 }
 
-export async function crearFacturaProveedor(entrada: EntradaFacturaProveedor): Promise<ResultadoAccion> {
+export async function crearFacturaProveedor(
+  entrada: EntradaFacturaProveedor,
+  ordenId?: string,
+): Promise<ResultadoAccion> {
   if (!(await puedeEscribir())) return { ok: false, error: "No tienes permiso para registrar compras." };
 
   const resultado = esquemaFacturaProveedor.safeParse(entrada);
@@ -58,6 +61,17 @@ export async function crearFacturaProveedor(entrada: EntradaFacturaProveedor): P
 
   if (error) return { ok: false, error: mensajeErrorRpc(error) };
   if (!data) return { ok: false, error: "No se pudo crear la factura de proveedor." };
+
+  if (ordenId && z.uuid().safeParse(ordenId).success) {
+    const { error: errorOrden } = await supabase.rpc("vincular_orden_compra", {
+      p_orden_id: ordenId,
+      p_factura_proveedor_id: data,
+    });
+
+    if (errorOrden) console.warn("No se pudo vincular la orden de compra:", errorOrden.message);
+    revalidatePath("/dashboard/ordenes-compra");
+    revalidatePath(`/dashboard/ordenes-compra/${ordenId}`);
+  }
 
   revalidarCompras(data);
   redirect(`/dashboard/compras/${data}`);

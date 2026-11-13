@@ -24,7 +24,7 @@ export async function listarFacturasProveedor(): Promise<FacturaLista[]> {
   const supabase = await cliente();
   const { data, error } = await supabase
     .from("facturas_proveedor")
-    .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, estado, contactos(nombre)")
+    .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, estado, contactos(nombre)")
     .order("fecha", { ascending: false })
     .order("numero", { ascending: false })
     .returns<FacturaLista[]>();
@@ -38,7 +38,7 @@ export async function obtenerFacturaProveedor(id: string): Promise<DetalleFactur
   const { data: factura, error } = await supabase
     .from("facturas_proveedor")
     .select(
-      "id, numero, ncf, contacto_id, fecha, vencimiento, subtotal, itbis, total, pagado, estado, notas, asiento_id, contactos(nombre, rnc_cedula)",
+      "id, numero, ncf, contacto_id, fecha, vencimiento, subtotal, itbis, total, pagado, credito, estado, notas, asiento_id, contactos(nombre, rnc_cedula)",
     )
     .eq("id", id)
     .maybeSingle<DetalleFacturaCompleto["factura"]>();
@@ -180,7 +180,7 @@ export async function cargarOpcionesPago(): Promise<OpcionesPago> {
     cargarCuentasCajaBanco(),
     supabase
       .from("facturas_proveedor")
-      .select("id, numero, ncf, fecha, vencimiento, total, pagado, contacto_id, contactos(nombre)")
+      .select("id, numero, ncf, fecha, vencimiento, total, pagado, credito, contacto_id, contactos(nombre)")
       .eq("estado", "abierta")
       .order("vencimiento")
       .returns<FacturaAbierta[]>(),

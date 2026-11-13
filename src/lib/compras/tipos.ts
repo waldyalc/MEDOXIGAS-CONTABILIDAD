@@ -45,6 +45,7 @@ export interface FacturaLista {
   vencimiento: string;
   total: number;
   pagado: number;
+  credito: number;
   estado: EstadoDocumento;
   contactos: ContactoResumen | null;
 }
@@ -60,6 +61,7 @@ export interface FacturaDetalle {
   itbis: number;
   total: number;
   pagado: number;
+  credito: number;
   estado: EstadoDocumento;
   notas: string | null;
   asiento_id: string | null;
@@ -116,6 +118,7 @@ export interface FacturaAbierta {
   vencimiento: string;
   total: number;
   pagado: number;
+  credito: number;
   contacto_id: string;
   contactos: ContactoResumen | null;
 }
