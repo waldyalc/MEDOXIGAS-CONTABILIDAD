@@ -221,7 +221,7 @@ export function AjusteForm({
                       <TableCell>
                         <Select
                           items={productosItems}
-                          value={linea.productoId}
+                          value={linea.productoId === "" ? null : linea.productoId}
                           onValueChange={(valor: string | null) => seleccionarProducto(linea.clave, valor ?? "")}
                         >
                           <SelectTrigger
