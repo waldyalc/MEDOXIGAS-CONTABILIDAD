@@ -71,6 +71,7 @@ export default async function Page() {
                   const total = aNumero(factura.total);
                   const pagado = aNumero(factura.pagado);
                   const credito = aNumero(factura.credito);
+                  const retenido = aNumero(factura.retenido);
 
                   return (
                     <TableRow key={factura.id}>
@@ -90,7 +91,7 @@ export default async function Page() {
                       <TableCell className="text-right tabular-nums">{formatoMoneda(total)}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatoMoneda(pagado)}</TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {formatoMoneda(total - pagado - credito)}
+                        {formatoMoneda(total - pagado - credito - retenido)}
                       </TableCell>
                       <TableCell className="pr-(--card-spacing)">
                         <EstadoBadge estado={factura.estado} />

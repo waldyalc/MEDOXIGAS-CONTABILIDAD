@@ -92,7 +92,10 @@ function datosDeFactura(
     numero: String(factura.numero),
     ncf: factura.ncf,
     ncfVence,
-    saldo: factura.tipo_comprobante === "01" ? saldoDeFactura(factura.total, factura.pagado, factura.credito) : null,
+    saldo:
+      factura.tipo_comprobante === "01"
+        ? saldoDeFactura(factura.total, factura.pagado, factura.credito, factura.retenido)
+        : null,
     mostrarLogo,
   };
 }

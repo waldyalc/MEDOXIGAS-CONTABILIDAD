@@ -11,6 +11,7 @@ import {
   MapPin,
   Percent,
   Printer,
+  ReceiptText,
   UserRound,
   Users,
 } from "lucide-react";
@@ -119,6 +120,13 @@ export default async function Page() {
           descripcion: "Tasas de ITBIS disponibles en productos y facturas.",
           url: "/dashboard/configuracion/impuestos",
           icon: Percent,
+        },
+        {
+          id: "retenciones",
+          titulo: "Retenciones",
+          descripcion: "Retenciones de ITBIS e ISR para los pagos.",
+          url: "/dashboard/configuracion/retenciones",
+          icon: ReceiptText,
         },
       ],
     },

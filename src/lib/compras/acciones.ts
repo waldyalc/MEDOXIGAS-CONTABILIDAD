@@ -97,6 +97,7 @@ export async function registrarPagoProveedor(entrada: EntradaPagoProveedor): Pro
         cuenta_id: datos.cuenta_id,
         metodo: datos.metodo,
         monto: datos.monto,
+        ...(datos.retenciones.length > 0 ? { retenciones: datos.retenciones } : {}),
       },
     })
     .returns<string>();

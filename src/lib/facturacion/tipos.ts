@@ -56,6 +56,7 @@ export interface FacturaLista {
   total: number;
   pagado: number;
   credito: number;
+  retenido: number;
   estado: EstadoFactura;
 }
 

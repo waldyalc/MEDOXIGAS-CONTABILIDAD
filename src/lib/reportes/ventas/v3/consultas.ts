@@ -31,6 +31,7 @@ interface FacturaEstadoCruda {
 interface PagoCrudo {
   factura_id: string | null;
   monto: number;
+  retenido: number;
 }
 
 interface FacturaVendedorCruda {
@@ -166,7 +167,7 @@ export async function obtenerEstadoCuentaCliente(
     ids.length > 0
       ? await supabase
           .from("pagos_recibidos")
-          .select("factura_id, monto")
+          .select("factura_id, monto, retenido")
           .in("factura_id", ids)
           .eq("estado", "activo")
           .lte("fecha", corte)
@@ -176,9 +177,11 @@ export async function obtenerEstadoCuentaCliente(
   if (pagos.error) return { filas: [], error: pagos.error.message, clienteNombre: contacto.data?.nombre ?? null };
 
   const cobradoPorFactura = new Map<string, number>();
+  const retenidoPorFactura = new Map<string, number>();
   for (const pago of pagos.data) {
     if (pago.factura_id == null) continue;
     cobradoPorFactura.set(pago.factura_id, (cobradoPorFactura.get(pago.factura_id) ?? 0) + centavos(pago.monto));
+    retenidoPorFactura.set(pago.factura_id, (retenidoPorFactura.get(pago.factura_id) ?? 0) + centavos(pago.retenido));
   }
 
   return {
@@ -190,6 +193,7 @@ export async function obtenerEstadoCuentaCliente(
       vencimiento: factura.vencimiento,
       total: factura.total,
       cobrado: (cobradoPorFactura.get(factura.id) ?? 0) / 100,
+      retenido: (retenidoPorFactura.get(factura.id) ?? 0) / 100,
     })),
     error: null,
     clienteNombre: contacto.data?.nombre ?? null,

@@ -45,6 +45,7 @@ export interface FilaEstadoCuenta {
   vencimiento: string;
   total: number | string | null;
   cobrado: number | string | null;
+  retenido: number | string | null;
 }
 
 export interface DocumentoEstadoCuenta {

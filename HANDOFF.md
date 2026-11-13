@@ -61,6 +61,36 @@
 - Migraciones aditivas `20261114900000_inventario_existencias_precios.sql` y `20261114901000_transferencias_inventario.sql` (NO aplicadas al remoto). pgTAP `supabase/tests/inventario_almacenes_test.sql` (36 asserts, aislado). Tipos de las tablas nuevas a mano en `types.ts`.
 - `typecheck`, `test` (503), Biome y `build` en verde. pgTAP no se pudo correr aquí (sin Docker/Supabase CLI).
 - Pendiente/fuera: conduces no mueven stock; anular una nota de crédito de venta sigue sin soporte; la anulación de ajustes no revierte el costo promedio.
+## Retenciones de ITBIS e ISR (15 nov 2026)
+
+- Configuración > Retenciones: catálogo con nombre, tipo (ITBIS/ISR), porcentaje,
+  cuenta cuando retenemos (pasivo), cuenta cuando nos retienen (activo) y activa.
+  Lista, crear y editar. Semilla con ITBIS 30 %, ITBIS 100 %, ISR 10 %
+  honorarios, ISR 2 % servicios e ISR 5 % alquileres (`ON CONFLICT DO NOTHING`).
+- Pagos recibidos y pagos a proveedores: «Más opciones» > Retenciones. El
+  servidor recalcula la base (ITBIS sobre el ITBIS de la factura, ISR sobre el
+  subtotal) y arma el asiento. Lo retenido por un cliente va a activo/anticipo;
+  lo retenido a un proveedor, a pasivo por pagar. El saldo de la factura resta
+  `pagado + credito + retenido`; «Valor retenido» de la factura ya es real y la
+  anulación del pago revierte ambos.
+- Reportes IR-17 (retenciones a proveedores por tipo y totales) y Cartas de
+  retención (lista por proveedor y período con carta imprimible). Son de solo
+  lectura: no crean ni envían nada hasta que el usuario guarde un documento.
+- Migraciones aditivas `20261115100000_retenciones.sql`,
+  `20261115100100_pagos_retenciones.sql` y
+  `20261115100200_reporte_cxc_retenciones.sql` (NO aplicadas al remoto).
+  Reemplazan `registrar_pago_recibido`, `registrar_pago_proveedor`,
+  `anular_documento` y `reporte_cxc` manteniendo su firma. Tipos de las tablas y
+  RPC nuevas agregados a mano en `types.ts`.
+- pgTAP `supabase/tests/retenciones_test.sql` (27 asserts, aislados). No se pudo
+  correr en local (sin Docker/Supabase CLI).
+- VERIFICAR con DGII: tasas y cuentas sembradas (1107/1108/2103/2104). Ver los
+  comentarios `VERIFICAR` en la migración.
+- Pendiente menor: las RPC de notas de crédito aún recalculan el estado de la
+  factura sin `retenido`; el saldo de los reportes sí lo resta. Los pgTAP no se
+  corrieron en local.
+
+- Integración en `prueba`: la migración de pagos no se aplicó cruda. `anular_documento` conserva movimiento de existencias por almacén, centro de costo y anulación de ajustes, y suma el recálculo de `retenido`. Las tres migraciones ya están aplicadas en el remoto compartido; `types.ts` se regeneró con el generador.
 
 ## Inventario: ajustes, almacenes y categorías (14 nov 2026)
 

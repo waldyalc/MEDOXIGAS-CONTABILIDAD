@@ -28,11 +28,13 @@ interface FilaCxcDb {
   vencimiento: string;
   total: number | string;
   pagado: number | string;
+  credito: number | string;
+  retenido: number | string;
   contactos: ContactoEmbed | ContactoEmbed[] | null;
 }
 
-interface FilaCxpDb extends FilaCxcDb {
-  credito: number | string;
+interface FilaCxpDb extends Omit<FilaCxcDb, "ncf"> {
+  ncf: string | null;
 }
 
 interface FilaCompraDb {
@@ -64,7 +66,7 @@ function convertirCartera(
 ): FilaCartera | null {
   const total = centavos(fila.total);
   const pagado = centavos(fila.pagado);
-  const saldo = saldoCartera(total, pagado, credito);
+  const saldo = saldoCartera(total, pagado, credito, centavos(fila.retenido));
   if (saldo <= 0) return null;
 
   const dias = diasVencida(fila.vencimiento, corte);
@@ -90,7 +92,7 @@ export async function obtenerCarteraCxc(hasta: string): Promise<RespuestaReporte
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("facturas")
-    .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, contactos(nombre)")
+    .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, contactos(nombre)")
     .neq("estado", "anulada")
     .lte("fecha", hasta)
     .order("fecha", { ascending: false })
@@ -112,7 +114,7 @@ export async function obtenerCarteraCxp(desde: string, hasta: string): Promise<R
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("facturas_proveedor")
-    .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, contactos(nombre)")
+    .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, contactos(nombre)")
     .neq("estado", "anulada")
     .gte("fecha", desde)
     .lte("fecha", hasta)
