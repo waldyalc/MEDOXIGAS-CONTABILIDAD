@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ArrowLeft, BookOpen } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,9 +96,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <dt className="text-muted-foreground">Proveedor</dt>
             <dd className="font-medium">
               {factura.contactos ? (
-                <Link className="hover:underline" href={rutaContacto(factura.contacto_id)}>
-                  {factura.contactos.nombre}
-                </Link>
+                <Enlace href={rutaContacto(factura.contacto_id)}>{factura.contactos.nombre}</Enlace>
               ) : (
                 "—"
               )}
@@ -177,9 +176,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                         {linea.productos ? (
                           <span className="text-muted-foreground text-xs">
                             {linea.producto_id ? (
-                              <Link className="hover:underline" href={rutaProducto(linea.producto_id)}>
-                                {linea.productos.nombre}
-                              </Link>
+                              <Enlace href={rutaProducto(linea.producto_id)}>{linea.productos.nombre}</Enlace>
                             ) : (
                               linea.productos.nombre
                             )}
@@ -244,9 +241,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 pagos.map((pago) => (
                   <TableRow key={pago.id}>
                     <TableCell className="pl-(--card-spacing) font-medium">
-                      <Link className="hover:underline" href={rutaPagoProveedor(pago.id)}>
-                        #{pago.numero}
-                      </Link>
+                      <Enlace href={rutaPagoProveedor(pago.id)}>#{pago.numero}</Enlace>
                     </TableCell>
                     <TableCell>{formatoDia(pago.fecha)}</TableCell>
                     <TableCell>{ETIQUETAS_METODO[pago.metodo]}</TableCell>
@@ -300,9 +295,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                   <TableRow key={linea.id}>
                     <TableCell className="pl-(--card-spacing) whitespace-normal">
                       {linea.cuentas ? (
-                        <Link className="hover:underline" href={rutaCuenta(linea.cuenta_id)}>
+                        <Enlace href={rutaCuenta(linea.cuenta_id)}>
                           {linea.cuentas.codigo} · {linea.cuentas.nombre}
-                        </Link>
+                        </Enlace>
                       ) : (
                         "—"
                       )}
