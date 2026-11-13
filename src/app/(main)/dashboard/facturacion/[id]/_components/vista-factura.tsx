@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ArrowLeft, Ban, BookOpen, CreditCard, Loader2, Printer } from "lucide-react";
+import { ArrowLeft, Ban, BookOpen, CreditCard, FileMinus, Loader2, Printer } from "lucide-react";
 import { createPortal } from "react-dom";
 
 import { Enlace } from "@/components/enlace";
@@ -50,8 +50,9 @@ export function VistaFactura({ datos, puedeEscribir }: { datos: FacturaVista; pu
   }, []);
 
   const { factura, lineas, contacto, empresa, ncfVence, asiento, pagos } = datos;
-  const saldo = saldoDeFactura(factura.total, factura.pagado);
+  const saldo = saldoDeFactura(factura.total, factura.pagado, factura.credito);
   const puedePagar = puedeEscribir && saldo > 0 && factura.estado !== "anulada";
+  const puedeNotaCredito = puedeEscribir && saldo > 0 && factura.estado !== "anulada";
   const puedeAnular = puedeEscribir && factura.estado !== "anulada";
 
   function anular() {
@@ -85,6 +86,12 @@ export function VistaFactura({ datos, puedeEscribir }: { datos: FacturaVista; pu
             <Button variant="outline" render={<Link href={rutaAsiento(asiento.asiento.id)} />}>
               <BookOpen />
               Ver asiento
+            </Button>
+          ) : null}
+          {puedeNotaCredito ? (
+            <Button variant="outline" render={<Link href={`/dashboard/notas-credito/nueva?factura=${factura.id}`} />}>
+              <FileMinus />
+              Nota de crédito
             </Button>
           ) : null}
           {puedePagar ? (

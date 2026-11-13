@@ -46,6 +46,7 @@ export interface FacturaLista {
   vencimiento: string;
   total: number;
   pagado: number;
+  credito: number;
   estado: EstadoFactura;
 }
 
