@@ -2,6 +2,8 @@
 
 import { type FormEvent, useState, useTransition } from "react";
 
+import Link from "next/link";
+
 import { ChevronDown, Pencil, Plus, Search } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -249,7 +251,11 @@ export function ContactosCliente({
             ) : (
               filtrados.map((contacto) => (
                 <TableRow key={contacto.id}>
-                  <TableCell className="font-medium">{contacto.nombre}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link href={`/dashboard/contactos/${contacto.id}`} className="hover:underline">
+                      {contacto.nombre}
+                    </Link>
+                  </TableCell>
                   <TableCell className="tabular-nums">{contacto.rnc_cedula ?? "—"}</TableCell>
                   <TableCell className="tabular-nums">{contacto.telefono ?? "—"}</TableCell>
                   <TableCell>
