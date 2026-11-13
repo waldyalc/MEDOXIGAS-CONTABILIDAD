@@ -31,6 +31,9 @@ export default async function Page() {
           <Button variant="outline" render={<Link href="/dashboard/compras/pagos" prefetch={false} />}>
             Pagos a proveedores
           </Button>
+          <Button variant="outline" render={<Link href="/dashboard/compras/notas-credito" prefetch={false} />}>
+            Notas de crédito
+          </Button>
           {rol !== "lector" ? (
             <Button render={<Link href="/dashboard/compras/nueva" prefetch={false} />}>
               <Plus data-icon="inline-start" />
@@ -67,6 +70,7 @@ export default async function Page() {
                 facturas.map((factura) => {
                   const total = aNumero(factura.total);
                   const pagado = aNumero(factura.pagado);
+                  const credito = aNumero(factura.credito);
 
                   return (
                     <TableRow key={factura.id}>
@@ -85,7 +89,9 @@ export default async function Page() {
                       <TableCell>{formatoDia(factura.vencimiento)}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatoMoneda(total)}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatoMoneda(pagado)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatoMoneda(total - pagado)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatoMoneda(total - pagado - credito)}
+                      </TableCell>
                       <TableCell className="pr-(--card-spacing)">
                         <EstadoBadge estado={factura.estado} />
                       </TableCell>

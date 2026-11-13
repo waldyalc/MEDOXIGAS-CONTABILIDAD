@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { ArrowLeft, BookOpen } from "lucide-react";
+import { ArrowLeft, BookOpen, FileMinus2 } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
@@ -52,7 +52,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   const total = aNumero(factura.total);
   const pagado = aNumero(factura.pagado);
-  const saldo = total - pagado;
+  const credito = aNumero(factura.credito);
+  const saldo = total - pagado - credito;
 
   const debitos = lineasAsiento.reduce((suma, linea) => suma + aNumero(linea.debito), 0);
   const creditos = lineasAsiento.reduce((suma, linea) => suma + aNumero(linea.credito), 0);
@@ -75,15 +76,26 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <h1 className="text-2xl font-semibold tracking-tight">Factura de proveedor #{factura.numero}</h1>
             <EstadoBadge estado={factura.estado} />
           </div>
-          <AccionesFactura
-            facturaId={factura.id}
-            numero={factura.numero}
-            estado={factura.estado}
-            saldo={saldo}
-            cuentas={cuentasCajaBanco}
-            puedeRegistrarPago={puedeEscribir}
-            puedeAnular={puedeEscribir}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            {puedeEscribir && factura.estado !== "anulada" ? (
+              <Button
+                variant="outline"
+                render={<Link href={`/dashboard/compras/notas-credito/nueva?factura=${factura.id}`} prefetch={false} />}
+              >
+                <FileMinus2 data-icon="inline-start" />
+                Nota de crédito
+              </Button>
+            ) : null}
+            <AccionesFactura
+              facturaId={factura.id}
+              numero={factura.numero}
+              estado={factura.estado}
+              saldo={saldo}
+              cuentas={cuentasCajaBanco}
+              puedeRegistrarPago={puedeEscribir}
+              puedeAnular={puedeEscribir}
+            />
+          </div>
         </div>
       </div>
 
@@ -134,6 +146,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               <span className="text-muted-foreground">Pagado</span>
               <span className="tabular-nums">{formatoMoneda(pagado)}</span>
             </div>
+            {credito > 0 ? (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Notas de crédito</span>
+                <span className="tabular-nums">{formatoMoneda(credito)}</span>
+              </div>
+            ) : null}
             <Separator />
             <div className="flex items-center justify-between font-medium">
               <span>Por pagar</span>

@@ -22,6 +22,18 @@ export function rutaCompra(id: string) {
   return ruta("/dashboard/compras", id);
 }
 
+export function rutaNotaCreditoCompra(id: string) {
+  return ruta("/dashboard/compras/notas-credito", id);
+}
+
+export function rutaOrdenCompra(id: string) {
+  return ruta("/dashboard/ordenes-compra", id);
+}
+
+export function rutaPagoRecurrente(id: string) {
+  return ruta("/dashboard/pagos-recurrentes", id);
+}
+
 export function rutaCotizacion(id: string) {
   return ruta("/dashboard/cotizaciones", id);
 }
