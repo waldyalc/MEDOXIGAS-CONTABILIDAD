@@ -156,6 +156,16 @@ export const sidebarItems: NavGroup[] = [
             title: "Numeraciones",
             url: "/dashboard/contabilidad/numeraciones",
           },
+          {
+            id: "activos-fijos",
+            title: "Activos fijos",
+            url: "/dashboard/contabilidad/activos",
+          },
+          {
+            id: "periodos",
+            title: "Periodos",
+            url: "/dashboard/contabilidad/periodos",
+          },
         ],
       },
       {
