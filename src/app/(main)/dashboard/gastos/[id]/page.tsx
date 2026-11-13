@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ArrowLeft, BookOpen } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,36 +69,22 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <dt className="text-muted-foreground">Proveedor</dt>
             <dd>
               {gasto.contacto_id ? (
-                <Link
-                  href={rutaContacto(gasto.contacto_id)}
-                  prefetch={false}
-                  className="hover:text-foreground hover:underline"
-                >
-                  {gasto.contacto?.nombre ?? "—"}
-                </Link>
+                <Enlace href={rutaContacto(gasto.contacto_id)}>{gasto.contacto?.nombre ?? "—"}</Enlace>
               ) : (
                 "—"
               )}
             </dd>
             <dt className="text-muted-foreground">Cuenta de gasto</dt>
             <dd>
-              <Link
-                href={rutaCuenta(gasto.cuenta_gasto_id)}
-                prefetch={false}
-                className="hover:text-foreground hover:underline"
-              >
+              <Enlace href={rutaCuenta(gasto.cuenta_gasto_id)}>
                 {gasto.cuenta_gasto ? `${gasto.cuenta_gasto.codigo} · ${gasto.cuenta_gasto.nombre}` : "—"}
-              </Link>
+              </Enlace>
             </dd>
             <dt className="text-muted-foreground">Cuenta de pago</dt>
             <dd>
-              <Link
-                href={rutaCuenta(gasto.cuenta_pago_id)}
-                prefetch={false}
-                className="hover:text-foreground hover:underline"
-              >
+              <Enlace href={rutaCuenta(gasto.cuenta_pago_id)}>
                 {gasto.cuenta_pago ? `${gasto.cuenta_pago.codigo} · ${gasto.cuenta_pago.nombre}` : "—"}
-              </Link>
+              </Enlace>
             </dd>
           </dl>
           <div className="flex flex-col gap-2 rounded-lg border p-4">
