@@ -1,40 +1,48 @@
-import { Fragment } from "react";
-
 import { BookOpen } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatoDia } from "@/lib/formato";
-import { obtenerLibroDiario } from "@/lib/reportes/consultas";
 import { formatearRd } from "@/lib/reportes/dinero";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
-import { agruparLibroDiario, etiquetaOrigen, totalesLibroDiario } from "@/lib/reportes/libro-diario";
+import { obtenerMovimientos } from "@/lib/reportes/libros/consultas";
+import { calcularLibroDiario } from "@/lib/reportes/libros/libro-diario";
+import { leerEntero, normalizarOrigenes } from "@/lib/reportes/libros/parametros";
 
 import { AlertaError } from "../_components/alerta-error";
 import { EncabezadoReporte } from "../_components/encabezado-reporte";
-import { FiltroFechas } from "../_components/filtro-fechas";
+import { EstadoAsiento } from "../_components/libros/estado-asiento";
+import { FiltroLibroDiario } from "../_components/libros/filtro-libro-diario";
+import { PaginacionLibro } from "../_components/libros/paginacion-libro";
+
+const OPCIONES_POR_PAGINA = [10, 25, 50];
 
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosFecha> }) {
-  const { desde, hasta } = parsearRango(await searchParams);
-  const { filas, error } = await obtenerLibroDiario(desde, hasta);
-  const asientos = agruparLibroDiario(filas);
-  const totales = totalesLibroDiario(asientos);
+  const params = await searchParams;
+  const { desde, hasta } = parsearRango(params);
+  const origenes = normalizarOrigenes(params.origen);
+  const solicitado = leerEntero(params.porPagina, 10, 10, 50);
+  const porPagina = OPCIONES_POR_PAGINA.includes(solicitado) ? solicitado : 10;
+  const pagina = leerEntero(params.pagina, 1, 1, 100000);
+
+  const { filas, error } = await obtenerMovimientos({ desde, hasta, origenes });
+  const libro = calcularLibroDiario(filas, { pagina, porPagina });
 
   return (
     <div className="flex flex-col gap-6">
       <EncabezadoReporte
         titulo="Libro diario"
-        descripcion="Asientos contables generados por el motor, agrupados por asiento."
+        descripcion="Todos los asientos del período con sus débitos y créditos."
         desde={desde}
         hasta={hasta}
       />
 
-      <FiltroFechas desde={desde} hasta={hasta} />
+      <FiltroLibroDiario desde={desde} hasta={hasta} origenes={origenes} porPagina={porPagina} />
 
       {error ? <AlertaError mensaje={error} /> : null}
 
-      {asientos.length === 0 ? (
+      {libro.totalFilas === 0 ? (
         <Empty className="border">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -45,59 +53,57 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           </EmptyHeader>
         </Empty>
       ) : (
-        <Card className="py-0">
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cuenta</TableHead>
-                  <TableHead className="text-right">Débito</TableHead>
-                  <TableHead className="text-right">Crédito</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {asientos.map((asiento) => (
-                  <Fragment key={asiento.numero}>
-                    <TableRow className="bg-muted/50 hover:bg-muted/50">
-                      <TableCell colSpan={3} className="font-medium">
-                        Asiento #{asiento.numero} · {formatoDia(asiento.fecha)} · {asiento.descripcion}
-                        <span className="text-muted-foreground font-normal">
-                          {" "}
-                          ({etiquetaOrigen(asiento.origenTipo)})
-                        </span>
+        <div className="flex flex-col gap-3">
+          <Card className="py-0">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Asiento</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Tercero</TableHead>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Cuenta contable</TableHead>
+                    <TableHead>Centro de costo</TableHead>
+                    <TableHead className="text-right">Débito</TableHead>
+                    <TableHead className="text-right">Crédito</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {libro.filas.map((fila) => (
+                    <TableRow key={fila.clave}>
+                      <TableCell className="tabular-nums">{fila.asientoNumero}</TableCell>
+                      <TableCell>
+                        <EstadoAsiento estado={fila.estado} />
+                      </TableCell>
+                      <TableCell>{formatoDia(fila.fecha)}</TableCell>
+                      <TableCell>{fila.tercero || "—"}</TableCell>
+                      <TableCell className="text-muted-foreground tabular-nums">{fila.cuentaCodigo}</TableCell>
+                      <TableCell>{fila.cuentaNombre}</TableCell>
+                      <TableCell className="text-muted-foreground">{fila.centroCosto || "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {fila.debito === 0 ? "" : formatearRd(fila.debito)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {fila.credito === 0 ? "" : formatearRd(fila.credito)}
                       </TableCell>
                     </TableRow>
-                    {asiento.lineas.map((linea) => (
-                      <TableRow key={linea.clave}>
-                        <TableCell>
-                          <span className="text-muted-foreground">{linea.cuentaCodigo}</span> {linea.cuentaNombre}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {linea.debito === 0 ? "" : formatearRd(linea.debito)}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {linea.credito === 0 ? "" : formatearRd(linea.credito)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow className="font-medium">
-                      <TableCell className="text-right">Total asiento #{asiento.numero}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatearRd(asiento.totalDebito)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatearRd(asiento.totalCredito)}</TableCell>
-                    </TableRow>
-                  </Fragment>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell>Totales del período</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatearRd(totales.debitos)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatearRd(totales.creditos)}</TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </CardContent>
-        </Card>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <PaginacionLibro
+            ruta="/dashboard/reportes/libro-diario"
+            parametros={{ desde, hasta, origen: origenes, porPagina }}
+            pagina={libro.pagina}
+            porPagina={libro.porPagina}
+            totalPaginas={libro.totalPaginas}
+            rangoTexto={libro.rangoTexto}
+          />
+        </div>
       )}
     </div>
   );
