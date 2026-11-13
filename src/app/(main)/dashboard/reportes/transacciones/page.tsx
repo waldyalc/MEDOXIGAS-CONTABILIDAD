@@ -12,6 +12,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaContacto, rutaGasto, rutaPagoProveedor, rutaPagoRecibido } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { obtenerTransacciones } from "@/lib/reportes/administrativos/e/consultas";
 import { tablaTransacciones } from "@/lib/reportes/administrativos/e/tablas";
@@ -22,7 +23,6 @@ import {
   paginarTransacciones,
   totalesTransacciones,
 } from "@/lib/reportes/administrativos/e/transacciones";
-import { urlContacto, urlGastoMenor, urlPagoProveedor, urlPagoRecibido } from "@/lib/reportes/administrativos/e/urls";
 import { centavos, formatearRd } from "@/lib/reportes/dinero";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 
@@ -37,9 +37,9 @@ function leerParametro(valor: string | string[] | undefined): string {
 }
 
 function urlMovimiento(movimiento: MovimientoTransaccion): string {
-  if (movimiento.origen === "pago_recibido") return urlPagoRecibido(movimiento.id);
-  if (movimiento.origen === "pago_proveedor") return urlPagoProveedor(movimiento.id);
-  return urlGastoMenor(movimiento.id);
+  if (movimiento.origen === "pago_recibido") return rutaPagoRecibido(movimiento.id);
+  if (movimiento.origen === "pago_proveedor") return rutaPagoProveedor(movimiento.id);
+  return rutaGasto(movimiento.id);
 }
 
 function urlPagina(pagina: number, filtros: Record<string, string>): string {
@@ -63,7 +63,7 @@ function FilaTransaccion({ movimiento }: { movimiento: MovimientoTransaccion }) 
       <TableCell>{movimiento.cuenta}</TableCell>
       <TableCell>
         {movimiento.contactoId ? (
-          <Link href={urlContacto(movimiento.contactoId)} className="hover:underline">
+          <Link href={rutaContacto(movimiento.contactoId)} className="hover:underline">
             {movimiento.contactoNombre ?? "—"}
           </Link>
         ) : (

@@ -12,39 +12,6 @@ interface ParametrosEstadoCuenta {
   documento?: string;
 }
 
-export function urlContacto(contactoId: string): string {
-  return `/dashboard/contactos/${encodeURIComponent(contactoId)}`;
-}
-
-export function urlProducto(productoId: string): string {
-  return `/dashboard/productos/${encodeURIComponent(productoId)}`;
-}
-
-export function urlFacturaVenta(facturaId: string): string {
-  return `/dashboard/facturacion/${encodeURIComponent(facturaId)}`;
-}
-
-export function urlFacturaProveedor(facturaId: string): string {
-  return `/dashboard/compras/${encodeURIComponent(facturaId)}`;
-}
-
-export function urlPagoProveedor(pagoId: string): string {
-  return `/dashboard/compras/pagos/${encodeURIComponent(pagoId)}`;
-}
-
-export function urlPagoRecibido(pagoId: string): string {
-  return `/dashboard/pagos-recibidos/${encodeURIComponent(pagoId)}`;
-}
-
-export function urlGastoMenor(gastoId: string): string {
-  return `/dashboard/gastos/${encodeURIComponent(gastoId)}`;
-}
-
-export function urlMovimientoCuenta(codigo: string, desde: string, hasta: string): string {
-  const params = new URLSearchParams({ cuenta: codigo, desde, hasta });
-  return `/dashboard/reportes/movimientos-cuenta?${params.toString()}`;
-}
-
 export function urlVentasCliente({ desde, hasta, q, pagina }: ParametrosVentas): string {
   const params = new URLSearchParams({ desde, hasta });
   if (q != null && q !== "") params.set("q", q);

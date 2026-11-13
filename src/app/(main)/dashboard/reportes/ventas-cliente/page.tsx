@@ -8,13 +8,14 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaContacto } from "@/lib/enlaces";
 import { formatoEntero } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
 import type { FilaReporte, TablaReporte } from "@/lib/reportes/exportar/tipos";
 import type { ParametrosFecha } from "@/lib/reportes/fechas";
 import { parsearRango } from "@/lib/reportes/fechas";
 import { obtenerVentasCliente } from "@/lib/reportes/ventas/v3/consultas";
-import { urlContacto, urlVentasCliente } from "@/lib/reportes/ventas/v3/enlaces";
+import { urlVentasCliente } from "@/lib/reportes/ventas/v3/enlaces";
 import { parsearBusqueda, parsearPagina } from "@/lib/reportes/ventas/v3/parametros";
 import {
   calcularVentasPorCliente,
@@ -151,7 +152,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                   {visibles.map((cliente) => (
                     <TableRow key={cliente.contactoId}>
                       <TableCell>
-                        <Link className="font-medium hover:underline" href={urlContacto(cliente.contactoId)}>
+                        <Link className="font-medium hover:underline" href={rutaContacto(cliente.contactoId)}>
                           {cliente.contactoNombre}
                         </Link>
                       </TableCell>
