@@ -51,7 +51,7 @@ test("login bueno abre el dashboard, sin errores", async ({ page }) => {
     await expect(page.getByRole("heading", { name: "Acceso no autorizado" })).toBeVisible();
   } else {
     await expect(page.getByRole("heading", { name: "Medoxigas Contabilidad" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Próximamente" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Resumen del mes" })).toBeVisible();
   }
 
   expect(errores).toEqual([]);

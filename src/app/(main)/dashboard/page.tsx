@@ -1,16 +1,45 @@
 import { redirect } from "next/navigation";
 
+import { Banknote, ChartNoAxesCombined, HandCoins, TrendingUp } from "lucide-react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPerfil } from "@/lib/auth/rol";
-import { sidebarItems } from "@/navigation/sidebar/sidebar-items";
-
-const modulosProximamente = sidebarItems.flatMap((grupo) => grupo.items).filter((item) => item.disabled);
+import { obtenerKpisInicio } from "@/lib/reportes/consultas";
+import { formatearRd } from "@/lib/reportes/dinero";
 
 export default async function Page() {
   const perfil = await getPerfil();
   if (perfil?.rol == null) redirect("/unauthorized");
 
   const nombre = perfil.nombre?.trim() || perfil.correo || "";
+  const kpis = await obtenerKpisInicio();
+
+  const tarjetas = [
+    {
+      titulo: "Ventas del mes",
+      valor: kpis.ventas,
+      detalle: "Ingresos del mes en curso",
+      icon: TrendingUp,
+    },
+    {
+      titulo: "Por cobrar",
+      valor: kpis.porCobrar,
+      detalle: "Saldo pendiente de clientes",
+      icon: HandCoins,
+    },
+    {
+      titulo: "Gastos del mes",
+      valor: kpis.gastos,
+      detalle: "Gastos registrados en el mes",
+      icon: Banknote,
+    },
+    {
+      titulo: "Utilidad del mes",
+      valor: kpis.utilidad,
+      detalle: "Ingresos menos costos y gastos",
+      icon: ChartNoAxesCombined,
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -18,23 +47,29 @@ export default async function Page() {
         <h1 className="text-3xl tracking-tight">Medoxigas Contabilidad</h1>
         <p className="text-muted-foreground text-balance">
           {nombre ? `Hola, ${nombre}. ` : "Hola. "}
-          Bienvenido al sistema de contabilidad y facturación.
+          Este es el resumen del mes en curso.
         </p>
       </div>
+
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold tracking-tight">Próximamente</h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {modulosProximamente.map((modulo) => {
-            const Icon = modulo.icon;
+        <h2 className="text-lg font-semibold tracking-tight">Resumen del mes</h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {tarjetas.map((tarjeta) => {
+            const Icon = tarjeta.icon;
 
             return (
-              <Card key={modulo.id}>
+              <Card key={tarjeta.titulo}>
                 <CardHeader className="gap-2">
-                  {Icon ? <Icon className="text-primary size-5" /> : null}
-                  <CardTitle>{modulo.title}</CardTitle>
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle>{tarjeta.titulo}</CardTitle>
+                    <Icon className="text-muted-foreground size-4" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground text-sm">Próximamente</p>
+                  <p className={`text-2xl font-semibold tabular-nums ${tarjeta.valor < 0 ? "text-destructive" : ""}`}>
+                    {formatearRd(tarjeta.valor)}
+                  </p>
+                  <p className="text-muted-foreground text-sm">{tarjeta.detalle}</p>
                 </CardContent>
               </Card>
             );

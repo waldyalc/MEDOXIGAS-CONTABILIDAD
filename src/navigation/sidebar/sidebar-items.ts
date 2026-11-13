@@ -1,4 +1,13 @@
-import { Banknote, ChartColumn, House, Landmark, type LucideIcon, Package, ReceiptText, Users } from "lucide-react";
+import {
+  BookOpen,
+  ChartColumn,
+  Contact,
+  House,
+  type LucideIcon,
+  Package,
+  ReceiptText,
+  ShoppingCart,
+} from "lucide-react";
 
 import type { Rol } from "@/lib/auth/rol";
 
@@ -56,21 +65,51 @@ export const sidebarItems: NavGroup[] = [
         roles: TODOS_LOS_ROLES,
       },
       {
-        id: "facturacion",
-        title: "Facturación",
-        url: "/dashboard/facturacion",
+        id: "ingresos",
+        title: "Ingresos",
         icon: ReceiptText,
-        badge: "soon",
-        disabled: true,
         roles: TODOS_LOS_ROLES,
+        subItems: [
+          {
+            id: "facturas-venta",
+            title: "Facturas de venta",
+            url: "/dashboard/facturacion",
+          },
+          {
+            id: "pagos-recibidos",
+            title: "Pagos recibidos",
+            url: "/dashboard/pagos-recibidos",
+          },
+        ],
       },
       {
-        id: "clientes",
-        title: "Clientes",
-        url: "/dashboard/clientes",
-        icon: Users,
-        badge: "soon",
-        disabled: true,
+        id: "compras",
+        title: "Compras",
+        icon: ShoppingCart,
+        roles: TODOS_LOS_ROLES,
+        subItems: [
+          {
+            id: "facturas-proveedor",
+            title: "Facturas de proveedor",
+            url: "/dashboard/compras",
+          },
+          {
+            id: "pagos-proveedores",
+            title: "Pagos a proveedores",
+            url: "/dashboard/compras/pagos",
+          },
+          {
+            id: "gastos-menores",
+            title: "Gastos menores",
+            url: "/dashboard/gastos",
+          },
+        ],
+      },
+      {
+        id: "contactos",
+        title: "Contactos",
+        url: "/dashboard/contactos",
+        icon: Contact,
         roles: TODOS_LOS_ROLES,
       },
       {
@@ -78,26 +117,13 @@ export const sidebarItems: NavGroup[] = [
         title: "Productos",
         url: "/dashboard/productos",
         icon: Package,
-        badge: "soon",
-        disabled: true,
         roles: TODOS_LOS_ROLES,
       },
       {
-        id: "gastos",
-        title: "Gastos",
-        url: "/dashboard/gastos",
-        icon: Banknote,
-        badge: "soon",
-        disabled: true,
-        roles: TODOS_LOS_ROLES,
-      },
-      {
-        id: "bancos",
-        title: "Bancos",
-        url: "/dashboard/bancos",
-        icon: Landmark,
-        badge: "soon",
-        disabled: true,
+        id: "contabilidad",
+        title: "Contabilidad",
+        url: "/dashboard/contabilidad",
+        icon: BookOpen,
         roles: TODOS_LOS_ROLES,
       },
       {
@@ -105,8 +131,6 @@ export const sidebarItems: NavGroup[] = [
         title: "Reportes",
         url: "/dashboard/reportes",
         icon: ChartColumn,
-        badge: "soon",
-        disabled: true,
         roles: TODOS_LOS_ROLES,
       },
     ],
