@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 
+import { VistaDocumentoVenta } from "@/components/documento-venta/vista-documento-venta";
 import { getPerfil } from "@/lib/auth/rol";
 import { getRemisionVista } from "@/lib/conduces/consultas";
 
-import { VistaDocumento } from "../../cotizaciones/_components/vista-documento";
+import { DocumentoPapel } from "../../cotizaciones/_components/documento-papel";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const perfil = await getPerfil();
@@ -13,5 +14,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const vista = await getRemisionVista(id);
   if (!vista) notFound();
 
-  return <VistaDocumento tipo="remision" vista={vista} puedeEscribir={perfil.rol !== "lector"} />;
+  return (
+    <VistaDocumentoVenta
+      tipo="conduce"
+      datos={vista}
+      puedeEscribir={perfil.rol !== "lector"}
+      papel={<DocumentoPapel tipo="remision" vista={vista} />}
+    />
+  );
 }
