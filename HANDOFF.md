@@ -1,5 +1,17 @@
 # Handoff — Medoxigas Contabilidad
 
+## Inventario 2: stock por almacén, transferencias y listas de precios (14 nov 2026)
+
+- Nuevas tablas `existencias` (producto + almacén), `listas_precios`, `producto_precios` y `transferencias_inventario` + líneas. La semilla copia la existencia global actual al almacén Principal; `productos.cantidad` sigue siendo el total.
+- Ventas, compras, notas de crédito y ajustes guardan `almacen_id` y mueven la existencia de ese almacén (Principal por defecto). Los documentos viejos sin almacén se tratan como Principal. Los conduces siguen sin mover stock, como en Alegra.
+- Ajustes: nueva columna `estado`; se anulan con `anular_documento('ajuste_inventario', id)`, revirtiendo existencia y asiento.
+- Transferencias: lista, nueva y detalle en `/dashboard/inventario/transferencias`; sin asiento y con anulación que devuelve las cantidades. No permite origen = destino, producto repetido ni stock insuficiente en origen.
+- Listas de precios: `/dashboard/inventario/listas-precios` (Nombre, Principal, Tipo). Precio por lista en «Más opciones» del producto, lista por defecto opcional en el contacto y selector en «Más opciones» de la factura que cambia los precios sugeridos. En porcentaje, 10 = +10 % y -10 = descuento.
+- Ficha de producto: tabla de existencia por almacén.
+- Migraciones aditivas `20261114900000_inventario_existencias_precios.sql` y `20261114901000_transferencias_inventario.sql` (NO aplicadas al remoto). pgTAP `supabase/tests/inventario_almacenes_test.sql` (36 asserts, aislado). Tipos de las tablas nuevas a mano en `types.ts`.
+- `typecheck`, `test` (503), Biome y `build` en verde. pgTAP no se pudo correr aquí (sin Docker/Supabase CLI).
+- Pendiente/fuera: conduces no mueven stock; anular una nota de crédito de venta sigue sin soporte; la anulación de ajustes no revierte el costo promedio.
+
 ## Inventario: ajustes, almacenes y categorías (14 nov 2026)
 
 - Nuevo módulo `/dashboard/inventario`: Ajustes de inventario (lista, nuevo y
