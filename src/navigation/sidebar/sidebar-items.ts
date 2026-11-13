@@ -3,6 +3,7 @@ import {
   ChartColumn,
   Contact,
   House,
+  Landmark,
   type LucideIcon,
   Package,
   ReceiptText,
@@ -124,6 +125,13 @@ export const sidebarItems: NavGroup[] = [
         title: "Contabilidad",
         url: "/dashboard/contabilidad",
         icon: BookOpen,
+        roles: TODOS_LOS_ROLES,
+      },
+      {
+        id: "bancos",
+        title: "Bancos",
+        url: "/dashboard/bancos",
+        icon: Landmark,
         roles: TODOS_LOS_ROLES,
       },
       {

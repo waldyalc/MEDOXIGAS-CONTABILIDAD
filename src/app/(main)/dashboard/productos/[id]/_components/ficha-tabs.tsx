@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 
-import Link from "next/link";
-
 import { Search } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -64,13 +63,9 @@ function DocumentoEnlace({
 }) {
   return (
     <div className="flex flex-col">
-      <Link
-        href={tipo === "venta" ? rutaFactura(documento.id) : rutaCompra(documento.id)}
-        prefetch={false}
-        className="font-medium hover:underline"
-      >
+      <Enlace href={tipo === "venta" ? rutaFactura(documento.id) : rutaCompra(documento.id)} className="font-medium">
         #{documento.numero}
-      </Link>
+      </Enlace>
       <span className="text-muted-foreground font-mono text-xs">{documento.ncf ?? "—"}</span>
     </div>
   );
@@ -120,9 +115,7 @@ function TablaDocumentos({
                   <DocumentoEnlace documento={documento} tipo={tipo} />
                 </TableCell>
                 <TableCell>
-                  <Link href={rutaContacto(documento.contactoId)} prefetch={false} className="hover:underline">
-                    {documento.contactoNombre}
-                  </Link>
+                  <Enlace href={rutaContacto(documento.contactoId)}>{documento.contactoNombre}</Enlace>
                 </TableCell>
                 <TableCell>{formatoDia(documento.fecha)}</TableCell>
                 <TableCell>{formatoDia(documento.vencimiento)}</TableCell>
@@ -175,21 +168,18 @@ function TablaKardex({ filas, filtro }: { readonly filas: FilaKardex[]; readonly
               <TableRow key={`${fila.tipo}:${fila.documentoId}`}>
                 <TableCell>
                   <div className="flex flex-col">
-                    <Link
+                    <Enlace
                       href={fila.tipo === "venta" ? rutaFactura(fila.documentoId) : rutaCompra(fila.documentoId)}
-                      prefetch={false}
-                      className="font-medium hover:underline"
+                      className="font-medium"
                     >
                       #{fila.numero}
-                    </Link>
+                    </Enlace>
                     <span className="text-muted-foreground font-mono text-xs">{fila.ncf ?? "—"}</span>
                   </div>
                 </TableCell>
                 <TableCell>{formatoDia(fila.fecha)}</TableCell>
                 <TableCell>
-                  <Link href={rutaContacto(fila.terceroId)} prefetch={false} className="hover:underline">
-                    {fila.terceroNombre}
-                  </Link>
+                  <Enlace href={rutaContacto(fila.terceroId)}>{fila.terceroNombre}</Enlace>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{formatoCantidad(fila.entrada)}</TableCell>
                 <TableCell className="text-right tabular-nums">{formatoCantidad(fila.salida)}</TableCell>

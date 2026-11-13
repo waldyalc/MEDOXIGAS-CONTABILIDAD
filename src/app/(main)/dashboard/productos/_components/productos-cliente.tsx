@@ -2,10 +2,9 @@
 
 import { type FormEvent, useState, useTransition } from "react";
 
-import Link from "next/link";
-
 import { ChevronDown, Pencil, Plus, Search } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -314,9 +313,7 @@ export function ProductosCliente({
               filtrados.map((producto) => (
                 <TableRow key={producto.id}>
                   <TableCell className="font-medium">
-                    <Link href={rutaProducto(producto.id)} prefetch={false} className="hover:underline">
-                      {producto.nombre}
-                    </Link>
+                    <Enlace href={rutaProducto(producto.id)}>{producto.nombre}</Enlace>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{producto.referencia?.trim() || "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatoMoneda(producto.precio)}</TableCell>

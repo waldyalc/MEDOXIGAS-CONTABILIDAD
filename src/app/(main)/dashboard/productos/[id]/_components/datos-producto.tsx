@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
 
-import Link from "next/link";
-
+import { Enlace } from "@/components/enlace";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { rutaCuenta } from "@/lib/enlaces";
-import { type CuentaResumen, type FichaProducto, precioConItbis } from "@/lib/productos/ficha";
+import { type CuentaFicha, type FichaProducto, precioConItbis } from "@/lib/productos/ficha";
 import { etiquetaTasaItbis, formatoCantidad, formatoMoneda } from "@/lib/productos/productos";
 
 function Dato({ etiqueta, children }: { readonly etiqueta: string; readonly children: ReactNode }) {
@@ -16,13 +15,16 @@ function Dato({ etiqueta, children }: { readonly etiqueta: string; readonly chil
   );
 }
 
-function CuentaDato({ etiqueta, cuenta }: { readonly etiqueta: string; readonly cuenta: CuentaResumen | null }) {
+function CuentaDato({ etiqueta, cuenta }: { readonly etiqueta: string; readonly cuenta: CuentaFicha | null }) {
   return (
     <Dato etiqueta={etiqueta}>
       {cuenta ? (
-        <Link href={rutaCuenta(cuenta.id)} className="hover:underline">
-          {cuenta.codigo} · {cuenta.nombre}
-        </Link>
+        <span className="inline-flex flex-wrap items-baseline gap-1">
+          <Enlace href={rutaCuenta(cuenta.cuenta.id)}>
+            {cuenta.cuenta.codigo} · {cuenta.cuenta.nombre}
+          </Enlace>
+          {cuenta.porDefecto ? <span className="text-muted-foreground text-xs">(por defecto)</span> : null}
+        </span>
       ) : (
         "—"
       )}

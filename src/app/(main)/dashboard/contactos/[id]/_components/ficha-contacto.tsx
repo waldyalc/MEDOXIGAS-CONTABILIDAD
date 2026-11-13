@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { ArrowLeft, FilePlus2, FileText, Search, ShoppingCart } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +30,15 @@ import {
   totalPorCobrar,
   totalPorPagar,
 } from "@/lib/contactos/ficha";
+import {
+  rutaAsiento,
+  rutaCompra,
+  rutaContacto,
+  rutaCuenta,
+  rutaFactura,
+  rutaPagoProveedor,
+  rutaPagoRecibido,
+} from "@/lib/enlaces";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
@@ -139,12 +149,7 @@ function TablaTransacciones({ filas }: { readonly filas: TransaccionFicha[] }) {
             filas.map((fila) => (
               <TableRow key={fila.clave} className="relative cursor-pointer">
                 <TableCell className="font-medium">
-                  <Link
-                    className="absolute inset-0"
-                    href={fila.href}
-                    prefetch={false}
-                    aria-label={`Ver ${fila.detalle}`}
-                  />
+                  <Enlace className="absolute inset-0" href={fila.href} aria-label={`Ver ${fila.detalle}`} />
                   <span className="pointer-events-none relative">{formatoDia(fila.fecha)}</span>
                 </TableCell>
                 <TableCell className="whitespace-normal">{fila.detalle}</TableCell>
@@ -194,10 +199,9 @@ function TablaFacturas({ filas, tipo }: { readonly filas: DocumentoFicha[]; read
             filas.map((fila) => (
               <TableRow key={fila.id} className="relative cursor-pointer">
                 <TableCell className="font-medium">
-                  <Link
+                  <Enlace
                     className="absolute inset-0"
-                    href={esVenta ? `/dashboard/facturacion/${fila.id}` : `/dashboard/compras/${fila.id}`}
-                    prefetch={false}
+                    href={esVenta ? rutaFactura(fila.id) : rutaCompra(fila.id)}
                     aria-label={`Ver factura ${fila.numero}`}
                   />
                   <span className="pointer-events-none relative flex flex-col">
@@ -229,8 +233,6 @@ function TablaFacturas({ filas, tipo }: { readonly filas: DocumentoFicha[]; read
 }
 
 function TablaPagos({ filas, tipo }: { readonly filas: PagoFicha[]; readonly tipo: "recibido" | "proveedor" }) {
-  const hrefBase = tipo === "recibido" ? "/dashboard/pagos-recibidos" : "/dashboard/compras/pagos";
-
   return (
     <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
       <Table>
@@ -254,10 +256,9 @@ function TablaPagos({ filas, tipo }: { readonly filas: PagoFicha[]; readonly tip
             filas.map((fila) => (
               <TableRow key={fila.id} className="relative cursor-pointer">
                 <TableCell className="font-medium">
-                  <Link
+                  <Enlace
                     className="absolute inset-0"
-                    href={`${hrefBase}/${fila.id}`}
-                    prefetch={false}
+                    href={tipo === "recibido" ? rutaPagoRecibido(fila.id) : rutaPagoProveedor(fila.id)}
                     aria-label={`Ver pago ${fila.numero}`}
                   />
                   <span className="pointer-events-none relative">#{fila.numero}</span>
@@ -305,10 +306,9 @@ function TablaAsientos({ filas }: { readonly filas: AsientoFicha[] }) {
             filas.map((fila) => (
               <TableRow key={fila.id} className="relative cursor-pointer">
                 <TableCell className="font-medium">
-                  <Link
+                  <Enlace
                     className="absolute inset-0"
-                    href={`/dashboard/contabilidad/asientos/${fila.id}`}
-                    prefetch={false}
+                    href={rutaAsiento(fila.id)}
                     aria-label={`Ver asiento ${fila.numero}`}
                   />
                   <span className="pointer-events-none relative">#{fila.numero}</span>
@@ -334,13 +334,9 @@ function CuentaEnlace({ cuenta }: { readonly cuenta: CuentaFicha | null }) {
   if (!cuenta) return <span className="text-muted-foreground">—</span>;
 
   return (
-    <Link
-      href={`/dashboard/contabilidad/cuentas/${cuenta.id}`}
-      prefetch={false}
-      className="font-medium hover:underline"
-    >
+    <Enlace href={rutaCuenta(cuenta.id)} className="font-medium">
       {cuenta.codigo} · {cuenta.nombre}
-    </Link>
+    </Enlace>
   );
 }
 
@@ -423,19 +419,19 @@ export function FichaContacto({
             <Badge variant="secondary">{etiquetaTipoContacto(contacto.tipo)}</Badge>
           </div>
           <div className="flex flex-wrap gap-2">
-            {puedeCrear ? (
+            {puedeCrear && contacto.tipo !== "proveedor" ? (
               <Button render={<Link href={`/dashboard/facturacion/nueva?cliente=${contacto.id}`} prefetch={false} />}>
                 <FilePlus2 data-icon="inline-start" />
                 Nueva factura
               </Button>
             ) : null}
-            {puedeCrear ? (
+            {puedeCrear && contacto.tipo !== "cliente" ? (
               <Button render={<Link href="/dashboard/compras/nueva" prefetch={false} />}>
                 <ShoppingCart data-icon="inline-start" />
                 Nueva compra
               </Button>
             ) : null}
-            <Button variant="outline" render={<Link href={`/dashboard/contactos/${contacto.id}/estado-cuenta`} />}>
+            <Button variant="outline" render={<Link href={`${rutaContacto(contacto.id)}/estado-cuenta`} />}>
               <FileText data-icon="inline-start" />
               Estado de cuenta
             </Button>

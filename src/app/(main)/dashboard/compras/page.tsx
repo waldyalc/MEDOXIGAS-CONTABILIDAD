@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { Plus } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -70,16 +71,12 @@ export default async function Page() {
                   return (
                     <TableRow key={factura.id}>
                       <TableCell className="pl-(--card-spacing) font-medium">
-                        <Link href={rutaCompra(factura.id)} prefetch={false} className="hover:underline">
-                          #{factura.numero}
-                        </Link>
+                        <Enlace href={rutaCompra(factura.id)}>#{factura.numero}</Enlace>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{factura.ncf || "—"}</TableCell>
                       <TableCell>
                         {factura.contactos ? (
-                          <Link className="hover:underline" href={rutaContacto(factura.contacto_id)}>
-                            {factura.contactos.nombre}
-                          </Link>
+                          <Enlace href={rutaContacto(factura.contacto_id)}>{factura.contactos.nombre}</Enlace>
                         ) : (
                           "—"
                         )}
