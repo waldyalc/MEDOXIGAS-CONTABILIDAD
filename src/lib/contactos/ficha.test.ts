@@ -56,6 +56,11 @@ describe("dinero de la ficha en centavos enteros", () => {
     expect(saldoDocumento("16638.00", "8000.00")).toBe(863800);
     expect(saldoDocumento(1000, 1200)).toBe(0);
   });
+
+  test("resta el crédito de las notas de crédito al saldo", () => {
+    expect(saldoDocumento("2360.00", "500.00", "944.00")).toBe(91600);
+    expect(saldoDocumento(1000, 200, 850)).toBe(0);
+  });
 });
 
 describe("resúmenes de la ficha", () => {
@@ -69,14 +74,15 @@ describe("resúmenes de la ficha", () => {
     ).toBe(863800 + 75000);
   });
 
-  test("por pagar suma solo facturas de proveedor no anuladas", () => {
+  test("por pagar suma solo facturas de proveedor no anuladas y resta créditos", () => {
     expect(
       totalPorPagar([
         documento({ id: "compra-1", total: 46020, pagado: 46020 }),
         documento({ id: "compra-2", total: 1000, pagado: 0 }),
         documento({ id: "compra-3", estado: "anulada", total: 5000, pagado: 0 }),
+        documento({ id: "compra-4", total: 2000, pagado: 500, credito: 300 }),
       ]),
-    ).toBe(100000);
+    ).toBe(100000 + 120000);
   });
 
   test("anticipos recibidos toma pagos activos sin factura", () => {

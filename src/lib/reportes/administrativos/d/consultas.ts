@@ -1,7 +1,7 @@
 import { centavos } from "@/lib/reportes/dinero";
 import { createClient } from "@/lib/supabase/server";
 
-import { clasificarVista, diasVencida } from "./antiguedad";
+import { clasificarVista, diasVencida, saldoCartera } from "./antiguedad";
 import { calcularTotalLinea, cantidadALaFecha } from "./inventario";
 import type { FilaCartera, FilaCompra, FilaInventario } from "./tipos";
 
@@ -31,16 +31,8 @@ interface FilaCxcDb {
   contactos: ContactoEmbed | ContactoEmbed[] | null;
 }
 
-interface FilaCxpDb {
-  id: string;
-  numero: number;
-  ncf: string | null;
-  contacto_id: string;
-  fecha: string;
-  vencimiento: string;
-  total: number | string;
-  pagado: number | string;
-  contactos: ContactoEmbed | ContactoEmbed[] | null;
+interface FilaCxpDb extends FilaCxcDb {
+  credito: number | string;
 }
 
 interface FilaCompraDb {
@@ -64,10 +56,15 @@ interface ProductoDb {
   activo: boolean;
 }
 
-function convertirCartera(fila: FilaCxcDb | FilaCxpDb, corte: string, tipoDocumento: string): FilaCartera | null {
+function convertirCartera(
+  fila: FilaCxcDb | FilaCxpDb,
+  corte: string,
+  tipoDocumento: string,
+  credito = 0,
+): FilaCartera | null {
   const total = centavos(fila.total);
   const pagado = centavos(fila.pagado);
-  const saldo = total - pagado;
+  const saldo = saldoCartera(total, pagado, credito);
   if (saldo <= 0) return null;
 
   const dias = diasVencida(fila.vencimiento, corte);
@@ -115,7 +112,7 @@ export async function obtenerCarteraCxp(desde: string, hasta: string): Promise<R
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("facturas_proveedor")
-    .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, contactos(nombre)")
+    .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, contactos(nombre)")
     .neq("estado", "anulada")
     .gte("fecha", desde)
     .lte("fecha", hasta)
@@ -127,7 +124,7 @@ export async function obtenerCarteraCxp(desde: string, hasta: string): Promise<R
 
   const filas: FilaCartera[] = [];
   for (const fila of data ?? []) {
-    const convertida = convertirCartera(fila, hasta, "Factura de proveedor");
+    const convertida = convertirCartera(fila, hasta, "Factura de proveedor", centavos(fila.credito));
     if (convertida != null) filas.push(convertida);
   }
 

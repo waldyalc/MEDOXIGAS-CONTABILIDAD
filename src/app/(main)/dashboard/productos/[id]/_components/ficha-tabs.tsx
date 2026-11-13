@@ -147,7 +147,7 @@ function TablaDocumentos({
                 <TableCell className="text-right tabular-nums">{formatoMoneda(documento.total)}</TableCell>
                 <TableCell className="text-right tabular-nums">{formatoMoneda(documento.pagado)}</TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {formatoMonedaCentavos(saldoCentavos(documento.total, documento.pagado))}
+                  {formatoMonedaCentavos(saldoCentavos(documento.total, documento.pagado, documento.credito))}
                 </TableCell>
                 {esVenta ? (
                   <TableCell>

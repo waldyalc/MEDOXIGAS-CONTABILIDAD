@@ -60,6 +60,7 @@ interface DocumentoFila {
   vencimiento: string;
   total: number;
   pagado: number;
+  credito: number;
   estado: string;
   contactos: { nombre: string } | null;
 }
@@ -96,7 +97,9 @@ async function cargarFacturasVenta(lineas: readonly LineaVentaFila[]): Promise<D
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("facturas")
-    .select("id, numero, ncf, contacto_id, fecha, creado_en, vencimiento, total, pagado, estado, contactos(nombre)")
+    .select(
+      "id, numero, ncf, contacto_id, fecha, creado_en, vencimiento, total, pagado, credito, estado, contactos(nombre)",
+    )
     .in("id", ids)
     .neq("estado", "anulada")
     .order("fecha", { ascending: false })
@@ -114,7 +117,9 @@ async function cargarFacturasCompra(lineas: readonly LineaCompraFila[]): Promise
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("facturas_proveedor")
-    .select("id, numero, ncf, contacto_id, fecha, creado_en, vencimiento, total, pagado, estado, contactos(nombre)")
+    .select(
+      "id, numero, ncf, contacto_id, fecha, creado_en, vencimiento, total, pagado, credito, estado, contactos(nombre)",
+    )
     .in("id", ids)
     .neq("estado", "anulada")
     .order("fecha", { ascending: false })
@@ -183,6 +188,7 @@ function documentoDesdeFila(fila: DocumentoFila, cantidades: Map<string, number[
     cantidad: sumarCantidades(cantidades.get(fila.id) ?? []),
     total: aNumero(fila.total),
     pagado: aNumero(fila.pagado),
+    credito: aNumero(fila.credito),
     estado: fila.estado,
   };
 }

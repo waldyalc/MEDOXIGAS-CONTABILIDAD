@@ -26,6 +26,7 @@ export interface DocumentoFicha {
   vencimiento: string;
   total: number | string;
   pagado: number | string;
+  credito?: number | string | null;
   estado: string;
 }
 
@@ -114,20 +115,23 @@ export function sumarLineasAsiento(lineas: readonly LineaAsientoContacto[]): Map
 export function saldoDocumento(
   total: number | string | null | undefined,
   pagado: number | string | null | undefined,
+  credito: number | string | null | undefined = 0,
 ): number {
-  return Math.max(0, aCentavos(total) - aCentavos(pagado));
+  return Math.max(0, aCentavos(total) - aCentavos(pagado) - aCentavos(credito));
 }
 
 export function totalPorCobrar(facturas: readonly DocumentoFicha[]): number {
   return facturas.reduce(
-    (total, factura) => (factura.estado === "anulada" ? total : total + saldoDocumento(factura.total, factura.pagado)),
+    (total, factura) =>
+      factura.estado === "anulada" ? total : total + saldoDocumento(factura.total, factura.pagado, factura.credito),
     0,
   );
 }
 
 export function totalPorPagar(facturas: readonly DocumentoFicha[]): number {
   return facturas.reduce(
-    (total, factura) => (factura.estado === "anulada" ? total : total + saldoDocumento(factura.total, factura.pagado)),
+    (total, factura) =>
+      factura.estado === "anulada" ? total : total + saldoDocumento(factura.total, factura.pagado, factura.credito),
     0,
   );
 }

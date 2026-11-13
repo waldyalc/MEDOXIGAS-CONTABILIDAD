@@ -19,7 +19,7 @@ import {
 const UUID = z.uuid();
 
 const CAMPOS_CONTACTO = "id, nombre, rnc_cedula, telefono, correo, direccion, tipo, cuenta_cxc_id, cuenta_cxp_id";
-const CAMPOS_DOCUMENTO = "id, numero, ncf, fecha, vencimiento, total, pagado, estado";
+const CAMPOS_DOCUMENTO = "id, numero, ncf, fecha, vencimiento, total, pagado, credito, estado";
 const CAMPOS_COMERCIAL = "id, numero, fecha, total, estado";
 const CAMPOS_PAGO = "id, numero, fecha, monto, estado, factura_id";
 
