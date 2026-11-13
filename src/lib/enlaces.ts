@@ -14,6 +14,10 @@ export function rutaFactura(id: string) {
   return ruta("/dashboard/facturacion", id);
 }
 
+export function rutaNotaCreditoVenta(id: string) {
+  return ruta("/dashboard/notas-credito", id);
+}
+
 export function rutaCompra(id: string) {
   return ruta("/dashboard/compras", id);
 }

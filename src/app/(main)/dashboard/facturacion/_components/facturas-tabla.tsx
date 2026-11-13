@@ -88,7 +88,9 @@ export function FacturasTabla({ facturas, puedeEscribir }: { facturas: FacturaFi
                   <TableCell>{formatoDia(factura.vencimiento)}</TableCell>
                   <TableCell className="text-right font-medium">{formatoMoneda(factura.total)}</TableCell>
                   <TableCell className="text-right">
-                    {factura.estado === "anulada" ? "—" : formatoMoneda(saldoDeFactura(factura.total, factura.pagado))}
+                    {factura.estado === "anulada"
+                      ? "—"
+                      : formatoMoneda(saldoDeFactura(factura.total, factura.pagado, factura.credito))}
                   </TableCell>
                   <TableCell>
                     <EstadoBadge estado={factura.estado} />

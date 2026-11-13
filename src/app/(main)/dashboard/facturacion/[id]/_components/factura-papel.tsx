@@ -147,7 +147,7 @@ function NotasFactura({ factura }: { factura: FacturaDetalle }) {
 export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence, enlaces = false }: Props) {
   const esCredito = factura.tipo_comprobante === "01";
   const titulo = tituloTipoComprobante(factura.tipo_comprobante);
-  const saldo = saldoDeFactura(factura.total, factura.pagado);
+  const saldo = saldoDeFactura(factura.total, factura.pagado, factura.credito);
   const nombreEmpresa = empresa?.nombre?.trim() || "MEDOXIGAS ALC, SRL";
   const logo = empresa?.logo_url?.trim() || "/marca/logo-medoxigas.png";
   const montoGravado = lineas.reduce((suma, linea) => (linea.itbis_tasa > 0 ? suma + linea.subtotal : suma), 0);
