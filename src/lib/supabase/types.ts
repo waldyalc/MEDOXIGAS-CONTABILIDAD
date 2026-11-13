@@ -14,6 +14,150 @@ export type Database = {
   }
   public: {
     Tables: {
+      activo_depreciaciones: {
+        Row: {
+          activo_id: string
+          asiento_id: string
+          creado_en: string
+          creado_por: string | null
+          id: string
+          monto: number
+          periodo: string
+        }
+        Insert: {
+          activo_id: string
+          asiento_id: string
+          creado_en?: string
+          creado_por?: string | null
+          id?: string
+          monto: number
+          periodo: string
+        }
+        Update: {
+          activo_id?: string
+          asiento_id?: string
+          creado_en?: string
+          creado_por?: string | null
+          id?: string
+          monto?: number
+          periodo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activo_depreciaciones_activo_id_fkey"
+            columns: ["activo_id"]
+            isOneToOne: false
+            referencedRelation: "activos_fijos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activo_depreciaciones_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activos_fijos: {
+        Row: {
+          asiento_id: string | null
+          cantidad: number
+          costo_unitario: number
+          creado_en: string
+          creado_por: string | null
+          cuenta_activo_id: string
+          cuenta_depreciacion_id: string
+          cuenta_gasto_id: string
+          fecha_adquisicion: string
+          fecha_inicio_depreciacion: string
+          id: string
+          monto_total: number
+          nombre: string
+          proveedor_contacto_id: string | null
+          referencia: string | null
+          tipo_activo: string
+          valor_residual: number
+          vida_util_meses: number
+        }
+        Insert: {
+          asiento_id?: string | null
+          cantidad?: number
+          costo_unitario: number
+          creado_en?: string
+          creado_por?: string | null
+          cuenta_activo_id: string
+          cuenta_depreciacion_id: string
+          cuenta_gasto_id: string
+          fecha_adquisicion?: string
+          fecha_inicio_depreciacion?: string
+          id?: string
+          monto_total: number
+          nombre: string
+          proveedor_contacto_id?: string | null
+          referencia?: string | null
+          tipo_activo?: string
+          valor_residual?: number
+          vida_util_meses: number
+        }
+        Update: {
+          asiento_id?: string | null
+          cantidad?: number
+          costo_unitario?: number
+          creado_en?: string
+          creado_por?: string | null
+          cuenta_activo_id?: string
+          cuenta_depreciacion_id?: string
+          cuenta_gasto_id?: string
+          fecha_adquisicion?: string
+          fecha_inicio_depreciacion?: string
+          id?: string
+          monto_total?: number
+          nombre?: string
+          proveedor_contacto_id?: string | null
+          referencia?: string | null
+          tipo_activo?: string
+          valor_residual?: number
+          vida_util_meses?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activos_fijos_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activos_fijos_cuenta_activo_id_fkey"
+            columns: ["cuenta_activo_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activos_fijos_cuenta_depreciacion_id_fkey"
+            columns: ["cuenta_depreciacion_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activos_fijos_cuenta_gasto_id_fkey"
+            columns: ["cuenta_gasto_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activos_fijos_proveedor_contacto_id_fkey"
+            columns: ["proveedor_contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asiento_lineas: {
         Row: {
           asiento_id: string
@@ -113,6 +257,38 @@ export type Database = {
           {
             foreignKeyName: "asientos_anula_asiento_id_fkey"
             columns: ["anula_asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cierres_resultados: {
+        Row: {
+          anio: number
+          asiento_id: string
+          creado_en: string
+          creado_por: string | null
+          total: number
+        }
+        Insert: {
+          anio: number
+          asiento_id: string
+          creado_en?: string
+          creado_por?: string | null
+          total?: number
+        }
+        Update: {
+          anio?: number
+          asiento_id?: string
+          creado_en?: string
+          creado_por?: string | null
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cierres_resultados_asiento_id_fkey"
+            columns: ["asiento_id"]
             isOneToOne: false
             referencedRelation: "asientos"
             referencedColumns: ["id"]
@@ -1896,6 +2072,30 @@ export type Database = {
         }
         Relationships: []
       }
+      periodos_contables: {
+        Row: {
+          actualizado_en: string
+          cerrado_en: string | null
+          cerrado_por: string | null
+          estado: string
+          periodo: string
+        }
+        Insert: {
+          actualizado_en?: string
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          estado?: string
+          periodo: string
+        }
+        Update: {
+          actualizado_en?: string
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          estado?: string
+          periodo?: string
+        }
+        Relationships: []
+      }
       productos: {
         Row: {
           activo: boolean
@@ -2163,8 +2363,11 @@ export type Database = {
         Args: { p_id: string; p_tipo: string }
         Returns: string
       }
+      cerrar_periodo: { Args: { p_periodo: string }; Returns: string }
+      cerrar_resultados_anio: { Args: { p_anio: number }; Returns: string }
       conciliar_cuenta: { Args: { p: Json }; Returns: string }
       convertir_a_factura: { Args: { p: Json }; Returns: string }
+      crear_activo_fijo: { Args: { p: Json }; Returns: string }
       crear_asiento_manual: { Args: { p: Json }; Returns: string }
       crear_contacto: { Args: { p: Json }; Returns: string }
       crear_cotizacion: { Args: { p: Json }; Returns: string }
@@ -2181,12 +2384,17 @@ export type Database = {
       crear_pago_recurrente: { Args: { p: Json }; Returns: string }
       crear_producto: { Args: { p: Json }; Returns: string }
       crear_remision: { Args: { p: Json }; Returns: string }
+      depreciar_activo: {
+        Args: { p_activo_id: string; p_periodo?: string }
+        Returns: string
+      }
       generar_factura_recurrente: {
         Args: { p_fecha?: string; p_recurrente_id: string }
         Returns: string
       }
       generar_pago_recurrente: { Args: { p_id: string }; Returns: string }
       guardar_borrador_conciliacion: { Args: { p: Json }; Returns: string }
+      reabrir_periodo: { Args: { p_periodo: string }; Returns: string }
       registrar_deposito: { Args: { p: Json }; Returns: string }
       registrar_pago_proveedor: { Args: { p: Json }; Returns: string }
       registrar_pago_recibido: { Args: { p: Json }; Returns: string }

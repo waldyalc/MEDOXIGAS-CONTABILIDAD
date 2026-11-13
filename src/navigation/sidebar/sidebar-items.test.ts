@@ -71,6 +71,8 @@ describe("filtrarItemsPorRol", () => {
       "/dashboard/contabilidad",
       "/dashboard/contabilidad/asientos",
       "/dashboard/contabilidad/numeraciones",
+      "/dashboard/contabilidad/activos",
+      "/dashboard/contabilidad/periodos",
     ]);
   });
 
