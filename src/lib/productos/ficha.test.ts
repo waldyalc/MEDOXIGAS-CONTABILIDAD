@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import {
   type CuentaResumen,
+  etiquetaEstadoComercial,
   filtrarPorNumero,
   precioConItbis,
   resolverCuentasFicha,
@@ -124,5 +125,19 @@ describe("filtrarPorNumero", () => {
 
   test("devuelve todos los documentos con filtro vacío", () => {
     expect(filtrarPorNumero(documentos, "  ")).toEqual(documentos);
+  });
+
+  test("filtra cotizaciones y conduces por número aunque no tengan NCF", () => {
+    const comerciales = [
+      { id: "cot-1", numero: 15, fecha: "2026-11-13", total: 1180, estado: "abierta" },
+      { id: "con-1", numero: 22, fecha: "2026-11-12", total: 2360, estado: "convertida" },
+    ];
+
+    expect(filtrarPorNumero(comerciales, "22").map((documento) => documento.id)).toEqual(["con-1"]);
+    expect(filtrarPorNumero(comerciales, "15").map((documento) => documento.id)).toEqual(["cot-1"]);
+    expect(filtrarPorNumero(comerciales, "")).toEqual(comerciales);
+    expect(etiquetaEstadoComercial("convertida")).toBe("Convertida");
+    expect(etiquetaEstadoComercial("anulada")).toBe("Anulada");
+    expect(etiquetaEstadoComercial("abierta")).toBe("Abierta");
   });
 });

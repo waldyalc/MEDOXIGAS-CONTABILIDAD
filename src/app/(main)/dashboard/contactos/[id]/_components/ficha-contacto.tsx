@@ -20,7 +20,9 @@ import {
   type CuentaFicha,
   construirTransacciones,
   type DatosFichaContacto,
+  type DocumentoComercialFicha,
   type DocumentoFicha,
+  etiquetaEstadoComercial,
   etiquetaEstadoDocumento,
   filtrarPorNumero,
   type PagoFicha,
@@ -33,19 +35,23 @@ import {
 import {
   rutaAsiento,
   rutaCompra,
+  rutaConduce,
   rutaContacto,
+  rutaCotizacion,
   rutaCuenta,
   rutaFactura,
   rutaPagoProveedor,
   rutaPagoRecibido,
 } from "@/lib/enlaces";
-import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
+import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
 type PestanaFicha =
   | "transacciones"
   | "facturas"
   | "facturas-proveedor"
+  | "cotizaciones"
+  | "conduces"
   | "pagos-recibidos"
   | "pagos-proveedores"
   | "asientos";
@@ -60,6 +66,8 @@ const PESTANAS: Pestana[] = [
   { valor: "transacciones", etiqueta: "Transacciones", aplicaA: "siempre" },
   { valor: "facturas", etiqueta: "Facturas de venta", aplicaA: "venta" },
   { valor: "facturas-proveedor", etiqueta: "Facturas de proveedor", aplicaA: "compra" },
+  { valor: "cotizaciones", etiqueta: "Cotizaciones", aplicaA: "venta" },
+  { valor: "conduces", etiqueta: "Conduces", aplicaA: "venta" },
   { valor: "pagos-recibidos", etiqueta: "Pagos recibidos", aplicaA: "venta" },
   { valor: "pagos-proveedores", etiqueta: "Pagos a proveedores", aplicaA: "compra" },
   { valor: "asientos", etiqueta: "Asientos", aplicaA: "siempre" },
@@ -69,6 +77,8 @@ const FILTROS_INICIALES: Record<PestanaFicha, string> = {
   transacciones: "",
   facturas: "",
   "facturas-proveedor": "",
+  cotizaciones: "",
+  conduces: "",
   "pagos-recibidos": "",
   "pagos-proveedores": "",
   asientos: "",
@@ -100,6 +110,23 @@ function EstadoDocumentoBadge({ estado, tipo }: { estado: string; tipo: "venta" 
 function EstadoPagoBadge({ estado }: { estado: string }) {
   if (estado === "anulado") return <Badge variant="destructive">Anulado</Badge>;
   return <Badge variant="secondary">Activo</Badge>;
+}
+
+function EstadoComercialBadge({ estado }: { estado: string }) {
+  const etiqueta = etiquetaEstadoComercial(estado);
+
+  if (estado === "anulada") return <Badge variant="destructive">{etiqueta}</Badge>;
+  if (estado === "convertida") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
+      >
+        {etiqueta}
+      </Badge>
+    );
+  }
+  return <Badge variant="secondary">{etiqueta}</Badge>;
 }
 
 function FiltroNumero({
@@ -222,6 +249,58 @@ function TablaFacturas({ filas, tipo }: { readonly filas: DocumentoFicha[]; read
                 </TableCell>
                 <TableCell>
                   <EstadoDocumentoBadge estado={fila.estado} tipo={tipo} />
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function TablaComerciales({
+  filas,
+  tipo,
+}: {
+  readonly filas: DocumentoComercialFicha[];
+  readonly tipo: "cotizacion" | "conduce";
+}) {
+  const esCotizacion = tipo === "cotizacion";
+
+  return (
+    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Número</TableHead>
+            <TableHead>Fecha</TableHead>
+            <TableHead className="text-right">Total</TableHead>
+            <TableHead>Estado</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filas.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={4} className="text-muted-foreground py-10 text-center">
+                {esCotizacion ? "No hay cotizaciones." : "No hay conduces."}
+              </TableCell>
+            </TableRow>
+          ) : (
+            filas.map((fila) => (
+              <TableRow key={fila.id} className="relative cursor-pointer">
+                <TableCell className="font-medium">
+                  <Enlace
+                    className="absolute inset-0"
+                    href={esCotizacion ? rutaCotizacion(fila.id) : rutaConduce(fila.id)}
+                    aria-label={`Ver ${esCotizacion ? "cotización" : "conduce"} #${fila.numero}`}
+                  />
+                  <span className="pointer-events-none relative">#{fila.numero}</span>
+                </TableCell>
+                <TableCell>{formatoDia(fila.fecha)}</TableCell>
+                <TableCell className="text-right tabular-nums">{formatoMoneda(fila.total)}</TableCell>
+                <TableCell>
+                  <EstadoComercialBadge estado={fila.estado} />
                 </TableCell>
               </TableRow>
             ))
@@ -356,8 +435,18 @@ export function FichaContacto({
   readonly datos: DatosFichaContacto;
   readonly puedeCrear: boolean;
 }) {
-  const { contacto, cuentaCxc, cuentaCxp, facturas, facturasProveedor, pagosRecibidos, pagosProveedor, asientos } =
-    datos;
+  const {
+    contacto,
+    cuentaCxc,
+    cuentaCxp,
+    facturas,
+    facturasProveedor,
+    cotizaciones,
+    conduces,
+    pagosRecibidos,
+    pagosProveedor,
+    asientos,
+  } = datos;
   const [pestana, setPestana] = useState<PestanaFicha>("transacciones");
   const [filtros, setFiltros] = useState<Record<PestanaFicha, string>>(FILTROS_INICIALES);
 
@@ -387,6 +476,12 @@ export function FichaContacto({
       return <TablaFacturas filas={filtrarPorNumero(facturas, filtros.facturas)} tipo="venta" />;
     if (valor === "facturas-proveedor") {
       return <TablaFacturas filas={filtrarPorNumero(facturasProveedor, filtros["facturas-proveedor"])} tipo="compra" />;
+    }
+    if (valor === "cotizaciones") {
+      return <TablaComerciales filas={filtrarPorNumero(cotizaciones, filtros.cotizaciones)} tipo="cotizacion" />;
+    }
+    if (valor === "conduces") {
+      return <TablaComerciales filas={filtrarPorNumero(conduces, filtros.conduces)} tipo="conduce" />;
     }
     if (valor === "pagos-recibidos") {
       return <TablaPagos filas={filtrarPorNumero(pagosRecibidos, filtros["pagos-recibidos"])} tipo="recibido" />;

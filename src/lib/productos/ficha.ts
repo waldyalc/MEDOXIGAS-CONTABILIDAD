@@ -50,17 +50,27 @@ export interface DocumentoFicha {
   estado: string;
 }
 
+export interface DocumentoComercialFicha {
+  id: string;
+  numero: number;
+  fecha: string;
+  total: number;
+  estado: string;
+}
+
 export interface FichaProducto {
   producto: ProductoFicha;
   cuentas: CuentasFicha;
   facturasVenta: DocumentoFicha[];
   facturasCompra: DocumentoFicha[];
+  cotizaciones: DocumentoComercialFicha[];
+  conduces: DocumentoComercialFicha[];
   kardex: ResultadoKardex;
 }
 
 export interface DocumentoNumerado {
   numero: number;
-  ncf: string | null;
+  ncf?: string | null;
 }
 
 export function precioConItbis(precio: number, itbisTasa: number): number {
@@ -132,4 +142,10 @@ export function filtrarPorNumero<T extends DocumentoNumerado>(documentos: readon
     const ncf = documento.ncf?.toLowerCase() ?? "";
     return String(documento.numero).includes(termino) || ncf.includes(termino);
   });
+}
+
+export function etiquetaEstadoComercial(estado: string): string {
+  if (estado === "convertida") return "Convertida";
+  if (estado === "anulada") return "Anulada";
+  return "Abierta";
 }

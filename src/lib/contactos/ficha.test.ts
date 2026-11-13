@@ -4,6 +4,7 @@ import {
   aCentavos,
   construirTransacciones,
   type DocumentoFicha,
+  etiquetaEstadoComercial,
   etiquetaEstadoDocumento,
   etiquetaEstadoPago,
   filtrarPorNumero,
@@ -165,5 +166,11 @@ describe("etiquetas de estado", () => {
     expect(etiquetaEstadoDocumento("anulada", "compra")).toBe("Anulada");
     expect(etiquetaEstadoPago("activo")).toBe("Activo");
     expect(etiquetaEstadoPago("anulado")).toBe("Anulado");
+  });
+
+  test("etiqueta los estados de cotizaciones y conduces", () => {
+    expect(etiquetaEstadoComercial("abierta")).toBe("Abierta");
+    expect(etiquetaEstadoComercial("convertida")).toBe("Convertida");
+    expect(etiquetaEstadoComercial("anulada")).toBe("Anulada");
   });
 });

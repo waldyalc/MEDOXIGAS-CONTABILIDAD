@@ -9,10 +9,16 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { rutaCompra, rutaContacto, rutaFactura } from "@/lib/enlaces";
+import { rutaCompra, rutaConduce, rutaContacto, rutaCotizacion, rutaFactura } from "@/lib/enlaces";
 import { formatoCantidad, formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
-import { type DocumentoFicha, filtrarPorNumero, saldoCentavos } from "@/lib/productos/ficha";
+import {
+  type DocumentoComercialFicha,
+  type DocumentoFicha,
+  etiquetaEstadoComercial,
+  filtrarPorNumero,
+  saldoCentavos,
+} from "@/lib/productos/ficha";
 import type { FilaKardex, ResultadoKardex } from "@/lib/productos/kardex";
 
 const ETIQUETAS_ESTADO: Record<string, string> = {
@@ -26,6 +32,24 @@ function EstadoBadge({ estado }: { readonly estado: string }) {
 
   if (estado === "anulada") return <Badge variant="destructive">{etiqueta}</Badge>;
   if (estado === "pagada") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
+      >
+        {etiqueta}
+      </Badge>
+    );
+  }
+
+  return <Badge variant="outline">{etiqueta}</Badge>;
+}
+
+function EstadoComercialBadge({ estado }: { readonly estado: string }) {
+  const etiqueta = etiquetaEstadoComercial(estado);
+
+  if (estado === "anulada") return <Badge variant="destructive">{etiqueta}</Badge>;
+  if (estado === "convertida") {
     return (
       <Badge
         variant="outline"
@@ -139,6 +163,63 @@ function TablaDocumentos({
   );
 }
 
+function TablaComerciales({
+  documentos,
+  tipo,
+  filtro,
+}: {
+  readonly documentos: DocumentoComercialFicha[];
+  readonly tipo: "cotizacion" | "conduce";
+  readonly filtro: string;
+}) {
+  const esCotizacion = tipo === "cotizacion";
+  const vacio = esCotizacion
+    ? "Este producto todavía no tiene cotizaciones."
+    : "Este producto todavía no tiene conduces.";
+
+  return (
+    <div className="rounded-lg border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Número</TableHead>
+            <TableHead>Fecha</TableHead>
+            <TableHead className="text-right">Total</TableHead>
+            <TableHead>Estado</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {documentos.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={4} className="text-muted-foreground h-24 text-center whitespace-normal">
+                {filtro.trim() ? "No se encontraron documentos con ese filtro." : vacio}
+              </TableCell>
+            </TableRow>
+          ) : (
+            documentos.map((documento) => (
+              <TableRow key={documento.id}>
+                <TableCell>
+                  <Enlace
+                    href={esCotizacion ? rutaCotizacion(documento.id) : rutaConduce(documento.id)}
+                    className="font-medium"
+                  >
+                    #{documento.numero}
+                  </Enlace>
+                </TableCell>
+                <TableCell>{formatoDia(documento.fecha)}</TableCell>
+                <TableCell className="text-right tabular-nums">{formatoMoneda(documento.total)}</TableCell>
+                <TableCell>
+                  <EstadoComercialBadge estado={documento.estado} />
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 function TablaKardex({ filas, filtro }: { readonly filas: FilaKardex[]; readonly filtro: string }) {
   return (
     <div className="rounded-lg border">
@@ -197,18 +278,26 @@ function TablaKardex({ filas, filtro }: { readonly filas: FilaKardex[]; readonly
 export function FichaTabs({
   facturasVenta,
   facturasCompra,
+  cotizaciones,
+  conduces,
   kardex,
 }: {
   readonly facturasVenta: DocumentoFicha[];
   readonly facturasCompra: DocumentoFicha[];
+  readonly cotizaciones: DocumentoComercialFicha[];
+  readonly conduces: DocumentoComercialFicha[];
   readonly kardex: ResultadoKardex;
 }) {
   const [filtroVentas, setFiltroVentas] = useState("");
   const [filtroCompras, setFiltroCompras] = useState("");
+  const [filtroCotizaciones, setFiltroCotizaciones] = useState("");
+  const [filtroConduces, setFiltroConduces] = useState("");
   const [filtroKardex, setFiltroKardex] = useState("");
 
   const ventasFiltradas = filtrarPorNumero(facturasVenta, filtroVentas);
   const comprasFiltradas = filtrarPorNumero(facturasCompra, filtroCompras);
+  const cotizacionesFiltradas = filtrarPorNumero(cotizaciones, filtroCotizaciones);
+  const conducesFiltrados = filtrarPorNumero(conduces, filtroConduces);
   const kardexFiltrado = filtrarPorNumero(kardex.filas, filtroKardex);
 
   return (
@@ -216,6 +305,8 @@ export function FichaTabs({
       <TabsList variant="line">
         <TabsTrigger value="ventas">Facturas de venta</TabsTrigger>
         <TabsTrigger value="compras">Facturas de compra</TabsTrigger>
+        <TabsTrigger value="cotizaciones">Cotizaciones</TabsTrigger>
+        <TabsTrigger value="conduces">Conduces</TabsTrigger>
         <TabsTrigger value="kardex">Kárdex</TabsTrigger>
       </TabsList>
 
@@ -227,6 +318,16 @@ export function FichaTabs({
       <TabsContent value="compras" className="flex flex-col gap-4">
         <FiltroNumero valor={filtroCompras} onCambio={setFiltroCompras} />
         <TablaDocumentos documentos={comprasFiltradas} tipo="compra" filtro={filtroCompras} />
+      </TabsContent>
+
+      <TabsContent value="cotizaciones" className="flex flex-col gap-4">
+        <FiltroNumero valor={filtroCotizaciones} onCambio={setFiltroCotizaciones} />
+        <TablaComerciales documentos={cotizacionesFiltradas} tipo="cotizacion" filtro={filtroCotizaciones} />
+      </TabsContent>
+
+      <TabsContent value="conduces" className="flex flex-col gap-4">
+        <FiltroNumero valor={filtroConduces} onCambio={setFiltroConduces} />
+        <TablaComerciales documentos={conducesFiltrados} tipo="conduce" filtro={filtroConduces} />
       </TabsContent>
 
       <TabsContent value="kardex" className="flex flex-col gap-4">

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import {
   type CuentaResumen,
+  type DocumentoComercialFicha,
   type DocumentoFicha,
   type FichaProducto,
   type ProductoFicha,
@@ -39,6 +40,14 @@ interface LineaCompraFila {
   factura_proveedor_id: string;
   cantidad: number;
   costo: number;
+}
+
+interface LineaCotizacionFila {
+  cotizacion_id: string;
+}
+
+interface LineaRemisionFila {
+  remision_id: string;
 }
 
 interface DocumentoFila {
@@ -111,6 +120,40 @@ async function cargarFacturasCompra(lineas: readonly LineaCompraFila[]): Promise
     .order("fecha", { ascending: false })
     .order("numero", { ascending: false })
     .returns<DocumentoFila[]>();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+async function cargarCotizaciones(ids: readonly string[]): Promise<DocumentoComercialFicha[]> {
+  const unicos = [...new Set(ids)];
+  if (unicos.length === 0) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("cotizaciones")
+    .select("id, numero, fecha, total, estado")
+    .in("id", unicos)
+    .order("fecha", { ascending: false })
+    .order("numero", { ascending: false })
+    .returns<DocumentoComercialFicha[]>();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+async function cargarConduces(ids: readonly string[]): Promise<DocumentoComercialFicha[]> {
+  const unicos = [...new Set(ids)];
+  if (unicos.length === 0) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("remisiones")
+    .select("id, numero, fecha, total, estado")
+    .in("id", unicos)
+    .order("fecha", { ascending: false })
+    .order("numero", { ascending: false })
+    .returns<DocumentoComercialFicha[]>();
 
   if (error) throw new Error(error.message);
   return data;
@@ -216,7 +259,7 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
   if (error) throw new Error(error.message);
   if (!producto) return null;
 
-  const [lineasVenta, lineasCompra] = await Promise.all([
+  const [lineasVenta, lineasCompra, lineasCotizacion, lineasRemision] = await Promise.all([
     supabase
       .from("factura_lineas")
       .select("factura_id, cantidad, costo_unitario")
@@ -227,10 +270,14 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
       .select("factura_proveedor_id, cantidad, costo")
       .eq("producto_id", id)
       .returns<LineaCompraFila[]>(),
+    supabase.from("cotizacion_lineas").select("cotizacion_id").eq("producto_id", id).returns<LineaCotizacionFila[]>(),
+    supabase.from("remision_lineas").select("remision_id").eq("producto_id", id).returns<LineaRemisionFila[]>(),
   ]);
 
   if (lineasVenta.error) throw new Error(lineasVenta.error.message);
   if (lineasCompra.error) throw new Error(lineasCompra.error.message);
+  if (lineasCotizacion.error) throw new Error(lineasCotizacion.error.message);
+  if (lineasRemision.error) throw new Error(lineasRemision.error.message);
 
   const configuracion = await cargarConfiguracionFicha();
   const cuentaIds = [
@@ -240,9 +287,11 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
     ...configuracion.values(),
   ].filter((valor): valor is string => valor !== null);
 
-  const [facturasVentaDb, facturasCompraDb, cuentas] = await Promise.all([
+  const [facturasVentaDb, facturasCompraDb, cotizacionesDb, conducesDb, cuentas] = await Promise.all([
     cargarFacturasVenta(lineasVenta.data),
     cargarFacturasCompra(lineasCompra.data),
+    cargarCotizaciones(lineasCotizacion.data.map((linea) => linea.cotizacion_id)),
+    cargarConduces(lineasRemision.data.map((linea) => linea.remision_id)),
     cargarCuentas(cuentaIds),
   ]);
 
@@ -287,6 +336,8 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
     cuentas: cuentasFicha,
     facturasVenta: facturasVentaDb.map((fila) => documentoDesdeFila(fila, cantidadesVenta)),
     facturasCompra: facturasCompraDb.map((fila) => documentoDesdeFila(fila, cantidadesCompra)),
+    cotizaciones: cotizacionesDb,
+    conduces: conducesDb,
     kardex: construirKardex(productoFicha.inventariable ? productoFicha.cantidad : 0, movimientos),
   };
 }

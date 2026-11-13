@@ -18,6 +18,14 @@ export function rutaCompra(id: string) {
   return ruta("/dashboard/compras", id);
 }
 
+export function rutaCotizacion(id: string) {
+  return ruta("/dashboard/cotizaciones", id);
+}
+
+export function rutaConduce(id: string) {
+  return ruta("/dashboard/conduces", id);
+}
+
 export function rutaPagoRecibido(id: string) {
   return ruta("/dashboard/pagos-recibidos", id);
 }

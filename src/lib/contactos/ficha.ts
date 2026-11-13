@@ -39,6 +39,14 @@ export interface PagoFicha {
   factura_numero: number | null;
 }
 
+export interface DocumentoComercialFicha {
+  id: string;
+  numero: number;
+  fecha: string;
+  total: number | string;
+  estado: string;
+}
+
 export interface AsientoFicha {
   id: string;
   numero: number;
@@ -65,6 +73,8 @@ export interface DatosFichaContacto {
   cuentaCxp: CuentaFicha | null;
   facturas: DocumentoFicha[];
   facturasProveedor: DocumentoFicha[];
+  cotizaciones: DocumentoComercialFicha[];
+  conduces: DocumentoComercialFicha[];
   pagosRecibidos: PagoFicha[];
   pagosProveedor: PagoFicha[];
   asientos: AsientoFicha[];
@@ -194,4 +204,10 @@ export function etiquetaEstadoDocumento(estado: string, tipo: "venta" | "compra"
 
 export function etiquetaEstadoPago(estado: string): string {
   return estado === "anulado" ? "Anulado" : "Activo";
+}
+
+export function etiquetaEstadoComercial(estado: string): string {
+  if (estado === "convertida") return "Convertida";
+  if (estado === "anulada") return "Anulada";
+  return "Abierta";
 }

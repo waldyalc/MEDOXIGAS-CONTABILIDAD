@@ -20,7 +20,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const ficha = await obtenerFichaProducto(id);
   if (!ficha) notFound();
 
-  const { producto, facturasVenta, facturasCompra, kardex } = ficha;
+  const { producto, facturasVenta, facturasCompra, cotizaciones, conduces, kardex } = ficha;
   const puedeEscribir = rol !== "lector";
 
   return (
@@ -73,7 +73,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
       <DatosProducto ficha={ficha} />
 
-      <FichaTabs facturasVenta={facturasVenta} facturasCompra={facturasCompra} kardex={kardex} />
+      <FichaTabs
+        facturasVenta={facturasVenta}
+        facturasCompra={facturasCompra}
+        cotizaciones={cotizaciones}
+        conduces={conduces}
+        kardex={kardex}
+      />
     </div>
   );
 }

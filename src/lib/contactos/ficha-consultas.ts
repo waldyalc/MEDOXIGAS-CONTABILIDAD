@@ -8,16 +8,19 @@ import {
   type ContactoFicha,
   type CuentaFicha,
   type DatosFichaContacto,
+  type DocumentoComercialFicha,
   type DocumentoFicha,
   type LineaAsientoContacto,
   type PagoFicha,
   sumarLineasAsiento,
+  type TotalesAsiento,
 } from "./ficha";
 
 const UUID = z.uuid();
 
 const CAMPOS_CONTACTO = "id, nombre, rnc_cedula, telefono, correo, direccion, tipo, cuenta_cxc_id, cuenta_cxp_id";
 const CAMPOS_DOCUMENTO = "id, numero, ncf, fecha, vencimiento, total, pagado, estado";
+const CAMPOS_COMERCIAL = "id, numero, fecha, total, estado";
 const CAMPOS_PAGO = "id, numero, fecha, monto, estado, factura_id";
 
 interface ContactoConCuentas extends ContactoFicha {
@@ -50,6 +53,10 @@ function verificarError(resultado: { error: { message: string } | null }): void 
   if (resultado.error !== null) throw new Error(resultado.error.message);
 }
 
+function filasDe<T>(filas: T[] | null): T[] {
+  return filas ?? [];
+}
+
 function mapearContacto(fila: ContactoConCuentas): ContactoFicha {
   return {
     id: fila.id,
@@ -75,6 +82,49 @@ function resolverCuenta(
   return null;
 }
 
+function mapearPagosRecibidos(
+  pagos: readonly Omit<PagoFicha, "factura_numero">[],
+  numerosFactura: ReadonlyMap<string, number>,
+): PagoFicha[] {
+  return pagos.map((pago) => ({
+    ...pago,
+    factura_numero: pago.factura_id === null ? null : (numerosFactura.get(pago.factura_id) ?? null),
+  }));
+}
+
+function mapearPagosProveedor(
+  pagos: readonly PagoProveedorFila[],
+  numerosCompra: ReadonlyMap<string, number>,
+): PagoFicha[] {
+  return pagos.map((pago) => ({
+    id: pago.id,
+    numero: pago.numero,
+    fecha: pago.fecha,
+    monto: pago.monto,
+    estado: pago.estado,
+    factura_id: pago.factura_proveedor_id,
+    factura_numero: numerosCompra.get(pago.factura_proveedor_id) ?? null,
+  }));
+}
+
+function mapearAsientos(
+  asientos: readonly AsientoFila[],
+  totalesAsientos: ReadonlyMap<string, TotalesAsiento>,
+): AsientoFicha[] {
+  return asientos.map((asiento) => {
+    const totales = totalesAsientos.get(asiento.id) ?? { debitoCentavos: 0, creditoCentavos: 0 };
+
+    return {
+      id: asiento.id,
+      numero: asiento.numero,
+      fecha: asiento.fecha,
+      descripcion: asiento.descripcion,
+      debitoCentavos: totales.debitoCentavos,
+      creditoCentavos: totales.creditoCentavos,
+    };
+  });
+}
+
 export async function obtenerContactoFicha(id: string): Promise<ContactoFicha | null> {
   if (!UUID.safeParse(id).success) return null;
 
@@ -95,7 +145,17 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
   if (!UUID.safeParse(id).success) return null;
 
   const supabase = await createClient();
-  const [contactoRes, facturasRes, comprasRes, pagosRes, pagosProveedorRes, lineasRes, configRes] = await Promise.all([
+  const [
+    contactoRes,
+    facturasRes,
+    comprasRes,
+    cotizacionesRes,
+    conducesRes,
+    pagosRes,
+    pagosProveedorRes,
+    lineasRes,
+    configRes,
+  ] = await Promise.all([
     supabase.from("contactos").select(CAMPOS_CONTACTO).eq("id", id).maybeSingle().returns<ContactoConCuentas | null>(),
     supabase
       .from("facturas")
@@ -111,6 +171,20 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
       .order("fecha", { ascending: false })
       .order("numero", { ascending: false })
       .returns<DocumentoFicha[]>(),
+    supabase
+      .from("cotizaciones")
+      .select(CAMPOS_COMERCIAL)
+      .eq("contacto_id", id)
+      .order("fecha", { ascending: false })
+      .order("numero", { ascending: false })
+      .returns<DocumentoComercialFicha[]>(),
+    supabase
+      .from("remisiones")
+      .select(CAMPOS_COMERCIAL)
+      .eq("contacto_id", id)
+      .order("fecha", { ascending: false })
+      .order("numero", { ascending: false })
+      .returns<DocumentoComercialFicha[]>(),
     supabase
       .from("pagos_recibidos")
       .select(CAMPOS_PAGO)
@@ -137,20 +211,30 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
       .returns<{ clave: string; cuenta_id: string }[]>(),
   ]);
 
-  for (const resultado of [contactoRes, facturasRes, comprasRes, pagosRes, pagosProveedorRes, lineasRes, configRes]) {
+  for (const resultado of [
+    contactoRes,
+    facturasRes,
+    comprasRes,
+    cotizacionesRes,
+    conducesRes,
+    pagosRes,
+    pagosProveedorRes,
+    lineasRes,
+    configRes,
+  ]) {
     verificarError(resultado);
   }
   if (!contactoRes.data) return null;
 
   const contacto = contactoRes.data;
-  const configuracion = new Map((configRes.data ?? []).map((fila) => [fila.clave, fila.cuenta_id]));
+  const configuracion = new Map(filasDe(configRes.data).map((fila) => [fila.clave, fila.cuenta_id]));
   const cuentaIds = [
     contacto.cuenta_cxc_id,
     contacto.cuenta_cxp_id,
     configuracion.get("cxc"),
     configuracion.get("cxp"),
   ].filter((valor): valor is string => valor != null);
-  const totalesAsientos = sumarLineasAsiento(lineasRes.data ?? []);
+  const totalesAsientos = sumarLineasAsiento(filasDe(lineasRes.data));
   const asientoIds = [...totalesAsientos.keys()];
 
   const [cuentasRes, asientosRes] = await Promise.all([
@@ -172,37 +256,15 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     verificarError(resultado);
   }
 
-  const cuentas = new Map((cuentasRes.data ?? []).map((cuenta) => [cuenta.id, cuenta]));
-  const facturas = facturasRes.data ?? [];
-  const compras = comprasRes.data ?? [];
+  const cuentas = new Map(filasDe(cuentasRes.data).map((cuenta) => [cuenta.id, cuenta]));
+  const facturas = filasDe(facturasRes.data);
+  const compras = filasDe(comprasRes.data);
   const numerosFactura = new Map(facturas.map((factura) => [factura.id, factura.numero]));
   const numerosCompra = new Map(compras.map((compra) => [compra.id, compra.numero]));
 
-  const pagosRecibidos: PagoFicha[] = (pagosRes.data ?? []).map((pago) => ({
-    ...pago,
-    factura_numero: pago.factura_id === null ? null : (numerosFactura.get(pago.factura_id) ?? null),
-  }));
-  const pagosProveedor: PagoFicha[] = (pagosProveedorRes.data ?? []).map((pago) => ({
-    id: pago.id,
-    numero: pago.numero,
-    fecha: pago.fecha,
-    monto: pago.monto,
-    estado: pago.estado,
-    factura_id: pago.factura_proveedor_id,
-    factura_numero: numerosCompra.get(pago.factura_proveedor_id) ?? null,
-  }));
-  const asientos: AsientoFicha[] = (asientosRes.data ?? []).map((asiento) => {
-    const totales = totalesAsientos.get(asiento.id) ?? { debitoCentavos: 0, creditoCentavos: 0 };
-
-    return {
-      id: asiento.id,
-      numero: asiento.numero,
-      fecha: asiento.fecha,
-      descripcion: asiento.descripcion,
-      debitoCentavos: totales.debitoCentavos,
-      creditoCentavos: totales.creditoCentavos,
-    };
-  });
+  const pagosRecibidos = mapearPagosRecibidos(filasDe(pagosRes.data), numerosFactura);
+  const pagosProveedor = mapearPagosProveedor(filasDe(pagosProveedorRes.data), numerosCompra);
+  const asientos = mapearAsientos(filasDe(asientosRes.data), totalesAsientos);
 
   return {
     contacto: mapearContacto(contacto),
@@ -210,6 +272,8 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     cuentaCxp: resolverCuenta(contacto.cuenta_cxp_id, configuracion.get("cxp"), cuentas),
     facturas,
     facturasProveedor: compras,
+    cotizaciones: filasDe(cotizacionesRes.data),
+    conduces: filasDe(conducesRes.data),
     pagosRecibidos,
     pagosProveedor,
     asientos,
