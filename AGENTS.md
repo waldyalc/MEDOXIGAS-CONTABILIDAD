@@ -18,6 +18,12 @@ Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y O
 - Roles: **Coder** (tech lead) diseña y revisa el diff; **OpenCode** (`opencode-go/deepseek-v4.1-flash`, variante `max`) escribe el código. Waldy aprueba lo irreversible: deploy a producción, migraciones que borran o cambian datos, borrar datos, planes pagos.
 - Fiscal RD: la facturación debe cumplir con la DGII (e-CF / NCF, reportes 606 y 607). Se diseña con Contable antes de programar.
 
+## Ir rápido
+
+- Lee solo lo que pide el brief (y la skill que aplique). No explores el repo ni `node_modules` por curiosidad.
+- No leas tipos en `node_modules` para copiar una API: copia un uso real del repo (ver skill `diseno-ui`).
+- No hagas verificación visual, no levantes el dev server ni abras el preview, salvo que el brief lo pida (lo hace Coder).
+
 ## Antes de empezar
 
 - [ ] Lee este `AGENTS.md` y el `HANDOFF.md`.

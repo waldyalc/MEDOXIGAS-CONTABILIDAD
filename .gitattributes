@@ -1,0 +1,10 @@
+# Texto en LF en el repo y en el working tree (evita que Biome marque CRLF en Windows).
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
+*.xlsx binary
+*.woff binary
+*.woff2 binary
