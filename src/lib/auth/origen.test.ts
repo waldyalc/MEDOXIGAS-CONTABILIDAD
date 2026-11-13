@@ -12,11 +12,11 @@ describe("origenDesdeHeaders", () => {
   });
 
   test("cae al host y usa https fuera de localhost", () => {
-    expect(origenDesdeHeaders(new Headers({ host: "medoxigas-opp.vercel.app" }))).toBe(
-      "https://medoxigas-opp.vercel.app",
+    expect(origenDesdeHeaders(new Headers({ host: "medoxigas-contabilidad.vercel.app" }))).toBe(
+      "https://medoxigas-contabilidad.vercel.app",
     );
-    expect(origenDesdeHeaders(new Headers({ host: "medoxigas-opp-prueba.vercel.app" }))).toBe(
-      "https://medoxigas-opp-prueba.vercel.app",
+    expect(origenDesdeHeaders(new Headers({ host: "medoxigas-contabilidad-prueba.vercel.app" }))).toBe(
+      "https://medoxigas-contabilidad-prueba.vercel.app",
     );
   });
 
@@ -28,10 +28,10 @@ describe("origenDesdeHeaders", () => {
   test("toma el primer valor de una lista y prefiere x-forwarded-host", () => {
     const headers = new Headers({
       host: "interno:3000",
-      "x-forwarded-host": "medoxigas-opp-prueba.vercel.app",
+      "x-forwarded-host": "medoxigas-contabilidad-prueba.vercel.app",
       "x-forwarded-proto": "https,http",
     });
-    expect(origenDesdeHeaders(headers)).toBe("https://medoxigas-opp-prueba.vercel.app");
+    expect(origenDesdeHeaders(headers)).toBe("https://medoxigas-contabilidad-prueba.vercel.app");
   });
 
   test("sin host devuelve vacío", () => {

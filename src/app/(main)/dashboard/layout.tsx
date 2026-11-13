@@ -6,8 +6,7 @@ import { cn } from "cn";
 
 import { AppSidebar } from "@/app/(main)/dashboard/_components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { normalizarRol } from "@/lib/auth/rol";
-import { createClient } from "@/lib/supabase/server";
+import { getPerfil } from "@/lib/auth/rol";
 import { getPreference } from "@/server/server-actions";
 
 import { ProfileMenu } from "./_components/header/profile-menu";
@@ -20,14 +19,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
     getPreference("sidebar_variant"),
     getPreference("sidebar_collapsible"),
   ]);
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  const usuario = data.user;
-  const perfil = usuario
-    ? await supabase.from("perfiles").select("nombre, rol").eq("user_id", usuario.id).maybeSingle()
-    : null;
-  const nombre = perfil?.data?.nombre ?? null;
-  const rol = normalizarRol(perfil?.data?.rol);
+  const perfil = await getPerfil();
 
   return (
     <SidebarProvider
@@ -38,7 +30,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant={variant} collapsible={collapsible} rol={rol} className="print:hidden" />
+      <AppSidebar variant={variant} collapsible={collapsible} rol={perfil?.rol ?? null} className="print:hidden" />
       <SidebarInset
         className={cn(
           "[html[data-content-layout=centered]_&>*]:mx-auto",
@@ -62,7 +54,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
             </div>
             <div className="flex items-center gap-2">
               <ThemeSwitcher />
-              <ProfileMenu nombre={nombre} correo={usuario?.email ?? null} />
+              <ProfileMenu nombre={perfil?.nombre ?? null} correo={perfil?.correo ?? null} />
             </div>
           </div>
         </header>

@@ -1,4 +1,4 @@
-import { Factory, FileText, type LucideIcon, ShoppingCart, Wallet } from "lucide-react";
+import { Banknote, ChartColumn, House, Landmark, type LucideIcon, Package, ReceiptText, Users } from "lucide-react";
 
 import type { Rol } from "@/lib/auth/rol";
 
@@ -41,39 +41,73 @@ export interface NavGroup {
   items: NavMainItem[];
 }
 
+const TODOS_LOS_ROLES: Rol[] = ["admin", "contador", "lector"];
+
 export const sidebarItems: NavGroup[] = [
   {
     id: 1,
     label: "Módulos",
     items: [
       {
-        id: "produccion",
-        title: "Producción",
-        url: "/dashboard/produccion",
-        icon: Factory,
-        roles: ["admin"],
+        id: "inicio",
+        title: "Inicio",
+        url: "/dashboard",
+        icon: House,
+        roles: TODOS_LOS_ROLES,
       },
       {
-        id: "estado-cuenta",
-        title: "Estado de cuenta",
-        url: "/dashboard/estado-cuenta",
-        icon: FileText,
-        roles: ["admin", "cobros"],
+        id: "facturacion",
+        title: "Facturación",
+        url: "/dashboard/facturacion",
+        icon: ReceiptText,
+        badge: "soon",
+        disabled: true,
+        roles: TODOS_LOS_ROLES,
       },
       {
-        id: "caja-chica",
-        title: "Caja Chica",
-        url: "/dashboard/caja-chica",
-        icon: Wallet,
-        roles: ["admin", "caja"],
+        id: "clientes",
+        title: "Clientes",
+        url: "/dashboard/clientes",
+        icon: Users,
+        badge: "soon",
+        disabled: true,
+        roles: TODOS_LOS_ROLES,
       },
       {
-        id: "pos",
-        title: "Punto de Venta",
-        url: "/pos",
-        icon: ShoppingCart,
-        newTab: true,
-        roles: ["admin", "caja"],
+        id: "productos",
+        title: "Productos",
+        url: "/dashboard/productos",
+        icon: Package,
+        badge: "soon",
+        disabled: true,
+        roles: TODOS_LOS_ROLES,
+      },
+      {
+        id: "gastos",
+        title: "Gastos",
+        url: "/dashboard/gastos",
+        icon: Banknote,
+        badge: "soon",
+        disabled: true,
+        roles: TODOS_LOS_ROLES,
+      },
+      {
+        id: "bancos",
+        title: "Bancos",
+        url: "/dashboard/bancos",
+        icon: Landmark,
+        badge: "soon",
+        disabled: true,
+        roles: TODOS_LOS_ROLES,
+      },
+      {
+        id: "reportes",
+        title: "Reportes",
+        url: "/dashboard/reportes",
+        icon: ChartColumn,
+        badge: "soon",
+        disabled: true,
+        roles: TODOS_LOS_ROLES,
       },
     ],
   },

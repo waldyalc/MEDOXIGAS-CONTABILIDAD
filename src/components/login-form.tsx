@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 import { cn } from "cn";
 import { CircleAlert } from "lucide-react";
 
@@ -34,16 +32,14 @@ export function LoginForm({
         <CardContent className="grid p-0 md:grid-cols-2">
           <div className="flex flex-col gap-6 p-6 md:p-8">
             <div className="flex flex-col items-center gap-2 text-center">
-              <Image
-                src="/marca/logo-medoxigas-cuadrado.png"
-                alt="Medoxigas"
-                width={56}
-                height={56}
-                priority
-                className="size-14 rounded-xl"
-              />
+              <div
+                aria-hidden="true"
+                className="bg-primary text-primary-foreground flex size-14 items-center justify-center rounded-xl text-lg font-semibold"
+              >
+                MC
+              </div>
               <h1 className="text-2xl font-bold">Bienvenido</h1>
-              <p className="text-muted-foreground text-balance">Entra a tu cuenta de Medoxigas OPP</p>
+              <p className="text-muted-foreground text-balance">Entra a Medoxigas Contabilidad</p>
             </div>
             <form action={entrar}>
               <FieldGroup>
@@ -110,14 +106,11 @@ export function LoginForm({
               </Button>
             </form>
           </div>
-          <div className="bg-muted relative hidden md:block">
-            <Image
-              src="/pos/productos/oxigeno-medico-6m3.webp"
-              alt="Cilindro de oxígeno medicinal"
-              fill
-              sizes="(min-width: 768px) 50vw, 100vw"
-              className="object-cover dark:brightness-[0.2] dark:grayscale"
-            />
+          <div className="bg-muted hidden flex-col justify-center gap-2 p-8 md:flex">
+            <p className="text-2xl font-semibold tracking-tight">Medoxigas Contabilidad</p>
+            <p className="text-muted-foreground text-sm text-balance">
+              Contabilidad y facturación para MEDOXIGAS ALC, SRL.
+            </p>
           </div>
         </CardContent>
       </Card>

@@ -5,14 +5,14 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 const { normalizarRol } = await import("./rol");
 
 describe("normalizarRol", () => {
-  test("acepta admin, caja y cobros", () => {
+  test("acepta admin, contador y lector", () => {
     expect(normalizarRol("admin")).toBe("admin");
-    expect(normalizarRol("caja")).toBe("caja");
-    expect(normalizarRol("cobros")).toBe("cobros");
+    expect(normalizarRol("contador")).toBe("contador");
+    expect(normalizarRol("lector")).toBe("lector");
   });
 
   test("rechaza valores desconocidos o vacíos", () => {
-    for (const valor of [null, undefined, "", "lector", "Cobros", " admin "]) {
+    for (const valor of [null, undefined, "", "supervisor", "ventas", "Admin", " admin ", "CONTADOR"]) {
       expect(normalizarRol(valor)).toBeNull();
     }
   });

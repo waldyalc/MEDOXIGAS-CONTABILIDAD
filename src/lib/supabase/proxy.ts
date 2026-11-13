@@ -17,7 +17,7 @@ export async function updateSession(request: NextRequest) {
   const ruta = request.nextUrl.pathname;
   const esLogin = ruta.startsWith("/login");
   const esCallback = ruta === "/auth/callback";
-  const esIcono = /^\/(?:pos\/)?(?:apple-)?icon(?:-[A-Za-z0-9]+|\/[^/]+)?$/.test(ruta);
+  const esIcono = /^\/(?:apple-)?icon(?:-[A-Za-z0-9]+|\/[^/]+)?$/.test(ruta);
   const esPublica = esLogin || esCallback || esIcono;
 
   if (esIcono) return NextResponse.next({ request });

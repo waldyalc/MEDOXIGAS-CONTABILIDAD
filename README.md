@@ -1,12 +1,12 @@
-# MEDOXIGAS ALC, SRL — OPP
+# Medoxigas Contabilidad
 
-ERP interno de la planta de oxígeno líquido. Esta versión tiene un solo módulo: **Producción** (merma de LOX).
+Sistema de contabilidad y facturación de **MEDOXIGAS ALC, SRL**, inspirado en Alegra sin copiar su código, textos ni diseño. El estudio de sus flujos de trabajo vive en `docs/alegra/`.
 
-El frontend usa la plantilla **Studio Admin** (`arhamkhnz/next-shadcn-admin-dashboard-baseui`, MIT) como base:
-shell con sidebar, header con búsqueda, panel de Preferencias (tema, fuente, modo claro/oscuro/sistema, diseño)
-y modo oscuro. El sidebar muestra solo Producción.
+Esta versión es el **cascarón**: login con Supabase Auth (correo/contraseña y Google) y un dashboard **Inicio** con menú lateral. Los módulos siguientes aparecen en el menú deshabilitados con el badge «soon»: Facturación, Clientes, Productos, Gastos, Bancos y Reportes.
 
-## Correr en local
+## Cómo correr
+
+Requiere Node.js 22 LTS y pnpm 10.
 
 ```bash
 pnpm install
@@ -16,47 +16,59 @@ pnpm dev
 
 Abre http://localhost:3000. Sin sesión, la app manda a `/login`.
 
-## Variables
+## Variables de entorno
 
 En `.env.local`:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (clave anon o publishable)
 
-No subas secretos. No hay registro público: el usuario se crea a mano en Supabase → Authentication. El pipeline que escribe usa la service role, fuera de esta app.
+No subas secretos. No hay registro público: los usuarios se crean a mano en Supabase → Authentication y el administrador les asigna su fila en `perfiles`.
+
+## Roles y acceso
+
+La tabla `public.perfiles` guarda el rol de cada usuario:
+
+- `admin`
+- `contador`
+- `lector`
+
+Un usuario sin fila en `perfiles` o con un rol no válido va a `/unauthorized`. La app solo lee el perfil propio; no lo crea ni lo modifica.
 
 ## Estructura
 
-- Rutas: `src/app/(main)/dashboard/produccion/page.tsx` (Server Component chico, solo compone).
-- Componentes de la pantalla: `.../produccion/_components/`. Consultas: `src/lib/produccion.ts`. Formato es-DO: `src/lib/formato.ts`.
-- Menú: `src/navigation/sidebar/sidebar-items.ts`.
-- Auth: `src/lib/supabase/server.ts` y `src/proxy.ts` (el middleware de Next.js 16 exige sesión en todo salvo `/login`).
-- Login: `src/app/login/` (diseño v2 de la plantilla, en español, solo email y contraseña contra Supabase Auth).
-- Tema de marca "Medoxigas": `src/styles/presets/medoxigas.css` (preset por defecto; tokens `--primary`, `--ring`,
-  `--chart-1`, `--sidebar-*`, `--brand-dark`).
+- Inicio: `src/app/(main)/dashboard/page.tsx` (Server Component chico, solo compone).
+- Menú lateral: `src/navigation/sidebar/sidebar-items.ts`.
+- Rol del usuario: `src/lib/auth/rol.ts`.
+- Clientes de Supabase: `src/lib/supabase/` (`server.ts`, `client.ts`, `proxy.ts`).
+- Middleware de Next.js 16: `src/proxy.ts` (exige sesión en todo salvo `/login`).
+- Login: `src/app/login/` y `src/components/login-form.tsx` (en español, correo/contraseña y Google contra Supabase Auth).
 
-## Migraciones
+## Base de datos y migraciones
 
-`supabase/migrations/20261030140000_produccion.sql`
+Migración existente: `supabase/migrations/20261113132637_perfiles.sql`. Crea la tabla `perfiles` con RLS y lectura únicamente del perfil propio; la columna `rol` acepta `admin`, `contador` y `lector`.
 
-En el proyecto de Supabase:
+Después de cada migración, regenera los tipos:
 
 ```bash
-supabase db push
+pnpm db:types
 ```
 
-O pega el SQL en el editor. En Postgres pelado, crea antes los roles que Supabase ya trae y luego aplica el archivo:
+Las migraciones se prueban solo en local:
 
-```sql
-create role anon nologin;
-create role authenticated nologin;
-create role service_role nologin bypassrls;
+```bash
+supabase start
+supabase test db
 ```
 
-La base arranca vacía, salvo el tanque `TM-22820` (22,820 kg, nivel bajo 3,000 kg, aviso 1.55 MPa, alivio 1.58 MPa). La meta de merma esperada va en `tanques.merma_esperada_pct` y queda vacía hasta que se cargue.
+## Calidad
 
-Para importar: `isos.nombre` y `lecturas_reloj.msg_id` son únicos (upsert). `llenados.msg_id` puede ser nulo en histórico. `llenados.kg` se calcula solo (cilindros × 8 + termos × 208). Si fijas ids a mano, ajusta la secuencia:
-
-```sql
-select setval(pg_get_serial_sequence('public.isos', 'id'), (select max(id) from public.isos));
+```bash
+pnpm typecheck
+pnpm check
+pnpm test
+pnpm build
+pnpm test:e2e
 ```
+
+El humo de navegador (`pnpm test:e2e`) se salta si no están definidas `E2E_EMAIL` y `E2E_PASSWORD`.

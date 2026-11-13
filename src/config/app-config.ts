@@ -3,11 +3,11 @@ import packageJson from "../../package.json";
 const currentYear = new Date().getFullYear();
 
 export const APP_CONFIG = {
-  name: "MEDOXIGAS ALC, SRL",
+  name: "Medoxigas Contabilidad",
   version: packageJson.version,
-  copyright: `© ${currentYear}, MEDOXIGAS ALC, SRL.`,
+  copyright: `© ${currentYear}, Medoxigas Contabilidad.`,
   meta: {
-    title: "MEDOXIGAS ALC, SRL — OPP",
-    description: "ERP interno de MEDOXIGAS ALC, SRL: producción de oxígeno líquido.",
+    title: "Medoxigas Contabilidad",
+    description: "Sistema de contabilidad y facturación de MEDOXIGAS ALC, SRL.",
   },
 };

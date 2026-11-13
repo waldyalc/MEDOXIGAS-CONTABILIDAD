@@ -152,24 +152,35 @@ function NavItem({ item, isItemActive, isSubItemActive, isSubmenuOpen }: NavItem
 }
 
 function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
+  const contenido = (
+    <>
+      <NavLinkIcon item={item} showFallback={showIconFallback} />
+      <span>{item.title}</span>
+    </>
+  );
+
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton
-        render={
-          <Link
-            prefetch={false}
-            href={item.url}
-            target={item.newTab ? "_blank" : undefined}
-            rel={item.newTab ? "noreferrer" : undefined}
-          />
-        }
-        aria-disabled={item.disabled}
-        tooltip={item.title}
-        isActive={isActive}
-      >
-        <NavLinkIcon item={item} showFallback={showIconFallback} />
-        <span>{item.title}</span>
-      </SidebarMenuButton>
+      {item.disabled ? (
+        <SidebarMenuButton disabled tooltip={item.title}>
+          {contenido}
+        </SidebarMenuButton>
+      ) : (
+        <SidebarMenuButton
+          render={
+            <Link
+              prefetch={false}
+              href={item.url}
+              target={item.newTab ? "_blank" : undefined}
+              rel={item.newTab ? "noreferrer" : undefined}
+            />
+          }
+          tooltip={item.title}
+          isActive={isActive}
+        >
+          {contenido}
+        </SidebarMenuButton>
+      )}
       <NavItemBadge badge={item.badge} />
     </SidebarMenuItem>
   );
