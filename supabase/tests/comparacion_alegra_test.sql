@@ -1,5 +1,5 @@
 begin;
-select plan(37);
+select plan(79);
 
 create temp table _ids (clave text primary key, id uuid) on commit drop;
 create temp table _valores (clave text primary key, valor text) on commit drop;
@@ -536,6 +536,457 @@ select is(
    )),
   8638.00::numeric(14,2),
   'reporte_cxc: por cobrar de las facturas del test = 8638.00'
+);
+
+select is(
+  (select coalesce(sum(f.subtotal), 0)::numeric(14,2)
+   from public.facturas f
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  18500.00::numeric(14,2),
+  'ventas generales: antes de impuestos = 18500.00'
+);
+
+select is(
+  (select coalesce(sum(f.itbis), 0)::numeric(14,2)
+   from public.facturas f
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  3330.00::numeric(14,2),
+  'ventas generales: impuestos = 3330.00'
+);
+
+select is(
+  (select coalesce(sum(f.total), 0)::numeric(14,2)
+   from public.facturas f
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  21830.00::numeric(14,2),
+  'ventas generales: después de impuestos = 21830.00'
+);
+
+select is(
+  (select coalesce(sum(fl.cantidad), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'varilla')),
+  20.00::numeric(14,2),
+  'ventas por producto: Varilla cantidad = 20'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'varilla')),
+  7600.00::numeric(14,2),
+  'ventas por producto: Varilla antes de impuestos = 7600.00'
+);
+
+select is(
+  (select coalesce(sum(fl.total), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'varilla')),
+  8968.00::numeric(14,2),
+  'ventas por producto: Varilla después de impuestos = 8968.00'
+);
+
+select is(
+  (select coalesce(sum(fl.cantidad), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'cemento')),
+  10.00::numeric(14,2),
+  'ventas por producto: Cemento cantidad = 10'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'cemento')),
+  6500.00::numeric(14,2),
+  'ventas por producto: Cemento antes de impuestos = 6500.00'
+);
+
+select is(
+  (select coalesce(sum(fl.total), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'cemento')),
+  7670.00::numeric(14,2),
+  'ventas por producto: Cemento después de impuestos = 7670.00'
+);
+
+select is(
+  (select coalesce(sum(fl.cantidad), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'tubo')),
+  10.00::numeric(14,2),
+  'ventas por producto: Tubo cantidad = 10'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'tubo')),
+  1500.00::numeric(14,2),
+  'ventas por producto: Tubo antes de impuestos = 1500.00'
+);
+
+select is(
+  (select coalesce(sum(fl.total), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'tubo')),
+  1770.00::numeric(14,2),
+  'ventas por producto: Tubo después de impuestos = 1770.00'
+);
+
+select is(
+  (select coalesce(sum(fl.cantidad), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'pintura')),
+  2.00::numeric(14,2),
+  'ventas por producto: Pintura cantidad = 2'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'pintura')),
+  2900.00::numeric(14,2),
+  'ventas por producto: Pintura antes de impuestos = 2900.00'
+);
+
+select is(
+  (select coalesce(sum(fl.total), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'pintura')),
+  3422.00::numeric(14,2),
+  'ventas por producto: Pintura después de impuestos = 3422.00'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  18500.00::numeric(14,2),
+  'rentabilidad: total vendido = 18500.00'
+);
+
+select is(
+  (select coalesce(sum(fl.cantidad * fl.costo_unitario), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  11100.00::numeric(14,2),
+  'rentabilidad: costo total = 11100.00'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal) - sum(fl.cantidad * fl.costo_unitario), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  7400.00::numeric(14,2),
+  'rentabilidad: rentabilidad total = 7400.00'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'cemento')),
+  6500.00::numeric(14,2),
+  'rentabilidad Cemento: total vendido = 6500.00'
+);
+
+select is(
+  (select coalesce(sum(fl.cantidad * fl.costo_unitario), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'cemento')),
+  3900.00::numeric(14,2),
+  'rentabilidad Cemento: costo total = 3900.00'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal) - sum(fl.cantidad * fl.costo_unitario), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'cemento')),
+  2600.00::numeric(14,2),
+  'rentabilidad Cemento: rentabilidad = 2600.00'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'varilla')),
+  7600.00::numeric(14,2),
+  'rentabilidad Varilla: total vendido = 7600.00'
+);
+
+select is(
+  (select coalesce(sum(fl.cantidad * fl.costo_unitario), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'varilla')),
+  4560.00::numeric(14,2),
+  'rentabilidad Varilla: costo total = 4560.00'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal) - sum(fl.cantidad * fl.costo_unitario), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'varilla')),
+  3040.00::numeric(14,2),
+  'rentabilidad Varilla: rentabilidad = 3040.00'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'tubo')),
+  1500.00::numeric(14,2),
+  'rentabilidad Tubo: total vendido = 1500.00'
+);
+
+select is(
+  (select coalesce(sum(fl.cantidad * fl.costo_unitario), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'tubo')),
+  900.00::numeric(14,2),
+  'rentabilidad Tubo: costo total = 900.00'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal) - sum(fl.cantidad * fl.costo_unitario), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'tubo')),
+  600.00::numeric(14,2),
+  'rentabilidad Tubo: rentabilidad = 600.00'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'pintura')),
+  2900.00::numeric(14,2),
+  'rentabilidad Pintura: total vendido = 2900.00'
+);
+
+select is(
+  (select coalesce(sum(fl.cantidad * fl.costo_unitario), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'pintura')),
+  1740.00::numeric(14,2),
+  'rentabilidad Pintura: costo total = 1740.00'
+);
+
+select is(
+  (select coalesce(sum(fl.subtotal) - sum(fl.cantidad * fl.costo_unitario), 0)::numeric(14,2)
+   from public.factura_lineas fl
+   join public.facturas f on f.id = fl.factura_id
+   where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'
+     and fl.producto_id = (select id from _ids where clave = 'pintura')),
+  1160.00::numeric(14,2),
+  'rentabilidad Pintura: rentabilidad = 1160.00'
+);
+
+select is(
+  (select count(*)::int
+   from (
+     select fl.producto_id,
+            round(
+              (sum(fl.subtotal) - sum(fl.cantidad * fl.costo_unitario))
+              / nullif(sum(fl.subtotal), 0) * 100,
+              0
+            ) as pct
+     from public.factura_lineas fl
+     join public.facturas f on f.id = fl.factura_id
+     where f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+       and f.estado <> 'anulada'
+     group by fl.producto_id
+   ) r
+   where r.pct = 40),
+  4,
+  'rentabilidad: los 4 productos al 40 %'
+);
+
+select is(
+  (select count(*)::int
+   from public.facturas f
+   where f.contacto_id = (select id from _ids where clave = 'contacto_constructora')
+     and f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  1,
+  'ventas por cliente: Constructora 1 venta'
+);
+
+select is(
+  (select coalesce(sum(f.subtotal), 0)::numeric(14,2)
+   from public.facturas f
+   where f.contacto_id = (select id from _ids where clave = 'contacto_constructora')
+     and f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  14100.00::numeric(14,2),
+  'ventas por cliente: Constructora antes de impuestos = 14100.00'
+);
+
+select is(
+  (select coalesce(sum(f.itbis), 0)::numeric(14,2)
+   from public.facturas f
+   where f.contacto_id = (select id from _ids where clave = 'contacto_constructora')
+     and f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  2538.00::numeric(14,2),
+  'ventas por cliente: Constructora impuestos = 2538.00'
+);
+
+select is(
+  (select coalesce(sum(f.total), 0)::numeric(14,2)
+   from public.facturas f
+   where f.contacto_id = (select id from _ids where clave = 'contacto_constructora')
+     and f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  16638.00::numeric(14,2),
+  'ventas por cliente: Constructora después de impuestos = 16638.00'
+);
+
+select is(
+  (select count(*)::int
+   from public.facturas f
+   where f.contacto_id = (select id from _ids where clave = 'contacto_juan')
+     and f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  1,
+  'ventas por cliente: Juan Pérez 1 venta'
+);
+
+select is(
+  (select coalesce(sum(f.subtotal), 0)::numeric(14,2)
+   from public.facturas f
+   where f.contacto_id = (select id from _ids where clave = 'contacto_juan')
+     and f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  4400.00::numeric(14,2),
+  'ventas por cliente: Juan Pérez antes de impuestos = 4400.00'
+);
+
+select is(
+  (select coalesce(sum(f.itbis), 0)::numeric(14,2)
+   from public.facturas f
+   where f.contacto_id = (select id from _ids where clave = 'contacto_juan')
+     and f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  792.00::numeric(14,2),
+  'ventas por cliente: Juan Pérez impuestos = 792.00'
+);
+
+select is(
+  (select coalesce(sum(f.total), 0)::numeric(14,2)
+   from public.facturas f
+   where f.contacto_id = (select id from _ids where clave = 'contacto_juan')
+     and f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  5192.00::numeric(14,2),
+  'ventas por cliente: Juan Pérez después de impuestos = 5192.00'
+);
+
+select is(
+  (select coalesce(sum(f.total), 0)::numeric(14,2)
+   from public.facturas f
+   where f.contacto_id = (select id from _ids where clave = 'contacto_constructora')
+     and f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  16638.00::numeric(14,2),
+  'estado de cuenta Constructora: total = 16638.00'
+);
+
+select is(
+  (select coalesce(sum(f.pagado), 0)::numeric(14,2)
+   from public.facturas f
+   where f.contacto_id = (select id from _ids where clave = 'contacto_constructora')
+     and f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  8000.00::numeric(14,2),
+  'estado de cuenta Constructora: cobrado = 8000.00'
+);
+
+select is(
+  (select coalesce(sum(f.total - f.pagado), 0)::numeric(14,2)
+   from public.facturas f
+   where f.contacto_id = (select id from _ids where clave = 'contacto_constructora')
+     and f.id in (select id from _ids where clave in ('factura_b01', 'factura_b02'))
+     and f.estado <> 'anulada'),
+  8638.00::numeric(14,2),
+  'estado de cuenta Constructora: saldo = 8638.00'
 );
 
 select * from finish();
