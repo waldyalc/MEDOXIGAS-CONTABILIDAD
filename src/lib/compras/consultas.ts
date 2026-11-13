@@ -12,6 +12,7 @@ import type {
   OpcionesFactura,
   OpcionesPago,
   PagoLista,
+  PagoProveedorVista,
   ProductoOpcion,
 } from "./tipos";
 
@@ -23,7 +24,7 @@ export async function listarFacturasProveedor(): Promise<FacturaLista[]> {
   const supabase = await cliente();
   const { data, error } = await supabase
     .from("facturas_proveedor")
-    .select("id, numero, ncf, fecha, vencimiento, total, pagado, estado, contactos(nombre)")
+    .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, estado, contactos(nombre)")
     .order("fecha", { ascending: false })
     .order("numero", { ascending: false })
     .returns<FacturaLista[]>();
@@ -45,19 +46,28 @@ export async function obtenerFacturaProveedor(id: string): Promise<DetalleFactur
   if (error) throw new Error(error.message);
   if (!factura) return null;
 
-  const { data: lineas, error: errorLineas } = await supabase
-    .from("facturas_proveedor_lineas")
-    .select(
-      "id, descripcion, cantidad, costo, itbis_tasa, subtotal, itbis, total, producto_id, cuenta_id, productos(nombre), cuentas(codigo, nombre)",
-    )
-    .eq("factura_proveedor_id", id)
-    .order("id")
-    .returns<LineaDetalle[]>();
+  const [lineas, pagos] = await Promise.all([
+    supabase
+      .from("facturas_proveedor_lineas")
+      .select(
+        "id, descripcion, cantidad, costo, itbis_tasa, subtotal, itbis, total, producto_id, cuenta_id, productos(nombre), cuentas(codigo, nombre)",
+      )
+      .eq("factura_proveedor_id", id)
+      .order("id")
+      .returns<LineaDetalle[]>(),
+    supabase
+      .from("pagos_proveedor")
+      .select("id, numero, fecha, metodo, monto, estado, cuenta_id")
+      .eq("factura_proveedor_id", id)
+      .order("fecha")
+      .returns<PagoProveedorVista[]>(),
+  ]);
 
-  if (errorLineas) throw new Error(errorLineas.message);
+  if (lineas.error) throw new Error(lineas.error.message);
+  if (pagos.error) throw new Error(pagos.error.message);
 
   if (!factura.asiento_id) {
-    return { factura, lineas: lineas ?? [], asiento: null, lineasAsiento: [] };
+    return { factura, lineas: lineas.data ?? [], asiento: null, lineasAsiento: [], pagos: pagos.data ?? [] };
   }
 
   const { data: asiento, error: errorAsiento } = await supabase
@@ -69,19 +79,25 @@ export async function obtenerFacturaProveedor(id: string): Promise<DetalleFactur
   if (errorAsiento) throw new Error(errorAsiento.message);
 
   if (!asiento) {
-    return { factura, lineas: lineas ?? [], asiento: null, lineasAsiento: [] };
+    return { factura, lineas: lineas.data ?? [], asiento: null, lineasAsiento: [], pagos: pagos.data ?? [] };
   }
 
   const { data: lineasAsiento, error: errorLineasAsiento } = await supabase
     .from("asiento_lineas")
-    .select("id, descripcion, debito, credito, cuentas(codigo, nombre)")
+    .select("id, cuenta_id, descripcion, debito, credito, cuentas(codigo, nombre)")
     .eq("asiento_id", asiento.id)
     .order("debito", { ascending: false })
     .returns<AsientoLinea[]>();
 
   if (errorLineasAsiento) throw new Error(errorLineasAsiento.message);
 
-  return { factura, lineas: lineas ?? [], asiento, lineasAsiento: lineasAsiento ?? [] };
+  return {
+    factura,
+    lineas: lineas.data ?? [],
+    asiento,
+    lineasAsiento: lineasAsiento ?? [],
+    pagos: pagos.data ?? [],
+  };
 }
 
 export async function listarPagosProveedor(): Promise<PagoLista[]> {
@@ -89,7 +105,7 @@ export async function listarPagosProveedor(): Promise<PagoLista[]> {
   const { data, error } = await supabase
     .from("pagos_proveedor")
     .select(
-      "id, numero, fecha, metodo, monto, estado, contactos(nombre), cuentas(nombre), facturas_proveedor(id, numero, ncf)",
+      "id, numero, fecha, metodo, monto, estado, contacto_id, cuenta_id, contactos(nombre), cuentas(nombre), facturas_proveedor(id, numero, ncf)",
     )
     .order("fecha", { ascending: false })
     .order("numero", { ascending: false })

@@ -40,6 +40,7 @@ export interface FacturaLista {
   id: string;
   numero: number;
   ncf: string | null;
+  contacto_id: string;
   fecha: string;
   vencimiento: string;
   total: number;
@@ -90,10 +91,21 @@ export interface AsientoDetalle {
 
 export interface AsientoLinea {
   id: string;
+  cuenta_id: string;
   descripcion: string;
   debito: number;
   credito: number;
   cuentas: CuentaAsiento | null;
+}
+
+export interface PagoProveedorVista {
+  id: string;
+  numero: number;
+  fecha: string;
+  metodo: MetodoPago;
+  monto: number;
+  estado: "activo" | "anulado";
+  cuenta_id: string;
 }
 
 export interface FacturaAbierta {
@@ -115,6 +127,8 @@ export interface PagoLista {
   metodo: MetodoPago;
   monto: number;
   estado: "activo" | "anulado";
+  contacto_id: string;
+  cuenta_id: string;
   contactos: ContactoResumen | null;
   cuentas: { nombre: string } | null;
   facturas_proveedor: { id: string; numero: number; ncf: string | null } | null;
@@ -137,4 +151,5 @@ export interface DetalleFacturaCompleto {
   lineas: LineaDetalle[];
   asiento: AsientoDetalle | null;
   lineasAsiento: AsientoLinea[];
+  pagos: PagoProveedorVista[];
 }

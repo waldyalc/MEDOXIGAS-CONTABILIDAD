@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaContacto, rutaFactura } from "@/lib/enlaces";
 import type { FacturaFila } from "@/lib/facturacion/consultas";
 import { formatoMoneda, saldoDeFactura } from "@/lib/facturacion/formato";
 import type { EstadoFactura } from "@/lib/facturacion/tipos";
@@ -69,17 +70,18 @@ export function FacturasTabla({ facturas, puedeEscribir }: { facturas: FacturaFi
               </TableRow>
             ) : (
               facturas.map((factura) => (
-                <TableRow key={factura.id} className="relative cursor-pointer">
+                <TableRow key={factura.id}>
                   <TableCell className="font-medium">
-                    <Link
-                      className="absolute inset-0"
-                      href={`/dashboard/facturacion/${factura.id}`}
-                      aria-label={`Ver factura ${factura.numero}`}
-                    />
-                    <span className="pointer-events-none relative">{factura.numero}</span>
+                    <Link className="hover:underline" href={rutaFactura(factura.id)}>
+                      {factura.numero}
+                    </Link>
                   </TableCell>
                   <TableCell className="font-mono text-xs">{factura.ncf ?? "—"}</TableCell>
-                  <TableCell>{factura.cliente_nombre}</TableCell>
+                  <TableCell>
+                    <Link className="hover:underline" href={rutaContacto(factura.contacto_id)}>
+                      {factura.cliente_nombre}
+                    </Link>
+                  </TableCell>
                   <TableCell>{formatoDia(factura.fecha)}</TableCell>
                   <TableCell>{formatoDia(factura.vencimiento)}</TableCell>
                   <TableCell className="text-right font-medium">{formatoMoneda(factura.total)}</TableCell>

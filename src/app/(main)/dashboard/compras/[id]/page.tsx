@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BookOpen } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,19 @@ import { getRol } from "@/lib/auth/rol";
 import { aCentavos, aNumero } from "@/lib/compras/calculo";
 import { cargarCuentasCajaBanco, obtenerFacturaProveedor } from "@/lib/compras/consultas";
 import { formatoCantidad, formatoMoneda } from "@/lib/compras/formato";
+import type { MetodoPago } from "@/lib/compras/tipos";
+import { rutaAsiento, rutaContacto, rutaCuenta, rutaPagoProveedor, rutaProducto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 
 import { AccionesFactura } from "../_components/acciones-factura";
 import { EstadoBadge } from "../_components/estado-badge";
+
+const ETIQUETAS_METODO: Record<MetodoPago, string> = {
+  efectivo: "Efectivo",
+  transferencia: "Transferencia",
+  tarjeta: "Tarjeta",
+  cheque: "Cheque",
+};
 
 function EstadoAsiento({ cuadrado }: { cuadrado: boolean }) {
   if (!cuadrado) return <Badge variant="destructive">Descuadrado</Badge>;
@@ -36,7 +45,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const detalle = await obtenerFacturaProveedor(id);
   if (!detalle) notFound();
 
-  const { factura, lineas, asiento, lineasAsiento } = detalle;
+  const { factura, lineas, asiento, lineasAsiento, pagos } = detalle;
   const puedeEscribir = rol === "admin" || rol === "contador";
   const cuentasCajaBanco = puedeEscribir && factura.estado === "abierta" ? await cargarCuentasCajaBanco() : [];
 
@@ -84,7 +93,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <CardContent className="grid gap-6 sm:grid-cols-2">
           <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm">
             <dt className="text-muted-foreground">Proveedor</dt>
-            <dd className="font-medium">{factura.contactos?.nombre ?? "—"}</dd>
+            <dd className="font-medium">
+              {factura.contactos ? (
+                <Link className="hover:underline" href={rutaContacto(factura.contacto_id)}>
+                  {factura.contactos.nombre}
+                </Link>
+              ) : (
+                "—"
+              )}
+            </dd>
             <dt className="text-muted-foreground">RNC</dt>
             <dd>{factura.contactos?.rnc_cedula ?? "—"}</dd>
             <dt className="text-muted-foreground">No. / NCF</dt>
@@ -158,7 +175,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                       <div className="flex flex-col">
                         <span>{linea.descripcion || "—"}</span>
                         {linea.productos ? (
-                          <span className="text-muted-foreground text-xs">{linea.productos.nombre}</span>
+                          <span className="text-muted-foreground text-xs">
+                            {linea.producto_id ? (
+                              <Link className="hover:underline" href={rutaProducto(linea.producto_id)}>
+                                {linea.productos.nombre}
+                              </Link>
+                            ) : (
+                              linea.productos.nombre
+                            )}
+                          </span>
                         ) : null}
                         {linea.cuentas ? (
                           <span className="text-muted-foreground text-xs">
@@ -194,6 +219,52 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       </Card>
 
       <Card>
+        <CardHeader>
+          <CardTitle>Pagos asociados</CardTitle>
+        </CardHeader>
+        <CardContent className="px-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-(--card-spacing)">Número</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Método</TableHead>
+                <TableHead className="text-right">Monto</TableHead>
+                <TableHead className="pr-(--card-spacing)">Estado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pagos.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
+                    Sin pagos.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                pagos.map((pago) => (
+                  <TableRow key={pago.id}>
+                    <TableCell className="pl-(--card-spacing) font-medium">
+                      <Link className="hover:underline" href={rutaPagoProveedor(pago.id)}>
+                        #{pago.numero}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{formatoDia(pago.fecha)}</TableCell>
+                    <TableCell>{ETIQUETAS_METODO[pago.metodo]}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatoMoneda(pago.monto)}</TableCell>
+                    <TableCell className="pr-(--card-spacing)">
+                      <Badge variant={pago.estado === "anulado" ? "destructive" : "default"}>
+                        {pago.estado === "anulado" ? "Anulado" : "Activo"}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <div className="flex flex-col gap-1">
             <CardTitle>Asiento contable</CardTitle>
@@ -203,7 +274,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               </p>
             ) : null}
           </div>
-          {asiento ? <EstadoAsiento cuadrado={cuadrado} /> : null}
+          {asiento ? (
+            <div className="flex items-center gap-2">
+              <EstadoAsiento cuadrado={cuadrado} />
+              <Button variant="outline" size="sm" render={<Link href={rutaAsiento(asiento.id)} prefetch={false} />}>
+                <BookOpen data-icon="inline-start" />
+                Ver asiento
+              </Button>
+            </div>
+          ) : null}
         </CardHeader>
         <CardContent className={asiento ? "px-0" : undefined}>
           {asiento ? (
@@ -220,7 +299,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 {lineasAsiento.map((linea) => (
                   <TableRow key={linea.id}>
                     <TableCell className="pl-(--card-spacing) whitespace-normal">
-                      {linea.cuentas ? `${linea.cuentas.codigo} · ${linea.cuentas.nombre}` : "—"}
+                      {linea.cuentas ? (
+                        <Link className="hover:underline" href={rutaCuenta(linea.cuenta_id)}>
+                          {linea.cuentas.codigo} · {linea.cuentas.nombre}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell className="whitespace-normal">{linea.descripcion || "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatoMoneda(linea.debito)}</TableCell>
