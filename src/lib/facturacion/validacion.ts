@@ -45,6 +45,8 @@ export const crearFacturaSchema = z
     notas: textoOpcionalSchema,
     terminos: textoOpcionalSchema,
     pie: textoOpcionalSchema,
+    vendedor_id: z.uuid().nullish(),
+    centro_costo_id: z.uuid().nullish(),
     lineas: z.array(lineaFacturaSchema).min(1, { message: "Agrega al menos una línea" }).max(200),
     pago: pagoEnFacturaSchema.optional(),
   })

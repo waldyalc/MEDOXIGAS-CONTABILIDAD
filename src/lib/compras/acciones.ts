@@ -47,6 +47,7 @@ export async function crearFacturaProveedor(
         vencimiento: datos.vencimiento,
         ...(datos.ncf ? { ncf: datos.ncf } : {}),
         ...(datos.notas ? { notas: datos.notas } : {}),
+        ...(datos.centro_costo_id ? { centro_costo_id: datos.centro_costo_id } : {}),
         lineas: datos.lineas.map((linea) => ({
           ...(linea.producto_id ? { producto_id: linea.producto_id } : {}),
           ...(linea.cuenta_id ? { cuenta_id: linea.cuenta_id } : {}),

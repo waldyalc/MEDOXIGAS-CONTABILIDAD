@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 import { centavos } from "../../dinero";
-import type { ClienteOpcion, FilaEstadoCuenta, FilaVentaCliente } from "./tipos";
+import type { ClienteOpcion, FilaEstadoCuenta, FilaVentaCliente, FilaVentaVendedor } from "./tipos";
 
 export interface Respuesta<T> {
   filas: T[];
@@ -31,6 +31,59 @@ interface FacturaEstadoCruda {
 interface PagoCrudo {
   factura_id: string | null;
   monto: number;
+}
+
+interface FacturaVendedorCruda {
+  id: string;
+  fecha: string;
+  subtotal: number;
+  itbis: number;
+  total: number;
+  vendedor_id: string | null;
+}
+
+interface VendedorCrudo {
+  id: string;
+  nombre: string;
+}
+
+export async function obtenerVentasVendedor(
+  desde: string,
+  hasta: string,
+  vendedorId?: string | null,
+): Promise<Respuesta<FilaVentaVendedor>> {
+  const supabase = await createClient();
+  let consulta = supabase
+    .from("facturas")
+    .select("id, fecha, subtotal, itbis, total, vendedor_id")
+    .gte("fecha", desde)
+    .lte("fecha", hasta)
+    .neq("estado", "anulada");
+
+  if (vendedorId) consulta = consulta.eq("vendedor_id", vendedorId);
+
+  const { data, error } = await consulta.order("fecha").order("numero").returns<FacturaVendedorCruda[]>();
+
+  if (error) return { filas: [], error: error.message };
+
+  const ids = [...new Set(data.map((factura) => factura.vendedor_id).filter((id): id is string => id != null))];
+  if (ids.length === 0) return { filas: [], error: null };
+
+  const vendedores = await supabase.from("vendedores").select("id, nombre").in("id", ids).returns<VendedorCrudo[]>();
+
+  if (vendedores.error) return { filas: [], error: vendedores.error.message };
+
+  const nombres = new Map(vendedores.data.map((vendedor) => [vendedor.id, vendedor.nombre]));
+
+  return {
+    filas: data.map((factura) => ({
+      vendedor: factura.vendedor_id ? (nombres.get(factura.vendedor_id) ?? null) : null,
+      subtotal: factura.subtotal,
+      itbis: factura.itbis,
+      total: factura.total,
+    })),
+    error: null,
+  };
 }
 
 export async function obtenerVentasCliente(desde: string, hasta: string): Promise<Respuesta<FilaVentaCliente>> {

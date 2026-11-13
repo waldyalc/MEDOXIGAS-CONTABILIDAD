@@ -42,6 +42,8 @@ export async function crearFactura(entrada: unknown): Promise<ResultadoAccion> {
     notas: datos.notas ?? null,
     terminos: datos.terminos ?? null,
     pie: datos.pie ?? null,
+    vendedor_id: datos.vendedor_id ?? null,
+    centro_costo_id: datos.centro_costo_id ?? null,
     lineas: datos.lineas.map((linea) => ({
       producto_id: linea.producto_id ?? null,
       descripcion: linea.descripcion ?? "",

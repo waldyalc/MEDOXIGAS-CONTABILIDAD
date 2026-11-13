@@ -40,6 +40,16 @@
 - Lógica pura en `src/lib/bancos/movimientos.ts` y `conciliacion.ts` con
   Vitest. Sin migración nueva. `typecheck`, `test` (506), Biome y `build` en verde.
 
+## Configuración extra: vendedores, centros de costo, monedas y plantillas (15 nov 2026)
+
+- **Vendedores**: `/dashboard/configuracion/vendedores` (lista, crear y editar; nombre, identificación, observación y activo). Campo opcional «Vendedor» en «Más opciones» de factura, cotización y conduce; se guarda en `facturas.vendedor_id`, `cotizaciones.vendedor_id` y `remisiones.vendedor_id`, y se conserva al convertir cotización/conduce a factura. El reporte **Ventas por vendedor** ya consulta estas facturas y agrupa por el nombre del vendedor, con filtro por vendedor.
+- **Centros de costo**: `/dashboard/configuracion/centros-costo` (código, nombre, descripción y activo). Campo opcional en «Más opciones» de factura, cotización, conduce y compra. El centro del documento se copia a todas las líneas de su asiento; en asientos manuales se elige por línea. El **estado de resultados** tiene filtro por centro (RPC `reporte_estado_resultados_centro`). Las anulaciones conservan el centro en el asiento de reversión.
+- **Monedas**: `/dashboard/configuracion/monedas` con DOP (base), USD y EUR y tasas de cambio editables por fecha (upsert por moneda + fecha). Por decisión con Coder en esta sesión **no** se agregó selector de moneda a los documentos ni se tocó el motor: los comprobantes siguen en DOP.
+- **Plantillas de impresión**: `/dashboard/configuracion/plantillas-impresion` con notas al pie, términos por defecto y «mostrar logo» para factura, cotización y conduce. La factura es la base: si cotización o conduce no tienen textos propios, se usan los de factura. Los formularios nuevos precargan notas/términos y el logo se oculta en el formulario y en la impresión según la plantilla.
+- Migraciones **aditivas** (no aplicadas al remoto; las revisa Coder): `20261115200000_vendedores.sql`, `20261115201000_centros_costo.sql`, `20261115202000_monedas.sql` y `20261115203000_plantillas_impresion.sql`. pgTAP `supabase/tests/configuracion_extra_test.sql` (36 asserts). Tipos de tablas y RPC nuevos añadidos a mano en `src/lib/supabase/types.ts`.
+- Verificado: `pnpm typecheck`, Biome sobre lo tocado, `pnpm test` (503) y `pnpm build`. Los pgTAP no se pudieron correr aquí (sin Docker/Supabase CLI).
+- Quedó fuera: conversión real de documentos a moneda extranjera, ficha propia para vendedores/centros/monedas (se editan en diálogo) y rediseño del PDF (sesión de `feat/pdf-documentos`).
+
 ## Inventario: ajustes, almacenes y categorías (14 nov 2026)
 
 - Nuevo módulo `/dashboard/inventario`: Ajustes de inventario (lista, nuevo y

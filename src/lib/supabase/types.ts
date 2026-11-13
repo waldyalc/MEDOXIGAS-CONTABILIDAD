@@ -281,6 +281,7 @@ export type Database = {
       asiento_lineas: {
         Row: {
           asiento_id: string
+          centro_costo_id: string | null
           contacto_id: string | null
           credito: number
           cuenta_id: string
@@ -290,6 +291,7 @@ export type Database = {
         }
         Insert: {
           asiento_id: string
+          centro_costo_id?: string | null
           contacto_id?: string | null
           credito?: number
           cuenta_id: string
@@ -299,6 +301,7 @@ export type Database = {
         }
         Update: {
           asiento_id?: string
+          centro_costo_id?: string | null
           contacto_id?: string | null
           credito?: number
           cuenta_id?: string
@@ -312,6 +315,13 @@ export type Database = {
             columns: ["asiento_id"]
             isOneToOne: false
             referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asiento_lineas_centro_costo_id_fkey"
+            columns: ["centro_costo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_costo"
             referencedColumns: ["id"]
           },
           {
@@ -400,6 +410,33 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          creado_en?: string
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
+      centros_costo: {
+        Row: {
+          activo: boolean
+          codigo: string
+          creado_en: string
+          descripcion: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean
+          codigo: string
+          creado_en?: string
+          descripcion?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
           creado_en?: string
           descripcion?: string | null
           id?: string
@@ -701,6 +738,7 @@ export type Database = {
       }
       cotizaciones: {
         Row: {
+          centro_costo_id: string | null
           contacto_id: string
           creado_en: string
           creado_por: string | null
@@ -715,8 +753,10 @@ export type Database = {
           subtotal: number
           total: number
           vencimiento: string
+          vendedor_id: string | null
         }
         Insert: {
+          centro_costo_id?: string | null
           contacto_id: string
           creado_en?: string
           creado_por?: string | null
@@ -731,8 +771,10 @@ export type Database = {
           subtotal?: number
           total?: number
           vencimiento: string
+          vendedor_id?: string | null
         }
         Update: {
+          centro_costo_id?: string | null
           contacto_id?: string
           creado_en?: string
           creado_por?: string | null
@@ -747,8 +789,16 @@ export type Database = {
           subtotal?: number
           total?: number
           vencimiento?: string
+          vendedor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "cotizaciones_centro_costo_id_fkey"
+            columns: ["centro_costo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_costo"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cotizaciones_contacto_id_fkey"
             columns: ["contacto_id"]
@@ -761,6 +811,13 @@ export type Database = {
             columns: ["factura_id"]
             isOneToOne: false
             referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
             referencedColumns: ["id"]
           },
         ]
@@ -1001,6 +1058,7 @@ export type Database = {
       facturas: {
         Row: {
           asiento_id: string | null
+          centro_costo_id: string | null
           contacto_id: string
           creado_en: string
           creado_por: string | null
@@ -1020,9 +1078,11 @@ export type Database = {
           tipo_comprobante: string
           total: number
           vencimiento: string
+          vendedor_id: string | null
         }
         Insert: {
           asiento_id?: string | null
+          centro_costo_id?: string | null
           contacto_id: string
           creado_en?: string
           creado_por?: string | null
@@ -1042,9 +1102,11 @@ export type Database = {
           tipo_comprobante: string
           total?: number
           vencimiento: string
+          vendedor_id?: string | null
         }
         Update: {
           asiento_id?: string | null
+          centro_costo_id?: string | null
           contacto_id?: string
           creado_en?: string
           creado_por?: string | null
@@ -1064,6 +1126,7 @@ export type Database = {
           tipo_comprobante?: string
           total?: number
           vencimiento?: string
+          vendedor_id?: string | null
         }
         Relationships: [
           {
@@ -1074,10 +1137,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "facturas_centro_costo_id_fkey"
+            columns: ["centro_costo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_costo"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "facturas_contacto_id_fkey"
             columns: ["contacto_id"]
             isOneToOne: false
             referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
             referencedColumns: ["id"]
           },
         ]
@@ -1085,6 +1162,7 @@ export type Database = {
       facturas_proveedor: {
         Row: {
           asiento_id: string | null
+          centro_costo_id: string | null
           contacto_id: string
           creado_en: string
           creado_por: string | null
@@ -1103,6 +1181,7 @@ export type Database = {
         }
         Insert: {
           asiento_id?: string | null
+          centro_costo_id?: string | null
           contacto_id: string
           creado_en?: string
           creado_por?: string | null
@@ -1121,6 +1200,7 @@ export type Database = {
         }
         Update: {
           asiento_id?: string | null
+          centro_costo_id?: string | null
           contacto_id?: string
           creado_en?: string
           creado_por?: string | null
@@ -1143,6 +1223,13 @@ export type Database = {
             columns: ["asiento_id"]
             isOneToOne: false
             referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_proveedor_centro_costo_id_fkey"
+            columns: ["centro_costo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_costo"
             referencedColumns: ["id"]
           },
           {
@@ -1372,6 +1459,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      monedas: {
+        Row: {
+          activo: boolean
+          codigo: string
+          creado_en: string
+          es_base: boolean
+          nombre: string
+          simbolo: string
+        }
+        Insert: {
+          activo?: boolean
+          codigo: string
+          creado_en?: string
+          es_base?: boolean
+          nombre: string
+          simbolo: string
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
+          creado_en?: string
+          es_base?: boolean
+          nombre?: string
+          simbolo?: string
+        }
+        Relationships: []
       }
       nota_credito_compra_lineas: {
         Row: {
@@ -2240,6 +2354,30 @@ export type Database = {
         }
         Relationships: []
       }
+      plantillas_impresion: {
+        Row: {
+          actualizado_en: string
+          mostrar_logo: boolean
+          notas_pie: string | null
+          terminos: string | null
+          tipo_documento: string
+        }
+        Insert: {
+          actualizado_en?: string
+          mostrar_logo?: boolean
+          notas_pie?: string | null
+          terminos?: string | null
+          tipo_documento: string
+        }
+        Update: {
+          actualizado_en?: string
+          mostrar_logo?: boolean
+          notas_pie?: string | null
+          terminos?: string | null
+          tipo_documento?: string
+        }
+        Relationships: []
+      }
       productos: {
         Row: {
           activo: boolean
@@ -2385,6 +2523,7 @@ export type Database = {
       }
       remisiones: {
         Row: {
+          centro_costo_id: string | null
           contacto_id: string
           creado_en: string
           creado_por: string | null
@@ -2398,8 +2537,10 @@ export type Database = {
           subtotal: number
           total: number
           vencimiento: string
+          vendedor_id: string | null
         }
         Insert: {
+          centro_costo_id?: string | null
           contacto_id: string
           creado_en?: string
           creado_por?: string | null
@@ -2413,8 +2554,10 @@ export type Database = {
           subtotal?: number
           total?: number
           vencimiento: string
+          vendedor_id?: string | null
         }
         Update: {
+          centro_costo_id?: string | null
           contacto_id?: string
           creado_en?: string
           creado_por?: string | null
@@ -2428,8 +2571,16 @@ export type Database = {
           subtotal?: number
           total?: number
           vencimiento?: string
+          vendedor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "remisiones_centro_costo_id_fkey"
+            columns: ["centro_costo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_costo"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "remisiones_contacto_id_fkey"
             columns: ["contacto_id"]
@@ -2443,6 +2594,45 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "facturas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remisiones_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasas_cambio: {
+        Row: {
+          creado_en: string
+          fecha: string
+          id: string
+          moneda_codigo: string
+          tasa: number
+        }
+        Insert: {
+          creado_en?: string
+          fecha?: string
+          id?: string
+          moneda_codigo: string
+          tasa: number
+        }
+        Update: {
+          creado_en?: string
+          fecha?: string
+          id?: string
+          moneda_codigo?: string
+          tasa?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasas_cambio_moneda_codigo_fkey"
+            columns: ["moneda_codigo"]
+            isOneToOne: false
+            referencedRelation: "monedas"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -2467,6 +2657,33 @@ export type Database = {
           dias?: number
           id?: string
           nombre?: string
+        }
+        Relationships: []
+      }
+      vendedores: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          id: string
+          identificacion: string | null
+          nombre: string
+          observacion: string | null
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          id?: string
+          identificacion?: string | null
+          nombre: string
+          observacion?: string | null
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          id?: string
+          identificacion?: string | null
+          nombre?: string
+          observacion?: string | null
         }
         Relationships: []
       }
@@ -2534,6 +2751,10 @@ export type Database = {
         Args: { p: Json; p_id: string }
         Returns: string
       }
+      actualizar_centro_costo: {
+        Args: { p: Json; p_id: string }
+        Returns: string
+      }
       actualizar_contacto: { Args: { p: Json; p_id: string }; Returns: string }
       actualizar_cuenta: { Args: { p: Json }; Returns: string }
       actualizar_empresa: { Args: { p: Json }; Returns: undefined }
@@ -2543,6 +2764,7 @@ export type Database = {
         Returns: string
       }
       actualizar_producto: { Args: { p: Json; p_id: string }; Returns: string }
+      actualizar_vendedor: { Args: { p: Json; p_id: string }; Returns: string }
       anular_documento: {
         Args: { p_id: string; p_tipo: string }
         Returns: string
@@ -2556,6 +2778,7 @@ export type Database = {
       crear_almacen: { Args: { p: Json }; Returns: string }
       crear_asiento_manual: { Args: { p: Json }; Returns: string }
       crear_categoria_producto: { Args: { p: Json }; Returns: string }
+      crear_centro_costo: { Args: { p: Json }; Returns: string }
       crear_contacto: { Args: { p: Json }; Returns: string }
       crear_cotizacion: { Args: { p: Json }; Returns: string }
       crear_cuenta: { Args: { p: Json }; Returns: string }
@@ -2572,6 +2795,7 @@ export type Database = {
       crear_producto: { Args: { p: Json }; Returns: string }
       crear_remision: { Args: { p: Json }; Returns: string }
       crear_termino_pago: { Args: { p: Json }; Returns: string }
+      crear_vendedor: { Args: { p: Json }; Returns: string }
       depreciar_activo: {
         Args: { p_activo_id: string; p_periodo?: string }
         Returns: string
@@ -2582,6 +2806,8 @@ export type Database = {
       }
       generar_pago_recurrente: { Args: { p_id: string }; Returns: string }
       guardar_borrador_conciliacion: { Args: { p: Json }; Returns: string }
+      guardar_plantilla_impresion: { Args: { p: Json }; Returns: string }
+      guardar_tasa_cambio: { Args: { p: Json }; Returns: string }
       listar_perfiles: {
         Args: never
         Returns: {
@@ -2634,6 +2860,15 @@ export type Database = {
       }
       reporte_estado_resultados: {
         Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          cuenta_codigo: string
+          cuenta_nombre: string
+          monto: number
+          tipo: string
+        }[]
+      }
+      reporte_estado_resultados_centro: {
+        Args: { p_centro_costo?: string; p_desde: string; p_hasta: string }
         Returns: {
           cuenta_codigo: string
           cuenta_nombre: string

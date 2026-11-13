@@ -7,6 +7,7 @@ import { DocumentoVentaForm } from "@/components/documento-venta/documento-venta
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
+import { getCentrosCostoActivos } from "@/lib/centros-costo/consultas";
 import { crearFactura } from "@/lib/facturacion/acciones";
 import {
   getContactosClientes,
@@ -15,6 +16,8 @@ import {
   getProductosActivos,
 } from "@/lib/facturacion/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
+import { getPlantillaImpresion } from "@/lib/plantillas-impresion/consultas";
+import { getVendedoresActivos } from "@/lib/vendedores/consultas";
 
 export default async function Page() {
   const perfil = await getPerfil();
@@ -42,11 +45,14 @@ export default async function Page() {
 }
 
 async function FacturaContenido() {
-  const [empresa, contactos, productos, cuentas] = await Promise.all([
+  const [empresa, contactos, productos, cuentas, vendedores, centrosCosto, plantilla] = await Promise.all([
     getEmpresa(),
     getContactosClientes(),
     getProductosActivos(),
     getCuentasCajaBanco(),
+    getVendedoresActivos(),
+    getCentrosCostoActivos(),
+    getPlantillaImpresion("factura"),
   ]);
 
   return (
@@ -55,6 +61,11 @@ async function FacturaContenido() {
       contactos={contactos}
       productos={productos}
       cuentas={cuentas}
+      vendedores={vendedores}
+      centrosCosto={centrosCosto}
+      notasIniciales={plantilla.notas}
+      terminosIniciales={plantilla.terminos}
+      mostrarLogo={plantilla.mostrarLogo}
       fechaHoy={hoyRD()}
       titulo="Información de la factura"
       etiquetaNumero="NCF"

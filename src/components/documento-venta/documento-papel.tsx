@@ -41,6 +41,7 @@ interface DatosPapel {
   ncf: string | null;
   ncfVence: string | null;
   saldo: number | null;
+  mostrarLogo: boolean;
 }
 
 type Props =
@@ -51,8 +52,9 @@ type Props =
       lineas: FacturaLinea[];
       contacto: ContactoResumen;
       ncfVence: string | null;
+      mostrarLogo?: boolean;
     }
-  | { tipo: "cotizacion" | "conduce"; vista: DocumentoVista };
+  | { tipo: "cotizacion" | "conduce"; vista: DocumentoVista; mostrarLogo?: boolean };
 
 const CELDA = "px-[5pt] py-[2.5pt] align-top";
 const CELDA_TEXTO = `${CELDA} text-[10pt] leading-[12.1pt] font-semibold`;
@@ -69,6 +71,7 @@ function datosDeFactura(
   lineas: FacturaLinea[],
   contacto: ContactoResumen,
   ncfVence: string | null,
+  mostrarLogo: boolean,
 ): DatosPapel {
   return {
     tipo: "factura",
@@ -90,10 +93,11 @@ function datosDeFactura(
     ncf: factura.ncf,
     ncfVence,
     saldo: factura.tipo_comprobante === "01" ? saldoDeFactura(factura.total, factura.pagado, factura.credito) : null,
+    mostrarLogo,
   };
 }
 
-function datosDeDocumento(tipo: "cotizacion" | "conduce", vista: DocumentoVista): DatosPapel {
+function datosDeDocumento(tipo: "cotizacion" | "conduce", vista: DocumentoVista, mostrarLogo: boolean): DatosPapel {
   const { documento } = vista;
 
   return {
@@ -116,10 +120,12 @@ function datosDeDocumento(tipo: "cotizacion" | "conduce", vista: DocumentoVista)
     ncf: null,
     ncfVence: null,
     saldo: null,
+    mostrarLogo,
   };
 }
 
-function Logo({ empresa, nombre }: { empresa: Empresa | null; nombre: string }) {
+function Logo({ empresa, nombre, mostrar }: { empresa: Empresa | null; nombre: string; mostrar: boolean }) {
+  if (!mostrar) return null;
   const logo = empresa?.logo_url?.trim() || "/marca/logo-medoxigas.png";
 
   return (
@@ -153,7 +159,7 @@ function EncabezadoFactura({ datos }: { datos: DatosPapel }) {
   return (
     <header className="flex items-start justify-between gap-[24pt]">
       <div className="flex min-w-0 flex-col">
-        <Logo empresa={datos.empresa} nombre={nombre} />
+        <Logo empresa={datos.empresa} nombre={nombre} mostrar={datos.mostrarLogo} />
         <p className="mt-[3pt] text-[13pt] leading-[13.5pt]">{nombre}</p>
         <DatosEmpresa empresa={datos.empresa} />
         <p className="mt-[2pt]">
@@ -182,7 +188,7 @@ function EncabezadoCotizacion({ datos }: { datos: DatosPapel }) {
   return (
     <header className="flex items-start justify-between gap-[24pt]">
       <div className="flex min-w-0 flex-col">
-        <Logo empresa={datos.empresa} nombre={nombre} />
+        <Logo empresa={datos.empresa} nombre={nombre} mostrar={datos.mostrarLogo} />
         <p className="mt-[3pt] text-[13pt] leading-[13.5pt] font-semibold">{nombre}</p>
         {datos.empresa?.rnc?.trim() ? (
           <p>
@@ -205,7 +211,7 @@ function EncabezadoConduce({ datos }: { datos: DatosPapel }) {
 
   return (
     <header className="grid grid-cols-[120pt_1fr_120pt] items-start gap-[8pt]">
-      <Logo empresa={datos.empresa} nombre={nombre} />
+      <Logo empresa={datos.empresa} nombre={nombre} mostrar={datos.mostrarLogo} />
 
       <div className="text-center text-[8.5pt] leading-[9pt]">
         <p className="text-[10pt] font-bold">{nombre}</p>
@@ -581,8 +587,15 @@ function ContenidoConduce({ datos }: { datos: DatosPapel }) {
 export function DocumentoPapel(props: Props) {
   const datos =
     props.tipo === "factura"
-      ? datosDeFactura(props.empresa, props.factura, props.lineas, props.contacto, props.ncfVence)
-      : datosDeDocumento(props.tipo, props.vista);
+      ? datosDeFactura(
+          props.empresa,
+          props.factura,
+          props.lineas,
+          props.contacto,
+          props.ncfVence,
+          props.mostrarLogo ?? true,
+        )
+      : datosDeDocumento(props.tipo, props.vista, props.mostrarLogo ?? true);
 
   return (
     <article

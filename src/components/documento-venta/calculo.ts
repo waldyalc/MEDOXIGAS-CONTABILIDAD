@@ -37,6 +37,8 @@ export interface DatosDocumento {
   tipoComprobante?: string;
   terminos?: string;
   pie?: string;
+  vendedorId?: string;
+  centroCostoId?: string;
   pago?: PagoFormulario;
 }
 
@@ -105,6 +107,8 @@ export function construirEntrada(datos: DatosDocumento) {
     ...(notas ? { notas } : {}),
     ...(terminos ? { terminos } : {}),
     ...(pie ? { pie } : {}),
+    ...(datos.vendedorId ? { vendedor_id: datos.vendedorId } : {}),
+    ...(datos.centroCostoId ? { centro_costo_id: datos.centroCostoId } : {}),
     lineas: datos.lineas.map((linea) => {
       const producto = datos.productos.find((item) => item.id === linea.productoId);
       return {

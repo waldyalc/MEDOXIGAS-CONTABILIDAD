@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { crearFacturaProveedor } from "@/lib/compras/acciones";
@@ -26,6 +27,8 @@ import type { InicialFacturaDesdeOrden } from "@/lib/ordenes-compra/tipos";
 import { ComboboxCampo, type OpcionCombobox } from "./combobox-campo";
 
 type ModoLinea = "producto" | "gasto";
+
+const SIN_CENTRO = "__ninguno";
 
 interface LineaFormulario {
   id: string;
@@ -74,13 +77,22 @@ interface Props extends OpcionesFactura {
   numeroOrden?: number;
 }
 
-export function FormularioFactura({ contactos, productos, cuentasGasto, inicial, ordenId, numeroOrden }: Props) {
+export function FormularioFactura({
+  contactos,
+  productos,
+  cuentasGasto,
+  centrosCosto,
+  inicial,
+  ordenId,
+  numeroOrden,
+}: Props) {
   const hoy = hoyEnRd();
   const [proveedorId, setProveedorId] = useState(inicial?.contacto_id ?? "");
   const [fecha, setFecha] = useState(inicial?.fecha ?? hoy);
   const [vencimiento, setVencimiento] = useState(inicial?.vencimiento ?? hoy);
   const [ncf, setNcf] = useState(inicial?.ncf ?? "");
   const [notas, setNotas] = useState(inicial?.notas ?? "");
+  const [centroCostoId, setCentroCostoId] = useState("");
   const [lineas, setLineas] = useState<LineaFormulario[]>(() =>
     inicial && inicial.lineas.length > 0 ? inicial.lineas.map(lineaDesdeInicial) : [nuevaLinea()],
   );
@@ -103,6 +115,11 @@ export function FormularioFactura({ contactos, productos, cuentasGasto, inicial,
     value: cuenta.id,
     label: `${cuenta.codigo} ${cuenta.nombre}`,
   }));
+
+  const opcionesCentros = [
+    { value: SIN_CENTRO, label: "Sin centro de costo" },
+    ...centrosCosto.map((centro) => ({ value: centro.id, label: `${centro.codigo} · ${centro.nombre}` })),
+  ];
 
   const totales = calcularTotales(
     lineas.map((linea) => ({ cantidad: linea.cantidad, costo: linea.costo, itbisTasa: linea.itbisTasa })),
@@ -169,6 +186,7 @@ export function FormularioFactura({ contactos, productos, cuentasGasto, inicial,
       vencimiento,
       ncf,
       notas,
+      ...(centroCostoId ? { centro_costo_id: centroCostoId } : {}),
       lineas: lineas.map((linea) => ({
         producto_id: linea.modo === "producto" ? linea.productoId : "",
         cuenta_id: linea.modo === "gasto" ? linea.cuentaId : "",
@@ -274,15 +292,38 @@ export function FormularioFactura({ contactos, productos, cuentasGasto, inicial,
             <AccordionItem value="mas" className="border-0">
               <AccordionTrigger>Más opciones</AccordionTrigger>
               <AccordionContent>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="notas">Notas</Label>
-                  <Textarea
-                    id="notas"
-                    value={notas}
-                    onChange={(evento) => setNotas(evento.target.value)}
-                    placeholder="Observaciones de la compra"
-                    maxLength={500}
-                  />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="notas">Notas</Label>
+                    <Textarea
+                      id="notas"
+                      value={notas}
+                      onChange={(evento) => setNotas(evento.target.value)}
+                      placeholder="Observaciones de la compra"
+                      maxLength={500}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="centro-costo">Centro de costo</Label>
+                    <Select
+                      items={opcionesCentros}
+                      value={centroCostoId || SIN_CENTRO}
+                      onValueChange={(valor: string | null) =>
+                        setCentroCostoId(valor == null || valor === SIN_CENTRO ? "" : valor)
+                      }
+                    >
+                      <SelectTrigger id="centro-costo" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent alignItemWithTrigger={false}>
+                        {opcionesCentros.map((opcion) => (
+                          <SelectItem key={opcion.value} value={opcion.value}>
+                            {opcion.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>

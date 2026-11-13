@@ -67,9 +67,18 @@ export async function obtenerEstadoResultadosComparativo(
 ): Promise<RespuestaEstado<EstadoResultadosComparativo>> {
   const supabase = await createClient();
   const anterior = compararPeriodoAnioAnterior(desde, hasta);
+  const centro = opciones.centroCostoId ?? null;
   const [actual, previo] = await Promise.all([
-    supabase.rpc("reporte_estado_resultados", { p_desde: desde, p_hasta: hasta }),
-    supabase.rpc("reporte_estado_resultados", { p_desde: anterior.desde, p_hasta: anterior.hasta }),
+    supabase.rpc("reporte_estado_resultados_centro", {
+      p_desde: desde,
+      p_hasta: hasta,
+      p_centro_costo: centro ?? undefined,
+    }),
+    supabase.rpc("reporte_estado_resultados_centro", {
+      p_desde: anterior.desde,
+      p_hasta: anterior.hasta,
+      p_centro_costo: centro ?? undefined,
+    }),
   ]);
 
   if (actual.error) return { reporte: null, error: actual.error.message };
