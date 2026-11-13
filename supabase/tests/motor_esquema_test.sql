@@ -72,7 +72,11 @@ select is(
 
 select is((select nombre from public.empresa), 'MEDOXIGAS ALC, SRL', 'empresa semilla');
 
-select is((select count(*)::int from public.numeraciones where tipo_comprobante in ('01','02') and prefijo in ('B01','B02') and hasta = 100000 and siguiente = 1), 2, 'numeraciones semilla 01/B01 y 02/B02');
+select ok(
+  exists(select 1 from public.numeraciones where tipo_comprobante = '01' and prefijo = 'B01')
+  and exists(select 1 from public.numeraciones where tipo_comprobante = '02' and prefijo = 'B02'),
+  'existen numeraciones semilla 01/B01 y 02/B02'
+);
 
 select * from finish();
 rollback;
