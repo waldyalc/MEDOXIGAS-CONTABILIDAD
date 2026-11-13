@@ -1,11 +1,14 @@
 import { Fragment } from "react";
 
+import Link from "next/link";
+
 import { BookOpen, TriangleAlert } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaCuenta } from "@/lib/enlaces";
 import { obtenerCatalogoContable } from "@/lib/reportes/consultas";
 import { construirArbolCuentas, type NodoCuenta } from "@/lib/reportes/contabilidad";
 import { formatearRd } from "@/lib/reportes/dinero";
@@ -33,14 +36,26 @@ function FilasCuenta({ nodos, nivel }: { nodos: readonly NodoCuenta[]; nivel: nu
         <Fragment key={nodo.cuenta.id}>
           <TableRow>
             <TableCell className="text-muted-foreground tabular-nums">
-              <span style={sangria} className="inline-block">
+              <Link
+                href={rutaCuenta(nodo.cuenta.id)}
+                prefetch={false}
+                style={sangria}
+                className="hover:text-foreground inline-block hover:underline"
+              >
                 {nodo.cuenta.codigo}
-              </span>
+              </Link>
             </TableCell>
             <TableCell>
-              <span style={sangria} className={nodo.cuenta.acepta_movimientos ? undefined : "font-medium"}>
+              <Link
+                href={rutaCuenta(nodo.cuenta.id)}
+                prefetch={false}
+                style={sangria}
+                className={`hover:text-foreground inline-block hover:underline ${
+                  nodo.cuenta.acepta_movimientos ? "" : "font-medium"
+                }`}
+              >
                 {nodo.cuenta.nombre}
-              </span>
+              </Link>
             </TableCell>
             <TableCell className="capitalize">{nodo.cuenta.tipo}</TableCell>
             <TableCell className={`text-right tabular-nums ${nodo.saldo < 0 ? "text-destructive" : ""}`}>
@@ -136,9 +151,13 @@ export default async function Page() {
                       {cuenta == null ? (
                         "—"
                       ) : (
-                        <>
+                        <Link
+                          href={rutaCuenta(cuenta.id)}
+                          prefetch={false}
+                          className="hover:text-foreground hover:underline"
+                        >
                           <span className="text-muted-foreground">{cuenta.codigo}</span> {cuenta.nombre}
-                        </>
+                        </Link>
                       )}
                     </TableCell>
                   </TableRow>

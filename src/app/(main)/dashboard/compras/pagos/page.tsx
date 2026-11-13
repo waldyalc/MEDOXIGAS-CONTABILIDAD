@@ -11,7 +11,8 @@ import { getRol } from "@/lib/auth/rol";
 import { aNumero } from "@/lib/compras/calculo";
 import { cargarOpcionesPago, listarPagosProveedor } from "@/lib/compras/consultas";
 import { formatoMoneda } from "@/lib/compras/formato";
-import type { MetodoPago } from "@/lib/compras/tipos";
+import type { MetodoPago, PagoLista } from "@/lib/compras/tipos";
+import { rutaCompra, rutaContacto, rutaCuenta, rutaPagoProveedor } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 
 import { FormularioPago } from "../_components/formulario-pago";
@@ -22,6 +23,26 @@ const ETIQUETAS_METODO: Record<MetodoPago, string> = {
   tarjeta: "Tarjeta",
   cheque: "Cheque",
 };
+
+function CeldaProveedor({ pago }: { pago: PagoLista }) {
+  if (!pago.contactos) return "—";
+
+  return (
+    <Link className="hover:underline" href={rutaContacto(pago.contacto_id)}>
+      {pago.contactos.nombre}
+    </Link>
+  );
+}
+
+function CeldaCuenta({ pago }: { pago: PagoLista }) {
+  if (!pago.cuentas) return "—";
+
+  return (
+    <Link className="hover:underline" href={rutaCuenta(pago.cuenta_id)}>
+      {pago.cuentas.nombre}
+    </Link>
+  );
+}
 
 export default async function Page() {
   const rol = await getRol();
@@ -71,12 +92,18 @@ export default async function Page() {
               ) : (
                 pagos.map((pago) => (
                   <TableRow key={pago.id}>
-                    <TableCell className="pl-(--card-spacing) font-medium">#{pago.numero}</TableCell>
-                    <TableCell>{pago.contactos?.nombre ?? "—"}</TableCell>
+                    <TableCell className="pl-(--card-spacing) font-medium">
+                      <Link className="hover:underline" href={rutaPagoProveedor(pago.id)}>
+                        #{pago.numero}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <CeldaProveedor pago={pago} />
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {pago.facturas_proveedor ? (
                         <Link
-                          href={`/dashboard/compras/${pago.facturas_proveedor.id}`}
+                          href={rutaCompra(pago.facturas_proveedor.id)}
                           prefetch={false}
                           className="hover:text-foreground hover:underline"
                         >
@@ -89,7 +116,9 @@ export default async function Page() {
                     </TableCell>
                     <TableCell>{formatoDia(pago.fecha)}</TableCell>
                     <TableCell>{ETIQUETAS_METODO[pago.metodo]}</TableCell>
-                    <TableCell>{pago.cuentas?.nombre ?? "—"}</TableCell>
+                    <TableCell>
+                      <CeldaCuenta pago={pago} />
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{formatoMoneda(aNumero(pago.monto))}</TableCell>
                     <TableCell className="pr-(--card-spacing)">
                       <Badge variant={pago.estado === "anulado" ? "destructive" : "default"}>

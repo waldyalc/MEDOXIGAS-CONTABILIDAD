@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaContacto, rutaFactura, rutaPagoRecibido } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import type { PagoLista } from "@/lib/pagos/tipos";
@@ -55,12 +56,20 @@ export function PagosTabla({ pagos, puedeEscribir }: { pagos: PagoLista[]; puede
             ) : (
               pagos.map((pago) => (
                 <TableRow key={pago.id}>
-                  <TableCell className="font-medium">{pago.numero}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link className="hover:underline" href={rutaPagoRecibido(pago.id)}>
+                      {pago.numero}
+                    </Link>
+                  </TableCell>
                   <TableCell>{formatoDia(pago.fecha)}</TableCell>
-                  <TableCell>{pago.cliente_nombre}</TableCell>
+                  <TableCell>
+                    <Link className="hover:underline" href={rutaContacto(pago.contacto_id)}>
+                      {pago.cliente_nombre}
+                    </Link>
+                  </TableCell>
                   <TableCell>
                     {pago.factura_id ? (
-                      <Link className="hover:underline" href={`/dashboard/facturacion/${pago.factura_id}`}>
+                      <Link className="hover:underline" href={rutaFactura(pago.factura_id)}>
                         #{pago.factura_numero} {pago.factura_ncf ? `· ${pago.factura_ncf}` : ""}
                       </Link>
                     ) : (

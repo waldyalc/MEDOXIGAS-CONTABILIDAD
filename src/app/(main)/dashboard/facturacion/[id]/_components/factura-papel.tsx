@@ -1,3 +1,6 @@
+import Link from "next/link";
+
+import { rutaContacto, rutaProducto } from "@/lib/enlaces";
 import { formatoCantidad, saldoDeFactura } from "@/lib/facturacion/formato";
 import { montoEnLetras } from "@/lib/facturacion/numero-a-letras";
 import type { ContactoResumen, Empresa, FacturaDetalle, FacturaLinea } from "@/lib/facturacion/tipos";
@@ -26,9 +29,10 @@ interface Props {
   lineas: FacturaLinea[];
   contacto: ContactoResumen;
   ncfVence: string | null;
+  enlaces?: boolean;
 }
 
-export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence }: Props) {
+export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence, enlaces = false }: Props) {
   const esCredito = factura.tipo_comprobante === "01";
   const titulo = esCredito ? "Factura de Crédito Fiscal" : "Factura de Consumo";
   const saldo = saldoDeFactura(factura.total, factura.pagado);
@@ -66,7 +70,14 @@ export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence }: P
       <section className="mt-4 grid grid-cols-1 gap-2 border border-[#d7dce3] bg-[#f4f5f7] px-3 py-2 sm:grid-cols-2 sm:gap-4">
         <div className="flex flex-col gap-0.5">
           <p>
-            <span className="font-semibold">Cliente:</span> {contacto.nombre}
+            <span className="font-semibold">Cliente:</span>{" "}
+            {enlaces ? (
+              <Link className="hover:underline" href={rutaContacto(contacto.id)}>
+                {contacto.nombre}
+              </Link>
+            ) : (
+              contacto.nombre
+            )}
           </p>
           <p>
             <span className="font-semibold">RNC:</span> {contacto.rnc_cedula ?? ""}
@@ -110,7 +121,15 @@ export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence }: P
             return (
               <tr key={linea.id} className="border-b border-[#e2e5ea] align-top">
                 <td className="px-2 py-1.5 tabular-nums">{formatoCantidad(linea.cantidad)}</td>
-                <td className="px-2 py-1.5 font-medium">{linea.descripcion}</td>
+                <td className="px-2 py-1.5 font-medium">
+                  {enlaces && linea.producto_id ? (
+                    <Link className="hover:underline" href={rutaProducto(linea.producto_id)}>
+                      {linea.descripcion}
+                    </Link>
+                  ) : (
+                    linea.descripcion
+                  )}
+                </td>
                 <td className="px-2 py-1.5">Unidad</td>
                 <td className="px-2 py-1.5 text-right tabular-nums">{precio(linea.precio)}</td>
                 <td className="px-2 py-1.5 text-right tabular-nums">

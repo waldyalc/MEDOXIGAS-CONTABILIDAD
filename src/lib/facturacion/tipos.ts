@@ -79,6 +79,7 @@ export interface AsientoResumen {
 
 export interface AsientoLineaVista {
   id: string;
+  cuenta_id: string;
   codigo: string;
   nombre: string;
   descripcion: string;
@@ -91,6 +92,17 @@ export interface AsientoVista {
   lineas: AsientoLineaVista[];
 }
 
+export type MetodoPagoVista = "efectivo" | "transferencia" | "tarjeta" | "cheque";
+
+export interface PagoFacturaVista {
+  id: string;
+  numero: number;
+  fecha: string;
+  metodo: MetodoPagoVista;
+  monto: number;
+  estado: EstadoDocumento;
+}
+
 export interface FacturaVista {
   factura: FacturaDetalle;
   lineas: FacturaLinea[];
@@ -98,4 +110,5 @@ export interface FacturaVista {
   empresa: Empresa | null;
   asiento: AsientoVista;
   ncfVence: string | null;
+  pagos: PagoFacturaVista[];
 }
