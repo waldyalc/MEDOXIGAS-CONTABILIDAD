@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { TASAS_ITBIS } from "./calculo";
+import { TIPOS_COMPROBANTE } from "./tipos";
 
 export const METODOS_PAGO = ["efectivo", "transferencia", "tarjeta", "cheque"] as const;
 
@@ -37,7 +38,7 @@ export const pagoEnFacturaSchema = z.object({
 
 export const crearFacturaSchema = z
   .object({
-    tipo_comprobante: z.enum(["01", "02"]),
+    tipo_comprobante: z.enum(TIPOS_COMPROBANTE),
     contacto_id: z.uuid(),
     fecha: z.iso.date(),
     vencimiento: z.iso.date(),
