@@ -41,10 +41,15 @@ describe("filtrarItemsPorRol", () => {
     expect(reportes.url).toBe("/dashboard/reportes");
   });
 
-  test("Ingresos y Compras agrupan sus submenús", () => {
+  test("Ingresos, Compras y Contabilidad agrupan sus submenús", () => {
     const ingresos = items("admin").find((item) => item.id === "ingresos");
     if (ingresos?.subItems == null) throw new Error("Ingresos debe tener submenú");
-    expect(ingresos.subItems.map((sub) => sub.url)).toEqual(["/dashboard/facturacion", "/dashboard/pagos-recibidos"]);
+    expect(ingresos.subItems.map((sub) => sub.url)).toEqual([
+      "/dashboard/facturacion",
+      "/dashboard/pagos-recibidos",
+      "/dashboard/cotizaciones",
+      "/dashboard/conduces",
+    ]);
 
     const compras = items("admin").find((item) => item.id === "compras");
     if (compras?.subItems == null) throw new Error("Compras debe tener submenú");
@@ -52,6 +57,14 @@ describe("filtrarItemsPorRol", () => {
       "/dashboard/compras",
       "/dashboard/compras/pagos",
       "/dashboard/gastos",
+    ]);
+
+    const contabilidad = items("admin").find((item) => item.id === "contabilidad");
+    if (contabilidad?.subItems == null) throw new Error("Contabilidad debe tener submenú");
+    expect(contabilidad.subItems.map((sub) => sub.url)).toEqual([
+      "/dashboard/contabilidad",
+      "/dashboard/contabilidad/asientos",
+      "/dashboard/contabilidad/numeraciones",
     ]);
   });
 

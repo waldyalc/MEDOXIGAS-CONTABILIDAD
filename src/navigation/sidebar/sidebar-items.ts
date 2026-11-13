@@ -81,6 +81,16 @@ export const sidebarItems: NavGroup[] = [
             title: "Pagos recibidos",
             url: "/dashboard/pagos-recibidos",
           },
+          {
+            id: "cotizaciones",
+            title: "Cotizaciones",
+            url: "/dashboard/cotizaciones",
+          },
+          {
+            id: "conduces",
+            title: "Conduces",
+            url: "/dashboard/conduces",
+          },
         ],
       },
       {
@@ -123,9 +133,25 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "contabilidad",
         title: "Contabilidad",
-        url: "/dashboard/contabilidad",
         icon: BookOpen,
         roles: TODOS_LOS_ROLES,
+        subItems: [
+          {
+            id: "catalogo-cuentas",
+            title: "Catálogo de cuentas",
+            url: "/dashboard/contabilidad",
+          },
+          {
+            id: "asientos",
+            title: "Asientos",
+            url: "/dashboard/contabilidad/asientos",
+          },
+          {
+            id: "numeraciones",
+            title: "Numeraciones",
+            url: "/dashboard/contabilidad/numeraciones",
+          },
+        ],
       },
       {
         id: "bancos",
