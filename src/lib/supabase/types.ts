@@ -919,78 +919,147 @@ export type Database = {
     Functions: {
       _crear_asiento: {
         Args: {
-          p_descripcion: string
           p_fecha: string
-          p_lineas: Json
-          p_origen_id: string
+          p_descripcion: string
           p_origen_tipo: string
+          p_origen_id: string
+          p_lineas: Json
         }
         Returns: string
       }
-      _cuenta_config: { Args: { p_clave: string }; Returns: string }
-      actualizar_contacto: { Args: { p: Json; p_id: string }; Returns: string }
-      actualizar_producto: { Args: { p: Json; p_id: string }; Returns: string }
-      anular_documento: {
-        Args: { p_id: string; p_tipo: string }
+      _cuenta_config: {
+        Args: {
+          p_clave: string
+        }
         Returns: string
       }
-      crear_contacto: { Args: { p: Json }; Returns: string }
-      crear_factura: { Args: { p: Json }; Returns: string }
-      crear_factura_proveedor: { Args: { p: Json }; Returns: string }
-      crear_gasto_menor: { Args: { p: Json }; Returns: string }
-      crear_producto: { Args: { p: Json }; Returns: string }
-      registrar_pago_proveedor: { Args: { p: Json }; Returns: string }
-      registrar_pago_recibido: { Args: { p: Json }; Returns: string }
+      actualizar_contacto: {
+        Args: {
+          p_id: string
+          p: Json
+        }
+        Returns: string
+      }
+      actualizar_producto: {
+        Args: {
+          p_id: string
+          p: Json
+        }
+        Returns: string
+      }
+      anular_documento: {
+        Args: {
+          p_tipo: string
+          p_id: string
+        }
+        Returns: string
+      }
+      crear_contacto: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_factura: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_factura_proveedor: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_gasto_menor: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_producto: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      registrar_pago_proveedor: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      registrar_pago_recibido: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
       reporte_balance_comprobacion: {
-        Args: { p_desde: string; p_hasta: string }
+        Args: {
+          p_desde: string
+          p_hasta: string
+        }
         Returns: {
-          creditos: number
           cuenta_codigo: string
           cuenta_nombre: string
-          debitos: number
-          saldo: number
           tipo: string
+          debitos: number
+          creditos: number
+          saldo: number
         }[]
       }
       reporte_cxc: {
-        Args: { p_fecha: string }
+        Args: {
+          p_fecha: string
+        }
         Returns: {
           contacto_id: string
           contacto_nombre: string
-          dias_vencida: number
           factura_id: string
-          fecha: string
-          ncf: string
           numero: number
+          ncf: string
+          fecha: string
+          vencimiento: string
+          total: number
           pagado: number
           saldo: number
-          total: number
-          vencimiento: string
+          dias_vencida: number
         }[]
       }
       reporte_estado_resultados: {
-        Args: { p_desde: string; p_hasta: string }
+        Args: {
+          p_desde: string
+          p_hasta: string
+        }
         Returns: {
+          tipo: string
           cuenta_codigo: string
           cuenta_nombre: string
           monto: number
-          tipo: string
         }[]
       }
       reporte_libro_diario: {
-        Args: { p_desde: string; p_hasta: string }
+        Args: {
+          p_desde: string
+          p_hasta: string
+        }
         Returns: {
-          asiento_descripcion: string
           asiento_numero: number
-          credito: number
+          fecha: string
+          asiento_descripcion: string
+          origen_tipo: string
           cuenta_codigo: string
           cuenta_nombre: string
           debito: number
-          fecha: string
-          origen_tipo: string
+          credito: number
         }[]
       }
-      rol_actual: { Args: never; Returns: string }
+      rol_actual: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
