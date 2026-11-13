@@ -1,5 +1,11 @@
 # Handoff — Medoxigas Contabilidad
 
+## Plantilla única de documento de venta (13 nov 2026)
+
+- Nuevo `src/components/documento-venta/` (`documento-venta-form.tsx` + `calculo.ts`): la tarjeta del formulario de factura (logo, empresa, ajustes, cliente/fechas, líneas, totales y «Más opciones») ahora es compartida. Por props define título, comprobante/NCF o numeración simple, vencimiento, pago recibido, notas/términos/pie, textos de botones, rutas y la server action.
+- Factura, cotización y conduce nuevas usan la misma plantilla; se conservaron cálculos, validaciones y acciones. La factura mantiene Ajustes con pago; cotización y conduce muestran solo información, líneas, totales y notas.
+- Tests del cálculo/armado compartido en `src/components/documento-venta/calculo.test.ts` (11). `typecheck`, Biome y Vitest en verde. `cotizaciones/_components/documento-form.tsx` quedó sin uso (no se borró por ser archivo de otra sesión).
+
 ## Ajustes de diseño del formulario de factura (13 nov 2026)
 
 - Logo a 96 px en escritorio y 72 px en móvil; RD$ y % van dentro del campo con `InputGroup`; los `NativeSelect` (NCF, cuenta, método e ITBIS) pasan al `Select` de shadcn.
