@@ -3,13 +3,13 @@ import { redirect } from "next/navigation";
 
 import { ArrowLeft } from "lucide-react";
 
+import { DocumentoVentaForm } from "@/components/documento-venta/documento-venta-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
-import { getContactosClientes, getProductosActivos } from "@/lib/facturacion/consultas";
+import { crearCotizacion } from "@/lib/cotizaciones/acciones";
+import { getContactosClientes, getEmpresa, getProductosActivos } from "@/lib/facturacion/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
-
-import { DocumentoForm } from "../_components/documento-form";
 
 export default async function Page() {
   const perfil = await getPerfil();
@@ -37,7 +37,24 @@ export default async function Page() {
 }
 
 async function CotizacionContenido() {
-  const [contactos, productos] = await Promise.all([getContactosClientes(), getProductosActivos()]);
+  const [empresa, contactos, productos] = await Promise.all([
+    getEmpresa(),
+    getContactosClientes(),
+    getProductosActivos(),
+  ]);
 
-  return <DocumentoForm tipo="cotizacion" contactos={contactos} productos={productos} fechaHoy={hoyRD()} />;
+  return (
+    <DocumentoVentaForm
+      empresa={empresa}
+      contactos={contactos}
+      productos={productos}
+      fechaHoy={hoyRD()}
+      titulo="Información de la cotización"
+      etiquetaNumero="Cotización No."
+      textoGuardar="Guardar cotización"
+      rutaCancelar="/dashboard/cotizaciones"
+      rutaDestino="/dashboard/cotizaciones"
+      accion={crearCotizacion}
+    />
+  );
 }

@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 
 import { ArrowLeft } from "lucide-react";
 
+import { DocumentoVentaForm } from "@/components/documento-venta/documento-venta-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
+import { crearFactura } from "@/lib/facturacion/acciones";
 import {
   getContactosClientes,
   getCuentasCajaBanco,
@@ -13,8 +15,6 @@ import {
   getProductosActivos,
 } from "@/lib/facturacion/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
-
-import { FacturaForm } from "./_components/factura-form";
 
 export default async function Page() {
   const perfil = await getPerfil();
@@ -50,6 +50,22 @@ async function FacturaContenido() {
   ]);
 
   return (
-    <FacturaForm empresa={empresa} contactos={contactos} productos={productos} cuentas={cuentas} fechaHoy={hoyRD()} />
+    <DocumentoVentaForm
+      empresa={empresa}
+      contactos={contactos}
+      productos={productos}
+      cuentas={cuentas}
+      fechaHoy={hoyRD()}
+      titulo="Información de la factura"
+      etiquetaNumero="NCF"
+      conComprobante
+      conPago
+      conTerminos
+      conPie
+      textoGuardar="Guardar factura"
+      rutaCancelar="/dashboard/facturacion"
+      rutaDestino="/dashboard/facturacion"
+      accion={crearFactura}
+    />
   );
 }
