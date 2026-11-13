@@ -1,8 +1,14 @@
 # Handoff — Medoxigas Contabilidad
 
+## PDF de factura, cotización y conduce con el diseño de Alegra (13 nov 2026)
+
+- Nuevo `src/components/documento-venta/documento-papel.tsx`: un solo papel para los tres documentos, tomado de `docs/alegra/capturas/05-factura-B01.pdf`, `05-factura-B02.pdf`, `07-cotizacion.pdf` y `07-remision.pdf`. Carta, márgenes de 16 pt (28 pt arriba), Inter y logo a 50 pt; encabezado con logo, empresa, RNC, dirección, teléfono y correo (oculta lo vacío), título/NCF a la derecha, cliente, tabla con las mismas columnas, monto en letras, totales y pie. Cotización y conduce conservan su orden, totales y firmas.
+- El menú ⋮ agrega «Descargar PDF» (abre la impresión con el nombre sugerido `factura-<NCF>`, `cotizacion-<n>` o `conduce-<n>`) e «Imprimir». Se usa el mismo papel HTML/CSS, no `@react-pdf`; el `@page documento-venta` de `src/app/globals.css` aísla tamaño y márgenes.
+- Se borraron `facturacion/[id]/_components/factura-papel.tsx` y `cotizaciones/_components/documento-papel.tsx`. Formato puro en `papel.ts` con `papel.test.ts` (6). `typecheck`, Biome, `test` (474) y `build` en verde.
+
 ## Vista de documento de venta compartida (13 nov 2026)
 
-- Nuevo `src/components/documento-venta/vista-documento-venta.tsx` + `vista.ts`: factura, cotización y conduce comparten la vista de tarjetas (máx. 1040 px, fondo gris, 24 px entre tarjetas), con el orden de la guía de Alegra. Solo cambia la pantalla: la impresión/PDF sigue con `FacturaPapel` y `DocumentoPapel` en el portal `data-print-root`.
+- Nuevo `src/components/documento-venta/vista-documento-venta.tsx` + `vista.ts`: factura, cotización y conduce comparten la vista de tarjetas (máx. 1040 px, fondo gris, 24 px entre tarjetas), con el orden de la guía de Alegra. Solo cambia la pantalla: la impresión/PDF usa el `DocumentoPapel` compartido en el portal `data-print-root`.
 - Factura: resumen de 4 cifras, acciones en íconos de 40×40 y menú ⋮ (notas de crédito/débito, imprimir copia y anular en rojo), tabla de productos y pestañas Pagos / Notas crédito / Notas débito / Contabilidad. `getFacturaVista` ahora trae las notas de crédito y débito de la factura.
 - Cotización y conduce: «Editar» queda deshabilitado porque todavía no existe pantalla de edición; «Convertir» abre el diálogo existente para factura. La pestaña Facturas muestra la factura relacionada o el vacío con «Convertir en factura». No hay relación cotización↔conduce en la base, así que esa pestaña no se muestra; clonar y descargar PDF no existen y quedaron fuera.
 - Se eliminaron `vista-factura.tsx`, `vista-documento.tsx` (cotizaciones) y el `asiento-contable.tsx` de la ruta; el asiento vive ahora en la pestaña Contabilidad. Tests nuevos en `vista.test.ts` (14). `typecheck`, Biome, `test` (468) y `build` en verde.
