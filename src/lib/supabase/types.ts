@@ -1015,6 +1015,7 @@ export type Database = {
           numero: number
           pagado: number
           pie: string | null
+          retenido: number
           subtotal: number
           terminos: string | null
           tipo_comprobante: string
@@ -1037,6 +1038,7 @@ export type Database = {
           numero?: number
           pagado?: number
           pie?: string | null
+          retenido?: number
           subtotal?: number
           terminos?: string | null
           tipo_comprobante: string
@@ -1059,6 +1061,7 @@ export type Database = {
           numero?: number
           pagado?: number
           pie?: string | null
+          retenido?: number
           subtotal?: number
           terminos?: string | null
           tipo_comprobante?: string
@@ -1097,6 +1100,7 @@ export type Database = {
           notas: string | null
           numero: number
           pagado: number
+          retenido: number
           subtotal: number
           total: number
           vencimiento: string
@@ -1115,6 +1119,7 @@ export type Database = {
           notas?: string | null
           numero?: number
           pagado?: number
+          retenido?: number
           subtotal?: number
           total?: number
           vencimiento: string
@@ -1133,6 +1138,7 @@ export type Database = {
           notas?: string | null
           numero?: number
           pagado?: number
+          retenido?: number
           subtotal?: number
           total?: number
           vencimiento?: string
@@ -1968,6 +1974,90 @@ export type Database = {
           },
         ]
       }
+      pago_proveedor_retenciones: {
+        Row: {
+          base: number
+          id: string
+          monto: number
+          pago_id: string
+          porcentaje: number
+          retencion_id: string
+        }
+        Insert: {
+          base?: number
+          id?: string
+          monto: number
+          pago_id: string
+          porcentaje?: number
+          retencion_id: string
+        }
+        Update: {
+          base?: number
+          id?: string
+          monto?: number
+          pago_id?: string
+          porcentaje?: number
+          retencion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pago_proveedor_retenciones_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "pagos_proveedor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pago_proveedor_retenciones_retencion_id_fkey"
+            columns: ["retencion_id"]
+            isOneToOne: false
+            referencedRelation: "retenciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pago_recibido_retenciones: {
+        Row: {
+          base: number
+          id: string
+          monto: number
+          pago_id: string
+          porcentaje: number
+          retencion_id: string
+        }
+        Insert: {
+          base?: number
+          id?: string
+          monto: number
+          pago_id: string
+          porcentaje?: number
+          retencion_id: string
+        }
+        Update: {
+          base?: number
+          id?: string
+          monto?: number
+          pago_id?: string
+          porcentaje?: number
+          retencion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pago_recibido_retenciones_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "pagos_recibidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pago_recibido_retenciones_retencion_id_fkey"
+            columns: ["retencion_id"]
+            isOneToOne: false
+            referencedRelation: "retenciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pagos_proveedor: {
         Row: {
           asiento_id: string | null
@@ -1983,6 +2073,7 @@ export type Database = {
           monto: number
           notas: string | null
           numero: number
+          retenido: number
         }
         Insert: {
           asiento_id?: string | null
@@ -1998,6 +2089,7 @@ export type Database = {
           monto: number
           notas?: string | null
           numero?: number
+          retenido?: number
         }
         Update: {
           asiento_id?: string | null
@@ -2013,6 +2105,7 @@ export type Database = {
           monto?: number
           notas?: string | null
           numero?: number
+          retenido?: number
         }
         Relationships: [
           {
@@ -2060,6 +2153,7 @@ export type Database = {
           monto: number
           notas: string | null
           numero: number
+          retenido: number
         }
         Insert: {
           asiento_id?: string | null
@@ -2075,6 +2169,7 @@ export type Database = {
           monto: number
           notas?: string | null
           numero?: number
+          retenido?: number
         }
         Update: {
           asiento_id?: string | null
@@ -2090,6 +2185,7 @@ export type Database = {
           monto?: number
           notas?: string | null
           numero?: number
+          retenido?: number
         }
         Relationships: [
           {
@@ -2446,6 +2542,54 @@ export type Database = {
           },
         ]
       }
+      retenciones: {
+        Row: {
+          activa: boolean
+          creado_en: string
+          cuenta_anticipo_id: string | null
+          cuenta_id: string
+          id: string
+          nombre: string
+          porcentaje: number
+          tipo: string
+        }
+        Insert: {
+          activa?: boolean
+          creado_en?: string
+          cuenta_anticipo_id?: string | null
+          cuenta_id: string
+          id?: string
+          nombre: string
+          porcentaje: number
+          tipo: string
+        }
+        Update: {
+          activa?: boolean
+          creado_en?: string
+          cuenta_anticipo_id?: string | null
+          cuenta_id?: string
+          id?: string
+          nombre?: string
+          porcentaje?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retenciones_cuenta_anticipo_id_fkey"
+            columns: ["cuenta_anticipo_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "retenciones_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       terminos_pago: {
         Row: {
           activo: boolean
@@ -2543,6 +2687,7 @@ export type Database = {
         Returns: string
       }
       actualizar_producto: { Args: { p: Json; p_id: string }; Returns: string }
+      actualizar_retencion: { Args: { p: Json }; Returns: undefined }
       anular_documento: {
         Args: { p_id: string; p_tipo: string }
         Returns: string
@@ -2571,6 +2716,7 @@ export type Database = {
       crear_pago_recurrente: { Args: { p: Json }; Returns: string }
       crear_producto: { Args: { p: Json }; Returns: string }
       crear_remision: { Args: { p: Json }; Returns: string }
+      crear_retencion: { Args: { p: Json }; Returns: string }
       crear_termino_pago: { Args: { p: Json }; Returns: string }
       depreciar_activo: {
         Args: { p_activo_id: string; p_periodo?: string }
@@ -2590,6 +2736,22 @@ export type Database = {
           nombre: string
           rol: string
           user_id: string
+        }[]
+      }
+      listar_retenciones: {
+        Args: never
+        Returns: {
+          activa: boolean
+          cuenta_anticipo_codigo: string | null
+          cuenta_anticipo_id: string | null
+          cuenta_anticipo_nombre: string | null
+          cuenta_codigo: string
+          cuenta_id: string
+          cuenta_nombre: string
+          id: string
+          nombre: string
+          porcentaje: number
+          tipo: string
         }[]
       }
       listar_terminos_pago: {
