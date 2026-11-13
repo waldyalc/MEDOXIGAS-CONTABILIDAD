@@ -22,7 +22,7 @@ usuario no escribe débitos ni créditos.
 | | 6101 Gastos generales, cuenta de costo del producto o cuenta de la línea — compra de gasto | |
 | | 1105 ITBIS adelantado en compras — ITBIS | |
 | Pago a proveedor (`registrar_pago_proveedor`) | 2101 Cuentas por pagar proveedores — monto | 1101 Caja general o 1102 Banco principal — monto |
-| Gasto menor (`crear_gasto_menor`) | 6101 Gastos generales (o la cuenta de gasto indicada) — subtotal | 1101 Caja general (o la cuenta de caja/banco indicada) — total |
+| Gasto menor (`crear_gasto_menor`) | 6101 Gastos generales (o la cuenta de gasto indicada) — subtotal | 1106 Caja chica (o la cuenta de caja/banco indicada) — total |
 | | 1105 ITBIS adelantado en compras — ITBIS | |
 | Anulación (`anular_documento`) | Las líneas de crédito del asiento original | Las líneas de débito del asiento original |
 
@@ -69,13 +69,16 @@ Cuentas por cobrar clientes 1.534.00.
    - compra de producto no inventariable → `gastos_generales` (6101)
 2. **Contacto**: `cuenta_cxc_id` o `cuenta_cxp_id` reemplazan a `cxc` (1103) y
    `cxp` (2101).
-3. **Configuración**: `config_contable` tiene 11 claves (`caja`, `banco`, `cxc`,
-   `inventario`, `itbis_adelantado`, `cxp`, `itbis_por_pagar`, `ventas`,
-   `ventas_servicios`, `costo_ventas`, `gastos_generales`) y viene sembrada.
-4. **Caja o banco**: el pago elige una cuenta con `es_caja_banco = true` (1101
-   o 1102 en el catálogo semilla).
-5. **Gasto menor**: usa `cuenta_gasto_id` y `cuenta_pago_id` si se indican;
-   si no, `gastos_generales` y `caja`.
+3. **Configuración**: `config_contable` tiene 12 claves (`caja`, `banco`,
+   `caja_chica`, `cxc`, `inventario`, `itbis_adelantado`, `cxp`,
+   `itbis_por_pagar`, `ventas`, `ventas_servicios`, `costo_ventas`,
+   `gastos_generales`) y viene sembrada.
+4. **Caja o banco**: el pago elige una cuenta con `es_caja_banco = true` (1101,
+   1102 o 1106 en el catálogo semilla).
+5. **Gasto menor**: usa `cuenta_gasto_id` y `cuenta_pago_id` si se indican; si
+   no, `gastos_generales` (6101) y `caja_chica` (1106). La cuenta de gasto debe
+   ser de detalle (tipo `gasto` o `costo` y `acepta_movimientos = true`) y el
+   NCF B13 se asigna solo.
 
 El usuario nunca escoge las cuentas del asiento. A lo sumo elige la cuenta de
 caja/banco que paga, o la cuenta de gasto de una línea de compra sin producto. El catálogo y la configuración se ven en
@@ -99,8 +102,9 @@ caja/banco que paga, o la cuenta de gasto de una línea de compra sin producto. 
 - **Permisos**: RLS activo en todas las tablas; `anon` no ve nada;
   `authenticated` solo lee. Las escrituras van por RPC `security definer` y
   exigen rol `admin` o `contador` (`lector` recibe `42501`).
-- **NCF**: se toma de `numeraciones` con `for update`; hoy hay 01/B01 y 02/B02
-  con `hasta = 100000`. El NCF es prefijo + 8 dígitos.
+- **NCF**: se toma de `numeraciones` con `for update`; hoy las numeraciones
+  semilla son 01/B01, 02/B02 y 13/B13, todas con `hasta = 100000`. El NCF es
+  prefijo + 8 dígitos.
 
 Límites conocidos: anular una factura de proveedor devuelve la cantidad pero no
 recalcula el costo promedio; la anulación se fecha con `current_date`, no con la

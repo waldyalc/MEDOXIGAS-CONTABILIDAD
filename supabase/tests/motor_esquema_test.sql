@@ -1,5 +1,5 @@
 begin;
-select plan(26);
+select plan(27);
 
 select ok(coalesce((select relrowsecurity from pg_class where oid = to_regclass('public.empresa')), false), 'RLS activo en empresa');
 select ok(coalesce((select relrowsecurity from pg_class where oid = to_regclass('public.cuentas')), false), 'RLS activo en cuentas');
@@ -46,13 +46,15 @@ set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","r
 
 select throws_ok($$insert into public.asientos (fecha, descripcion, origen_tipo, total) values ('2026-11-13','directo','manual',100)$$, '42501', null, 'nadie inserta asientos directo');
 
-select is((select count(*)::int from public.cuentas where codigo = any(array['1','11','1101','1102','1103','1104','1105','2','21','2101','2102','3','3101','3201','4','4101','4102','5','5101','6','6101','6102','6103','6104'])), 24, 'catálogo semilla completo (24 cuentas)');
+select is((select count(*)::int from public.cuentas where codigo = any(array['1','11','1101','1102','1103','1104','1105','1106','2','21','2101','2102','3','3101','3201','4','4101','4102','5','5101','6','6101','6102','6103','6104','6105','6106','6107'])), 28, 'catálogo semilla completo (28 cuentas)');
 
 select is((select count(*)::int from public.cuentas where codigo in ('1','11','2','21','3','4','5','6') and acepta_movimientos = false), 8, 'cuentas de agrupación no aceptan movimientos');
 
 select is((select count(*)::int from public.cuentas where codigo in ('1101','1102') and es_caja_banco = true), 2, '1101 y 1102 marcadas es_caja_banco');
 
-select is((select count(*)::int from public.config_contable), 11, 'config_contable tiene 11 claves');
+select is((select es_caja_banco from public.cuentas where codigo = '1106'), true, '1106 Caja chica marcada es_caja_banco');
+
+select is((select count(*)::int from public.config_contable), 12, 'config_contable tiene 12 claves');
 
 select is(
   (select count(*)::int
@@ -62,9 +64,9 @@ select is(
      ('caja','1101'), ('banco','1102'), ('cxc','1103'), ('inventario','1104'),
      ('itbis_adelantado','1105'), ('cxp','2101'), ('itbis_por_pagar','2102'),
      ('ventas','4101'), ('ventas_servicios','4102'), ('costo_ventas','5101'),
-     ('gastos_generales','6101')
+     ('gastos_generales','6101'), ('caja_chica','1106')
    )),
-  11,
+  12,
   'config_contable mapea a las cuentas correctas'
 );
 

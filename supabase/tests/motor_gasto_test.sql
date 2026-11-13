@@ -61,9 +61,9 @@ select is(
    from public.gastos_menores g
    join public.asiento_lineas al on al.asiento_id = g.asiento_id
    join public.cuentas c on c.id = al.cuenta_id
-   where g.descripcion = 'Gasto Prueba' and c.codigo = '1101'),
+   where g.descripcion = 'Gasto Prueba' and c.codigo = '1106'),
   1180.00::numeric,
-  'el asiento acredita 1180.00 en la cuenta 1101'
+  'el asiento acredita 1180.00 en la cuenta 1106'
 );
 
 select is(
@@ -80,8 +80,8 @@ select is(
    from public.gastos_menores g
    join public.cuentas c on c.id = g.cuenta_pago_id
    where g.descripcion = 'Gasto Prueba'),
-  '1101',
-  'el gasto usa la cuenta de pago 1101'
+  '1106',
+  'el gasto usa la cuenta de pago 1106'
 );
 
 select is(
