@@ -25,10 +25,15 @@ export interface ProductoFicha {
   cuentaCostoId: string | null;
 }
 
+export interface CuentaFicha {
+  cuenta: CuentaResumen;
+  porDefecto: boolean;
+}
+
 export interface CuentasFicha {
-  ingreso: CuentaResumen | null;
-  inventario: CuentaResumen | null;
-  costo: CuentaResumen | null;
+  ingreso: CuentaFicha | null;
+  inventario: CuentaFicha | null;
+  costo: CuentaFicha | null;
 }
 
 export interface DocumentoFicha {
@@ -79,6 +84,44 @@ export function sumarCantidades(cantidades: readonly number[]): number {
   );
 
   return Number((centesimas / 100).toFixed(2));
+}
+
+export function elegirCuenta(
+  cuentaPropiaId: string | null,
+  clavePorDefecto: string | null,
+  cuentas: ReadonlyMap<string, CuentaResumen>,
+  configuracion: ReadonlyMap<string, string>,
+): CuentaFicha | null {
+  const usarPorDefecto = cuentaPropiaId === null;
+  const cuentaId = cuentaPropiaId ?? (clavePorDefecto === null ? null : (configuracion.get(clavePorDefecto) ?? null));
+  if (cuentaId === null) return null;
+
+  const cuenta = cuentas.get(cuentaId);
+  if (!cuenta) return null;
+
+  return { cuenta, porDefecto: usarPorDefecto };
+}
+
+export function resolverCuentasFicha(
+  producto: Pick<ProductoFicha, "tipo" | "inventariable" | "cuentaIngresoId" | "cuentaInventarioId" | "cuentaCostoId">,
+  configuracion: ReadonlyMap<string, string>,
+  cuentas: ReadonlyMap<string, CuentaResumen>,
+): CuentasFicha {
+  return {
+    ingreso: elegirCuenta(
+      producto.cuentaIngresoId,
+      producto.tipo === "servicio" ? "ventas_servicios" : "ventas",
+      cuentas,
+      configuracion,
+    ),
+    inventario: elegirCuenta(
+      producto.cuentaInventarioId,
+      producto.inventariable ? "inventario" : null,
+      cuentas,
+      configuracion,
+    ),
+    costo: elegirCuenta(producto.cuentaCostoId, "costo_ventas", cuentas, configuracion),
+  };
 }
 
 export function filtrarPorNumero<T extends DocumentoNumerado>(documentos: readonly T[], filtro: string): T[] {

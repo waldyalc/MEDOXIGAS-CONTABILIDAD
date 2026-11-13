@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ArrowLeft, BookOpen } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,9 @@ import type { MetodoPago } from "@/lib/compras/tipos";
 import { rutaAsiento, rutaCompra, rutaContacto, rutaCuenta } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
+import { puedeAnularDocumento } from "@/lib/pagos/anulacion";
+
+import { AccionesPagoProveedor } from "./_components/acciones-pago-proveedor";
 
 const ETIQUETAS_METODO: Record<MetodoPago, string> = {
   efectivo: "Efectivo",
@@ -28,6 +32,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   const pago = await obtenerPagoProveedor(id);
   if (!pago) notFound();
+
+  const puedeAnular = puedeAnularDocumento(rol, pago.estado);
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,12 +54,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               {pago.estado === "anulado" ? "Anulado" : "Activo"}
             </Badge>
           </div>
-          {pago.asiento_id ? (
-            <Button variant="outline" render={<Link href={rutaAsiento(pago.asiento_id)} prefetch={false} />}>
-              <BookOpen data-icon="inline-start" />
-              Ver asiento
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {pago.asiento_id ? (
+              <Button variant="outline" render={<Link href={rutaAsiento(pago.asiento_id)} prefetch={false} />}>
+                <BookOpen data-icon="inline-start" />
+                Ver asiento
+              </Button>
+            ) : null}
+            {puedeAnular ? <AccionesPagoProveedor pagoId={pago.id} numero={pago.numero} /> : null}
+          </div>
         </div>
       </div>
 
@@ -71,37 +80,23 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <dd>{ETIQUETAS_METODO[pago.metodo]}</dd>
             <dt className="text-muted-foreground">Proveedor</dt>
             <dd>
-              <Link
-                href={rutaContacto(pago.contacto_id)}
-                prefetch={false}
-                className="hover:text-foreground hover:underline"
-              >
-                {pago.contacto?.nombre ?? "—"}
-              </Link>
+              <Enlace href={rutaContacto(pago.contacto_id)}>{pago.contacto?.nombre ?? "—"}</Enlace>
             </dd>
             <dt className="text-muted-foreground">Factura</dt>
             <dd>
               {pago.factura ? (
-                <Link
-                  href={rutaCompra(pago.factura_proveedor_id)}
-                  prefetch={false}
-                  className="hover:text-foreground hover:underline"
-                >
+                <Enlace href={rutaCompra(pago.factura_proveedor_id)}>
                   {`#${pago.factura.numero}${pago.factura.ncf ? ` · ${pago.factura.ncf}` : ""}`}
-                </Link>
+                </Enlace>
               ) : (
                 "—"
               )}
             </dd>
             <dt className="text-muted-foreground">Cuenta</dt>
             <dd>
-              <Link
-                href={rutaCuenta(pago.cuenta_id)}
-                prefetch={false}
-                className="hover:text-foreground hover:underline"
-              >
+              <Enlace href={rutaCuenta(pago.cuenta_id)}>
                 {pago.cuenta ? `${pago.cuenta.codigo} · ${pago.cuenta.nombre}` : "—"}
-              </Link>
+              </Enlace>
             </dd>
             <dt className="text-muted-foreground">Notas</dt>
             <dd className="whitespace-pre-line">{pago.notas ?? "—"}</dd>
