@@ -91,6 +91,11 @@ export const sidebarItems: NavGroup[] = [
             title: "Conduces",
             url: "/dashboard/conduces",
           },
+          {
+            id: "notas-credito",
+            title: "Notas de crédito",
+            url: "/dashboard/notas-credito",
+          },
         ],
       },
       {
