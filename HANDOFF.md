@@ -1,5 +1,23 @@
 # Handoff — Medoxigas Contabilidad
 
+## Bancos: fichas, transferencias y conciliaciones (14 nov 2026)
+
+- Lista de bancos con Nombre, Tipo, Número, Saldo y Conciliación (última
+  conciliación o borrador). Ficha `/dashboard/bancos/[id]` con saldo actual,
+  movimientos enlazados (documento, asiento y tercero) y filtro Desde/Hasta.
+- Transferencia con `Select` y `DatePicker`, observaciones en «Más opciones»; al
+  guardar abre `/dashboard/bancos/transferencias/[id]` con las cuentas y su
+  asiento. El diálogo de depósito se conservó con los mismos componentes.
+- Conciliaciones: lista, nueva (cuenta, fecha de corte y saldo del extracto; el
+  desde sale del último corte) y detalle editable con movimientos marcables,
+  diferencia en vivo, ajustes bancarios, guardar borrador y conciliar. Usa las
+  RPC `guardar_borrador_conciliacion` y `conciliar_cuenta` ya existentes.
+- Enlaces nuevos en `src/lib/enlaces.ts` (`rutaBanco`, `rutaTransferencia`,
+  `rutaConciliacion`); el origen del asiento reconoce transferencias, depósitos,
+  conciliaciones y notas. Menú lateral: Bancos → Cuentas y Conciliaciones.
+- Lógica pura en `src/lib/bancos/movimientos.ts` y `conciliacion.ts` con
+  Vitest. Sin migración nueva. `typecheck`, `test` (506), Biome y `build` en verde.
+
 ## Inventario: ajustes, almacenes y categorías (14 nov 2026)
 
 - Nuevo módulo `/dashboard/inventario`: Ajustes de inventario (lista, nuevo y
