@@ -13,6 +13,7 @@ import type {
   FacturaLinea,
   FacturaLista,
   FacturaVista,
+  PagoFacturaVista,
   ProductoResumen,
 } from "./tipos";
 
@@ -140,6 +141,7 @@ async function getAsiento(asientoId: string | null): Promise<AsientoVista> {
     const cuenta = porId.get(linea.cuenta_id);
     return {
       id: linea.id,
+      cuenta_id: linea.cuenta_id,
       codigo: cuenta?.codigo ?? "—",
       nombre: cuenta?.nombre ?? "—",
       descripcion: linea.descripcion,
@@ -167,7 +169,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   if (factura.error) throw new Error(factura.error.message);
   if (!factura.data) return null;
 
-  const [lineas, contacto, empresa, asiento, numeraciones] = await Promise.all([
+  const [lineas, contacto, empresa, asiento, numeraciones, pagos] = await Promise.all([
     supabase
       .from("factura_lineas")
       .select("id, producto_id, descripcion, cantidad, precio, descuento_pct, itbis_tasa, subtotal, itbis, total")
@@ -188,11 +190,18 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
       .eq("tipo_comprobante", factura.data.tipo_comprobante)
       .order("siguiente")
       .returns<{ prefijo: string; vence: string | null; siguiente: number }[]>(),
+    supabase
+      .from("pagos_recibidos")
+      .select("id, numero, fecha, metodo, monto, estado")
+      .eq("factura_id", id)
+      .order("fecha")
+      .returns<PagoFacturaVista[]>(),
   ]);
 
   if (lineas.error) throw new Error(lineas.error.message);
   if (contacto.error) throw new Error(contacto.error.message);
   if (numeraciones.error) throw new Error(numeraciones.error.message);
+  if (pagos.error) throw new Error(pagos.error.message);
   if (!contacto.data) return null;
 
   const ncf = factura.data.ncf;
@@ -211,5 +220,6 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
     empresa,
     asiento,
     ncfVence: numeracion?.vence ?? null,
+    pagos: pagos.data,
   };
 }

@@ -5,7 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ArrowLeft, Ban, CreditCard, Loader2, Printer } from "lucide-react";
+import { ArrowLeft, Ban, BookOpen, CreditCard, Loader2, Printer } from "lucide-react";
 import { createPortal } from "react-dom";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -20,12 +20,23 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaAsiento, rutaPagoRecibido } from "@/lib/enlaces";
 import { anularFactura } from "@/lib/facturacion/acciones";
-import { saldoDeFactura } from "@/lib/facturacion/formato";
-import type { FacturaVista } from "@/lib/facturacion/tipos";
+import { formatoMoneda, saldoDeFactura } from "@/lib/facturacion/formato";
+import type { FacturaVista, PagoFacturaVista } from "@/lib/facturacion/tipos";
+import { formatoDia } from "@/lib/formato";
 
 import { FacturaPapel } from "./factura-papel";
+
+const METODOS: Record<PagoFacturaVista["metodo"], string> = {
+  efectivo: "Efectivo",
+  transferencia: "Transferencia",
+  tarjeta: "Tarjeta",
+  cheque: "Cheque",
+};
 
 export function VistaFactura({ datos, puedeEscribir }: { datos: FacturaVista; puedeEscribir: boolean }) {
   const router = useRouter();
@@ -37,7 +48,7 @@ export function VistaFactura({ datos, puedeEscribir }: { datos: FacturaVista; pu
     setMontado(true);
   }, []);
 
-  const { factura, lineas, contacto, empresa, ncfVence } = datos;
+  const { factura, lineas, contacto, empresa, ncfVence, asiento, pagos } = datos;
   const saldo = saldoDeFactura(factura.total, factura.pagado);
   const puedePagar = puedeEscribir && saldo > 0 && factura.estado !== "anulada";
   const puedeAnular = puedeEscribir && factura.estado !== "anulada";
@@ -69,6 +80,12 @@ export function VistaFactura({ datos, puedeEscribir }: { datos: FacturaVista; pu
             <Printer />
             Imprimir
           </Button>
+          {asiento.asiento ? (
+            <Button variant="outline" render={<Link href={rutaAsiento(asiento.asiento.id)} />}>
+              <BookOpen />
+              Ver asiento
+            </Button>
+          ) : null}
           {puedePagar ? (
             <Button
               render={
@@ -112,7 +129,56 @@ export function VistaFactura({ datos, puedeEscribir }: { datos: FacturaVista; pu
       ) : null}
 
       <div className="ring-foreground/10 mx-auto w-full max-w-[8.5in] overflow-hidden rounded-xl bg-white shadow-sm ring-1">
-        <FacturaPapel empresa={empresa} factura={factura} lineas={lineas} contacto={contacto} ncfVence={ncfVence} />
+        <FacturaPapel
+          empresa={empresa}
+          factura={factura}
+          lineas={lineas}
+          contacto={contacto}
+          ncfVence={ncfVence}
+          enlaces
+        />
+      </div>
+
+      <div className="rounded-xl bg-card ring-1 ring-foreground/10 print:hidden">
+        <div className="border-b p-4">
+          <h2 className="font-heading text-lg font-medium">Pagos asociados</h2>
+        </div>
+        {pagos.length === 0 ? (
+          <p className="text-muted-foreground p-4 text-sm">Sin pagos.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-(--card-spacing)">Fecha</TableHead>
+                <TableHead>Número</TableHead>
+                <TableHead>Método</TableHead>
+                <TableHead className="text-right">Monto</TableHead>
+                <TableHead className="pr-(--card-spacing)">Estado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pagos.map((pago) => (
+                <TableRow key={pago.id}>
+                  <TableCell className="pl-(--card-spacing)">{formatoDia(pago.fecha)}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link className="hover:underline" href={rutaPagoRecibido(pago.id)}>
+                      #{pago.numero}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{METODOS[pago.metodo]}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatoMoneda(pago.monto)}</TableCell>
+                  <TableCell className="pr-(--card-spacing)">
+                    {pago.estado === "anulado" ? (
+                      <Badge variant="destructive">Anulado</Badge>
+                    ) : (
+                      <Badge variant="secondary">Activo</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
 
       {montado

@@ -2,6 +2,8 @@
 
 import { type FormEvent, useState, useTransition } from "react";
 
+import Link from "next/link";
+
 import { ChevronDown, Pencil, Plus, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { rutaProducto } from "@/lib/enlaces";
 import { actualizarProducto, crearProducto } from "@/lib/productos/actions";
 import {
   etiquetaTasaItbis,
@@ -310,7 +313,11 @@ export function ProductosCliente({
             ) : (
               filtrados.map((producto) => (
                 <TableRow key={producto.id}>
-                  <TableCell className="font-medium">{producto.nombre}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link href={rutaProducto(producto.id)} prefetch={false} className="hover:underline">
+                      {producto.nombre}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{producto.referencia?.trim() || "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatoMoneda(producto.precio)}</TableCell>
                   <TableCell className="text-right">{etiquetaTasaItbis(producto.itbis_tasa)}</TableCell>

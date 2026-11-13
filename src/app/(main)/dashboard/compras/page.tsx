@@ -10,6 +10,7 @@ import { getRol } from "@/lib/auth/rol";
 import { aNumero } from "@/lib/compras/calculo";
 import { listarFacturasProveedor } from "@/lib/compras/consultas";
 import { formatoMoneda } from "@/lib/compras/formato";
+import { rutaCompra, rutaContacto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 
 import { EstadoBadge } from "./_components/estado-badge";
@@ -69,12 +70,20 @@ export default async function Page() {
                   return (
                     <TableRow key={factura.id}>
                       <TableCell className="pl-(--card-spacing) font-medium">
-                        <Link href={`/dashboard/compras/${factura.id}`} prefetch={false} className="hover:underline">
+                        <Link href={rutaCompra(factura.id)} prefetch={false} className="hover:underline">
                           #{factura.numero}
                         </Link>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{factura.ncf || "—"}</TableCell>
-                      <TableCell>{factura.contactos?.nombre ?? "—"}</TableCell>
+                      <TableCell>
+                        {factura.contactos ? (
+                          <Link className="hover:underline" href={rutaContacto(factura.contacto_id)}>
+                            {factura.contactos.nombre}
+                          </Link>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
                       <TableCell>{formatoDia(factura.fecha)}</TableCell>
                       <TableCell>{formatoDia(factura.vencimiento)}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatoMoneda(total)}</TableCell>

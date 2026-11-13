@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaContacto, rutaCuenta, rutaGasto } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import type { GastoLista } from "@/lib/gastos/tipos";
@@ -52,13 +53,33 @@ export function GastosTabla({ gastos, puedeEscribir }: { gastos: GastoLista[]; p
             ) : (
               gastos.map((gasto) => (
                 <TableRow key={gasto.id}>
-                  <TableCell className="font-medium">{gasto.numero}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link className="hover:underline" href={rutaGasto(gasto.id)}>
+                      {gasto.numero}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{gasto.ncf || "—"}</TableCell>
                   <TableCell>{formatoDia(gasto.fecha)}</TableCell>
                   <TableCell>{gasto.descripcion}</TableCell>
-                  <TableCell>{gasto.proveedor_nombre}</TableCell>
-                  <TableCell>{gasto.cuenta_nombre}</TableCell>
-                  <TableCell>{gasto.cuenta_pago_nombre}</TableCell>
+                  <TableCell>
+                    {gasto.contacto_id ? (
+                      <Link className="hover:underline" href={rutaContacto(gasto.contacto_id)}>
+                        {gasto.proveedor_nombre}
+                      </Link>
+                    ) : (
+                      gasto.proveedor_nombre
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Link className="hover:underline" href={rutaCuenta(gasto.cuenta_gasto_id)}>
+                      {gasto.cuenta_nombre}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    <Link className="hover:underline" href={rutaCuenta(gasto.cuenta_pago_id)}>
+                      {gasto.cuenta_pago_nombre}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-right">{formatoMoneda(gasto.subtotal)}</TableCell>
                   <TableCell className="text-right">{formatoMoneda(gasto.itbis)}</TableCell>
                   <TableCell className="text-right font-medium">{formatoMoneda(gasto.total)}</TableCell>
