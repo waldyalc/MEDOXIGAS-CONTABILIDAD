@@ -14,6 +14,10 @@
   proveedor, pagos a proveedores y detalle), Gastos menores, Contabilidad
   (catálogo y configuración) y Reportes (libro diario, balance de comprobación,
   estado de resultados, CxC).
+- Reportes de Ventas: `ventas-producto` (período + búsqueda, paginado 20) y
+  `rentabilidad-producto` (período, paginado 10), con producto enlazado a su
+  ficha, totales en tarjetas y exportación Excel/PDF compartida. Cálculos puros
+  en `src/lib/reportes/ventas/v2/` con Vitest (cifras de la ferretería).
 - pgTAP: 103 asserts en 7 archivos `motor_*` (+5 de perfiles); corre en CI, job
   `Supabase`. `types.ts` regenerado.
 
