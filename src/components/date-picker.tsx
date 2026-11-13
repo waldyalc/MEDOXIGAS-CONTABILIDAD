@@ -72,7 +72,7 @@ export function DatePicker({ id, value, onChange, placeholder = "Seleccionar fec
         <Calendar
           mode="single"
           locale={es}
-          captionLayout="dropdown"
+          captionLayout="label"
           selected={fecha}
           defaultMonth={fecha ?? new Date()}
           onSelect={seleccionar}
@@ -83,23 +83,22 @@ export function DatePicker({ id, value, onChange, placeholder = "Seleccionar fec
             week: "mt-0 flex h-[45px] w-full items-center",
             day: "relative flex size-10 items-center justify-center rounded-[10px] p-0 text-center select-none",
             today: "rounded-[10px] bg-slate-100 text-slate-700 data-[selected=true]:rounded-[10px]",
-            dropdowns: "text-base font-semibold text-slate-700",
             caption_label: "text-base font-semibold text-slate-700",
             button_previous: "rounded-[10px] text-slate-700 hover:bg-slate-100",
             button_next: "rounded-[10px] text-slate-700 hover:bg-slate-100",
           }}
           components={{ DayButton: CalendarioDia }}
           formatters={{
-            formatMonthDropdown: (mes) =>
-              format(mes, "MMM", { locale: es }).replace(/^./, (letra) => letra.toUpperCase()),
+            formatCaption: (mes) =>
+              format(mes, "MMM yyyy", { locale: es }).replace(/^./, (letra) => letra.toUpperCase()),
           }}
         />
-        <div className="flex justify-end border-t p-2">
+        <div className="flex justify-end px-3 pb-2">
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="text-primary"
+            className="h-7 px-2 text-primary"
             onClick={() => seleccionar(new Date())}
           >
             Hoy

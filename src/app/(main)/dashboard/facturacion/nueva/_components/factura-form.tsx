@@ -293,7 +293,7 @@ export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }
                 <SelectTrigger id="tipo-comprobante" className={SELECT_MEDIO}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent alignItemWithTrigger={false}>
                   {comprobantesItems.map((opcion) => (
                     <SelectItem key={opcion.value} value={opcion.value}>
                       {opcion.label}
@@ -344,7 +344,7 @@ export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }
                 <SelectTrigger id="cuenta-pago" className={SELECT_CHICO}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent alignItemWithTrigger={false}>
                   {cuentasItems.map((cuenta) => (
                     <SelectItem key={cuenta.value} value={cuenta.value}>
                       {cuenta.label}
@@ -367,7 +367,7 @@ export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }
                 <SelectTrigger id="metodo-pago" className={SELECT_CHICO}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent alignItemWithTrigger={false}>
                   {METODOS_PAGO.map((metodo) => (
                     <SelectItem key={metodo.value} value={metodo.value}>
                       {metodo.label}
@@ -533,7 +533,7 @@ export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }
                         >
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent alignItemWithTrigger={false}>
                           {OPCIONES_ITBIS.map((opcion) => (
                             <SelectItem key={opcion.value} value={opcion.value}>
                               {opcion.label}
