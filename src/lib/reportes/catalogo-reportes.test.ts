@@ -22,21 +22,28 @@ describe("catálogo de reportes", () => {
     expect(grupos.map((grupo) => grupo.reportes.length)).toEqual([7, 7, 1, 9, 8, 2]);
   });
 
-  test("los enlaces son únicos: cuentas por cobrar y los 9 contables", () => {
+  test("los enlaces son únicos: los 7 administrativos y los 9 contables", () => {
     const rutas = REPORTES.flatMap((reporte) => (reporte.href ? [reporte.href] : []));
 
-    expect(rutas).toHaveLength(10);
+    expect(rutas).toHaveLength(16);
     expect(new Set(rutas).size).toBe(rutas.length);
     expect(rutas).toContain("/dashboard/reportes/cxc");
+    expect(rutas).toContain("/dashboard/reportes/reporte-anual");
     expect(rutas).toContain("/dashboard/reportes/estado-resultados");
     expect(rutas).toContain("/dashboard/reportes/balanza-tercero");
   });
 
-  test("solo cuentas por cobrar y los contables tienen enlace", () => {
+  test("los 7 administrativos y los 9 contables tienen enlace", () => {
     const conEnlace = REPORTES.filter((reporte) => reporte.href != null);
 
     expect(conEnlace.map((reporte) => reporte.nombre)).toEqual([
       "Cuentas por cobrar",
+      "Cuentas por pagar",
+      "Ingresos y compras",
+      "Valor de inventario",
+      "Transacciones",
+      "Compras",
+      "Reporte anual",
       "Estado de resultados",
       "Estado de situación financiera",
       "Estado de flujo de efectivo",

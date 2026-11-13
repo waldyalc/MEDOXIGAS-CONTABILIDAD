@@ -2,10 +2,9 @@
 
 import { type FormEvent, useState, useTransition } from "react";
 
-import Link from "next/link";
-
 import { ChevronDown, Pencil, Plus, Search } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -24,6 +23,7 @@ import {
   type PestanaContactos,
   TIPOS_CONTACTO,
 } from "@/lib/contactos/contactos";
+import { rutaContacto } from "@/lib/enlaces";
 
 const OPCIONES_TIPO = TIPOS_CONTACTO.map((tipo) => ({ value: tipo.valor, label: tipo.etiqueta }));
 
@@ -252,9 +252,7 @@ export function ContactosCliente({
               filtrados.map((contacto) => (
                 <TableRow key={contacto.id}>
                   <TableCell className="font-medium">
-                    <Link href={`/dashboard/contactos/${contacto.id}`} className="hover:underline">
-                      {contacto.nombre}
-                    </Link>
+                    <Enlace href={rutaContacto(contacto.id)}>{contacto.nombre}</Enlace>
                   </TableCell>
                   <TableCell className="tabular-nums">{contacto.rnc_cedula ?? "—"}</TableCell>
                   <TableCell className="tabular-nums">{contacto.telefono ?? "—"}</TableCell>

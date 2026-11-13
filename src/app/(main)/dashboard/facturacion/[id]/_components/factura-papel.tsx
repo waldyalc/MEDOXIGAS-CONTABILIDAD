@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { Enlace } from "@/components/enlace";
 import { rutaContacto, rutaProducto } from "@/lib/enlaces";
 import { formatoCantidad, saldoDeFactura } from "@/lib/facturacion/formato";
 import { montoEnLetras } from "@/lib/facturacion/numero-a-letras";
@@ -32,6 +31,118 @@ interface Props {
   enlaces?: boolean;
 }
 
+function DatosEmpresa({
+  empresa,
+  factura,
+  nombreEmpresa,
+  logo,
+}: {
+  empresa: Empresa | null;
+  factura: FacturaDetalle;
+  nombreEmpresa: string;
+  logo: string;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      {/* biome-ignore lint/performance/noImgElement: logo configurable de la empresa */}
+      <img src={logo} alt={nombreEmpresa} className="mb-1 h-16 w-auto object-contain" />
+      <p className="text-base font-semibold">{nombreEmpresa}</p>
+      {empresa?.rnc?.trim() ? <p>RNC: {empresa.rnc}</p> : null}
+      {empresa?.direccion?.trim() ? <p>{empresa.direccion}</p> : null}
+      {empresa?.correo?.trim() ? <p>{empresa.correo}</p> : null}
+      {empresa?.telefono?.trim() ? <p>Teléfono: {empresa.telefono}</p> : null}
+      <p>Fecha de creación: {formatoDia(factura.fecha)}</p>
+      <p>Vencimiento de la factura {formatoDia(factura.vencimiento)}</p>
+    </div>
+  );
+}
+
+function LineaPapel({ linea, enlaces }: { linea: FacturaLinea; enlaces: boolean }) {
+  const descuento = (linea.cantidad * linea.precio * linea.descuento_pct) / 100;
+
+  return (
+    <tr className="border-b border-[#e2e5ea] align-top">
+      <td className="px-2 py-1.5 tabular-nums">{formatoCantidad(linea.cantidad)}</td>
+      <td className="px-2 py-1.5 font-medium">
+        {enlaces && linea.producto_id ? (
+          <Enlace href={rutaProducto(linea.producto_id)}>{linea.descripcion}</Enlace>
+        ) : (
+          linea.descripcion
+        )}
+      </td>
+      <td className="px-2 py-1.5">Unidad</td>
+      <td className="px-2 py-1.5 text-right tabular-nums">{precio(linea.precio)}</td>
+      <td className="px-2 py-1.5 text-right tabular-nums">{linea.descuento_pct > 0 ? montoRD(descuento) : ""}</td>
+      <td className="px-2 py-1.5 text-right tabular-nums">{montoRD(linea.itbis)}</td>
+      <td className="px-2 py-1.5 text-right tabular-nums">{montoRD(linea.subtotal)}</td>
+    </tr>
+  );
+}
+
+function ResumenTotales({
+  factura,
+  montoGravado,
+  totalItems,
+  etiquetaItbis,
+}: {
+  factura: FacturaDetalle;
+  montoGravado: number;
+  totalItems: number;
+  etiquetaItbis: string;
+}) {
+  return (
+    <div className="mt-6 flex justify-end">
+      <div className="w-full sm:w-[48%]">
+        <div className="flex justify-between">
+          <span>SUBTOTAL</span>
+          <span className="tabular-nums">{montoRD(factura.subtotal)}</span>
+        </div>
+        {factura.descuento > 0 ? (
+          <div className="flex justify-between">
+            <span>DESCUENTO</span>
+            <span className="tabular-nums">{montoRD(factura.descuento)}</span>
+          </div>
+        ) : null}
+        <div className="flex justify-between">
+          <span>MONTO GRAVADO</span>
+          <span className="tabular-nums">{montoRD(montoGravado)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>{etiquetaItbis}</span>
+          <span className="tabular-nums">{montoRD(factura.itbis)}</span>
+        </div>
+        <div className="mt-1 flex justify-between border-t border-[#c9d0da] pt-1 font-bold">
+          <span>Total</span>
+          <span className="tabular-nums">{montoRD(factura.total)}</span>
+        </div>
+        <p className="mt-1 text-right font-semibold">Total de items: {formatoCantidad(totalItems)}</p>
+      </div>
+    </div>
+  );
+}
+
+function NotasFactura({ factura }: { factura: FacturaDetalle }) {
+  if (!factura.notas?.trim() && !factura.terminos?.trim() && !factura.pie?.trim()) return null;
+
+  return (
+    <div className="mt-6 flex flex-col gap-2">
+      {factura.notas?.trim() ? (
+        <div>
+          <p className="font-semibold">Notas</p>
+          <p className="whitespace-pre-line">{factura.notas}</p>
+        </div>
+      ) : null}
+      {factura.terminos?.trim() ? (
+        <div>
+          <p className="font-semibold">Términos</p>
+          <p className="whitespace-pre-line">{factura.terminos}</p>
+        </div>
+      ) : null}
+      {factura.pie?.trim() ? <p className="whitespace-pre-line">{factura.pie}</p> : null}
+    </div>
+  );
+}
+
 export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence, enlaces = false }: Props) {
   const esCredito = factura.tipo_comprobante === "01";
   const titulo = esCredito ? "Factura de Crédito Fiscal" : "Factura de Consumo";
@@ -47,17 +158,7 @@ export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence, enl
   return (
     <article className="flex min-h-[11in] w-full flex-col bg-white p-[12mm] text-[13px] leading-snug text-[#0a2352] print:min-h-0 print:p-0">
       <header className="flex flex-col items-start gap-6 sm:flex-row sm:justify-between sm:gap-8">
-        <div className="flex flex-col gap-0.5">
-          {/* biome-ignore lint/performance/noImgElement: logo configurable de la empresa */}
-          <img src={logo} alt={nombreEmpresa} className="mb-1 h-16 w-auto object-contain" />
-          <p className="text-base font-semibold">{nombreEmpresa}</p>
-          {empresa?.rnc?.trim() ? <p>RNC: {empresa.rnc}</p> : null}
-          {empresa?.direccion?.trim() ? <p>{empresa.direccion}</p> : null}
-          {empresa?.correo?.trim() ? <p>{empresa.correo}</p> : null}
-          {empresa?.telefono?.trim() ? <p>Teléfono: {empresa.telefono}</p> : null}
-          <p>Fecha de creación: {formatoDia(factura.fecha)}</p>
-          <p>Vencimiento de la factura {formatoDia(factura.vencimiento)}</p>
-        </div>
+        <DatosEmpresa empresa={empresa} factura={factura} nombreEmpresa={nombreEmpresa} logo={logo} />
 
         <div className="shrink-0 sm:text-right">
           <p className="font-medium">{titulo}</p>
@@ -71,13 +172,7 @@ export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence, enl
         <div className="flex flex-col gap-0.5">
           <p>
             <span className="font-semibold">Cliente:</span>{" "}
-            {enlaces ? (
-              <Link className="hover:underline" href={rutaContacto(contacto.id)}>
-                {contacto.nombre}
-              </Link>
-            ) : (
-              contacto.nombre
-            )}
+            {enlaces ? <Enlace href={rutaContacto(contacto.id)}>{contacto.nombre}</Enlace> : contacto.nombre}
           </p>
           <p>
             <span className="font-semibold">RNC:</span> {contacto.rnc_cedula ?? ""}
@@ -116,30 +211,9 @@ export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence, enl
           </tr>
         </thead>
         <tbody>
-          {lineas.map((linea) => {
-            const descuento = (linea.cantidad * linea.precio * linea.descuento_pct) / 100;
-            return (
-              <tr key={linea.id} className="border-b border-[#e2e5ea] align-top">
-                <td className="px-2 py-1.5 tabular-nums">{formatoCantidad(linea.cantidad)}</td>
-                <td className="px-2 py-1.5 font-medium">
-                  {enlaces && linea.producto_id ? (
-                    <Link className="hover:underline" href={rutaProducto(linea.producto_id)}>
-                      {linea.descripcion}
-                    </Link>
-                  ) : (
-                    linea.descripcion
-                  )}
-                </td>
-                <td className="px-2 py-1.5">Unidad</td>
-                <td className="px-2 py-1.5 text-right tabular-nums">{precio(linea.precio)}</td>
-                <td className="px-2 py-1.5 text-right tabular-nums">
-                  {linea.descuento_pct > 0 ? montoRD(descuento) : ""}
-                </td>
-                <td className="px-2 py-1.5 text-right tabular-nums">{montoRD(linea.itbis)}</td>
-                <td className="px-2 py-1.5 text-right tabular-nums">{montoRD(linea.subtotal)}</td>
-              </tr>
-            );
-          })}
+          {lineas.map((linea) => (
+            <LineaPapel key={linea.id} linea={linea} enlaces={enlaces} />
+          ))}
         </tbody>
       </table>
 
@@ -148,51 +222,14 @@ export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence, enl
 
       <div className="flex-1" />
 
-      <div className="mt-6 flex justify-end">
-        <div className="w-full sm:w-[48%]">
-          <div className="flex justify-between">
-            <span>SUBTOTAL</span>
-            <span className="tabular-nums">{montoRD(factura.subtotal)}</span>
-          </div>
-          {factura.descuento > 0 ? (
-            <div className="flex justify-between">
-              <span>DESCUENTO</span>
-              <span className="tabular-nums">{montoRD(factura.descuento)}</span>
-            </div>
-          ) : null}
-          <div className="flex justify-between">
-            <span>MONTO GRAVADO</span>
-            <span className="tabular-nums">{montoRD(montoGravado)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>{etiquetaItbis}</span>
-            <span className="tabular-nums">{montoRD(factura.itbis)}</span>
-          </div>
-          <div className="mt-1 flex justify-between border-t border-[#c9d0da] pt-1 font-bold">
-            <span>Total</span>
-            <span className="tabular-nums">{montoRD(factura.total)}</span>
-          </div>
-          <p className="mt-1 text-right font-semibold">Total de items: {formatoCantidad(totalItems)}</p>
-        </div>
-      </div>
+      <ResumenTotales
+        factura={factura}
+        montoGravado={montoGravado}
+        totalItems={totalItems}
+        etiquetaItbis={etiquetaItbis}
+      />
 
-      {factura.notas?.trim() || factura.terminos?.trim() || factura.pie?.trim() ? (
-        <div className="mt-6 flex flex-col gap-2">
-          {factura.notas?.trim() ? (
-            <div>
-              <p className="font-semibold">Notas</p>
-              <p className="whitespace-pre-line">{factura.notas}</p>
-            </div>
-          ) : null}
-          {factura.terminos?.trim() ? (
-            <div>
-              <p className="font-semibold">Términos</p>
-              <p className="whitespace-pre-line">{factura.terminos}</p>
-            </div>
-          ) : null}
-          {factura.pie?.trim() ? <p className="whitespace-pre-line">{factura.pie}</p> : null}
-        </div>
-      ) : null}
+      <NotasFactura factura={factura} />
 
       <footer className="mt-4 flex items-center justify-between border-t border-[#e2e5ea] pt-2">
         <p>Original: Cliente</p>

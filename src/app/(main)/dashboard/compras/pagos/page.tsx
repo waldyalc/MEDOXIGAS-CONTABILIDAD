@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { ArrowLeft } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,21 +28,13 @@ const ETIQUETAS_METODO: Record<MetodoPago, string> = {
 function CeldaProveedor({ pago }: { pago: PagoLista }) {
   if (!pago.contactos) return "—";
 
-  return (
-    <Link className="hover:underline" href={rutaContacto(pago.contacto_id)}>
-      {pago.contactos.nombre}
-    </Link>
-  );
+  return <Enlace href={rutaContacto(pago.contacto_id)}>{pago.contactos.nombre}</Enlace>;
 }
 
 function CeldaCuenta({ pago }: { pago: PagoLista }) {
   if (!pago.cuentas) return "—";
 
-  return (
-    <Link className="hover:underline" href={rutaCuenta(pago.cuenta_id)}>
-      {pago.cuentas.nombre}
-    </Link>
-  );
+  return <Enlace href={rutaCuenta(pago.cuenta_id)}>{pago.cuentas.nombre}</Enlace>;
 }
 
 export default async function Page() {
@@ -93,23 +86,17 @@ export default async function Page() {
                 pagos.map((pago) => (
                   <TableRow key={pago.id}>
                     <TableCell className="pl-(--card-spacing) font-medium">
-                      <Link className="hover:underline" href={rutaPagoProveedor(pago.id)}>
-                        #{pago.numero}
-                      </Link>
+                      <Enlace href={rutaPagoProveedor(pago.id)}>#{pago.numero}</Enlace>
                     </TableCell>
                     <TableCell>
                       <CeldaProveedor pago={pago} />
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {pago.facturas_proveedor ? (
-                        <Link
-                          href={rutaCompra(pago.facturas_proveedor.id)}
-                          prefetch={false}
-                          className="hover:text-foreground hover:underline"
-                        >
+                        <Enlace href={rutaCompra(pago.facturas_proveedor.id)}>
                           #{pago.facturas_proveedor.numero}
                           {pago.facturas_proveedor.ncf ? ` · ${pago.facturas_proveedor.ncf}` : ""}
-                        </Link>
+                        </Enlace>
                       ) : (
                         "—"
                       )}

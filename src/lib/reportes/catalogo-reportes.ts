@@ -41,12 +41,12 @@ export const REPORTES: readonly ReporteCatalogo[] = [
   { nombre: "Ventas por almacén", categoria: "Ventas" },
 
   { nombre: "Cuentas por cobrar", categoria: "Administrativos", href: "/dashboard/reportes/cxc" },
-  { nombre: "Cuentas por pagar", categoria: "Administrativos" },
-  { nombre: "Ingresos y compras", categoria: "Administrativos" },
-  { nombre: "Valor de inventario", categoria: "Administrativos" },
-  { nombre: "Transacciones", categoria: "Administrativos" },
-  { nombre: "Compras", categoria: "Administrativos" },
-  { nombre: "Reporte anual", categoria: "Administrativos" },
+  { nombre: "Cuentas por pagar", categoria: "Administrativos", href: "/dashboard/reportes/cxp" },
+  { nombre: "Ingresos y compras", categoria: "Administrativos", href: "/dashboard/reportes/ingresos-compras" },
+  { nombre: "Valor de inventario", categoria: "Administrativos", href: "/dashboard/reportes/valor-inventario" },
+  { nombre: "Transacciones", categoria: "Administrativos", href: "/dashboard/reportes/transacciones" },
+  { nombre: "Compras", categoria: "Administrativos", href: "/dashboard/reportes/compras" },
+  { nombre: "Reporte anual", categoria: "Administrativos", href: "/dashboard/reportes/reporte-anual" },
 
   { nombre: "Flujo de caja", categoria: "Financieros" },
 

@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { Enlace } from "@/components/enlace";
 import { rutaCuenta } from "@/lib/enlaces";
 import { valorACentavos } from "@/lib/facturacion/calculo";
 import { formatoMoneda } from "@/lib/facturacion/formato";
@@ -43,9 +42,9 @@ export function AsientoContable({ asiento }: { asiento: AsientoVista }) {
             {asiento.lineas.map((linea) => (
               <tr key={linea.id} className="border-b last:border-0">
                 <td className="p-3">
-                  <Link className="hover:underline" href={rutaCuenta(linea.cuenta_id)}>
+                  <Enlace href={rutaCuenta(linea.cuenta_id)}>
                     <span className="font-mono text-xs">{linea.codigo}</span> {linea.nombre}
-                  </Link>
+                  </Enlace>
                 </td>
                 <td className="text-muted-foreground p-3">{linea.descripcion}</td>
                 <td className="p-3 text-right">{linea.debito > 0 ? formatoMoneda(linea.debito) : "—"}</td>

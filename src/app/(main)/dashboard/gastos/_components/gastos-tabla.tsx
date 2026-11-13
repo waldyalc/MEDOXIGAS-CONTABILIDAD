@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Plus } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -54,31 +55,23 @@ export function GastosTabla({ gastos, puedeEscribir }: { gastos: GastoLista[]; p
               gastos.map((gasto) => (
                 <TableRow key={gasto.id}>
                   <TableCell className="font-medium">
-                    <Link className="hover:underline" href={rutaGasto(gasto.id)}>
-                      {gasto.numero}
-                    </Link>
+                    <Enlace href={rutaGasto(gasto.id)}>{gasto.numero}</Enlace>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{gasto.ncf || "—"}</TableCell>
                   <TableCell>{formatoDia(gasto.fecha)}</TableCell>
                   <TableCell>{gasto.descripcion}</TableCell>
                   <TableCell>
                     {gasto.contacto_id ? (
-                      <Link className="hover:underline" href={rutaContacto(gasto.contacto_id)}>
-                        {gasto.proveedor_nombre}
-                      </Link>
+                      <Enlace href={rutaContacto(gasto.contacto_id)}>{gasto.proveedor_nombre}</Enlace>
                     ) : (
                       gasto.proveedor_nombre
                     )}
                   </TableCell>
                   <TableCell>
-                    <Link className="hover:underline" href={rutaCuenta(gasto.cuenta_gasto_id)}>
-                      {gasto.cuenta_nombre}
-                    </Link>
+                    <Enlace href={rutaCuenta(gasto.cuenta_gasto_id)}>{gasto.cuenta_nombre}</Enlace>
                   </TableCell>
                   <TableCell>
-                    <Link className="hover:underline" href={rutaCuenta(gasto.cuenta_pago_id)}>
-                      {gasto.cuenta_pago_nombre}
-                    </Link>
+                    <Enlace href={rutaCuenta(gasto.cuenta_pago_id)}>{gasto.cuenta_pago_nombre}</Enlace>
                   </TableCell>
                   <TableCell className="text-right">{formatoMoneda(gasto.subtotal)}</TableCell>
                   <TableCell className="text-right">{formatoMoneda(gasto.itbis)}</TableCell>
