@@ -1,0 +1,95 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  ATAJOS_FECHA,
+  ATAJOS_RANGO,
+  etiquetaFecha,
+  etiquetaRango,
+  fechaFinAnioAnterior,
+  fechaFinMesAnterior,
+  rangoAnioAnterior,
+  rangoAyer,
+  rangoEstaSemana,
+  rangoEsteAnio,
+  rangoEsteMes,
+  rangoEsteTrimestre,
+  rangoHoy,
+  rangoMesAnterior,
+} from "./rangos";
+
+describe("atajos de rango", () => {
+  it("hoy y ayer", () => {
+    expect(rangoHoy("2026-11-13")).toEqual({ desde: "2026-11-13", hasta: "2026-11-13" });
+    expect(rangoAyer("2026-11-13")).toEqual({ desde: "2026-11-12", hasta: "2026-11-12" });
+    expect(rangoAyer("2026-01-01")).toEqual({ desde: "2025-12-31", hasta: "2025-12-31" });
+  });
+
+  it("la semana empieza el lunes", () => {
+    expect(rangoEstaSemana("2026-11-13")).toEqual({ desde: "2026-11-09", hasta: "2026-11-15" });
+    expect(rangoEstaSemana("2026-11-09")).toEqual({ desde: "2026-11-09", hasta: "2026-11-15" });
+  });
+
+  it("la semana cruza el cambio de año", () => {
+    expect(rangoEstaSemana("2026-01-04")).toEqual({ desde: "2025-12-29", hasta: "2026-01-04" });
+    expect(rangoEstaSemana("2026-01-01")).toEqual({ desde: "2025-12-29", hasta: "2026-01-04" });
+  });
+
+  it("este mes y mes anterior", () => {
+    expect(rangoEsteMes("2026-11-13")).toEqual({ desde: "2026-11-01", hasta: "2026-11-30" });
+    expect(rangoMesAnterior("2026-01-15")).toEqual({ desde: "2025-12-01", hasta: "2025-12-31" });
+  });
+
+  it("mes anterior ajusta el último día de febrero", () => {
+    expect(rangoMesAnterior("2026-03-31")).toEqual({ desde: "2026-02-01", hasta: "2026-02-28" });
+    expect(rangoMesAnterior("2024-03-10")).toEqual({ desde: "2024-02-01", hasta: "2024-02-29" });
+  });
+
+  it("cada trimestre del año", () => {
+    expect(rangoEsteTrimestre("2026-01-15")).toEqual({ desde: "2026-01-01", hasta: "2026-03-31" });
+    expect(rangoEsteTrimestre("2026-04-01")).toEqual({ desde: "2026-04-01", hasta: "2026-06-30" });
+    expect(rangoEsteTrimestre("2026-07-31")).toEqual({ desde: "2026-07-01", hasta: "2026-09-30" });
+    expect(rangoEsteTrimestre("2026-11-13")).toEqual({ desde: "2026-10-01", hasta: "2026-12-31" });
+  });
+
+  it("este año y año anterior", () => {
+    expect(rangoEsteAnio("2026-06-15")).toEqual({ desde: "2026-01-01", hasta: "2026-12-31" });
+    expect(rangoAnioAnterior("2026-01-01")).toEqual({ desde: "2025-01-01", hasta: "2025-12-31" });
+  });
+});
+
+describe("atajos de una fecha", () => {
+  it("hoy", () => {
+    expect(ATAJOS_FECHA[0]?.obtener("2026-11-13")).toBe("2026-11-13");
+  });
+
+  it("fin de mes anterior", () => {
+    expect(fechaFinMesAnterior("2026-01-05")).toBe("2025-12-31");
+    expect(fechaFinMesAnterior("2026-03-01")).toBe("2026-02-28");
+    expect(fechaFinMesAnterior("2024-03-01")).toBe("2024-02-29");
+  });
+
+  it("fin de año anterior", () => {
+    expect(fechaFinAnioAnterior("2026-11-13")).toBe("2025-12-31");
+  });
+});
+
+describe("etiquetas", () => {
+  it("fecha y rango en español", () => {
+    expect(etiquetaFecha("2026-11-01")).toBe("1 nov 2026");
+    expect(etiquetaRango({ desde: "2026-11-01", hasta: "2026-11-30" })).toBe("1 nov 2026 – 30 nov 2026");
+  });
+
+  it("los atajos mantienen el orden del diseño", () => {
+    expect(ATAJOS_RANGO.map((atajo) => atajo.etiqueta)).toEqual([
+      "Hoy",
+      "Ayer",
+      "Esta semana",
+      "Este mes",
+      "Mes anterior",
+      "Este trimestre",
+      "Este año",
+      "Año anterior",
+      "Personalizado",
+    ]);
+  });
+});

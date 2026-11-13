@@ -1,9 +1,8 @@
 import { z } from "zod";
 
-export interface RangoFechas {
-  desde: string;
-  hasta: string;
-}
+import { hoyEnRd, type RangoFechas } from "@/lib/fechas/rangos";
+
+export type { RangoFechas };
 
 export type ParametrosFecha = Record<string, string | string[] | undefined>;
 
@@ -23,14 +22,7 @@ function esFechaValida(texto: string): boolean {
 const esquemaFecha = z.string().refine(esFechaValida);
 
 /** Fecha de hoy en formato ISO (YYYY-MM-DD) según la zona de República Dominicana. */
-export function hoyRd(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    timeZone: "America/Santo_Domingo",
-  }).format(new Date());
-}
+export const hoyRd = hoyEnRd;
 
 export function rangoMesActual(hoy: string): RangoFechas {
   const anio = Number(hoy.slice(0, 4));
