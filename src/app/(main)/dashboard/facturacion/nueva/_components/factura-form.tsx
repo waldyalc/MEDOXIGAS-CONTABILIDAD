@@ -32,6 +32,7 @@ import {
   parsearCantidad,
   parsearCentavos,
 } from "@/lib/facturacion/calculo";
+import { esTipoComprobante, OPCIONES_TIPO_COMPROBANTE } from "@/lib/facturacion/comprobantes";
 import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import type {
   ContactoResumen,
@@ -205,10 +206,13 @@ export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }
               id="tipo-comprobante"
               className="w-full md:w-64"
               value={tipo}
-              onChange={(evento) => setTipo(evento.target.value === "01" ? "01" : "02")}
+              onChange={(evento) => setTipo(esTipoComprobante(evento.target.value) ? evento.target.value : "02")}
             >
-              <NativeSelectOption value="01">01 Crédito fiscal</NativeSelectOption>
-              <NativeSelectOption value="02">02 Consumo</NativeSelectOption>
+              {OPCIONES_TIPO_COMPROBANTE.map((opcion) => (
+                <NativeSelectOption key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </NativeSelectOption>
+              ))}
             </NativeSelect>
             <p className="text-muted-foreground text-xs">El NCF se asigna al guardar.</p>
           </div>

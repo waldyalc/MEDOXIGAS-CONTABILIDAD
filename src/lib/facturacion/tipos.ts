@@ -1,6 +1,8 @@
 export type EstadoFactura = "abierta" | "pagada" | "anulada";
 export type EstadoDocumento = "activo" | "anulado";
-export type TipoComprobante = "01" | "02";
+
+export const TIPOS_COMPROBANTE = ["01", "02", "14", "15", "16"] as const;
+export type TipoComprobante = (typeof TIPOS_COMPROBANTE)[number];
 
 export interface Empresa {
   id: number;
