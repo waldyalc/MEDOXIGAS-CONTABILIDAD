@@ -82,12 +82,14 @@ export function FormularioFactura({
   productos,
   cuentasGasto,
   centrosCosto,
+  almacenes,
   inicial,
   ordenId,
   numeroOrden,
 }: Props) {
   const hoy = hoyEnRd();
   const [proveedorId, setProveedorId] = useState(inicial?.contacto_id ?? "");
+  const [almacenId, setAlmacenId] = useState(almacenes.find((item) => item.es_principal)?.id ?? almacenes[0]?.id ?? "");
   const [fecha, setFecha] = useState(inicial?.fecha ?? hoy);
   const [vencimiento, setVencimiento] = useState(inicial?.vencimiento ?? hoy);
   const [ncf, setNcf] = useState(inicial?.ncf ?? "");
@@ -184,6 +186,7 @@ export function FormularioFactura({
       contacto_id: proveedorId,
       fecha,
       vencimiento,
+      almacen_id: almacenId,
       ncf,
       notas,
       ...(centroCostoId ? { centro_costo_id: centroCostoId } : {}),
@@ -293,6 +296,21 @@ export function FormularioFactura({
               <AccordionTrigger>Más opciones</AccordionTrigger>
               <AccordionContent>
                 <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="almacen">Almacén</Label>
+                    <NativeSelect
+                      id="almacen"
+                      className="w-full"
+                      value={almacenId}
+                      onChange={(evento) => setAlmacenId(evento.target.value)}
+                    >
+                      {almacenes.map((almacen) => (
+                        <option key={almacen.id} value={almacen.id}>
+                          {almacen.es_principal ? `${almacen.nombre} (principal)` : almacen.nombre}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  </div>
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="notas">Notas</Label>
                     <Textarea

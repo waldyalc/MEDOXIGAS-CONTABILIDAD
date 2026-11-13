@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { validarAjuste } from "./validacion";
+import { listaPrecioSchema, transferenciaSchema, validarAjuste } from "./validacion";
 
 const linea = {
   producto_id: "11111111-1111-1111-1111-111111111111",
@@ -57,5 +57,47 @@ describe("validarAjuste", () => {
         lineas: [linea, { ...linea, cantidad: 0 }],
       }),
     ).toBe("La cantidad de la línea 2 debe ser mayor que cero.");
+  });
+});
+
+describe("transferenciaSchema", () => {
+  const base = {
+    fecha: "2026-11-14",
+    origen_id: "11111111-1111-4111-8111-111111111111",
+    destino_id: "22222222-2222-4222-8222-222222222222",
+    lineas: [{ producto_id: "33333333-3333-4333-8333-333333333333", cantidad: 2 }],
+  };
+
+  test("acepta una transferencia válida", () => {
+    expect(transferenciaSchema.safeParse(base).success).toBe(true);
+  });
+
+  test("rechaza origen y destino iguales", () => {
+    const resultado = transferenciaSchema.safeParse({ ...base, destino_id: base.origen_id });
+    expect(resultado.success).toBe(false);
+  });
+
+  test("exige al menos un producto", () => {
+    expect(transferenciaSchema.safeParse({ ...base, lineas: [] }).success).toBe(false);
+  });
+
+  test("exige cantidad positiva", () => {
+    expect(
+      transferenciaSchema.safeParse({
+        ...base,
+        lineas: [{ producto_id: base.lineas[0]?.producto_id ?? "", cantidad: 0 }],
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("listaPrecioSchema", () => {
+  test("acepta una lista fija o porcentaje", () => {
+    expect(listaPrecioSchema.safeParse({ nombre: "Mayoreo", tipo: "fijo" }).success).toBe(true);
+    expect(listaPrecioSchema.safeParse({ nombre: "Mayoreo", tipo: "porcentaje" }).success).toBe(true);
+  });
+
+  test("rechaza un tipo desconocido", () => {
+    expect(listaPrecioSchema.safeParse({ nombre: "Mayoreo", tipo: "otro" }).success).toBe(false);
   });
 });

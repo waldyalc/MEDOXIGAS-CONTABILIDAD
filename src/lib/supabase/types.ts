@@ -209,6 +209,7 @@ export type Database = {
           asiento_id: string | null
           creado_en: string
           creado_por: string | null
+          estado: string
           fecha: string
           id: string
           numero: number
@@ -220,6 +221,7 @@ export type Database = {
           asiento_id?: string | null
           creado_en?: string
           creado_por?: string | null
+          estado?: string
           fecha?: string
           id?: string
           numero?: number
@@ -231,6 +233,7 @@ export type Database = {
           asiento_id?: string | null
           creado_en?: string
           creado_por?: string | null
+          estado?: string
           fecha?: string
           id?: string
           numero?: number
@@ -631,6 +634,7 @@ export type Database = {
           cuenta_cxp_id: string | null
           direccion: string | null
           id: string
+          lista_precio_id: string | null
           nombre: string
           rnc_cedula: string | null
           telefono: string | null
@@ -644,6 +648,7 @@ export type Database = {
           cuenta_cxp_id?: string | null
           direccion?: string | null
           id?: string
+          lista_precio_id?: string | null
           nombre: string
           rnc_cedula?: string | null
           telefono?: string | null
@@ -657,6 +662,7 @@ export type Database = {
           cuenta_cxp_id?: string | null
           direccion?: string | null
           id?: string
+          lista_precio_id?: string | null
           nombre?: string
           rnc_cedula?: string | null
           telefono?: string | null
@@ -675,6 +681,13 @@ export type Database = {
             columns: ["cuenta_cxp_id"]
             isOneToOne: false
             referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contactos_lista_precio_id_fkey"
+            columns: ["lista_precio_id"]
+            isOneToOne: false
+            referencedRelation: "listas_precios"
             referencedColumns: ["id"]
           },
         ]
@@ -905,6 +918,39 @@ export type Database = {
         }
         Relationships: []
       }
+      existencias: {
+        Row: {
+          almacen_id: string
+          cantidad: number
+          producto_id: string
+        }
+        Insert: {
+          almacen_id: string
+          cantidad?: number
+          producto_id: string
+        }
+        Update: {
+          almacen_id?: string
+          cantidad?: number
+          producto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "existencias_almacen_id_fkey"
+            columns: ["almacen_id"]
+            isOneToOne: false
+            referencedRelation: "almacenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "existencias_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       factura_lineas: {
         Row: {
           cantidad: number
@@ -1057,6 +1103,7 @@ export type Database = {
       }
       facturas: {
         Row: {
+          almacen_id: string | null
           asiento_id: string | null
           centro_costo_id: string | null
           contacto_id: string
@@ -1081,6 +1128,7 @@ export type Database = {
           vendedor_id: string | null
         }
         Insert: {
+          almacen_id?: string | null
           asiento_id?: string | null
           centro_costo_id?: string | null
           contacto_id: string
@@ -1105,6 +1153,7 @@ export type Database = {
           vendedor_id?: string | null
         }
         Update: {
+          almacen_id?: string | null
           asiento_id?: string | null
           centro_costo_id?: string | null
           contacto_id?: string
@@ -1129,6 +1178,13 @@ export type Database = {
           vendedor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "facturas_almacen_id_fkey"
+            columns: ["almacen_id"]
+            isOneToOne: false
+            referencedRelation: "almacenes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "facturas_asiento_id_fkey"
             columns: ["asiento_id"]
@@ -1161,6 +1217,7 @@ export type Database = {
       }
       facturas_proveedor: {
         Row: {
+          almacen_id: string | null
           asiento_id: string | null
           centro_costo_id: string | null
           contacto_id: string
@@ -1180,6 +1237,7 @@ export type Database = {
           vencimiento: string
         }
         Insert: {
+          almacen_id?: string | null
           asiento_id?: string | null
           centro_costo_id?: string | null
           contacto_id: string
@@ -1199,6 +1257,7 @@ export type Database = {
           vencimiento: string
         }
         Update: {
+          almacen_id?: string | null
           asiento_id?: string | null
           centro_costo_id?: string | null
           contacto_id?: string
@@ -1218,6 +1277,13 @@ export type Database = {
           vencimiento?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "facturas_proveedor_almacen_id_fkey"
+            columns: ["almacen_id"]
+            isOneToOne: false
+            referencedRelation: "almacenes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "facturas_proveedor_asiento_id_fkey"
             columns: ["asiento_id"]
@@ -1460,6 +1526,33 @@ export type Database = {
           },
         ]
       }
+      listas_precios: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          es_principal: boolean
+          id: string
+          nombre: string
+          tipo: string
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          es_principal?: boolean
+          id?: string
+          nombre: string
+          tipo?: string
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          es_principal?: boolean
+          id?: string
+          nombre?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
       monedas: {
         Row: {
           activo: boolean
@@ -1690,6 +1783,7 @@ export type Database = {
       }
       notas_credito_compra: {
         Row: {
+          almacen_id: string | null
           asiento_id: string | null
           contacto_id: string
           creado_en: string
@@ -1707,6 +1801,7 @@ export type Database = {
           total: number
         }
         Insert: {
+          almacen_id?: string | null
           asiento_id?: string | null
           contacto_id: string
           creado_en?: string
@@ -1724,6 +1819,7 @@ export type Database = {
           total?: number
         }
         Update: {
+          almacen_id?: string | null
           asiento_id?: string | null
           contacto_id?: string
           creado_en?: string
@@ -1741,6 +1837,13 @@ export type Database = {
           total?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "notas_credito_compra_almacen_id_fkey"
+            columns: ["almacen_id"]
+            isOneToOne: false
+            referencedRelation: "almacenes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notas_credito_compra_asiento_id_fkey"
             columns: ["asiento_id"]
@@ -1766,6 +1869,7 @@ export type Database = {
       }
       notas_credito_venta: {
         Row: {
+          almacen_id: string | null
           asiento_id: string | null
           contacto_id: string
           creado_en: string
@@ -1783,6 +1887,7 @@ export type Database = {
           total: number
         }
         Insert: {
+          almacen_id?: string | null
           asiento_id?: string | null
           contacto_id: string
           creado_en?: string
@@ -1800,6 +1905,7 @@ export type Database = {
           total?: number
         }
         Update: {
+          almacen_id?: string | null
           asiento_id?: string | null
           contacto_id?: string
           creado_en?: string
@@ -1817,6 +1923,13 @@ export type Database = {
           total?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "notas_credito_venta_almacen_id_fkey"
+            columns: ["almacen_id"]
+            isOneToOne: false
+            referencedRelation: "almacenes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notas_credito_venta_asiento_id_fkey"
             columns: ["asiento_id"]
@@ -2378,6 +2491,39 @@ export type Database = {
         }
         Relationships: []
       }
+      producto_precios: {
+        Row: {
+          lista_id: string
+          precio: number
+          producto_id: string
+        }
+        Insert: {
+          lista_id: string
+          precio: number
+          producto_id: string
+        }
+        Update: {
+          lista_id?: string
+          precio?: number
+          producto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producto_precios_lista_id_fkey"
+            columns: ["lista_id"]
+            isOneToOne: false
+            referencedRelation: "listas_precios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producto_precios_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productos: {
         Row: {
           activo: boolean
@@ -2660,6 +2806,93 @@ export type Database = {
         }
         Relationships: []
       }
+      transferencia_inventario_lineas: {
+        Row: {
+          cantidad: number
+          id: string
+          producto_id: string
+          transferencia_id: string
+        }
+        Insert: {
+          cantidad: number
+          id?: string
+          producto_id: string
+          transferencia_id: string
+        }
+        Update: {
+          cantidad?: number
+          id?: string
+          producto_id?: string
+          transferencia_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transferencia_inventario_lineas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencia_inventario_lineas_transferencia_id_fkey"
+            columns: ["transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "transferencias_inventario"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transferencias_inventario: {
+        Row: {
+          creado_en: string
+          creado_por: string | null
+          destino_id: string
+          estado: string
+          fecha: string
+          id: string
+          numero: number
+          observaciones: string | null
+          origen_id: string
+        }
+        Insert: {
+          creado_en?: string
+          creado_por?: string | null
+          destino_id: string
+          estado?: string
+          fecha?: string
+          id?: string
+          numero?: number
+          observaciones?: string | null
+          origen_id: string
+        }
+        Update: {
+          creado_en?: string
+          creado_por?: string | null
+          destino_id?: string
+          estado?: string
+          fecha?: string
+          id?: string
+          numero?: number
+          observaciones?: string | null
+          origen_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transferencias_inventario_destino_id_fkey"
+            columns: ["destino_id"]
+            isOneToOne: false
+            referencedRelation: "almacenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transferencias_inventario_origen_id_fkey"
+            columns: ["origen_id"]
+            isOneToOne: false
+            referencedRelation: "almacenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendedores: {
         Row: {
           activo: boolean
@@ -2692,6 +2925,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _almacen_principal: { Args: never; Returns: string }
       _conciliacion_lineas: { Args: { p_lineas: Json }; Returns: string[] }
       _crear_asiento: {
         Args: {
@@ -2735,6 +2969,22 @@ export type Database = {
         }
         Returns: string
       }
+      _mover_existencia: {
+        Args: {
+          p_almacen_id: string
+          p_cantidad: number
+          p_producto_id: string
+        }
+        Returns: undefined
+      }
+      _sumar_existencia: {
+        Args: {
+          p_almacen_id: string
+          p_cantidad: number
+          p_producto_id: string
+        }
+        Returns: undefined
+      }
       _validar_movimientos_conciliacion: {
         Args: {
           p_conciliacion_id: string
@@ -2758,6 +3008,10 @@ export type Database = {
       actualizar_contacto: { Args: { p: Json; p_id: string }; Returns: string }
       actualizar_cuenta: { Args: { p: Json }; Returns: string }
       actualizar_empresa: { Args: { p: Json }; Returns: undefined }
+      actualizar_lista_precio: {
+        Args: { p: Json; p_id: string }
+        Returns: string
+      }
       actualizar_numeracion: { Args: { p: Json }; Returns: string }
       actualizar_pago_recurrente: {
         Args: { p: Json; p_id: string }
@@ -2767,6 +3021,10 @@ export type Database = {
       actualizar_vendedor: { Args: { p: Json; p_id: string }; Returns: string }
       anular_documento: {
         Args: { p_id: string; p_tipo: string }
+        Returns: string
+      }
+      anular_transferencia_inventario: {
+        Args: { p_id: string }
         Returns: string
       }
       cerrar_periodo: { Args: { p_periodo: string }; Returns: string }
@@ -2787,6 +3045,7 @@ export type Database = {
       crear_factura_proveedor: { Args: { p: Json }; Returns: string }
       crear_factura_recurrente: { Args: { p: Json }; Returns: string }
       crear_gasto_menor: { Args: { p: Json }; Returns: string }
+      crear_lista_precio: { Args: { p: Json }; Returns: string }
       crear_nota_credito_compra: { Args: { p: Json }; Returns: string }
       crear_nota_credito_venta: { Args: { p: Json }; Returns: string }
       crear_nota_debito_venta: { Args: { p: Json }; Returns: string }
@@ -2795,6 +3054,7 @@ export type Database = {
       crear_producto: { Args: { p: Json }; Returns: string }
       crear_remision: { Args: { p: Json }; Returns: string }
       crear_termino_pago: { Args: { p: Json }; Returns: string }
+      crear_transferencia_inventario: { Args: { p: Json }; Returns: string }
       crear_vendedor: { Args: { p: Json }; Returns: string }
       depreciar_activo: {
         Args: { p_activo_id: string; p_periodo?: string }

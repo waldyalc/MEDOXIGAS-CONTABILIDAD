@@ -16,6 +16,8 @@ import { formatoDia } from "@/lib/formato";
 import { obtenerAjuste } from "@/lib/inventario/consultas";
 import { formatoCantidad } from "@/lib/productos/productos";
 
+import { AccionesAjuste } from "./_components/acciones-ajuste";
+
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -38,13 +40,23 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           Ajustes de inventario
         </Button>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Ajuste de inventario #{ajuste.numero}</h1>
-          {ajuste.asiento_id ? (
-            <Button variant="outline" render={<Link href={rutaAsiento(ajuste.asiento_id)} prefetch={false} />}>
-              <BookOpen data-icon="inline-start" />
-              Ver asiento
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight">Ajuste de inventario #{ajuste.numero}</h1>
+            <Badge variant={ajuste.estado === "anulada" ? "destructive" : "secondary"}>
+              {ajuste.estado === "anulada" ? "Anulado" : "Activo"}
+            </Badge>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ajuste.asiento_id ? (
+              <Button variant="outline" render={<Link href={rutaAsiento(ajuste.asiento_id)} prefetch={false} />}>
+                <BookOpen data-icon="inline-start" />
+                Ver asiento
+              </Button>
+            ) : null}
+            {rol !== "lector" && ajuste.estado === "activo" ? (
+              <AccionesAjuste ajusteId={ajuste.id} numero={ajuste.numero} />
+            ) : null}
+          </div>
         </div>
       </div>
 

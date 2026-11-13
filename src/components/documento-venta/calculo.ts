@@ -34,6 +34,7 @@ export interface DatosDocumento {
   notas: string;
   lineas: LineaFormulario[];
   productos: readonly ProductoParaLinea[];
+  almacenId?: string;
   tipoComprobante?: string;
   terminos?: string;
   pie?: string;
@@ -104,6 +105,7 @@ export function construirEntrada(datos: DatosDocumento) {
     contacto_id: datos.clienteId,
     fecha: datos.fecha,
     vencimiento: datos.vencimiento,
+    ...(datos.almacenId ? { almacen_id: datos.almacenId } : {}),
     ...(notas ? { notas } : {}),
     ...(terminos ? { terminos } : {}),
     ...(pie ? { pie } : {}),

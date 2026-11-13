@@ -21,11 +21,14 @@ import {
   etiquetaTipoContacto,
   filtrarContactos,
   type PestanaContactos,
+  SIN_LISTA_PRECIO,
   TIPOS_CONTACTO,
 } from "@/lib/contactos/contactos";
 import { rutaContacto } from "@/lib/enlaces";
+import type { ListaPrecio } from "@/lib/inventario/tipos";
 
 const OPCIONES_TIPO = TIPOS_CONTACTO.map((tipo) => ({ value: tipo.valor, label: tipo.etiqueta }));
+const SIN_LISTA = SIN_LISTA_PRECIO;
 
 function tieneOpcionales(contacto: Contacto | null) {
   if (contacto === null) return false;
@@ -34,13 +37,23 @@ function tieneOpcionales(contacto: Contacto | null) {
 
 function FormularioContacto({
   contacto,
+  listasPrecios,
   onGuardado,
 }: {
   readonly contacto: Contacto | null;
+  readonly listasPrecios: ListaPrecio[];
   readonly onGuardado: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pendiente, startTransition] = useTransition();
+
+  const opcionesLista = [
+    { value: SIN_LISTA, label: "Sin lista (precio del producto)" },
+    ...listasPrecios.map((lista) => ({
+      value: lista.id,
+      label: `${lista.nombre}${lista.es_principal ? " (principal)" : ""}`,
+    })),
+  ];
 
   function enviar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -125,6 +138,25 @@ function FormularioContacto({
               <FieldLabel htmlFor="direccion">Dirección</FieldLabel>
               <Textarea id="direccion" name="direccion" defaultValue={contacto?.direccion ?? ""} />
             </Field>
+            <Field>
+              <FieldLabel htmlFor="lista_precio_id">Lista de precios por defecto</FieldLabel>
+              <Select
+                name="lista_precio_id"
+                defaultValue={contacto?.lista_precio_id ?? SIN_LISTA}
+                items={opcionesLista}
+              >
+                <SelectTrigger id="lista_precio_id" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {opcionesLista.map((opcion) => (
+                    <SelectItem key={opcion.value} value={opcion.value}>
+                      {opcion.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
           </CollapsibleContent>
         </Collapsible>
 
@@ -147,9 +179,11 @@ function FormularioContacto({
 
 export function ContactosCliente({
   contactos,
+  listasPrecios,
   puedeEditar,
 }: {
   readonly contactos: Contacto[];
+  readonly listasPrecios: ListaPrecio[];
   readonly puedeEditar: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
@@ -287,6 +321,7 @@ export function ContactosCliente({
           <FormularioContacto
             key={contactoEditando?.id ?? "nuevo"}
             contacto={contactoEditando}
+            listasPrecios={listasPrecios}
             onGuardado={cerrarTrasGuardar}
           />
         </DialogContent>

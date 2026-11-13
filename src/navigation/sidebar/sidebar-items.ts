@@ -174,6 +174,16 @@ export const sidebarItems: NavGroup[] = [
             url: "/dashboard/inventario/ajustes",
           },
           {
+            id: "transferencias-inventario",
+            title: "Transferencias",
+            url: "/dashboard/inventario/transferencias",
+          },
+          {
+            id: "listas-precios",
+            title: "Listas de precios",
+            url: "/dashboard/inventario/listas-precios",
+          },
+          {
             id: "almacenes",
             title: "Almacenes",
             url: "/dashboard/inventario/almacenes",

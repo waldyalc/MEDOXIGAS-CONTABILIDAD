@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { PrecioLista } from "@/lib/inventario/tipos";
+
 export type ProductoTipo = "producto" | "servicio";
 
 export const SIN_CATEGORIA = "__sin_categoria__";
@@ -16,6 +18,7 @@ export interface Producto {
   cantidad: number;
   costo: number;
   categoria_id: string | null;
+  precios: PrecioLista[];
 }
 
 export const TASAS_ITBIS: { valor: number; etiqueta: string }[] = [

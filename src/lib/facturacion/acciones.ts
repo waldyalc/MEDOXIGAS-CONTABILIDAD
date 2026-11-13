@@ -39,6 +39,7 @@ export async function crearFactura(entrada: unknown): Promise<ResultadoAccion> {
     contacto_id: datos.contacto_id,
     fecha: datos.fecha,
     vencimiento: datos.vencimiento,
+    ...(datos.almacen_id ? { almacen_id: datos.almacen_id } : {}),
     notas: datos.notas ?? null,
     terminos: datos.terminos ?? null,
     pie: datos.pie ?? null,

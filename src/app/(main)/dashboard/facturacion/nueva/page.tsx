@@ -13,9 +13,11 @@ import {
   getContactosClientes,
   getCuentasCajaBanco,
   getEmpresa,
+  getListasPrecios,
   getProductosActivos,
 } from "@/lib/facturacion/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
+import { listarAlmacenesActivos } from "@/lib/inventario/consultas";
 import { getPlantillaImpresion } from "@/lib/plantillas-impresion/consultas";
 import { getVendedoresActivos } from "@/lib/vendedores/consultas";
 
@@ -45,15 +47,18 @@ export default async function Page() {
 }
 
 async function FacturaContenido() {
-  const [empresa, contactos, productos, cuentas, vendedores, centrosCosto, plantilla] = await Promise.all([
-    getEmpresa(),
-    getContactosClientes(),
-    getProductosActivos(),
-    getCuentasCajaBanco(),
-    getVendedoresActivos(),
-    getCentrosCostoActivos(),
-    getPlantillaImpresion("factura"),
-  ]);
+  const [empresa, contactos, productos, cuentas, vendedores, centrosCosto, plantilla, listasPrecios, almacenes] =
+    await Promise.all([
+      getEmpresa(),
+      getContactosClientes(),
+      getProductosActivos(),
+      getCuentasCajaBanco(),
+      getVendedoresActivos(),
+      getCentrosCostoActivos(),
+      getPlantillaImpresion("factura"),
+      getListasPrecios(),
+      listarAlmacenesActivos(),
+    ]);
 
   return (
     <DocumentoVentaForm
@@ -66,6 +71,8 @@ async function FacturaContenido() {
       notasIniciales={plantilla.notas}
       terminosIniciales={plantilla.terminos}
       mostrarLogo={plantilla.mostrarLogo}
+      listasPrecios={listasPrecios}
+      almacenes={almacenes}
       fechaHoy={hoyRD()}
       titulo="Información de la factura"
       etiquetaNumero="NCF"

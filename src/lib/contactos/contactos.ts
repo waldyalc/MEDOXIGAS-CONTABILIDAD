@@ -3,6 +3,8 @@ import { z } from "zod";
 export type ContactoTipo = "cliente" | "proveedor" | "ambos";
 export type PestanaContactos = "todos" | "clientes" | "proveedores";
 
+export const SIN_LISTA_PRECIO = "__sin_lista__";
+
 export interface Contacto {
   id: string;
   nombre: string;
@@ -11,6 +13,7 @@ export interface Contacto {
   correo: string | null;
   direccion: string | null;
   tipo: ContactoTipo;
+  lista_precio_id: string | null;
 }
 
 export const TIPOS_CONTACTO: { valor: ContactoTipo; etiqueta: string }[] = [
@@ -72,6 +75,11 @@ export const esquemaContacto = z.object({
     "El correo no es válido",
   ),
   direccion: campoOpcional,
+  lista_precio_id: z
+    .string()
+    .nullish()
+    .transform((valor) => textoOpcional(valor))
+    .refine((valor) => valor === null || z.uuid().safeParse(valor).success, "La lista de precios no es válida"),
 });
 
 export type DatosContacto = z.infer<typeof esquemaContacto>;

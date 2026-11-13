@@ -80,6 +80,8 @@ describe("filtrarItemsPorRol", () => {
     if (inventario?.subItems == null) throw new Error("Inventario debe tener submenú");
     expect(inventario.subItems.map((sub) => sub.url)).toEqual([
       "/dashboard/inventario/ajustes",
+      "/dashboard/inventario/transferencias",
+      "/dashboard/inventario/listas-precios",
       "/dashboard/inventario/almacenes",
       "/dashboard/inventario/categorias",
     ]);
