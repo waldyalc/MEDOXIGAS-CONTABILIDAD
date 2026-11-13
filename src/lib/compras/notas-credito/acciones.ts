@@ -30,6 +30,7 @@ export async function crearNotaCreditoCompra(entrada: unknown): Promise<Resultad
   const payload = {
     factura_proveedor_id: datos.factura_proveedor_id,
     fecha: datos.fecha,
+    ncf: datos.ncf,
     notas: datos.notas ?? null,
     devuelve_inventario: datos.devuelve_inventario,
     lineas: datos.lineas.map((linea) => ({

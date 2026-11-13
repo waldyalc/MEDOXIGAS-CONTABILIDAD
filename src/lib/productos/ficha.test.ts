@@ -24,6 +24,11 @@ describe("saldoCentavos", () => {
     expect(saldoCentavos(100, 100)).toBe(0);
     expect(saldoCentavos(100, 150)).toBe(0);
   });
+
+  test("resta el crédito de las notas de crédito", () => {
+    expect(saldoCentavos(23.6, 5, 9.44)).toBe(916);
+    expect(saldoCentavos(10, 2, 8.5)).toBe(0);
+  });
 });
 
 describe("sumarCantidades", () => {

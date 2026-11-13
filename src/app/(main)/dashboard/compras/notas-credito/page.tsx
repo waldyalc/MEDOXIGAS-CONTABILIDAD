@@ -31,7 +31,7 @@ export default async function Page() {
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Notas de crédito en compras</h1>
           <p className="text-muted-foreground text-sm">
-            Devoluciones a proveedores ligadas a una factura de proveedor (NCF B03).
+            Devoluciones a proveedores ligadas a una factura de proveedor (NCF del proveedor, B04).
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -74,7 +74,7 @@ export default async function Page() {
                     <TableCell className="pl-(--card-spacing) font-medium">
                       <Enlace href={rutaNotaCreditoCompra(nota.id)}>#{nota.numero}</Enlace>
                     </TableCell>
-                    <TableCell className="font-mono text-xs">{nota.ncf}</TableCell>
+                    <TableCell className="font-mono text-xs">{nota.ncf ?? "—"}</TableCell>
                     <TableCell>
                       <Enlace href={rutaCompra(nota.factura_proveedor_id)}>
                         #{nota.factura_numero}

@@ -245,7 +245,9 @@ function TablaFacturas({ filas, tipo }: { readonly filas: DocumentoFicha[]; read
                   {formatoMonedaCentavos(aCentavos(fila.pagado))}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {fila.estado === "anulada" ? "—" : formatoMonedaCentavos(saldoDocumento(fila.total, fila.pagado))}
+                  {fila.estado === "anulada"
+                    ? "—"
+                    : formatoMonedaCentavos(saldoDocumento(fila.total, fila.pagado, fila.credito))}
                 </TableCell>
                 <TableCell>
                   <EstadoDocumentoBadge estado={fila.estado} tipo={tipo} />

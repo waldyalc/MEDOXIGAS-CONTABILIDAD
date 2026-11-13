@@ -32,4 +32,22 @@ describe("crearNotaCreditoCompraSchema", () => {
   it("exige la factura de proveedor", () => {
     expect(crearNotaCreditoCompraSchema.safeParse({ ...base, factura_proveedor_id: "no-es-uuid" }).success).toBe(false);
   });
+
+  it("acepta el NCF B04 del proveedor y lo normaliza a mayúsculas", () => {
+    const resultado = crearNotaCreditoCompraSchema.parse({ ...base, ncf: " b0400000001 " });
+    expect(resultado.ncf).toBe("B0400000001");
+  });
+
+  it("acepta un e-CF E34 de nota de crédito", () => {
+    expect(crearNotaCreditoCompraSchema.safeParse({ ...base, ncf: "E340000000001" }).success).toBe(true);
+  });
+
+  it("deja el NCF opcional en null", () => {
+    expect(crearNotaCreditoCompraSchema.parse(base).ncf).toBeNull();
+  });
+
+  it("rechaza un NCF que no es B04 o E34", () => {
+    expect(crearNotaCreditoCompraSchema.safeParse({ ...base, ncf: "B0300000001" }).success).toBe(false);
+    expect(crearNotaCreditoCompraSchema.safeParse({ ...base, ncf: "B040000001" }).success).toBe(false);
+  });
 });

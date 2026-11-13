@@ -10,7 +10,15 @@ import {
   rutaProducto,
 } from "@/lib/enlaces";
 
-import { clasificarVista, diasEntre, diasVencida, filtrarCartera, totalCartera, totalesPorVista } from "./antiguedad";
+import {
+  clasificarVista,
+  diasEntre,
+  diasVencida,
+  filtrarCartera,
+  saldoCartera,
+  totalCartera,
+  totalesPorVista,
+} from "./antiguedad";
 import { filtrarCompras, totalesCompras } from "./compras";
 import { tablaCompras, tablaCuentasPorCobrar, tablaCuentasPorPagar, tablaInventario } from "./exportar";
 import { calcularTotalLinea, cantidadALaFecha, filtrarInventario, totalInventario } from "./inventario";
@@ -52,6 +60,11 @@ describe("antigüedad de la cartera", () => {
     expect(diasEntre("2026-11-30", "2026-11-13")).toBe(-17);
     expect(diasVencida("2026-11-10", "2026-11-13")).toBe(3);
     expect(diasVencida("2026-11-20", "2026-11-13")).toBe(0);
+  });
+
+  test("el saldo por pagar resta pagos y créditos de la factura", () => {
+    expect(saldoCartera(236000, 50000, 94400)).toBe(91600);
+    expect(saldoCartera(236000, 50000)).toBe(186000);
   });
 
   test("clasifica los tramos de 30, 60, 90 y 91+ días", () => {

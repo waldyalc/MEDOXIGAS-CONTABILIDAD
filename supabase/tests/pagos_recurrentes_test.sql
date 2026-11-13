@@ -124,7 +124,19 @@ select is(
   'la generación es idempotente: no duplica el gasto'
 );
 
-update public.pagos_recurrentes set activo = false where id = (select id from _ids where clave = 'plan');
+select public.actualizar_pago_recurrente(
+  (select id from _ids where clave = 'plan'),
+  jsonb_build_object(
+    'nombre', 'Alquiler local',
+    'cuenta_gasto_id', (select id from public.cuentas where codigo = '6101'),
+    'cuenta_pago_id', (select id from public.cuentas where codigo = '1101'),
+    'subtotal', 1000.00::numeric,
+    'itbis_tasa', 18.00::numeric,
+    'frecuencia_meses', 1,
+    'fecha_inicio', current_date,
+    'activo', false
+  )
+);
 
 select throws_ok(
   $q$select public.generar_pago_recurrente((select id from _ids where clave = 'plan'))$q$,
@@ -133,7 +145,19 @@ select throws_ok(
   'una plantilla inactiva no genera pagos'
 );
 
-update public.pagos_recurrentes set activo = true where id = (select id from _ids where clave = 'plan');
+select public.actualizar_pago_recurrente(
+  (select id from _ids where clave = 'plan'),
+  jsonb_build_object(
+    'nombre', 'Alquiler local',
+    'cuenta_gasto_id', (select id from public.cuentas where codigo = '6101'),
+    'cuenta_pago_id', (select id from public.cuentas where codigo = '1101'),
+    'subtotal', 1000.00::numeric,
+    'itbis_tasa', 18.00::numeric,
+    'frecuencia_meses', 1,
+    'fecha_inicio', current_date,
+    'activo', true
+  )
+);
 
 insert into _ids (clave, id)
 select 'plan_futuro', public.crear_pago_recurrente(jsonb_build_object(

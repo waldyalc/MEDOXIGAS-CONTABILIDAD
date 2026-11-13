@@ -37,6 +37,7 @@ export function NotaCreditoCompraForm({ datos, fechaHoy }: Props) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
   const [fecha, setFecha] = useState(fechaHoy);
+  const [ncf, setNcf] = useState("");
   const [notas, setNotas] = useState("");
   const [devuelveInventario, setDevuelveInventario] = useState(true);
   const [cantidades, setCantidades] = useState<Record<string, string>>(() =>
@@ -90,6 +91,7 @@ export function NotaCreditoCompraForm({ datos, fechaHoy }: Props) {
       const resultado = await crearNotaCreditoCompra({
         factura_proveedor_id: datos.factura.id,
         fecha,
+        ncf: ncf.trim() || undefined,
         notas: notas.trim() || undefined,
         devuelve_inventario: devuelveInventario,
         lineas: seleccionadas.map((item) => ({
@@ -158,6 +160,20 @@ export function NotaCreditoCompraForm({ datos, fechaHoy }: Props) {
           <CardTitle>Datos de la nota</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="ncf">NCF del proveedor (B04)</Label>
+            <Input
+              id="ncf"
+              className="font-mono"
+              maxLength={13}
+              placeholder="B0400000001"
+              value={ncf}
+              onChange={(evento) => setNcf(evento.target.value)}
+            />
+            <p className="text-muted-foreground text-xs">
+              Opcional. Lo emite el proveedor; no consume nuestra numeración.
+            </p>
+          </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="fecha">Fecha *</Label>
             <DatePicker id="fecha" value={fecha} onChange={setFecha} />

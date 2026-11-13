@@ -17,6 +17,10 @@ import { formatoDia } from "@/lib/formato";
 
 import { AccionesNotaCompra } from "../_components/acciones-nota-compra";
 
+function ncfVisible(valor: string | null): string {
+  return valor ?? "—";
+}
+
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const perfil = await getPerfil();
   if (perfil?.rol == null) redirect("/unauthorized");
@@ -74,9 +78,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         <CardContent>
           <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm">
             <dt className="text-muted-foreground">NCF</dt>
-            <dd className="font-mono font-medium">{nota.ncf}</dd>
+            <dd className="font-mono font-medium">{ncfVisible(nota.ncf)}</dd>
             <dt className="text-muted-foreground">Comprobante</dt>
-            <dd>Nota de crédito en compras (B03)</dd>
+            <dd>Nota de crédito del proveedor (B04)</dd>
             <dt className="text-muted-foreground">Fecha</dt>
             <dd>{formatoDia(nota.fecha)}</dd>
             <dt className="text-muted-foreground">Proveedor</dt>

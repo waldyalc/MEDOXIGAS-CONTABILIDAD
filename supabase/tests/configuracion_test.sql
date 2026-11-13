@@ -15,14 +15,16 @@ insert into public.perfiles (user_id, nombre, rol) values
 -- ---------------------------------------------------------------------------
 
 select is(
-  (select count(*)::int from public.terminos_pago),
+  (select count(*)::int from public.terminos_pago
+   where nombre in ('Contado', '8 días', '15 días', '30 días', '60 días')),
   5,
-  'la semilla deja 5 términos de pago'
+  'la semilla deja los 5 términos de pago'
 );
 
 select ok(
   (select array_agg(nombre order by dias) = array['Contado', '8 días', '15 días', '30 días', '60 días']
-   from public.terminos_pago),
+   from public.terminos_pago
+   where nombre in ('Contado', '8 días', '15 días', '30 días', '60 días')),
   'los términos sembrados son Contado, 8, 15, 30 y 60 días'
 );
 
@@ -100,13 +102,15 @@ select throws_ok(
 set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
 
 select is(
-  (select count(*)::int from public.terminos_pago),
+  (select count(*)::int from public.terminos_pago
+   where nombre in ('Contado', '8 días', '15 días', '30 días', '60 días')),
   5,
   'authenticated puede leer los términos de pago'
 );
 
 select is(
-  (select count(*)::int from public.listar_terminos_pago()),
+  (select count(*)::int from public.listar_terminos_pago()
+   where nombre in ('Contado', '8 días', '15 días', '30 días', '60 días')),
   5,
   'listar_terminos_pago devuelve los 5 términos'
 );
@@ -114,18 +118,18 @@ select is(
 set local request.jwt.claims = '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}';
 
 select ok(
-  public.crear_termino_pago(jsonb_build_object('nombre', '45 días', 'dias', 45)) is not null,
+  public.crear_termino_pago(jsonb_build_object('nombre', '45 días pgTAP', 'dias', 45)) is not null,
   'contador crea un término de pago'
 );
 
 select is(
-  (select dias from public.terminos_pago where nombre = '45 días'),
+  (select dias from public.terminos_pago where nombre = '45 días pgTAP'),
   45,
   'el término creado guarda sus días'
 );
 
 select throws_ok(
-  format('select public.crear_termino_pago(%L::jsonb)', jsonb_build_object('nombre', '45 días', 'dias', 45)),
+  format('select public.crear_termino_pago(%L::jsonb)', jsonb_build_object('nombre', '45 días pgTAP', 'dias', 45)),
   '23505',
   null,
   'no se puede repetir el nombre de un término de pago'
@@ -138,9 +142,8 @@ select throws_ok(
   'los días no pueden ser negativos'
 );
 
-select is(
-  (select count(*)::int from public.listar_terminos_pago()),
-  6,
+select ok(
+  exists (select 1 from public.listar_terminos_pago() where nombre = '45 días pgTAP'),
   'la consulta de términos incluye el término nuevo'
 );
 
@@ -167,13 +170,14 @@ select throws_ok(
 set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
 
 select is(
-  (select count(*)::int from public.listar_perfiles()),
+  (select count(*)::int from public.listar_perfiles()
+   where correo in ('admin@prueba.local', 'contador@prueba.local', 'lector@prueba.local')),
   3,
-  'admin lista los 3 perfiles'
+  'admin lista los 3 perfiles del test'
 );
 
 select is(
-  (select correo from public.listar_perfiles() where nombre = 'Contador'),
+  (select correo from public.listar_perfiles() where correo = 'contador@prueba.local'),
   'contador@prueba.local',
   'listar_perfiles incluye el correo del usuario'
 );

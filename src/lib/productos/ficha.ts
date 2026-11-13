@@ -47,6 +47,7 @@ export interface DocumentoFicha {
   cantidad: number;
   total: number;
   pagado: number;
+  credito: number;
   estado: string;
 }
 
@@ -83,8 +84,8 @@ export function precioConItbis(precio: number, itbisTasa: number): number {
   return centavosAValor(linea.totalCentavos);
 }
 
-export function saldoCentavos(total: number, pagado: number): number {
-  return Math.max(0, valorACentavos(total) - valorACentavos(pagado));
+export function saldoCentavos(total: number, pagado: number, credito = 0): number {
+  return Math.max(0, valorACentavos(total) - valorACentavos(pagado) - valorACentavos(credito));
 }
 
 export function sumarCantidades(cantidades: readonly number[]): number {

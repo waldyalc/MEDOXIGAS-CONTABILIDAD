@@ -1586,7 +1586,7 @@ export type Database = {
           fecha: string
           id: string
           itbis: number
-          ncf: string
+          ncf: string | null
           notas: string | null
           numero: number
           subtotal: number
@@ -1603,7 +1603,7 @@ export type Database = {
           fecha?: string
           id?: string
           itbis?: number
-          ncf: string
+          ncf?: string | null
           notas?: string | null
           numero?: number
           subtotal?: number
@@ -1620,7 +1620,7 @@ export type Database = {
           fecha?: string
           id?: string
           itbis?: number
-          ncf?: string
+          ncf?: string | null
           notas?: string | null
           numero?: number
           subtotal?: number
