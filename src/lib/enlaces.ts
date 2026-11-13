@@ -18,6 +18,14 @@ export function rutaNotaCreditoVenta(id: string) {
   return ruta("/dashboard/notas-credito", id);
 }
 
+export function rutaNotaDebitoVenta(id: string) {
+  return ruta("/dashboard/notas-debito", id);
+}
+
+export function rutaFacturaRecurrente(id: string) {
+  return ruta("/dashboard/facturas-recurrentes", id);
+}
+
 export function rutaCompra(id: string) {
   return ruta("/dashboard/compras", id);
 }
