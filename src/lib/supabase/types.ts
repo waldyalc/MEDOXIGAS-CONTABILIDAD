@@ -1384,9 +1384,6 @@ export type Database = {
       crear_producto: { Args: { p: Json }; Returns: string }
       crear_remision: { Args: { p: Json }; Returns: string }
       crear_termino_pago: { Args: { p: Json }; Returns: string }
-      registrar_deposito: { Args: { p: Json }; Returns: string }
-      registrar_pago_proveedor: { Args: { p: Json }; Returns: string }
-      registrar_pago_recibido: { Args: { p: Json }; Returns: string }
       listar_perfiles: {
         Args: never
         Returns: {
@@ -1406,6 +1403,9 @@ export type Database = {
           nombre: string
         }[]
       }
+      registrar_deposito: { Args: { p: Json }; Returns: string }
+      registrar_pago_proveedor: { Args: { p: Json }; Returns: string }
+      registrar_pago_recibido: { Args: { p: Json }; Returns: string }
       reporte_balance_comprobacion: {
         Args: { p_desde: string; p_hasta: string }
         Returns: {
