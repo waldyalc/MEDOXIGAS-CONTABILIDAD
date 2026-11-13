@@ -13,6 +13,7 @@ import type {
   FacturaLinea,
   FacturaLista,
   FacturaVista,
+  NotaVentaResumen,
   PagoFacturaVista,
   ProductoResumen,
 } from "./tipos";
@@ -169,7 +170,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   if (factura.error) throw new Error(factura.error.message);
   if (!factura.data) return null;
 
-  const [lineas, contacto, empresa, asiento, numeraciones, pagos] = await Promise.all([
+  const [lineas, contacto, empresa, asiento, numeraciones, pagos, notasCredito, notasDebito] = await Promise.all([
     supabase
       .from("factura_lineas")
       .select("id, producto_id, descripcion, cantidad, precio, descuento_pct, itbis_tasa, subtotal, itbis, total")
@@ -196,12 +197,26 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
       .eq("factura_id", id)
       .order("fecha")
       .returns<PagoFacturaVista[]>(),
+    supabase
+      .from("notas_credito_venta")
+      .select("id, numero, ncf, fecha, total, estado")
+      .eq("factura_id", id)
+      .order("fecha")
+      .returns<NotaVentaResumen[]>(),
+    supabase
+      .from("notas_debito_venta")
+      .select("id, numero, ncf, fecha, total, estado")
+      .eq("factura_id", id)
+      .order("fecha")
+      .returns<NotaVentaResumen[]>(),
   ]);
 
   if (lineas.error) throw new Error(lineas.error.message);
   if (contacto.error) throw new Error(contacto.error.message);
   if (numeraciones.error) throw new Error(numeraciones.error.message);
   if (pagos.error) throw new Error(pagos.error.message);
+  if (notasCredito.error) throw new Error(notasCredito.error.message);
+  if (notasDebito.error) throw new Error(notasDebito.error.message);
   if (!contacto.data) return null;
 
   const ncf = factura.data.ncf;
@@ -221,5 +236,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
     asiento,
     ncfVence: numeracion?.vence ?? null,
     pagos: pagos.data,
+    notasCredito: notasCredito.data,
+    notasDebito: notasDebito.data,
   };
 }
