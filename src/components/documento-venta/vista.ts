@@ -68,12 +68,17 @@ export function redondearDinero(valor: number): number {
   return Math.round(valor * 100) / 100;
 }
 
-export function resumenFactura(factura: { total: number; pagado: number; credito: number }): ResumenFacturaVista {
+export function resumenFactura(factura: {
+  total: number;
+  pagado: number;
+  credito: number;
+  retenido: number;
+}): ResumenFacturaVista {
   return {
     valorTotal: factura.total,
-    valorRetenido: 0,
+    valorRetenido: factura.retenido,
     totalCobrado: factura.pagado,
-    porCobrar: Math.max(0, redondearDinero(factura.total - factura.pagado - factura.credito)),
+    porCobrar: Math.max(0, redondearDinero(factura.total - factura.pagado - factura.credito - factura.retenido)),
   };
 }
 

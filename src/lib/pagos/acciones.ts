@@ -30,6 +30,7 @@ export async function registrarPago(entrada: unknown): Promise<ResultadoPago> {
     metodo: datos.metodo,
     monto: centavosAValor(valorACentavos(datos.monto)),
     ...(datos.notas ? { notas: datos.notas } : {}),
+    ...(datos.retenciones.length > 0 ? { retenciones: datos.retenciones } : {}),
   };
 
   const supabase = await createClient();

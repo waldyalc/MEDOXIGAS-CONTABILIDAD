@@ -1,3 +1,4 @@
+import type { RetencionOpcion } from "@/lib/configuracion/tipos";
 import type { ContactoResumen, CuentaCajaBanco, EstadoDocumento } from "@/lib/facturacion/tipos";
 
 export type MetodoPago = "efectivo" | "transferencia" | "tarjeta" | "cheque";
@@ -8,8 +9,12 @@ export interface FacturaAbierta {
   ncf: string | null;
   contacto_id: string;
   fecha: string;
+  subtotal: number;
+  itbis: number;
   total: number;
   pagado: number;
+  credito: number;
+  retenido: number;
 }
 
 export interface PagoLista {
@@ -30,4 +35,5 @@ export interface DatosFormularioPago {
   contactos: ContactoResumen[];
   facturas: FacturaAbierta[];
   cuentas: CuentaCajaBanco[];
+  retenciones: RetencionOpcion[];
 }

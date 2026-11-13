@@ -1,3 +1,5 @@
+import type { RetencionOpcion } from "@/lib/configuracion/tipos";
+
 export type EstadoDocumento = "abierta" | "pagada" | "anulada";
 
 export type MetodoPago = "efectivo" | "transferencia" | "tarjeta" | "cheque";
@@ -46,6 +48,7 @@ export interface FacturaLista {
   total: number;
   pagado: number;
   credito: number;
+  retenido: number;
   estado: EstadoDocumento;
   contactos: ContactoResumen | null;
 }
@@ -62,12 +65,12 @@ export interface FacturaDetalle {
   total: number;
   pagado: number;
   credito: number;
+  retenido: number;
   estado: EstadoDocumento;
   notas: string | null;
   asiento_id: string | null;
   contactos: { nombre: string; rnc_cedula: string | null } | null;
 }
-
 export interface LineaDetalle {
   id: string;
   descripcion: string;
@@ -116,9 +119,12 @@ export interface FacturaAbierta {
   ncf: string | null;
   fecha: string;
   vencimiento: string;
+  subtotal: number;
+  itbis: number;
   total: number;
   pagado: number;
   credito: number;
+  retenido: number;
   contacto_id: string;
   contactos: ContactoResumen | null;
 }
@@ -147,6 +153,7 @@ export interface OpcionesPago {
   contactos: ContactoOpcion[];
   cuentasCajaBanco: CuentaOpcion[];
   facturasAbiertas: FacturaAbierta[];
+  retenciones: RetencionOpcion[];
 }
 
 export interface DetalleFacturaCompleto {

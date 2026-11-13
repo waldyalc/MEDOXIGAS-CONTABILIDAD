@@ -1,3 +1,4 @@
+import { getRetencionesActivas } from "@/lib/configuracion/consultas";
 import { getContactosClientes, getCuentasCajaBanco } from "@/lib/facturacion/consultas";
 import { saldoDeFactura } from "@/lib/facturacion/formato";
 import { createClient } from "@/lib/supabase/server";
@@ -8,24 +9,25 @@ export async function getFacturasAbiertas(): Promise<FacturaAbierta[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("facturas")
-    .select("id, numero, ncf, contacto_id, fecha, total, pagado")
+    .select("id, numero, ncf, contacto_id, fecha, subtotal, itbis, total, pagado, credito, retenido")
     .eq("estado", "abierta")
     .order("numero", { ascending: false })
     .limit(300)
     .returns<FacturaAbierta[]>();
 
   if (error) throw new Error(error.message);
-  return data.filter((factura) => saldoDeFactura(factura.total, factura.pagado) > 0);
+  return data.filter((factura) => saldoDeFactura(factura.total, factura.pagado, factura.credito, factura.retenido) > 0);
 }
 
 export async function getDatosFormularioPago(): Promise<DatosFormularioPago> {
-  const [contactos, facturas, cuentas] = await Promise.all([
+  const [contactos, facturas, cuentas, retenciones] = await Promise.all([
     getContactosClientes(),
     getFacturasAbiertas(),
     getCuentasCajaBanco(),
+    getRetencionesActivas(),
   ]);
 
-  return { contactos, facturas, cuentas };
+  return { contactos, facturas, cuentas, retenciones };
 }
 
 export async function getPagosLista(): Promise<PagoLista[]> {

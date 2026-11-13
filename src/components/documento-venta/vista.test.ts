@@ -17,7 +17,7 @@ import {
 
 describe("resumenFactura", () => {
   test("calcula cobrado y por cobrar", () => {
-    expect(resumenFactura({ total: 767, pagado: 200, credito: 67 })).toEqual({
+    expect(resumenFactura({ total: 767, pagado: 200, credito: 67, retenido: 0 })).toEqual({
       valorTotal: 767,
       valorRetenido: 0,
       totalCobrado: 200,
@@ -25,8 +25,17 @@ describe("resumenFactura", () => {
     });
   });
 
+  test("muestra el valor retenido real y lo resta del saldo", () => {
+    expect(resumenFactura({ total: 1180, pagado: 500, credito: 0, retenido: 54 })).toEqual({
+      valorTotal: 1180,
+      valorRetenido: 54,
+      totalCobrado: 500,
+      porCobrar: 626,
+    });
+  });
+
   test("nunca deja por cobrar negativo", () => {
-    expect(resumenFactura({ total: 100, pagado: 80, credito: 30 }).porCobrar).toBe(0);
+    expect(resumenFactura({ total: 100, pagado: 80, credito: 30, retenido: 0 }).porCobrar).toBe(0);
   });
 });
 

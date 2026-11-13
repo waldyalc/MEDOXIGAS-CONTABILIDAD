@@ -135,7 +135,7 @@ export async function getDatosFormularioNota(facturaId: string): Promise<DatosFo
   const supabase = await createClient();
   const factura = await supabase
     .from("facturas")
-    .select("id, numero, ncf, fecha, total, pagado, credito, estado, contacto_id")
+    .select("id, numero, ncf, fecha, total, pagado, credito, retenido, estado, contacto_id")
     .eq("id", facturaId)
     .maybeSingle<Omit<DatosFormularioNota["factura"], "cliente_nombre">>();
 

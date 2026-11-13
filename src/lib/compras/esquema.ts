@@ -60,6 +60,11 @@ export const esquemaPagoProveedor = z.object({
   cuenta_id: id,
   metodo: z.enum(METODOS_PAGO),
   monto: numero.positive("El monto debe ser mayor que 0."),
+  retenciones: z
+    .array(z.object({ retencion_id: id }))
+    .max(20)
+    .optional()
+    .default([]),
 });
 
 export type EntradaLineaFactura = z.input<typeof esquemaLineaFactura>;

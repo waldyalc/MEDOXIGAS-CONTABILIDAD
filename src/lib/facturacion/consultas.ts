@@ -80,7 +80,9 @@ export async function getFacturasLista(): Promise<FacturaFila[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("facturas")
-    .select("id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, total, pagado, credito, estado")
+    .select(
+      "id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, estado",
+    )
     .order("numero", { ascending: false })
     .limit(300)
     .returns<FacturaLista[]>();
@@ -161,7 +163,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   const factura = await supabase
     .from("facturas")
     .select(
-      "id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, subtotal, descuento, itbis, total, pagado, credito, estado, notas, terminos, pie, asiento_id",
+      "id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, subtotal, descuento, itbis, total, pagado, credito, retenido, estado, notas, terminos, pie, asiento_id",
     )
     .eq("id", id)
     .maybeSingle()

@@ -57,7 +57,12 @@ export function NotaCreditoForm({ datos, fechaHoy }: Props) {
     };
   });
   const totales = calcularTotales(calculadas.map((item) => item.calculo));
-  const saldo = saldoDeFactura(datos.factura.total, datos.factura.pagado, datos.factura.credito);
+  const saldo = saldoDeFactura(
+    datos.factura.total,
+    datos.factura.pagado,
+    datos.factura.credito,
+    datos.factura.retenido,
+  );
 
   function cambiarCantidad(id: string, valor: string) {
     setCantidades((actuales) => ({ ...actuales, [id]: valor }));
