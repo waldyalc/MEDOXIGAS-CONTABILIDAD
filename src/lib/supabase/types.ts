@@ -74,6 +74,8 @@ export type Database = {
           descripcion: string
           fecha: string
           id: string
+          numeracion_egreso: string | null
+          numeracion_ingreso: string | null
           numero: number
           origen_id: string | null
           origen_tipo: string
@@ -86,6 +88,8 @@ export type Database = {
           descripcion: string
           fecha?: string
           id?: string
+          numeracion_egreso?: string | null
+          numeracion_ingreso?: string | null
           numero?: number
           origen_id?: string | null
           origen_tipo: string
@@ -98,6 +102,8 @@ export type Database = {
           descripcion?: string
           fecha?: string
           id?: string
+          numeracion_egreso?: string | null
+          numeracion_ingreso?: string | null
           numero?: number
           origen_id?: string | null
           origen_tipo?: string
@@ -321,34 +327,43 @@ export type Database = {
           acepta_movimientos: boolean
           activa: boolean
           codigo: string
+          descripcion: string | null
           es_caja_banco: boolean
           id: string
           naturaleza: string
           nombre: string
+          numero_cuenta: string | null
           padre_id: string | null
           tipo: string
+          tipo_banco: string | null
         }
         Insert: {
           acepta_movimientos?: boolean
           activa?: boolean
           codigo: string
+          descripcion?: string | null
           es_caja_banco?: boolean
           id?: string
           naturaleza: string
           nombre: string
+          numero_cuenta?: string | null
           padre_id?: string | null
           tipo: string
+          tipo_banco?: string | null
         }
         Update: {
           acepta_movimientos?: boolean
           activa?: boolean
           codigo?: string
+          descripcion?: string | null
           es_caja_banco?: boolean
           id?: string
           naturaleza?: string
           nombre?: string
+          numero_cuenta?: string | null
           padre_id?: string | null
           tipo?: string
+          tipo_banco?: string | null
         }
         Relationships: [
           {
@@ -456,6 +471,7 @@ export type Database = {
           contacto_id: string
           creado_en: string
           creado_por: string | null
+          credito: number
           descuento: number
           estado: string
           fecha: string
@@ -477,6 +493,7 @@ export type Database = {
           contacto_id: string
           creado_en?: string
           creado_por?: string | null
+          credito?: number
           descuento?: number
           estado?: string
           fecha?: string
@@ -498,6 +515,7 @@ export type Database = {
           contacto_id?: string
           creado_en?: string
           creado_por?: string | null
+          credito?: number
           descuento?: number
           estado?: string
           fecha?: string
@@ -746,6 +764,152 @@ export type Database = {
             columns: ["cuenta_pago_id"]
             isOneToOne: false
             referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nota_credito_venta_lineas: {
+        Row: {
+          cantidad: number
+          costo_unitario: number
+          descripcion: string
+          descuento_pct: number
+          factura_linea_id: string
+          id: string
+          itbis: number
+          itbis_tasa: number
+          nota_id: string
+          precio: number
+          producto_id: string | null
+          subtotal: number
+          total: number
+        }
+        Insert: {
+          cantidad: number
+          costo_unitario?: number
+          descripcion?: string
+          descuento_pct?: number
+          factura_linea_id: string
+          id?: string
+          itbis?: number
+          itbis_tasa?: number
+          nota_id: string
+          precio?: number
+          producto_id?: string | null
+          subtotal?: number
+          total?: number
+        }
+        Update: {
+          cantidad?: number
+          costo_unitario?: number
+          descripcion?: string
+          descuento_pct?: number
+          factura_linea_id?: string
+          id?: string
+          itbis?: number
+          itbis_tasa?: number
+          nota_id?: string
+          precio?: number
+          producto_id?: string | null
+          subtotal?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nota_credito_venta_lineas_factura_linea_id_fkey"
+            columns: ["factura_linea_id"]
+            isOneToOne: false
+            referencedRelation: "factura_lineas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nota_credito_venta_lineas_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "notas_credito_venta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nota_credito_venta_lineas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas_credito_venta: {
+        Row: {
+          asiento_id: string | null
+          contacto_id: string
+          creado_en: string
+          creado_por: string | null
+          devuelve_inventario: boolean
+          estado: string
+          factura_id: string
+          fecha: string
+          id: string
+          itbis: number
+          ncf: string
+          notas: string | null
+          numero: number
+          subtotal: number
+          total: number
+        }
+        Insert: {
+          asiento_id?: string | null
+          contacto_id: string
+          creado_en?: string
+          creado_por?: string | null
+          devuelve_inventario?: boolean
+          estado?: string
+          factura_id: string
+          fecha?: string
+          id?: string
+          itbis?: number
+          ncf: string
+          notas?: string | null
+          numero?: number
+          subtotal?: number
+          total?: number
+        }
+        Update: {
+          asiento_id?: string | null
+          contacto_id?: string
+          creado_en?: string
+          creado_por?: string | null
+          devuelve_inventario?: boolean
+          estado?: string
+          factura_id?: string
+          fecha?: string
+          id?: string
+          itbis?: number
+          ncf?: string
+          notas?: string | null
+          numero?: number
+          subtotal?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_credito_venta_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_credito_venta_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_credito_venta_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
             referencedColumns: ["id"]
           },
         ]
@@ -1175,6 +1339,7 @@ export type Database = {
       }
       _cuenta_config: { Args: { p_clave: string }; Returns: string }
       actualizar_contacto: { Args: { p: Json; p_id: string }; Returns: string }
+      actualizar_cuenta: { Args: { p: Json }; Returns: string }
       actualizar_numeracion: { Args: { p: Json }; Returns: string }
       actualizar_producto: { Args: { p: Json; p_id: string }; Returns: string }
       anular_documento: {
@@ -1185,9 +1350,12 @@ export type Database = {
       crear_asiento_manual: { Args: { p: Json }; Returns: string }
       crear_contacto: { Args: { p: Json }; Returns: string }
       crear_cotizacion: { Args: { p: Json }; Returns: string }
+      crear_cuenta: { Args: { p: Json }; Returns: string }
+      crear_cuenta_banco: { Args: { p: Json }; Returns: string }
       crear_factura: { Args: { p: Json }; Returns: string }
       crear_factura_proveedor: { Args: { p: Json }; Returns: string }
       crear_gasto_menor: { Args: { p: Json }; Returns: string }
+      crear_nota_credito_venta: { Args: { p: Json }; Returns: string }
       crear_producto: { Args: { p: Json }; Returns: string }
       crear_remision: { Args: { p: Json }; Returns: string }
       registrar_deposito: { Args: { p: Json }; Returns: string }

@@ -11,10 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
+import { listarOpcionesCuenta } from "@/lib/contabilidad/consultas";
 import { rutaAsiento, rutaContacto } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
+import { EditarCuenta } from "../../_components/cuenta-formulario";
 import { normalizarFecha, obtenerCuentaDetalle } from "./_consultas";
 
 export default async function Page({
@@ -32,10 +34,11 @@ export default async function Page({
 
   const desde = normalizarFecha(busqueda.desde);
   const hasta = normalizarFecha(busqueda.hasta);
-  const detalle = await obtenerCuentaDetalle(id, desde, hasta);
+  const [detalle, opciones] = await Promise.all([obtenerCuentaDetalle(id, desde, hasta), listarOpcionesCuenta()]);
   if (!detalle) notFound();
 
-  const { cuenta, movimientos, saldoCentavos, totalDebitoCentavos, totalCreditoCentavos } = detalle;
+  const { cuenta, movimientos, tieneMovimientos, saldoCentavos, totalDebitoCentavos, totalCreditoCentavos } = detalle;
+  const puedeEditar = rol === "admin" || rol === "contador";
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,6 +60,9 @@ export default async function Page({
             <Badge variant="outline" className="capitalize">
               {cuenta.tipo}
             </Badge>
+            {puedeEditar ? (
+              <EditarCuenta cuenta={cuenta} cuentas={opciones} bloquearCodigoTipoNaturaleza={tieneMovimientos} />
+            ) : null}
           </div>
           <div className="flex flex-col items-end">
             <span className="text-muted-foreground text-xs">Saldo</span>

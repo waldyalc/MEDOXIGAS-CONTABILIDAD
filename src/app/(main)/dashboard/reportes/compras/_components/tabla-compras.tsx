@@ -1,14 +1,14 @@
 import Link from "next/link";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaCompra, rutaContacto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
-import { urlContacto, urlFacturaProveedor } from "@/lib/reportes/administrativos/d/enlaces";
 import type { FilaCompra } from "@/lib/reportes/administrativos/d/tipos";
 import { formatearRd } from "@/lib/reportes/dinero";
 
 function Factura({ fila }: { fila: FilaCompra }) {
   return (
-    <Link href={urlFacturaProveedor(fila.id)} prefetch={false} className="text-primary font-medium hover:underline">
+    <Link href={rutaCompra(fila.id)} prefetch={false} className="text-primary font-medium hover:underline">
       {fila.ncf ?? `#${fila.numero}`}
     </Link>
   );
@@ -16,7 +16,7 @@ function Factura({ fila }: { fila: FilaCompra }) {
 
 function Proveedor({ fila }: { fila: FilaCompra }) {
   return (
-    <Link href={urlContacto(fila.contactoId)} prefetch={false} className="hover:underline">
+    <Link href={rutaContacto(fila.contactoId)} prefetch={false} className="hover:underline">
       {fila.contactoNombre}
     </Link>
   );

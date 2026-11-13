@@ -44,8 +44,19 @@ export interface AsientoFicha {
   numero: number;
   fecha: string;
   descripcion: string;
+  debitoCentavos: number;
+  creditoCentavos: number;
+}
+
+export interface LineaAsientoContacto {
+  asiento_id: string;
   debito: number | string;
   credito: number | string;
+}
+
+export interface TotalesAsiento {
+  debitoCentavos: number;
+  creditoCentavos: number;
 }
 
 export interface DatosFichaContacto {
@@ -75,6 +86,19 @@ export function aCentavos(valor: number | string | null | undefined): number {
   const numero = typeof valor === "number" ? valor : Number(valor);
   if (!Number.isFinite(numero)) return 0;
   return Math.round(numero * 100);
+}
+
+export function sumarLineasAsiento(lineas: readonly LineaAsientoContacto[]): Map<string, TotalesAsiento> {
+  const totales = new Map<string, TotalesAsiento>();
+
+  for (const linea of lineas) {
+    const actual = totales.get(linea.asiento_id) ?? { debitoCentavos: 0, creditoCentavos: 0 };
+    actual.debitoCentavos += aCentavos(linea.debito);
+    actual.creditoCentavos += aCentavos(linea.credito);
+    totales.set(linea.asiento_id, actual);
+  }
+
+  return totales;
 }
 
 export function saldoDocumento(

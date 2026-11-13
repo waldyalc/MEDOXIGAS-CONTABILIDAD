@@ -3,6 +3,8 @@ export interface CuentaBanco {
   codigo: string;
   nombre: string;
   saldo: number | string | null;
+  tipoBanco: string | null;
+  numeroCuenta: string | null;
 }
 
 export interface CuentaSeleccion {
