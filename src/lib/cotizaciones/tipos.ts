@@ -38,10 +38,19 @@ export interface DocumentoLinea {
   total: number;
 }
 
+export interface FacturaRelacionada {
+  id: string;
+  numero: number;
+  ncf: string | null;
+  fecha: string;
+  total: number;
+  estado: string;
+}
+
 export interface DocumentoVista {
   documento: DocumentoDetalle;
   lineas: DocumentoLinea[];
   contacto: ContactoResumen;
   empresa: Empresa | null;
-  facturaNumero: number | null;
+  facturaRelacionada: FacturaRelacionada | null;
 }

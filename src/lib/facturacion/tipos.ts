@@ -106,6 +106,15 @@ export interface PagoFacturaVista {
   estado: EstadoDocumento;
 }
 
+export interface NotaVentaResumen {
+  id: string;
+  numero: number;
+  ncf: string;
+  fecha: string;
+  total: number;
+  estado: string;
+}
+
 export interface FacturaVista {
   factura: FacturaDetalle;
   lineas: FacturaLinea[];
@@ -114,4 +123,6 @@ export interface FacturaVista {
   asiento: AsientoVista;
   ncfVence: string | null;
   pagos: PagoFacturaVista[];
+  notasCredito: NotaVentaResumen[];
+  notasDebito: NotaVentaResumen[];
 }

@@ -10,6 +10,7 @@ import type {
   DocumentoLinea,
   DocumentoResumen,
   DocumentoVista,
+  FacturaRelacionada,
   TipoDocumento,
 } from "./tipos";
 
@@ -95,7 +96,12 @@ export async function getDocumentoVista(tipo: TipoDocumento, id: string): Promis
       .maybeSingle(),
     getEmpresa(),
     detalle.factura_id
-      ? supabase.from("facturas").select("numero").eq("id", detalle.factura_id).maybeSingle()
+      ? supabase
+          .from("facturas")
+          .select("id, numero, ncf, fecha, total, estado")
+          .eq("id", detalle.factura_id)
+          .maybeSingle()
+          .returns<FacturaRelacionada | null>()
       : Promise.resolve({ data: null, error: null }),
   ]);
 
@@ -104,13 +110,11 @@ export async function getDocumentoVista(tipo: TipoDocumento, id: string): Promis
   if (factura.error) throw new Error(factura.error.message);
   if (!contacto.data) return null;
 
-  const facturaNumero = ((factura.data as unknown as { numero: number } | null)?.numero ?? null) as number | null;
-
   return {
     documento: detalle,
     lineas: (lineas.data ?? []) as unknown as DocumentoLinea[],
     contacto: contacto.data as unknown as DocumentoVista["contacto"],
     empresa,
-    facturaNumero,
+    facturaRelacionada: factura.data,
   };
 }
