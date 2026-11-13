@@ -465,6 +465,96 @@ export type Database = {
           },
         ]
       }
+      factura_recurrente_generaciones: {
+        Row: {
+          creado_en: string
+          creado_por: string | null
+          factura_id: string
+          id: string
+          periodo: string
+          recurrente_id: string
+        }
+        Insert: {
+          creado_en?: string
+          creado_por?: string | null
+          factura_id: string
+          id?: string
+          periodo: string
+          recurrente_id: string
+        }
+        Update: {
+          creado_en?: string
+          creado_por?: string | null
+          factura_id?: string
+          id?: string
+          periodo?: string
+          recurrente_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factura_recurrente_generaciones_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factura_recurrente_generaciones_recurrente_id_fkey"
+            columns: ["recurrente_id"]
+            isOneToOne: false
+            referencedRelation: "facturas_recurrentes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      factura_recurrente_lineas: {
+        Row: {
+          cantidad: number
+          descripcion: string
+          descuento_pct: number
+          id: string
+          itbis_tasa: number
+          precio: number
+          producto_id: string | null
+          recurrente_id: string
+        }
+        Insert: {
+          cantidad: number
+          descripcion?: string
+          descuento_pct?: number
+          id?: string
+          itbis_tasa?: number
+          precio?: number
+          producto_id?: string | null
+          recurrente_id: string
+        }
+        Update: {
+          cantidad?: number
+          descripcion?: string
+          descuento_pct?: number
+          id?: string
+          itbis_tasa?: number
+          precio?: number
+          producto_id?: string | null
+          recurrente_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factura_recurrente_lineas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factura_recurrente_lineas_recurrente_id_fkey"
+            columns: ["recurrente_id"]
+            isOneToOne: false
+            referencedRelation: "facturas_recurrentes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facturas: {
         Row: {
           asiento_id: string | null
@@ -682,6 +772,62 @@ export type Database = {
           },
         ]
       }
+      facturas_recurrentes: {
+        Row: {
+          contacto_id: string
+          creado_en: string
+          creado_por: string | null
+          fecha_inicio: string
+          frecuencia_meses: number
+          id: string
+          notas: string | null
+          numero: number
+          pie: string | null
+          plazo_dias: number
+          terminos: string | null
+          tipo_comprobante: string
+          vigencia_hasta: string | null
+        }
+        Insert: {
+          contacto_id: string
+          creado_en?: string
+          creado_por?: string | null
+          fecha_inicio?: string
+          frecuencia_meses?: number
+          id?: string
+          notas?: string | null
+          numero?: number
+          pie?: string | null
+          plazo_dias?: number
+          terminos?: string | null
+          tipo_comprobante?: string
+          vigencia_hasta?: string | null
+        }
+        Update: {
+          contacto_id?: string
+          creado_en?: string
+          creado_por?: string | null
+          fecha_inicio?: string
+          frecuencia_meses?: number
+          id?: string
+          notas?: string | null
+          numero?: number
+          pie?: string | null
+          plazo_dias?: number
+          terminos?: string | null
+          tipo_comprobante?: string
+          vigencia_hasta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_recurrentes_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gastos_menores: {
         Row: {
           asiento_id: string | null
@@ -838,6 +984,63 @@ export type Database = {
           },
         ]
       }
+      nota_debito_venta_lineas: {
+        Row: {
+          cantidad: number
+          descripcion: string
+          descuento_pct: number
+          id: string
+          itbis: number
+          itbis_tasa: number
+          nota_id: string
+          precio: number
+          producto_id: string | null
+          subtotal: number
+          total: number
+        }
+        Insert: {
+          cantidad: number
+          descripcion?: string
+          descuento_pct?: number
+          id?: string
+          itbis?: number
+          itbis_tasa?: number
+          nota_id: string
+          precio?: number
+          producto_id?: string | null
+          subtotal?: number
+          total?: number
+        }
+        Update: {
+          cantidad?: number
+          descripcion?: string
+          descuento_pct?: number
+          id?: string
+          itbis?: number
+          itbis_tasa?: number
+          nota_id?: string
+          precio?: number
+          producto_id?: string | null
+          subtotal?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nota_debito_venta_lineas_nota_id_fkey"
+            columns: ["nota_id"]
+            isOneToOne: false
+            referencedRelation: "notas_debito_venta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nota_debito_venta_lineas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notas_credito_venta: {
         Row: {
           asiento_id: string | null
@@ -907,6 +1110,85 @@ export type Database = {
           },
           {
             foreignKeyName: "notas_credito_venta_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas_debito_venta: {
+        Row: {
+          asiento_id: string | null
+          contacto_id: string
+          creado_en: string
+          creado_por: string | null
+          descuento: number
+          estado: string
+          factura_id: string
+          fecha: string
+          id: string
+          itbis: number
+          ncf: string
+          notas: string | null
+          numero: number
+          subtotal: number
+          tipo: string
+          total: number
+        }
+        Insert: {
+          asiento_id?: string | null
+          contacto_id: string
+          creado_en?: string
+          creado_por?: string | null
+          descuento?: number
+          estado?: string
+          factura_id: string
+          fecha?: string
+          id?: string
+          itbis?: number
+          ncf: string
+          notas?: string | null
+          numero?: number
+          subtotal?: number
+          tipo: string
+          total?: number
+        }
+        Update: {
+          asiento_id?: string | null
+          contacto_id?: string
+          creado_en?: string
+          creado_por?: string | null
+          descuento?: number
+          estado?: string
+          factura_id?: string
+          fecha?: string
+          id?: string
+          itbis?: number
+          ncf?: string
+          notas?: string | null
+          numero?: number
+          subtotal?: number
+          tipo?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_debito_venta_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_debito_venta_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_debito_venta_factura_id_fkey"
             columns: ["factura_id"]
             isOneToOne: false
             referencedRelation: "facturas"
@@ -1354,10 +1636,16 @@ export type Database = {
       crear_cuenta_banco: { Args: { p: Json }; Returns: string }
       crear_factura: { Args: { p: Json }; Returns: string }
       crear_factura_proveedor: { Args: { p: Json }; Returns: string }
+      crear_factura_recurrente: { Args: { p: Json }; Returns: string }
       crear_gasto_menor: { Args: { p: Json }; Returns: string }
       crear_nota_credito_venta: { Args: { p: Json }; Returns: string }
+      crear_nota_debito_venta: { Args: { p: Json }; Returns: string }
       crear_producto: { Args: { p: Json }; Returns: string }
       crear_remision: { Args: { p: Json }; Returns: string }
+      generar_factura_recurrente: {
+        Args: { p_fecha?: string; p_recurrente_id: string }
+        Returns: string
+      }
       registrar_deposito: { Args: { p: Json }; Returns: string }
       registrar_pago_proveedor: { Args: { p: Json }; Returns: string }
       registrar_pago_recibido: { Args: { p: Json }; Returns: string }
