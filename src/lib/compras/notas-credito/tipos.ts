@@ -3,7 +3,7 @@ export type EstadoNotaCreditoCompra = "activa" | "anulada";
 export interface NotaCreditoCompraLista {
   id: string;
   numero: number;
-  ncf: string;
+  ncf: string | null;
   fecha: string;
   total: number;
   estado: EstadoNotaCreditoCompra;
@@ -28,7 +28,7 @@ export interface NotaCreditoCompraLinea {
 export interface NotaCreditoCompraVista {
   id: string;
   numero: number;
-  ncf: string;
+  ncf: string | null;
   fecha: string;
   subtotal: number;
   itbis: number;

@@ -1,5 +1,5 @@
 begin;
-select plan(24);
+select plan(26);
 
 create temp table _ids (clave text primary key, id uuid) on commit drop;
 create temp table _valores (clave text primary key, valor text) on commit drop;
@@ -54,9 +54,9 @@ from public.facturas_proveedor_lineas fpl
 where fpl.factura_proveedor_id = (select id from _ids where clave = 'factura');
 
 insert into _valores (clave, valor)
-select 'ncf_nota', n.prefijo || lpad(n.siguiente::text, 8, '0')
+select 'numeracion_antes', n.siguiente::text
 from public.numeraciones n
-where n.tipo_comprobante = '03' and n.activa
+where n.tipo_comprobante = '03'
 order by n.id
 limit 1;
 
@@ -77,10 +77,25 @@ select ok(
   'costo promedio después de la compra = 333.33'
 );
 
+select throws_ok(
+  $q$select public.crear_nota_credito_compra(jsonb_build_object(
+    'factura_proveedor_id', (select id from _ids where clave = 'factura'),
+    'ncf', 'B0300000001',
+    'lineas', jsonb_build_array(jsonb_build_object(
+      'factura_proveedor_linea_id', (select id from _ids where clave = 'linea'),
+      'cantidad', 1
+    ))
+  ))$q$,
+  '22023',
+  null,
+  'un NCF que no es B04/E34 se rechaza'
+);
+
 insert into _ids (clave, id)
 select 'nota', public.crear_nota_credito_compra(jsonb_build_object(
   'factura_proveedor_id', (select id from _ids where clave = 'factura'),
   'fecha', '2026-11-13',
+  'ncf', 'B0400000001',
   'notas', 'Devolución de 2 unidades',
   'lineas', jsonb_build_array(jsonb_build_object(
     'factura_proveedor_linea_id', (select id from _ids where clave = 'linea'),
@@ -90,8 +105,14 @@ select 'nota', public.crear_nota_credito_compra(jsonb_build_object(
 
 select is(
   (select ncf from public.notas_credito_compra where id = (select id from _ids where clave = 'nota')),
-  (select valor from _valores where clave = 'ncf_nota'),
-  'la nota usa el siguiente NCF B03'
+  'B0400000001',
+  'la nota guarda el NCF B04 del proveedor'
+);
+
+select is(
+  (select siguiente::text from public.numeraciones where tipo_comprobante = '03' order by id limit 1),
+  (select valor from _valores where clave = 'numeracion_antes'),
+  'la nota no consume la numeración 03/B03'
 );
 
 select is(
