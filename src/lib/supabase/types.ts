@@ -18,6 +18,803 @@ export type Database = {
   }
   public: {
     Tables: {
+      asiento_lineas: {
+        Row: {
+          asiento_id: string
+          contacto_id: string | null
+          credito: number
+          cuenta_id: string
+          debito: number
+          descripcion: string | null
+          id: string
+        }
+        Insert: {
+          asiento_id: string
+          contacto_id?: string | null
+          credito?: number
+          cuenta_id: string
+          debito?: number
+          descripcion?: string | null
+          id?: string
+        }
+        Update: {
+          asiento_id?: string
+          contacto_id?: string | null
+          credito?: number
+          cuenta_id?: string
+          debito?: number
+          descripcion?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asiento_lineas_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asiento_lineas_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asiento_lineas_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asientos: {
+        Row: {
+          anula_asiento_id: string | null
+          creado_en: string
+          creado_por: string | null
+          descripcion: string
+          fecha: string
+          id: string
+          numero: number
+          origen_id: string | null
+          origen_tipo: string
+          total: number
+        }
+        Insert: {
+          anula_asiento_id?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          descripcion: string
+          fecha?: string
+          id?: string
+          numero?: number
+          origen_id?: string | null
+          origen_tipo: string
+          total?: number
+        }
+        Update: {
+          anula_asiento_id?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          descripcion?: string
+          fecha?: string
+          id?: string
+          numero?: number
+          origen_id?: string | null
+          origen_tipo?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asientos_anula_asiento_id_fkey"
+            columns: ["anula_asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      config_contable: {
+        Row: {
+          clave: string
+          cuenta_id: string
+        }
+        Insert: {
+          clave: string
+          cuenta_id: string
+        }
+        Update: {
+          clave?: string
+          cuenta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_contable_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contactos: {
+        Row: {
+          activo: boolean
+          correo: string | null
+          creado_en: string
+          cuenta_cxc_id: string | null
+          cuenta_cxp_id: string | null
+          direccion: string | null
+          id: string
+          nombre: string
+          rnc_cedula: string | null
+          telefono: string | null
+          tipo: string
+        }
+        Insert: {
+          activo?: boolean
+          correo?: string | null
+          creado_en?: string
+          cuenta_cxc_id?: string | null
+          cuenta_cxp_id?: string | null
+          direccion?: string | null
+          id?: string
+          nombre: string
+          rnc_cedula?: string | null
+          telefono?: string | null
+          tipo?: string
+        }
+        Update: {
+          activo?: boolean
+          correo?: string | null
+          creado_en?: string
+          cuenta_cxc_id?: string | null
+          cuenta_cxp_id?: string | null
+          direccion?: string | null
+          id?: string
+          nombre?: string
+          rnc_cedula?: string | null
+          telefono?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contactos_cuenta_cxc_id_fkey"
+            columns: ["cuenta_cxc_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contactos_cuenta_cxp_id_fkey"
+            columns: ["cuenta_cxp_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cuentas: {
+        Row: {
+          acepta_movimientos: boolean
+          activa: boolean
+          codigo: string
+          es_caja_banco: boolean
+          id: string
+          naturaleza: string
+          nombre: string
+          padre_id: string | null
+          tipo: string
+        }
+        Insert: {
+          acepta_movimientos?: boolean
+          activa?: boolean
+          codigo: string
+          es_caja_banco?: boolean
+          id?: string
+          naturaleza: string
+          nombre: string
+          padre_id?: string | null
+          tipo: string
+        }
+        Update: {
+          acepta_movimientos?: boolean
+          activa?: boolean
+          codigo?: string
+          es_caja_banco?: boolean
+          id?: string
+          naturaleza?: string
+          nombre?: string
+          padre_id?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cuentas_padre_id_fkey"
+            columns: ["padre_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresa: {
+        Row: {
+          correo: string | null
+          direccion: string | null
+          id: number
+          logo_url: string | null
+          nombre: string
+          rnc: string | null
+          telefono: string | null
+        }
+        Insert: {
+          correo?: string | null
+          direccion?: string | null
+          id?: number
+          logo_url?: string | null
+          nombre: string
+          rnc?: string | null
+          telefono?: string | null
+        }
+        Update: {
+          correo?: string | null
+          direccion?: string | null
+          id?: number
+          logo_url?: string | null
+          nombre?: string
+          rnc?: string | null
+          telefono?: string | null
+        }
+        Relationships: []
+      }
+      factura_lineas: {
+        Row: {
+          cantidad: number
+          costo_unitario: number
+          descripcion: string
+          descuento_pct: number
+          factura_id: string
+          id: string
+          itbis: number
+          itbis_tasa: number
+          precio: number
+          producto_id: string | null
+          subtotal: number
+          total: number
+        }
+        Insert: {
+          cantidad: number
+          costo_unitario?: number
+          descripcion?: string
+          descuento_pct?: number
+          factura_id: string
+          id?: string
+          itbis?: number
+          itbis_tasa?: number
+          precio?: number
+          producto_id?: string | null
+          subtotal?: number
+          total?: number
+        }
+        Update: {
+          cantidad?: number
+          costo_unitario?: number
+          descripcion?: string
+          descuento_pct?: number
+          factura_id?: string
+          id?: string
+          itbis?: number
+          itbis_tasa?: number
+          precio?: number
+          producto_id?: string | null
+          subtotal?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factura_lineas_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factura_lineas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facturas: {
+        Row: {
+          asiento_id: string | null
+          contacto_id: string
+          creado_en: string
+          creado_por: string | null
+          descuento: number
+          estado: string
+          fecha: string
+          id: string
+          itbis: number
+          ncf: string
+          notas: string | null
+          numero: number
+          pagado: number
+          pie: string | null
+          subtotal: number
+          terminos: string | null
+          tipo_comprobante: string
+          total: number
+          vencimiento: string
+        }
+        Insert: {
+          asiento_id?: string | null
+          contacto_id: string
+          creado_en?: string
+          creado_por?: string | null
+          descuento?: number
+          estado?: string
+          fecha?: string
+          id?: string
+          itbis?: number
+          ncf: string
+          notas?: string | null
+          numero?: number
+          pagado?: number
+          pie?: string | null
+          subtotal?: number
+          terminos?: string | null
+          tipo_comprobante: string
+          total?: number
+          vencimiento: string
+        }
+        Update: {
+          asiento_id?: string | null
+          contacto_id?: string
+          creado_en?: string
+          creado_por?: string | null
+          descuento?: number
+          estado?: string
+          fecha?: string
+          id?: string
+          itbis?: number
+          ncf?: string
+          notas?: string | null
+          numero?: number
+          pagado?: number
+          pie?: string | null
+          subtotal?: number
+          terminos?: string | null
+          tipo_comprobante?: string
+          total?: number
+          vencimiento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facturas_proveedor: {
+        Row: {
+          asiento_id: string | null
+          contacto_id: string
+          creado_en: string
+          creado_por: string | null
+          estado: string
+          fecha: string
+          id: string
+          itbis: number
+          ncf: string | null
+          notas: string | null
+          numero: number
+          pagado: number
+          subtotal: number
+          total: number
+          vencimiento: string
+        }
+        Insert: {
+          asiento_id?: string | null
+          contacto_id: string
+          creado_en?: string
+          creado_por?: string | null
+          estado?: string
+          fecha?: string
+          id?: string
+          itbis?: number
+          ncf?: string | null
+          notas?: string | null
+          numero?: number
+          pagado?: number
+          subtotal?: number
+          total?: number
+          vencimiento: string
+        }
+        Update: {
+          asiento_id?: string | null
+          contacto_id?: string
+          creado_en?: string
+          creado_por?: string | null
+          estado?: string
+          fecha?: string
+          id?: string
+          itbis?: number
+          ncf?: string | null
+          notas?: string | null
+          numero?: number
+          pagado?: number
+          subtotal?: number
+          total?: number
+          vencimiento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_proveedor_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_proveedor_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facturas_proveedor_lineas: {
+        Row: {
+          cantidad: number
+          costo: number
+          cuenta_id: string | null
+          descripcion: string
+          factura_proveedor_id: string
+          id: string
+          itbis: number
+          itbis_tasa: number
+          producto_id: string | null
+          subtotal: number
+          total: number
+        }
+        Insert: {
+          cantidad: number
+          costo?: number
+          cuenta_id?: string | null
+          descripcion?: string
+          factura_proveedor_id: string
+          id?: string
+          itbis?: number
+          itbis_tasa?: number
+          producto_id?: string | null
+          subtotal?: number
+          total?: number
+        }
+        Update: {
+          cantidad?: number
+          costo?: number
+          cuenta_id?: string | null
+          descripcion?: string
+          factura_proveedor_id?: string
+          id?: string
+          itbis?: number
+          itbis_tasa?: number
+          producto_id?: string | null
+          subtotal?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_proveedor_lineas_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_proveedor_lineas_factura_proveedor_id_fkey"
+            columns: ["factura_proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "facturas_proveedor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_proveedor_lineas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gastos_menores: {
+        Row: {
+          asiento_id: string | null
+          contacto_id: string | null
+          creado_en: string
+          creado_por: string | null
+          cuenta_gasto_id: string
+          cuenta_pago_id: string
+          descripcion: string
+          estado: string
+          fecha: string
+          id: string
+          itbis: number
+          itbis_tasa: number
+          numero: number
+          subtotal: number
+          total: number
+        }
+        Insert: {
+          asiento_id?: string | null
+          contacto_id?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          cuenta_gasto_id?: string
+          cuenta_pago_id?: string
+          descripcion: string
+          estado?: string
+          fecha?: string
+          id?: string
+          itbis?: number
+          itbis_tasa?: number
+          numero?: number
+          subtotal?: number
+          total?: number
+        }
+        Update: {
+          asiento_id?: string | null
+          contacto_id?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          cuenta_gasto_id?: string
+          cuenta_pago_id?: string
+          descripcion?: string
+          estado?: string
+          fecha?: string
+          id?: string
+          itbis?: number
+          itbis_tasa?: number
+          numero?: number
+          subtotal?: number
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gastos_menores_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_menores_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_menores_cuenta_gasto_id_fkey"
+            columns: ["cuenta_gasto_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_menores_cuenta_pago_id_fkey"
+            columns: ["cuenta_pago_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      numeraciones: {
+        Row: {
+          activa: boolean
+          hasta: number | null
+          id: string
+          nombre: string
+          prefijo: string
+          siguiente: number
+          tipo_comprobante: string
+          vence: string | null
+        }
+        Insert: {
+          activa?: boolean
+          hasta?: number | null
+          id?: string
+          nombre: string
+          prefijo: string
+          siguiente?: number
+          tipo_comprobante: string
+          vence?: string | null
+        }
+        Update: {
+          activa?: boolean
+          hasta?: number | null
+          id?: string
+          nombre?: string
+          prefijo?: string
+          siguiente?: number
+          tipo_comprobante?: string
+          vence?: string | null
+        }
+        Relationships: []
+      }
+      pagos_proveedor: {
+        Row: {
+          asiento_id: string | null
+          contacto_id: string
+          creado_en: string
+          creado_por: string | null
+          cuenta_id: string
+          estado: string
+          factura_proveedor_id: string
+          fecha: string
+          id: string
+          metodo: string
+          monto: number
+          notas: string | null
+          numero: number
+        }
+        Insert: {
+          asiento_id?: string | null
+          contacto_id: string
+          creado_en?: string
+          creado_por?: string | null
+          cuenta_id: string
+          estado?: string
+          factura_proveedor_id: string
+          fecha?: string
+          id?: string
+          metodo?: string
+          monto: number
+          notas?: string | null
+          numero?: number
+        }
+        Update: {
+          asiento_id?: string | null
+          contacto_id?: string
+          creado_en?: string
+          creado_por?: string | null
+          cuenta_id?: string
+          estado?: string
+          factura_proveedor_id?: string
+          fecha?: string
+          id?: string
+          metodo?: string
+          monto?: number
+          notas?: string | null
+          numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagos_proveedor_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_proveedor_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_proveedor_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_proveedor_factura_proveedor_id_fkey"
+            columns: ["factura_proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "facturas_proveedor"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagos_recibidos: {
+        Row: {
+          asiento_id: string | null
+          contacto_id: string
+          creado_en: string
+          creado_por: string | null
+          cuenta_id: string
+          estado: string
+          factura_id: string | null
+          fecha: string
+          id: string
+          metodo: string
+          monto: number
+          notas: string | null
+          numero: number
+        }
+        Insert: {
+          asiento_id?: string | null
+          contacto_id: string
+          creado_en?: string
+          creado_por?: string | null
+          cuenta_id: string
+          estado?: string
+          factura_id?: string | null
+          fecha?: string
+          id?: string
+          metodo?: string
+          monto: number
+          notas?: string | null
+          numero?: number
+        }
+        Update: {
+          asiento_id?: string | null
+          contacto_id?: string
+          creado_en?: string
+          creado_por?: string | null
+          cuenta_id?: string
+          estado?: string
+          factura_id?: string | null
+          fecha?: string
+          id?: string
+          metodo?: string
+          monto?: number
+          notas?: string | null
+          numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagos_recibidos_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_recibidos_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_recibidos_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_recibidos_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       perfiles: {
         Row: {
           creado_en: string
@@ -39,12 +836,230 @@ export type Database = {
         }
         Relationships: []
       }
+      productos: {
+        Row: {
+          activo: boolean
+          cantidad: number
+          costo: number
+          creado_en: string
+          cuenta_costo_id: string | null
+          cuenta_ingreso_id: string | null
+          cuenta_inventario_id: string | null
+          descripcion: string | null
+          id: string
+          inventariable: boolean
+          itbis_tasa: number
+          nombre: string
+          precio: number
+          referencia: string | null
+          tipo: string
+        }
+        Insert: {
+          activo?: boolean
+          cantidad?: number
+          costo?: number
+          creado_en?: string
+          cuenta_costo_id?: string | null
+          cuenta_ingreso_id?: string | null
+          cuenta_inventario_id?: string | null
+          descripcion?: string | null
+          id?: string
+          inventariable?: boolean
+          itbis_tasa?: number
+          nombre: string
+          precio?: number
+          referencia?: string | null
+          tipo?: string
+        }
+        Update: {
+          activo?: boolean
+          cantidad?: number
+          costo?: number
+          creado_en?: string
+          cuenta_costo_id?: string | null
+          cuenta_ingreso_id?: string | null
+          cuenta_inventario_id?: string | null
+          descripcion?: string | null
+          id?: string
+          inventariable?: boolean
+          itbis_tasa?: number
+          nombre?: string
+          precio?: number
+          referencia?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "productos_cuenta_costo_id_fkey"
+            columns: ["cuenta_costo_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_cuenta_ingreso_id_fkey"
+            columns: ["cuenta_ingreso_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_cuenta_inventario_id_fkey"
+            columns: ["cuenta_inventario_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      _crear_asiento: {
+        Args: {
+          p_fecha: string
+          p_descripcion: string
+          p_origen_tipo: string
+          p_origen_id: string
+          p_lineas: Json
+        }
+        Returns: string
+      }
+      _cuenta_config: {
+        Args: {
+          p_clave: string
+        }
+        Returns: string
+      }
+      actualizar_contacto: {
+        Args: {
+          p_id: string
+          p: Json
+        }
+        Returns: string
+      }
+      actualizar_producto: {
+        Args: {
+          p_id: string
+          p: Json
+        }
+        Returns: string
+      }
+      anular_documento: {
+        Args: {
+          p_tipo: string
+          p_id: string
+        }
+        Returns: string
+      }
+      crear_contacto: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_factura: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_factura_proveedor: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_gasto_menor: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_producto: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      registrar_pago_proveedor: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      registrar_pago_recibido: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      reporte_balance_comprobacion: {
+        Args: {
+          p_desde: string
+          p_hasta: string
+        }
+        Returns: {
+          cuenta_codigo: string
+          cuenta_nombre: string
+          tipo: string
+          debitos: number
+          creditos: number
+          saldo: number
+        }[]
+      }
+      reporte_cxc: {
+        Args: {
+          p_fecha: string
+        }
+        Returns: {
+          contacto_id: string
+          contacto_nombre: string
+          factura_id: string
+          numero: number
+          ncf: string
+          fecha: string
+          vencimiento: string
+          total: number
+          pagado: number
+          saldo: number
+          dias_vencida: number
+        }[]
+      }
+      reporte_estado_resultados: {
+        Args: {
+          p_desde: string
+          p_hasta: string
+        }
+        Returns: {
+          tipo: string
+          cuenta_codigo: string
+          cuenta_nombre: string
+          monto: number
+        }[]
+      }
+      reporte_libro_diario: {
+        Args: {
+          p_desde: string
+          p_hasta: string
+        }
+        Returns: {
+          asiento_numero: number
+          fecha: string
+          asiento_descripcion: string
+          origen_tipo: string
+          cuenta_codigo: string
+          cuenta_nombre: string
+          debito: number
+          credito: number
+        }[]
+      }
+      rol_actual: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

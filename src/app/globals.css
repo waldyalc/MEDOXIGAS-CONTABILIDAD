@@ -287,4 +287,18 @@ html {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
+
+  html,
+  body {
+    height: auto !important;
+    min-height: 11in !important;
+    overflow: visible !important;
+  }
+
+  [data-print-root],
+  [data-print-root] [data-print-paper] {
+    height: auto !important;
+    min-height: 11in !important;
+    overflow: visible !important;
+  }
 }
