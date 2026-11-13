@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ArrowLeft, BookOpen } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,37 +72,23 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <dd>{ETIQUETAS_METODO[pago.metodo]}</dd>
             <dt className="text-muted-foreground">Cliente</dt>
             <dd>
-              <Link
-                href={rutaContacto(pago.contacto_id)}
-                prefetch={false}
-                className="hover:text-foreground hover:underline"
-              >
-                {pago.contacto?.nombre ?? "—"}
-              </Link>
+              <Enlace href={rutaContacto(pago.contacto_id)}>{pago.contacto?.nombre ?? "—"}</Enlace>
             </dd>
             <dt className="text-muted-foreground">Factura</dt>
             <dd>
               {pago.factura_id && pago.factura ? (
-                <Link
-                  href={rutaFactura(pago.factura_id)}
-                  prefetch={false}
-                  className="hover:text-foreground hover:underline"
-                >
+                <Enlace href={rutaFactura(pago.factura_id)}>
                   {`#${pago.factura.numero}${pago.factura.ncf ? ` · ${pago.factura.ncf}` : ""}`}
-                </Link>
+                </Enlace>
               ) : (
                 "—"
               )}
             </dd>
             <dt className="text-muted-foreground">Cuenta</dt>
             <dd>
-              <Link
-                href={rutaCuenta(pago.cuenta_id)}
-                prefetch={false}
-                className="hover:text-foreground hover:underline"
-              >
+              <Enlace href={rutaCuenta(pago.cuenta_id)}>
                 {pago.cuenta ? `${pago.cuenta.codigo} · ${pago.cuenta.nombre}` : "—"}
-              </Link>
+              </Enlace>
             </dd>
             <dt className="text-muted-foreground">Notas</dt>
             <dd className="whitespace-pre-line">{pago.notas ?? "—"}</dd>
