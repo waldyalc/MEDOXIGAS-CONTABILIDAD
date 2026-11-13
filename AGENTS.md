@@ -23,6 +23,7 @@ Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y O
 - Lee solo lo que pide el brief (y la skill que aplique). No explores el repo ni `node_modules` por curiosidad.
 - No leas tipos en `node_modules` para copiar una API: copia un uso real del repo (ver skill `diseno-ui`).
 - No hagas verificación visual, no levantes el dev server ni abras el preview, salvo que el brief lo pida (lo hace Coder).
+- ¿Atascado? Usa la skill pedir-ayuda: pregunta, no des vueltas.
 
 ## Antes de empezar
 
@@ -40,6 +41,7 @@ Viven en `.opencode/skills/<nombre>/SKILL.md`. Cárgalas con la herramienta `ski
 - `diseno-ui` — shadcn tal cual (`InputGroup`, `Select`, calendario), colores Medoxigas e inspiración de `docs/alegra/`, sin copiar código de Alegra.
 - `motor-contable` — motor de doble partida (archivos, cuentas por defecto, invariantes) y tests antes de cambiar un cálculo.
 - `supabase-migraciones` — cómo escribir una migración; no aplicarla en el remoto ni usar `service_role`; RLS en tablas nuevas.
+- `pedir-ayuda` — si te atascas, pregunta a Coder con la herramienta `question`; no des vueltas ni inventes atajos.
 
 ## Módulos (menú lateral)
 
