@@ -1,5 +1,12 @@
 # Handoff — Medoxigas Contabilidad
 
+## Vista de documento de venta compartida (13 nov 2026)
+
+- Nuevo `src/components/documento-venta/vista-documento-venta.tsx` + `vista.ts`: factura, cotización y conduce comparten la vista de tarjetas (máx. 1040 px, fondo gris, 24 px entre tarjetas), con el orden de la guía de Alegra. Solo cambia la pantalla: la impresión/PDF sigue con `FacturaPapel` y `DocumentoPapel` en el portal `data-print-root`.
+- Factura: resumen de 4 cifras, acciones en íconos de 40×40 y menú ⋮ (notas de crédito/débito, imprimir copia y anular en rojo), tabla de productos y pestañas Pagos / Notas crédito / Notas débito / Contabilidad. `getFacturaVista` ahora trae las notas de crédito y débito de la factura.
+- Cotización y conduce: «Editar» queda deshabilitado porque todavía no existe pantalla de edición; «Convertir» abre el diálogo existente para factura. La pestaña Facturas muestra la factura relacionada o el vacío con «Convertir en factura». No hay relación cotización↔conduce en la base, así que esa pestaña no se muestra; clonar y descargar PDF no existen y quedaron fuera.
+- Se eliminaron `vista-factura.tsx`, `vista-documento.tsx` (cotizaciones) y el `asiento-contable.tsx` de la ruta; el asiento vive ahora en la pestaña Contabilidad. Tests nuevos en `vista.test.ts` (14). `typecheck`, Biome, `test` (468) y `build` en verde.
+
 ## Plantilla única de documento de venta (13 nov 2026)
 
 - Nuevo `src/components/documento-venta/` (`documento-venta-form.tsx` + `calculo.ts`): la tarjeta del formulario de factura (logo, empresa, ajustes, cliente/fechas, líneas, totales y «Más opciones») ahora es compartida. Por props define título, comprobante/NCF o numeración simple, vencimiento, pago recibido, notas/términos/pie, textos de botones, rutas y la server action.
