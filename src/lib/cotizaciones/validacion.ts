@@ -31,6 +31,8 @@ export const crearDocumentoSchema = z
     fecha: z.iso.date(),
     vencimiento: z.iso.date(),
     notas: textoOpcionalSchema,
+    terminos: textoOpcionalSchema,
+    cotizacion_id: z.uuid().optional(),
     lineas: z.array(lineaDocumentoSchema).min(1, { message: "Agrega al menos una línea" }).max(200),
   })
   .refine((datos) => datos.vencimiento >= datos.fecha, {
