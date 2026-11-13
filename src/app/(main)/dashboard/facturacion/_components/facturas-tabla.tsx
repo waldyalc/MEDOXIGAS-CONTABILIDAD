@@ -18,7 +18,15 @@ const ETIQUETAS: Record<EstadoFactura, string> = {
 
 function EstadoBadge({ estado }: { estado: EstadoFactura }) {
   if (estado === "anulada") return <Badge variant="destructive">{ETIQUETAS[estado]}</Badge>;
-  if (estado === "pagada") return <Badge variant="secondary">{ETIQUETAS[estado]}</Badge>;
+  if (estado === "pagada")
+    return (
+      <Badge
+        variant="outline"
+        className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
+      >
+        {ETIQUETAS[estado]}
+      </Badge>
+    );
   return <Badge>{ETIQUETAS[estado]}</Badge>;
 }
 
@@ -61,18 +69,17 @@ export function FacturasTabla({ facturas, puedeEscribir }: { facturas: FacturaFi
               </TableRow>
             ) : (
               facturas.map((factura) => (
-                <TableRow key={factura.id}>
+                <TableRow key={factura.id} className="relative cursor-pointer">
                   <TableCell className="font-medium">
-                    <Link className="hover:underline" href={`/dashboard/facturacion/${factura.id}`}>
-                      {factura.numero}
-                    </Link>
+                    <Link
+                      className="absolute inset-0"
+                      href={`/dashboard/facturacion/${factura.id}`}
+                      aria-label={`Ver factura ${factura.numero}`}
+                    />
+                    <span className="pointer-events-none relative">{factura.numero}</span>
                   </TableCell>
                   <TableCell className="font-mono text-xs">{factura.ncf ?? "—"}</TableCell>
-                  <TableCell>
-                    <Link className="hover:underline" href={`/dashboard/facturacion/${factura.id}`}>
-                      {factura.cliente_nombre}
-                    </Link>
-                  </TableCell>
+                  <TableCell>{factura.cliente_nombre}</TableCell>
                   <TableCell>{formatoDia(factura.fecha)}</TableCell>
                   <TableCell>{formatoDia(factura.vencimiento)}</TableCell>
                   <TableCell className="text-right font-medium">{formatoMoneda(factura.total)}</TableCell>

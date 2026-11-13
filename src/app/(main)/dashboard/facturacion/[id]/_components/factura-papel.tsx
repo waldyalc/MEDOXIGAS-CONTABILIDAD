@@ -23,10 +23,10 @@ export function FacturaPapel({ empresa, factura, lineas, contacto }: Props) {
           ) : (
             <p className="text-xl font-semibold tracking-tight">{empresa?.nombre ?? "MEDOXIGAS ALC, SRL"}</p>
           )}
-          {empresa?.rnc ? <p className="text-zinc-600 text-sm">RNC {empresa.rnc}</p> : null}
-          {empresa?.direccion ? <p className="text-zinc-600 text-sm">{empresa.direccion}</p> : null}
-          {empresa?.telefono ? <p className="text-zinc-600 text-sm">Tel. {empresa.telefono}</p> : null}
-          {empresa?.correo ? <p className="text-zinc-600 text-sm">{empresa.correo}</p> : null}
+          {empresa?.rnc?.trim() ? <p className="text-zinc-600 text-sm">RNC {empresa.rnc}</p> : null}
+          {empresa?.direccion?.trim() ? <p className="text-zinc-600 text-sm">{empresa.direccion}</p> : null}
+          {empresa?.telefono?.trim() ? <p className="text-zinc-600 text-sm">Tel. {empresa.telefono}</p> : null}
+          {empresa?.correo?.trim() ? <p className="text-zinc-600 text-sm">{empresa.correo}</p> : null}
         </div>
 
         <div className="flex flex-col gap-1 sm:items-end sm:text-right">
@@ -42,8 +42,10 @@ export function FacturaPapel({ empresa, factura, lineas, contacto }: Props) {
       <div className="rounded-lg border border-zinc-200 p-4">
         <p className="text-zinc-500 text-xs uppercase">Cliente</p>
         <p className="font-medium">{contacto.nombre}</p>
-        {contacto.rnc_cedula ? <p className="text-zinc-600 text-sm">RNC/Cédula: {contacto.rnc_cedula}</p> : null}
-        {contacto.direccion ? <p className="text-zinc-600 text-sm">{contacto.direccion}</p> : null}
+        {contacto.rnc_cedula?.trim() ? (
+          <p className="text-zinc-600 text-sm">RNC/Cédula: {contacto.rnc_cedula}</p>
+        ) : null}
+        {contacto.direccion?.trim() ? <p className="text-zinc-600 text-sm">{contacto.direccion}</p> : null}
       </div>
 
       <div className="overflow-x-auto print:overflow-visible">

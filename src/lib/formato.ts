@@ -51,12 +51,9 @@ export function formatoEje(iso: string) {
   }).format(fecha);
 }
 
-export function formatoDia(iso: string) {
+export function formatoDia(iso: string | null | undefined) {
+  if (!iso) return "—";
   const [anio, mes, dia] = iso.slice(0, 10).split("-").map(Number);
   if (!anio || !mes || !dia) return iso;
-  return new Intl.DateTimeFormat("es-DO", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(anio, mes - 1, dia)));
+  return `${String(dia).padStart(2, "0")}/${String(mes).padStart(2, "0")}/${anio}`;
 }

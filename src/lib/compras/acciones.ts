@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { getRol } from "@/lib/auth/rol";
+import { mensajeErrorRpc } from "@/lib/facturacion/errores";
 import { createClient } from "@/lib/supabase/server";
 
 import type { EntradaFacturaProveedor, EntradaPagoProveedor } from "./esquema";
@@ -52,7 +53,7 @@ export async function crearFacturaProveedor(entrada: EntradaFacturaProveedor): P
     })
     .returns<string>();
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
   if (!data) return { ok: false, error: "No se pudo crear la factura de proveedor." };
 
   revalidarCompras(data);
@@ -81,7 +82,7 @@ export async function registrarPagoProveedor(entrada: EntradaPagoProveedor): Pro
     })
     .returns<string>();
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
   if (!data) return { ok: false, error: "No se pudo registrar el pago." };
 
   revalidarCompras(datos.factura_proveedor_id);
@@ -94,7 +95,7 @@ export async function anularFacturaProveedor(id: string): Promise<ResultadoAccio
   const supabase = await createClient();
   const { error } = await supabase.rpc("anular_documento", { p_tipo: "factura_proveedor", p_id: id });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
 
   revalidarCompras(id);
   return { ok: true };

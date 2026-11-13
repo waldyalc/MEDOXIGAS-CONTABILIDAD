@@ -48,7 +48,10 @@ describe("fechas en America/Santo_Domingo", () => {
     expect(texto).toContain("12:30");
   });
 
-  test("día solo con día y mes", () => {
-    expect(formatoDia("2026-10-28")).toContain("28");
+  test("día en formato dd/mm/aaaa", () => {
+    expect(formatoDia("2026-10-28")).toBe("28/10/2026");
+    expect(formatoDia("2026-01-05")).toBe("05/01/2026");
+    expect(formatoDia(null)).toBe("—");
+    expect(formatoDia(undefined)).toBe("—");
   });
 });

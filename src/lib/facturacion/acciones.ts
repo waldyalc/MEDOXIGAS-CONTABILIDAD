@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getRol } from "@/lib/auth/rol";
+import { mensajeErrorRpc } from "@/lib/facturacion/errores";
 import { createClient } from "@/lib/supabase/server";
 
 import { calcularFactura, centavosAValor, valorACentavos } from "./calculo";
@@ -64,7 +65,7 @@ export async function crearFactura(entrada: unknown): Promise<ResultadoAccion> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("crear_factura", { p: payload });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
   if (typeof data !== "string")
     return { ok: false, error: "La factura se guardó pero no se recibió su identificador." };
 
@@ -81,7 +82,7 @@ export async function anularFactura(id: string): Promise<ResultadoAccion> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("anular_documento", { p_tipo: "factura", p_id: id });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
 
   revalidatePath("/dashboard/facturacion");
   revalidatePath(`/dashboard/facturacion/${id}`);

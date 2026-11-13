@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getRol } from "@/lib/auth/rol";
 import { centavosAValor, valorACentavos } from "@/lib/facturacion/calculo";
+import { mensajeErrorRpc } from "@/lib/facturacion/errores";
 import { mensajeValidacion } from "@/lib/facturacion/validacion";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,7 +32,7 @@ export async function crearGastoMenor(entrada: unknown): Promise<ResultadoGasto>
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("crear_gasto_menor", { p: payload });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
   if (typeof data !== "string") return { ok: false, error: "El gasto se guardó pero no se recibió su identificador." };
 
   revalidatePath("/dashboard/gastos");
