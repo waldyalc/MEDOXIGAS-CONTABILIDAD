@@ -1,17 +1,17 @@
 import { describe, expect, test } from "vitest";
 
+import {
+  rutaCompra,
+  rutaContacto,
+  rutaFactura,
+  rutaGasto,
+  rutaPagoProveedor,
+  rutaPagoRecibido,
+  rutaProducto,
+} from "@/lib/enlaces";
+
 import { clasificarVista, diasEntre, diasVencida, filtrarCartera, totalCartera, totalesPorVista } from "./antiguedad";
 import { filtrarCompras, totalesCompras } from "./compras";
-import {
-  urlContacto,
-  urlCuentaContable,
-  urlFacturaProveedor,
-  urlFacturaVenta,
-  urlGastoMenor,
-  urlPagoProveedor,
-  urlPagoRecibido,
-  urlProducto,
-} from "./enlaces";
 import { tablaCompras, tablaCuentasPorCobrar, tablaCuentasPorPagar, tablaInventario } from "./exportar";
 import { calcularTotalLinea, cantidadALaFecha, filtrarInventario, totalInventario } from "./inventario";
 import { leerFechaParametro, leerPagina, leerVista, paginar, urlConParametros } from "./parametros";
@@ -132,16 +132,13 @@ describe("parámetros de URL", () => {
 
 describe("enlaces canónicos", () => {
   test("arma las URL de fichas y documentos", () => {
-    expect(urlContacto("c1")).toBe("/dashboard/contactos/c1");
-    expect(urlProducto("p1")).toBe("/dashboard/productos/p1");
-    expect(urlFacturaVenta("f1")).toBe("/dashboard/facturacion/f1");
-    expect(urlFacturaProveedor("f2")).toBe("/dashboard/compras/f2");
-    expect(urlPagoProveedor("pp1")).toBe("/dashboard/compras/pagos/pp1");
-    expect(urlPagoRecibido("pr1")).toBe("/dashboard/pagos-recibidos/pr1");
-    expect(urlGastoMenor("g1")).toBe("/dashboard/gastos/g1");
-    expect(urlCuentaContable("1103", "2026-11-01", "2026-11-30")).toBe(
-      "/dashboard/reportes/movimientos-cuenta?cuenta=1103&desde=2026-11-01&hasta=2026-11-30",
-    );
+    expect(rutaContacto("c1")).toBe("/dashboard/contactos/c1");
+    expect(rutaProducto("p1")).toBe("/dashboard/productos/p1");
+    expect(rutaFactura("f1")).toBe("/dashboard/facturacion/f1");
+    expect(rutaCompra("f2")).toBe("/dashboard/compras/f2");
+    expect(rutaPagoProveedor("pp1")).toBe("/dashboard/compras/pagos/pp1");
+    expect(rutaPagoRecibido("pr1")).toBe("/dashboard/pagos-recibidos/pr1");
+    expect(rutaGasto("g1")).toBe("/dashboard/gastos/g1");
   });
 });
 

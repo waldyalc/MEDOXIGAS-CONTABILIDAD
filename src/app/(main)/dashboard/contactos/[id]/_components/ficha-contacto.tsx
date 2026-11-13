@@ -315,12 +315,8 @@ function TablaAsientos({ filas }: { readonly filas: AsientoFicha[] }) {
                 </TableCell>
                 <TableCell>{formatoDia(fila.fecha)}</TableCell>
                 <TableCell className="whitespace-normal">{fila.descripcion}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatoMonedaCentavos(aCentavos(fila.debito))}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatoMonedaCentavos(aCentavos(fila.credito))}
-                </TableCell>
+                <TableCell className="text-right tabular-nums">{formatoMonedaCentavos(fila.debitoCentavos)}</TableCell>
+                <TableCell className="text-right tabular-nums">{formatoMonedaCentavos(fila.creditoCentavos)}</TableCell>
               </TableRow>
             ))
           )}

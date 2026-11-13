@@ -5,11 +5,12 @@ import { TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaProducto } from "@/lib/enlaces";
 import { formatearRd } from "@/lib/reportes/dinero";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 import { agruparRentabilidad, paginar, parsearPagina, resumirRentabilidad } from "@/lib/reportes/ventas/v2/calculo";
 import { obtenerLineasVenta } from "@/lib/reportes/ventas/v2/consultas";
-import { urlProducto, urlRentabilidadProducto } from "@/lib/reportes/ventas/v2/enlaces";
+import { urlRentabilidadProducto } from "@/lib/reportes/ventas/v2/enlaces";
 import { tablaRentabilidadProducto } from "@/lib/reportes/ventas/v2/tablas";
 
 import { AlertaError } from "../_components/alerta-error";
@@ -109,7 +110,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                       <TableCell>
                         {fila.productoId ? (
                           <Link
-                            href={urlProducto(fila.productoId)}
+                            href={rutaProducto(fila.productoId)}
                             prefetch={false}
                             className="font-medium hover:underline"
                           >

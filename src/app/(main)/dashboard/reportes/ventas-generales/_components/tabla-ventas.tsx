@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaContacto, rutaFactura } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
 import { ALMACEN_PRINCIPAL } from "@/lib/reportes/ventas/v1/calculos";
-import { enlaces } from "@/lib/reportes/ventas/v1/enlaces";
 import { urlVentas } from "@/lib/reportes/ventas/v1/filtros";
 import type { FiltrosVentasUrl, PaginaVentas, VentaCalculada } from "@/lib/reportes/ventas/v1/tipos";
 
@@ -44,12 +44,12 @@ function FilaVenta({ venta, porAlmacen }: { venta: VentaCalculada; porAlmacen: b
   return (
     <TableRow>
       <TableCell>
-        <Link className="font-medium hover:underline" href={enlaces.facturaVenta(venta.id)}>
+        <Link className="font-medium hover:underline" href={rutaFactura(venta.id)}>
           {venta.ncf}
         </Link>
       </TableCell>
       <TableCell>
-        <Link className="hover:underline" href={enlaces.contacto(venta.contactoId)}>
+        <Link className="hover:underline" href={rutaContacto(venta.contactoId)}>
           {venta.clienteNombre}
         </Link>
       </TableCell>

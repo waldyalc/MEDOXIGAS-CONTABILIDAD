@@ -1,4 +1,6 @@
 import { hoyRD } from "@/lib/facturacion/formato";
+import { formatoDia } from "@/lib/formato";
+import type { FilaReporte, TablaReporte } from "@/lib/reportes/exportar/tipos";
 
 import { aCentavos, type DocumentoFicha } from "./ficha";
 
@@ -157,6 +159,62 @@ export function calcularEstadoCuenta(
       cobrado: filas.reduce((total, fila) => total + fila.cobradoCentavos, 0),
       porCobrar: filas.reduce((total, fila) => total + fila.saldoCentavos, 0),
     },
+  };
+}
+
+function etiquetaAntiguedad(valor: TramoAntiguedad): string {
+  return OPCIONES_ANTIGUEDAD.find((opcion) => opcion.valor === valor)?.etiqueta ?? valor;
+}
+
+export function tablaEstadoCuenta(
+  contactoNombre: string,
+  filtros: FiltrosEstadoCuenta,
+  resumen: ResumenEstadoCuenta,
+): TablaReporte {
+  const filas: FilaReporte[] = resumen.filas.map((fila) => ({
+    celdas: {
+      documento: fila.ncf === null ? `#${fila.numero}` : `#${fila.numero} · ${fila.ncf}`,
+      creacion: fila.fecha,
+      vencimiento: fila.vencimiento,
+      antiguedad: etiquetaTramo(fila.tramo),
+      diasVencidos: fila.diasVencidos,
+      estado: fila.pagada ? "Pagada" : "Pendiente",
+      total: fila.totalCentavos,
+      cobrado: fila.cobradoCentavos,
+      saldo: fila.saldoCentavos,
+    },
+  }));
+
+  filas.push({
+    celdas: {
+      documento: "Totales",
+      creacion: null,
+      vencimiento: null,
+      antiguedad: null,
+      diasVencidos: null,
+      estado: null,
+      total: resumen.totales.ventas,
+      cobrado: resumen.totales.cobrado,
+      saldo: resumen.totales.porCobrar,
+    },
+    estilo: "total",
+  });
+
+  return {
+    titulo: "Estado de cuenta",
+    subtitulo: `${contactoNombre} · Corte al ${formatoDia(filtros.corte)} · Antigüedad: ${etiquetaAntiguedad(filtros.antiguedad)}`,
+    columnas: [
+      { clave: "documento", titulo: "Documento", tipo: "texto" },
+      { clave: "creacion", titulo: "Creación", tipo: "fecha" },
+      { clave: "vencimiento", titulo: "Vencimiento", tipo: "fecha" },
+      { clave: "antiguedad", titulo: "Antigüedad", tipo: "texto" },
+      { clave: "diasVencidos", titulo: "Días vencidos", tipo: "texto" },
+      { clave: "estado", titulo: "Estado", tipo: "texto" },
+      { clave: "total", titulo: "Total", tipo: "dinero" },
+      { clave: "cobrado", titulo: "Cobrado", tipo: "dinero" },
+      { clave: "saldo", titulo: "Saldo", tipo: "dinero" },
+    ],
+    filas,
   };
 }
 

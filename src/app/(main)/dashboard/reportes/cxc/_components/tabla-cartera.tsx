@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaCompra, rutaContacto, rutaFactura } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
-import { urlContacto, urlFacturaProveedor, urlFacturaVenta } from "@/lib/reportes/administrativos/d/enlaces";
 import type { FilaCartera } from "@/lib/reportes/administrativos/d/tipos";
 import { formatearRd } from "@/lib/reportes/dinero";
 
@@ -16,7 +16,7 @@ function Referencia({ fila, href }: { fila: FilaCartera; href: string }) {
 
 function Contacto({ fila }: { fila: FilaCartera }) {
   return (
-    <Link href={urlContacto(fila.contactoId)} prefetch={false} className="hover:underline">
+    <Link href={rutaContacto(fila.contactoId)} prefetch={false} className="hover:underline">
       {fila.contactoNombre}
     </Link>
   );
@@ -48,7 +48,7 @@ export function TablaCuentasPorCobrar({ filas, mensajeVacio }: { filas: FilaCart
           filas.map((fila) => (
             <TableRow key={fila.id}>
               <TableCell>
-                <Referencia fila={fila} href={urlFacturaVenta(fila.id)} />
+                <Referencia fila={fila} href={rutaFactura(fila.id)} />
               </TableCell>
               <TableCell>{fila.tipoDocumento}</TableCell>
               <TableCell>
@@ -94,7 +94,7 @@ export function TablaCuentasPorPagar({ filas, mensajeVacio }: { filas: FilaCarte
             <TableRow key={fila.id}>
               <TableCell>{fila.tipoDocumento}</TableCell>
               <TableCell>
-                <Referencia fila={fila} href={urlFacturaProveedor(fila.id)} />
+                <Referencia fila={fila} href={rutaCompra(fila.id)} />
               </TableCell>
               <TableCell>
                 <Contacto fila={fila} />

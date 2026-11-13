@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { rutaContacto, rutaProducto } from "@/lib/enlaces";
 import {
   calcularReporteAnual,
   type FilaParticipacionAnual,
@@ -10,7 +11,7 @@ import {
 } from "@/lib/reportes/administrativos/e/anual";
 import { obtenerDatosReporteAnual } from "@/lib/reportes/administrativos/e/consultas";
 import { tablaAnual } from "@/lib/reportes/administrativos/e/tablas";
-import { URL_REGISTRAR_VENTA, urlContacto, urlProducto } from "@/lib/reportes/administrativos/e/urls";
+import { URL_REGISTRAR_VENTA } from "@/lib/reportes/administrativos/e/urls";
 import { formatearRd } from "@/lib/reportes/dinero";
 import { hoyRd, type ParametrosFecha } from "@/lib/reportes/fechas";
 
@@ -60,10 +61,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const resumen = reporte.resumen;
 
   const filasProductos = reporte.productos.map((fila) =>
-    filaRanking(fila, fila.id === null ? null : urlProducto(fila.id)),
+    filaRanking(fila, fila.id === null ? null : rutaProducto(fila.id)),
   );
   const filasClientes = reporte.clientes.map((fila) =>
-    filaRanking(fila, fila.id === null ? null : urlContacto(fila.id)),
+    filaRanking(fila, fila.id === null ? null : rutaContacto(fila.id)),
   );
   const filasGastos = reporte.gastos.map((fila) => filaRanking(fila, null));
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { validarDeposito, validarTransferencia } from "./validacion";
+import { validarCuentaBanco, validarDeposito, validarTransferencia } from "./validacion";
 
 const transferencia = {
   cuenta_origen_id: "1101",
@@ -33,6 +33,40 @@ describe("validarTransferencia", () => {
   test("rechaza cuentas sin seleccionar", () => {
     expect(validarTransferencia({ ...transferencia, cuenta_origen_id: "" })).toBe("Selecciona la cuenta de origen.");
     expect(validarTransferencia({ ...transferencia, cuenta_destino_id: "" })).toBe("Selecciona la cuenta de destino.");
+  });
+});
+
+const cuentaBanco = {
+  nombre: "Banco Popular Prueba",
+  tipo_banco: "banco",
+  saldoCentavos: 5000000,
+  fecha_saldo_inicial: "2026-11-13",
+};
+
+describe("validarCuentaBanco", () => {
+  test("acepta una cuenta válida con saldo cero", () => {
+    expect(validarCuentaBanco(cuentaBanco)).toBeNull();
+    expect(validarCuentaBanco({ ...cuentaBanco, saldoCentavos: 0 })).toBeNull();
+  });
+
+  test("exige el nombre de la cuenta", () => {
+    expect(validarCuentaBanco({ ...cuentaBanco, nombre: "   " })).toBe("Escribe el nombre de la cuenta.");
+    expect(validarCuentaBanco({ ...cuentaBanco, nombre: "" })).toBe("Escribe el nombre de la cuenta.");
+  });
+
+  test("exige un tipo de cuenta válido", () => {
+    expect(validarCuentaBanco({ ...cuentaBanco, tipo_banco: "otro" })).toBe("Selecciona un tipo de cuenta válido.");
+    expect(validarCuentaBanco({ ...cuentaBanco, tipo_banco: "" })).toBe("Selecciona un tipo de cuenta válido.");
+  });
+
+  test("rechaza saldo inicial negativo", () => {
+    expect(validarCuentaBanco({ ...cuentaBanco, saldoCentavos: -1 })).toBe("El saldo inicial no puede ser negativo.");
+  });
+
+  test("exige la fecha del saldo inicial", () => {
+    expect(validarCuentaBanco({ ...cuentaBanco, fecha_saldo_inicial: "" })).toBe(
+      "Selecciona la fecha del saldo inicial.",
+    );
   });
 });
 

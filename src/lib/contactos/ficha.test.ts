@@ -9,6 +9,7 @@ import {
   filtrarPorNumero,
   type PagoFicha,
   saldoDocumento,
+  sumarLineasAsiento,
   totalAnticipos,
   totalPorCobrar,
   totalPorPagar,
@@ -140,6 +141,19 @@ describe("transacciones unificadas", () => {
       detalle: "Pago a proveedor #1 · Factura de proveedor #50",
     });
     expect(transacciones[2]?.detalle).toBe("Pago recibido #3 · Anticipo");
+  });
+});
+
+describe("líneas de asientos del contacto", () => {
+  test("suma débito y crédito por asiento solo de las líneas del contacto", () => {
+    const totales = sumarLineasAsiento([
+      { asiento_id: "asiento-1", debito: 1000, credito: 0 },
+      { asiento_id: "asiento-1", debito: 0, credito: "250.75" },
+      { asiento_id: "asiento-2", debito: 0, credito: 1000 },
+    ]);
+
+    expect(totales.get("asiento-1")).toEqual({ debitoCentavos: 100000, creditoCentavos: 25075 });
+    expect(totales.get("asiento-2")).toEqual({ debitoCentavos: 0, creditoCentavos: 100000 });
   });
 });
 
