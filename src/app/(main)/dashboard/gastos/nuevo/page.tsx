@@ -42,8 +42,10 @@ async function GastoContenido() {
   return (
     <GastoForm
       cuentas={datos.cuentas}
+      cuentasCajaBanco={datos.cuentasCajaBanco}
       proveedores={datos.proveedores}
       cuentaPorDefecto={datos.cuentaPorDefecto}
+      cuentaPagoPorDefecto={datos.cuentaPagoPorDefecto}
       fechaHoy={hoyRD()}
     />
   );

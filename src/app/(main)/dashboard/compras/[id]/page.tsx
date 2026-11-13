@@ -87,7 +87,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <dd className="font-medium">{factura.contactos?.nombre ?? "—"}</dd>
             <dt className="text-muted-foreground">RNC</dt>
             <dd>{factura.contactos?.rnc_cedula ?? "—"}</dd>
-            <dt className="text-muted-foreground">NCF</dt>
+            <dt className="text-muted-foreground">No. / NCF</dt>
             <dd>{factura.ncf ?? "—"}</dd>
             <dt className="text-muted-foreground">Fecha</dt>
             <dd>{formatoDia(factura.fecha)}</dd>

@@ -13,7 +13,8 @@ import { aNumero } from "@/lib/compras/calculo";
 import { METODOS_PAGO } from "@/lib/compras/esquema";
 import { hoyEnRd } from "@/lib/compras/fechas";
 import { formatoMoneda } from "@/lib/compras/formato";
-import type { FacturaAbierta, MetodoPago, OpcionesPago } from "@/lib/compras/tipos";
+import { elegirCuentaPagoPorDefecto, facturasAbiertasDeProveedor, saldoFactura } from "@/lib/compras/seleccion";
+import type { MetodoPago, OpcionesPago } from "@/lib/compras/tipos";
 
 import { ComboboxCampo, type OpcionCombobox } from "./combobox-campo";
 
@@ -24,15 +25,11 @@ const ETIQUETAS_METODO: Record<MetodoPago, string> = {
   cheque: "Cheque",
 };
 
-function saldoFactura(factura: FacturaAbierta): number {
-  return Math.round((aNumero(factura.total) - aNumero(factura.pagado)) * 100) / 100;
-}
-
 export function FormularioPago({ contactos, cuentasCajaBanco, facturasAbiertas }: OpcionesPago) {
   const [proveedorId, setProveedorId] = useState("");
   const [facturaId, setFacturaId] = useState("");
   const [fecha, setFecha] = useState(hoyEnRd);
-  const [cuentaId, setCuentaId] = useState(cuentasCajaBanco.length === 1 ? (cuentasCajaBanco[0]?.id ?? "") : "");
+  const [cuentaId, setCuentaId] = useState(() => elegirCuentaPagoPorDefecto(cuentasCajaBanco));
   const [metodo, setMetodo] = useState<MetodoPago>("efectivo");
   const [monto, setMonto] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -45,12 +42,12 @@ export function FormularioPago({ contactos, cuentasCajaBanco, facturasAbiertas }
     hint: contacto.rnc_cedula ?? undefined,
   }));
 
-  const opcionesFacturas: OpcionCombobox[] = facturasAbiertas
-    .filter((factura) => factura.contacto_id === proveedorId)
-    .map((factura) => ({
+  const opcionesFacturas: OpcionCombobox[] = facturasAbiertasDeProveedor(facturasAbiertas, proveedorId).map(
+    (factura) => ({
       value: factura.id,
       label: `#${factura.numero} — ${factura.ncf ?? "—"} — ${formatoMoneda(saldoFactura(factura))}`,
-    }));
+    }),
+  );
 
   const facturaSeleccionada = facturasAbiertas.find((factura) => factura.id === facturaId) ?? null;
   const saldoSeleccionado = facturaSeleccionada ? saldoFactura(facturaSeleccionada) : null;

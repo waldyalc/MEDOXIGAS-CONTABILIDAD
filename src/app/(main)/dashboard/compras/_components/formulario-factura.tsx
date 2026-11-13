@@ -229,21 +229,21 @@ export function FormularioFactura({ contactos, productos, cuentasGasto }: Opcion
               required
             />
           </div>
+          <div className="flex flex-col gap-2 sm:col-span-2">
+            <Label htmlFor="ncf">No. / NCF del proveedor (opcional)</Label>
+            <Input
+              id="ncf"
+              value={ncf}
+              onChange={(evento) => setNcf(evento.target.value)}
+              placeholder="B0100000001"
+              maxLength={20}
+            />
+          </div>
           <Accordion className="sm:col-span-2">
             <AccordionItem value="mas" className="border-0">
               <AccordionTrigger>Más opciones</AccordionTrigger>
-              <AccordionContent className="grid gap-4 sm:grid-cols-2">
+              <AccordionContent>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="ncf">NCF</Label>
-                  <Input
-                    id="ncf"
-                    value={ncf}
-                    onChange={(evento) => setNcf(evento.target.value)}
-                    placeholder="B0100000001"
-                    maxLength={20}
-                  />
-                </div>
-                <div className="flex flex-col gap-2 sm:col-span-2">
                   <Label htmlFor="notas">Notas</Label>
                   <Textarea
                     id="notas"

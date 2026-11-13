@@ -26,16 +26,31 @@ import { calcularLinea, centavosAValor, parsearCentavos } from "@/lib/facturacio
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import type { ContactoResumen } from "@/lib/facturacion/tipos";
 import { crearGastoMenor } from "@/lib/gastos/acciones";
-import type { CuentaGasto } from "@/lib/gastos/tipos";
+import { etiquetaCuenta } from "@/lib/gastos/seleccion";
+import type { CuentaCajaBanco, CuentaGasto } from "@/lib/gastos/tipos";
 
 interface Props {
   cuentas: CuentaGasto[];
+  cuentasCajaBanco: CuentaCajaBanco[];
   proveedores: ContactoResumen[];
   cuentaPorDefecto: string;
+  cuentaPagoPorDefecto: string;
   fechaHoy: string;
 }
 
-export function GastoForm({ cuentas, proveedores, cuentaPorDefecto, fechaHoy }: Props) {
+interface OpcionCuenta {
+  value: string;
+  label: string;
+}
+
+export function GastoForm({
+  cuentas,
+  cuentasCajaBanco,
+  proveedores,
+  cuentaPorDefecto,
+  cuentaPagoPorDefecto,
+  fechaHoy,
+}: Props) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
 
@@ -44,10 +59,21 @@ export function GastoForm({ cuentas, proveedores, cuentaPorDefecto, fechaHoy }: 
   const [fecha, setFecha] = useState(fechaHoy);
   const [itbisTasa, setItbisTasa] = useState("0");
   const [cuentaId, setCuentaId] = useState(cuentaPorDefecto);
+  const [cuentaPagoId, setCuentaPagoId] = useState(cuentaPagoPorDefecto);
   const [proveedorId, setProveedorId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const proveedoresItems = proveedores.map((proveedor) => ({ value: proveedor.id, label: proveedor.nombre }));
+  const cuentasItems: OpcionCuenta[] = cuentas.map((cuenta) => ({
+    value: cuenta.id,
+    label: etiquetaCuenta(cuenta),
+  }));
+  const cuentasPagoItems: OpcionCuenta[] = cuentasCajaBanco.map((cuenta) => ({
+    value: cuenta.id,
+    label: etiquetaCuenta(cuenta),
+  }));
+  const cuentaSeleccionada = cuentasItems.find((item) => item.value === cuentaId) ?? null;
+  const cuentaPagoSeleccionada = cuentasPagoItems.find((item) => item.value === cuentaPagoId) ?? null;
   const subtotalCentavos = parsearCentavos(monto) ?? 0;
   const calculo = calcularLinea({
     cantidad: 1,
@@ -66,6 +92,10 @@ export function GastoForm({ cuentas, proveedores, cuentaPorDefecto, fechaHoy }: 
       setError("El monto debe ser mayor que cero.");
       return;
     }
+    if (!cuentaId) {
+      setError("Selecciona la cuenta de gasto.");
+      return;
+    }
 
     iniciar(async () => {
       const resultado = await crearGastoMenor({
@@ -73,7 +103,8 @@ export function GastoForm({ cuentas, proveedores, cuentaPorDefecto, fechaHoy }: 
         descripcion: descripcion.trim(),
         subtotal: centavosAValor(subtotalCentavos),
         itbis_tasa: Number(itbisTasa),
-        cuenta_gasto_id: cuentaId || undefined,
+        cuenta_gasto_id: cuentaId,
+        cuenta_pago_id: cuentaPagoId || undefined,
         contacto_id: proveedorId || undefined,
       });
 
@@ -127,6 +158,31 @@ export function GastoForm({ cuentas, proveedores, cuentaPorDefecto, fechaHoy }: 
             <Input id="fecha" type="date" required value={fecha} onChange={(evento) => setFecha(evento.target.value)} />
           </div>
 
+          <div className="flex flex-col gap-2 md:col-span-2">
+            <Label htmlFor="cuenta">Cuenta de gasto *</Label>
+            <Combobox
+              items={cuentasItems}
+              value={cuentaSeleccionada}
+              onValueChange={(item) => setCuentaId(item?.value ?? "")}
+              itemToStringLabel={(item) => item.label}
+              isItemEqualToValue={(a, b) => a.value === b.value}
+            >
+              <ComboboxInput id="cuenta" className="w-full" placeholder="Buscar cuenta…" showClear={false} />
+              <ComboboxContent>
+                <ComboboxEmpty>Sin resultados</ComboboxEmpty>
+                <ComboboxList>
+                  {(item: OpcionCuenta) => (
+                    <ComboboxItem key={item.value} value={item}>
+                      {item.label}
+                    </ComboboxItem>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
+          </div>
+
+          <p className="text-muted-foreground text-xs md:col-span-2">El comprobante B13 se asigna al guardar.</p>
+
           <div className="col-span-full">
             <Collapsible>
               <CollapsibleTrigger className="flex w-full items-center justify-between border-t py-2 text-sm font-medium">
@@ -135,6 +191,33 @@ export function GastoForm({ cuentas, proveedores, cuentaPorDefecto, fechaHoy }: 
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="grid gap-4 pt-2 md:grid-cols-2">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="cuenta-pago">Pagado desde</Label>
+                    <Combobox
+                      items={cuentasPagoItems}
+                      value={cuentaPagoSeleccionada}
+                      onValueChange={(item) => setCuentaPagoId(item?.value ?? "")}
+                      itemToStringLabel={(item) => item.label}
+                      isItemEqualToValue={(a, b) => a.value === b.value}
+                    >
+                      <ComboboxInput
+                        id="cuenta-pago"
+                        className="w-full"
+                        placeholder="Buscar cuenta…"
+                        showClear={false}
+                      />
+                      <ComboboxContent>
+                        <ComboboxEmpty>Sin resultados</ComboboxEmpty>
+                        <ComboboxList>
+                          {(item: OpcionCuenta) => (
+                            <ComboboxItem key={item.value} value={item}>
+                              {item.label}
+                            </ComboboxItem>
+                          )}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  </div>
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="itbis">ITBIS %</Label>
                     <NativeSelect
@@ -146,21 +229,6 @@ export function GastoForm({ cuentas, proveedores, cuentaPorDefecto, fechaHoy }: 
                       <NativeSelectOption value="0">0 %</NativeSelectOption>
                       <NativeSelectOption value="16">16 %</NativeSelectOption>
                       <NativeSelectOption value="18">18 %</NativeSelectOption>
-                    </NativeSelect>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="cuenta">Cuenta de gasto</Label>
-                    <NativeSelect
-                      id="cuenta"
-                      className="w-full"
-                      value={cuentaId}
-                      onChange={(evento) => setCuentaId(evento.target.value)}
-                    >
-                      {cuentas.map((cuenta) => (
-                        <NativeSelectOption key={cuenta.id} value={cuenta.id}>
-                          {cuenta.codigo} · {cuenta.nombre}
-                        </NativeSelectOption>
-                      ))}
                     </NativeSelect>
                   </div>
                   <div className="flex flex-col gap-2 md:col-span-2">
