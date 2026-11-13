@@ -22,10 +22,10 @@ jobs:
   db:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Instalar Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
 
       # SOLO base local: `start`/`test`/`gen --local` jamás tocan el proyecto
       # real. Prohibido `--linked`, `--db-url` o credenciales de producción aquí.
