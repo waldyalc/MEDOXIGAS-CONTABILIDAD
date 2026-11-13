@@ -1,8 +1,8 @@
-import Link from "next/link";
-
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { etiquetaTramo, type FilaEstadoCuenta, type TotalesEstadoCuenta } from "@/lib/contactos/estado-cuenta";
+import { rutaFactura } from "@/lib/enlaces";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
@@ -39,14 +39,10 @@ export function TablaEstadoCuenta({
           filas.map((fila) => (
             <TableRow key={fila.id}>
               <TableCell className="font-medium">
-                <Link
-                  href={`/dashboard/facturacion/${fila.id}`}
-                  prefetch={false}
-                  className="flex flex-col hover:underline"
-                >
+                <Enlace href={rutaFactura(fila.id)} className="flex flex-col">
                   <span>#{fila.numero}</span>
                   <span className="text-muted-foreground font-mono text-xs">{fila.ncf ?? "—"}</span>
-                </Link>
+                </Enlace>
               </TableCell>
               <TableCell>{formatoDia(fila.fecha)}</TableCell>
               <TableCell>{formatoDia(fila.vencimiento)}</TableCell>

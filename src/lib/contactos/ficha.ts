@@ -1,3 +1,5 @@
+import { rutaPagoProveedor, rutaPagoRecibido } from "@/lib/enlaces";
+
 import type { ContactoTipo } from "./contactos";
 
 export interface ContactoFicha {
@@ -143,7 +145,7 @@ export function construirTransacciones(
       estado: pago.estado,
       egresosCentavos: 0,
       ingresosCentavos: aCentavos(pago.monto),
-      href: `/dashboard/pagos-recibidos/${pago.id}`,
+      href: rutaPagoRecibido(pago.id),
     })),
     ...proveedores.map((pago) => ({
       clave: `proveedor-${pago.id}`,
@@ -153,7 +155,7 @@ export function construirTransacciones(
       estado: pago.estado,
       egresosCentavos: aCentavos(pago.monto),
       ingresosCentavos: 0,
-      href: `/dashboard/compras/pagos/${pago.id}`,
+      href: rutaPagoProveedor(pago.id),
     })),
   ];
 
