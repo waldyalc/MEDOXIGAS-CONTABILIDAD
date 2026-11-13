@@ -5,7 +5,17 @@ import type { Rol } from "@/lib/auth/rol";
 import { filtrarItemsPorRol, sidebarItems } from "./sidebar-items";
 
 const ROLES: Rol[] = ["admin", "contador", "lector"];
-const MODULOS = ["inicio", "ingresos", "compras", "contactos", "productos", "contabilidad", "bancos", "reportes"];
+const MODULOS = [
+  "inicio",
+  "ingresos",
+  "compras",
+  "contactos",
+  "productos",
+  "inventario",
+  "contabilidad",
+  "bancos",
+  "reportes",
+];
 
 function ids(rol: Rol | null) {
   return filtrarItemsPorRol(rol).flatMap((grupo) => grupo.items.map((item) => item.id));
@@ -41,7 +51,7 @@ describe("filtrarItemsPorRol", () => {
     expect(reportes.url).toBe("/dashboard/reportes");
   });
 
-  test("Ingresos, Compras y Contabilidad agrupan sus submenús", () => {
+  test("Ingresos, Compras, Inventario y Contabilidad agrupan sus submenús", () => {
     const ingresos = items("admin").find((item) => item.id === "ingresos");
     if (ingresos?.subItems == null) throw new Error("Ingresos debe tener submenú");
     expect(ingresos.subItems.map((sub) => sub.url)).toEqual([
@@ -58,6 +68,14 @@ describe("filtrarItemsPorRol", () => {
       "/dashboard/compras",
       "/dashboard/compras/pagos",
       "/dashboard/gastos",
+    ]);
+
+    const inventario = items("admin").find((item) => item.id === "inventario");
+    if (inventario?.subItems == null) throw new Error("Inventario debe tener submenú");
+    expect(inventario.subItems.map((sub) => sub.url)).toEqual([
+      "/dashboard/inventario/ajustes",
+      "/dashboard/inventario/almacenes",
+      "/dashboard/inventario/categorias",
     ]);
 
     const contabilidad = items("admin").find((item) => item.id === "contabilidad");
