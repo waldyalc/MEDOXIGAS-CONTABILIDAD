@@ -1,17 +1,12 @@
 import { z } from "zod";
 
+import type { CuentaEditable } from "@/lib/contabilidad/validacion";
 import { valorACentavos } from "@/lib/facturacion/calculo";
 import { createClient } from "@/lib/supabase/server";
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
 
-export interface CuentaCabecera {
-  id: string;
-  codigo: string;
-  nombre: string;
-  tipo: string;
-  naturaleza: string;
-}
+export type CuentaCabecera = CuentaEditable;
 
 interface LineaFila {
   id: string;
@@ -48,6 +43,7 @@ export interface MovimientoCuenta {
 export interface DetalleCuenta {
   cuenta: CuentaCabecera;
   movimientos: MovimientoCuenta[];
+  tieneMovimientos: boolean;
   saldoCentavos: number;
   totalDebitoCentavos: number;
   totalCreditoCentavos: number;
@@ -89,7 +85,7 @@ export async function obtenerCuentaDetalle(id: string, desde?: string, hasta?: s
   const cliente = await createClient();
   const { data: cuenta, error } = await cliente
     .from("cuentas")
-    .select("id, codigo, nombre, tipo, naturaleza")
+    .select("id, codigo, nombre, tipo, naturaleza, padre_id, acepta_movimientos, es_caja_banco, activa")
     .eq("id", id)
     .maybeSingle()
     .returns<CuentaCabecera | null>();
@@ -128,7 +124,7 @@ export async function obtenerCuentaDetalle(id: string, desde?: string, hasta?: s
 
   const resultado = calcularMovimientos(ordenadas, contactos, cuenta.naturaleza === "credito", desde, hasta);
 
-  return { cuenta, ...resultado };
+  return { cuenta, tieneMovimientos: filas.length > 0, ...resultado };
 }
 
 function calcularMovimientos(
