@@ -254,6 +254,15 @@ html {
     margin: 12mm;
   }
 
+  @page documento-venta {
+    size: letter;
+    margin: 0;
+  }
+
+  .documento-papel {
+    page: documento-venta;
+  }
+
   html,
   body {
     width: auto !important;

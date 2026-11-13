@@ -21,6 +21,7 @@
 - Atajos y etiquetas en `src/lib/fechas/rangos.ts`, puros y con Vitest (cambio de año, trimestres, febrero). La semana empieza el lunes y las fechas van en `America/Santo_Domingo`; `hoyRd` de reportes ahora reexporta `hoyEnRd`.
 - Las fechas siguen en la URL (`?desde=&hasta=`; `hasta`/`corte` en los reportes de corte). Migrados todos los reportes con fechas: se borraron `filtro-fechas.tsx`, `libros/campos-fecha.tsx` y todos los `input type="date"` de `reportes/**`. Reporte anual conserva su selector de año (no es un rango).
 - Sin migración ni cambios de datos. `typecheck`, `test` (501), Biome y `build` en verde.
+
 ## Bancos: fichas, transferencias y conciliaciones (14 nov 2026)
 
 - Lista de bancos con Nombre, Tipo, Número, Saldo y Conciliación (última
@@ -64,9 +65,15 @@
 - El logo se sube desde el navegador a Storage y el PDF/encabezado ya usan `empresa.logo_url`, RNC, dirección, teléfono y correo con campos vacíos ocultos.
 - pgTAP en `supabase/tests/configuracion_test.sql`; tipos añadidos a mano en `src/lib/supabase/types.ts`. `typecheck`, Biome y Vitest en verde.
 
+## PDF de factura, cotización y conduce con el diseño de Alegra (13 nov 2026)
+
+- Nuevo `src/components/documento-venta/documento-papel.tsx`: un solo papel para los tres documentos, tomado de `docs/alegra/capturas/05-factura-B01.pdf`, `05-factura-B02.pdf`, `07-cotizacion.pdf` y `07-remision.pdf`. Carta, márgenes de 16 pt (28 pt arriba), Inter y logo a 50 pt; encabezado con logo, empresa, RNC, dirección, teléfono y correo (oculta lo vacío), título/NCF a la derecha, cliente, tabla con las mismas columnas, monto en letras, totales y pie. Cotización y conduce conservan su orden, totales y firmas.
+- El menú ⋮ agrega «Descargar PDF» (abre la impresión con el nombre sugerido `factura-<NCF>`, `cotizacion-<n>` o `conduce-<n>`) e «Imprimir». Se usa el mismo papel HTML/CSS, no `@react-pdf`; el `@page documento-venta` de `src/app/globals.css` aísla tamaño y márgenes.
+- Se borraron `facturacion/[id]/_components/factura-papel.tsx` y `cotizaciones/_components/documento-papel.tsx`. Formato puro en `papel.ts` con `papel.test.ts` (6). `typecheck`, Biome, `test` (474) y `build` en verde.
+
 ## Vista de documento de venta compartida (13 nov 2026)
 
-- Nuevo `src/components/documento-venta/vista-documento-venta.tsx` + `vista.ts`: factura, cotización y conduce comparten la vista de tarjetas (máx. 1040 px, fondo gris, 24 px entre tarjetas), con el orden de la guía de Alegra. Solo cambia la pantalla: la impresión/PDF sigue con `FacturaPapel` y `DocumentoPapel` en el portal `data-print-root`.
+- Nuevo `src/components/documento-venta/vista-documento-venta.tsx` + `vista.ts`: factura, cotización y conduce comparten la vista de tarjetas (máx. 1040 px, fondo gris, 24 px entre tarjetas), con el orden de la guía de Alegra. Solo cambia la pantalla: la impresión/PDF usa el `DocumentoPapel` compartido en el portal `data-print-root`.
 - Factura: resumen de 4 cifras, acciones en íconos de 40×40 y menú ⋮ (notas de crédito/débito, imprimir copia y anular en rojo), tabla de productos y pestañas Pagos / Notas crédito / Notas débito / Contabilidad. `getFacturaVista` ahora trae las notas de crédito y débito de la factura.
 - Cotización y conduce: «Editar» queda deshabilitado porque todavía no existe pantalla de edición; «Convertir» abre el diálogo existente para factura. La pestaña Facturas muestra la factura relacionada o el vacío con «Convertir en factura». No hay relación cotización↔conduce en la base, así que esa pestaña no se muestra; clonar y descargar PDF no existen y quedaron fuera.
 - Se eliminaron `vista-factura.tsx`, `vista-documento.tsx` (cotizaciones) y el `asiento-contable.tsx` de la ruta; el asiento vive ahora en la pestaña Contabilidad. Tests nuevos en `vista.test.ts` (14). `typecheck`, Biome, `test` (468) y `build` en verde.
@@ -111,7 +118,6 @@
 - El motor de código pasó a **T3 Code en la PC de Waldy** (Windows, MSI), modelo `opencode-go/deepseek-v4.1-flash` variante `max`. Ya no se programa con OpenCode en el box. Waldy habla solo con Coder; Coder lanza y revisa las sesiones.
 - Hecho: rama `feat/fac-ajustes` (logo más grande, `RD$`/`%` dentro del input, `Select` en vez de lista nativa, calendario al estilo de las medidas de `docs/alegra/css-factura/GUIA-CALENDARIO.md`). Ya está en `prueba`.
 - Se agregó a `docs/alegra/` la guía de calendario y las capturas `calendario-*.png` (sin el HTML/CSS original de Alegra).
-
 
 ## Diseño del formulario de factura (13 nov 2026)
 

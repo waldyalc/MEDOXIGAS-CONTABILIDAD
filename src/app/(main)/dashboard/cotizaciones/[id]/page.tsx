@@ -1,10 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 
+import { DocumentoPapel } from "@/components/documento-venta/documento-papel";
 import { VistaDocumentoVenta } from "@/components/documento-venta/vista-documento-venta";
 import { getPerfil } from "@/lib/auth/rol";
 import { getDocumentoVista } from "@/lib/cotizaciones/consultas";
-
-import { DocumentoPapel } from "../_components/documento-papel";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const perfil = await getPerfil();

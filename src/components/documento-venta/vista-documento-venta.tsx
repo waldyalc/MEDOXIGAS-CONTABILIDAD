@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   Ban,
   ChevronDown,
+  Download,
   FileMinus,
   FilePlus2,
   FileText,
@@ -83,6 +84,7 @@ import type {
 import { formatoDia } from "@/lib/formato";
 
 import { AsientoContable } from "./asiento-contable";
+import { nombreArchivoPapel } from "./papel";
 import {
   descuentoDeLineas,
   estadoDeDocumento,
@@ -603,6 +605,7 @@ interface MenuAccionesProps {
   puedeNotaDebito: boolean;
   puedeAnular: boolean;
   onNavegar: (ruta: string) => void;
+  onDescargarPdf: () => void;
   onImprimir: () => void;
   onAnular: () => void;
 }
@@ -645,9 +648,14 @@ function MenuAcciones(props: MenuAccionesProps) {
         </>
       ) : null}
 
+      <DropdownMenuItem className="px-4 py-2" onClick={props.onDescargarPdf}>
+        <Download />
+        Descargar PDF
+      </DropdownMenuItem>
+
       <DropdownMenuItem className="px-4 py-2" onClick={props.onImprimir}>
         <Printer />
-        Imprimir copia
+        Imprimir
       </DropdownMenuItem>
 
       {props.puedeAnular ? (
@@ -690,6 +698,7 @@ function AccionesDocumento(props: AccionesDocumentoProps) {
             puedeNotaDebito={props.puedeNotaDebito}
             puedeAnular={props.puedeAnular}
             onNavegar={props.onNavegar}
+            onDescargarPdf={props.onDescargarPdf}
             onImprimir={props.onImprimir}
             onAnular={props.onAnular}
           />
@@ -1036,6 +1045,7 @@ interface VistaPreparada {
   permisos: ReturnType<typeof permisosDeFactura>;
   titulo: string;
   numeroDocumento: string;
+  nombreArchivo: string;
   rutaVolver: string;
   etiquetaVolver: string;
   tituloInformacion: string;
@@ -1091,6 +1101,7 @@ function prepararVista(props: Props): VistaPreparada | null {
       ? `${tituloTipoComprobante(factura.tipo_comprobante)}${factura.ncf ? ` NCF ${factura.ncf}` : ""}`
       : `${TITULOS_DOCUMENTO[tipo]} ${base.numero}`,
     numeroDocumento: factura ? (factura.ncf ?? String(factura.numero)) : String(base.numero),
+    nombreArchivo: nombreArchivoPapel(tipo, base.numero, factura?.ncf ?? null),
     rutaVolver: RUTAS_VOLVER[tipo],
     etiquetaVolver: ETIQUETAS_VOLVER[tipo],
     tituloInformacion: TITULOS_INFORMACION[tipo],
@@ -1102,11 +1113,13 @@ function useAccionesVista({
   documento,
   factura,
   titulo,
+  nombreArchivo,
 }: {
   tipo: TipoVistaDocumento;
   documento: DocumentoDetalle | null;
   factura: FacturaDetalle | null;
   titulo: string;
+  nombreArchivo: string;
 }) {
   const router = useRouter();
   const [convertirAbierto, setConvertirAbierto] = useState(false);
@@ -1117,6 +1130,16 @@ function useAccionesVista({
 
   function imprimir() {
     window.print();
+  }
+
+  function descargarPdf() {
+    const tituloAnterior = document.title;
+    document.title = nombreArchivo;
+    try {
+      window.print();
+    } finally {
+      document.title = tituloAnterior;
+    }
   }
 
   function navegar(ruta: string) {
@@ -1198,6 +1221,7 @@ function useAccionesVista({
     error,
     pendiente,
     imprimir,
+    descargarPdf,
     navegar,
     compartir,
     abrirConvertir,
@@ -1215,6 +1239,7 @@ export function VistaDocumentoVenta(props: Props) {
     documento: preparado?.documento ?? null,
     factura: preparado?.factura ?? null,
     titulo: preparado?.titulo ?? "",
+    nombreArchivo: preparado?.nombreArchivo ?? "documento",
   });
   const papel = props.papel;
 
@@ -1243,6 +1268,7 @@ export function VistaDocumentoVenta(props: Props) {
               puedeConvertir={preparado.permisos.convertir}
               pendiente={acciones.pendiente}
               onNavegar={acciones.navegar}
+              onDescargarPdf={acciones.descargarPdf}
               onImprimir={acciones.imprimir}
               onCompartir={() => void acciones.compartir()}
               onAbrirConvertir={acciones.abrirConvertir}

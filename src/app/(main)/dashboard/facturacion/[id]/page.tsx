@@ -1,10 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 
+import { DocumentoPapel } from "@/components/documento-venta/documento-papel";
 import { VistaDocumentoVenta } from "@/components/documento-venta/vista-documento-venta";
 import { getPerfil } from "@/lib/auth/rol";
 import { getFacturaVista } from "@/lib/facturacion/consultas";
-
-import { FacturaPapel } from "./_components/factura-papel";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const perfil = await getPerfil();
@@ -20,7 +19,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       datos={datos}
       puedeEscribir={perfil.rol !== "lector"}
       papel={
-        <FacturaPapel
+        <DocumentoPapel
+          tipo="factura"
           empresa={datos.empresa}
           factura={datos.factura}
           lineas={datos.lineas}
