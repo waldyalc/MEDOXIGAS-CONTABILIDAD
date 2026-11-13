@@ -20,7 +20,9 @@ Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y O
 
 ## Módulos (menú lateral)
 
-Inicio (hecho). Próximos, en este orden: Clientes y Productos → Facturación con comprobantes fiscales → Cuentas por cobrar → Gastos → Bancos → Reportes. Cada módulo: `docs/dominio-<modulo>.md` primero, luego migración + RLS + pgTAP, luego pantalla.
+Hechos en la beta 1: Inicio, Contactos, Productos, Facturación, Pagos recibidos, Compras (facturas y pagos a proveedores), Gastos menores, Contabilidad y Reportes. El motor contable se resume en `docs/motor-contable.md`; tablas y RPC en `supabase/AGENTS.md`.
+
+Próximos: datos de la empresa (RNC, dirección, logo), numeraciones B14/B15/B16, e-CF/DGII (606/607), Bancos y notas de crédito. Cada módulo nuevo: `docs/dominio-<modulo>.md` primero, luego migración + RLS + pgTAP, luego pantalla.
 
 ## Comandos (verificados, copy-paste)
 
