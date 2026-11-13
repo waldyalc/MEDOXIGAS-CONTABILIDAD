@@ -1,6 +1,13 @@
 import { describe, expect, test } from "vitest";
 
-import { filtrarPorNumero, precioConItbis, saldoCentavos, sumarCantidades } from "./ficha";
+import {
+  type CuentaResumen,
+  filtrarPorNumero,
+  precioConItbis,
+  resolverCuentasFicha,
+  saldoCentavos,
+  sumarCantidades,
+} from "./ficha";
 
 describe("precioConItbis", () => {
   test("calcula el precio con ITBIS en centavos", () => {
@@ -23,6 +30,83 @@ describe("sumarCantidades", () => {
     expect(sumarCantidades([0.1, 0.2])).toBe(0.3);
     expect(sumarCantidades([2, 3.5])).toBe(5.5);
     expect(sumarCantidades([])).toBe(0);
+  });
+});
+
+describe("resolverCuentasFicha", () => {
+  const cuentas = new Map<string, CuentaResumen>([
+    ["propia", { id: "propia", codigo: "4105", nombre: "Ingresos propios" }],
+    ["ventas", { id: "ventas", codigo: "4101", nombre: "Ventas" }],
+    ["ventas_servicios", { id: "ventas_servicios", codigo: "4102", nombre: "Ventas de servicios" }],
+    ["inventario", { id: "inventario", codigo: "1104", nombre: "Inventario de mercancía" }],
+    ["costo_ventas", { id: "costo_ventas", codigo: "5101", nombre: "Costo de ventas" }],
+  ]);
+  const configuracion = new Map([
+    ["ventas", "ventas"],
+    ["ventas_servicios", "ventas_servicios"],
+    ["inventario", "inventario"],
+    ["costo_ventas", "costo_ventas"],
+  ]);
+  const sinCuentasPropias = {
+    cuentaIngresoId: null,
+    cuentaInventarioId: null,
+    cuentaCostoId: null,
+  };
+
+  test("usa la cuenta propia cuando está definida", () => {
+    const resultado = resolverCuentasFicha(
+      { tipo: "producto", inventariable: true, ...sinCuentasPropias, cuentaIngresoId: "propia" },
+      configuracion,
+      cuentas,
+    );
+
+    expect(resultado.ingreso?.cuenta.id).toBe("propia");
+    expect(resultado.ingreso?.porDefecto).toBe(false);
+  });
+
+  test("producto inventariable usa las cuentas por defecto", () => {
+    const resultado = resolverCuentasFicha(
+      { tipo: "producto", inventariable: true, ...sinCuentasPropias },
+      configuracion,
+      cuentas,
+    );
+
+    expect(resultado.ingreso?.cuenta.id).toBe("ventas");
+    expect(resultado.inventario?.cuenta.id).toBe("inventario");
+    expect(resultado.costo?.cuenta.id).toBe("costo_ventas");
+    expect(resultado.ingreso?.porDefecto).toBe(true);
+  });
+
+  test("servicio usa ventas de servicios y no inventario", () => {
+    const resultado = resolverCuentasFicha(
+      { tipo: "servicio", inventariable: false, ...sinCuentasPropias },
+      configuracion,
+      cuentas,
+    );
+
+    expect(resultado.ingreso?.cuenta.id).toBe("ventas_servicios");
+    expect(resultado.inventario).toBeNull();
+    expect(resultado.costo?.cuenta.id).toBe("costo_ventas");
+  });
+
+  test("producto no inventariable no cae en inventario", () => {
+    const resultado = resolverCuentasFicha(
+      { tipo: "producto", inventariable: false, ...sinCuentasPropias },
+      configuracion,
+      cuentas,
+    );
+
+    expect(resultado.inventario).toBeNull();
+  });
+
+  test("sin cuenta configurada devuelve null", () => {
+    const resultado = resolverCuentasFicha(
+      { tipo: "producto", inventariable: true, ...sinCuentasPropias },
+      new Map(),
+      cuentas,
+    );
+
+    expect(resultado.ingreso).toBeNull();
   });
 });
 

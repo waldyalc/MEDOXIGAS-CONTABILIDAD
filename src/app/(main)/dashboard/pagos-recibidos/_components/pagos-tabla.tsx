@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Plus } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -57,21 +58,17 @@ export function PagosTabla({ pagos, puedeEscribir }: { pagos: PagoLista[]; puede
               pagos.map((pago) => (
                 <TableRow key={pago.id}>
                   <TableCell className="font-medium">
-                    <Link className="hover:underline" href={rutaPagoRecibido(pago.id)}>
-                      {pago.numero}
-                    </Link>
+                    <Enlace href={rutaPagoRecibido(pago.id)}>{pago.numero}</Enlace>
                   </TableCell>
                   <TableCell>{formatoDia(pago.fecha)}</TableCell>
                   <TableCell>
-                    <Link className="hover:underline" href={rutaContacto(pago.contacto_id)}>
-                      {pago.cliente_nombre}
-                    </Link>
+                    <Enlace href={rutaContacto(pago.contacto_id)}>{pago.cliente_nombre}</Enlace>
                   </TableCell>
                   <TableCell>
                     {pago.factura_id ? (
-                      <Link className="hover:underline" href={rutaFactura(pago.factura_id)}>
+                      <Enlace href={rutaFactura(pago.factura_id)}>
                         #{pago.factura_numero} {pago.factura_ncf ? `· ${pago.factura_ncf}` : ""}
-                      </Link>
+                      </Enlace>
                     ) : (
                       "—"
                     )}
