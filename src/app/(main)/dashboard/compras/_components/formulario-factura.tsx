@@ -21,6 +21,7 @@ import { esquemaFacturaProveedor } from "@/lib/compras/esquema";
 import { hoyEnRd } from "@/lib/compras/fechas";
 import { formatoMoneda } from "@/lib/compras/formato";
 import type { OpcionesFactura } from "@/lib/compras/tipos";
+import type { InicialFacturaDesdeOrden } from "@/lib/ordenes-compra/tipos";
 
 import { ComboboxCampo, type OpcionCombobox } from "./combobox-campo";
 
@@ -53,14 +54,36 @@ function nuevaLinea(): LineaFormulario {
   };
 }
 
-export function FormularioFactura({ contactos, productos, cuentasGasto }: OpcionesFactura) {
+function lineaDesdeInicial(linea: InicialFacturaDesdeOrden["lineas"][number]): LineaFormulario {
+  contadorLineas += 1;
+  return {
+    id: `linea-${contadorLineas}`,
+    modo: linea.producto_id ? "producto" : "gasto",
+    productoId: linea.producto_id,
+    cuentaId: linea.cuenta_id,
+    descripcion: linea.descripcion,
+    cantidad: String(linea.cantidad),
+    costo: String(linea.costo),
+    itbisTasa: String(linea.itbis_tasa),
+  };
+}
+
+interface Props extends OpcionesFactura {
+  inicial?: InicialFacturaDesdeOrden;
+  ordenId?: string;
+  numeroOrden?: number;
+}
+
+export function FormularioFactura({ contactos, productos, cuentasGasto, inicial, ordenId, numeroOrden }: Props) {
   const hoy = hoyEnRd();
-  const [proveedorId, setProveedorId] = useState("");
-  const [fecha, setFecha] = useState(hoy);
-  const [vencimiento, setVencimiento] = useState(hoy);
-  const [ncf, setNcf] = useState("");
-  const [notas, setNotas] = useState("");
-  const [lineas, setLineas] = useState<LineaFormulario[]>([nuevaLinea()]);
+  const [proveedorId, setProveedorId] = useState(inicial?.contacto_id ?? "");
+  const [fecha, setFecha] = useState(inicial?.fecha ?? hoy);
+  const [vencimiento, setVencimiento] = useState(inicial?.vencimiento ?? hoy);
+  const [ncf, setNcf] = useState(inicial?.ncf ?? "");
+  const [notas, setNotas] = useState(inicial?.notas ?? "");
+  const [lineas, setLineas] = useState<LineaFormulario[]>(() =>
+    inicial && inicial.lineas.length > 0 ? inicial.lineas.map(lineaDesdeInicial) : [nuevaLinea()],
+  );
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
 
@@ -163,7 +186,7 @@ export function FormularioFactura({ contactos, productos, cuentasGasto }: Opcion
     }
 
     iniciar(async () => {
-      const resultado = await crearFacturaProveedor(entrada);
+      const resultado = await crearFacturaProveedor(entrada, ordenId);
       if (!resultado.ok) setError(resultado.error);
     });
   }
@@ -192,6 +215,14 @@ export function FormularioFactura({ contactos, productos, cuentasGasto }: Opcion
           </Button>
         </div>
       </div>
+
+      {numeroOrden ? (
+        <Alert>
+          <AlertDescription>
+            Datos tomados de la orden de compra #{numeroOrden}. Al guardar, la orden queda convertida.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {error ? (
         <Alert variant="destructive">
