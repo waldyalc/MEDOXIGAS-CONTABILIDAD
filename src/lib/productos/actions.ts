@@ -29,6 +29,7 @@ function datosDesdeFormulario(formData: FormData) {
     inventariable: booleano(formData, "inventariable"),
     cantidad: texto(formData, "cantidad") || "0",
     costo: texto(formData, "costo") || "0",
+    categoria_id: texto(formData, "categoria_id"),
   };
 }
 

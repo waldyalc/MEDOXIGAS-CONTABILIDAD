@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export type ProductoTipo = "producto" | "servicio";
 
+export const SIN_CATEGORIA = "__sin_categoria__";
+
 export interface Producto {
   id: string;
   nombre: string;
@@ -13,6 +15,7 @@ export interface Producto {
   inventariable: boolean;
   cantidad: number;
   costo: number;
+  categoria_id: string | null;
 }
 
 export const TASAS_ITBIS: { valor: number; etiqueta: string }[] = [
@@ -148,6 +151,14 @@ export const esquemaProducto = z
     inventariable: z.boolean().default(false),
     cantidad: z.coerce.number().min(0, "La cantidad no puede ser negativa").default(0),
     costo: z.coerce.number().min(0, "El costo no puede ser negativo").default(0),
+    categoria_id: z
+      .string()
+      .nullish()
+      .transform((valor) => {
+        const texto = textoOpcional(valor);
+        return texto === SIN_CATEGORIA ? null : texto;
+      })
+      .refine((valor) => valor === null || z.uuid().safeParse(valor).success, "La categoría no es válida"),
   })
   .transform((datos) => {
     const inventariable = datos.tipo === "servicio" ? false : datos.inventariable;
@@ -161,6 +172,7 @@ export const esquemaProducto = z
       inventariable,
       cantidad: inventariable ? datos.cantidad : 0,
       costo: inventariable ? datos.costo : 0,
+      categoria_id: datos.categoria_id,
     };
   });
 
