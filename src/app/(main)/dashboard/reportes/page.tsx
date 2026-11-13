@@ -42,6 +42,8 @@ const ENLACES_FISCALES: Record<string, string> = {
   "Reporte IT1": "/dashboard/reportes/it1",
   "Reporte detallado de impuestos": "/dashboard/reportes/impuestos-detallados",
   "Impuestos y retenciones": "/dashboard/reportes/impuestos-retenciones",
+  "Reporte IR-17": "/dashboard/reportes/ir-17",
+  "Cartas de retención": "/dashboard/reportes/cartas-retencion",
   "Exportar facturas": "/dashboard/reportes/exportar-contador",
   "Informe contador": "/dashboard/reportes/exportar-contador",
 };
