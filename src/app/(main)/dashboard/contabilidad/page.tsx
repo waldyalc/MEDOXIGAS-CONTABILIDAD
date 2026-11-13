@@ -8,10 +8,13 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getRol } from "@/lib/auth/rol";
 import { rutaCuenta } from "@/lib/enlaces";
 import { obtenerCatalogoContable } from "@/lib/reportes/consultas";
 import { construirArbolCuentas, type NodoCuenta } from "@/lib/reportes/contabilidad";
 import { formatearRd } from "@/lib/reportes/dinero";
+
+import { NuevaCuenta } from "./_components/cuenta-formulario";
 
 const CONFIGURACION_CONTABLE = [
   { clave: "caja", etiqueta: "Caja" },
@@ -70,18 +73,22 @@ function FilasCuenta({ nodos, nivel }: { nodos: readonly NodoCuenta[]; nivel: nu
 }
 
 export default async function Page() {
-  const { cuentas, configuracion, saldos, error } = await obtenerCatalogoContable();
+  const [{ cuentas, configuracion, saldos, error }, rol] = await Promise.all([obtenerCatalogoContable(), getRol()]);
   const arbol = construirArbolCuentas(cuentas, saldos);
   const cuentasPorId = new Map(cuentas.map((cuenta) => [cuenta.id, cuenta]));
   const configuracionPorClave = new Map(configuracion.map((fila) => [fila.clave, fila]));
+  const puedeEditar = rol === "admin" || rol === "contador";
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl tracking-tight">Contabilidad</h1>
-        <p className="text-muted-foreground text-balance">
-          Catálogo de cuentas y configuración contable del motor. Las cuentas las usa automáticamente cada documento.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl tracking-tight">Contabilidad</h1>
+          <p className="text-muted-foreground text-balance">
+            Catálogo de cuentas y configuración contable del motor. Las cuentas las usa automáticamente cada documento.
+          </p>
+        </div>
+        {puedeEditar ? <NuevaCuenta cuentas={cuentas} /> : null}
       </div>
 
       {error ? (
