@@ -1,5 +1,24 @@
 # Handoff — Medoxigas Contabilidad
 
+## Inventario: ajustes, almacenes y categorías (14 nov 2026)
+
+- Nuevo módulo `/dashboard/inventario`: Ajustes de inventario (lista, nuevo y
+  detalle), Almacenes (con «Principal» sembrado) y Categorías de productos.
+- Ajustes: entrada o salida por producto con su costo. La entrada recalcula el
+  costo promedio ponderado y la salida usa el costo indicado. Asiento automático
+  `ajuste_inventario`: entrada Dr 1104 Inventario / Cr 5102 Ajustes de
+  inventario; salida al revés. Cuenta 5102 y `config_contable.ajuste_inventario`
+  se siembran con `ON CONFLICT DO NOTHING`.
+- Producto: campo opcional «Categoría» en «Más opciones». `crear_producto` y
+  `actualizar_producto` aceptan `categoria_id`.
+- Migración `20261114500000_inventario.sql` (NO aplicada al remoto; la revisa
+  Coder). pgTAP `supabase/tests/inventario_test.sql` (26 asserts). Tipos de las
+  tablas nuevas a mano en `types.ts`. No se pudieron correr los pgTAP en local
+  (no hay Supabase CLI ni Docker en este equipo).
+- Pendiente: transferencias entre almacenes, anulación de ajustes y stock por
+  almacén (hoy la existencia sigue global en `productos`).
+- Limpieza: se borró `cotizaciones/_components/documento-form.tsx` (sin uso).
+
 ## Plantilla única de documento de venta (13 nov 2026)
 
 - Nuevo `src/components/documento-venta/` (`documento-venta-form.tsx` + `calculo.ts`): la tarjeta del formulario de factura (logo, empresa, ajustes, cliente/fechas, líneas, totales y «Más opciones») ahora es compartida. Por props define título, comprobante/NCF o numeración simple, vencimiento, pago recibido, notas/términos/pie, textos de botones, rutas y la server action.

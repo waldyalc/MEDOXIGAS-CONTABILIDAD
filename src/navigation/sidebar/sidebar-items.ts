@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Boxes,
   ChartColumn,
   Contact,
   House,
@@ -159,6 +160,29 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/productos",
         icon: Package,
         roles: TODOS_LOS_ROLES,
+      },
+      {
+        id: "inventario",
+        title: "Inventario",
+        icon: Boxes,
+        roles: TODOS_LOS_ROLES,
+        subItems: [
+          {
+            id: "ajustes-inventario",
+            title: "Ajustes de inventario",
+            url: "/dashboard/inventario/ajustes",
+          },
+          {
+            id: "almacenes",
+            title: "Almacenes",
+            url: "/dashboard/inventario/almacenes",
+          },
+          {
+            id: "categorias-productos",
+            title: "Categorías",
+            url: "/dashboard/inventario/categorias",
+          },
+        ],
       },
       {
         id: "contabilidad",

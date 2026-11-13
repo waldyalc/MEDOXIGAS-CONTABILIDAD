@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 
 import type { Producto } from "./productos";
 
-const CAMPOS = "id, nombre, tipo, referencia, descripcion, precio, itbis_tasa, inventariable, cantidad, costo";
+const CAMPOS =
+  "id, nombre, tipo, referencia, descripcion, precio, itbis_tasa, inventariable, cantidad, costo, categoria_id";
 
 export async function listarProductos(): Promise<Producto[]> {
   const supabase = await createClient();

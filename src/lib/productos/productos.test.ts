@@ -23,6 +23,7 @@ function producto(parcial: Partial<Producto> & Pick<Producto, "id" | "nombre">):
     inventariable: false,
     cantidad: 0,
     costo: 0,
+    categoria_id: null,
     ...parcial,
   };
 }
@@ -177,7 +178,28 @@ describe("validación del formulario de producto", () => {
         inventariable: false,
         cantidad: 0,
         costo: 0,
+        categoria_id: null,
       });
+    }
+  });
+
+  test("la categoría es opcional y el centinela significa sin categoría", () => {
+    const sinCategoria = esquemaProducto.safeParse({
+      nombre: "Cilindro",
+      precio: "10",
+      categoria_id: "__sin_categoria__",
+    });
+    expect(sinCategoria.success).toBe(true);
+    if (sinCategoria.success) expect(sinCategoria.data.categoria_id).toBeNull();
+
+    const conCategoria = esquemaProducto.safeParse({
+      nombre: "Cilindro",
+      precio: "10",
+      categoria_id: "11111111-1111-4111-8111-111111111111",
+    });
+    expect(conCategoria.success).toBe(true);
+    if (conCategoria.success) {
+      expect(conCategoria.data.categoria_id).toBe("11111111-1111-4111-8111-111111111111");
     }
   });
 });

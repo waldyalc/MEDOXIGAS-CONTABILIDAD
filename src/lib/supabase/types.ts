@@ -158,6 +158,126 @@ export type Database = {
           },
         ]
       }
+      ajuste_inventario_lineas: {
+        Row: {
+          ajuste_id: string
+          cantidad: number
+          costo_unitario: number
+          id: string
+          producto_id: string
+          tipo: string
+          total: number
+        }
+        Insert: {
+          ajuste_id: string
+          cantidad: number
+          costo_unitario?: number
+          id?: string
+          producto_id: string
+          tipo: string
+          total?: number
+        }
+        Update: {
+          ajuste_id?: string
+          cantidad?: number
+          costo_unitario?: number
+          id?: string
+          producto_id?: string
+          tipo?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ajuste_inventario_lineas_ajuste_id_fkey"
+            columns: ["ajuste_id"]
+            isOneToOne: false
+            referencedRelation: "ajustes_inventario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ajuste_inventario_lineas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ajustes_inventario: {
+        Row: {
+          almacen_id: string
+          asiento_id: string | null
+          creado_en: string
+          creado_por: string | null
+          fecha: string
+          id: string
+          numero: number
+          observaciones: string | null
+          total: number
+        }
+        Insert: {
+          almacen_id: string
+          asiento_id?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          fecha?: string
+          id?: string
+          numero?: number
+          observaciones?: string | null
+          total?: number
+        }
+        Update: {
+          almacen_id?: string
+          asiento_id?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          fecha?: string
+          id?: string
+          numero?: number
+          observaciones?: string | null
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ajustes_inventario_almacen_id_fkey"
+            columns: ["almacen_id"]
+            isOneToOne: false
+            referencedRelation: "almacenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ajustes_inventario_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      almacenes: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          es_principal: boolean
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          es_principal?: boolean
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          es_principal?: boolean
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
       asiento_lineas: {
         Row: {
           asiento_id: string
@@ -262,6 +382,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      categorias_productos: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          descripcion: string | null
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          descripcion?: string | null
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          descripcion?: string | null
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
       }
       cierres_resultados: {
         Row: {
@@ -2100,6 +2244,7 @@ export type Database = {
         Row: {
           activo: boolean
           cantidad: number
+          categoria_id: string | null
           costo: number
           creado_en: string
           cuenta_costo_id: string | null
@@ -2117,6 +2262,7 @@ export type Database = {
         Insert: {
           activo?: boolean
           cantidad?: number
+          categoria_id?: string | null
           costo?: number
           creado_en?: string
           cuenta_costo_id?: string | null
@@ -2134,6 +2280,7 @@ export type Database = {
         Update: {
           activo?: boolean
           cantidad?: number
+          categoria_id?: string | null
           costo?: number
           creado_en?: string
           cuenta_costo_id?: string | null
@@ -2149,6 +2296,13 @@ export type Database = {
           tipo?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "productos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_productos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "productos_cuenta_costo_id_fkey"
             columns: ["cuenta_costo_id"]
@@ -2351,6 +2505,11 @@ export type Database = {
         Returns: undefined
       }
       _validar_pago_recurrente: { Args: { p: Json }; Returns: Json }
+      actualizar_almacen: { Args: { p: Json; p_id: string }; Returns: string }
+      actualizar_categoria_producto: {
+        Args: { p: Json; p_id: string }
+        Returns: string
+      }
       actualizar_contacto: { Args: { p: Json; p_id: string }; Returns: string }
       actualizar_cuenta: { Args: { p: Json }; Returns: string }
       actualizar_numeracion: { Args: { p: Json }; Returns: string }
@@ -2368,7 +2527,10 @@ export type Database = {
       conciliar_cuenta: { Args: { p: Json }; Returns: string }
       convertir_a_factura: { Args: { p: Json }; Returns: string }
       crear_activo_fijo: { Args: { p: Json }; Returns: string }
+      crear_ajuste_inventario: { Args: { p: Json }; Returns: string }
+      crear_almacen: { Args: { p: Json }; Returns: string }
       crear_asiento_manual: { Args: { p: Json }; Returns: string }
+      crear_categoria_producto: { Args: { p: Json }; Returns: string }
       crear_contacto: { Args: { p: Json }; Returns: string }
       crear_cotizacion: { Args: { p: Json }; Returns: string }
       crear_cuenta: { Args: { p: Json }; Returns: string }

@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { rutaProducto } from "@/lib/enlaces";
+import type { CategoriaProducto } from "@/lib/inventario/tipos";
 import { actualizarProducto, crearProducto } from "@/lib/productos/actions";
 import {
   etiquetaTasaItbis,
@@ -24,6 +25,7 @@ import {
   formatoMoneda,
   type Producto,
   type ProductoTipo,
+  SIN_CATEGORIA,
   TASAS_ITBIS,
 } from "@/lib/productos/productos";
 
@@ -89,15 +91,22 @@ function CamposInventario({
 
 function FormularioProducto({
   producto,
+  categorias,
   onGuardado,
 }: {
   readonly producto: Producto | null;
+  readonly categorias: CategoriaProducto[];
   readonly onGuardado: () => void;
 }) {
   const [tipo, setTipo] = useState<ProductoTipo>(producto?.tipo ?? "producto");
   const [inventariable, setInventariable] = useState(producto?.inventariable ?? false);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, startTransition] = useTransition();
+
+  const opcionesCategoria = [
+    { value: SIN_CATEGORIA, label: "Sin categoría" },
+    ...categorias.map((categoria) => ({ value: categoria.id, label: categoria.nombre })),
+  ];
 
   function enviar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -182,12 +191,34 @@ function FormularioProducto({
           />
         ) : null}
 
-        <Collapsible className="rounded-lg border" defaultOpen={Boolean(producto?.referencia ?? producto?.descripcion)}>
+        <Collapsible
+          className="rounded-lg border"
+          defaultOpen={Boolean(producto?.referencia ?? producto?.descripcion ?? producto?.categoria_id)}
+        >
           <CollapsibleTrigger render={<Button type="button" variant="ghost" className="w-full justify-between" />}>
             Más opciones
             <ChevronDown className="size-4" />
           </CollapsibleTrigger>
           <CollapsibleContent className="flex flex-col gap-4 border-t p-3">
+            <Field>
+              <FieldLabel htmlFor="categoria_id">Categoría</FieldLabel>
+              <Select
+                name="categoria_id"
+                defaultValue={producto?.categoria_id ?? SIN_CATEGORIA}
+                items={opcionesCategoria}
+              >
+                <SelectTrigger id="categoria_id" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {opcionesCategoria.map((opcion) => (
+                    <SelectItem key={opcion.value} value={opcion.value}>
+                      {opcion.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
             <Field>
               <FieldLabel htmlFor="referencia">Referencia</FieldLabel>
               <Input
@@ -223,9 +254,11 @@ function FormularioProducto({
 
 export function ProductosCliente({
   productos,
+  categorias,
   puedeEditar,
 }: {
   readonly productos: Producto[];
+  readonly categorias: CategoriaProducto[];
   readonly puedeEditar: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
@@ -352,6 +385,7 @@ export function ProductosCliente({
           <FormularioProducto
             key={productoEditando?.id ?? "nuevo"}
             producto={productoEditando}
+            categorias={categorias}
             onGuardado={cerrarTrasGuardar}
           />
         </DialogContent>
