@@ -25,15 +25,19 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { centavosAValor } from "@/lib/facturacion/calculo";
 import { esTipoComprobante, OPCIONES_TIPO_COMPROBANTE } from "@/lib/facturacion/comprobantes";
 import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import type {
   ContactoResumen,
   CuentaCajaBanco,
   Empresa,
+  ListaPrecioResumen,
   ProductoResumen,
   TipoComprobante,
 } from "@/lib/facturacion/tipos";
+import { precioSugeridoCentavos } from "@/lib/inventario/precios";
+import type { Almacen } from "@/lib/inventario/tipos";
 import type { MetodoPago } from "@/lib/pagos/tipos";
 
 import {
@@ -52,6 +56,8 @@ interface Props {
   contactos: ContactoResumen[];
   productos: ProductoResumen[];
   cuentas?: CuentaCajaBanco[];
+  listasPrecios?: ListaPrecioResumen[];
+  almacenes?: Almacen[];
   fechaHoy: string;
   titulo: string;
   etiquetaNumero: string;
@@ -471,6 +477,12 @@ function MasOpciones({
   onTerminos,
   pie,
   onPie,
+  listasPrecios,
+  listaPrecioId,
+  onListaPrecio,
+  almacenes,
+  almacenId,
+  onAlmacen,
 }: {
   conTerminos: boolean;
   conPie: boolean;
@@ -480,8 +492,24 @@ function MasOpciones({
   onTerminos: (valor: string) => void;
   pie: string;
   onPie: (valor: string) => void;
+  listasPrecios: ListaPrecioResumen[];
+  listaPrecioId: string;
+  onListaPrecio: (valor: string) => void;
+  almacenes: Almacen[];
+  almacenId: string;
+  onAlmacen: (valor: string) => void;
 }) {
-  const columnas = claseColumnasOpciones(1 + (conTerminos ? 1 : 0) + (conPie ? 1 : 0));
+  const columnas = claseColumnasOpciones(
+    1 + (conTerminos ? 1 : 0) + (conPie ? 1 : 0) + (listasPrecios.length > 0 ? 1 : 0) + (almacenes.length > 0 ? 1 : 0),
+  );
+  const opcionesListas = listasPrecios.map((lista) => ({
+    value: lista.id,
+    label: lista.es_principal ? `${lista.nombre} (principal)` : lista.nombre,
+  }));
+  const opcionesAlmacenes = almacenes.map((almacen) => ({
+    value: almacen.id,
+    label: almacen.es_principal ? `${almacen.nombre} (principal)` : almacen.nombre,
+  }));
 
   return (
     <section>
@@ -492,6 +520,48 @@ function MasOpciones({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className={`grid gap-4 pt-2 ${columnas}`}>
+            {listasPrecios.length > 0 ? (
+              <Campo>
+                <Etiqueta htmlFor="lista-precios">Lista de precios</Etiqueta>
+                <Select
+                  items={opcionesListas}
+                  value={listaPrecioId}
+                  onValueChange={(valor: string | null) => onListaPrecio(valor ?? "")}
+                >
+                  <SelectTrigger id="lista-precios" className={SELECT_CHICO}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {opcionesListas.map((opcion) => (
+                      <SelectItem key={opcion.value} value={opcion.value}>
+                        {opcion.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Campo>
+            ) : null}
+            {almacenes.length > 0 ? (
+              <Campo>
+                <Etiqueta htmlFor="almacen-documento">Almacén</Etiqueta>
+                <Select
+                  items={opcionesAlmacenes}
+                  value={almacenId}
+                  onValueChange={(valor: string | null) => onAlmacen(valor ?? "")}
+                >
+                  <SelectTrigger id="almacen-documento" className={SELECT_CHICO}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {opcionesAlmacenes.map((opcion) => (
+                      <SelectItem key={opcion.value} value={opcion.value}>
+                        {opcion.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Campo>
+            ) : null}
             <Campo>
               <Etiqueta htmlFor="notas">Notas</Etiqueta>
               <Textarea
@@ -538,6 +608,8 @@ export function DocumentoVentaForm({
   contactos,
   productos,
   cuentas = [],
+  listasPrecios = [],
+  almacenes = [],
   fechaHoy,
   titulo,
   etiquetaNumero,
@@ -568,6 +640,10 @@ export function DocumentoVentaForm({
     cuentas.find((cuenta) => cuenta.codigo === "1101")?.id ?? cuentas[0]?.id ?? "",
   );
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("efectivo");
+  const [listaPrecioId, setListaPrecioId] = useState(listasPrecios.find((lista) => lista.es_principal)?.id ?? "");
+  const [almacenId, setAlmacenId] = useState(
+    almacenes.find((almacen) => almacen.es_principal)?.id ?? almacenes[0]?.id ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
 
   const clientesItems = contactos.map((contacto) => ({ value: contacto.id, label: contacto.nombre }));
@@ -583,12 +659,36 @@ export function DocumentoVentaForm({
     setLineas((actuales) => actuales.map((linea) => (linea.clave === clave ? { ...linea, ...cambios } : linea)));
   }
 
+  function precioDeProducto(producto: ProductoResumen, listaId: string): string {
+    const centavos = precioSugeridoCentavos(producto.precio, listasPrecios, producto.precios, listaId);
+    return centavosAValor(centavos).toFixed(2);
+  }
+
   function seleccionarProducto(clave: string, productoId: string) {
     const producto = productos.find((item) => item.id === productoId);
     actualizarLinea(clave, {
       productoId,
-      ...(producto ? { precio: producto.precio.toFixed(2), itbisTasa: String(producto.itbis_tasa) } : {}),
+      ...(producto
+        ? { precio: precioDeProducto(producto, listaPrecioId), itbisTasa: String(producto.itbis_tasa) }
+        : {}),
     });
+  }
+
+  function seleccionarCliente(item: { value: string; label: string } | null) {
+    setClienteId(item?.value ?? "");
+    const contacto = contactos.find((cliente) => cliente.id === item?.value);
+    const lista = contacto?.lista_precio_id;
+    if (lista && listasPrecios.some((opcion) => opcion.id === lista)) cambiarListaPrecio(lista);
+  }
+
+  function cambiarListaPrecio(listaId: string) {
+    setListaPrecioId(listaId);
+    setLineas((actuales) =>
+      actuales.map((linea) => {
+        const producto = productos.find((item) => item.id === linea.productoId);
+        return producto ? { ...linea, precio: precioDeProducto(producto, listaId) } : linea;
+      }),
+    );
   }
 
   function agregarLinea() {
@@ -622,6 +722,7 @@ export function DocumentoVentaForm({
       notas,
       lineas,
       productos,
+      ...(almacenId ? { almacenId } : {}),
       ...(conComprobante ? { tipoComprobante: tipo } : {}),
       ...(conTerminos ? { terminos } : {}),
       ...(conPie ? { pie } : {}),
@@ -685,10 +786,7 @@ export function DocumentoVentaForm({
               <Etiqueta htmlFor="cliente" requerido>
                 Cliente
               </Etiqueta>
-              <Combobox
-                items={clientesItems}
-                onValueChange={(item: { value: string; label: string } | null) => setClienteId(item?.value ?? "")}
-              >
+              <Combobox items={clientesItems} onValueChange={seleccionarCliente}>
                 <ComboboxInput id="cliente" className={COMBO_MEDIO} placeholder="Buscar cliente…" showClear />
                 <ComboboxContent>
                   <ComboboxEmpty>Sin resultados</ComboboxEmpty>
@@ -759,6 +857,12 @@ export function DocumentoVentaForm({
           onTerminos={setTerminos}
           pie={pie}
           onPie={setPie}
+          listasPrecios={listasPrecios}
+          listaPrecioId={listaPrecioId}
+          onListaPrecio={cambiarListaPrecio}
+          almacenes={almacenes}
+          almacenId={almacenId}
+          onAlmacen={setAlmacenId}
         />
       </div>
 

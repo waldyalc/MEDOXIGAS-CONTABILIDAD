@@ -16,7 +16,8 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { rutaProducto } from "@/lib/enlaces";
-import type { CategoriaProducto } from "@/lib/inventario/tipos";
+import { etiquetaTipoLista } from "@/lib/inventario/precios";
+import type { CategoriaProducto, ListaPrecio } from "@/lib/inventario/tipos";
 import { actualizarProducto, crearProducto } from "@/lib/productos/actions";
 import {
   etiquetaTasaItbis,
@@ -92,10 +93,12 @@ function CamposInventario({
 function FormularioProducto({
   producto,
   categorias,
+  listasPrecios,
   onGuardado,
 }: {
   readonly producto: Producto | null;
   readonly categorias: CategoriaProducto[];
+  readonly listasPrecios: ListaPrecio[];
   readonly onGuardado: () => void;
 }) {
   const [tipo, setTipo] = useState<ProductoTipo>(producto?.tipo ?? "producto");
@@ -193,7 +196,12 @@ function FormularioProducto({
 
         <Collapsible
           className="rounded-lg border"
-          defaultOpen={Boolean(producto?.referencia ?? producto?.descripcion ?? producto?.categoria_id)}
+          defaultOpen={Boolean(
+            producto?.referencia ??
+              producto?.descripcion ??
+              producto?.categoria_id ??
+              (producto?.precios?.length ? "precios" : null),
+          )}
         >
           <CollapsibleTrigger render={<Button type="button" variant="ghost" className="w-full justify-between" />}>
             Más opciones
@@ -219,6 +227,38 @@ function FormularioProducto({
                 </SelectContent>
               </Select>
             </Field>
+            {listasPrecios.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-medium">Precios por lista</span>
+                  <span className="text-muted-foreground text-xs">
+                    Valor fijo en RD$ o porcentaje sobre el precio (10 = +10 %, -10 = descuento).
+                  </span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {listasPrecios.map((lista) => {
+                    const valor = producto?.precios.find((precio) => precio.lista_id === lista.id)?.precio;
+
+                    return (
+                      <Field key={lista.id}>
+                        <FieldLabel htmlFor={`precio_lista_${lista.id}`}>
+                          {lista.nombre}
+                          {lista.es_principal ? " (principal)" : ""}
+                        </FieldLabel>
+                        <Input
+                          id={`precio_lista_${lista.id}`}
+                          name={`precio_lista_${lista.id}`}
+                          inputMode="decimal"
+                          placeholder={lista.tipo === "porcentaje" ? "0" : "0.00"}
+                          defaultValue={valor === undefined ? "" : String(valor)}
+                        />
+                        <span className="text-muted-foreground text-xs">{etiquetaTipoLista(lista.tipo)}</span>
+                      </Field>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
             <Field>
               <FieldLabel htmlFor="referencia">Referencia</FieldLabel>
               <Input
@@ -255,10 +295,12 @@ function FormularioProducto({
 export function ProductosCliente({
   productos,
   categorias,
+  listasPrecios,
   puedeEditar,
 }: {
   readonly productos: Producto[];
   readonly categorias: CategoriaProducto[];
+  readonly listasPrecios: ListaPrecio[];
   readonly puedeEditar: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
@@ -386,6 +428,7 @@ export function ProductosCliente({
             key={productoEditando?.id ?? "nuevo"}
             producto={productoEditando}
             categorias={categorias}
+            listasPrecios={listasPrecios}
             onGuardado={cerrarTrasGuardar}
           />
         </DialogContent>

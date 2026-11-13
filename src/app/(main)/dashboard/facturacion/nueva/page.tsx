@@ -12,9 +12,11 @@ import {
   getContactosClientes,
   getCuentasCajaBanco,
   getEmpresa,
+  getListasPrecios,
   getProductosActivos,
 } from "@/lib/facturacion/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
+import { listarAlmacenesActivos } from "@/lib/inventario/consultas";
 
 export default async function Page() {
   const perfil = await getPerfil();
@@ -42,11 +44,13 @@ export default async function Page() {
 }
 
 async function FacturaContenido() {
-  const [empresa, contactos, productos, cuentas] = await Promise.all([
+  const [empresa, contactos, productos, cuentas, listasPrecios, almacenes] = await Promise.all([
     getEmpresa(),
     getContactosClientes(),
     getProductosActivos(),
     getCuentasCajaBanco(),
+    getListasPrecios(),
+    listarAlmacenesActivos(),
   ]);
 
   return (
@@ -55,6 +59,8 @@ async function FacturaContenido() {
       contactos={contactos}
       productos={productos}
       cuentas={cuentas}
+      listasPrecios={listasPrecios}
+      almacenes={almacenes}
       fechaHoy={hoyRD()}
       titulo="Información de la factura"
       etiquetaNumero="NCF"
