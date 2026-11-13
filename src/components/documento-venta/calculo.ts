@@ -38,6 +38,7 @@ export interface DatosDocumento {
   terminos?: string;
   pie?: string;
   pago?: PagoFormulario;
+  cotizacionId?: string;
 }
 
 export interface LineaCalculadaFormulario {
@@ -99,6 +100,7 @@ export function construirEntrada(datos: DatosDocumento) {
 
   return {
     ...(datos.tipoComprobante ? { tipo_comprobante: datos.tipoComprobante } : {}),
+    ...(datos.cotizacionId ? { cotizacion_id: datos.cotizacionId } : {}),
     contacto_id: datos.clienteId,
     fecha: datos.fecha,
     vencimiento: datos.vencimiento,
