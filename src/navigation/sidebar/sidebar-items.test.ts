@@ -15,6 +15,7 @@ const MODULOS = [
   "contabilidad",
   "bancos",
   "reportes",
+  "configuracion",
 ];
 
 function ids(rol: Rol | null) {

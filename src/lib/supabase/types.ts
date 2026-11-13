@@ -2446,6 +2446,30 @@ export type Database = {
           },
         ]
       }
+      terminos_pago: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          dias: number
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          dias?: number
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          dias?: number
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -2512,6 +2536,7 @@ export type Database = {
       }
       actualizar_contacto: { Args: { p: Json; p_id: string }; Returns: string }
       actualizar_cuenta: { Args: { p: Json }; Returns: string }
+      actualizar_empresa: { Args: { p: Json }; Returns: undefined }
       actualizar_numeracion: { Args: { p: Json }; Returns: string }
       actualizar_pago_recurrente: {
         Args: { p: Json; p_id: string }
@@ -2546,6 +2571,7 @@ export type Database = {
       crear_pago_recurrente: { Args: { p: Json }; Returns: string }
       crear_producto: { Args: { p: Json }; Returns: string }
       crear_remision: { Args: { p: Json }; Returns: string }
+      crear_termino_pago: { Args: { p: Json }; Returns: string }
       depreciar_activo: {
         Args: { p_activo_id: string; p_periodo?: string }
         Returns: string
@@ -2556,6 +2582,25 @@ export type Database = {
       }
       generar_pago_recurrente: { Args: { p_id: string }; Returns: string }
       guardar_borrador_conciliacion: { Args: { p: Json }; Returns: string }
+      listar_perfiles: {
+        Args: never
+        Returns: {
+          correo: string
+          creado_en: string
+          nombre: string
+          rol: string
+          user_id: string
+        }[]
+      }
+      listar_terminos_pago: {
+        Args: never
+        Returns: {
+          activo: boolean
+          dias: number
+          id: string
+          nombre: string
+        }[]
+      }
       reabrir_periodo: { Args: { p_periodo: string }; Returns: string }
       registrar_deposito: { Args: { p: Json }; Returns: string }
       registrar_pago_proveedor: { Args: { p: Json }; Returns: string }
