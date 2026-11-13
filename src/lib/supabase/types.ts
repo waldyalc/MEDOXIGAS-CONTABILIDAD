@@ -74,6 +74,8 @@ export type Database = {
           descripcion: string
           fecha: string
           id: string
+          numeracion_egreso: string | null
+          numeracion_ingreso: string | null
           numero: number
           origen_id: string | null
           origen_tipo: string
@@ -86,6 +88,8 @@ export type Database = {
           descripcion: string
           fecha?: string
           id?: string
+          numeracion_egreso?: string | null
+          numeracion_ingreso?: string | null
           numero?: number
           origen_id?: string | null
           origen_tipo: string
@@ -98,6 +102,8 @@ export type Database = {
           descripcion?: string
           fecha?: string
           id?: string
+          numeracion_egreso?: string | null
+          numeracion_ingreso?: string | null
           numero?: number
           origen_id?: string | null
           origen_tipo?: string
@@ -321,34 +327,43 @@ export type Database = {
           acepta_movimientos: boolean
           activa: boolean
           codigo: string
+          descripcion: string | null
           es_caja_banco: boolean
           id: string
           naturaleza: string
           nombre: string
+          numero_cuenta: string | null
           padre_id: string | null
           tipo: string
+          tipo_banco: string | null
         }
         Insert: {
           acepta_movimientos?: boolean
           activa?: boolean
           codigo: string
+          descripcion?: string | null
           es_caja_banco?: boolean
           id?: string
           naturaleza: string
           nombre: string
+          numero_cuenta?: string | null
           padre_id?: string | null
           tipo: string
+          tipo_banco?: string | null
         }
         Update: {
           acepta_movimientos?: boolean
           activa?: boolean
           codigo?: string
+          descripcion?: string | null
           es_caja_banco?: boolean
           id?: string
           naturaleza?: string
           nombre?: string
+          numero_cuenta?: string | null
           padre_id?: string | null
           tipo?: string
+          tipo_banco?: string | null
         }
         Relationships: [
           {
@@ -1336,6 +1351,7 @@ export type Database = {
       crear_contacto: { Args: { p: Json }; Returns: string }
       crear_cotizacion: { Args: { p: Json }; Returns: string }
       crear_cuenta: { Args: { p: Json }; Returns: string }
+      crear_cuenta_banco: { Args: { p: Json }; Returns: string }
       crear_factura: { Args: { p: Json }; Returns: string }
       crear_factura_proveedor: { Args: { p: Json }; Returns: string }
       crear_gasto_menor: { Args: { p: Json }; Returns: string }
