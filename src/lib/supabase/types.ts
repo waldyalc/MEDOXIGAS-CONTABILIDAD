@@ -559,6 +559,7 @@ export type Database = {
           id: string
           itbis: number
           itbis_tasa: number
+          ncf: string | null
           numero: number
           subtotal: number
           total: number
@@ -576,6 +577,7 @@ export type Database = {
           id?: string
           itbis?: number
           itbis_tasa?: number
+          ncf?: string | null
           numero?: number
           subtotal?: number
           total?: number
@@ -593,6 +595,7 @@ export type Database = {
           id?: string
           itbis?: number
           itbis_tasa?: number
+          ncf?: string | null
           numero?: number
           subtotal?: number
           total?: number
