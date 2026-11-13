@@ -1,0 +1,94 @@
+import { z } from "zod";
+
+export type ContactoTipo = "cliente" | "proveedor" | "ambos";
+export type PestanaContactos = "todos" | "clientes" | "proveedores";
+
+export interface Contacto {
+  id: string;
+  nombre: string;
+  rnc_cedula: string | null;
+  telefono: string | null;
+  correo: string | null;
+  direccion: string | null;
+  tipo: ContactoTipo;
+}
+
+export const TIPOS_CONTACTO: { valor: ContactoTipo; etiqueta: string }[] = [
+  { valor: "cliente", etiqueta: "Cliente" },
+  { valor: "proveedor", etiqueta: "Proveedor" },
+  { valor: "ambos", etiqueta: "Cliente y proveedor" },
+];
+
+export function etiquetaTipoContacto(tipo: ContactoTipo) {
+  return TIPOS_CONTACTO.find((item) => item.valor === tipo)?.etiqueta ?? tipo;
+}
+
+export function normalizarNombre(valor: string) {
+  return valor.trim().replace(/\s+/g, " ");
+}
+
+export function normalizarRncCedula(valor: string) {
+  return valor.replace(/\D/g, "");
+}
+
+export function esRncCedulaValida(valor: string) {
+  return /^(\d{9}|\d{11})$/.test(valor);
+}
+
+export function normalizarTelefono(valor: string) {
+  const prefijo = valor.trim().startsWith("+") ? "+" : "";
+  return `${prefijo}${valor.replace(/\D/g, "")}`;
+}
+
+export function textoOpcional(valor: string | null | undefined): string | null {
+  const texto = (valor ?? "").trim();
+  return texto === "" ? null : texto;
+}
+
+export function normalizarBusqueda(valor: string) {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+const campoTipo = z.enum(["cliente", "proveedor", "ambos"]);
+const campoOpcional = z.string().nullish().transform(textoOpcional);
+
+export const esquemaContacto = z.object({
+  nombre: z
+    .string()
+    .transform(normalizarNombre)
+    .refine((valor) => valor.length > 0, "El nombre es obligatorio")
+    .refine((valor) => valor.length <= 200, "El nombre no puede pasar de 200 caracteres"),
+  tipo: campoTipo.default("cliente"),
+  rnc_cedula: campoOpcional
+    .transform((valor) => (valor === null ? null : normalizarRncCedula(valor)))
+    .refine((valor) => valor === null || esRncCedulaValida(valor), "El RNC o la cédula debe tener 9 u 11 dígitos"),
+  telefono: campoOpcional.transform((valor) => (valor === null ? null : normalizarTelefono(valor))),
+  correo: campoOpcional.refine(
+    (valor) => valor === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor),
+    "El correo no es válido",
+  ),
+  direccion: campoOpcional,
+});
+
+export type DatosContacto = z.infer<typeof esquemaContacto>;
+
+function coincidePestana(tipo: ContactoTipo, pestana: PestanaContactos) {
+  if (pestana === "todos") return true;
+  if (pestana === "clientes") return tipo === "cliente" || tipo === "ambos";
+  return tipo === "proveedor" || tipo === "ambos";
+}
+
+function coincideBusqueda(contacto: Contacto, termino: string) {
+  if (termino === "") return true;
+  const valores = [contacto.nombre, contacto.rnc_cedula ?? "", contacto.telefono ?? "", contacto.correo ?? ""];
+  return valores.some((valor) => normalizarBusqueda(valor).includes(termino));
+}
+
+export function filtrarContactos(contactos: Contacto[], pestana: PestanaContactos, busqueda: string): Contacto[] {
+  const termino = normalizarBusqueda(busqueda);
+  return contactos.filter((contacto) => coincidePestana(contacto.tipo, pestana) && coincideBusqueda(contacto, termino));
+}
