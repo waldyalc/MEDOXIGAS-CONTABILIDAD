@@ -37,7 +37,7 @@ export async function getContactosClientes(): Promise<ContactoResumen[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("contactos")
-    .select("id, nombre, rnc_cedula, direccion")
+    .select("id, nombre, rnc_cedula, direccion, telefono")
     .eq("activo", true)
     .in("tipo", ["cliente", "ambos"])
     .order("nombre")
@@ -167,7 +167,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   if (factura.error) throw new Error(factura.error.message);
   if (!factura.data) return null;
 
-  const [lineas, contacto, empresa, asiento] = await Promise.all([
+  const [lineas, contacto, empresa, asiento, numeraciones] = await Promise.all([
     supabase
       .from("factura_lineas")
       .select("id, producto_id, descripcion, cantidad, precio, descuento_pct, itbis_tasa, subtotal, itbis, total")
@@ -176,17 +176,33 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
       .returns<FacturaLinea[]>(),
     supabase
       .from("contactos")
-      .select("id, nombre, rnc_cedula, direccion")
+      .select("id, nombre, rnc_cedula, direccion, telefono")
       .eq("id", factura.data.contacto_id)
       .maybeSingle()
       .returns<ContactoResumen | null>(),
     getEmpresa(),
     getAsiento(factura.data.asiento_id),
+    supabase
+      .from("numeraciones")
+      .select("prefijo, vence, siguiente")
+      .eq("tipo_comprobante", factura.data.tipo_comprobante)
+      .order("siguiente")
+      .returns<{ prefijo: string; vence: string | null; siguiente: number }[]>(),
   ]);
 
   if (lineas.error) throw new Error(lineas.error.message);
   if (contacto.error) throw new Error(contacto.error.message);
+  if (numeraciones.error) throw new Error(numeraciones.error.message);
   if (!contacto.data) return null;
+
+  const ncf = factura.data.ncf;
+  const numeracion = ncf
+    ? (numeraciones.data.find((fila) => {
+        if (!ncf.startsWith(fila.prefijo)) return false;
+        const numero = Number(ncf.slice(fila.prefijo.length));
+        return Number.isFinite(numero) && numero < fila.siguiente;
+      }) ?? numeraciones.data.find((fila) => ncf.startsWith(fila.prefijo)))
+    : undefined;
 
   return {
     factura: factura.data,
@@ -194,5 +210,6 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
     contacto: contacto.data,
     empresa,
     asiento,
+    ncfVence: numeracion?.vence ?? null,
   };
 }

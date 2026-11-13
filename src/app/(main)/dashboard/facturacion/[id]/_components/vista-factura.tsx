@@ -37,7 +37,7 @@ export function VistaFactura({ datos, puedeEscribir }: { datos: FacturaVista; pu
     setMontado(true);
   }, []);
 
-  const { factura, lineas, contacto, empresa } = datos;
+  const { factura, lineas, contacto, empresa, ncfVence } = datos;
   const saldo = saldoDeFactura(factura.total, factura.pagado);
   const puedePagar = puedeEscribir && saldo > 0 && factura.estado !== "anulada";
   const puedeAnular = puedeEscribir && factura.estado !== "anulada";
@@ -111,15 +111,21 @@ export function VistaFactura({ datos, puedeEscribir }: { datos: FacturaVista; pu
         </Alert>
       ) : null}
 
-      <div className="mx-auto w-full max-w-[8.5in] overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-foreground/10">
-        <FacturaPapel empresa={empresa} factura={factura} lineas={lineas} contacto={contacto} />
+      <div className="ring-foreground/10 mx-auto w-full max-w-[8.5in] overflow-hidden rounded-xl bg-white shadow-sm ring-1">
+        <FacturaPapel empresa={empresa} factura={factura} lineas={lineas} contacto={contacto} ncfVence={ncfVence} />
       </div>
 
       {montado
         ? createPortal(
             <div data-print-root>
               <div data-print-paper>
-                <FacturaPapel empresa={empresa} factura={factura} lineas={lineas} contacto={contacto} />
+                <FacturaPapel
+                  empresa={empresa}
+                  factura={factura}
+                  lineas={lineas}
+                  contacto={contacto}
+                  ncfVence={ncfVence}
+                />
               </div>
             </div>,
             document.body,

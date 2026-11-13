@@ -17,6 +17,7 @@ export interface ContactoResumen {
   nombre: string;
   rnc_cedula: string | null;
   direccion: string | null;
+  telefono?: string | null;
 }
 
 export interface ProductoResumen {
@@ -96,4 +97,5 @@ export interface FacturaVista {
   contacto: ContactoResumen;
   empresa: Empresa | null;
   asiento: AsientoVista;
+  ncfVence: string | null;
 }
