@@ -12,6 +12,9 @@ import { rutaAsiento, rutaContacto, rutaCuenta } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import { obtenerGasto } from "@/lib/gastos/detalle";
+import { puedeAnularDocumento } from "@/lib/pagos/anulacion";
+
+import { AccionesGasto } from "./_components/acciones-gasto";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,6 +24,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   const gasto = await obtenerGasto(id);
   if (!gasto) notFound();
+
+  const puedeAnular = puedeAnularDocumento(rol, gasto.estado);
 
   return (
     <div className="flex flex-col gap-6">
@@ -36,12 +41,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               {gasto.estado === "anulado" ? "Anulado" : "Activo"}
             </Badge>
           </div>
-          {gasto.asiento_id ? (
-            <Button variant="outline" render={<Link href={rutaAsiento(gasto.asiento_id)} prefetch={false} />}>
-              <BookOpen data-icon="inline-start" />
-              Ver asiento
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {gasto.asiento_id ? (
+              <Button variant="outline" render={<Link href={rutaAsiento(gasto.asiento_id)} prefetch={false} />}>
+                <BookOpen data-icon="inline-start" />
+                Ver asiento
+              </Button>
+            ) : null}
+            {puedeAnular ? <AccionesGasto gastoId={gasto.id} numero={gasto.numero} /> : null}
+          </div>
         </div>
       </div>
 

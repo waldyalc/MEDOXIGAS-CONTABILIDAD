@@ -10,8 +10,11 @@ import { getRol } from "@/lib/auth/rol";
 import { rutaAsiento, rutaContacto, rutaCuenta, rutaFactura } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
+import { puedeAnularDocumento } from "@/lib/pagos/anulacion";
 import { obtenerPagoRecibido } from "@/lib/pagos/detalle";
 import type { MetodoPago } from "@/lib/pagos/tipos";
+
+import { AccionesPago } from "./_components/acciones-pago";
 
 const ETIQUETAS_METODO: Record<MetodoPago, string> = {
   efectivo: "Efectivo",
@@ -28,6 +31,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   const pago = await obtenerPagoRecibido(id);
   if (!pago) notFound();
+
+  const puedeAnular = puedeAnularDocumento(rol, pago.estado);
 
   return (
     <div className="flex flex-col gap-6">
@@ -48,12 +53,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               {pago.estado === "anulado" ? "Anulado" : "Activo"}
             </Badge>
           </div>
-          {pago.asiento_id ? (
-            <Button variant="outline" render={<Link href={rutaAsiento(pago.asiento_id)} prefetch={false} />}>
-              <BookOpen data-icon="inline-start" />
-              Ver asiento
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap items-center gap-2">
+            {pago.asiento_id ? (
+              <Button variant="outline" render={<Link href={rutaAsiento(pago.asiento_id)} prefetch={false} />}>
+                <BookOpen data-icon="inline-start" />
+                Ver asiento
+              </Button>
+            ) : null}
+            {puedeAnular ? <AccionesPago pagoId={pago.id} numero={pago.numero} /> : null}
+          </div>
         </div>
       </div>
 
