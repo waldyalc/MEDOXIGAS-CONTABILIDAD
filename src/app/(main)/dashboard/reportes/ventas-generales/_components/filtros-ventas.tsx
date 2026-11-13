@@ -4,6 +4,8 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { FiltrosVentasUrl, NumeracionOpcion } from "@/lib/reportes/ventas/v1/tipos";
 
+import { SelectorRangoFechas } from "../../_components/selector-fechas";
+
 interface Props {
   desde: string;
   hasta: string;
@@ -15,14 +17,7 @@ interface Props {
 export function FiltrosVentas({ desde, hasta, filtros, numeraciones, mostrarNumeracion = true }: Props) {
   return (
     <form method="get" className="flex flex-wrap items-end gap-3 print:hidden">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="desde">Desde</Label>
-        <Input id="desde" name="desde" type="date" defaultValue={desde} className="w-40" />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="hasta">Hasta</Label>
-        <Input id="hasta" name="hasta" type="date" defaultValue={hasta} className="w-40" />
-      </div>
+      <SelectorRangoFechas desde={desde} hasta={hasta} />
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="almacen">Almacén</Label>
         <NativeSelect id="almacen" name="almacen" defaultValue={filtros.almacen} className="w-44">

@@ -3,6 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { VistaAntiguedad } from "@/lib/reportes/administrativos/d/tipos";
 
+import { SelectorFechaCorte, SelectorFechaFormulario, SelectorRangoFechas } from "../../_components/selector-fechas";
+
 interface Props {
   tipo: "cobrar" | "pagar";
   desde: string | null;
@@ -33,16 +35,9 @@ export function FiltrosCartera({
       {vista !== "todas" ? <input type="hidden" name="vista" value={vista} /> : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {desde == null ? null : (
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="desde">Desde</Label>
-            <Input id="desde" name="desde" type="date" defaultValue={desde} />
-          </div>
-        )}
-
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="hasta">Hasta</Label>
-          <Input id="hasta" name="hasta" type="date" defaultValue={hasta} required />
+          <Label>{desde == null ? "Fecha de corte" : "Período"}</Label>
+          {desde == null ? <SelectorFechaCorte valor={hasta} /> : <SelectorRangoFechas desde={desde} hasta={hasta} />}
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -56,23 +51,23 @@ export function FiltrosCartera({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="creacion_desde">Creación desde</Label>
-          <Input id="creacion_desde" name="creacion_desde" type="date" defaultValue={creacionDesde ?? ""} />
+          <Label>Creación desde</Label>
+          <SelectorFechaFormulario name="creacion_desde" valor={creacionDesde ?? ""} />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="creacion_hasta">Creación hasta</Label>
-          <Input id="creacion_hasta" name="creacion_hasta" type="date" defaultValue={creacionHasta ?? ""} />
+          <Label>Creación hasta</Label>
+          <SelectorFechaFormulario name="creacion_hasta" valor={creacionHasta ?? ""} />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="vencimiento_desde">Vencimiento desde</Label>
-          <Input id="vencimiento_desde" name="vencimiento_desde" type="date" defaultValue={vencimientoDesde ?? ""} />
+          <Label>Vencimiento desde</Label>
+          <SelectorFechaFormulario name="vencimiento_desde" valor={vencimientoDesde ?? ""} />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="vencimiento_hasta">Vencimiento hasta</Label>
-          <Input id="vencimiento_hasta" name="vencimiento_hasta" type="date" defaultValue={vencimientoHasta ?? ""} />
+          <Label>Vencimiento hasta</Label>
+          <SelectorFechaFormulario name="vencimiento_hasta" valor={vencimientoHasta ?? ""} />
         </div>
       </div>
 

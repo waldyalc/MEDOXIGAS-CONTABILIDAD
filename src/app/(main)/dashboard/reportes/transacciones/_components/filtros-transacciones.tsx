@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
+import { SelectorFechaFormulario, SelectorRangoFechas } from "../../_components/selector-fechas";
+
 interface Props {
   desde: string;
   hasta: string;
@@ -18,21 +20,14 @@ interface Props {
 export function FiltrosTransacciones({ desde, hasta, comprobante, fecha, estado, tipo, valor }: Props) {
   return (
     <form method="get" className="flex flex-wrap items-end gap-3 print:hidden">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="desde">Desde</Label>
-        <Input id="desde" name="desde" type="date" defaultValue={desde} className="w-40" />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="hasta">Hasta</Label>
-        <Input id="hasta" name="hasta" type="date" defaultValue={hasta} className="w-40" />
-      </div>
+      <SelectorRangoFechas desde={desde} hasta={hasta} />
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="comprobante">Comprobante</Label>
         <Input id="comprobante" name="comprobante" defaultValue={comprobante} className="w-40" />
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="fecha">Fecha</Label>
-        <Input id="fecha" name="fecha" type="date" defaultValue={fecha} className="w-40" />
+        <Label>Fecha</Label>
+        <SelectorFechaFormulario name="fecha" valor={fecha} />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="estado">Estado</Label>

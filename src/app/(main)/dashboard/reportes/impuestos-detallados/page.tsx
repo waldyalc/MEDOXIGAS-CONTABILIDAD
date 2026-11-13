@@ -105,7 +105,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         </div>
       </div>
 
-      <FiltrosPeriodo desde={desde} hasta={hasta} extras={[{ nombre: "vista", valor: vista }]} />
+      <FiltrosPeriodo desde={desde} hasta={hasta} />
 
       {error ? <AlertaError mensaje={error} /> : null}
 

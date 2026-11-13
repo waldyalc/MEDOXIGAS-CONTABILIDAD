@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { CuentaContable } from "@/lib/reportes/tipos";
 
-import { CamposFecha } from "./campos-fecha";
+import { SelectorRangoFechas } from "../selector-fechas";
 import { SelectCuenta } from "./select-cuenta";
 
 interface Props {
@@ -17,7 +17,7 @@ interface Props {
 export function FiltroMovimientosCuenta({ desde, hasta, cuentas, cuenta, asiento }: Props) {
   return (
     <form method="get" className="ring-foreground/10 flex flex-wrap items-end gap-4 rounded-xl p-4 ring-1 print:hidden">
-      <CamposFecha desde={desde} hasta={hasta} />
+      <SelectorRangoFechas desde={desde} hasta={hasta} />
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="cuenta">Cuenta contable</Label>

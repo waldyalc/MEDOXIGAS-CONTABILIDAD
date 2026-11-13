@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 
+import { SelectorRangoFechas } from "../../_components/selector-fechas";
+
 interface Props {
   desde: string;
   hasta: string;
@@ -19,14 +21,7 @@ export function FiltrosIngresosCompras({ desde, hasta, buscar, incluirCeros }: P
 
   return (
     <form method="get" className="flex flex-wrap items-end gap-3 print:hidden">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="desde">Desde</Label>
-        <Input id="desde" name="desde" type="date" defaultValue={desde} className="w-40" />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="hasta">Hasta</Label>
-        <Input id="hasta" name="hasta" type="date" defaultValue={hasta} className="w-40" />
-      </div>
+      <SelectorRangoFechas desde={desde} hasta={hasta} />
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="q">Buscar cuenta contable</Label>
         <Input id="q" name="q" type="search" defaultValue={buscar} placeholder="Código o nombre" className="w-64" />

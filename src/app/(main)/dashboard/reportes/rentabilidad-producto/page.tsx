@@ -16,7 +16,7 @@ import { tablaRentabilidadProducto } from "@/lib/reportes/ventas/v2/tablas";
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
 import { EncabezadoReporte } from "../_components/encabezado-reporte";
-import { FiltroFechas } from "../_components/filtro-fechas";
+import { SelectorRangoFechas } from "../_components/selector-fechas";
 import { PaginacionReporte } from "../ventas-producto/_components/paginacion-reporte";
 
 const TAMANO_PAGINA = 10;
@@ -48,7 +48,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
       />
 
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <FiltroFechas desde={desde} hasta={hasta} />
+        <SelectorRangoFechas desde={desde} hasta={hasta} />
         <BotonDescargar tabla={tabla} nombreArchivo={`rentabilidad-por-producto-${desde}-${hasta}`} />
       </div>
 

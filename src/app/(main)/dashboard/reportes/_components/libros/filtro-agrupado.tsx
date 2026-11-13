@@ -5,7 +5,7 @@ import type { AgruparPor } from "@/lib/reportes/libros/agrupado";
 import type { ContactoOpcion } from "@/lib/reportes/libros/tipos";
 import type { CuentaContable } from "@/lib/reportes/tipos";
 
-import { CamposFecha } from "./campos-fecha";
+import { SelectorRangoFechas } from "../selector-fechas";
 import { SelectContacto } from "./select-contacto";
 import { SelectCuenta } from "./select-cuenta";
 
@@ -22,7 +22,7 @@ interface Props {
 export function FiltroAgrupado({ desde, hasta, cuentas, contactos, cuenta, tercero, agruparPor }: Props) {
   return (
     <form method="get" className="ring-foreground/10 flex flex-wrap items-end gap-4 rounded-xl p-4 ring-1 print:hidden">
-      <CamposFecha desde={desde} hasta={hasta} />
+      <SelectorRangoFechas desde={desde} hasta={hasta} />
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="cuenta">Cuenta contable</Label>

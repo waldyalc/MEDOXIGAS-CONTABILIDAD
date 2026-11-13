@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { TIPOS_REGISTRO } from "@/lib/reportes/libros/parametros";
 
-import { CamposFecha } from "./campos-fecha";
+import { SelectorRangoFechas } from "../selector-fechas";
 
 interface Props {
   desde: string;
@@ -15,7 +15,7 @@ export function FiltroLibroDiario({ desde, hasta, origenes, porPagina }: Props) 
   return (
     <form method="get" className="ring-foreground/10 flex flex-col gap-4 rounded-xl p-4 ring-1 print:hidden">
       <div className="flex flex-wrap items-end gap-4">
-        <CamposFecha desde={desde} hasta={hasta} />
+        <SelectorRangoFechas desde={desde} hasta={hasta} />
 
         <fieldset className="flex flex-col gap-1.5">
           <legend className="text-sm font-medium">Tipo de registro</legend>
