@@ -1,5 +1,20 @@
 # Handoff — Medoxigas Contabilidad
 
+## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
+
+- El saldo por pagar ahora es `total - pagado - credito` en el reporte Cuentas
+  por pagar, la ficha de contacto y la ficha de producto (`facturas_proveedor.credito`).
+- La nota de crédito de compra pide el NCF del proveedor (opcional, B04 + 8
+  dígitos o E34 + 10 dígitos) y ya no consume la numeración 03/B03. Migración
+  aditiva `20261114700000_notas_credito_compra_ncf_proveedor.sql` (NO aplicada;
+  la revisa Coder). `types.ts` actualizado a mano solo en la nulabilidad de
+  `notas_credito_compra.ncf`.
+- pgTAP aislados de los datos reales: órdenes de compra cuenta asientos
+  antes/después, pagos recurrentes usa la RPC, periodos compara contra los
+  saldos previos al cierre y configuración valida solo los datos del test.
+- `typecheck`, Vitest, Biome y `build` en verde. pgTAP no se pudo correr aquí
+  (sin Docker/Supabase CLI).
+
 ## Inventario: ajustes, almacenes y categorías (14 nov 2026)
 
 - Nuevo módulo `/dashboard/inventario`: Ajustes de inventario (lista, nuevo y
