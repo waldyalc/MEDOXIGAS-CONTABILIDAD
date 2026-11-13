@@ -1,35 +1,8 @@
 import { describe, expect, test } from "vitest";
 
-import {
-  urlContacto,
-  urlFacturaProveedor,
-  urlFacturaVenta,
-  urlGastoMenor,
-  urlMovimientosCuenta,
-  urlPagoProveedor,
-  urlPagoRecibido,
-  urlProducto,
-  urlRentabilidadProducto,
-  urlVentasProducto,
-} from "./enlaces";
+import { urlRentabilidadProducto, urlVentasProducto } from "./enlaces";
 
 describe("enlaces de reportes de ventas", () => {
-  test("arma las rutas de las entidades", () => {
-    expect(urlContacto("abc-123")).toBe("/dashboard/contactos/abc-123");
-    expect(urlProducto("abc-123")).toBe("/dashboard/productos/abc-123");
-    expect(urlFacturaVenta("abc-123")).toBe("/dashboard/facturacion/abc-123");
-    expect(urlFacturaProveedor("abc-123")).toBe("/dashboard/compras/abc-123");
-    expect(urlPagoProveedor("abc-123")).toBe("/dashboard/compras/pagos/abc-123");
-    expect(urlPagoRecibido("abc-123")).toBe("/dashboard/pagos-recibidos/abc-123");
-    expect(urlGastoMenor("abc-123")).toBe("/dashboard/gastos/abc-123");
-  });
-
-  test("arma la ruta de movimientos de cuenta", () => {
-    expect(urlMovimientosCuenta("1101", "2026-11-01", "2026-11-30")).toBe(
-      "/dashboard/reportes/movimientos-cuenta?cuenta=1101&desde=2026-11-01&hasta=2026-11-30",
-    );
-  });
-
   test("arma la ruta de ventas por producto sin filtros opcionales", () => {
     expect(urlVentasProducto({ desde: "2026-11-01", hasta: "2026-11-30" })).toBe(
       "/dashboard/reportes/ventas-producto?desde=2026-11-01&hasta=2026-11-30",

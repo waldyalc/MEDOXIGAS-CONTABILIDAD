@@ -32,13 +32,25 @@ function reporteContable(nombre: string): ReporteCatalogo {
 }
 
 export const REPORTES: readonly ReporteCatalogo[] = [
-  { nombre: "Ventas generales", categoria: "Ventas" },
-  { nombre: "Ventas por producto/servicio", categoria: "Ventas" },
-  { nombre: "Ventas por cliente", categoria: "Ventas" },
-  { nombre: "Rentabilidad por producto", categoria: "Ventas" },
-  { nombre: "Ventas por vendedor", categoria: "Ventas" },
-  { nombre: "Estado de cuenta por cliente", categoria: "Ventas" },
-  { nombre: "Ventas por almacén", categoria: "Ventas" },
+  { nombre: "Ventas generales", categoria: "Ventas", href: "/dashboard/reportes/ventas-generales" },
+  {
+    nombre: "Ventas por producto/servicio",
+    categoria: "Ventas",
+    href: "/dashboard/reportes/ventas-producto",
+  },
+  { nombre: "Ventas por cliente", categoria: "Ventas", href: "/dashboard/reportes/ventas-cliente" },
+  {
+    nombre: "Rentabilidad por producto",
+    categoria: "Ventas",
+    href: "/dashboard/reportes/rentabilidad-producto",
+  },
+  { nombre: "Ventas por vendedor", categoria: "Ventas", href: "/dashboard/reportes/ventas-vendedor" },
+  {
+    nombre: "Estado de cuenta por cliente",
+    categoria: "Ventas",
+    href: "/dashboard/reportes/estado-cuenta-cliente",
+  },
+  { nombre: "Ventas por almacén", categoria: "Ventas", href: "/dashboard/reportes/ventas-almacen" },
 
   { nombre: "Cuentas por cobrar", categoria: "Administrativos", href: "/dashboard/reportes/cxc" },
   { nombre: "Cuentas por pagar", categoria: "Administrativos", href: "/dashboard/reportes/cxp" },
