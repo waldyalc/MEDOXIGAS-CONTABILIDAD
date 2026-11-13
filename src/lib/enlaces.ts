@@ -69,3 +69,15 @@ export function rutaAsiento(id: string) {
 export function rutaCuenta(id: string) {
   return ruta("/dashboard/contabilidad/cuentas", id);
 }
+
+export function rutaBanco(id: string) {
+  return ruta("/dashboard/bancos", id);
+}
+
+export function rutaTransferencia(id: string) {
+  return ruta("/dashboard/bancos/transferencias", id);
+}
+
+export function rutaConciliacion(id: string) {
+  return ruta("/dashboard/bancos/conciliaciones", id);
+}
