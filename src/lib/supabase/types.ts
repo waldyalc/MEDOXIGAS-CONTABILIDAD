@@ -1318,6 +1318,30 @@ export type Database = {
           },
         ]
       }
+      terminos_pago: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          dias: number
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          dias?: number
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          dias?: number
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1340,6 +1364,7 @@ export type Database = {
       _cuenta_config: { Args: { p_clave: string }; Returns: string }
       actualizar_contacto: { Args: { p: Json; p_id: string }; Returns: string }
       actualizar_cuenta: { Args: { p: Json }; Returns: string }
+      actualizar_empresa: { Args: { p: Json }; Returns: undefined }
       actualizar_numeracion: { Args: { p: Json }; Returns: string }
       actualizar_producto: { Args: { p: Json; p_id: string }; Returns: string }
       anular_documento: {
@@ -1358,9 +1383,29 @@ export type Database = {
       crear_nota_credito_venta: { Args: { p: Json }; Returns: string }
       crear_producto: { Args: { p: Json }; Returns: string }
       crear_remision: { Args: { p: Json }; Returns: string }
+      crear_termino_pago: { Args: { p: Json }; Returns: string }
       registrar_deposito: { Args: { p: Json }; Returns: string }
       registrar_pago_proveedor: { Args: { p: Json }; Returns: string }
       registrar_pago_recibido: { Args: { p: Json }; Returns: string }
+      listar_perfiles: {
+        Args: never
+        Returns: {
+          correo: string | null
+          creado_en: string
+          nombre: string | null
+          rol: string
+          user_id: string
+        }[]
+      }
+      listar_terminos_pago: {
+        Args: never
+        Returns: {
+          activo: boolean
+          dias: number
+          id: string
+          nombre: string
+        }[]
+      }
       reporte_balance_comprobacion: {
         Args: { p_desde: string; p_hasta: string }
         Returns: {
