@@ -96,6 +96,16 @@ export const sidebarItems: NavGroup[] = [
             title: "Notas de crédito",
             url: "/dashboard/notas-credito",
           },
+          {
+            id: "notas-debito",
+            title: "Notas de débito",
+            url: "/dashboard/notas-debito",
+          },
+          {
+            id: "facturas-recurrentes",
+            title: "Facturas recurrentes",
+            url: "/dashboard/facturas-recurrentes",
+          },
         ],
       },
       {
