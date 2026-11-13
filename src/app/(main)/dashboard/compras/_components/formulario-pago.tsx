@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { toast } from "@/components/ui/toast";
 import { registrarPagoProveedor } from "@/lib/compras/acciones";
 import { aNumero } from "@/lib/compras/calculo";
 import { METODOS_PAGO } from "@/lib/compras/esquema";
@@ -110,6 +111,9 @@ export function FormularioPago({ contactos, cuentasCajaBanco, facturasAbiertas }
       }
 
       setExito(true);
+      if (resultado.aviso) {
+        toast.add({ type: "warning", title: "Saldo negativo", description: resultado.aviso });
+      }
       setFacturaId("");
       setMonto("");
     });
