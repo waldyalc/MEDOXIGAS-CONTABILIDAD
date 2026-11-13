@@ -2,7 +2,9 @@ begin;
 select plan(11);
 
 create temp table _ids (clave text primary key, id uuid) on commit drop;
+create temp table _base (clave text primary key, valor int) on commit drop;
 grant select, insert, update, delete on _ids to authenticated;
+grant select, insert, update, delete on _base to authenticated;
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'admin@prueba.local'),
@@ -30,6 +32,9 @@ select 'producto', public.crear_producto(jsonb_build_object(
   'cantidad', 10.00::numeric,
   'costo', 300.00::numeric
 ));
+
+insert into _base (clave, valor)
+select 'asientos', count(*)::int from public.asientos;
 
 insert into _ids (clave, id)
 select 'orden', public.crear_orden_compra(jsonb_build_object(
@@ -71,7 +76,7 @@ select is(
 
 select is(
   (select count(*)::int from public.asientos),
-  0,
+  (select valor from _base where clave = 'asientos'),
   'la orden de compra no genera asiento'
 );
 
