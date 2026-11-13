@@ -28,6 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { toast } from "@/components/ui/toast";
 import { anularFacturaProveedor, registrarPagoProveedor } from "@/lib/compras/acciones";
 import { aNumero } from "@/lib/compras/calculo";
 import { hoyEnRd } from "@/lib/compras/fechas";
@@ -104,6 +105,10 @@ function DialogoPago({ facturaId, numero, saldo, cuentas }: DialogoPagoProps) {
       if (!resultado.ok) {
         setError(resultado.error);
         return;
+      }
+
+      if (resultado.aviso) {
+        toast.add({ type: "warning", title: "Saldo negativo", description: resultado.aviso });
       }
 
       setAbierto(false);

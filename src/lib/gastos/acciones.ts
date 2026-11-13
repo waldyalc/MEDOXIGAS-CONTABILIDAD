@@ -6,11 +6,12 @@ import { getRol } from "@/lib/auth/rol";
 import { centavosAValor, valorACentavos } from "@/lib/facturacion/calculo";
 import { mensajeErrorRpc } from "@/lib/facturacion/errores";
 import { mensajeValidacion } from "@/lib/facturacion/validacion";
+import { avisoSaldoCuenta } from "@/lib/reportes/saldos";
 import { createClient } from "@/lib/supabase/server";
 
 import { crearGastoMenorSchema } from "./validacion";
 
-export type ResultadoGasto = { ok: true; id: string } | { ok: false; error: string };
+export type ResultadoGasto = { ok: true; id: string; aviso?: string } | { ok: false; error: string };
 
 export async function crearGastoMenor(entrada: unknown): Promise<ResultadoGasto> {
   const rol = await getRol();
@@ -36,6 +37,18 @@ export async function crearGastoMenor(entrada: unknown): Promise<ResultadoGasto>
   if (error) return { ok: false, error: mensajeErrorRpc(error) };
   if (typeof data !== "string") return { ok: false, error: "El gasto se guardó pero no se recibió su identificador." };
 
+  let cuentaPagoId = datos.cuenta_pago_id;
+  if (!cuentaPagoId) {
+    try {
+      const { data: gasto } = await supabase.from("gastos_menores").select("cuenta_pago_id").eq("id", data).single();
+      cuentaPagoId = gasto?.cuenta_pago_id;
+    } catch {
+      cuentaPagoId = datos.cuenta_pago_id;
+    }
+  }
+
+  const aviso = await avisoSaldoCuenta(cuentaPagoId, datos.fecha);
+
   revalidatePath("/dashboard/gastos");
-  return { ok: true, id: data };
+  return { ok: true, id: data, ...(aviso ? { aviso } : {}) };
 }
