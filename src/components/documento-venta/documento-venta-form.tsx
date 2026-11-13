@@ -25,6 +25,7 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
 import { esTipoComprobante, OPCIONES_TIPO_COMPROBANTE } from "@/lib/facturacion/comprobantes";
 import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import type {
@@ -35,6 +36,7 @@ import type {
   TipoComprobante,
 } from "@/lib/facturacion/tipos";
 import type { MetodoPago } from "@/lib/pagos/tipos";
+import type { VendedorOpcion } from "@/lib/vendedores/tipos";
 
 import {
   calcularDocumento,
@@ -52,6 +54,11 @@ interface Props {
   contactos: ContactoResumen[];
   productos: ProductoResumen[];
   cuentas?: CuentaCajaBanco[];
+  vendedores?: VendedorOpcion[];
+  centrosCosto?: CentroCostoOpcion[];
+  notasIniciales?: string;
+  terminosIniciales?: string;
+  mostrarLogo?: boolean;
   fechaHoy: string;
   titulo: string;
   etiquetaNumero: string;
@@ -86,6 +93,7 @@ const TITULO_SECCION = "text-base leading-6 font-semibold text-slate-700";
 const DIVISOR = "h-px w-full bg-slate-400/20";
 const CELDA_ENCABEZADO =
   "flex h-10 items-center border-b border-slate-400/20 bg-slate-50 px-1 text-xs leading-4 font-medium text-gray-500";
+const SIN_SELECCION = "__ninguno";
 const METODOS_PAGO: readonly { value: MetodoPago; label: string }[] = [
   { value: "efectivo", label: "Efectivo" },
   { value: "transferencia", label: "Transferencia" },
@@ -136,6 +144,7 @@ function Encabezado({
   tipo,
   onTipo,
   comprobantesItems,
+  mostrarLogo,
 }: {
   empresa: Empresa | null;
   conComprobante: boolean;
@@ -143,6 +152,7 @@ function Encabezado({
   tipo: TipoComprobante;
   onTipo: (tipo: TipoComprobante) => void;
   comprobantesItems: OpcionSelect[];
+  mostrarLogo: boolean;
 }) {
   function cambiarTipo(valor: string | null) {
     if (valor && esTipoComprobante(valor)) onTipo(valor);
@@ -151,12 +161,14 @@ function Encabezado({
   return (
     <header className="flex flex-col gap-4 py-3 md:flex-row md:items-center md:justify-between md:gap-6 md:py-6 lg:py-8">
       <div className="flex min-w-0 justify-center md:w-1/3 md:justify-start">
-        {/* biome-ignore lint/performance/noImgElement: logo configurable de la empresa */}
-        <img
-          src={empresa?.logo_url?.trim() || "/marca/logo-medoxigas.png"}
-          alt={empresa?.nombre ?? "Medoxigas"}
-          className="h-[72px] w-auto object-contain md:h-24"
-        />
+        {mostrarLogo ? (
+          // biome-ignore lint/performance/noImgElement: logo configurable de la empresa
+          <img
+            src={empresa?.logo_url?.trim() || "/marca/logo-medoxigas.png"}
+            alt={empresa?.nombre ?? "Medoxigas"}
+            className="h-[72px] w-auto object-contain md:h-24"
+          />
+        ) : null}
       </div>
 
       <div className="min-w-0 text-center md:w-1/3">
@@ -471,6 +483,12 @@ function MasOpciones({
   onTerminos,
   pie,
   onPie,
+  vendedoresItems,
+  vendedorId,
+  onVendedor,
+  centrosItems,
+  centroCostoId,
+  onCentroCosto,
 }: {
   conTerminos: boolean;
   conPie: boolean;
@@ -480,8 +498,20 @@ function MasOpciones({
   onTerminos: (valor: string) => void;
   pie: string;
   onPie: (valor: string) => void;
+  vendedoresItems: OpcionSelect[];
+  vendedorId: string;
+  onVendedor: (valor: string) => void;
+  centrosItems: OpcionSelect[];
+  centroCostoId: string;
+  onCentroCosto: (valor: string) => void;
 }) {
-  const columnas = claseColumnasOpciones(1 + (conTerminos ? 1 : 0) + (conPie ? 1 : 0));
+  const columnas = claseColumnasOpciones(
+    1 +
+      (conTerminos ? 1 : 0) +
+      (conPie ? 1 : 0) +
+      (vendedoresItems.length > 1 ? 1 : 0) +
+      (centrosItems.length > 1 ? 1 : 0),
+  );
 
   return (
     <section>
@@ -514,6 +544,52 @@ function MasOpciones({
                 />
               </Campo>
             ) : null}
+            {vendedoresItems.length > 1 ? (
+              <Campo>
+                <Etiqueta htmlFor="vendedor">Vendedor</Etiqueta>
+                <Select
+                  items={vendedoresItems}
+                  value={vendedorId || SIN_SELECCION}
+                  onValueChange={(valor: string | null) =>
+                    onVendedor(valor == null || valor === SIN_SELECCION ? "" : valor)
+                  }
+                >
+                  <SelectTrigger id="vendedor" className={SELECT_CHICO}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {vendedoresItems.map((opcion) => (
+                      <SelectItem key={opcion.value} value={opcion.value}>
+                        {opcion.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Campo>
+            ) : null}
+            {centrosItems.length > 1 ? (
+              <Campo>
+                <Etiqueta htmlFor="centro-costo">Centro de costo</Etiqueta>
+                <Select
+                  items={centrosItems}
+                  value={centroCostoId || SIN_SELECCION}
+                  onValueChange={(valor: string | null) =>
+                    onCentroCosto(valor == null || valor === SIN_SELECCION ? "" : valor)
+                  }
+                >
+                  <SelectTrigger id="centro-costo" className={SELECT_CHICO}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {centrosItems.map((opcion) => (
+                      <SelectItem key={opcion.value} value={opcion.value}>
+                        {opcion.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Campo>
+            ) : null}
             {conPie ? (
               <Campo>
                 <Etiqueta htmlFor="pie">Pie de factura</Etiqueta>
@@ -538,6 +614,11 @@ export function DocumentoVentaForm({
   contactos,
   productos,
   cuentas = [],
+  vendedores = [],
+  centrosCosto = [],
+  notasIniciales = "",
+  terminosIniciales = "",
+  mostrarLogo = true,
   fechaHoy,
   titulo,
   etiquetaNumero,
@@ -560,9 +641,11 @@ export function DocumentoVentaForm({
   const [fecha, setFecha] = useState(fechaHoy);
   const [vencimiento, setVencimiento] = useState(fechaHoy);
   const [lineas, setLineas] = useState<LineaFormulario[]>([lineaVacia("l1")]);
-  const [notas, setNotas] = useState("");
-  const [terminos, setTerminos] = useState("");
+  const [notas, setNotas] = useState(notasIniciales);
+  const [terminos, setTerminos] = useState(terminosIniciales);
   const [pie, setPie] = useState("");
+  const [vendedorId, setVendedorId] = useState("");
+  const [centroCostoId, setCentroCostoId] = useState("");
   const [registrarPago, setRegistrarPago] = useState(false);
   const [cuentaPago, setCuentaPago] = useState(
     cuentas.find((cuenta) => cuenta.codigo === "1101")?.id ?? cuentas[0]?.id ?? "",
@@ -576,6 +659,14 @@ export function DocumentoVentaForm({
     label: opcion.etiqueta,
   }));
   const cuentasItems = cuentas.map((cuenta) => ({ value: cuenta.id, label: `${cuenta.codigo} · ${cuenta.nombre}` }));
+  const vendedoresItems = [
+    { value: SIN_SELECCION, label: "Sin vendedor" },
+    ...vendedores.map((vendedor) => ({ value: vendedor.id, label: vendedor.nombre })),
+  ];
+  const centrosItems = [
+    { value: SIN_SELECCION, label: "Sin centro" },
+    ...centrosCosto.map((centro) => ({ value: centro.id, label: `${centro.codigo} · ${centro.nombre}` })),
+  ];
 
   const { calculadas, totales } = calcularDocumento(lineas);
 
@@ -622,10 +713,12 @@ export function DocumentoVentaForm({
       notas,
       lineas,
       productos,
-      ...(conComprobante ? { tipoComprobante: tipo } : {}),
-      ...(conTerminos ? { terminos } : {}),
-      ...(conPie ? { pie } : {}),
-      ...(conPago && registrarPago ? { pago: { cuentaId: cuentaPago, metodo: metodoPago } } : {}),
+      vendedorId,
+      centroCostoId,
+      tipoComprobante: conComprobante ? tipo : undefined,
+      terminos: conTerminos ? terminos : undefined,
+      pie: conPie ? pie : undefined,
+      pago: conPago && registrarPago ? { cuentaId: cuentaPago, metodo: metodoPago } : undefined,
     });
 
     iniciar(async () => {
@@ -662,6 +755,7 @@ export function DocumentoVentaForm({
           tipo={tipo}
           onTipo={setTipo}
           comprobantesItems={comprobantesItems}
+          mostrarLogo={mostrarLogo}
         />
 
         {conPago ? (
@@ -759,6 +853,12 @@ export function DocumentoVentaForm({
           onTerminos={setTerminos}
           pie={pie}
           onPie={setPie}
+          vendedoresItems={vendedoresItems}
+          vendedorId={vendedorId}
+          onVendedor={setVendedorId}
+          centrosItems={centrosItems}
+          centroCostoId={centroCostoId}
+          onCentroCosto={setCentroCostoId}
         />
       </div>
 

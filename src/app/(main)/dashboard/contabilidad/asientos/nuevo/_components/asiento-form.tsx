@@ -20,16 +20,20 @@ import {
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { crearAsientoManual } from "@/lib/asientos/acciones";
-import type { ContactoAsiento, CuentaAsiento } from "@/lib/asientos/tipos";
+import type { CentroCostoAsiento, ContactoAsiento, CuentaAsiento } from "@/lib/asientos/tipos";
 import { rutaAsiento } from "@/lib/enlaces";
 import { centavosAValor, parsearCentavos } from "@/lib/facturacion/calculo";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
+
+const SIN_CENTRO = "__ninguno";
 
 interface LineaForm {
   clave: string;
   cuentaId: string;
   contactoId: string;
+  centroCostoId: string;
   debito: string;
   credito: string;
 }
@@ -42,11 +46,12 @@ interface ItemCombobox {
 interface Props {
   cuentas: CuentaAsiento[];
   contactos: ContactoAsiento[];
+  centrosCosto: CentroCostoAsiento[];
   fechaHoy: string;
 }
 
 function lineaVacia(clave: string): LineaForm {
-  return { clave, cuentaId: "", contactoId: "", debito: "", credito: "" };
+  return { clave, cuentaId: "", contactoId: "", centroCostoId: "", debito: "", credito: "" };
 }
 
 function montoCentavos(texto: string): number {
@@ -59,7 +64,7 @@ function tieneUnSoloLado(debito: number, credito: number): boolean {
   return hayDebito !== hayCredito;
 }
 
-export function AsientoForm({ cuentas, contactos, fechaHoy }: Props) {
+export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Props) {
   const router = useRouter();
   const contador = useRef(2);
   const [pendiente, iniciar] = useTransition();
@@ -77,6 +82,10 @@ export function AsientoForm({ cuentas, contactos, fechaHoy }: Props) {
     value: contacto.id,
     label: contacto.nombre,
   }));
+  const centrosItems = [
+    { value: SIN_CENTRO, label: "Sin centro" },
+    ...centrosCosto.map((centro) => ({ value: centro.id, label: `${centro.codigo} · ${centro.nombre}` })),
+  ];
 
   const debitosCentavos = lineas.reduce((total, linea) => total + montoCentavos(linea.debito), 0);
   const creditosCentavos = lineas.reduce((total, linea) => total + montoCentavos(linea.credito), 0);
@@ -142,6 +151,7 @@ export function AsientoForm({ cuentas, contactos, fechaHoy }: Props) {
         lineas: lineas.map((linea) => ({
           cuenta_id: linea.cuentaId,
           ...(linea.contactoId ? { contacto_id: linea.contactoId } : {}),
+          ...(linea.centroCostoId ? { centro_costo_id: linea.centroCostoId } : {}),
           debito: centavosAValor(montoCentavos(linea.debito)),
           credito: centavosAValor(montoCentavos(linea.credito)),
         })),
@@ -196,9 +206,10 @@ export function AsientoForm({ cuentas, contactos, fechaHoy }: Props) {
           </Button>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          <div className="text-muted-foreground hidden gap-2 px-1 text-xs md:grid md:grid-cols-[minmax(0,2.4fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <div className="text-muted-foreground hidden gap-2 px-1 text-xs md:grid md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_auto]">
             <span>Cuenta *</span>
             <span>Tercero</span>
+            <span>Centro de costo</span>
             <span className="text-right">Débito</span>
             <span className="text-right">Crédito</span>
             <span className="w-8" />
@@ -207,7 +218,7 @@ export function AsientoForm({ cuentas, contactos, fechaHoy }: Props) {
           {lineas.map((linea, indice) => (
             <div
               key={linea.clave}
-              className="grid grid-cols-2 items-end gap-2 rounded-lg border p-2 md:grid-cols-[minmax(0,2.4fr)_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:border-0 md:p-0"
+              className="grid grid-cols-2 items-end gap-2 rounded-lg border p-2 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_auto] md:border-0 md:p-0"
             >
               <div className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
                 <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`cuenta-${linea.clave}`}>
@@ -255,6 +266,32 @@ export function AsientoForm({ cuentas, contactos, fechaHoy }: Props) {
                     </ComboboxList>
                   </ComboboxContent>
                 </Combobox>
+              </div>
+
+              <div className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
+                <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`centro-${linea.clave}`}>
+                  Centro de costo
+                </Label>
+                <Select
+                  items={centrosItems}
+                  value={linea.centroCostoId || SIN_CENTRO}
+                  onValueChange={(valor: string | null) =>
+                    actualizarLinea(linea.clave, {
+                      centroCostoId: valor == null || valor === SIN_CENTRO ? "" : valor,
+                    })
+                  }
+                >
+                  <SelectTrigger id={`centro-${linea.clave}`} className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {centrosItems.map((centro) => (
+                      <SelectItem key={centro.value} value={centro.value}>
+                        {centro.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex flex-col gap-1.5">

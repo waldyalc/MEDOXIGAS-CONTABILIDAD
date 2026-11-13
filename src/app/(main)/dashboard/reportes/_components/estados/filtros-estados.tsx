@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
 import type { Vista } from "@/lib/reportes/estados/tipos";
 
 interface Props {
@@ -10,10 +11,19 @@ interface Props {
   hasta: string;
   vista?: Vista;
   busqueda: string;
-  centroCostos?: boolean;
+  centrosCosto?: CentroCostoOpcion[];
+  centroSeleccionado?: string;
 }
 
-export function FiltrosEstados({ tipo, desde, hasta, vista, busqueda, centroCostos = false }: Props) {
+export function FiltrosEstados({
+  tipo,
+  desde,
+  hasta,
+  vista,
+  busqueda,
+  centrosCosto = [],
+  centroSeleccionado = "",
+}: Props) {
   return (
     <form method="get" className="flex flex-wrap items-end gap-3 print:hidden">
       {tipo === "rango" && desde != null ? (
@@ -26,11 +36,16 @@ export function FiltrosEstados({ tipo, desde, hasta, vista, busqueda, centroCost
         <Label htmlFor="hasta">Hasta</Label>
         <Input id="hasta" name="hasta" type="date" defaultValue={hasta} className="w-40" />
       </div>
-      {centroCostos ? (
+      {centrosCosto.length > 0 ? (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="centro">Centro de costo</Label>
-          <NativeSelect id="centro" name="centro" disabled defaultValue="" className="w-44">
-            <NativeSelectOption value="">Próximamente</NativeSelectOption>
+          <NativeSelect id="centro" name="centro" defaultValue={centroSeleccionado} className="w-52">
+            <NativeSelectOption value="">Todos los centros</NativeSelectOption>
+            {centrosCosto.map((centro) => (
+              <NativeSelectOption key={centro.id} value={centro.id}>
+                {centro.codigo} · {centro.nombre}
+              </NativeSelectOption>
+            ))}
           </NativeSelect>
         </div>
       ) : null}

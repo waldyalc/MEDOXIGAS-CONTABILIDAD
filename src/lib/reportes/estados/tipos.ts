@@ -20,6 +20,7 @@ export interface FilaReporte {
 export interface OpcionesReporte {
   busqueda?: string;
   resumido?: boolean;
+  centroCostoId?: string | null;
 }
 
 export interface CuentaEstado {

@@ -7,9 +7,12 @@ import { DocumentoVentaForm } from "@/components/documento-venta/documento-venta
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
+import { getCentrosCostoActivos } from "@/lib/centros-costo/consultas";
 import { crearRemision } from "@/lib/conduces/acciones";
 import { getContactosClientes, getEmpresa, getProductosActivos } from "@/lib/facturacion/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
+import { getPlantillaImpresion } from "@/lib/plantillas-impresion/consultas";
+import { getVendedoresActivos } from "@/lib/vendedores/consultas";
 
 export default async function Page() {
   const perfil = await getPerfil();
@@ -37,10 +40,13 @@ export default async function Page() {
 }
 
 async function ConduceContenido() {
-  const [empresa, contactos, productos] = await Promise.all([
+  const [empresa, contactos, productos, vendedores, centrosCosto, plantilla] = await Promise.all([
     getEmpresa(),
     getContactosClientes(),
     getProductosActivos(),
+    getVendedoresActivos(),
+    getCentrosCostoActivos(),
+    getPlantillaImpresion("conduce"),
   ]);
 
   return (
@@ -48,6 +54,11 @@ async function ConduceContenido() {
       empresa={empresa}
       contactos={contactos}
       productos={productos}
+      vendedores={vendedores}
+      centrosCosto={centrosCosto}
+      notasIniciales={plantilla.notas}
+      terminosIniciales={plantilla.terminos}
+      mostrarLogo={plantilla.mostrarLogo}
       fechaHoy={hoyRD()}
       titulo="Información del conduce"
       etiquetaNumero="Conduce No."

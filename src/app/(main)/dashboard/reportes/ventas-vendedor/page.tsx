@@ -1,21 +1,46 @@
 import { UserRound } from "lucide-react";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
+import { formatoEntero } from "@/lib/formato";
 import type { TablaReporte } from "@/lib/reportes/exportar/tipos";
 import type { ParametrosFecha } from "@/lib/reportes/fechas";
 import { parsearRango } from "@/lib/reportes/fechas";
+import { obtenerVentasVendedor } from "@/lib/reportes/ventas/v3/consultas";
 import { agruparPorVendedor } from "@/lib/reportes/ventas/v3/vendedor";
+import { getVendedoresActivos } from "@/lib/vendedores/consultas";
 
+import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
 import { EncabezadoReporte } from "../_components/encabezado-reporte";
 
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosFecha> }) {
-  const { desde, hasta } = parsearRango(await searchParams);
-  const vendedores = agruparPorVendedor([]);
+  const params = await searchParams;
+  const { desde, hasta } = parsearRango(params);
+  const vendedorParam = Array.isArray(params.vendedor) ? params.vendedor[0] : params.vendedor;
+  const vendedorId = vendedorParam && z.uuid().safeParse(vendedorParam).success ? vendedorParam : null;
+
+  const [vendedores, ventas] = await Promise.all([
+    getVendedoresActivos(),
+    obtenerVentasVendedor(desde, hasta, vendedorId),
+  ]);
+  const grupos = agruparPorVendedor(ventas.filas);
+
+  const totales = grupos.reduce(
+    (acumulado, grupo) => ({
+      numeroVentas: acumulado.numeroVentas + grupo.numeroVentas,
+      antesImpuestos: acumulado.antesImpuestos + grupo.antesImpuestos,
+      impuestos: acumulado.impuestos + grupo.impuestos,
+      despuesImpuestos: acumulado.despuesImpuestos + grupo.despuesImpuestos,
+    }),
+    { numeroVentas: 0, antesImpuestos: 0, impuestos: 0, despuesImpuestos: 0 },
+  );
 
   const tabla: TablaReporte = {
     titulo: "Ventas por vendedor",
@@ -27,7 +52,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
       { clave: "impuestos", titulo: "Impuestos", tipo: "dinero" },
       { clave: "despuesImpuestos", titulo: "Después de impuestos", tipo: "dinero" },
     ],
-    filas: vendedores.map((vendedor) => ({
+    filas: grupos.map((vendedor) => ({
       celdas: {
         vendedor: vendedor.vendedor,
         ventas: vendedor.numeroVentas,
@@ -59,14 +84,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="vendedor">Vendedores</Label>
-            <NativeSelect id="vendedor" name="vendedor" disabled defaultValue="" className="w-52">
+            <NativeSelect id="vendedor" name="vendedor" defaultValue={vendedorId ?? ""} className="w-52">
               <NativeSelectOption value="">Todos los vendedores</NativeSelectOption>
-            </NativeSelect>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="almacen">Almacén</Label>
-            <NativeSelect id="almacen" name="almacen" disabled defaultValue="" className="w-44">
-              <NativeSelectOption value="">Todos los almacenes</NativeSelectOption>
+              {vendedores.map((vendedor) => (
+                <NativeSelectOption key={vendedor.id} value={vendedor.id}>
+                  {vendedor.nombre}
+                </NativeSelectOption>
+              ))}
             </NativeSelect>
           </div>
           <Button type="submit" variant="secondary">
@@ -76,17 +100,65 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         <BotonDescargar tabla={tabla} nombreArchivo={`ventas-por-vendedor-${desde}-${hasta}`} />
       </div>
 
-      <Empty className="border">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <UserRound />
-          </EmptyMedia>
-          <EmptyTitle>No encontramos ventas que coincidan con tu búsqueda</EmptyTitle>
-          <EmptyDescription>
-            Todavía no hay vendedores registrados en el sistema. El reporte quedará disponible cuando exista ese dato.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      {ventas.error ? <AlertaError mensaje={ventas.error} /> : null}
+
+      {grupos.length === 0 ? (
+        <Empty className="border">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <UserRound />
+            </EmptyMedia>
+            <EmptyTitle>No encontramos ventas que coincidan con tu búsqueda</EmptyTitle>
+            <EmptyDescription>
+              Asigna un vendedor en «Más opciones» de las facturas para que aparezcan en este reporte.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Vendedor</TableHead>
+                <TableHead className="text-right">Número de ventas</TableHead>
+                <TableHead className="text-right">Antes de impuestos</TableHead>
+                <TableHead className="text-right">Impuestos</TableHead>
+                <TableHead className="text-right">Después de impuestos</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {grupos.map((grupo) => (
+                <TableRow key={grupo.vendedor}>
+                  <TableCell className="font-medium">{grupo.vendedor}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatoEntero(grupo.numeroVentas)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatoMonedaCentavos(grupo.antesImpuestos)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{formatoMonedaCentavos(grupo.impuestos)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatoMonedaCentavos(grupo.despuesImpuestos)}
+                  </TableCell>
+                </TableRow>
+              ))}
+              <TableRow>
+                <TableCell className="font-semibold">Total</TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">
+                  {formatoEntero(totales.numeroVentas)}
+                </TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">
+                  {formatoMonedaCentavos(totales.antesImpuestos)}
+                </TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">
+                  {formatoMonedaCentavos(totales.impuestos)}
+                </TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">
+                  {formatoMonedaCentavos(totales.despuesImpuestos)}
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

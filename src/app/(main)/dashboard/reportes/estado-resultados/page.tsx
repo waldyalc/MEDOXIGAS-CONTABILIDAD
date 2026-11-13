@@ -1,4 +1,7 @@
+import { z } from "zod";
+
 import { Card, CardContent } from "@/components/ui/card";
+import { getCentrosCostoActivos } from "@/lib/centros-costo/consultas";
 import { obtenerEstadoResultadosComparativo } from "@/lib/reportes/estados/consultas";
 import { etiquetaMes, parsearBusqueda, parsearVista, restarAnio } from "@/lib/reportes/estados/fechas";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
@@ -13,10 +16,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const { desde, hasta } = parsearRango(params);
   const vista = parsearVista(params);
   const busqueda = parsearBusqueda(params);
-  const { reporte, error } = await obtenerEstadoResultadosComparativo(desde, hasta, {
-    resumido: vista === "resumido",
-    busqueda,
-  });
+  const centroParam = Array.isArray(params.centro) ? params.centro[0] : params.centro;
+  const centroCostoId = centroParam && z.uuid().safeParse(centroParam).success ? centroParam : null;
+  const [centrosCosto, { reporte, error }] = await Promise.all([
+    getCentrosCostoActivos(),
+    obtenerEstadoResultadosComparativo(desde, hasta, {
+      resumido: vista === "resumido",
+      busqueda,
+      centroCostoId,
+    }),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -27,7 +36,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         hasta={hasta}
       />
 
-      <FiltrosEstados tipo="rango" desde={desde} hasta={hasta} vista={vista} busqueda={busqueda} centroCostos />
+      <FiltrosEstados
+        tipo="rango"
+        desde={desde}
+        hasta={hasta}
+        vista={vista}
+        busqueda={busqueda}
+        centrosCosto={centrosCosto}
+        centroSeleccionado={centroCostoId ?? ""}
+      />
 
       {error ? <AlertaError mensaje={error} /> : null}
 

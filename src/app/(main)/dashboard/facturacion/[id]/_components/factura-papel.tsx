@@ -30,6 +30,7 @@ interface Props {
   contacto: ContactoResumen;
   ncfVence: string | null;
   enlaces?: boolean;
+  mostrarLogo?: boolean;
 }
 
 function DatosEmpresa({
@@ -37,16 +38,20 @@ function DatosEmpresa({
   factura,
   nombreEmpresa,
   logo,
+  mostrarLogo,
 }: {
   empresa: Empresa | null;
   factura: FacturaDetalle;
   nombreEmpresa: string;
   logo: string;
+  mostrarLogo: boolean;
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      {/* biome-ignore lint/performance/noImgElement: logo configurable de la empresa */}
-      <img src={logo} alt={nombreEmpresa} className="mb-1 h-16 w-auto object-contain" />
+      {mostrarLogo ? (
+        // biome-ignore lint/performance/noImgElement: logo configurable de la empresa
+        <img src={logo} alt={nombreEmpresa} className="mb-1 h-16 w-auto object-contain" />
+      ) : null}
       <p className="text-base font-semibold">{nombreEmpresa}</p>
       {empresa?.rnc?.trim() ? <p>RNC: {empresa.rnc}</p> : null}
       {empresa?.direccion?.trim() ? <p>{empresa.direccion}</p> : null}
@@ -144,7 +149,15 @@ function NotasFactura({ factura }: { factura: FacturaDetalle }) {
   );
 }
 
-export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence, enlaces = false }: Props) {
+export function FacturaPapel({
+  empresa,
+  factura,
+  lineas,
+  contacto,
+  ncfVence,
+  enlaces = false,
+  mostrarLogo = true,
+}: Props) {
   const esCredito = factura.tipo_comprobante === "01";
   const titulo = tituloTipoComprobante(factura.tipo_comprobante);
   const saldo = saldoDeFactura(factura.total, factura.pagado, factura.credito);
@@ -159,7 +172,13 @@ export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence, enl
   return (
     <article className="flex min-h-[11in] w-full flex-col bg-white p-[12mm] text-[13px] leading-snug text-[#0a2352] print:min-h-0 print:p-0">
       <header className="flex flex-col items-start gap-6 sm:flex-row sm:justify-between sm:gap-8">
-        <DatosEmpresa empresa={empresa} factura={factura} nombreEmpresa={nombreEmpresa} logo={logo} />
+        <DatosEmpresa
+          empresa={empresa}
+          factura={factura}
+          nombreEmpresa={nombreEmpresa}
+          logo={logo}
+          mostrarLogo={mostrarLogo}
+        />
 
         <div className="shrink-0 sm:text-right">
           <p className="font-medium">{titulo}</p>

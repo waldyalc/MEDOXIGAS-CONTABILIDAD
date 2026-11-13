@@ -18,7 +18,14 @@ export interface ContactoAsiento {
   nombre: string;
 }
 
+export interface CentroCostoAsiento {
+  id: string;
+  codigo: string;
+  nombre: string;
+}
+
 export interface DatosFormularioAsiento {
   cuentas: CuentaAsiento[];
   contactos: ContactoAsiento[];
+  centrosCosto: CentroCostoAsiento[];
 }

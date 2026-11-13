@@ -44,6 +44,8 @@ export async function crearDocumentoNoContable(tipo: TipoDocumento, entrada: unk
     fecha: datos.fecha,
     vencimiento: datos.vencimiento,
     notas: datos.notas?.trim() || null,
+    vendedor_id: datos.vendedor_id ?? null,
+    centro_costo_id: datos.centro_costo_id ?? null,
     lineas: datos.lineas.map((linea) => ({
       producto_id: linea.producto_id ?? null,
       descripcion: linea.descripcion ?? "",

@@ -47,6 +47,10 @@ export const esquemaFacturaProveedor = z
       .max(500, "Las notas son muy largas.")
       .optional()
       .transform((valor) => valor || null),
+    centro_costo_id: z
+      .union([id, z.literal("")])
+      .optional()
+      .transform((valor) => valor || null),
     lineas: z.array(esquemaLineaFactura).min(1, "Agrega al menos una línea."),
   })
   .refine((factura) => factura.vencimiento >= factura.fecha, {

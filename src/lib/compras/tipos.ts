@@ -1,3 +1,5 @@
+import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
+
 export type EstadoDocumento = "abierta" | "pagada" | "anulada";
 
 export type MetodoPago = "efectivo" | "transferencia" | "tarjeta" | "cheque";
@@ -141,6 +143,7 @@ export interface OpcionesFactura {
   contactos: ContactoOpcion[];
   productos: ProductoOpcion[];
   cuentasGasto: CuentaOpcion[];
+  centrosCosto: CentroCostoOpcion[];
 }
 
 export interface OpcionesPago {

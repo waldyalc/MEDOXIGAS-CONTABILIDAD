@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { VistaDocumentoVenta } from "@/components/documento-venta/vista-documento-venta";
 import { getPerfil } from "@/lib/auth/rol";
 import { getDocumentoVista } from "@/lib/cotizaciones/consultas";
+import { getPlantillaImpresion } from "@/lib/plantillas-impresion/consultas";
 
 import { DocumentoPapel } from "../_components/documento-papel";
 
@@ -11,7 +12,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (perfil?.rol == null) redirect("/unauthorized");
 
   const { id } = await params;
-  const vista = await getDocumentoVista("cotizacion", id);
+  const [vista, plantilla] = await Promise.all([
+    getDocumentoVista("cotizacion", id),
+    getPlantillaImpresion("cotizacion"),
+  ]);
   if (!vista) notFound();
 
   return (
@@ -19,7 +23,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       tipo="cotizacion"
       datos={vista}
       puedeEscribir={perfil.rol !== "lector"}
-      papel={<DocumentoPapel tipo="cotizacion" vista={vista} />}
+      papel={<DocumentoPapel tipo="cotizacion" vista={vista} mostrarLogo={plantilla.mostrarLogo} />}
     />
   );
 }

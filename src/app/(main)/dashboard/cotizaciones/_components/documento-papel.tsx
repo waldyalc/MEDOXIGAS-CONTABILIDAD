@@ -33,11 +33,23 @@ function tasaItbis(lineas: DocumentoLinea[]): string {
   return unica == null ? "ITBIS" : `ITBIS (${unica.toFixed(2)}%)`;
 }
 
-function EmpresaCotizacion({ empresa, nombre, logo }: { empresa: Empresa | null; nombre: string; logo: string }) {
+function EmpresaCotizacion({
+  empresa,
+  nombre,
+  logo,
+  mostrarLogo,
+}: {
+  empresa: Empresa | null;
+  nombre: string;
+  logo: string;
+  mostrarLogo: boolean;
+}) {
   return (
     <div className="flex flex-col gap-0.5">
-      {/* biome-ignore lint/performance/noImgElement: logo configurable de la empresa */}
-      <img src={logo} alt={nombre} className="mb-1 h-16 w-auto object-contain" />
+      {mostrarLogo ? (
+        // biome-ignore lint/performance/noImgElement: logo configurable de la empresa
+        <img src={logo} alt={nombre} className="mb-1 h-16 w-auto object-contain" />
+      ) : null}
       <p className="text-base font-semibold">{nombre}</p>
       {empresa?.rnc?.trim() ? <p>RNC: {empresa.rnc}</p> : null}
       {empresa?.direccion?.trim() ? <p>{empresa.direccion}</p> : null}
@@ -115,18 +127,20 @@ function PapelCotizacion({
   enlaces,
   nombreEmpresa,
   logo,
+  mostrarLogo,
 }: {
   vista: DocumentoVista;
   enlaces: boolean;
   nombreEmpresa: string;
   logo: string;
+  mostrarLogo: boolean;
 }) {
   const { documento, lineas, contacto, empresa } = vista;
 
   return (
     <article className="flex min-h-[11in] w-full flex-col bg-white p-[12mm] text-[13px] leading-snug text-[#0a2352] print:min-h-0 print:p-0">
       <header className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:gap-8">
-        <EmpresaCotizacion empresa={empresa} nombre={nombreEmpresa} logo={logo} />
+        <EmpresaCotizacion empresa={empresa} nombre={nombreEmpresa} logo={logo} mostrarLogo={mostrarLogo} />
         <div className="shrink-0 text-left sm:text-right">
           {empresa?.correo?.trim() ? <p>{empresa.correo}</p> : null}
           {empresa?.telefono?.trim() ? <p>{empresa.telefono}</p> : null}
@@ -203,19 +217,23 @@ function PapelConduce({
   enlaces,
   nombreEmpresa,
   logo,
+  mostrarLogo,
 }: {
   vista: DocumentoVista;
   enlaces: boolean;
   nombreEmpresa: string;
   logo: string;
+  mostrarLogo: boolean;
 }) {
   const { documento, lineas, contacto, empresa } = vista;
 
   return (
     <article className="flex min-h-[11in] w-full flex-col bg-white p-[12mm] text-[13px] leading-snug text-[#0a2352] print:min-h-0 print:p-0">
       <header className="grid grid-cols-[auto_1fr_auto] items-start gap-6">
-        {/* biome-ignore lint/performance/noImgElement: logo configurable de la empresa */}
-        <img src={logo} alt={nombreEmpresa} className="h-16 w-auto object-contain" />
+        {mostrarLogo ? (
+          // biome-ignore lint/performance/noImgElement: logo configurable de la empresa
+          <img src={logo} alt={nombreEmpresa} className="h-16 w-auto object-contain" />
+        ) : null}
         <div className="text-center">
           <p className="text-base font-semibold">{nombreEmpresa}</p>
           {empresa?.rnc?.trim() ? <p>RNC: {empresa.rnc}</p> : null}
@@ -305,13 +323,30 @@ interface Props {
   tipo: TipoDocumento;
   vista: DocumentoVista;
   enlaces?: boolean;
+  mostrarLogo?: boolean;
 }
 
-export function DocumentoPapel({ tipo, vista, enlaces = false }: Props) {
+export function DocumentoPapel({ tipo, vista, enlaces = false, mostrarLogo = true }: Props) {
   const nombreEmpresa = vista.empresa?.nombre?.trim() || "MEDOXIGAS ALC, SRL";
   const logo = vista.empresa?.logo_url?.trim() || "/marca/logo-medoxigas.png";
 
   if (tipo === "remision")
-    return <PapelConduce vista={vista} enlaces={enlaces} nombreEmpresa={nombreEmpresa} logo={logo} />;
-  return <PapelCotizacion vista={vista} enlaces={enlaces} nombreEmpresa={nombreEmpresa} logo={logo} />;
+    return (
+      <PapelConduce
+        vista={vista}
+        enlaces={enlaces}
+        nombreEmpresa={nombreEmpresa}
+        logo={logo}
+        mostrarLogo={mostrarLogo}
+      />
+    );
+  return (
+    <PapelCotizacion
+      vista={vista}
+      enlaces={enlaces}
+      nombreEmpresa={nombreEmpresa}
+      logo={logo}
+      mostrarLogo={mostrarLogo}
+    />
+  );
 }

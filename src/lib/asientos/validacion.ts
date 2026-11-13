@@ -12,6 +12,7 @@ const lineaAsientoSchema = z
   .object({
     cuenta_id: z.uuid({ message: "Selecciona una cuenta en cada línea" }),
     contacto_id: z.uuid().nullish(),
+    centro_costo_id: z.uuid().nullish(),
     descripcion: z.string().trim().max(500).optional(),
     debito: z.coerce.number().finite().min(0, { message: "El débito no puede ser negativo" }),
     credito: z.coerce.number().finite().min(0, { message: "El crédito no puede ser negativo" }),
