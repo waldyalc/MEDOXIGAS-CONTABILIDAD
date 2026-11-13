@@ -5,10 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 
 import {
   type CuentaResumen,
-  type CuentasFicha,
   type DocumentoFicha,
   type FichaProducto,
   type ProductoFicha,
+  resolverCuentasFicha,
   sumarCantidades,
 } from "./ficha";
 import { construirKardex, type MovimientoKardex } from "./kardex";
@@ -67,6 +67,17 @@ async function cargarCuentas(ids: readonly string[]): Promise<Map<string, Cuenta
 
   if (error) throw new Error(error.message);
   return new Map(data.map((cuenta) => [cuenta.id, cuenta]));
+}
+
+async function cargarConfiguracionFicha(): Promise<Map<string, string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("config_contable")
+    .select("clave, cuenta_id")
+    .in("clave", ["ventas", "ventas_servicios", "inventario", "costo_ventas"]);
+
+  if (error) throw new Error(error.message);
+  return new Map(data.map((fila) => [fila.clave, fila.cuenta_id]));
 }
 
 async function cargarFacturasVenta(lineas: readonly LineaVentaFila[]): Promise<DocumentoFila[]> {
@@ -189,11 +200,6 @@ function movimientosDeCompras(
   return movimientos;
 }
 
-function cuentaDe(id: string | null, cuentas: Map<string, CuentaResumen>): CuentaResumen | null {
-  if (!id) return null;
-  return cuentas.get(id) ?? null;
-}
-
 export async function obtenerFichaProducto(id: string): Promise<FichaProducto | null> {
   if (!z.uuid().safeParse(id).success) return null;
 
@@ -226,9 +232,13 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
   if (lineasVenta.error) throw new Error(lineasVenta.error.message);
   if (lineasCompra.error) throw new Error(lineasCompra.error.message);
 
-  const cuentaIds = [producto.cuenta_ingreso_id, producto.cuenta_inventario_id, producto.cuenta_costo_id].filter(
-    (valor): valor is string => valor !== null,
-  );
+  const configuracion = await cargarConfiguracionFicha();
+  const cuentaIds = [
+    producto.cuenta_ingreso_id,
+    producto.cuenta_inventario_id,
+    producto.cuenta_costo_id,
+    ...configuracion.values(),
+  ].filter((valor): valor is string => valor !== null);
 
   const [facturasVentaDb, facturasCompraDb, cuentas] = await Promise.all([
     cargarFacturasVenta(lineasVenta.data),
@@ -262,11 +272,7 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
     cuentaCostoId: producto.cuenta_costo_id,
   };
 
-  const cuentasFicha: CuentasFicha = {
-    ingreso: cuentaDe(producto.cuenta_ingreso_id, cuentas),
-    inventario: cuentaDe(producto.cuenta_inventario_id, cuentas),
-    costo: cuentaDe(producto.cuenta_costo_id, cuentas),
-  };
+  const cuentasFicha = resolverCuentasFicha(productoFicha, configuracion, cuentas);
 
   const movimientos =
     productoFicha.tipo === "producto" && productoFicha.inventariable

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Ban, BookOpen, CreditCard, Loader2, Printer } from "lucide-react";
 import { createPortal } from "react-dom";
 
+import { Enlace } from "@/components/enlace";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -161,9 +162,7 @@ export function VistaFactura({ datos, puedeEscribir }: { datos: FacturaVista; pu
                 <TableRow key={pago.id}>
                   <TableCell className="pl-(--card-spacing)">{formatoDia(pago.fecha)}</TableCell>
                   <TableCell className="font-medium">
-                    <Link className="hover:underline" href={rutaPagoRecibido(pago.id)}>
-                      #{pago.numero}
-                    </Link>
+                    <Enlace href={rutaPagoRecibido(pago.id)}>#{pago.numero}</Enlace>
                   </TableCell>
                   <TableCell>{METODOS[pago.metodo]}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatoMoneda(pago.monto)}</TableCell>

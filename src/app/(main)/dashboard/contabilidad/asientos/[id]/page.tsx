@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ArrowLeft } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,9 +71,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <dt className="text-muted-foreground">Documento de origen</dt>
             <dd>
               {asiento.origen.href ? (
-                <Link href={asiento.origen.href} prefetch={false} className="hover:text-foreground hover:underline">
-                  {asiento.origen.etiqueta}
-                </Link>
+                <Enlace href={asiento.origen.href}>{asiento.origen.etiqueta}</Enlace>
               ) : (
                 asiento.origen.etiqueta
               )}
@@ -108,26 +107,16 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                   <TableRow key={linea.id}>
                     <TableCell className="pl-(--card-spacing) whitespace-normal">
                       {linea.cuenta ? (
-                        <Link
-                          href={rutaCuenta(linea.cuenta.id)}
-                          prefetch={false}
-                          className="hover:text-foreground hover:underline"
-                        >
+                        <Enlace href={rutaCuenta(linea.cuenta.id)}>
                           <span className="text-muted-foreground">{linea.cuenta.codigo}</span> {linea.cuenta.nombre}
-                        </Link>
+                        </Enlace>
                       ) : (
                         "—"
                       )}
                     </TableCell>
                     <TableCell className="whitespace-normal">
                       {linea.contacto ? (
-                        <Link
-                          href={rutaContacto(linea.contacto.id)}
-                          prefetch={false}
-                          className="hover:text-foreground hover:underline"
-                        >
-                          {linea.contacto.nombre}
-                        </Link>
+                        <Enlace href={rutaContacto(linea.contacto.id)}>{linea.contacto.nombre}</Enlace>
                       ) : (
                         "—"
                       )}

@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { z } from "zod";
+
 import { getRol } from "@/lib/auth/rol";
 import { centavosAValor, valorACentavos } from "@/lib/facturacion/calculo";
 import { mensajeErrorRpc } from "@/lib/facturacion/errores";
@@ -51,4 +53,19 @@ export async function crearGastoMenor(entrada: unknown): Promise<ResultadoGasto>
 
   revalidatePath("/dashboard/gastos");
   return { ok: true, id: data, ...(aviso ? { aviso } : {}) };
+}
+
+export async function anularGastoMenor(id: string): Promise<ResultadoGasto> {
+  const rol = await getRol();
+  if (rol !== "admin" && rol !== "contador") return { ok: false, error: "No tienes permiso para anular gastos." };
+  if (!z.uuid().safeParse(id).success) return { ok: false, error: "Gasto inválido." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("anular_documento", { p_tipo: "gasto_menor", p_id: id });
+
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
+
+  revalidatePath("/dashboard/gastos");
+  revalidatePath(`/dashboard/gastos/${id}`);
+  return { ok: true, id };
 }
