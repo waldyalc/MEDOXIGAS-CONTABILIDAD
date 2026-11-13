@@ -50,6 +50,8 @@ describe("filtrarItemsPorRol", () => {
       "/dashboard/cotizaciones",
       "/dashboard/conduces",
       "/dashboard/notas-credito",
+      "/dashboard/notas-debito",
+      "/dashboard/facturas-recurrentes",
     ]);
 
     const compras = items("admin").find((item) => item.id === "compras");
