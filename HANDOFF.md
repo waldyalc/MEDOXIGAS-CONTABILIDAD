@@ -1,5 +1,13 @@
 # Handoff — Medoxigas Contabilidad
 
+## Compras completas: notas, órdenes y recurrentes (13 nov 2026)
+
+- Notas de crédito en compras (`/dashboard/compras/notas-credito`): NCF B03 ligado a la factura de proveedor; asiento Dr CxP / Cr inventario o cuenta de gasto / Cr ITBIS adelantado; devuelve inventario, recalcula el costo promedio y baja el saldo por pagar con `facturas_proveedor.credito`. La anulación revierte asiento, inventario y crédito.
+- Órdenes de compra (`/dashboard/ordenes-compra`): documento de control sin asiento ni movimiento de inventario. «Convertir en factura de proveedor» abre `compras/nueva?orden=<id>` y la orden queda enlazada a la factura creada.
+- Pagos recurrentes (`/dashboard/pagos-recurrentes`): plantilla + `generar_pago_recurrente` idempotente por periodo; el botón «Generar ahora» crea el gasto menor B13 del último periodo vencido, sin cron.
+- Migraciones aditivas `20261114200000_notas_credito_compra.sql`, `20261114201000_ordenes_compra.sql` y `20261114202000_pagos_recurrentes.sql`. pgTAP nuevos: 24 + 11 + 21 asserts. Tipos de las tablas nuevas a mano en `types.ts` y `facturas_proveedor.credito` agregado.
+- Pendiente: aplicar la migración y regenerar `types.ts`; el reporte Cuentas por pagar debe restar `facturas_proveedor.credito` (no se tocó por ser de otra sesión). pgTAP no se pudo correr localmente (sin Docker/Supabase CLI en esta máquina).
+
 ## Ajustes de diseño del formulario de factura (13 nov 2026)
 
 - Logo a 96 px en escritorio y 72 px en móvil; RD$ y % van dentro del campo con `InputGroup`; los `NativeSelect` (NCF, cuenta, método e ITBIS) pasan al `Select` de shadcn.

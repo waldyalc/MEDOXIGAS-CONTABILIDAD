@@ -58,6 +58,9 @@ describe("filtrarItemsPorRol", () => {
       "/dashboard/compras",
       "/dashboard/compras/pagos",
       "/dashboard/gastos",
+      "/dashboard/compras/notas-credito",
+      "/dashboard/ordenes-compra",
+      "/dashboard/pagos-recurrentes",
     ]);
 
     const contabilidad = items("admin").find((item) => item.id === "contabilidad");

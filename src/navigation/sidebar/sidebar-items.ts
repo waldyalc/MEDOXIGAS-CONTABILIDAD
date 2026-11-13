@@ -119,6 +119,21 @@ export const sidebarItems: NavGroup[] = [
             title: "Gastos menores",
             url: "/dashboard/gastos",
           },
+          {
+            id: "notas-credito-compras",
+            title: "Notas de crédito en compras",
+            url: "/dashboard/compras/notas-credito",
+          },
+          {
+            id: "ordenes-compra",
+            title: "Órdenes de compra",
+            url: "/dashboard/ordenes-compra",
+          },
+          {
+            id: "pagos-recurrentes",
+            title: "Pagos recurrentes",
+            url: "/dashboard/pagos-recurrentes",
+          },
         ],
       },
       {
