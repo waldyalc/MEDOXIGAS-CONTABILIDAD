@@ -1,5 +1,11 @@
 # Handoff — Medoxigas Contabilidad
 
+## Ajustes de diseño del formulario de factura (13 nov 2026)
+
+- Logo a 96 px en escritorio y 72 px en móvil; RD$ y % van dentro del campo con `InputGroup`; los `NativeSelect` (NCF, cuenta, método e ITBIS) pasan al `Select` de shadcn.
+- Nuevo `src/components/date-picker.tsx` (Popover + Calendar en español, mes/año en listas, semana desde lunes, día actual marcado y botón Hoy) para las dos fechas; el valor sigue siendo `yyyy-mm-dd`.
+- Sin cambios de cálculo. `typecheck`, `check`, `test` (387) y `build` en verde. Vista previa local bloqueada por el login; capturas pendientes de Waldy.
+
 ## Diseño del formulario de factura (13 nov 2026)
 
 - `factura-form.tsx` ahora es una sola tarjeta (máx. 1040 px) con el logo de

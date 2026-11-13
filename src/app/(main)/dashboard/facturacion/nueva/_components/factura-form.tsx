@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 
 import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
 
+import { DatePicker } from "@/components/date-picker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,8 +22,9 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { crearFactura } from "@/lib/facturacion/acciones";
 import {
@@ -62,19 +64,34 @@ interface Props {
 
 const CAMPO_CHICO =
   "h-8 rounded-lg border-slate-300 bg-white px-2 text-sm text-slate-700 placeholder:text-slate-400 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 disabled:bg-slate-50 dark:bg-white dark:disabled:bg-slate-50 md:text-sm";
-const CAMPO_MEDIO =
-  "h-10 rounded-[10px] border-slate-300 bg-white px-2 text-base text-slate-700 placeholder:text-slate-400 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 disabled:bg-slate-50 dark:bg-white dark:disabled:bg-slate-50 md:text-base";
 const CAMPO_BLOQUEADO = "disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300 disabled:opacity-100";
 const SELECT_CHICO =
-  "w-full has-[select:disabled]:opacity-100 [&>select]:dark:bg-white [&>select]:dark:text-slate-700 [&>select]:h-8 [&>select]:rounded-lg [&>select]:border-slate-300 [&>select]:bg-white [&>select]:pr-8 [&>select]:pl-2 [&>select]:text-sm [&>select]:text-slate-700 [&>select]:hover:border-slate-400 [&>select]:focus-visible:border-primary [&>select]:focus-visible:ring-0 [&>select]:disabled:border-slate-200 [&>select]:disabled:bg-slate-50 [&>select]:disabled:text-slate-300";
+  "w-full rounded-lg border-slate-300 bg-white px-2 text-sm text-slate-700 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300 disabled:opacity-100 dark:bg-white dark:disabled:bg-slate-50";
 const SELECT_MEDIO =
-  "w-full [&>select]:dark:bg-white [&>select]:dark:text-slate-700 [&>select]:h-10 [&>select]:rounded-[10px] [&>select]:border-slate-300 [&>select]:bg-white [&>select]:pr-8 [&>select]:pl-2 [&>select]:text-base [&>select]:text-slate-700 [&>select]:hover:border-slate-400 [&>select]:focus-visible:border-primary [&>select]:focus-visible:ring-0";
+  "w-full rounded-[10px] border-slate-300 bg-white px-2 text-base text-slate-700 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 data-[size=default]:h-10 dark:bg-white";
+const GRUPO_CAMPO_CHICO =
+  "h-8 w-full rounded-lg border-slate-300 bg-white hover:border-slate-400 has-[[data-slot=input-group-control]:focus-visible]:border-primary has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-white";
 const COMBO_MEDIO =
   "h-10 rounded-[10px] border-slate-300 bg-white px-2 has-[[data-slot=input-group-control]:focus-visible]:border-primary has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-white [&>input]:text-base";
 const TITULO_SECCION = "text-base leading-6 font-semibold text-slate-700";
 const DIVISOR = "h-px w-full bg-slate-400/20";
 const CELDA_ENCABEZADO =
   "flex h-10 items-center border-b border-slate-400/20 bg-slate-50 px-1 text-xs leading-4 font-medium text-gray-500";
+const METODOS_PAGO: readonly { value: MetodoPago; label: string }[] = [
+  { value: "efectivo", label: "Efectivo" },
+  { value: "transferencia", label: "Transferencia" },
+  { value: "tarjeta", label: "Tarjeta" },
+  { value: "cheque", label: "Cheque" },
+];
+const OPCIONES_ITBIS: readonly { value: string; label: string }[] = [
+  { value: "0", label: "Sin ITBIS" },
+  { value: "16", label: "ITBIS 16 %" },
+  { value: "18", label: "ITBIS 18 %" },
+];
+
+function esMetodoPago(valor: string | null): valor is MetodoPago {
+  return METODOS_PAGO.some((metodo) => metodo.value === valor);
+}
 
 function lineaVacia(clave: string): LineaForm {
   return { clave, productoId: "", cantidad: "1", precio: "0.00", descuentoPct: "0", itbisTasa: "18" };
@@ -128,6 +145,11 @@ export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }
 
   const clientesItems = contactos.map((contacto) => ({ value: contacto.id, label: contacto.nombre }));
   const productosItems = productos.map((producto) => ({ value: producto.id, label: producto.nombre }));
+  const comprobantesItems = OPCIONES_TIPO_COMPROBANTE.map((opcion) => ({
+    value: opcion.valor,
+    label: opcion.etiqueta,
+  }));
+  const cuentasItems = cuentas.map((cuenta) => ({ value: cuenta.id, label: `${cuenta.codigo} · ${cuenta.nombre}` }));
 
   const calculadas = lineas.map((linea) => ({
     clave: linea.clave,
@@ -241,10 +263,10 @@ export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }
             <Image
               src="/marca/logo-medoxigas.png"
               alt={empresa?.nombre ?? "Medoxigas"}
-              width={123}
-              height={64}
+              width={185}
+              height={96}
               preload
-              className="h-16 w-auto object-contain"
+              className="h-[72px] w-auto object-contain md:h-24"
             />
           </div>
 
@@ -261,18 +283,24 @@ export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }
               <Label htmlFor="tipo-comprobante" className="sr-only">
                 Tipo de comprobante
               </Label>
-              <NativeSelect
-                id="tipo-comprobante"
-                className={SELECT_MEDIO}
+              <Select
+                items={comprobantesItems}
                 value={tipo}
-                onChange={(evento) => setTipo(esTipoComprobante(evento.target.value) ? evento.target.value : "02")}
+                onValueChange={(valor: string | null) => {
+                  if (valor && esTipoComprobante(valor)) setTipo(valor);
+                }}
               >
-                {OPCIONES_TIPO_COMPROBANTE.map((opcion) => (
-                  <NativeSelectOption key={opcion.valor} value={opcion.valor}>
-                    {opcion.etiqueta}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                <SelectTrigger id="tipo-comprobante" className={SELECT_MEDIO}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {comprobantesItems.map((opcion) => (
+                    <SelectItem key={opcion.value} value={opcion.value}>
+                      {opcion.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center gap-2.5 pl-2.5 text-base">
               <span className="text-slate-500">NCF</span>
@@ -307,35 +335,46 @@ export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }
 
             <Campo>
               <Etiqueta htmlFor="cuenta-pago">Cuenta de caja o banco</Etiqueta>
-              <NativeSelect
-                id="cuenta-pago"
-                className={SELECT_CHICO}
+              <Select
+                items={cuentasItems}
                 value={cuentaPago}
                 disabled={!registrarPago}
-                onChange={(evento) => setCuentaPago(evento.target.value)}
+                onValueChange={(valor: string | null) => setCuentaPago(valor ?? "")}
               >
-                {cuentas.map((cuenta) => (
-                  <NativeSelectOption key={cuenta.id} value={cuenta.id}>
-                    {cuenta.codigo} · {cuenta.nombre}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                <SelectTrigger id="cuenta-pago" className={SELECT_CHICO}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {cuentasItems.map((cuenta) => (
+                    <SelectItem key={cuenta.value} value={cuenta.value}>
+                      {cuenta.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Campo>
 
             <Campo>
               <Etiqueta htmlFor="metodo-pago">Método de pago</Etiqueta>
-              <NativeSelect
-                id="metodo-pago"
-                className={SELECT_CHICO}
+              <Select
+                items={METODOS_PAGO}
                 value={metodoPago}
                 disabled={!registrarPago}
-                onChange={(evento) => setMetodoPago(evento.target.value as MetodoPago)}
+                onValueChange={(valor: string | null) => {
+                  if (esMetodoPago(valor)) setMetodoPago(valor);
+                }}
               >
-                <NativeSelectOption value="efectivo">Efectivo</NativeSelectOption>
-                <NativeSelectOption value="transferencia">Transferencia</NativeSelectOption>
-                <NativeSelectOption value="tarjeta">Tarjeta</NativeSelectOption>
-                <NativeSelectOption value="cheque">Cheque</NativeSelectOption>
-              </NativeSelect>
+                <SelectTrigger id="metodo-pago" className={SELECT_CHICO}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {METODOS_PAGO.map((metodo) => (
+                    <SelectItem key={metodo.value} value={metodo.value}>
+                      {metodo.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Campo>
 
             <Campo>
@@ -380,27 +419,13 @@ export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }
               <Etiqueta htmlFor="fecha" requerido>
                 Fecha de creación
               </Etiqueta>
-              <Input
-                id="fecha"
-                type="date"
-                required
-                value={fecha}
-                onChange={(evento) => setFecha(evento.target.value)}
-                className={CAMPO_MEDIO}
-              />
+              <DatePicker id="fecha" value={fecha} onChange={setFecha} />
             </Campo>
             <Campo>
               <Etiqueta htmlFor="vencimiento" requerido>
                 Fecha de vencimiento
               </Etiqueta>
-              <Input
-                id="vencimiento"
-                type="date"
-                required
-                value={vencimiento}
-                onChange={(evento) => setVencimiento(evento.target.value)}
-                className={CAMPO_MEDIO}
-              />
+              <DatePicker id="vencimiento" value={vencimiento} onChange={setVencimiento} />
             </Campo>
           </div>
         </section>
@@ -463,40 +488,59 @@ export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }
                         className={CAMPO_CHICO}
                       />
                     </div>
-                    <div className="flex min-w-0 items-center py-2 pr-1">
-                      <span className="pl-2 text-sm text-slate-500">RD$</span>
-                      <Input
-                        id={`precio-${linea.clave}`}
-                        inputMode="decimal"
-                        value={linea.precio}
-                        onChange={(evento) => actualizarLinea(linea.clave, { precio: evento.target.value })}
-                        aria-label={`Precio de la línea ${indice + 1}`}
-                        className={`${CAMPO_CHICO} w-auto min-w-0 flex-1 pl-1`}
-                      />
-                    </div>
-                    <div className="flex min-w-0 items-center py-2 pr-1">
-                      <span className="pl-2 text-sm text-slate-500">%</span>
-                      <Input
-                        id={`descuento-${linea.clave}`}
-                        inputMode="decimal"
-                        value={linea.descuentoPct}
-                        onChange={(evento) => actualizarLinea(linea.clave, { descuentoPct: evento.target.value })}
-                        aria-label={`Descuento de la línea ${indice + 1}`}
-                        className={`${CAMPO_CHICO} w-auto min-w-0 flex-1 pl-1`}
-                      />
+                    <div className="min-w-0 py-2 pr-1">
+                      <InputGroup className={GRUPO_CAMPO_CHICO}>
+                        <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
+                          RD$
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id={`precio-${linea.clave}`}
+                          inputMode="decimal"
+                          value={linea.precio}
+                          onChange={(evento) => actualizarLinea(linea.clave, { precio: evento.target.value })}
+                          aria-label={`Precio de la línea ${indice + 1}`}
+                          className="h-full min-w-0 pl-1 text-sm text-slate-700 md:text-sm"
+                        />
+                      </InputGroup>
                     </div>
                     <div className="min-w-0 py-2 pr-1">
-                      <NativeSelect
-                        id={`itbis-${linea.clave}`}
-                        className={SELECT_CHICO}
+                      <InputGroup className={GRUPO_CAMPO_CHICO}>
+                        <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
+                          %
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id={`descuento-${linea.clave}`}
+                          inputMode="decimal"
+                          value={linea.descuentoPct}
+                          onChange={(evento) => actualizarLinea(linea.clave, { descuentoPct: evento.target.value })}
+                          aria-label={`Descuento de la línea ${indice + 1}`}
+                          className="h-full min-w-0 pl-1 text-sm text-slate-700 md:text-sm"
+                        />
+                      </InputGroup>
+                    </div>
+                    <div className="min-w-0 py-2 pr-1">
+                      <Select
+                        items={OPCIONES_ITBIS}
                         value={linea.itbisTasa}
-                        onChange={(evento) => actualizarLinea(linea.clave, { itbisTasa: evento.target.value })}
-                        aria-label={`ITBIS de la línea ${indice + 1}`}
+                        onValueChange={(valor: string | null) => {
+                          if (valor) actualizarLinea(linea.clave, { itbisTasa: valor });
+                        }}
                       >
-                        <NativeSelectOption value="0">Sin ITBIS</NativeSelectOption>
-                        <NativeSelectOption value="16">ITBIS 16 %</NativeSelectOption>
-                        <NativeSelectOption value="18">ITBIS 18 %</NativeSelectOption>
-                      </NativeSelect>
+                        <SelectTrigger
+                          id={`itbis-${linea.clave}`}
+                          className={SELECT_CHICO}
+                          aria-label={`ITBIS de la línea ${indice + 1}`}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {OPCIONES_ITBIS.map((opcion) => (
+                            <SelectItem key={opcion.value} value={opcion.value}>
+                              {opcion.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="flex min-w-0 justify-end py-2 pr-1">
                       <span className="mt-1 text-sm leading-8 text-slate-700 tabular-nums">
