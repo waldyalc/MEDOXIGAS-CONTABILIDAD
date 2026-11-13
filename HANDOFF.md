@@ -21,6 +21,23 @@
 - Atajos y etiquetas en `src/lib/fechas/rangos.ts`, puros y con Vitest (cambio de año, trimestres, febrero). La semana empieza el lunes y las fechas van en `America/Santo_Domingo`; `hoyRd` de reportes ahora reexporta `hoyEnRd`.
 - Las fechas siguen en la URL (`?desde=&hasta=`; `hasta`/`corte` en los reportes de corte). Migrados todos los reportes con fechas: se borraron `filtro-fechas.tsx`, `libros/campos-fecha.tsx` y todos los `input type="date"` de `reportes/**`. Reporte anual conserva su selector de año (no es un rango).
 - Sin migración ni cambios de datos. `typecheck`, `test` (501), Biome y `build` en verde.
+## Bancos: fichas, transferencias y conciliaciones (14 nov 2026)
+
+- Lista de bancos con Nombre, Tipo, Número, Saldo y Conciliación (última
+  conciliación o borrador). Ficha `/dashboard/bancos/[id]` con saldo actual,
+  movimientos enlazados (documento, asiento y tercero) y filtro Desde/Hasta.
+- Transferencia con `Select` y `DatePicker`, observaciones en «Más opciones»; al
+  guardar abre `/dashboard/bancos/transferencias/[id]` con las cuentas y su
+  asiento. El diálogo de depósito se conservó con los mismos componentes.
+- Conciliaciones: lista, nueva (cuenta, fecha de corte y saldo del extracto; el
+  desde sale del último corte) y detalle editable con movimientos marcables,
+  diferencia en vivo, ajustes bancarios, guardar borrador y conciliar. Usa las
+  RPC `guardar_borrador_conciliacion` y `conciliar_cuenta` ya existentes.
+- Enlaces nuevos en `src/lib/enlaces.ts` (`rutaBanco`, `rutaTransferencia`,
+  `rutaConciliacion`); el origen del asiento reconoce transferencias, depósitos,
+  conciliaciones y notas. Menú lateral: Bancos → Cuentas y Conciliaciones.
+- Lógica pura en `src/lib/bancos/movimientos.ts` y `conciliacion.ts` con
+  Vitest. Sin migración nueva. `typecheck`, `test` (506), Biome y `build` en verde.
 
 ## Inventario: ajustes, almacenes y categorías (14 nov 2026)
 

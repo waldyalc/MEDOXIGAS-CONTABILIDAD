@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { ArrowRightLeft, ChevronDown, Loader2, Plus } from "lucide-react";
 
+import { DatePicker } from "@/components/date-picker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,16 +23,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import { crearCuentaBanco, registrarDeposito, transferirEntreCuentas } from "@/lib/bancos/acciones";
 import { tipoCuenta } from "@/lib/bancos/formato";
 import type { CuentaBanco, CuentaSeleccion } from "@/lib/bancos/tipos";
 import { validarCuentaBanco, validarDeposito, validarTransferencia } from "@/lib/bancos/validacion";
-import { rutaCuenta } from "@/lib/enlaces";
+import { rutaBanco, rutaConciliacion, rutaTransferencia } from "@/lib/enlaces";
 import { centavosAValor, parsearCentavos } from "@/lib/facturacion/calculo";
+import { formatoDia } from "@/lib/formato";
 import { centavos, formatearRd } from "@/lib/reportes/dinero";
 
 interface Props {
@@ -42,12 +46,14 @@ interface Props {
   fechaHoy: string;
 }
 
+const TIPOS_CUENTA = [
+  { value: "banco", label: "Banco" },
+  { value: "efectivo", label: "Efectivo" },
+  { value: "tarjeta", label: "Tarjeta" },
+];
+
 function opciones(cuentas: CuentaSeleccion[]) {
-  return cuentas.map((cuenta) => (
-    <NativeSelectOption key={cuenta.id} value={cuenta.id}>
-      {cuenta.codigo} · {cuenta.nombre}
-    </NativeSelectOption>
-  ));
+  return cuentas.map((cuenta) => ({ value: cuenta.id, label: `${cuenta.codigo} · ${cuenta.nombre}` }));
 }
 
 function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
@@ -114,7 +120,7 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
       }
 
       setAbierto(false);
-      router.refresh();
+      router.push(rutaBanco(resultado.id));
     });
   }
 
@@ -122,12 +128,12 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
     <Dialog open={abierto} onOpenChange={cambiarAbierto}>
       <DialogTrigger render={<Button variant="outline" />}>
         <Plus />
-        Nueva cuenta
+        Agregar banco
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nueva cuenta</DialogTitle>
-          <DialogDescription>Crea una cuenta de banco o caja con su cuenta contable.</DialogDescription>
+          <DialogTitle>Agregar cuenta de banco o caja</DialogTitle>
+          <DialogDescription>Crea la cuenta contable con su saldo inicial.</DialogDescription>
         </DialogHeader>
         <form onSubmit={enviar} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -145,18 +151,22 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="cuenta-tipo">Tipo de cuenta *</Label>
-              <NativeSelect
-                id="cuenta-tipo"
-                className="w-full"
+              <Select
+                items={TIPOS_CUENTA}
                 value={tipo}
-                onChange={(evento) => setTipo(evento.target.value)}
-                required
-                disabled={pendiente}
+                onValueChange={(valor: string | null) => setTipo(valor ?? "banco")}
               >
-                <NativeSelectOption value="banco">Banco</NativeSelectOption>
-                <NativeSelectOption value="efectivo">Efectivo</NativeSelectOption>
-                <NativeSelectOption value="tarjeta">Tarjeta</NativeSelectOption>
-              </NativeSelect>
+                <SelectTrigger id="cuenta-tipo" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {TIPOS_CUENTA.map((opcion) => (
+                    <SelectItem key={opcion.value} value={opcion.value}>
+                      {opcion.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="cuenta-numero">Número de cuenta</Label>
@@ -173,26 +183,24 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="cuenta-saldo">Saldo inicial *</Label>
-              <Input
-                id="cuenta-saldo"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={saldo}
-                onChange={(evento) => setSaldo(evento.target.value)}
-                required
-                disabled={pendiente}
-              />
+              <InputGroup>
+                <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
+                  RD$
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="cuenta-saldo"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={saldo}
+                  onChange={(evento) => setSaldo(evento.target.value)}
+                  required
+                  disabled={pendiente}
+                />
+              </InputGroup>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="cuenta-fecha">Fecha de saldo inicial *</Label>
-              <Input
-                id="cuenta-fecha"
-                type="date"
-                value={fecha}
-                onChange={(evento) => setFecha(evento.target.value)}
-                required
-                disabled={pendiente}
-              />
+              <DatePicker id="cuenta-fecha" value={fecha} onChange={setFecha} />
             </div>
           </div>
           <div className="flex flex-col gap-2">
@@ -230,21 +238,18 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
   const [destino, setDestino] = useState("");
   const [monto, setMonto] = useState("");
   const [fecha, setFecha] = useState(fechaHoy);
-  const [notas, setNotas] = useState("");
-  const [numeracionIngreso, setNumeracionIngreso] = useState("");
-  const [numeracionEgreso, setNumeracionEgreso] = useState("");
+  const [observaciones, setObservaciones] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
   const sinCuentas = cuentas.length < 2;
+  const cuentasItems = opciones(cuentas);
 
   function reiniciar() {
     setOrigen("");
     setDestino("");
     setMonto("");
     setFecha(fechaHoy);
-    setNotas("");
-    setNumeracionIngreso("");
-    setNumeracionEgreso("");
+    setObservaciones("");
     setError(null);
   }
 
@@ -279,9 +284,7 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
         cuenta_destino_id: destino,
         monto: centavosAValor(montoCentavos),
         fecha,
-        ...(notas.trim() ? { descripcion: notas.trim() } : {}),
-        ...(numeracionIngreso.trim() ? { numeracion_ingreso: numeracionIngreso.trim() } : {}),
-        ...(numeracionEgreso.trim() ? { numeracion_egreso: numeracionEgreso.trim() } : {}),
+        ...(observaciones.trim() ? { descripcion: observaciones.trim() } : {}),
       });
 
       if (!resultado.ok) {
@@ -294,7 +297,7 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
       }
 
       setAbierto(false);
-      router.refresh();
+      router.push(rutaTransferencia(resultado.id));
     });
   }
 
@@ -312,55 +315,63 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
         <form onSubmit={enviar} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="transferencia-origen">Desde *</Label>
-            <NativeSelect
-              id="transferencia-origen"
-              className="w-full"
+            <Select
+              items={cuentasItems}
               value={origen}
-              onChange={(evento) => setOrigen(evento.target.value)}
-              required
-              disabled={pendiente}
+              onValueChange={(valor: string | null) => setOrigen(valor ?? "")}
             >
-              <NativeSelectOption value="">Selecciona una cuenta…</NativeSelectOption>
-              {opciones(cuentas)}
-            </NativeSelect>
+              <SelectTrigger id="transferencia-origen" className="w-full" disabled={pendiente}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {cuentasItems.map((cuenta) => (
+                  <SelectItem key={cuenta.value} value={cuenta.value}>
+                    {cuenta.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="transferencia-destino">Hacia *</Label>
-            <NativeSelect
-              id="transferencia-destino"
-              className="w-full"
+            <Select
+              items={cuentasItems}
               value={destino}
-              onChange={(evento) => setDestino(evento.target.value)}
-              required
-              disabled={pendiente}
+              onValueChange={(valor: string | null) => setDestino(valor ?? "")}
             >
-              <NativeSelectOption value="">Selecciona una cuenta…</NativeSelectOption>
-              {opciones(cuentas)}
-            </NativeSelect>
+              <SelectTrigger id="transferencia-destino" className="w-full" disabled={pendiente}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {cuentasItems.map((cuenta) => (
+                  <SelectItem key={cuenta.value} value={cuenta.value}>
+                    {cuenta.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="transferencia-monto">Monto *</Label>
-              <Input
-                id="transferencia-monto"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={monto}
-                onChange={(evento) => setMonto(evento.target.value)}
-                required
-                disabled={pendiente}
-              />
+              <InputGroup>
+                <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
+                  RD$
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="transferencia-monto"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={monto}
+                  onChange={(evento) => setMonto(evento.target.value)}
+                  required
+                  disabled={pendiente}
+                />
+              </InputGroup>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="transferencia-fecha">Fecha *</Label>
-              <Input
-                id="transferencia-fecha"
-                type="date"
-                value={fecha}
-                onChange={(evento) => setFecha(evento.target.value)}
-                required
-                disabled={pendiente}
-              />
+              <DatePicker id="transferencia-fecha" value={fecha} onChange={setFecha} />
             </div>
           </div>
           <Collapsible>
@@ -369,41 +380,15 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
               <ChevronDown className="size-4" />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="flex flex-col gap-4 pt-2">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="transferencia-notas">Notas / descripción</Label>
-                  <Input
-                    id="transferencia-notas"
-                    placeholder="Ej. Paso de caja a banco"
-                    value={notas}
-                    onChange={(evento) => setNotas(evento.target.value)}
-                    disabled={pendiente}
-                  />
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="transferencia-num-ingreso">Numeración ingreso</Label>
-                    <Input
-                      id="transferencia-num-ingreso"
-                      placeholder="Opcional"
-                      value={numeracionIngreso}
-                      onChange={(evento) => setNumeracionIngreso(evento.target.value)}
-                      maxLength={60}
-                      disabled={pendiente}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="transferencia-num-egreso">Numeración egreso</Label>
-                    <Input
-                      id="transferencia-num-egreso"
-                      placeholder="Opcional"
-                      value={numeracionEgreso}
-                      onChange={(evento) => setNumeracionEgreso(evento.target.value)}
-                      maxLength={60}
-                      disabled={pendiente}
-                    />
-                  </div>
-                </div>
+              <div className="flex flex-col gap-2 pt-2">
+                <Label htmlFor="transferencia-observaciones">Observaciones</Label>
+                <Textarea
+                  id="transferencia-observaciones"
+                  placeholder="Ej. Paso de caja a banco"
+                  value={observaciones}
+                  onChange={(evento) => setObservaciones(evento.target.value)}
+                  disabled={pendiente}
+                />
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -444,6 +429,8 @@ function DialogoDeposito({
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
   const sinCuentas = cuentasDestino.length === 0 || cuentasContrapartida.length < 2;
+  const destinos = opciones(cuentasDestino);
+  const contrapartidas = opciones(cuentasContrapartida);
 
   function reiniciar() {
     setDestino("");
@@ -516,55 +503,59 @@ function DialogoDeposito({
         <form onSubmit={enviar} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="deposito-destino">Cuenta destino *</Label>
-            <NativeSelect
-              id="deposito-destino"
-              className="w-full"
-              value={destino}
-              onChange={(evento) => setDestino(evento.target.value)}
-              required
-              disabled={pendiente}
-            >
-              <NativeSelectOption value="">Selecciona una cuenta…</NativeSelectOption>
-              {opciones(cuentasDestino)}
-            </NativeSelect>
+            <Select items={destinos} value={destino} onValueChange={(valor: string | null) => setDestino(valor ?? "")}>
+              <SelectTrigger id="deposito-destino" className="w-full" disabled={pendiente}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {destinos.map((cuenta) => (
+                  <SelectItem key={cuenta.value} value={cuenta.value}>
+                    {cuenta.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="deposito-contrapartida">Contrapartida *</Label>
-            <NativeSelect
-              id="deposito-contrapartida"
-              className="w-full"
+            <Select
+              items={contrapartidas}
               value={contrapartida}
-              onChange={(evento) => setContrapartida(evento.target.value)}
-              required
-              disabled={pendiente}
+              onValueChange={(valor: string | null) => setContrapartida(valor ?? "")}
             >
-              <NativeSelectOption value="">Selecciona una cuenta…</NativeSelectOption>
-              {opciones(cuentasContrapartida)}
-            </NativeSelect>
+              <SelectTrigger id="deposito-contrapartida" className="w-full" disabled={pendiente}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent alignItemWithTrigger={false}>
+                {contrapartidas.map((cuenta) => (
+                  <SelectItem key={cuenta.value} value={cuenta.value}>
+                    {cuenta.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
               <Label htmlFor="deposito-monto">Monto *</Label>
-              <Input
-                id="deposito-monto"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={monto}
-                onChange={(evento) => setMonto(evento.target.value)}
-                required
-                disabled={pendiente}
-              />
+              <InputGroup>
+                <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
+                  RD$
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="deposito-monto"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={monto}
+                  onChange={(evento) => setMonto(evento.target.value)}
+                  required
+                  disabled={pendiente}
+                />
+              </InputGroup>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="deposito-fecha">Fecha *</Label>
-              <Input
-                id="deposito-fecha"
-                type="date"
-                value={fecha}
-                onChange={(evento) => setFecha(evento.target.value)}
-                required
-                disabled={pendiente}
-              />
+              <DatePicker id="deposito-fecha" value={fecha} onChange={setFecha} />
             </div>
           </div>
           <Collapsible>
@@ -603,6 +594,31 @@ function DialogoDeposito({
   );
 }
 
+function ConciliacionCelda({ cuenta, puedeEscribir }: { cuenta: CuentaBanco; puedeEscribir: boolean }) {
+  if (cuenta.conciliacion) {
+    return (
+      <Link href={rutaConciliacion(cuenta.conciliacion.id)} title={formatoDia(cuenta.conciliacion.fechaHasta)}>
+        {cuenta.conciliacion.estado === "conciliada" ? (
+          <Badge variant="secondary">Conciliada</Badge>
+        ) : (
+          <Badge variant="outline">Borrador</Badge>
+        )}
+      </Link>
+    );
+  }
+
+  if (!puedeEscribir) return <span className="text-muted-foreground">—</span>;
+
+  return (
+    <Link
+      href={`/dashboard/bancos/conciliaciones/nueva?cuenta=${cuenta.id}`}
+      className="text-primary text-sm underline-offset-4 hover:underline"
+    >
+      Conciliar
+    </Link>
+  );
+}
+
 export function PanelBancos({ cuentas, cuentasCajaBanco, cuentasMovimiento, puedeEscribir, fechaHoy }: Props) {
   return (
     <div className="flex flex-col gap-4">
@@ -622,15 +638,17 @@ export function PanelBancos({ cuentas, cuentasCajaBanco, cuentasMovimiento, pued
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Cuenta</TableHead>
+              <TableHead>Nombre</TableHead>
               <TableHead>Tipo</TableHead>
+              <TableHead>Número</TableHead>
               <TableHead className="text-right">Saldo</TableHead>
+              <TableHead>Conciliación</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {cuentas.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-muted-foreground py-10 text-center">
+                <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
                   No hay cuentas de caja o banco configuradas.
                 </TableCell>
               </TableRow>
@@ -641,21 +659,22 @@ export function PanelBancos({ cuentas, cuentasCajaBanco, cuentasMovimiento, pued
                 return (
                   <TableRow key={cuenta.id}>
                     <TableCell className="font-medium">
-                      <Link className="hover:underline" href={rutaCuenta(cuenta.id)}>
+                      <Link className="hover:underline" href={rutaBanco(cuenta.id)}>
                         {cuenta.nombre}
                       </Link>
                       <span className="text-muted-foreground ml-2 text-xs">{cuenta.codigo}</span>
-                      {cuenta.numeroCuenta ? (
-                        <span className="text-muted-foreground block text-xs">N.º {cuenta.numeroCuenta}</span>
-                      ) : null}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{tipoCuenta(cuenta.nombre, cuenta.tipoBanco)}</Badge>
                     </TableCell>
+                    <TableCell className="tabular-nums">{cuenta.numeroCuenta ?? "—"}</TableCell>
                     <TableCell
                       className={`text-right font-medium tabular-nums ${saldoCentavos < 0 ? "text-destructive" : ""}`}
                     >
                       {formatearRd(saldoCentavos)}
+                    </TableCell>
+                    <TableCell>
+                      <ConciliacionCelda cuenta={cuenta} puedeEscribir={puedeEscribir} />
                     </TableCell>
                   </TableRow>
                 );

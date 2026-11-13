@@ -221,9 +221,20 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "bancos",
         title: "Bancos",
-        url: "/dashboard/bancos",
         icon: Landmark,
         roles: TODOS_LOS_ROLES,
+        subItems: [
+          {
+            id: "bancos-cuentas",
+            title: "Cuentas",
+            url: "/dashboard/bancos",
+          },
+          {
+            id: "bancos-conciliaciones",
+            title: "Conciliaciones",
+            url: "/dashboard/bancos/conciliaciones",
+          },
+        ],
       },
       {
         id: "reportes",

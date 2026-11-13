@@ -1,6 +1,17 @@
 import { z } from "zod";
 
-import { rutaCompra, rutaFactura, rutaGasto, rutaPagoProveedor, rutaPagoRecibido } from "@/lib/enlaces";
+import {
+  rutaCompra,
+  rutaConciliacion,
+  rutaFactura,
+  rutaGasto,
+  rutaNotaCreditoCompra,
+  rutaNotaCreditoVenta,
+  rutaNotaDebitoVenta,
+  rutaPagoProveedor,
+  rutaPagoRecibido,
+  rutaTransferencia,
+} from "@/lib/enlaces";
 import { createClient } from "@/lib/supabase/server";
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
@@ -64,6 +75,12 @@ const ETIQUETAS_DOCUMENTO: Record<string, string> = {
   pago_recibido: "Pago recibido",
   pago_proveedor: "Pago a proveedor",
   gasto_menor: "Gasto",
+  nota_credito_venta: "Nota de crédito",
+  nota_credito_compra: "Nota de crédito de compra",
+  nota_debito: "Nota de débito",
+  transferencia: "Transferencia",
+  deposito: "Depósito",
+  conciliacion: "Conciliación",
 };
 
 const ETIQUETAS_TIPO: Record<string, string> = {
@@ -72,6 +89,12 @@ const ETIQUETAS_TIPO: Record<string, string> = {
   pago_recibido: "pago recibido",
   pago_proveedor: "pago a proveedor",
   gasto_menor: "gasto",
+  nota_credito_venta: "nota de crédito",
+  nota_credito_compra: "nota de crédito de compra",
+  nota_debito: "nota de débito",
+  transferencia: "transferencia",
+  deposito: "depósito",
+  conciliacion: "conciliación",
 };
 
 function rutaDocumento(tipo: string, id: string): string | null {
@@ -86,6 +109,14 @@ function rutaDocumento(tipo: string, id: string): string | null {
       return rutaPagoProveedor(id);
     case "gasto_menor":
       return rutaGasto(id);
+    case "nota_credito_venta":
+      return rutaNotaCreditoVenta(id);
+    case "nota_credito_compra":
+      return rutaNotaCreditoCompra(id);
+    case "nota_debito":
+      return rutaNotaDebitoVenta(id);
+    case "conciliacion":
+      return rutaConciliacion(id);
     default:
       return null;
   }
@@ -113,30 +144,64 @@ async function buscarNumeroDocumento(cliente: Cliente, tipo: string, id: string)
       const { data } = await cliente.from("gastos_menores").select("numero").eq("id", id).maybeSingle();
       return data?.numero ?? null;
     }
+    case "nota_credito_venta": {
+      const { data } = await cliente.from("notas_credito_venta").select("numero").eq("id", id).maybeSingle();
+      return data?.numero ?? null;
+    }
+    case "nota_credito_compra": {
+      const { data } = await cliente.from("notas_credito_compra").select("numero").eq("id", id).maybeSingle();
+      return data?.numero ?? null;
+    }
+    case "nota_debito": {
+      const { data } = await cliente.from("notas_debito_venta").select("numero").eq("id", id).maybeSingle();
+      return data?.numero ?? null;
+    }
     default:
       return null;
   }
 }
 
-async function resolverOrigen(cliente: Cliente, asiento: AsientoFila): Promise<OrigenAsiento> {
-  if (asiento.origen_tipo === "anulacion") {
-    if (!asiento.anula_asiento_id) return { etiqueta: "Anulación", href: null };
+async function resolverAnulacion(cliente: Cliente, asiento: AsientoFila): Promise<OrigenAsiento> {
+  if (!asiento.anula_asiento_id) return { etiqueta: "Anulación", href: null };
 
-    const { data } = await cliente
-      .from("asientos")
-      .select("origen_tipo, origen_id")
-      .eq("id", asiento.anula_asiento_id)
-      .maybeSingle();
+  const { data } = await cliente
+    .from("asientos")
+    .select("id, origen_tipo, origen_id")
+    .eq("id", asiento.anula_asiento_id)
+    .maybeSingle();
 
-    if (!data?.origen_id) return { etiqueta: "Anulación", href: null };
+  if (!data) return { etiqueta: "Anulación", href: null };
 
-    const href = rutaDocumento(data.origen_tipo, data.origen_id);
-    if (!href) return { etiqueta: "Anulación", href: null };
-
-    return { etiqueta: `Anulación de ${ETIQUETAS_TIPO[data.origen_tipo] ?? data.origen_tipo}`, href };
+  let href: string | null = null;
+  if (data.origen_tipo === "transferencia" || data.origen_tipo === "deposito") {
+    href = rutaTransferencia(data.id);
+  } else if (data.origen_id) {
+    href = rutaDocumento(data.origen_tipo, data.origen_id);
   }
 
+  if (!href) return { etiqueta: "Anulación", href: null };
+
+  return { etiqueta: `Anulación de ${ETIQUETAS_TIPO[data.origen_tipo] ?? data.origen_tipo}`, href };
+}
+
+async function resolverOrigen(cliente: Cliente, asiento: AsientoFila): Promise<OrigenAsiento> {
+  if (asiento.origen_tipo === "anulacion") return resolverAnulacion(cliente, asiento);
   if (asiento.origen_tipo === "manual") return { etiqueta: "Manual", href: null };
+
+  if (asiento.origen_tipo === "transferencia" || asiento.origen_tipo === "deposito") {
+    return {
+      etiqueta: ETIQUETAS_DOCUMENTO[asiento.origen_tipo] ?? "Movimiento",
+      href: rutaTransferencia(asiento.id),
+    };
+  }
+
+  if (asiento.origen_tipo === "conciliacion") {
+    return {
+      etiqueta: "Conciliación",
+      href: asiento.origen_id ? rutaConciliacion(asiento.origen_id) : null,
+    };
+  }
+
   if (!asiento.origen_id) return { etiqueta: "—", href: null };
 
   const href = rutaDocumento(asiento.origen_tipo, asiento.origen_id);
