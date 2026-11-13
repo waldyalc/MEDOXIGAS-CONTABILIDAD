@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { type ReactNode, useRef, useState, useTransition } from "react";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -9,7 +10,6 @@ import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -60,6 +60,22 @@ interface Props {
   fechaHoy: string;
 }
 
+const CAMPO_CHICO =
+  "h-8 rounded-lg border-slate-300 bg-white px-2 text-sm text-slate-700 placeholder:text-slate-400 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 disabled:bg-slate-50 dark:bg-white dark:disabled:bg-slate-50 md:text-sm";
+const CAMPO_MEDIO =
+  "h-10 rounded-[10px] border-slate-300 bg-white px-2 text-base text-slate-700 placeholder:text-slate-400 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 disabled:bg-slate-50 dark:bg-white dark:disabled:bg-slate-50 md:text-base";
+const CAMPO_BLOQUEADO = "disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300 disabled:opacity-100";
+const SELECT_CHICO =
+  "w-full has-[select:disabled]:opacity-100 [&>select]:dark:bg-white [&>select]:dark:text-slate-700 [&>select]:h-8 [&>select]:rounded-lg [&>select]:border-slate-300 [&>select]:bg-white [&>select]:pr-8 [&>select]:pl-2 [&>select]:text-sm [&>select]:text-slate-700 [&>select]:hover:border-slate-400 [&>select]:focus-visible:border-primary [&>select]:focus-visible:ring-0 [&>select]:disabled:border-slate-200 [&>select]:disabled:bg-slate-50 [&>select]:disabled:text-slate-300";
+const SELECT_MEDIO =
+  "w-full [&>select]:dark:bg-white [&>select]:dark:text-slate-700 [&>select]:h-10 [&>select]:rounded-[10px] [&>select]:border-slate-300 [&>select]:bg-white [&>select]:pr-8 [&>select]:pl-2 [&>select]:text-base [&>select]:text-slate-700 [&>select]:hover:border-slate-400 [&>select]:focus-visible:border-primary [&>select]:focus-visible:ring-0";
+const COMBO_MEDIO =
+  "h-10 rounded-[10px] border-slate-300 bg-white px-2 has-[[data-slot=input-group-control]:focus-visible]:border-primary has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-white [&>input]:text-base";
+const TITULO_SECCION = "text-base leading-6 font-semibold text-slate-700";
+const DIVISOR = "h-px w-full bg-slate-400/20";
+const CELDA_ENCABEZADO =
+  "flex h-10 items-center border-b border-slate-400/20 bg-slate-50 px-1 text-xs leading-4 font-medium text-gray-500";
+
 function lineaVacia(clave: string): LineaForm {
   return { clave, productoId: "", cantidad: "1", precio: "0.00", descuentoPct: "0", itbisTasa: "18" };
 }
@@ -67,6 +83,27 @@ function lineaVacia(clave: string): LineaForm {
 function numero(texto: string): number {
   const valor = Number(texto);
   return Number.isFinite(valor) ? valor : 0;
+}
+
+function Campo({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`flex min-w-0 flex-col gap-1 ${className}`}>{children}</div>;
+}
+
+function Etiqueta({
+  htmlFor,
+  children,
+  requerido = false,
+}: {
+  htmlFor: string;
+  children: ReactNode;
+  requerido?: boolean;
+}) {
+  return (
+    <Label htmlFor={htmlFor} className="flex items-center gap-1 text-sm leading-5 font-medium text-slate-700">
+      {children}
+      {requerido ? <span className="text-primary text-xs">*</span> : null}
+    </Label>
+  );
 }
 
 export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }: Props) {
@@ -186,322 +223,393 @@ export function FacturaForm({ empresa, contactos, productos, cuentas, fechaHoy }
 
   return (
     <form
-      className="flex flex-col gap-4"
+      className="mx-auto flex w-full max-w-[1040px] flex-col gap-6 [font-family:var(--font-inter)]"
       onSubmit={(evento) => {
         evento.preventDefault();
         guardar();
       }}
     >
-      <Card>
-        <CardContent className="grid gap-6 md:grid-cols-2">
-          <div className="flex flex-col gap-1">
-            <p className="font-heading text-lg font-medium">{empresa?.nombre ?? "MEDOXIGAS ALC, SRL"}</p>
-            {empresa?.rnc ? <p className="text-muted-foreground text-sm">RNC {empresa.rnc}</p> : null}
-            {empresa?.direccion ? <p className="text-muted-foreground text-sm">{empresa.direccion}</p> : null}
-            {empresa?.telefono ? <p className="text-muted-foreground text-sm">Tel. {empresa.telefono}</p> : null}
-          </div>
-          <div className="flex flex-col gap-2 md:items-end">
-            <Label htmlFor="tipo-comprobante">Tipo de comprobante</Label>
-            <NativeSelect
-              id="tipo-comprobante"
-              className="w-full md:w-64"
-              value={tipo}
-              onChange={(evento) => setTipo(esTipoComprobante(evento.target.value) ? evento.target.value : "02")}
-            >
-              {OPCIONES_TIPO_COMPROBANTE.map((opcion) => (
-                <NativeSelectOption key={opcion.valor} value={opcion.valor}>
-                  {opcion.etiqueta}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-            <p className="text-muted-foreground text-xs">El NCF se asigna al guardar.</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos generales</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="cliente">Cliente *</Label>
-            <Combobox
-              items={clientesItems}
-              onValueChange={(item: { value: string; label: string } | null) => setClienteId(item?.value ?? "")}
-            >
-              <ComboboxInput id="cliente" className="w-full" placeholder="Buscar cliente…" showClear />
-              <ComboboxContent>
-                <ComboboxEmpty>Sin resultados</ComboboxEmpty>
-                <ComboboxList>
-                  {(item: { value: string; label: string }) => (
-                    <ComboboxItem key={item.value} value={item}>
-                      {item.label}
-                    </ComboboxItem>
-                  )}
-                </ComboboxList>
-              </ComboboxContent>
-            </Combobox>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="fecha">Fecha *</Label>
-            <Input id="fecha" type="date" required value={fecha} onChange={(evento) => setFecha(evento.target.value)} />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="vencimiento">Vencimiento *</Label>
-            <Input
-              id="vencimiento"
-              type="date"
-              required
-              value={vencimiento}
-              onChange={(evento) => setVencimiento(evento.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Líneas</CardTitle>
-          <Button type="button" variant="outline" size="sm" onClick={agregarLinea}>
-            <Plus />
-            Agregar línea
-          </Button>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {lineas.map((linea, indice) => {
-            const calculo = calculadas.find((item) => item.clave === linea.clave)?.calculo;
-            return (
-              <div
-                key={linea.clave}
-                className="grid grid-cols-12 items-end gap-2 rounded-lg border p-2 md:border-0 md:p-0"
-              >
-                <div className="col-span-12 flex flex-col gap-1.5 md:col-span-4">
-                  <Label className="text-muted-foreground text-xs" htmlFor={`producto-${linea.clave}`}>
-                    Producto {indice === 0 ? "*" : null}
-                  </Label>
-                  <Combobox
-                    items={productosItems}
-                    onValueChange={(item: { value: string; label: string } | null) =>
-                      seleccionarProducto(linea.clave, item?.value ?? "")
-                    }
-                  >
-                    <ComboboxInput id={`producto-${linea.clave}`} className="w-full" placeholder="Buscar producto…" />
-                    <ComboboxContent>
-                      <ComboboxEmpty>Sin productos</ComboboxEmpty>
-                      <ComboboxList>
-                        {(item: { value: string; label: string }) => (
-                          <ComboboxItem key={item.value} value={item}>
-                            {item.label}
-                          </ComboboxItem>
-                        )}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
-                </div>
-                <div className="col-span-3 flex flex-col gap-1.5 md:col-span-1">
-                  <Label className="text-muted-foreground text-xs" htmlFor={`cantidad-${linea.clave}`}>
-                    Cantidad
-                  </Label>
-                  <Input
-                    id={`cantidad-${linea.clave}`}
-                    inputMode="decimal"
-                    value={linea.cantidad}
-                    onChange={(evento) => actualizarLinea(linea.clave, { cantidad: evento.target.value })}
-                  />
-                </div>
-                <div className="col-span-3 flex flex-col gap-1.5 md:col-span-2">
-                  <Label className="text-muted-foreground text-xs" htmlFor={`precio-${linea.clave}`}>
-                    Precio
-                  </Label>
-                  <Input
-                    id={`precio-${linea.clave}`}
-                    inputMode="decimal"
-                    value={linea.precio}
-                    onChange={(evento) => actualizarLinea(linea.clave, { precio: evento.target.value })}
-                  />
-                </div>
-                <div className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
-                  <Label className="text-muted-foreground text-xs" htmlFor={`descuento-${linea.clave}`}>
-                    Desc %
-                  </Label>
-                  <Input
-                    id={`descuento-${linea.clave}`}
-                    inputMode="decimal"
-                    value={linea.descuentoPct}
-                    onChange={(evento) => actualizarLinea(linea.clave, { descuentoPct: evento.target.value })}
-                  />
-                </div>
-                <div className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
-                  <Label className="text-muted-foreground text-xs" htmlFor={`itbis-${linea.clave}`}>
-                    ITBIS %
-                  </Label>
-                  <NativeSelect
-                    id={`itbis-${linea.clave}`}
-                    className="w-full"
-                    value={linea.itbisTasa}
-                    onChange={(evento) => actualizarLinea(linea.clave, { itbisTasa: evento.target.value })}
-                  >
-                    <NativeSelectOption value="0">0 %</NativeSelectOption>
-                    <NativeSelectOption value="16">16 %</NativeSelectOption>
-                    <NativeSelectOption value="18">18 %</NativeSelectOption>
-                  </NativeSelect>
-                </div>
-                <div className="col-span-10 flex flex-col items-end gap-1.5 md:col-span-2">
-                  <span className="text-muted-foreground text-xs">Total</span>
-                  <span className="flex h-8 items-center font-medium">
-                    {formatoMonedaCentavos(calculo?.totalCentavos ?? 0)}
-                  </span>
-                </div>
-                <div className="col-span-2 flex justify-end md:col-span-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={lineas.length === 1}
-                    onClick={() => quitarLinea(linea.clave)}
-                  >
-                    <Trash2 />
-                    <span className="sr-only">Quitar línea</span>
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <Card className="flex-1">
-          <CardHeader>
-            <CardTitle>Opciones</CardTitle>
-          </CardHeader>
-          <CardContent className="divide-y">
-            <Collapsible>
-              <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-sm font-medium">
-                Notas
-                <ChevronDown className="size-4" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pb-3">
-                <Textarea
-                  value={notas}
-                  placeholder="Notas internas o para el cliente"
-                  onChange={(evento) => setNotas(evento.target.value)}
-                />
-              </CollapsibleContent>
-            </Collapsible>
-            <Collapsible>
-              <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-sm font-medium">
-                Términos
-                <ChevronDown className="size-4" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pb-3">
-                <Textarea
-                  value={terminos}
-                  placeholder="Condiciones de pago"
-                  onChange={(evento) => setTerminos(evento.target.value)}
-                />
-              </CollapsibleContent>
-            </Collapsible>
-            <Collapsible>
-              <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-sm font-medium">
-                Pie
-                <ChevronDown className="size-4" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pb-3">
-                <Textarea
-                  value={pie}
-                  placeholder="Texto al pie de la factura"
-                  onChange={(evento) => setPie(evento.target.value)}
-                />
-              </CollapsibleContent>
-            </Collapsible>
-          </CardContent>
-        </Card>
-
-        <div className="flex w-full flex-col gap-3 md:w-80">
-          <div className="flex flex-col gap-2 rounded-xl bg-muted/50 p-4 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span>{formatoMonedaCentavos(totales.subtotalCentavos)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Descuento</span>
-              <span>{formatoMonedaCentavos(totales.descuentoCentavos)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">ITBIS</span>
-              <span>{formatoMonedaCentavos(totales.itbisCentavos)}</span>
-            </div>
-            <div className="flex items-center justify-between border-t pt-2 text-base font-semibold">
-              <span>Total</span>
-              <span>{formatoMonedaCentavos(totales.totalCentavos)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <Card>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="registrar-pago"
-              checked={registrarPago}
-              onCheckedChange={(valor) => setRegistrarPago(valor)}
-            />
-            <Label htmlFor="registrar-pago">Registrar pago recibido</Label>
-          </div>
-          {registrarPago ? (
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="cuenta-pago">Cuenta</Label>
-                <NativeSelect
-                  id="cuenta-pago"
-                  className="w-full"
-                  value={cuentaPago}
-                  onChange={(evento) => setCuentaPago(evento.target.value)}
-                >
-                  {cuentas.map((cuenta) => (
-                    <NativeSelectOption key={cuenta.id} value={cuenta.id}>
-                      {cuenta.codigo} · {cuenta.nombre}
-                    </NativeSelectOption>
-                  ))}
-                </NativeSelect>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="metodo-pago">Método</Label>
-                <NativeSelect
-                  id="metodo-pago"
-                  className="w-full"
-                  value={metodoPago}
-                  onChange={(evento) => setMetodoPago(evento.target.value as MetodoPago)}
-                >
-                  <NativeSelectOption value="efectivo">Efectivo</NativeSelectOption>
-                  <NativeSelectOption value="transferencia">Transferencia</NativeSelectOption>
-                  <NativeSelectOption value="tarjeta">Tarjeta</NativeSelectOption>
-                  <NativeSelectOption value="cheque">Cheque</NativeSelectOption>
-                </NativeSelect>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="monto-pago">Monto</Label>
-                <Input id="monto-pago" readOnly value={formatoMoneda(totales.totalCentavos / 100)} />
-              </div>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
       {error ? (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
 
+      <div className="flex flex-col gap-4 rounded-[12px] border border-slate-400/20 bg-white p-3 text-slate-700 shadow-sm sm:gap-6 sm:p-5 md:gap-8 md:p-8">
+        <header className="flex flex-col gap-4 py-3 md:flex-row md:items-center md:justify-between md:gap-6 md:py-6 lg:py-8">
+          <div className="flex min-w-0 justify-center md:w-1/3 md:justify-start">
+            <Image
+              src="/marca/logo-medoxigas.png"
+              alt={empresa?.nombre ?? "Medoxigas"}
+              width={123}
+              height={64}
+              preload
+              className="h-16 w-auto object-contain"
+            />
+          </div>
+
+          <div className="min-w-0 text-center md:w-1/3">
+            <p className="text-base leading-6 font-semibold text-slate-700">
+              {empresa?.nombre ?? "MEDOXIGAS ALC, SRL"}
+            </p>
+            {empresa?.rnc ? <p className="text-xs leading-4 text-slate-500">RNC {empresa.rnc}</p> : null}
+            {empresa?.correo ? <p className="text-xs leading-4 text-slate-500">{empresa.correo}</p> : null}
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-3.5 md:w-1/3 md:items-end">
+            <div className="w-full">
+              <Label htmlFor="tipo-comprobante" className="sr-only">
+                Tipo de comprobante
+              </Label>
+              <NativeSelect
+                id="tipo-comprobante"
+                className={SELECT_MEDIO}
+                value={tipo}
+                onChange={(evento) => setTipo(esTipoComprobante(evento.target.value) ? evento.target.value : "02")}
+              >
+                {OPCIONES_TIPO_COMPROBANTE.map((opcion) => (
+                  <NativeSelectOption key={opcion.valor} value={opcion.valor}>
+                    {opcion.etiqueta}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </div>
+            <div className="flex items-center gap-2.5 pl-2.5 text-base">
+              <span className="text-slate-500">NCF</span>
+              <span className="truncate text-slate-700">Se asigna al guardar</span>
+            </div>
+          </div>
+        </header>
+
+        <section>
+          <h2 className={`mb-4 ${TITULO_SECCION}`}>Ajustes</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
+            <Campo>
+              <Etiqueta htmlFor="moneda">Moneda</Etiqueta>
+              <Input id="moneda" readOnly value="DOP · Peso dominicano" className={CAMPO_CHICO} />
+            </Campo>
+
+            <Campo>
+              <span className="flex items-center gap-1 text-sm leading-5 font-medium text-slate-700">
+                Pago recibido
+              </span>
+              <div className="flex h-8 items-center gap-2">
+                <Checkbox
+                  id="registrar-pago"
+                  checked={registrarPago}
+                  onCheckedChange={(valor) => setRegistrarPago(valor)}
+                />
+                <Label htmlFor="registrar-pago" className="text-sm leading-5 font-medium text-slate-700">
+                  Registrar
+                </Label>
+              </div>
+            </Campo>
+
+            <Campo>
+              <Etiqueta htmlFor="cuenta-pago">Cuenta de caja o banco</Etiqueta>
+              <NativeSelect
+                id="cuenta-pago"
+                className={SELECT_CHICO}
+                value={cuentaPago}
+                disabled={!registrarPago}
+                onChange={(evento) => setCuentaPago(evento.target.value)}
+              >
+                {cuentas.map((cuenta) => (
+                  <NativeSelectOption key={cuenta.id} value={cuenta.id}>
+                    {cuenta.codigo} · {cuenta.nombre}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Campo>
+
+            <Campo>
+              <Etiqueta htmlFor="metodo-pago">Método de pago</Etiqueta>
+              <NativeSelect
+                id="metodo-pago"
+                className={SELECT_CHICO}
+                value={metodoPago}
+                disabled={!registrarPago}
+                onChange={(evento) => setMetodoPago(evento.target.value as MetodoPago)}
+              >
+                <NativeSelectOption value="efectivo">Efectivo</NativeSelectOption>
+                <NativeSelectOption value="transferencia">Transferencia</NativeSelectOption>
+                <NativeSelectOption value="tarjeta">Tarjeta</NativeSelectOption>
+                <NativeSelectOption value="cheque">Cheque</NativeSelectOption>
+              </NativeSelect>
+            </Campo>
+
+            <Campo>
+              <Etiqueta htmlFor="monto-pago">Monto</Etiqueta>
+              <Input
+                id="monto-pago"
+                readOnly
+                disabled={!registrarPago}
+                value={formatoMoneda(totales.totalCentavos / 100)}
+                className={`${CAMPO_CHICO} ${CAMPO_BLOQUEADO}`}
+              />
+            </Campo>
+          </div>
+        </section>
+
+        <section>
+          <div className={`mb-4 ${DIVISOR}`} />
+          <h2 className={`mb-4 ${TITULO_SECCION}`}>Información de la factura</h2>
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+            <Campo>
+              <Etiqueta htmlFor="cliente" requerido>
+                Cliente
+              </Etiqueta>
+              <Combobox
+                items={clientesItems}
+                onValueChange={(item: { value: string; label: string } | null) => setClienteId(item?.value ?? "")}
+              >
+                <ComboboxInput id="cliente" className={COMBO_MEDIO} placeholder="Buscar cliente…" showClear />
+                <ComboboxContent>
+                  <ComboboxEmpty>Sin resultados</ComboboxEmpty>
+                  <ComboboxList>
+                    {(item: { value: string; label: string }) => (
+                      <ComboboxItem key={item.value} value={item}>
+                        {item.label}
+                      </ComboboxItem>
+                    )}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+            </Campo>
+            <Campo>
+              <Etiqueta htmlFor="fecha" requerido>
+                Fecha de creación
+              </Etiqueta>
+              <Input
+                id="fecha"
+                type="date"
+                required
+                value={fecha}
+                onChange={(evento) => setFecha(evento.target.value)}
+                className={CAMPO_MEDIO}
+              />
+            </Campo>
+            <Campo>
+              <Etiqueta htmlFor="vencimiento" requerido>
+                Fecha de vencimiento
+              </Etiqueta>
+              <Input
+                id="vencimiento"
+                type="date"
+                required
+                value={vencimiento}
+                onChange={(evento) => setVencimiento(evento.target.value)}
+                className={CAMPO_MEDIO}
+              />
+            </Campo>
+          </div>
+        </section>
+
+        <section>
+          <div className={`mb-4 ${DIVISOR}`} />
+          <h2 className={`mb-4 ${TITULO_SECCION}`}>Productos y servicios</h2>
+          <div className="overflow-x-auto">
+            <div className="grid min-w-[820px] grid-cols-[44px_minmax(0,29fr)_minmax(0,7.4fr)_minmax(0,12.6fr)_148px_minmax(0,13.6fr)_minmax(0,13.5fr)_32px]">
+              <div className={`${CELDA_ENCABEZADO} justify-center`}>N.º</div>
+              <div className={CELDA_ENCABEZADO}>Producto o servicio</div>
+              <div className={CELDA_ENCABEZADO}>Cantidad</div>
+              <div className={CELDA_ENCABEZADO}>Precio</div>
+              <div className={CELDA_ENCABEZADO}>Descuento</div>
+              <div className={CELDA_ENCABEZADO}>Impuesto</div>
+              <div className={`${CELDA_ENCABEZADO} justify-end`}>Subtotal</div>
+              <div className={CELDA_ENCABEZADO} />
+
+              {lineas.map((linea, indice) => {
+                const calculo = calculadas.find((item) => item.clave === linea.clave)?.calculo;
+                const producto = productos.find((item) => item.id === linea.productoId);
+                return (
+                  <div key={linea.clave} className="contents">
+                    <div className="flex justify-center py-2 pr-1 text-xs leading-10 text-slate-500">{indice + 1}</div>
+                    <div className="min-w-0 py-2 pr-1">
+                      <Combobox
+                        items={productosItems}
+                        onValueChange={(item: { value: string; label: string } | null) =>
+                          seleccionarProducto(linea.clave, item?.value ?? "")
+                        }
+                      >
+                        <ComboboxInput
+                          id={`producto-${linea.clave}`}
+                          className="w-full border-slate-300 bg-white dark:bg-white [&>input]:text-sm"
+                          placeholder="Buscar producto…"
+                          aria-label={`Producto de la línea ${indice + 1}`}
+                        />
+                        <ComboboxContent>
+                          <ComboboxEmpty>Sin productos</ComboboxEmpty>
+                          <ComboboxList>
+                            {(item: { value: string; label: string }) => (
+                              <ComboboxItem key={item.value} value={item}>
+                                {item.label}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                      {producto?.referencia ? (
+                        <p className="mt-1 text-xs leading-4 text-slate-500">Ref. {producto.referencia}</p>
+                      ) : null}
+                    </div>
+                    <div className="min-w-0 py-2 pr-1">
+                      <Input
+                        id={`cantidad-${linea.clave}`}
+                        inputMode="decimal"
+                        value={linea.cantidad}
+                        onChange={(evento) => actualizarLinea(linea.clave, { cantidad: evento.target.value })}
+                        aria-label={`Cantidad de la línea ${indice + 1}`}
+                        className={CAMPO_CHICO}
+                      />
+                    </div>
+                    <div className="flex min-w-0 items-center py-2 pr-1">
+                      <span className="pl-2 text-sm text-slate-500">RD$</span>
+                      <Input
+                        id={`precio-${linea.clave}`}
+                        inputMode="decimal"
+                        value={linea.precio}
+                        onChange={(evento) => actualizarLinea(linea.clave, { precio: evento.target.value })}
+                        aria-label={`Precio de la línea ${indice + 1}`}
+                        className={`${CAMPO_CHICO} w-auto min-w-0 flex-1 pl-1`}
+                      />
+                    </div>
+                    <div className="flex min-w-0 items-center py-2 pr-1">
+                      <span className="pl-2 text-sm text-slate-500">%</span>
+                      <Input
+                        id={`descuento-${linea.clave}`}
+                        inputMode="decimal"
+                        value={linea.descuentoPct}
+                        onChange={(evento) => actualizarLinea(linea.clave, { descuentoPct: evento.target.value })}
+                        aria-label={`Descuento de la línea ${indice + 1}`}
+                        className={`${CAMPO_CHICO} w-auto min-w-0 flex-1 pl-1`}
+                      />
+                    </div>
+                    <div className="min-w-0 py-2 pr-1">
+                      <NativeSelect
+                        id={`itbis-${linea.clave}`}
+                        className={SELECT_CHICO}
+                        value={linea.itbisTasa}
+                        onChange={(evento) => actualizarLinea(linea.clave, { itbisTasa: evento.target.value })}
+                        aria-label={`ITBIS de la línea ${indice + 1}`}
+                      >
+                        <NativeSelectOption value="0">Sin ITBIS</NativeSelectOption>
+                        <NativeSelectOption value="16">ITBIS 16 %</NativeSelectOption>
+                        <NativeSelectOption value="18">ITBIS 18 %</NativeSelectOption>
+                      </NativeSelect>
+                    </div>
+                    <div className="flex min-w-0 justify-end py-2 pr-1">
+                      <span className="mt-1 text-sm leading-8 text-slate-700 tabular-nums">
+                        {formatoMonedaCentavos(calculo?.totalCentavos ?? 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-center py-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="size-8 text-slate-900 hover:bg-slate-200/45"
+                        disabled={lineas.length === 1}
+                        onClick={() => quitarLinea(linea.clave)}
+                      >
+                        <Trash2 />
+                        <span className="sr-only">Quitar línea {indice + 1}</span>
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="col-span-full">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-primary h-9 w-fit justify-start gap-1 rounded-[10px] px-2 text-sm font-medium hover:bg-slate-200/45"
+                  onClick={agregarLinea}
+                >
+                  <Plus className="size-4" />
+                  Agregar línea
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="flex justify-center md:justify-end">
+          <div className="w-full text-base text-slate-500 md:w-80">
+            <div className="flex h-6 items-center justify-between">
+              <span>Subtotal</span>
+              <span className="tabular-nums">{formatoMonedaCentavos(totales.subtotalCentavos)}</span>
+            </div>
+            <div className="flex h-6 items-center justify-between">
+              <span>Descuento</span>
+              <span className="tabular-nums">{formatoMonedaCentavos(totales.descuentoCentavos)}</span>
+            </div>
+            <div className="flex h-6 items-center justify-between">
+              <span>ITBIS</span>
+              <span className="tabular-nums">{formatoMonedaCentavos(totales.itbisCentavos)}</span>
+            </div>
+            <div className="mt-7 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
+              <span>Total</span>
+              <span className="tabular-nums">{formatoMonedaCentavos(totales.totalCentavos)}</span>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <Collapsible>
+            <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-base leading-6 font-semibold text-slate-700 [&[data-panel-open]>svg]:rotate-180">
+              Más opciones
+              <ChevronDown className="size-4 transition-transform" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="grid gap-4 pt-2 md:grid-cols-3">
+                <Campo>
+                  <Etiqueta htmlFor="notas">Notas</Etiqueta>
+                  <Textarea
+                    id="notas"
+                    value={notas}
+                    placeholder="Notas internas o para el cliente"
+                    onChange={(evento) => setNotas(evento.target.value)}
+                    className="focus-visible:border-primary min-h-20 border-slate-300 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus-visible:ring-0"
+                  />
+                </Campo>
+                <Campo>
+                  <Etiqueta htmlFor="terminos">Términos y condiciones</Etiqueta>
+                  <Textarea
+                    id="terminos"
+                    value={terminos}
+                    placeholder="Condiciones de pago"
+                    onChange={(evento) => setTerminos(evento.target.value)}
+                    className="focus-visible:border-primary min-h-20 border-slate-300 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus-visible:ring-0"
+                  />
+                </Campo>
+                <Campo>
+                  <Etiqueta htmlFor="pie">Pie de factura</Etiqueta>
+                  <Textarea
+                    id="pie"
+                    value={pie}
+                    placeholder="Texto al pie de la factura"
+                    onChange={(evento) => setPie(evento.target.value)}
+                    className="focus-visible:border-primary min-h-20 border-slate-300 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus-visible:ring-0"
+                  />
+                </Campo>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </section>
+      </div>
+
       <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" render={<Link href="/dashboard/facturacion" />}>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-12 rounded-[12px] px-6 text-base"
+          render={<Link href="/dashboard/facturacion" />}
+        >
           Cancelar
         </Button>
-        <Button type="submit" disabled={pendiente}>
+        <Button type="submit" disabled={pendiente} className="h-12 rounded-[12px] px-6 text-base">
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           Guardar factura
         </Button>

@@ -1,5 +1,14 @@
 # Handoff — Medoxigas Contabilidad
 
+## Diseño del formulario de factura (13 nov 2026)
+
+- `factura-form.tsx` ahora es una sola tarjeta (máx. 1040 px) con el logo de
+  Medoxigas, encabezado en 3 tercios, Ajustes en 5 columnas, Información en 3
+  columnas (gap 32), tabla de productos en un solo grid con scroll horizontal,
+  totales en texto plano y botones fuera de la tarjeta.
+- Notas, Términos y Pie siguen ocultos en «Más opciones». La lógica de cálculo,
+  validación, NCF, server actions y tipos no cambió.
+
 ## Beta 1 (13 nov 2026)
 
 **Hecho**
