@@ -74,8 +74,11 @@ select is((select nombre from public.empresa), 'MEDOXIGAS ALC, SRL', 'empresa se
 
 select ok(
   exists(select 1 from public.numeraciones where tipo_comprobante = '01' and prefijo = 'B01')
-  and exists(select 1 from public.numeraciones where tipo_comprobante = '02' and prefijo = 'B02'),
-  'existen numeraciones semilla 01/B01 y 02/B02'
+  and exists(select 1 from public.numeraciones where tipo_comprobante = '02' and prefijo = 'B02')
+  and exists(select 1 from public.numeraciones where tipo_comprobante = '14' and prefijo = 'B14')
+  and exists(select 1 from public.numeraciones where tipo_comprobante = '15' and prefijo = 'B15')
+  and exists(select 1 from public.numeraciones where tipo_comprobante = '16' and prefijo = 'B16'),
+  'existen numeraciones semilla 01/B01, 02/B02, 14/B14, 15/B15 y 16/B16'
 );
 
 select * from finish();
