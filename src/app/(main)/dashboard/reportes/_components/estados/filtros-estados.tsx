@@ -4,6 +4,8 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { Vista } from "@/lib/reportes/estados/tipos";
 
+import { SelectorFechaCorte, SelectorRangoFechas } from "../selector-fechas";
+
 interface Props {
   tipo: "rango" | "fecha";
   desde?: string;
@@ -17,15 +19,10 @@ export function FiltrosEstados({ tipo, desde, hasta, vista, busqueda, centroCost
   return (
     <form method="get" className="flex flex-wrap items-end gap-3 print:hidden">
       {tipo === "rango" && desde != null ? (
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="desde">Desde</Label>
-          <Input id="desde" name="desde" type="date" defaultValue={desde} className="w-40" />
-        </div>
-      ) : null}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="hasta">Hasta</Label>
-        <Input id="hasta" name="hasta" type="date" defaultValue={hasta} className="w-40" />
-      </div>
+        <SelectorRangoFechas desde={desde} hasta={hasta} />
+      ) : (
+        <SelectorFechaCorte valor={hasta} />
+      )}
       {centroCostos ? (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="centro">Centro de costo</Label>

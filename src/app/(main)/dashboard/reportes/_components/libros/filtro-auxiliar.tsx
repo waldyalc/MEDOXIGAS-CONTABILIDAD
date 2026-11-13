@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import type { ContactoOpcion } from "@/lib/reportes/libros/tipos";
 import type { CuentaContable } from "@/lib/reportes/tipos";
 
-import { CamposFecha } from "./campos-fecha";
+import { SelectorRangoFechas } from "../selector-fechas";
 import { SelectContacto } from "./select-contacto";
 import { SelectCuenta } from "./select-cuenta";
 
@@ -24,7 +24,7 @@ export function FiltroAuxiliar({ desde, hasta, contactos, cuentas, tercero, cuen
         <SelectContacto id="tercero" contactos={contactos} valor={tercero} requerido />
       </div>
 
-      <CamposFecha desde={desde} hasta={hasta} />
+      <SelectorRangoFechas desde={desde} hasta={hasta} />
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="cuenta">Cuenta contable</Label>

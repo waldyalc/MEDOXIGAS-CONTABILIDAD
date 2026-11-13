@@ -3,6 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
+import { SelectorFechaCorte } from "../../_components/selector-fechas";
+
 interface Props {
   hasta: string;
   almacen: string;
@@ -15,8 +17,8 @@ export function FiltrosInventario({ hasta, almacen, producto, referencia }: Prop
     <form method="get" className="flex flex-col gap-3 print:hidden">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="hasta">Hasta</Label>
-          <Input id="hasta" name="hasta" type="date" defaultValue={hasta} required />
+          <Label>Hasta</Label>
+          <SelectorFechaCorte valor={hasta} />
         </div>
 
         <div className="flex flex-col gap-1.5">

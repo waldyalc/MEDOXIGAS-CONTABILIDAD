@@ -28,6 +28,7 @@ import {
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
 import { EncabezadoReporte } from "../_components/encabezado-reporte";
+import { SelectorRangoFechas } from "../_components/selector-fechas";
 import { GraficosClientes } from "./_components/graficos-clientes";
 
 const POR_PAGINA = 10;
@@ -98,14 +99,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <form method="get" className="flex flex-wrap items-end gap-3 print:hidden">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="desde">Desde</Label>
-            <Input id="desde" name="desde" type="date" defaultValue={desde} className="w-40" />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="hasta">Hasta</Label>
-            <Input id="hasta" name="hasta" type="date" defaultValue={hasta} className="w-40" />
-          </div>
+          <SelectorRangoFechas desde={desde} hasta={hasta} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="q">Buscar cliente</Label>
             <Input id="q" name="q" type="search" defaultValue={busqueda} placeholder="Cliente" className="w-56" />

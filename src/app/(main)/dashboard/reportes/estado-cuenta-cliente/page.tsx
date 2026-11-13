@@ -29,6 +29,7 @@ import type { ClienteOpcion, FiltroVencimiento } from "@/lib/reportes/ventas/v3/
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
 import { BotonImprimir } from "../_components/boton-imprimir";
+import { SelectorFechaCorte } from "../_components/selector-fechas";
 
 const OPCIONES_VENCIMIENTO: FiltroVencimiento[] = ["todas", "sin-vencer", "1-30", "31-60", "61-90", "91-mas"];
 
@@ -115,8 +116,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
             </NativeSelect>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="corte">Corte al</Label>
-            <Input id="corte" name="corte" type="date" defaultValue={corte} className="w-40" />
+            <Label>Corte al</Label>
+            <SelectorFechaCorte valor={corte} parametro="corte" />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="vencimiento">Estado de vencimiento</Label>
