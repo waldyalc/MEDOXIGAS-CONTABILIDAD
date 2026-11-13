@@ -3,7 +3,16 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 
 import type { ContactoTipo } from "./contactos";
-import type { AsientoFicha, ContactoFicha, CuentaFicha, DatosFichaContacto, DocumentoFicha, PagoFicha } from "./ficha";
+import {
+  type AsientoFicha,
+  type ContactoFicha,
+  type CuentaFicha,
+  type DatosFichaContacto,
+  type DocumentoFicha,
+  type LineaAsientoContacto,
+  type PagoFicha,
+  sumarLineasAsiento,
+} from "./ficha";
 
 const UUID = z.uuid();
 
@@ -30,7 +39,6 @@ interface AsientoFila {
   numero: number;
   fecha: string;
   descripcion: string;
-  total: number | string;
 }
 
 function normalizarTipo(valor: string): ContactoTipo {
@@ -117,7 +125,11 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
       .order("fecha", { ascending: false })
       .order("numero", { ascending: false })
       .returns<PagoProveedorFila[]>(),
-    supabase.from("asiento_lineas").select("asiento_id").eq("contacto_id", id).returns<{ asiento_id: string }[]>(),
+    supabase
+      .from("asiento_lineas")
+      .select("asiento_id, debito, credito")
+      .eq("contacto_id", id)
+      .returns<LineaAsientoContacto[]>(),
     supabase
       .from("config_contable")
       .select("clave, cuenta_id")
@@ -138,7 +150,8 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     configuracion.get("cxc"),
     configuracion.get("cxp"),
   ].filter((valor): valor is string => valor != null);
-  const asientoIds = [...new Set((lineasRes.data ?? []).map((linea) => linea.asiento_id))];
+  const totalesAsientos = sumarLineasAsiento(lineasRes.data ?? []);
+  const asientoIds = [...totalesAsientos.keys()];
 
   const [cuentasRes, asientosRes] = await Promise.all([
     cuentaIds.length > 0
@@ -147,7 +160,7 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     asientoIds.length > 0
       ? supabase
           .from("asientos")
-          .select("id, numero, fecha, descripcion, total")
+          .select("id, numero, fecha, descripcion")
           .in("id", asientoIds)
           .order("fecha", { ascending: false })
           .order("numero", { ascending: false })
@@ -178,14 +191,18 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     factura_id: pago.factura_proveedor_id,
     factura_numero: numerosCompra.get(pago.factura_proveedor_id) ?? null,
   }));
-  const asientos: AsientoFicha[] = (asientosRes.data ?? []).map((asiento) => ({
-    id: asiento.id,
-    numero: asiento.numero,
-    fecha: asiento.fecha,
-    descripcion: asiento.descripcion,
-    debito: asiento.total,
-    credito: asiento.total,
-  }));
+  const asientos: AsientoFicha[] = (asientosRes.data ?? []).map((asiento) => {
+    const totales = totalesAsientos.get(asiento.id) ?? { debitoCentavos: 0, creditoCentavos: 0 };
+
+    return {
+      id: asiento.id,
+      numero: asiento.numero,
+      fecha: asiento.fecha,
+      descripcion: asiento.descripcion,
+      debitoCentavos: totales.debitoCentavos,
+      creditoCentavos: totales.creditoCentavos,
+    };
+  });
 
   return {
     contacto: mapearContacto(contacto),

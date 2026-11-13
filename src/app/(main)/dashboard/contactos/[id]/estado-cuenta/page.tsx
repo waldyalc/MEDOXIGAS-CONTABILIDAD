@@ -14,12 +14,14 @@ import {
   OPCIONES_ANTIGUEDAD,
   type ParametrosEstadoCuenta,
   parsearFiltrosEstadoCuenta,
+  tablaEstadoCuenta,
 } from "@/lib/contactos/estado-cuenta";
 import { obtenerEstadoCuentaContacto } from "@/lib/contactos/estado-cuenta-consultas";
 import { rutaContacto } from "@/lib/enlaces";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
+import { BotonDescargar } from "../../../reportes/_components/boton-descargar";
 import { BotonImprimir } from "./_components/boton-imprimir";
 import { EstadoCuentaImpresion } from "./_components/estado-cuenta-impresion";
 import { TablaEstadoCuenta } from "./_components/tabla-estado-cuenta";
@@ -51,6 +53,7 @@ export default async function Page({
 
   const filtros = parsearFiltrosEstadoCuenta(await searchParams);
   const resumen = calcularEstadoCuenta(datos.facturas, datos.pagos, filtros.corte, filtros.antiguedad);
+  const tabla = tablaEstadoCuenta(datos.contacto.nombre, filtros, resumen);
 
   return (
     <div className="flex flex-col gap-6">
@@ -71,7 +74,10 @@ export default async function Page({
               {datos.contacto.nombre} · Corte al {formatoDia(filtros.corte)}
             </p>
           </div>
-          <BotonImprimir />
+          <div className="flex flex-wrap gap-2 print:hidden">
+            <BotonDescargar tabla={tabla} nombreArchivo={`estado-cuenta-${filtros.corte}`} />
+            <BotonImprimir />
+          </div>
         </div>
       </div>
 
