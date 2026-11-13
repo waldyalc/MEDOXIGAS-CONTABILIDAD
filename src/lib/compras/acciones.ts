@@ -5,12 +5,13 @@ import { redirect } from "next/navigation";
 
 import { getRol } from "@/lib/auth/rol";
 import { mensajeErrorRpc } from "@/lib/facturacion/errores";
+import { avisoSaldoCuenta } from "@/lib/reportes/saldos";
 import { createClient } from "@/lib/supabase/server";
 
 import type { EntradaFacturaProveedor, EntradaPagoProveedor } from "./esquema";
 import { esquemaFacturaProveedor, esquemaPagoProveedor } from "./esquema";
 
-export type ResultadoAccion = { ok: true } | { ok: false; error: string };
+export type ResultadoAccion = { ok: true; id?: string; aviso?: string } | { ok: false; error: string };
 
 async function puedeEscribir() {
   const rol = await getRol();
@@ -85,8 +86,10 @@ export async function registrarPagoProveedor(entrada: EntradaPagoProveedor): Pro
   if (error) return { ok: false, error: mensajeErrorRpc(error) };
   if (!data) return { ok: false, error: "No se pudo registrar el pago." };
 
+  const aviso = await avisoSaldoCuenta(datos.cuenta_id, datos.fecha);
+
   revalidarCompras(datos.factura_proveedor_id);
-  return { ok: true };
+  return { ok: true, id: data, ...(aviso ? { aviso } : {}) };
 }
 
 export async function anularFacturaProveedor(id: string): Promise<ResultadoAccion> {

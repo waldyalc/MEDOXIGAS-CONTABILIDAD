@@ -7,6 +7,8 @@ import { getPerfil } from "@/lib/auth/rol";
 import { obtenerKpisInicio } from "@/lib/reportes/consultas";
 import { formatearRd } from "@/lib/reportes/dinero";
 
+import { AvisoSaldoNegativo } from "./reportes/_components/aviso-saldo-negativo";
+
 export default async function Page() {
   const perfil = await getPerfil();
   if (perfil?.rol == null) redirect("/unauthorized");
@@ -50,6 +52,8 @@ export default async function Page() {
           Este es el resumen del mes en curso.
         </p>
       </div>
+
+      <AvisoSaldoNegativo />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold tracking-tight">Resumen del mes</h2>
