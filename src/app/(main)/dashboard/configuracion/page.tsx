@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { BookOpen, Building2, CalendarClock, Hash, type LucideIcon, Percent, Users } from "lucide-react";
+import { BookOpen, Building2, CalendarClock, Hash, type LucideIcon, Percent, ReceiptText, Users } from "lucide-react";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRol } from "@/lib/auth/rol";
@@ -79,6 +79,13 @@ export default async function Page() {
           descripcion: "Tasas de ITBIS disponibles en productos y facturas.",
           url: "/dashboard/configuracion/impuestos",
           icon: Percent,
+        },
+        {
+          id: "retenciones",
+          titulo: "Retenciones",
+          descripcion: "Retenciones de ITBIS e ISR para los pagos.",
+          url: "/dashboard/configuracion/retenciones",
+          icon: ReceiptText,
         },
       ],
     },

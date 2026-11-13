@@ -89,6 +89,37 @@ export const esquemaTerminoPago = z.object({
 
 export type DatosTerminoPago = z.infer<typeof esquemaTerminoPago>;
 
+const cuentaOpcional = z
+  .string()
+  .nullish()
+  .transform((valor) => (valor ?? "").trim())
+  .transform((valor) => (valor === "" ? null : valor))
+  .pipe(z.uuid("La cuenta no es válida").nullable());
+
+export const esquemaRetencion = z.object({
+  nombre: z
+    .string()
+    .transform(normalizarNombre)
+    .refine((valor) => valor.length > 0, "El nombre de la retención es obligatorio")
+    .refine((valor) => valor.length <= 80, "El nombre no puede pasar de 80 caracteres"),
+  tipo: z.enum(["itbis", "isr"], "El tipo de retención debe ser ITBIS o ISR"),
+  porcentaje: z.coerce
+    .number()
+    .finite("El porcentaje no es válido")
+    .positive("El porcentaje debe ser mayor que cero")
+    .max(100, "El porcentaje no puede pasar de 100"),
+  cuenta_id: z.uuid("La cuenta de la retención no es válida"),
+  cuenta_anticipo_id: cuentaOpcional,
+  activa: z.boolean().default(true),
+});
+
+export const esquemaActualizarRetencion = esquemaRetencion.extend({
+  id: z.uuid("La retención no es válida"),
+});
+
+export type DatosRetencion = z.infer<typeof esquemaRetencion>;
+export type DatosActualizarRetencion = z.infer<typeof esquemaActualizarRetencion>;
+
 export function mensajeValidacion(error: z.ZodError) {
   return error.issues[0]?.message ?? "Datos inválidos";
 }
