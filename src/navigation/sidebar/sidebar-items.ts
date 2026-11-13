@@ -7,6 +7,7 @@ import {
   type LucideIcon,
   Package,
   ReceiptText,
+  Settings,
   ShoppingCart,
 } from "lucide-react";
 
@@ -170,6 +171,13 @@ export const sidebarItems: NavGroup[] = [
         title: "Reportes",
         url: "/dashboard/reportes",
         icon: ChartColumn,
+        roles: TODOS_LOS_ROLES,
+      },
+      {
+        id: "configuracion",
+        title: "Configuración",
+        url: "/dashboard/configuracion",
+        icon: Settings,
         roles: TODOS_LOS_ROLES,
       },
     ],

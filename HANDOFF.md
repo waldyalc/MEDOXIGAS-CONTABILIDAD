@@ -1,5 +1,12 @@
 # Handoff — Medoxigas Contabilidad
 
+## Configuración (13 nov 2026)
+
+- Nuevo módulo `/dashboard/configuracion` con portada por grupos (Empresa, Facturación, Impuestos, Contabilidad) y menú lateral propio: Empresa (nombre, RNC, dirección, teléfono, correo y logo), Términos de pago (lista y crear), Impuestos (ITBIS 18/16/0/exento, solo lectura), Usuarios (solo admin, solo lectura) y enlaces a Numeraciones y Configuraciones contables.
+- Migraciones `20261114600000_configuracion.sql` (empresa nullable, `terminos_pago` con semilla Contado/8/15/30/60, RPC `actualizar_empresa`, `crear_termino_pago`, consulta `listar_terminos_pago` y `listar_perfiles`) y `20261114600100_configuracion_logos_storage.sql` (bucket público `logos`, solo admin sube/actualiza/borra). No aplicadas al proyecto remoto.
+- El logo se sube desde el navegador a Storage y el PDF/encabezado ya usan `empresa.logo_url`, RNC, dirección, teléfono y correo con campos vacíos ocultos.
+- pgTAP en `supabase/tests/configuracion_test.sql`; tipos añadidos a mano en `src/lib/supabase/types.ts`. `typecheck`, Biome y Vitest en verde.
+
 ## Plantilla única de documento de venta (13 nov 2026)
 
 - Nuevo `src/components/documento-venta/` (`documento-venta-form.tsx` + `calculo.ts`): la tarjeta del formulario de factura (logo, empresa, ajustes, cliente/fechas, líneas, totales y «Más opciones») ahora es compartida. Por props define título, comprobante/NCF o numeración simple, vencimiento, pago recibido, notas/términos/pie, textos de botones, rutas y la server action.

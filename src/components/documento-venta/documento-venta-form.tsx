@@ -2,7 +2,6 @@
 
 import { type ReactNode, useRef, useState, useTransition } from "react";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -152,12 +151,10 @@ function Encabezado({
   return (
     <header className="flex flex-col gap-4 py-3 md:flex-row md:items-center md:justify-between md:gap-6 md:py-6 lg:py-8">
       <div className="flex min-w-0 justify-center md:w-1/3 md:justify-start">
-        <Image
-          src="/marca/logo-medoxigas.png"
+        {/* biome-ignore lint/performance/noImgElement: logo configurable de la empresa */}
+        <img
+          src={empresa?.logo_url?.trim() || "/marca/logo-medoxigas.png"}
           alt={empresa?.nombre ?? "Medoxigas"}
-          width={185}
-          height={96}
-          preload
           className="h-[72px] w-auto object-contain md:h-24"
         />
       </div>
@@ -165,6 +162,8 @@ function Encabezado({
       <div className="min-w-0 text-center md:w-1/3">
         <p className="text-base leading-6 font-semibold text-slate-700">{empresa?.nombre ?? "MEDOXIGAS ALC, SRL"}</p>
         {empresa?.rnc ? <p className="text-xs leading-4 text-slate-500">RNC {empresa.rnc}</p> : null}
+        {empresa?.direccion ? <p className="text-xs leading-4 text-slate-500">{empresa.direccion}</p> : null}
+        {empresa?.telefono ? <p className="text-xs leading-4 text-slate-500">{empresa.telefono}</p> : null}
         {empresa?.correo ? <p className="text-xs leading-4 text-slate-500">{empresa.correo}</p> : null}
       </div>
 

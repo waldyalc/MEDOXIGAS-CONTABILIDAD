@@ -5,7 +5,17 @@ import type { Rol } from "@/lib/auth/rol";
 import { filtrarItemsPorRol, sidebarItems } from "./sidebar-items";
 
 const ROLES: Rol[] = ["admin", "contador", "lector"];
-const MODULOS = ["inicio", "ingresos", "compras", "contactos", "productos", "contabilidad", "bancos", "reportes"];
+const MODULOS = [
+  "inicio",
+  "ingresos",
+  "compras",
+  "contactos",
+  "productos",
+  "contabilidad",
+  "bancos",
+  "reportes",
+  "configuracion",
+];
 
 function ids(rol: Rol | null) {
   return filtrarItemsPorRol(rol).flatMap((grupo) => grupo.items.map((item) => item.id));
