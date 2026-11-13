@@ -5,7 +5,7 @@ import type { Rol } from "@/lib/auth/rol";
 import { filtrarItemsPorRol, sidebarItems } from "./sidebar-items";
 
 const ROLES: Rol[] = ["admin", "contador", "lector"];
-const MODULOS = ["inicio", "facturacion", "clientes", "productos", "gastos", "bancos", "reportes"];
+const MODULOS = ["inicio", "ingresos", "compras", "contactos", "productos", "contabilidad", "reportes"];
 
 function ids(rol: Rol | null) {
   return filtrarItemsPorRol(rol).flatMap((grupo) => grupo.items.map((item) => item.id));
@@ -26,18 +26,33 @@ describe("filtrarItemsPorRol", () => {
     expect(filtrarItemsPorRol(null)).toEqual([]);
   });
 
-  test("Inicio está activo y los módulos futuros están deshabilitados con badge soon", () => {
+  test("ningún módulo queda deshabilitado ni con badge", () => {
+    for (const item of items("admin")) {
+      expect(item.disabled).toBeUndefined();
+      expect(item.badge).toBeUndefined();
+    }
+
     const inicio = items("admin").find((item) => item.id === "inicio");
     if (inicio == null || !("url" in inicio)) throw new Error("Inicio debe ser un enlace");
     expect(inicio.url).toBe("/dashboard");
-    expect(inicio.disabled).toBeUndefined();
 
-    const futuros = items("admin").filter((item) => item.id !== "inicio");
-    expect(futuros).toHaveLength(6);
-    for (const item of futuros) {
-      expect(item.badge).toBe("soon");
-      expect(item.disabled).toBe(true);
-    }
+    const reportes = items("admin").find((item) => item.id === "reportes");
+    if (reportes == null || !("url" in reportes)) throw new Error("Reportes debe ser un enlace");
+    expect(reportes.url).toBe("/dashboard/reportes");
+  });
+
+  test("Ingresos y Compras agrupan sus submenús", () => {
+    const ingresos = items("admin").find((item) => item.id === "ingresos");
+    if (ingresos?.subItems == null) throw new Error("Ingresos debe tener submenú");
+    expect(ingresos.subItems.map((sub) => sub.url)).toEqual(["/dashboard/facturacion", "/dashboard/pagos-recibidos"]);
+
+    const compras = items("admin").find((item) => item.id === "compras");
+    if (compras?.subItems == null) throw new Error("Compras debe tener submenú");
+    expect(compras.subItems.map((sub) => sub.url)).toEqual([
+      "/dashboard/compras",
+      "/dashboard/compras/pagos",
+      "/dashboard/gastos",
+    ]);
   });
 
   test("el grupo se titula Módulos", () => {
