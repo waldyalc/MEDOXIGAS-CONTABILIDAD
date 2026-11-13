@@ -10,12 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaContacto, rutaFactura } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
 import type { FilaReporte, TablaReporte } from "@/lib/reportes/exportar/tipos";
 import type { ParametrosFecha } from "@/lib/reportes/fechas";
 import { listarClientes, obtenerEstadoCuentaCliente } from "@/lib/reportes/ventas/v3/consultas";
-import { urlContacto, urlFacturaVenta } from "@/lib/reportes/ventas/v3/enlaces";
 import { calcularEstadoCuenta, filtrarDocumentos, resumirEstadoCuenta } from "@/lib/reportes/ventas/v3/estado-cuenta";
 import {
   ETIQUETAS_VENCIMIENTO,
@@ -145,7 +145,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         </form>
         <div className="flex flex-wrap gap-2 print:hidden">
           {clienteId != null && clienteNombre != null ? (
-            <Button variant="outline" render={<Link href={urlContacto(clienteId)} />}>
+            <Button variant="outline" render={<Link href={rutaContacto(clienteId)} />}>
               <UserRound />
               Ver ficha del cliente
             </Button>
@@ -228,7 +228,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                     {filtrados.map((fila) => (
                       <TableRow key={fila.facturaId}>
                         <TableCell>
-                          <Link className="font-medium hover:underline" href={urlFacturaVenta(fila.facturaId)}>
+                          <Link className="font-medium hover:underline" href={rutaFactura(fila.facturaId)}>
                             {fila.documento}
                           </Link>
                         </TableCell>

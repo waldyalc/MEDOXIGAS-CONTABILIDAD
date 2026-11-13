@@ -6,6 +6,7 @@ import {
   type FilaEstadoCuenta,
   type PagoEstadoCuenta,
   parsearFiltrosEstadoCuenta,
+  tablaEstadoCuenta,
   tramoAntiguedad,
 } from "./estado-cuenta";
 import type { DocumentoFicha } from "./ficha";
@@ -118,6 +119,33 @@ describe("estado de cuenta al corte", () => {
       "2026-12-05",
     ).filas;
     expect(filas.map((fila: FilaEstadoCuenta) => fila.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("tabla exportable del estado de cuenta", () => {
+  test("refleja las filas visibles, los totales y los filtros aplicados", () => {
+    const resumen = calcularEstadoCuenta([factura()], [pago()], "2026-11-30", "al-dia");
+    const tabla = tablaEstadoCuenta("Cliente Uno", { corte: "2026-11-30", antiguedad: "al-dia" }, resumen);
+
+    expect(tabla.subtitulo).toContain("Cliente Uno");
+    expect(tabla.subtitulo).toContain("30/11/2026");
+    expect(tabla.subtitulo).toContain("Al día");
+    expect(tabla.filas).toHaveLength(2);
+    expect(tabla.filas[0]?.celdas).toMatchObject({
+      documento: "#1 · B0100000001",
+      creacion: "2026-11-01",
+      vencimiento: "2026-11-30",
+      antiguedad: "Al día",
+      diasVencidos: 0,
+      estado: "Pendiente",
+      total: 1663800,
+      cobrado: 800000,
+      saldo: 863800,
+    });
+    expect(tabla.filas[1]).toMatchObject({
+      celdas: { documento: "Totales", total: 1663800, cobrado: 800000, saldo: 863800 },
+      estilo: "total",
+    });
   });
 });
 

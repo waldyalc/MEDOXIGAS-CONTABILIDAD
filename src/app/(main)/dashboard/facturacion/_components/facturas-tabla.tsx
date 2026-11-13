@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto, rutaFactura } from "@/lib/enlaces";
+import { etiquetaTipoComprobante } from "@/lib/facturacion/comprobantes";
 import type { FacturaFila } from "@/lib/facturacion/consultas";
 import { formatoMoneda, saldoDeFactura } from "@/lib/facturacion/formato";
 import type { EstadoFactura } from "@/lib/facturacion/tipos";
@@ -54,6 +55,7 @@ export function FacturasTabla({ facturas, puedeEscribir }: { facturas: FacturaFi
             <TableRow>
               <TableHead className="w-16">#</TableHead>
               <TableHead>NCF</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Fecha</TableHead>
               <TableHead>Vencimiento</TableHead>
@@ -65,7 +67,7 @@ export function FacturasTabla({ facturas, puedeEscribir }: { facturas: FacturaFi
           <TableBody>
             {facturas.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-muted-foreground py-10 text-center">
+                <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
                   No hay facturas todavía.
                 </TableCell>
               </TableRow>
@@ -76,6 +78,9 @@ export function FacturasTabla({ facturas, puedeEscribir }: { facturas: FacturaFi
                     <Enlace href={rutaFactura(factura.id)}>{factura.numero}</Enlace>
                   </TableCell>
                   <TableCell className="font-mono text-xs">{factura.ncf ?? "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {etiquetaTipoComprobante(factura.tipo_comprobante)}
+                  </TableCell>
                   <TableCell>
                     <Enlace href={rutaContacto(factura.contacto_id)}>{factura.cliente_nombre}</Enlace>
                   </TableCell>

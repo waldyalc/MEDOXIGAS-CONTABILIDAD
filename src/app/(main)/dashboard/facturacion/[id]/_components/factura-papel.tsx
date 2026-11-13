@@ -1,5 +1,6 @@
 import { Enlace } from "@/components/enlace";
 import { rutaContacto, rutaProducto } from "@/lib/enlaces";
+import { tituloTipoComprobante } from "@/lib/facturacion/comprobantes";
 import { formatoCantidad, saldoDeFactura } from "@/lib/facturacion/formato";
 import { montoEnLetras } from "@/lib/facturacion/numero-a-letras";
 import type { ContactoResumen, Empresa, FacturaDetalle, FacturaLinea } from "@/lib/facturacion/tipos";
@@ -145,7 +146,7 @@ function NotasFactura({ factura }: { factura: FacturaDetalle }) {
 
 export function FacturaPapel({ empresa, factura, lineas, contacto, ncfVence, enlaces = false }: Props) {
   const esCredito = factura.tipo_comprobante === "01";
-  const titulo = esCredito ? "Factura de Crédito Fiscal" : "Factura de Consumo";
+  const titulo = tituloTipoComprobante(factura.tipo_comprobante);
   const saldo = saldoDeFactura(factura.total, factura.pagado);
   const nombreEmpresa = empresa?.nombre?.trim() || "MEDOXIGAS ALC, SRL";
   const logo = empresa?.logo_url?.trim() || "/marca/logo-medoxigas.png";

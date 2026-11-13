@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { urlProducto } from "@/lib/reportes/administrativos/d/enlaces";
+import { rutaProducto } from "@/lib/enlaces";
 import type { FilaInventario } from "@/lib/reportes/administrativos/d/tipos";
 import { formatearRd } from "@/lib/reportes/dinero";
 
@@ -41,7 +41,11 @@ export function TablaInventario({ filas }: { filas: FilaInventario[] }) {
           filas.map((fila) => (
             <TableRow key={fila.id}>
               <TableCell>
-                <Link href={urlProducto(fila.id)} prefetch={false} className="text-primary font-medium hover:underline">
+                <Link
+                  href={rutaProducto(fila.id)}
+                  prefetch={false}
+                  className="text-primary font-medium hover:underline"
+                >
                   {fila.nombre}
                 </Link>
               </TableCell>

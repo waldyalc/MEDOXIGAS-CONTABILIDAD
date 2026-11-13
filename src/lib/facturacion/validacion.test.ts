@@ -24,6 +24,10 @@ describe("validación de factura", () => {
     expect(crearFacturaSchema.safeParse(facturaBase).success).toBe(true);
   });
 
+  test.each(["01", "02", "14", "15", "16"])("acepta el tipo de comprobante %s", (tipo) => {
+    expect(crearFacturaSchema.safeParse({ ...facturaBase, tipo_comprobante: tipo }).success).toBe(true);
+  });
+
   test("rechaza tipo de comprobante desconocido", () => {
     const resultado = crearFacturaSchema.safeParse({ ...facturaBase, tipo_comprobante: "03" });
     expect(resultado.success).toBe(false);
