@@ -1,0 +1,54 @@
+name: Supabase
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "supabase/**"
+      - "src/lib/supabase/types.ts"
+      - ".github/workflows/supabase.yml"
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "src/lib/supabase/types.ts"
+      - ".github/workflows/supabase.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  db:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Supabase CLI
+        uses: supabase/setup-cli@v1
+
+      # SOLO base local: `start`/`test`/`gen --local` jamás tocan el proyecto
+      # real. Prohibido `--linked`, `--db-url` o credenciales de producción aquí.
+      - name: Confirmar que no hay acceso remoto
+        run: |
+          if [ -n "${SUPABASE_DB_URL:-}" ] || [ -n "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "Acceso remoto configurado: este workflow solo usa la base local."
+            exit 1
+          fi
+
+      - name: Levantar Supabase local
+        run: supabase start
+
+      - name: pgTAP (RLS y políticas)
+        run: supabase test db
+
+      - name: Tipos al día con las migraciones
+        run: |
+          # Compara SOLO el esquema (public: { Tables … Views … Functions …
+          # Enums … CompositeTypes } dentro de `export type Database`): la
+          # cabecera, __InternalSupabase y los helpers cambian con la versión
+          # del generador, no con el esquema.
+          supabase gen types typescript --local --schema public > /tmp/database.local.ts
+          node scripts/extract-db-schema.mjs src/lib/supabase/types.ts > /tmp/schema.repo.txt
+          node scripts/extract-db-schema.mjs /tmp/database.local.ts > /tmp/schema.local.txt
+          diff /tmp/schema.repo.txt /tmp/schema.local.txt

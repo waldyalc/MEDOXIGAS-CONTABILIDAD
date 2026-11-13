@@ -1,0 +1,2 @@
+# Puerta pesada antes de subir: tipos y tests. Prohibido --no-verify (ver AGENTS.md).
+pnpm typecheck && pnpm test

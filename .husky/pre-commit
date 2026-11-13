@@ -1,0 +1,8 @@
+# Rápido (<15 s): solo archivos staged. Prohibido --no-verify (ver AGENTS.md).
+pnpm exec lint-staged || exit 1
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged || exit 1
+else
+  echo "aviso: gitleaks no instalado, se omite el escaneo local (CI sí lo corre)"
+fi

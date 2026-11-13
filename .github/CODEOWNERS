@@ -1,0 +1,3 @@
+# Migraciones y CI los revisa Waldy antes de fusionar.
+supabase/migrations/ @waldyalc
+.github/ @waldyalc
