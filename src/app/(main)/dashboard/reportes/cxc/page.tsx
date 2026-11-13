@@ -1,145 +1,109 @@
-import { HandCoins } from "lucide-react";
-
 import { Card, CardContent } from "@/components/ui/card";
-import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatoDia } from "@/lib/formato";
-import { obtenerCxc } from "@/lib/reportes/consultas";
-import { agruparCxc } from "@/lib/reportes/cxc";
-import { formatearRd } from "@/lib/reportes/dinero";
-import type { FilaReporte, TablaReporte } from "@/lib/reportes/exportar/tipos";
-import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
+import { filtrarCartera, filtrosDesdeUrl, totalCartera } from "@/lib/reportes/administrativos/d/antiguedad";
+import { obtenerCarteraCxc } from "@/lib/reportes/administrativos/d/consultas";
+import { tablaCuentasPorCobrar } from "@/lib/reportes/administrativos/d/exportar";
+import {
+  leerFechaParametro,
+  leerPagina,
+  leerParametro,
+  leerVista,
+  paginar,
+} from "@/lib/reportes/administrativos/d/parametros";
+import { hoyRd, type ParametrosFecha, rangoMesActual } from "@/lib/reportes/fechas";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
-import { EncabezadoReporte } from "../_components/encabezado-reporte";
-import { FiltroFechas } from "../_components/filtro-fechas";
+import { BotonImprimir } from "../_components/boton-imprimir";
+import { FiltrosCartera } from "./_components/filtros-cartera";
+import { Paginador } from "./_components/paginador";
+import { PestanasAntiguedad } from "./_components/pestanas-antiguedad";
+import { TablaCuentasPorCobrar } from "./_components/tabla-cartera";
+import { TarjetaTotal } from "./_components/tarjeta-total";
+
+const BASE = "/dashboard/reportes/cxc";
+const POR_PAGINA = 20;
 
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosFecha> }) {
-  const { desde, hasta } = parsearRango(await searchParams);
-  const { filas, error } = await obtenerCxc(hasta);
-  const resumen = agruparCxc(filas);
+  const params = await searchParams;
+  const hasta = leerFechaParametro(params, "hasta") ?? rangoMesActual(hoyRd()).hasta;
+  const { filas, error } = await obtenerCarteraCxc(hasta);
 
-  const filasTabla: FilaReporte[] = resumen.clientes.map((cliente) => ({
-    celdas: {
-      cliente: cliente.contactoNombre,
-      facturas: cliente.facturas,
-      total: cliente.total,
-      pagado: cliente.pagado,
-      saldo: cliente.saldo,
-      diasVencida: cliente.diasVencida > 0 ? `${cliente.diasVencida} días` : "Al día",
+  const vista = leerVista(params);
+  const filtros = filtrosDesdeUrl(
+    {
+      ncf: leerParametro(params, "ncf"),
+      contacto: leerParametro(params, "contacto"),
+      creacion_desde: leerFechaParametro(params, "creacion_desde") ?? undefined,
+      creacion_hasta: leerFechaParametro(params, "creacion_hasta") ?? undefined,
+      vencimiento_desde: leerFechaParametro(params, "vencimiento_desde") ?? undefined,
+      vencimiento_hasta: leerFechaParametro(params, "vencimiento_hasta") ?? undefined,
     },
-  }));
+    vista,
+  );
 
-  const filaTotal: FilaReporte = {
-    celdas: {
-      cliente: "Total por cobrar",
-      facturas: resumen.clientes.reduce((total, cliente) => total + cliente.facturas, 0),
-      total: resumen.clientes.reduce((total, cliente) => total + cliente.total, 0),
-      pagado: resumen.clientes.reduce((total, cliente) => total + cliente.pagado, 0),
-      saldo: resumen.totalSaldo,
-      diasVencida: null,
-    },
-    estilo: "total",
-  };
+  const filtradas = filtrarCartera(filas, filtros);
+  const totalPorCobrar = totalCartera(filtradas);
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
+  const pagina = paginar(filtradas, leerPagina(params, totalPaginas), POR_PAGINA);
 
-  const tabla: TablaReporte = {
-    titulo: "Cuentas por cobrar",
-    subtitulo: `Fecha de corte: ${formatoDia(hasta)}`,
-    columnas: [
-      { clave: "cliente", titulo: "Cliente", tipo: "texto" },
-      { clave: "facturas", titulo: "Facturas", tipo: "texto" },
-      { clave: "total", titulo: "Total", tipo: "dinero" },
-      { clave: "pagado", titulo: "Pagado", tipo: "dinero" },
-      { clave: "saldo", titulo: "Saldo", tipo: "dinero" },
-      { clave: "diasVencida", titulo: "Días vencida", tipo: "texto" },
-    ],
-    filas: [...filasTabla, filaTotal],
-  };
+  const tabla = tablaCuentasPorCobrar(filtradas, `Fecha de corte: ${formatoDia(hasta)}`);
+  const nombreArchivo = `cuentas-por-cobrar-${hasta}${vista === "todas" ? "" : `-${vista}`}`;
 
   return (
     <div className="flex flex-col gap-6">
-      <EncabezadoReporte
-        titulo="Cuentas por cobrar"
-        descripcion="Saldo pendiente por cliente y días de vencimiento a la fecha de corte."
-        desde={desde}
-        hasta={hasta}
-      />
-
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <FiltroFechas desde={desde} hasta={hasta} />
-        <BotonDescargar tabla={tabla} nombreArchivo={`cuentas-por-cobrar-${hasta}`} />
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Cuentas por cobrar</h1>
+          <p className="text-muted-foreground text-sm">
+            Conoce lo que te deben tus clientes y lleva un control del vencimiento de sus facturas.
+          </p>
+          <p className="text-muted-foreground text-sm">Al {formatoDia(hasta)}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <BotonDescargar tabla={tabla} nombreArchivo={nombreArchivo} />
+          <BotonImprimir />
+        </div>
       </div>
 
-      <p className="text-muted-foreground -mt-3 text-sm print:hidden">
-        El saldo se calcula a la fecha de corte (Hasta).
-      </p>
+      <FiltrosCartera
+        tipo="cobrar"
+        desde={null}
+        hasta={hasta}
+        vista={vista}
+        ncf={filtros.ncf}
+        contacto={filtros.contacto}
+        creacionDesde={filtros.creacionDesde}
+        creacionHasta={filtros.creacionHasta}
+        vencimientoDesde={filtros.vencimientoDesde}
+        vencimientoHasta={filtros.vencimientoHasta}
+      />
+
+      <PestanasAntiguedad base={BASE} params={params} vista={vista} />
 
       {error ? <AlertaError mensaje={error} /> : null}
 
-      {resumen.clientes.length === 0 ? (
-        <Empty className="border">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <HandCoins />
-            </EmptyMedia>
-            <EmptyTitle>Sin cuentas por cobrar</EmptyTitle>
-            <EmptyDescription>No hay facturas con saldo pendiente a la fecha de corte.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {resumen.totalVencido > 0 ? (
-            <p className="text-destructive text-sm">
-              Saldo vencido: <span className="font-medium tabular-nums">{formatearRd(resumen.totalVencido)}</span>
-            </p>
-          ) : null}
+      <TarjetaTotal etiqueta="Total por cobrar" total={totalPorCobrar} />
 
-          <Card className="py-0">
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead className="text-right">Facturas</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="text-right">Pagado</TableHead>
-                    <TableHead className="text-right">Saldo</TableHead>
-                    <TableHead className="text-right">Días vencida</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {resumen.clientes.map((cliente) => (
-                    <TableRow key={cliente.contactoId}>
-                      <TableCell>{cliente.contactoNombre}</TableCell>
-                      <TableCell className="text-right tabular-nums">{cliente.facturas}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatearRd(cliente.total)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatearRd(cliente.pagado)}</TableCell>
-                      <TableCell className="text-right font-medium tabular-nums">
-                        {formatearRd(cliente.saldo)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {cliente.diasVencida > 0 ? (
-                          <span className="text-destructive tabular-nums">{cliente.diasVencida} días</span>
-                        ) : (
-                          <span className="text-muted-foreground">Al día</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-                <TableFooter>
-                  <TableRow>
-                    <TableCell colSpan={4}>Total por cobrar al {hasta}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatearRd(resumen.totalSaldo)}</TableCell>
-                    <TableCell />
-                  </TableRow>
-                </TableFooter>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <p className="text-muted-foreground -mt-3 text-sm print:hidden">
+        Las pestañas agrupan las facturas por días vencidos a la fecha de corte.
+      </p>
+
+      <Card className="py-0">
+        <CardContent className="p-0">
+          <TablaCuentasPorCobrar filas={pagina.filas} mensajeVacio="¡No tienes facturas pendientes por cobrar!" />
+        </CardContent>
+      </Card>
+
+      <Paginador
+        base={BASE}
+        params={params}
+        pagina={pagina.pagina}
+        totalPaginas={pagina.totalPaginas}
+        inicio={pagina.inicio}
+        fin={pagina.fin}
+        total={pagina.total}
+      />
     </div>
   );
 }

@@ -30,6 +30,21 @@
 - e2e de los flujos de la beta (hoy se salta sin `E2E_EMAIL`/`E2E_PASSWORD`).
 - Anulación de compras: devuelve cantidad pero no recalcula costo promedio.
 
+## Reportes administrativos (13 nov 2026)
+
+- Cuentas por cobrar ampliado con filtro Hasta, filtros NCF/Número, Cliente,
+  Creación y Vencimiento, 5 vistas por antigüedad y paginado de 20.
+- Nuevos reportes: Cuentas por pagar (`/reportes/cxp`), Compras
+  (`/reportes/compras`) y Valor de inventario (`/reportes/valor-inventario`),
+  con columnas, totales y filtros de Alegra. Exportan Excel/PDF con el
+  componente compartido.
+- Cálculos puros y URL de fichas en `src/lib/reportes/administrativos/d/`;
+  pruebas Vitest. Sin migración: todo son consultas de solo lectura. El valor
+  de inventario histórico reconstruye la existencia con movimientos posteriores
+  de ventas y compras no anuladas.
+- Pendiente: la otra sesión agrega los enlaces de cxp, compras y valor de
+  inventario al índice de reportes.
+
 ## Arranque del proyecto (13 nov 2026)
 - Repo `waldyalc/MEDOXIGAS-CONTABILIDAD` (privado), ramas `main` (producción) y `prueba`.
 - Base tomada de Medoxigas-OPP (misma configuración: Next 16, pnpm, Biome, Vitest, Playwright, husky, CI, gitleaks, flujo Supabase local) **sin** sus módulos de negocio.
