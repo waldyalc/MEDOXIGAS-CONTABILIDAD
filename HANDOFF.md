@@ -23,7 +23,7 @@
   aplicada; la revisa Coder) y pgTAP aislado
   `supabase/tests/documentos_venta_editar_clonar_test.sql` (31 asserts). Tipos
   de las columnas nuevas puestos a mano en `types.ts`.
-- `typecheck`, `test` (554), Biome y `build` en verde. pgTAP no se pudo correr
+- `typecheck`, `test` (556), Biome y `build` en verde. pgTAP no se pudo correr
   aquí (sin Docker/Supabase CLI).
 - Fuera: clonar desde la lista (solo desde la ficha), editar facturas y
   anulación de cotizaciones/conduces.
