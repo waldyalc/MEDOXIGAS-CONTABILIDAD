@@ -1,5 +1,29 @@
 # Handoff — Medoxigas Contabilidad
 
+## Higiene de migraciones: orden S15, notas de crédito y pgTAP aislados (15 nov 2026)
+
+- `20261114900000_inventario_existencias_precios.sql` vuelve a la versión de
+  inventario 2, sin referencias a `vendedores` ni `centros_costo`: una base
+  limpia ya puede correrla antes de `2026111520*`.
+- Migración aditiva `20261115500000_funciones_fusionadas_s15.sql` (NO aplicada;
+  la revisa Coder): vuelve a definir con `CREATE OR REPLACE` las mismas firmas
+  con todo junto: stock por almacén + vendedor/centro en `crear_factura` y
+  `crear_factura_proveedor`; anulación con almacén, centro de costo y retenido;
+  y NCF B04/E34 en notas de crédito de compra. El resultado de las funciones
+  coincide con la base actual (definiciones comparadas contra `2026111490*`,
+  `2026111510*` y `2026111520*`). No cambia datos ni permisos.
+- Notas de crédito de venta: el estado de la factura ahora se recalcula con
+  `pagado + retenido + crédito >= total`, el mismo criterio de pagos y CxC.
+- pgTAP aislados: `configuracion_extra_test.sql` captura los ids de la factura,
+  cotización y factura convertida, usa nombres únicos y busca las cuentas por
+  `config_contable` (ya no asume 4101/6101). `inventario_test.sql` captura sus
+  propios almacenes, productos, ajustes y asientos, y también busca las cuentas
+  por `config_contable` (1104/5102 ya no están fijos).
+- `pnpm typecheck`, `pnpm test`, Biome sobre lo tocado y `pnpm build` en verde.
+  pgTAP no se pudo correr aquí (sin Docker/Supabase CLI); lo corre el integrador.
+- Quedó fuera: anular notas de crédito de venta y revertir el costo promedio al
+  anular ajustes (pendientes ya conocidos). Nada se aplicó a Supabase.
+
 ## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
 
 - El saldo por pagar ahora es `total - pagado - credito` en el reporte Cuentas
