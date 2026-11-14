@@ -86,9 +86,17 @@ interface NotaDb {
 }
 
 interface PagoDb {
+  id: string;
   factura_id: string | null;
   metodo: string;
   monto: number | string;
+}
+
+interface AplicacionDb {
+  pago_id: string;
+  factura_id: string;
+  monto: number | string;
+  pagos_recibidos: { metodo: string; estado: string } | null;
 }
 
 interface AnuladoDb {
@@ -184,22 +192,46 @@ export async function obtenerVentas(desde: string, hasta: string): Promise<Respu
 
   const facturas = data ?? [];
   const ids = facturas.map((factura) => factura.id);
-  const { data: pagos } =
+  const [pagosRes, aplicacionesRes] =
     ids.length === 0
-      ? { data: [] as PagoDb[] }
-      : await supabase
-          .from("pagos_recibidos")
-          .select("factura_id, metodo, monto")
-          .in("factura_id", ids)
-          .eq("estado", "activo")
-          .returns<PagoDb[]>();
+      ? [{ data: [] as PagoDb[] }, { data: [] as AplicacionDb[] }]
+      : await Promise.all([
+          supabase
+            .from("pagos_recibidos")
+            .select("id, factura_id, metodo, monto")
+            .in("factura_id", ids)
+            .eq("estado", "activo")
+            .returns<PagoDb[]>(),
+          supabase
+            .from("pago_recibido_aplicaciones")
+            .select("pago_id, factura_id, monto, pagos_recibidos(metodo, estado)")
+            .in("factura_id", ids)
+            .returns<AplicacionDb[]>(),
+        ]);
 
+  const aplicaciones = (aplicacionesRes.data ?? []).filter(
+    (aplicacion) => aplicacion.pagos_recibidos?.estado === "activo",
+  );
+  const conAplicaciones = new Set(aplicaciones.map((aplicacion) => aplicacion.pago_id));
   const pagosPorFactura = new Map<string, PagoDb[]>();
-  for (const pago of pagos ?? []) {
-    if (pago.factura_id == null) continue;
+  const agregarPago = (pago: PagoDb) => {
+    if (pago.factura_id == null) return;
     const lista = pagosPorFactura.get(pago.factura_id) ?? [];
     lista.push(pago);
     pagosPorFactura.set(pago.factura_id, lista);
+  };
+
+  for (const pago of pagosRes.data ?? []) {
+    if (conAplicaciones.has(pago.id)) continue;
+    agregarPago(pago);
+  }
+  for (const aplicacion of aplicaciones) {
+    agregarPago({
+      id: aplicacion.pago_id,
+      factura_id: aplicacion.factura_id,
+      metodo: aplicacion.pagos_recibidos?.metodo ?? "efectivo",
+      monto: aplicacion.monto,
+    });
   }
 
   const documentos: DocumentoFiscal[] = [];

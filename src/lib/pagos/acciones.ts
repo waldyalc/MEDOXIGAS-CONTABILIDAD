@@ -10,7 +10,7 @@ import { mensajeErrorRpc } from "@/lib/facturacion/errores";
 import { mensajeValidacion } from "@/lib/facturacion/validacion";
 import { createClient } from "@/lib/supabase/server";
 
-import { registrarPagoSchema } from "./validacion";
+import { registrarPagoMultifacturaSchema, registrarPagoSchema } from "./validacion";
 
 export type ResultadoPago = { ok: true; id: string } | { ok: false; error: string };
 
@@ -42,6 +42,56 @@ export async function registrarPago(entrada: unknown): Promise<ResultadoPago> {
   revalidatePath("/dashboard/pagos-recibidos");
   revalidatePath("/dashboard/facturacion");
   revalidatePath(`/dashboard/facturacion/${datos.factura_id}`);
+  return { ok: true, id: data };
+}
+
+export async function registrarPagoMultifactura(entrada: unknown): Promise<ResultadoPago> {
+  const rol = await getRol();
+  if (rol !== "admin" && rol !== "contador") return { ok: false, error: "No tienes permiso para registrar pagos." };
+
+  const resultado = registrarPagoMultifacturaSchema.safeParse(entrada);
+  if (!resultado.success) return { ok: false, error: mensajeValidacion(resultado.error) };
+
+  const datos = resultado.data;
+  const encabezado = {
+    contacto_id: datos.contacto_id,
+    fecha: datos.fecha,
+    cuenta_id: datos.cuenta_id,
+    metodo: datos.metodo,
+    ...(datos.notas ? { notas: datos.notas } : {}),
+    ...(datos.centro_costo_id ? { centro_costo_id: datos.centro_costo_id } : {}),
+    ...(datos.otros.length > 0
+      ? {
+          otros_ingresos: datos.otros.map((linea) => ({
+            cuenta_id: linea.cuenta_id,
+            descripcion: linea.descripcion,
+            monto: centavosAValor(valorACentavos(linea.monto)),
+            itbis_tasa: linea.itbis_tasa,
+          })),
+        }
+      : {}),
+  };
+  const aplicaciones = datos.aplicaciones.map((aplicacion) => ({
+    factura_id: aplicacion.factura_id,
+    monto: centavosAValor(valorACentavos(aplicacion.monto)),
+    ...(aplicacion.retenciones.length > 0 ? { retenciones: aplicacion.retenciones } : {}),
+  }));
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("registrar_pago_recibido_multi", {
+    p_encabezado: encabezado,
+    p_aplicaciones: aplicaciones,
+  });
+
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
+  if (typeof data !== "string") return { ok: false, error: "El pago se guardó pero no se recibió su identificador." };
+
+  revalidatePath("/dashboard/pagos-recibidos");
+  revalidatePath("/dashboard/facturacion");
+  revalidatePath(`/dashboard/contactos/${datos.contacto_id}`);
+  for (const aplicacion of datos.aplicaciones) {
+    revalidatePath(`/dashboard/facturacion/${aplicacion.factura_id}`);
+  }
   return { ok: true, id: data };
 }
 

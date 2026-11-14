@@ -2220,6 +2220,168 @@ export type Database = {
           },
         ]
       }
+      pago_proveedor_aplicacion_retenciones: {
+        Row: {
+          aplicacion_id: string
+          base: number
+          id: string
+          monto: number
+          porcentaje: number
+          retencion_id: string
+        }
+        Insert: {
+          aplicacion_id: string
+          base?: number
+          id?: string
+          monto: number
+          porcentaje?: number
+          retencion_id: string
+        }
+        Update: {
+          aplicacion_id?: string
+          base?: number
+          id?: string
+          monto?: number
+          porcentaje?: number
+          retencion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pago_proveedor_aplicacion_retenciones_aplicacion_id_fkey"
+            columns: ["aplicacion_id"]
+            isOneToOne: false
+            referencedRelation: "pago_proveedor_aplicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pago_proveedor_aplicacion_retenciones_retencion_id_fkey"
+            columns: ["retencion_id"]
+            isOneToOne: false
+            referencedRelation: "retenciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pago_proveedor_aplicaciones: {
+        Row: {
+          factura_proveedor_id: string
+          id: string
+          monto: number
+          pago_id: string
+          retenido: number
+        }
+        Insert: {
+          factura_proveedor_id: string
+          id?: string
+          monto: number
+          pago_id: string
+          retenido?: number
+        }
+        Update: {
+          factura_proveedor_id?: string
+          id?: string
+          monto?: number
+          pago_id?: string
+          retenido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pago_proveedor_aplicaciones_factura_proveedor_id_fkey"
+            columns: ["factura_proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "facturas_proveedor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pago_proveedor_aplicaciones_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "pagos_proveedor"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pago_recibido_aplicacion_retenciones: {
+        Row: {
+          aplicacion_id: string
+          base: number
+          id: string
+          monto: number
+          porcentaje: number
+          retencion_id: string
+        }
+        Insert: {
+          aplicacion_id: string
+          base?: number
+          id?: string
+          monto: number
+          porcentaje?: number
+          retencion_id: string
+        }
+        Update: {
+          aplicacion_id?: string
+          base?: number
+          id?: string
+          monto?: number
+          porcentaje?: number
+          retencion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pago_recibido_aplicacion_retenciones_aplicacion_id_fkey"
+            columns: ["aplicacion_id"]
+            isOneToOne: false
+            referencedRelation: "pago_recibido_aplicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pago_recibido_aplicacion_retenciones_retencion_id_fkey"
+            columns: ["retencion_id"]
+            isOneToOne: false
+            referencedRelation: "retenciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pago_recibido_aplicaciones: {
+        Row: {
+          factura_id: string
+          id: string
+          monto: number
+          pago_id: string
+          retenido: number
+        }
+        Insert: {
+          factura_id: string
+          id?: string
+          monto: number
+          pago_id: string
+          retenido?: number
+        }
+        Update: {
+          factura_id?: string
+          id?: string
+          monto?: number
+          pago_id?: string
+          retenido?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pago_recibido_aplicaciones_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pago_recibido_aplicaciones_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "pagos_recibidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pago_proveedor_retenciones: {
         Row: {
           base: number
@@ -2312,7 +2474,7 @@ export type Database = {
           creado_por: string | null
           cuenta_id: string
           estado: string
-          factura_proveedor_id: string
+          factura_proveedor_id: string | null
           fecha: string
           id: string
           metodo: string
@@ -2328,7 +2490,7 @@ export type Database = {
           creado_por?: string | null
           cuenta_id: string
           estado?: string
-          factura_proveedor_id: string
+          factura_proveedor_id?: string | null
           fecha?: string
           id?: string
           metodo?: string
@@ -2344,7 +2506,7 @@ export type Database = {
           creado_por?: string | null
           cuenta_id?: string
           estado?: string
-          factura_proveedor_id?: string
+          factura_proveedor_id?: string | null
           fecha?: string
           id?: string
           metodo?: string
@@ -3291,7 +3453,15 @@ export type Database = {
       reabrir_periodo: { Args: { p_periodo: string }; Returns: string }
       registrar_deposito: { Args: { p: Json }; Returns: string }
       registrar_pago_proveedor: { Args: { p: Json }; Returns: string }
+      registrar_pago_proveedor_multi: {
+        Args: { p_aplicaciones: Json; p_encabezado: Json }
+        Returns: string
+      }
       registrar_pago_recibido: { Args: { p: Json }; Returns: string }
+      registrar_pago_recibido_multi: {
+        Args: { p_aplicaciones: Json; p_encabezado: Json }
+        Returns: string
+      }
       reporte_balance_comprobacion: {
         Args: { p_desde: string; p_hasta: string }
         Returns: {

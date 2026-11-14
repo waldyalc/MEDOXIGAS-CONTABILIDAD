@@ -29,9 +29,18 @@ interface FacturaEstadoCruda {
 }
 
 interface PagoCrudo {
+  id: string;
   factura_id: string | null;
   monto: number;
   retenido: number;
+}
+
+interface AplicacionCruda {
+  pago_id: string;
+  factura_id: string;
+  monto: number;
+  retenido: number;
+  pagos_recibidos: { fecha: string; estado: string } | null;
 }
 
 interface FacturaVendedorCruda {
@@ -163,25 +172,50 @@ export async function obtenerEstadoCuentaCliente(
     .returns<ClienteOpcion | null>();
 
   const ids = facturas.map((factura) => factura.id);
-  const pagos =
+  const [pagos, aplicaciones] =
     ids.length > 0
-      ? await supabase
-          .from("pagos_recibidos")
-          .select("factura_id, monto, retenido")
-          .in("factura_id", ids)
-          .eq("estado", "activo")
-          .lte("fecha", corte)
-          .returns<PagoCrudo[]>()
-      : { data: [] as PagoCrudo[], error: null };
+      ? await Promise.all([
+          supabase
+            .from("pagos_recibidos")
+            .select("id, factura_id, monto, retenido")
+            .in("factura_id", ids)
+            .eq("estado", "activo")
+            .lte("fecha", corte)
+            .returns<PagoCrudo[]>(),
+          supabase
+            .from("pago_recibido_aplicaciones")
+            .select("pago_id, factura_id, monto, retenido, pagos_recibidos(fecha, estado)")
+            .in("factura_id", ids)
+            .returns<AplicacionCruda[]>(),
+        ])
+      : [
+          { data: [] as PagoCrudo[], error: null },
+          { data: [] as AplicacionCruda[], error: null },
+        ];
 
   if (pagos.error) return { filas: [], error: pagos.error.message, clienteNombre: contacto.data?.nombre ?? null };
+  if (aplicaciones.error) {
+    return { filas: [], error: aplicaciones.error.message, clienteNombre: contacto.data?.nombre ?? null };
+  }
 
+  const aplicacionesValidas = (aplicaciones.data ?? []).filter(
+    (aplicacion) =>
+      aplicacion.pagos_recibidos?.estado === "activo" && aplicacion.pagos_recibidos.fecha.slice(0, 10) <= corte,
+  );
+  const conAplicaciones = new Set(aplicacionesValidas.map((aplicacion) => aplicacion.pago_id));
   const cobradoPorFactura = new Map<string, number>();
   const retenidoPorFactura = new Map<string, number>();
+  const sumar = (facturaId: string, monto: number, retenido: number) => {
+    cobradoPorFactura.set(facturaId, (cobradoPorFactura.get(facturaId) ?? 0) + centavos(monto));
+    retenidoPorFactura.set(facturaId, (retenidoPorFactura.get(facturaId) ?? 0) + centavos(retenido));
+  };
+
   for (const pago of pagos.data) {
-    if (pago.factura_id == null) continue;
-    cobradoPorFactura.set(pago.factura_id, (cobradoPorFactura.get(pago.factura_id) ?? 0) + centavos(pago.monto));
-    retenidoPorFactura.set(pago.factura_id, (retenidoPorFactura.get(pago.factura_id) ?? 0) + centavos(pago.retenido));
+    if (pago.factura_id == null || conAplicaciones.has(pago.id)) continue;
+    sumar(pago.factura_id, pago.monto, pago.retenido);
+  }
+  for (const aplicacion of aplicacionesValidas) {
+    sumar(aplicacion.factura_id, aplicacion.monto, aplicacion.retenido);
   }
 
   return {

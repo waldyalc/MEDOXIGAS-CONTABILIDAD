@@ -1,5 +1,7 @@
+import { getCentrosCostoActivos } from "@/lib/centros-costo/consultas";
 import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
 import { getRetencionesActivas } from "@/lib/configuracion/consultas";
+import { getEmpresa } from "@/lib/facturacion/consultas";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -51,7 +53,7 @@ export async function obtenerFacturaProveedor(id: string): Promise<DetalleFactur
   if (error) throw new Error(error.message);
   if (!factura) return null;
 
-  const [lineas, pagos] = await Promise.all([
+  const [lineas, pagos, aplicaciones] = await Promise.all([
     supabase
       .from("facturas_proveedor_lineas")
       .select(
@@ -66,13 +68,53 @@ export async function obtenerFacturaProveedor(id: string): Promise<DetalleFactur
       .eq("factura_proveedor_id", id)
       .order("fecha")
       .returns<PagoProveedorVista[]>(),
+    supabase
+      .from("pago_proveedor_aplicaciones")
+      .select("pago_id, monto, pagos_proveedor(id, numero, fecha, metodo, monto, estado, cuenta_id)")
+      .eq("factura_proveedor_id", id)
+      .returns<
+        {
+          pago_id: string;
+          monto: number;
+          pagos_proveedor: {
+            id: string;
+            numero: number;
+            fecha: string;
+            metodo: string;
+            monto: number;
+            estado: "activo" | "anulado";
+            cuenta_id: string;
+          } | null;
+        }[]
+      >(),
   ]);
 
   if (lineas.error) throw new Error(lineas.error.message);
   if (pagos.error) throw new Error(pagos.error.message);
+  if (aplicaciones.error) throw new Error(aplicaciones.error.message);
+
+  const pagosAplicados: PagoProveedorVista[] = (aplicaciones.data ?? []).flatMap((aplicacion) => {
+    const pago = aplicacion.pagos_proveedor;
+    if (!pago) return [];
+    return [
+      {
+        id: pago.id,
+        numero: pago.numero,
+        fecha: pago.fecha,
+        metodo: pago.metodo as PagoProveedorVista["metodo"],
+        monto: aplicacion.monto,
+        estado: pago.estado,
+        cuenta_id: pago.cuenta_id,
+      },
+    ];
+  });
+  const idsAplicados = new Set(pagosAplicados.map((pago) => pago.id));
+  const pagosFactura = [...pagos.data.filter((pago) => !idsAplicados.has(pago.id)), ...pagosAplicados].sort(
+    (a, b) => a.fecha.localeCompare(b.fecha) || a.numero - b.numero,
+  );
 
   if (!factura.asiento_id) {
-    return { factura, lineas: lineas.data ?? [], asiento: null, lineasAsiento: [], pagos: pagos.data ?? [] };
+    return { factura, lineas: lineas.data ?? [], asiento: null, lineasAsiento: [], pagos: pagosFactura };
   }
 
   const { data: asiento, error: errorAsiento } = await supabase
@@ -84,7 +126,7 @@ export async function obtenerFacturaProveedor(id: string): Promise<DetalleFactur
   if (errorAsiento) throw new Error(errorAsiento.message);
 
   if (!asiento) {
-    return { factura, lineas: lineas.data ?? [], asiento: null, lineasAsiento: [], pagos: pagos.data ?? [] };
+    return { factura, lineas: lineas.data ?? [], asiento: null, lineasAsiento: [], pagos: pagosFactura };
   }
 
   const { data: lineasAsiento, error: errorLineasAsiento } = await supabase
@@ -101,7 +143,7 @@ export async function obtenerFacturaProveedor(id: string): Promise<DetalleFactur
     lineas: lineas.data ?? [],
     asiento,
     lineasAsiento: lineasAsiento ?? [],
-    pagos: pagos.data ?? [],
+    pagos: pagosFactura,
   };
 }
 
@@ -117,7 +159,26 @@ export async function listarPagosProveedor(): Promise<PagoLista[]> {
     .returns<PagoLista[]>();
 
   if (error) throw new Error(error.message);
-  return data ?? [];
+
+  const pagos = data ?? [];
+  const ids = pagos.map((pago) => pago.id);
+  const { data: aplicaciones, error: errorAplicaciones } =
+    ids.length === 0
+      ? { data: [] as { pago_id: string }[], error: null }
+      : await supabase
+          .from("pago_proveedor_aplicaciones")
+          .select("pago_id")
+          .in("pago_id", ids)
+          .returns<{ pago_id: string }[]>();
+
+  if (errorAplicaciones) throw new Error(errorAplicaciones.message);
+
+  const conteo = new Map<string, number>();
+  for (const aplicacion of aplicaciones ?? []) {
+    conteo.set(aplicacion.pago_id, (conteo.get(aplicacion.pago_id) ?? 0) + 1);
+  }
+
+  return pagos.map((pago) => ({ ...pago, aplicaciones: conteo.get(pago.id) ?? 0 }));
 }
 
 export async function cargarOpcionesFactura(): Promise<OpcionesFactura> {
@@ -191,33 +252,56 @@ export async function cargarCuentasCajaBanco(): Promise<CuentaOpcion[]> {
 
 export async function cargarOpcionesPago(): Promise<OpcionesPago> {
   const supabase = await cliente();
-  const [contactos, cuentasCajaBanco, facturasAbiertas, retenciones] = await Promise.all([
-    supabase
-      .from("contactos")
-      .select("id, nombre, rnc_cedula")
-      .in("tipo", ["proveedor", "ambos"])
-      .eq("activo", true)
-      .order("nombre")
-      .returns<ContactoOpcion[]>(),
-    cargarCuentasCajaBanco(),
-    supabase
-      .from("facturas_proveedor")
-      .select(
-        "id, numero, ncf, fecha, vencimiento, subtotal, itbis, total, pagado, credito, retenido, contacto_id, contactos(nombre)",
-      )
-      .eq("estado", "abierta")
-      .order("vencimiento")
-      .returns<FacturaAbierta[]>(),
-    getRetencionesActivas(),
-  ]);
+  const [empresa, contactos, cuentasCajaBanco, cuentasGasto, centrosCosto, facturasAbiertas, retenciones, numero] =
+    await Promise.all([
+      getEmpresa(),
+      supabase
+        .from("contactos")
+        .select("id, nombre, rnc_cedula")
+        .in("tipo", ["proveedor", "ambos"])
+        .eq("activo", true)
+        .order("nombre")
+        .returns<ContactoOpcion[]>(),
+      cargarCuentasCajaBanco(),
+      supabase
+        .from("cuentas")
+        .select("id, codigo, nombre, tipo, es_caja_banco")
+        .in("tipo", ["gasto", "costo"])
+        .eq("acepta_movimientos", true)
+        .eq("activa", true)
+        .order("codigo")
+        .returns<CuentaOpcion[]>(),
+      getCentrosCostoActivos(),
+      supabase
+        .from("facturas_proveedor")
+        .select(
+          "id, numero, ncf, fecha, vencimiento, subtotal, itbis, total, pagado, credito, retenido, contacto_id, contactos(nombre)",
+        )
+        .eq("estado", "abierta")
+        .order("vencimiento")
+        .returns<FacturaAbierta[]>(),
+      getRetencionesActivas(),
+      supabase
+        .from("pagos_proveedor")
+        .select("numero")
+        .order("numero", { ascending: false })
+        .limit(1)
+        .maybeSingle<{ numero: number }>(),
+    ]);
 
   if (contactos.error) throw new Error(contactos.error.message);
+  if (cuentasGasto.error) throw new Error(cuentasGasto.error.message);
   if (facturasAbiertas.error) throw new Error(facturasAbiertas.error.message);
+  if (numero.error) throw new Error(numero.error.message);
 
   return {
+    empresa,
     contactos: contactos.data ?? [],
     cuentasCajaBanco,
+    cuentasGasto: cuentasGasto.data ?? [],
+    centrosCosto,
     facturasAbiertas: facturasAbiertas.data ?? [],
     retenciones,
+    siguienteNumero: (numero.data?.numero ?? 0) + 1,
   };
 }

@@ -6,12 +6,13 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { getRol } from "@/lib/auth/rol";
+import { centavosAValor, valorACentavos } from "@/lib/facturacion/calculo";
 import { mensajeErrorRpc } from "@/lib/facturacion/errores";
 import { avisoSaldoCuenta } from "@/lib/reportes/saldos";
 import { createClient } from "@/lib/supabase/server";
 
 import type { EntradaFacturaProveedor, EntradaPagoProveedor } from "./esquema";
-import { esquemaFacturaProveedor, esquemaPagoProveedor } from "./esquema";
+import { esquemaFacturaProveedor, esquemaPagoProveedor, esquemaPagoProveedorMultiple } from "./esquema";
 
 export type ResultadoAccion = { ok: true; id?: string; aviso?: string } | { ok: false; error: string };
 
@@ -108,6 +109,60 @@ export async function registrarPagoProveedor(entrada: EntradaPagoProveedor): Pro
   const aviso = await avisoSaldoCuenta(datos.cuenta_id, datos.fecha);
 
   revalidarCompras(datos.factura_proveedor_id);
+  return { ok: true, id: data, ...(aviso ? { aviso } : {}) };
+}
+
+export async function registrarPagoProveedorMultiple(entrada: unknown): Promise<ResultadoAccion> {
+  if (!(await puedeEscribir())) return { ok: false, error: "No tienes permiso para registrar pagos." };
+
+  const resultado = esquemaPagoProveedorMultiple.safeParse(entrada);
+  if (!resultado.success) {
+    return { ok: false, error: resultado.error.issues[0]?.message ?? "Datos inválidos." };
+  }
+
+  const datos = resultado.data;
+  const encabezado = {
+    contacto_id: datos.contacto_id,
+    fecha: datos.fecha,
+    cuenta_id: datos.cuenta_id,
+    metodo: datos.metodo,
+    ...(datos.notas ? { notas: datos.notas } : {}),
+    ...(datos.centro_costo_id ? { centro_costo_id: datos.centro_costo_id } : {}),
+    ...(datos.otros.length > 0
+      ? {
+          otros_egresos: datos.otros.map((linea) => ({
+            cuenta_id: linea.cuenta_id,
+            descripcion: linea.descripcion,
+            monto: centavosAValor(valorACentavos(linea.monto)),
+            itbis_tasa: linea.itbis_tasa,
+          })),
+        }
+      : {}),
+  };
+  const aplicaciones = datos.aplicaciones.map((aplicacion) => ({
+    factura_proveedor_id: aplicacion.factura_proveedor_id,
+    monto: centavosAValor(valorACentavos(aplicacion.monto)),
+    ...(aplicacion.retenciones.length > 0 ? { retenciones: aplicacion.retenciones } : {}),
+  }));
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("registrar_pago_proveedor_multi", {
+    p_encabezado: encabezado,
+    p_aplicaciones: aplicaciones,
+  });
+
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
+  if (!data) return { ok: false, error: "No se pudo registrar el pago." };
+
+  const aviso = await avisoSaldoCuenta(datos.cuenta_id, datos.fecha);
+
+  revalidatePath("/dashboard/compras");
+  revalidatePath("/dashboard/compras/pagos");
+  revalidatePath(`/dashboard/contactos/${datos.contacto_id}`);
+  for (const aplicacion of datos.aplicaciones) {
+    revalidatePath(`/dashboard/compras/${aplicacion.factura_proveedor_id}`);
+  }
+
   return { ok: true, id: data, ...(aviso ? { aviso } : {}) };
 }
 

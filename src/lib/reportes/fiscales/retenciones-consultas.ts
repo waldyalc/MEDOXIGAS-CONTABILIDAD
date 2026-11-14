@@ -25,6 +25,12 @@ interface DetalleDb {
   retenciones: RetencionEmbed | RetencionEmbed[] | null;
 }
 
+interface AplicacionDb {
+  id: string;
+  facturas_proveedor: FacturaEmbed | FacturaEmbed[] | null;
+  pago_proveedor_aplicacion_retenciones: DetalleDb[] | null;
+}
+
 interface PagoDb {
   numero: number;
   fecha: string;
@@ -32,6 +38,7 @@ interface PagoDb {
   contactos: ContactoEmbed | ContactoEmbed[] | null;
   facturas_proveedor: FacturaEmbed | FacturaEmbed[] | null;
   pago_proveedor_retenciones: DetalleDb[] | null;
+  pago_proveedor_aplicaciones: AplicacionDb[] | null;
 }
 
 export interface RespuestaRetencionesProveedor {
@@ -47,29 +54,51 @@ function tipoValido(tipo: string): tipo is "itbis" | "isr" {
   return tipo === "itbis" || tipo === "isr";
 }
 
+function filaRetencion(
+  pago: PagoDb,
+  contacto: ContactoEmbed | null,
+  factura: FacturaEmbed | null,
+  detalle: DetalleDb,
+): RetencionProveedor | null {
+  const retencion = unico(detalle.retenciones);
+  const tipo = retencion?.tipo;
+  if (retencion == null || tipo == null || !tipoValido(tipo)) return null;
+
+  return {
+    id: detalle.id,
+    contactoId: pago.contacto_id,
+    proveedor: contacto?.nombre ?? "—",
+    rnc: contacto?.rnc_cedula ?? null,
+    tipo,
+    nombre: retencion.nombre,
+    base: centavos(detalle.base),
+    monto: centavos(detalle.monto),
+    fecha: pago.fecha,
+    facturaNumero: factura?.numero ?? 0,
+    facturaNcf: factura?.ncf ?? null,
+  };
+}
+
 function filasDePago(pago: PagoDb): RetencionProveedor[] {
   const contacto = unico(pago.contactos);
-  const factura = unico(pago.facturas_proveedor);
   const filas: RetencionProveedor[] = [];
+  const aplicaciones = pago.pago_proveedor_aplicaciones ?? [];
 
-  for (const detalle of pago.pago_proveedor_retenciones ?? []) {
-    const retencion = unico(detalle.retenciones);
-    const tipo = retencion?.tipo;
-    if (retencion == null || tipo == null || !tipoValido(tipo)) continue;
+  if (aplicaciones.length === 0) {
+    const factura = unico(pago.facturas_proveedor);
+    for (const detalle of pago.pago_proveedor_retenciones ?? []) {
+      const fila = filaRetencion(pago, contacto, factura, detalle);
+      if (fila) filas.push(fila);
+    }
+    return filas;
+  }
 
-    filas.push({
-      id: detalle.id,
-      contactoId: pago.contacto_id,
-      proveedor: contacto?.nombre ?? "—",
-      rnc: contacto?.rnc_cedula ?? null,
-      tipo,
-      nombre: retencion.nombre,
-      base: centavos(detalle.base),
-      monto: centavos(detalle.monto),
-      fecha: pago.fecha,
-      facturaNumero: factura?.numero ?? 0,
-      facturaNcf: factura?.ncf ?? null,
-    });
+  for (const aplicacion of aplicaciones) {
+    const factura = unico(aplicacion.facturas_proveedor);
+    for (const detalle of aplicacion.pago_proveedor_aplicacion_retenciones ?? []) {
+      const fila = filaRetencion(pago, contacto, factura, detalle);
+      if (fila) filas.push(fila);
+    }
   }
 
   return filas;
@@ -83,7 +112,7 @@ export async function obtenerRetencionesProveedores(
   const { data, error } = await supabase
     .from("pagos_proveedor")
     .select(
-      "numero, fecha, contacto_id, contactos(nombre, rnc_cedula), facturas_proveedor(numero, ncf), pago_proveedor_retenciones(id, base, monto, retenciones(nombre, tipo))",
+      "numero, fecha, contacto_id, contactos(nombre, rnc_cedula), facturas_proveedor(numero, ncf), pago_proveedor_retenciones(id, base, monto, retenciones(nombre, tipo)), pago_proveedor_aplicaciones(id, facturas_proveedor(numero, ncf), pago_proveedor_aplicacion_retenciones(id, base, monto, retenciones(nombre, tipo)))",
     )
     .eq("estado", "activo")
     .gte("fecha", desde)

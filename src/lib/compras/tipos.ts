@@ -1,5 +1,6 @@
 import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
 import type { RetencionOpcion } from "@/lib/configuracion/tipos";
+import type { Empresa } from "@/lib/facturacion/tipos";
 
 export type EstadoDocumento = "abierta" | "pagada" | "anulada";
 
@@ -148,6 +149,7 @@ export interface PagoLista {
   contactos: ContactoResumen | null;
   cuentas: { nombre: string } | null;
   facturas_proveedor: { id: string; numero: number; ncf: string | null } | null;
+  aplicaciones: number;
 }
 
 export interface OpcionesFactura {
@@ -159,10 +161,14 @@ export interface OpcionesFactura {
 }
 
 export interface OpcionesPago {
+  empresa: Empresa | null;
   contactos: ContactoOpcion[];
   cuentasCajaBanco: CuentaOpcion[];
+  cuentasGasto: CuentaOpcion[];
+  centrosCosto: CentroCostoOpcion[];
   facturasAbiertas: FacturaAbierta[];
   retenciones: RetencionOpcion[];
+  siguienteNumero: number;
 }
 
 export interface DetalleFacturaCompleto {

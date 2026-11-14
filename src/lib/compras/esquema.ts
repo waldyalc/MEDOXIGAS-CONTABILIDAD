@@ -75,6 +75,45 @@ export const esquemaPagoProveedor = z.object({
     .default([]),
 });
 
+const aplicacionPagoProveedor = z.object({
+  factura_proveedor_id: id,
+  monto: numero.positive("El monto debe ser mayor que 0."),
+  retenciones: z
+    .array(z.object({ retencion_id: id }))
+    .max(20)
+    .optional()
+    .default([]),
+});
+
+const otroEgreso = z.object({
+  cuenta_id: id,
+  descripcion: z.string().trim().max(200).optional().default(""),
+  monto: numero.positive("El monto debe ser mayor que 0."),
+  itbis_tasa: z
+    .union([z.literal(0), z.literal(16), z.literal(18)])
+    .optional()
+    .default(0),
+});
+
+export const esquemaPagoProveedorMultiple = z
+  .object({
+    contacto_id: id,
+    fecha,
+    cuenta_id: id,
+    metodo: z.enum(METODOS_PAGO),
+    notas: z.string().trim().max(2000).optional(),
+    centro_costo_id: z
+      .union([id, z.literal("")])
+      .optional()
+      .transform((valor) => valor || null),
+    aplicaciones: z.array(aplicacionPagoProveedor).max(50).optional().default([]),
+    otros: z.array(otroEgreso).max(50).optional().default([]),
+  })
+  .refine((datos) => datos.aplicaciones.length + datos.otros.length > 0, {
+    message: "Agrega al menos una factura o un egreso.",
+  });
+
 export type EntradaLineaFactura = z.input<typeof esquemaLineaFactura>;
 export type EntradaFacturaProveedor = z.input<typeof esquemaFacturaProveedor>;
 export type EntradaPagoProveedor = z.input<typeof esquemaPagoProveedor>;
+export type EntradaPagoProveedorMultiple = z.input<typeof esquemaPagoProveedorMultiple>;
