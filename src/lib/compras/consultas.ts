@@ -1,5 +1,6 @@
 import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
 import { getRetencionesActivas } from "@/lib/configuracion/consultas";
+import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -122,7 +123,7 @@ export async function listarPagosProveedor(): Promise<PagoLista[]> {
 
 export async function cargarOpcionesFactura(): Promise<OpcionesFactura> {
   const supabase = await cliente();
-  const [contactos, productos, cuentasGasto, centrosCosto, almacenes] = await Promise.all([
+  const [contactos, productos, cuentasGasto, centrosCosto, almacenes, impuestos] = await Promise.all([
     supabase
       .from("contactos")
       .select("id, nombre, rnc_cedula")
@@ -132,7 +133,7 @@ export async function cargarOpcionesFactura(): Promise<OpcionesFactura> {
       .returns<ContactoOpcion[]>(),
     supabase
       .from("productos")
-      .select("id, nombre, referencia, costo, precio, itbis_tasa, inventariable, tipo")
+      .select("id, nombre, referencia, costo, precio, itbis_tasa, impuesto_id, inventariable, tipo")
       .eq("activo", true)
       .order("nombre")
       .returns<ProductoOpcion[]>(),
@@ -157,6 +158,7 @@ export async function cargarOpcionesFactura(): Promise<OpcionesFactura> {
       .order("es_principal", { ascending: false })
       .order("nombre")
       .returns<AlmacenOpcion[]>(),
+    getImpuestosActivos(),
   ]);
 
   if (contactos.error) throw new Error(contactos.error.message);
@@ -171,6 +173,7 @@ export async function cargarOpcionesFactura(): Promise<OpcionesFactura> {
     cuentasGasto: cuentasGasto.data ?? [],
     centrosCosto: centrosCosto.data ?? [],
     almacenes: almacenes.data ?? [],
+    impuestos,
   };
 }
 

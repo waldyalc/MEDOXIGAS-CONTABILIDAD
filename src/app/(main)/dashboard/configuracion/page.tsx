@@ -117,7 +117,7 @@ export default async function Page() {
         {
           id: "impuestos-itbis",
           titulo: "Impuestos",
-          descripcion: "Tasas de ITBIS disponibles en productos y facturas.",
+          descripcion: "Catálogo de ITBIS, CDT, propina y exento.",
           url: "/dashboard/configuracion/impuestos",
           icon: Percent,
         },

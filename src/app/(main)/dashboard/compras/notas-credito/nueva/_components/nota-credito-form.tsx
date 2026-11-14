@@ -255,7 +255,7 @@ export function NotaCreditoCompraForm({ datos, fechaHoy }: Props) {
             <span>{formatoMoneda(desdeCentavos(totales.subtotalCentavos))}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">ITBIS</span>
+            <span className="text-muted-foreground">Impuestos</span>
             <span>{formatoMoneda(desdeCentavos(totales.itbisCentavos))}</span>
           </div>
           <div className="flex items-center justify-between border-t pt-2 text-base font-semibold">

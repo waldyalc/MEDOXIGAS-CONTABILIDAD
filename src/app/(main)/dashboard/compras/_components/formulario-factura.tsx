@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
+import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { esquemaFacturaProveedor } from "@/lib/compras/esquema";
 import { hoyEnRd } from "@/lib/compras/fechas";
 import { formatoMoneda } from "@/lib/compras/formato";
 import type { OpcionesFactura } from "@/lib/compras/tipos";
+import { impuestoNinguno } from "@/lib/impuestos/tipos";
 import type { InicialFacturaDesdeOrden } from "@/lib/ordenes-compra/tipos";
 
 import { ComboboxCampo, type OpcionCombobox } from "./combobox-campo";
@@ -38,6 +40,7 @@ interface LineaFormulario {
   descripcion: string;
   cantidad: string;
   costo: string;
+  impuestoId: string;
   itbisTasa: string;
 }
 
@@ -53,7 +56,8 @@ function nuevaLinea(): LineaFormulario {
     descripcion: "",
     cantidad: "1",
     costo: "",
-    itbisTasa: "18",
+    impuestoId: "",
+    itbisTasa: "0",
   };
 }
 
@@ -67,6 +71,7 @@ function lineaDesdeInicial(linea: InicialFacturaDesdeOrden["lineas"][number]): L
     descripcion: linea.descripcion,
     cantidad: String(linea.cantidad),
     costo: String(linea.costo),
+    impuestoId: linea.impuesto_id ?? "",
     itbisTasa: String(linea.itbis_tasa),
   };
 }
@@ -83,6 +88,7 @@ export function FormularioFactura({
   cuentasGasto,
   centrosCosto,
   almacenes,
+  impuestos,
   inicial,
   ordenId,
   numeroOrden,
@@ -96,7 +102,9 @@ export function FormularioFactura({
   const [notas, setNotas] = useState(inicial?.notas ?? "");
   const [centroCostoId, setCentroCostoId] = useState("");
   const [lineas, setLineas] = useState<LineaFormulario[]>(() =>
-    inicial && inicial.lineas.length > 0 ? inicial.lineas.map(lineaDesdeInicial) : [nuevaLinea()],
+    inicial && inicial.lineas.length > 0
+      ? inicial.lineas.map(lineaDesdeInicial)
+      : [{ ...nuevaLinea(), impuestoId: impuestoNinguno(impuestos)?.id ?? "" }],
   );
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
@@ -147,6 +155,7 @@ export function FormularioFactura({
       cuentaId: "",
       descripcion: producto.nombre,
       costo: String(aNumero(producto.costo)),
+      impuestoId: producto.impuesto_id ?? "",
       itbisTasa: String(aNumero(producto.itbis_tasa)),
     });
   }
@@ -197,6 +206,7 @@ export function FormularioFactura({
         cantidad: aNumero(linea.cantidad),
         costo: aNumero(linea.costo),
         itbis_tasa: aNumero(linea.itbisTasa),
+        impuesto_id: linea.impuestoId || undefined,
       })),
     };
 
@@ -356,7 +366,12 @@ export function FormularioFactura({
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => setLineas((actuales) => [...actuales, nuevaLinea()])}
+            onClick={() =>
+              setLineas((actuales) => [
+                ...actuales,
+                { ...nuevaLinea(), impuestoId: impuestoNinguno(impuestos)?.id ?? "" },
+              ])
+            }
           >
             <Plus data-icon="inline-start" />
             Agregar línea
@@ -439,16 +454,19 @@ export function FormularioFactura({
                     />
                   </div>
                   <div className="flex flex-col gap-2 lg:col-span-1">
-                    <Label className="text-muted-foreground text-xs">ITBIS %</Label>
-                    <NativeSelect
-                      value={linea.itbisTasa}
-                      onChange={(evento) => actualizarLinea(linea.id, { itbisTasa: evento.target.value })}
+                    <Label className="text-muted-foreground text-xs">Impuesto</Label>
+                    <SelectorImpuesto
                       className="w-full"
-                    >
-                      <option value="18">18</option>
-                      <option value="16">16</option>
-                      <option value="0">0</option>
-                    </NativeSelect>
+                      impuestos={impuestos}
+                      value={linea.impuestoId}
+                      onValueChange={(impuestoId) => {
+                        const impuesto = impuestos.find((item) => item.id === impuestoId);
+                        actualizarLinea(linea.id, {
+                          impuestoId,
+                          itbisTasa: String(impuesto?.tarifa ?? 0),
+                        });
+                      }}
+                    />
                   </div>
                   <div className="flex flex-col gap-2 lg:col-span-2">
                     <Label className="text-muted-foreground text-xs">Subtotal</Label>
@@ -470,7 +488,7 @@ export function FormularioFactura({
             <span className="tabular-nums">{formatoMoneda(desdeCentavos(totales.subtotalCentavos))}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">ITBIS</span>
+            <span className="text-muted-foreground">Impuestos</span>
             <span className="tabular-nums">{formatoMoneda(desdeCentavos(totales.itbisCentavos))}</span>
           </div>
           <Separator />

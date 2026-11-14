@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,6 +38,7 @@ import type {
   ProductoResumen,
   TipoComprobante,
 } from "@/lib/facturacion/tipos";
+import { type Impuesto, impuestoNinguno } from "@/lib/impuestos/tipos";
 import { precioSugeridoCentavos } from "@/lib/inventario/precios";
 import type { Almacen } from "@/lib/inventario/tipos";
 import type { MetodoPago } from "@/lib/pagos/tipos";
@@ -65,6 +67,7 @@ interface Props {
   mostrarLogo?: boolean;
   listasPrecios?: ListaPrecioResumen[];
   almacenes?: Almacen[];
+  impuestos?: Impuesto[];
   fechaHoy: string;
   titulo: string;
   etiquetaNumero: string;
@@ -106,12 +109,6 @@ const METODOS_PAGO: readonly { value: MetodoPago; label: string }[] = [
   { value: "tarjeta", label: "Tarjeta" },
   { value: "cheque", label: "Cheque" },
 ];
-const OPCIONES_ITBIS: readonly { value: string; label: string }[] = [
-  { value: "0", label: "Sin ITBIS" },
-  { value: "16", label: "ITBIS 16 %" },
-  { value: "18", label: "ITBIS 18 %" },
-];
-
 function esMetodoPago(valor: string | null): valor is MetodoPago {
   return METODOS_PAGO.some((metodo) => metodo.value === valor);
 }
@@ -311,6 +308,7 @@ function AjustesPago({
 function LineasDocumento({
   lineas,
   productos,
+  impuestos,
   calculadas,
   onActualizar,
   onSeleccionarProducto,
@@ -319,6 +317,7 @@ function LineasDocumento({
 }: {
   lineas: LineaFormulario[];
   productos: ProductoResumen[];
+  impuestos: Impuesto[];
   calculadas: LineaCalculadaFormulario[];
   onActualizar: (clave: string, cambios: Partial<LineaFormulario>) => void;
   onSeleccionarProducto: (clave: string, productoId: string) => void;
@@ -418,28 +417,20 @@ function LineasDocumento({
                   </InputGroup>
                 </div>
                 <div className="min-w-0 py-2 pr-1">
-                  <Select
-                    items={OPCIONES_ITBIS}
-                    value={linea.itbisTasa}
-                    onValueChange={(valor: string | null) => {
-                      if (valor) onActualizar(linea.clave, { itbisTasa: valor });
+                  <SelectorImpuesto
+                    id={`itbis-${linea.clave}`}
+                    className={SELECT_CHICO}
+                    ariaLabel={`Impuesto de la lA-nea ${indice + 1}`}
+                    impuestos={impuestos}
+                    value={linea.impuestoId}
+                    onValueChange={(impuestoId) => {
+                      const impuesto = impuestos.find((item) => item.id === impuestoId);
+                      onActualizar(linea.clave, {
+                        impuestoId,
+                        itbisTasa: String(impuesto?.tarifa ?? 0),
+                      });
                     }}
-                  >
-                    <SelectTrigger
-                      id={`itbis-${linea.clave}`}
-                      className={SELECT_CHICO}
-                      aria-label={`ITBIS de la línea ${indice + 1}`}
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent alignItemWithTrigger={false}>
-                      {OPCIONES_ITBIS.map((opcion) => (
-                        <SelectItem key={opcion.value} value={opcion.value}>
-                          {opcion.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
                 <div className="flex min-w-0 justify-end py-2 pr-1">
                   <span className="mt-1 text-sm leading-8 text-slate-700 tabular-nums">
@@ -691,6 +682,7 @@ export function DocumentoVentaForm({
   mostrarLogo = true,
   listasPrecios = [],
   almacenes = [],
+  impuestos = [],
   fechaHoy,
   titulo,
   etiquetaNumero,
@@ -712,7 +704,9 @@ export function DocumentoVentaForm({
   const [clienteId, setClienteId] = useState("");
   const [fecha, setFecha] = useState(fechaHoy);
   const [vencimiento, setVencimiento] = useState(fechaHoy);
-  const [lineas, setLineas] = useState<LineaFormulario[]>([lineaVacia("l1")]);
+  const [lineas, setLineas] = useState<LineaFormulario[]>(() => [
+    lineaVacia("l1", impuestoNinguno(impuestos)?.id ?? "", "0"),
+  ]);
   const [notas, setNotas] = useState(notasIniciales);
   const [terminos, setTerminos] = useState(terminosIniciales);
   const [pie, setPie] = useState("");
@@ -760,7 +754,11 @@ export function DocumentoVentaForm({
     actualizarLinea(clave, {
       productoId,
       ...(producto
-        ? { precio: precioDeProducto(producto, listaPrecioId), itbisTasa: String(producto.itbis_tasa) }
+        ? {
+            precio: precioDeProducto(producto, listaPrecioId),
+            impuestoId: producto.impuesto_id ?? "",
+            itbisTasa: String(producto.itbis_tasa),
+          }
         : {}),
     });
   }
@@ -784,7 +782,10 @@ export function DocumentoVentaForm({
 
   function agregarLinea() {
     contador.current += 1;
-    setLineas((actuales) => [...actuales, lineaVacia(`l${contador.current}`)]);
+    setLineas((actuales) => [
+      ...actuales,
+      lineaVacia(`l${contador.current}`, impuestoNinguno(impuestos)?.id ?? "", "0"),
+    ]);
   }
 
   function quitarLinea(clave: string) {
@@ -914,6 +915,7 @@ export function DocumentoVentaForm({
         <LineasDocumento
           lineas={lineas}
           productos={productos}
+          impuestos={impuestos}
           calculadas={calculadas}
           onActualizar={actualizarLinea}
           onSeleccionarProducto={seleccionarProducto}
@@ -932,7 +934,7 @@ export function DocumentoVentaForm({
               <span className="tabular-nums">{formatoMonedaCentavos(totales.descuentoCentavos)}</span>
             </div>
             <div className="flex h-6 items-center justify-between">
-              <span>ITBIS</span>
+              <span>Impuestos</span>
               <span className="tabular-nums">{formatoMonedaCentavos(totales.itbisCentavos)}</span>
             </div>
             <div className="mt-7 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">

@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -33,6 +34,7 @@ import {
   parsearCentavos,
 } from "@/lib/facturacion/calculo";
 import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
+import { type Impuesto, impuestoNinguno } from "@/lib/impuestos/tipos";
 import { crearNotaDebitoVenta } from "@/lib/notas-debito/acciones";
 import type { DatosFormularioNotaDebito, TipoNotaDebito } from "@/lib/notas-debito/tipos";
 import { TIPOS_NOTA_DEBITO } from "@/lib/notas-debito/tipos";
@@ -43,11 +45,13 @@ interface LineaForm {
   cantidad: string;
   precio: string;
   descuentoPct: string;
+  impuestoId: string;
   itbisTasa: string;
 }
 
 interface Props {
   datos: DatosFormularioNotaDebito;
+  impuestos: Impuesto[];
   fechaHoy: string;
   facturaInicial?: string;
 }
@@ -66,14 +70,8 @@ const TITULO_SECCION = "text-base leading-6 font-semibold text-slate-700";
 const DIVISOR = "h-px w-full bg-slate-400/20";
 const CELDA_ENCABEZADO =
   "flex h-10 items-center border-b border-slate-400/20 bg-slate-50 px-1 text-xs leading-4 font-medium text-gray-500";
-const OPCIONES_ITBIS: readonly { value: string; label: string }[] = [
-  { value: "0", label: "Sin ITBIS" },
-  { value: "16", label: "ITBIS 16 %" },
-  { value: "18", label: "ITBIS 18 %" },
-];
-
-function lineaVacia(clave: string): LineaForm {
-  return { clave, productoId: "", cantidad: "1", precio: "0.00", descuentoPct: "0", itbisTasa: "18" };
+function lineaVacia(clave: string, impuestoId = ""): LineaForm {
+  return { clave, productoId: "", cantidad: "1", precio: "0.00", descuentoPct: "0", impuestoId, itbisTasa: "0" };
 }
 
 function numero(texto: string): number {
@@ -102,7 +100,7 @@ function Etiqueta({
   );
 }
 
-export function NotaDebitoForm({ datos, fechaHoy, facturaInicial }: Props) {
+export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: Props) {
   const router = useRouter();
   const contador = useRef(1);
   const [pendiente, iniciar] = useTransition();
@@ -112,7 +110,7 @@ export function NotaDebitoForm({ datos, fechaHoy, facturaInicial }: Props) {
   const [tipo, setTipo] = useState<TipoNotaDebito>("montos");
   const [fecha, setFecha] = useState(fechaHoy);
   const [facturaId, setFacturaId] = useState(facturaPrevia?.id ?? "");
-  const [lineas, setLineas] = useState<LineaForm[]>([lineaVacia("l1")]);
+  const [lineas, setLineas] = useState<LineaForm[]>(() => [lineaVacia("l1", impuestoNinguno(impuestos)?.id ?? "")]);
   const [notas, setNotas] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -146,7 +144,13 @@ export function NotaDebitoForm({ datos, fechaHoy, facturaInicial }: Props) {
     const producto = datos.productos.find((item) => item.id === productoId);
     actualizarLinea(clave, {
       productoId,
-      ...(producto ? { precio: producto.precio.toFixed(2), itbisTasa: String(producto.itbis_tasa) } : {}),
+      ...(producto
+        ? {
+            precio: producto.precio.toFixed(2),
+            impuestoId: producto.impuesto_id ?? "",
+            itbisTasa: String(producto.itbis_tasa),
+          }
+        : {}),
     });
   }
 
@@ -159,7 +163,7 @@ export function NotaDebitoForm({ datos, fechaHoy, facturaInicial }: Props) {
 
   function agregarLinea() {
     contador.current += 1;
-    setLineas((actuales) => [...actuales, lineaVacia(`l${contador.current}`)]);
+    setLineas((actuales) => [...actuales, lineaVacia(`l${contador.current}`, impuestoNinguno(impuestos)?.id ?? "")]);
   }
 
   function quitarLinea(clave: string) {
@@ -195,6 +199,7 @@ export function NotaDebitoForm({ datos, fechaHoy, facturaInicial }: Props) {
         precio: centavosAValor(parsearCentavos(linea.precio) ?? 0),
         descuento_pct: numero(linea.descuentoPct),
         itbis_tasa: numero(linea.itbisTasa),
+        impuesto_id: linea.impuestoId || null,
       };
     });
 
@@ -431,28 +436,20 @@ export function NotaDebitoForm({ datos, fechaHoy, facturaInicial }: Props) {
                       </InputGroup>
                     </div>
                     <div className="min-w-0 py-2 pr-1">
-                      <Select
-                        items={OPCIONES_ITBIS}
-                        value={linea.itbisTasa}
-                        onValueChange={(valor: string | null) => {
-                          if (valor) actualizarLinea(linea.clave, { itbisTasa: valor });
+                      <SelectorImpuesto
+                        id={`itbis-${linea.clave}`}
+                        className={SELECT_CHICO}
+                        ariaLabel={`Impuesto de la lA-nea ${indice + 1}`}
+                        impuestos={impuestos}
+                        value={linea.impuestoId}
+                        onValueChange={(impuestoId) => {
+                          const impuesto = impuestos.find((item) => item.id === impuestoId);
+                          actualizarLinea(linea.clave, {
+                            impuestoId,
+                            itbisTasa: String(impuesto?.tarifa ?? 0),
+                          });
                         }}
-                      >
-                        <SelectTrigger
-                          id={`itbis-${linea.clave}`}
-                          className={SELECT_CHICO}
-                          aria-label={`ITBIS de la línea ${indice + 1}`}
-                        >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent alignItemWithTrigger={false}>
-                          {OPCIONES_ITBIS.map((opcion) => (
-                            <SelectItem key={opcion.value} value={opcion.value}>
-                              {opcion.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
                     </div>
                     <div className="flex min-w-0 justify-end py-2 pr-1">
                       <span className="mt-1 text-sm leading-8 text-slate-700 tabular-nums">
@@ -502,7 +499,7 @@ export function NotaDebitoForm({ datos, fechaHoy, facturaInicial }: Props) {
               <span className="tabular-nums">{formatoMonedaCentavos(totales.descuentoCentavos)}</span>
             </div>
             <div className="flex h-6 items-center justify-between">
-              <span>ITBIS</span>
+              <span>Impuestos</span>
               <span className="tabular-nums">{formatoMonedaCentavos(totales.itbisCentavos)}</span>
             </div>
             <div className="mt-7 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">

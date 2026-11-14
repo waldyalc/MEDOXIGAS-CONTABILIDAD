@@ -1,5 +1,6 @@
 import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
 import type { RetencionOpcion } from "@/lib/configuracion/tipos";
+import type { Impuesto } from "@/lib/impuestos/tipos";
 
 export type EstadoDocumento = "abierta" | "pagada" | "anulada";
 
@@ -22,6 +23,7 @@ export interface ProductoOpcion {
   costo: number;
   precio: number;
   itbis_tasa: number;
+  impuesto_id: string | null;
   inventariable: boolean;
   tipo: "producto" | "servicio";
 }
@@ -156,6 +158,7 @@ export interface OpcionesFactura {
   cuentasGasto: CuentaOpcion[];
   centrosCosto: CentroCostoOpcion[];
   almacenes: AlmacenOpcion[];
+  impuestos: Impuesto[];
 }
 
 export interface OpcionesPago {

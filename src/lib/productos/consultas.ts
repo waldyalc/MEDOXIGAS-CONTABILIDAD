@@ -4,14 +4,14 @@ import { createClient } from "@/lib/supabase/server";
 import type { Producto } from "./productos";
 
 const CAMPOS =
-  "id, nombre, tipo, referencia, descripcion, precio, itbis_tasa, inventariable, cantidad, costo, categoria_id";
+  "id, nombre, tipo, referencia, descripcion, precio, itbis_tasa, impuesto_id, inventariable, cantidad, costo, categoria_id";
 
 export async function listarProductos(): Promise<Producto[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.from("productos").select(CAMPOS).order("nombre");
   if (error) return [];
 
-  const productos = (data ?? []) as Omit<Producto, "precios">[];
+  const productos = (data ?? []) as unknown as Omit<Producto, "precios">[];
   if (productos.length === 0) return [];
 
   const preciosRes = await supabase

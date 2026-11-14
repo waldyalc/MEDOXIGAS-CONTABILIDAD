@@ -1,5 +1,38 @@
 # Handoff — Medoxigas Contabilidad
 
+## Catálogo completo de impuestos (15 nov 2026)
+
+- Nuevo catálogo `impuestos` con Ninguno, ITBIS 18 %, ITBIS 16 %, ITBIS 0 %,
+  CDT 2 %, Propina 10 % y Exento 0 %, agrupado como en Alegra. Configuración >
+  Impuestos ahora lee el catálogo (grupo, tarifa, cuenta y estado).
+- Cuentas nuevas: **2105 CDT por pagar** y **2106 Propina legal por pagar**
+  (subcuentas de Pasivos corrientes). ITBIS sigue en **2102 ITBIS por pagar**;
+  Exento y Ninguno no tienen cuenta.
+- Los selectores de factura, cotización, conduce, notas de crédito/débito,
+  factura de proveedor, gasto menor, orden de compra y productos usan
+  `SelectorImpuesto` (shadcn, encabezados de grupo; sin «Crear nuevo impuesto»).
+  La línea guarda `impuesto_id` y `itbis_tasa`.
+- Motor: `crear_factura`, `crear_factura_proveedor`, notas de crédito/débito,
+  gasto menor, cotización/conduce, orden de compra y productos conservan su
+  firma y ahora separan cada impuesto en su cuenta. Propina y CDT quedan en
+  `propina` y `otros_impuestos`, nunca dentro de `itbis`. Los documentos viejos
+  con `itbis_tasa` 18/16/0 se mapean al catálogo (0 → ITBIS 0 %). Exento se
+  conserva distinto de ITBIS 0 % para el reporte detallado.
+- Reportes: 606/607 usan `otros impuestos` y `propina`; el IT-1 solo toma
+  ITBIS; el reporte detallado agrega Propina y CDT y distingue Exento.
+  El PDF/vista muestra una fila por impuesto con su nombre.
+- Migraciones **aditivas** (NO aplicadas al remoto; las revisa Coder):
+  `20261115700000_impuestos_catalogo.sql` (tabla, cuentas, columnas, helpers,
+  triggers y RLS) y `20261115701000_motor_impuestos.sql` (wrappers del motor).
+  pgTAP `supabase/tests/impuestos_catalogo_test.sql` (23 asserts, aislado).
+- Verificado: `pnpm typecheck`, Biome sobre lo tocado, `pnpm test` (582) y
+  `pnpm build`. Los pgTAP no se pudieron correr aquí (sin Docker/Supabase CLI).
+- Pendiente: regenerar `src/lib/supabase/types.ts` con `pnpm db:types` después
+  de aplicar las migraciones. Quedaron fuera los selectores de facturas
+  recurrentes y pagos recurrentes (siguen con 0/16/18) y «Crear nuevo impuesto».
+- Otras sesiones: no se tocaron `2026111550*` ni las pantallas de importar
+  productos/clonar cotización.
+
 ## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
 
 - El saldo por pagar ahora es `total - pagado - credito` en el reporte Cuentas

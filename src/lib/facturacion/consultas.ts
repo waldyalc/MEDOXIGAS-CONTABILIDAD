@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -54,7 +55,7 @@ export async function getProductosActivos(): Promise<ProductoResumen[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("productos")
-    .select("id, nombre, referencia, precio, itbis_tasa")
+    .select("id, nombre, referencia, precio, itbis_tasa, impuesto_id")
     .eq("activo", true)
     .order("nombre")
     .returns<Omit<ProductoResumen, "precios">[]>();
@@ -197,7 +198,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   const factura = await supabase
     .from("facturas")
     .select(
-      "id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, subtotal, descuento, itbis, total, pagado, credito, retenido, estado, notas, terminos, pie, asiento_id",
+      "id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, subtotal, descuento, itbis, otros_impuestos, propina, total, pagado, credito, retenido, estado, notas, terminos, pie, asiento_id",
     )
     .eq("id", id)
     .maybeSingle()
@@ -206,46 +207,50 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   if (factura.error) throw new Error(factura.error.message);
   if (!factura.data) return null;
 
-  const [lineas, contacto, empresa, asiento, numeraciones, pagos, notasCredito, notasDebito] = await Promise.all([
-    supabase
-      .from("factura_lineas")
-      .select("id, producto_id, descripcion, cantidad, precio, descuento_pct, itbis_tasa, subtotal, itbis, total")
-      .eq("factura_id", id)
-      .order("id")
-      .returns<FacturaLinea[]>(),
-    supabase
-      .from("contactos")
-      .select("id, nombre, rnc_cedula, direccion, telefono")
-      .eq("id", factura.data.contacto_id)
-      .maybeSingle()
-      .returns<ContactoResumen | null>(),
-    getEmpresa(),
-    getAsiento(factura.data.asiento_id),
-    supabase
-      .from("numeraciones")
-      .select("prefijo, vence, siguiente")
-      .eq("tipo_comprobante", factura.data.tipo_comprobante)
-      .order("siguiente")
-      .returns<{ prefijo: string; vence: string | null; siguiente: number }[]>(),
-    supabase
-      .from("pagos_recibidos")
-      .select("id, numero, fecha, metodo, monto, estado")
-      .eq("factura_id", id)
-      .order("fecha")
-      .returns<PagoFacturaVista[]>(),
-    supabase
-      .from("notas_credito_venta")
-      .select("id, numero, ncf, fecha, total, estado")
-      .eq("factura_id", id)
-      .order("fecha")
-      .returns<NotaVentaResumen[]>(),
-    supabase
-      .from("notas_debito_venta")
-      .select("id, numero, ncf, fecha, total, estado")
-      .eq("factura_id", id)
-      .order("fecha")
-      .returns<NotaVentaResumen[]>(),
-  ]);
+  const [lineas, contacto, empresa, impuestos, asiento, numeraciones, pagos, notasCredito, notasDebito] =
+    await Promise.all([
+      supabase
+        .from("factura_lineas")
+        .select(
+          "id, producto_id, descripcion, cantidad, precio, descuento_pct, itbis_tasa, impuesto_id, subtotal, itbis, total",
+        )
+        .eq("factura_id", id)
+        .order("id")
+        .returns<FacturaLinea[]>(),
+      supabase
+        .from("contactos")
+        .select("id, nombre, rnc_cedula, direccion, telefono")
+        .eq("id", factura.data.contacto_id)
+        .maybeSingle()
+        .returns<ContactoResumen | null>(),
+      getEmpresa(),
+      getImpuestosActivos(),
+      getAsiento(factura.data.asiento_id),
+      supabase
+        .from("numeraciones")
+        .select("prefijo, vence, siguiente")
+        .eq("tipo_comprobante", factura.data.tipo_comprobante)
+        .order("siguiente")
+        .returns<{ prefijo: string; vence: string | null; siguiente: number }[]>(),
+      supabase
+        .from("pagos_recibidos")
+        .select("id, numero, fecha, metodo, monto, estado")
+        .eq("factura_id", id)
+        .order("fecha")
+        .returns<PagoFacturaVista[]>(),
+      supabase
+        .from("notas_credito_venta")
+        .select("id, numero, ncf, fecha, total, estado")
+        .eq("factura_id", id)
+        .order("fecha")
+        .returns<NotaVentaResumen[]>(),
+      supabase
+        .from("notas_debito_venta")
+        .select("id, numero, ncf, fecha, total, estado")
+        .eq("factura_id", id)
+        .order("fecha")
+        .returns<NotaVentaResumen[]>(),
+    ]);
 
   if (lineas.error) throw new Error(lineas.error.message);
   if (contacto.error) throw new Error(contacto.error.message);
@@ -267,6 +272,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   return {
     factura: factura.data,
     lineas: lineas.data,
+    impuestos,
     contacto: contacto.data,
     empresa,
     asiento,

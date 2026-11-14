@@ -1,4 +1,6 @@
 import { rutaCompra, rutaFactura, rutaGasto, rutaNotaCreditoVenta } from "@/lib/enlaces";
+import { getImpuestosActivos } from "@/lib/impuestos/consultas";
+import { etiquetaImpuesto, type Impuesto } from "@/lib/impuestos/tipos";
 import { centavos } from "@/lib/reportes/dinero";
 import { createClient } from "@/lib/supabase/server";
 
@@ -17,6 +19,7 @@ interface LineaVentaDb {
   subtotal: number | string;
   itbis: number | string;
   itbis_tasa: number | string;
+  impuesto_id: string | null;
 }
 
 interface LineaCompraDb extends LineaVentaDb {
@@ -31,6 +34,8 @@ interface FacturaDb {
   fecha: string;
   subtotal: number | string;
   itbis: number | string;
+  otros_impuestos: number | string;
+  propina: number | string;
   total: number | string;
   pagado: number | string;
   credito: number | string;
@@ -48,6 +53,8 @@ interface FacturaCompraDb {
   fecha: string;
   subtotal: number | string;
   itbis: number | string;
+  otros_impuestos: number | string;
+  propina: number | string;
   total: number | string;
   estado: string;
   contacto_id: string;
@@ -62,7 +69,10 @@ interface GastoDb {
   fecha: string;
   subtotal: number | string;
   itbis: number | string;
+  otros_impuestos: number | string;
+  propina: number | string;
   itbis_tasa: number | string;
+  impuesto_id: string | null;
   total: number | string;
   estado: string;
   contacto_id: string | null;
@@ -77,6 +87,8 @@ interface NotaDb {
   fecha: string;
   subtotal: number | string;
   itbis: number | string;
+  otros_impuestos: number | string;
+  propina: number | string;
   total: number | string;
   estado: string;
   contacto_id: string;
@@ -126,24 +138,53 @@ function tasa(valor: number | string): number {
   return Math.round(Number(valor));
 }
 
+interface ImpuestoLinea {
+  tipo: DetalleImpuesto["tipo"];
+  nombre: string;
+  tasa: number | null;
+}
+
+function impuestoDeLinea(
+  linea: { impuesto_id: string | null; itbis_tasa: number | string },
+  catalogo: ReadonlyMap<string, Impuesto>,
+): ImpuestoLinea | null {
+  const impuesto = linea.impuesto_id ? catalogo.get(linea.impuesto_id) : undefined;
+  if (impuesto) {
+    if (impuesto.tipo === "ninguno") return null;
+    return {
+      tipo: impuesto.tipo,
+      nombre: etiquetaImpuesto(impuesto),
+      tasa: impuesto.tipo === "exento" ? null : impuesto.tarifa,
+    };
+  }
+
+  const tarifa = tasa(linea.itbis_tasa);
+  if (tarifa === 2) return { tipo: "otro", nombre: "CDT (2.00%)", tasa: 2 };
+  if (tarifa === 10) return { tipo: "propina", nombre: "Propina (10.00%)", tasa: 10 };
+  return { tipo: "itbis", nombre: `ITBIS (${tarifa.toFixed(2)}%)`, tasa: tarifa };
+}
+
 function agruparDetalles(
-  lineas: readonly { subtotal: number | string; itbis: number | string; itbis_tasa: number | string }[],
+  lineas: readonly LineaVentaDb[],
   documento: DocumentoFiscal,
   tipoDocumento: string,
   baseBienes: number,
   baseServicios: number,
+  catalogo: ReadonlyMap<string, Impuesto>,
 ): DetalleImpuesto[] {
-  const porTasa = new Map<number, { base: number; impuesto: number }>();
+  const grupos = new Map<string, { impuesto: ImpuestoLinea; base: number; impuestoTotal: number }>();
 
   for (const linea of lineas) {
-    const clave = tasa(linea.itbis_tasa);
-    const grupo = porTasa.get(clave) ?? { base: 0, impuesto: 0 };
+    const impuesto = impuestoDeLinea(linea, catalogo);
+    if (impuesto == null) continue;
+    const clave = `${impuesto.tipo}:${impuesto.tasa ?? "exento"}:${impuesto.nombre}`;
+    const grupo = grupos.get(clave) ?? { impuesto, base: 0, impuestoTotal: 0 };
     grupo.base += centavos(linea.subtotal);
-    grupo.impuesto += centavos(linea.itbis);
-    porTasa.set(clave, grupo);
+    grupo.impuestoTotal += centavos(linea.itbis);
+    grupos.set(clave, grupo);
   }
 
-  return [...porTasa.entries()].map(([clave, grupo]) => ({
+  return [...grupos.values()].map((grupo) => ({
     documentoId: documento.id,
     numero: documento.numero,
     ncf: documento.ncf,
@@ -151,14 +192,21 @@ function agruparDetalles(
     contactoId: documento.contactoId,
     contactoNombre: documento.contactoNombre,
     fecha: documento.fecha,
-    tasa: clave,
+    tasa: grupo.impuesto.tasa,
+    tipo: grupo.impuesto.tipo,
+    impuestoNombre: grupo.impuesto.nombre,
     base: grupo.base,
-    impuesto: grupo.impuesto,
+    impuesto: grupo.impuestoTotal,
     ruta: documento.ruta,
     tieneNcf: documento.ncf.trim() !== "",
     baseBienes,
     baseServicios,
   }));
+}
+
+async function getCatalogoImpuestos(): Promise<Map<string, Impuesto>> {
+  const impuestos = await getImpuestosActivos();
+  return new Map(impuestos.map((impuesto) => [impuesto.id, impuesto]));
 }
 
 export interface DatosVentas {
@@ -168,17 +216,20 @@ export interface DatosVentas {
 
 export async function obtenerVentas(desde: string, hasta: string): Promise<RespuestaFiscal<DatosVentas>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("facturas")
-    .select(
-      "id, numero, ncf, fecha, subtotal, itbis, total, pagado, credito, estado, tipo_comprobante, contacto_id, contactos(nombre, rnc_cedula), factura_lineas(subtotal, itbis, itbis_tasa)",
-    )
-    .neq("estado", "anulada")
-    .gte("fecha", desde)
-    .lte("fecha", hasta)
-    .order("fecha")
-    .order("numero")
-    .returns<FacturaDb[]>();
+  const [{ data, error }, catalogo] = await Promise.all([
+    supabase
+      .from("facturas")
+      .select(
+        "id, numero, ncf, fecha, subtotal, itbis, otros_impuestos, propina, total, pagado, credito, estado, tipo_comprobante, contacto_id, contactos(nombre, rnc_cedula), factura_lineas(subtotal, itbis, itbis_tasa, impuesto_id)",
+      )
+      .neq("estado", "anulada")
+      .gte("fecha", desde)
+      .lte("fecha", hasta)
+      .order("fecha")
+      .order("numero")
+      .returns<FacturaDb[]>(),
+    getCatalogoImpuestos(),
+  ]);
 
   if (error) return { datos: { documentos: [], detalles: [] }, error: error.message };
 
@@ -228,6 +279,8 @@ export async function obtenerVentas(desde: string, hasta: string): Promise<Respu
       baseBienes: 0,
       baseServicios: 0,
       itbis: centavos(factura.itbis),
+      otrosImpuestos: centavos(factura.otros_impuestos),
+      propina: centavos(factura.propina),
       total,
       pagado,
       credito,
@@ -238,7 +291,7 @@ export async function obtenerVentas(desde: string, hasta: string): Promise<Respu
     };
 
     documentos.push(documento);
-    detalles.push(...agruparDetalles(factura.factura_lineas ?? [], documento, "Venta", 0, 0));
+    detalles.push(...agruparDetalles(factura.factura_lineas ?? [], documento, "Venta", 0, 0, catalogo));
   }
 
   return { datos: { documentos, detalles }, error: null };
@@ -249,7 +302,10 @@ export interface DatosCompras {
   detalles: DetalleImpuesto[];
 }
 
-function convertirCompra(compra: FacturaCompraDb): { documento: DocumentoFiscal; detalles: DetalleImpuesto[] } {
+function convertirCompra(
+  compra: FacturaCompraDb,
+  catalogo: ReadonlyMap<string, Impuesto>,
+): { documento: DocumentoFiscal; detalles: DetalleImpuesto[] } {
   let baseBienes = 0;
   let baseServicios = 0;
 
@@ -275,6 +331,8 @@ function convertirCompra(compra: FacturaCompraDb): { documento: DocumentoFiscal;
     baseBienes,
     baseServicios,
     itbis: centavos(compra.itbis),
+    otrosImpuestos: centavos(compra.otros_impuestos),
+    propina: centavos(compra.propina),
     total: centavos(compra.total),
     pagado: 0,
     credito: 0,
@@ -292,11 +350,15 @@ function convertirCompra(compra: FacturaCompraDb): { documento: DocumentoFiscal;
       "Factura de proveedor",
       baseBienes,
       baseServicios,
+      catalogo,
     ),
   };
 }
 
-function convertirGasto(gasto: GastoDb): { documento: DocumentoFiscal; detalles: DetalleImpuesto[] } {
+function convertirGasto(
+  gasto: GastoDb,
+  catalogo: ReadonlyMap<string, Impuesto>,
+): { documento: DocumentoFiscal; detalles: DetalleImpuesto[] } {
   const documento: DocumentoFiscal = {
     id: gasto.id,
     numero: gasto.numero,
@@ -311,6 +373,8 @@ function convertirGasto(gasto: GastoDb): { documento: DocumentoFiscal; detalles:
     baseBienes: 0,
     baseServicios: centavos(gasto.subtotal),
     itbis: centavos(gasto.itbis),
+    otrosImpuestos: centavos(gasto.otros_impuestos),
+    propina: centavos(gasto.propina),
     total: centavos(gasto.total),
     pagado: 0,
     credito: 0,
@@ -320,36 +384,43 @@ function convertirGasto(gasto: GastoDb): { documento: DocumentoFiscal; detalles:
     pagos: formasPagoVacias(),
   };
 
+  const impuesto = impuestoDeLinea(gasto, catalogo);
+
   return {
     documento,
-    detalles: [
-      {
-        documentoId: documento.id,
-        numero: documento.numero,
-        ncf: documento.ncf,
-        tipoDocumento: "Gasto menor",
-        contactoId: documento.contactoId,
-        contactoNombre: documento.contactoNombre || gasto.descripcion,
-        fecha: documento.fecha,
-        tasa: tasa(gasto.itbis_tasa),
-        base: documento.base,
-        impuesto: documento.itbis,
-        ruta: documento.ruta,
-        tieneNcf: documento.ncf.trim() !== "",
-        baseBienes: 0,
-        baseServicios: documento.base,
-      },
-    ],
+    detalles:
+      impuesto == null
+        ? []
+        : [
+            {
+              documentoId: documento.id,
+              numero: documento.numero,
+              ncf: documento.ncf,
+              tipoDocumento: "Gasto menor",
+              contactoId: documento.contactoId,
+              contactoNombre: documento.contactoNombre || gasto.descripcion,
+              fecha: documento.fecha,
+              tasa: impuesto.tasa,
+              tipo: impuesto.tipo,
+              impuestoNombre: impuesto.nombre,
+              base: documento.base,
+              impuesto: documento.itbis,
+              ruta: documento.ruta,
+              tieneNcf: documento.ncf.trim() !== "",
+              baseBienes: 0,
+              baseServicios: documento.base,
+            },
+          ],
   };
 }
 
 export async function obtenerCompras(desde: string, hasta: string): Promise<RespuestaFiscal<DatosCompras>> {
   const supabase = await createClient();
-  const [compras, gastos] = await Promise.all([
+  const [compras, gastos, catalogo] = await Promise.all([
     supabase
       .from("facturas_proveedor")
       .select(
-        "id, numero, ncf, fecha, subtotal, itbis, total, estado, contacto_id, contactos(nombre, rnc_cedula), facturas_proveedor_lineas(subtotal, itbis, itbis_tasa, producto_id, productos(tipo))",
+        "id, numero, ncf, fecha, subtotal, itbis, otros_impuestos, propina, total, estado, contacto_id, contactos(nombre, rnc_cedula), facturas_proveedor_lineas(subtotal, itbis, itbis_tasa, impuesto_id, producto_id, productos(tipo))",
       )
       .neq("estado", "anulada")
       .gte("fecha", desde)
@@ -360,7 +431,7 @@ export async function obtenerCompras(desde: string, hasta: string): Promise<Resp
     supabase
       .from("gastos_menores")
       .select(
-        "id, numero, ncf, fecha, subtotal, itbis, itbis_tasa, total, estado, contacto_id, descripcion, contactos(nombre, rnc_cedula)",
+        "id, numero, ncf, fecha, subtotal, itbis, otros_impuestos, propina, itbis_tasa, impuesto_id, total, estado, contacto_id, descripcion, contactos(nombre, rnc_cedula)",
       )
       .neq("estado", "anulada")
       .gte("fecha", desde)
@@ -368,6 +439,7 @@ export async function obtenerCompras(desde: string, hasta: string): Promise<Resp
       .order("fecha")
       .order("numero")
       .returns<GastoDb[]>(),
+    getCatalogoImpuestos(),
   ]);
 
   const error = compras.error?.message ?? gastos.error?.message ?? null;
@@ -377,13 +449,13 @@ export async function obtenerCompras(desde: string, hasta: string): Promise<Resp
   const detalles: DetalleImpuesto[] = [];
 
   for (const compra of compras.data ?? []) {
-    const convertida = convertirCompra(compra);
+    const convertida = convertirCompra(compra, catalogo);
     documentos.push(convertida.documento);
     detalles.push(...convertida.detalles);
   }
 
   for (const gasto of gastos.data ?? []) {
-    const convertido = convertirGasto(gasto);
+    const convertido = convertirGasto(gasto, catalogo);
     documentos.push(convertido.documento);
     detalles.push(...convertido.detalles);
   }
@@ -393,17 +465,20 @@ export async function obtenerCompras(desde: string, hasta: string): Promise<Resp
 
 export async function obtenerDevolucionesVentas(desde: string, hasta: string): Promise<RespuestaFiscal<DatosVentas>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("notas_credito_venta")
-    .select(
-      "id, numero, ncf, fecha, subtotal, itbis, total, estado, contacto_id, contactos(nombre, rnc_cedula), facturas(ncf), nota_credito_venta_lineas(subtotal, itbis, itbis_tasa)",
-    )
-    .eq("estado", "activa")
-    .gte("fecha", desde)
-    .lte("fecha", hasta)
-    .order("fecha")
-    .order("numero")
-    .returns<NotaDb[]>();
+  const [{ data, error }, catalogo] = await Promise.all([
+    supabase
+      .from("notas_credito_venta")
+      .select(
+        "id, numero, ncf, fecha, subtotal, itbis, otros_impuestos, propina, total, estado, contacto_id, contactos(nombre, rnc_cedula), facturas(ncf), nota_credito_venta_lineas(subtotal, itbis, itbis_tasa, impuesto_id)",
+      )
+      .eq("estado", "activa")
+      .gte("fecha", desde)
+      .lte("fecha", hasta)
+      .order("fecha")
+      .order("numero")
+      .returns<NotaDb[]>(),
+    getCatalogoImpuestos(),
+  ]);
 
   if (error) return { datos: { documentos: [], detalles: [] }, error: error.message };
 
@@ -425,6 +500,8 @@ export async function obtenerDevolucionesVentas(desde: string, hasta: string): P
       baseBienes: 0,
       baseServicios: 0,
       itbis: centavos(nota.itbis),
+      otrosImpuestos: centavos(nota.otros_impuestos),
+      propina: centavos(nota.propina),
       total: centavos(nota.total),
       pagado: 0,
       credito: 0,
@@ -435,7 +512,9 @@ export async function obtenerDevolucionesVentas(desde: string, hasta: string): P
     };
 
     documentos.push(documento);
-    detalles.push(...agruparDetalles(nota.nota_credito_venta_lineas ?? [], documento, "Nota de crédito", 0, 0));
+    detalles.push(
+      ...agruparDetalles(nota.nota_credito_venta_lineas ?? [], documento, "Nota de crAcdito", 0, 0, catalogo),
+    );
   }
 
   return { datos: { documentos, detalles }, error: null };
@@ -488,6 +567,8 @@ export async function obtenerAnulados(desde: string, hasta: string): Promise<Res
     baseBienes: 0,
     baseServicios: 0,
     itbis: 0,
+    otrosImpuestos: 0,
+    propina: 0,
     total: centavos(fila.total),
     pagado: 0,
     credito: 0,

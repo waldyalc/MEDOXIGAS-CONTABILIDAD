@@ -14,6 +14,7 @@ export interface Producto {
   descripcion: string | null;
   precio: number;
   itbis_tasa: number;
+  impuesto_id: string | null;
   inventariable: boolean;
   cantidad: number;
   costo: number;
@@ -28,6 +29,8 @@ export const TASAS_ITBIS: { valor: number; etiqueta: string }[] = [
 ];
 
 export function etiquetaTasaItbis(tasa: number) {
+  if (tasa === 2) return "CDT 2 %";
+  if (tasa === 10) return "Propina 10 %";
   return TASAS_ITBIS.find((item) => item.valor === tasa)?.etiqueta ?? `${tasa} %`;
 }
 
@@ -149,8 +152,13 @@ export const esquemaProducto = z
     precio: campoPrecio,
     itbis_tasa: z.coerce
       .number()
-      .refine((valor) => valor === 0 || valor === 16 || valor === 18, "La tasa de ITBIS no es válida")
+      .refine((valor) => [0, 2, 10, 16, 18].includes(valor), "La tarifa del impuesto no está en el catálogo")
       .default(18),
+    impuesto_id: z
+      .string()
+      .nullish()
+      .transform((valor) => textoOpcional(valor))
+      .refine((valor) => valor === null || z.uuid().safeParse(valor).success, "El impuesto no es vA�lido"),
     inventariable: z.boolean().default(false),
     cantidad: z.coerce.number().min(0, "La cantidad no puede ser negativa").default(0),
     costo: z.coerce.number().min(0, "El costo no puede ser negativo").default(0),
@@ -172,6 +180,7 @@ export const esquemaProducto = z
       descripcion: datos.descripcion,
       precio: datos.precio,
       itbis_tasa: datos.itbis_tasa,
+      impuesto_id: datos.impuesto_id,
       inventariable,
       cantidad: inventariable ? datos.cantidad : 0,
       costo: inventariable ? datos.costo : 0,

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { ContactoOpcion, CuentaOpcion, ProductoOpcion } from "@/lib/compras/tipos";
+import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -97,7 +98,7 @@ export async function obtenerOrdenCompra(id: string): Promise<OrdenCompraVista |
 
 export async function cargarOpcionesOrden(): Promise<OpcionesOrden> {
   const supabase = await createClient();
-  const [contactos, productos, cuentasGasto] = await Promise.all([
+  const [contactos, productos, cuentasGasto, impuestos] = await Promise.all([
     supabase
       .from("contactos")
       .select("id, nombre, rnc_cedula")
@@ -107,7 +108,7 @@ export async function cargarOpcionesOrden(): Promise<OpcionesOrden> {
       .returns<ContactoOpcion[]>(),
     supabase
       .from("productos")
-      .select("id, nombre, referencia, costo, precio, itbis_tasa, inventariable, tipo")
+      .select("id, nombre, referencia, costo, precio, itbis_tasa, impuesto_id, inventariable, tipo")
       .eq("activo", true)
       .order("nombre")
       .returns<ProductoOpcion[]>(),
@@ -119,6 +120,7 @@ export async function cargarOpcionesOrden(): Promise<OpcionesOrden> {
       .eq("activa", true)
       .order("codigo")
       .returns<CuentaOpcion[]>(),
+    getImpuestosActivos(),
   ]);
 
   if (contactos.error) throw new Error(contactos.error.message);
@@ -129,6 +131,7 @@ export async function cargarOpcionesOrden(): Promise<OpcionesOrden> {
     contactos: contactos.data ?? [],
     productos: productos.data ?? [],
     cuentasGasto: cuentasGasto.data ?? [],
+    impuestos,
   };
 }
 
@@ -149,7 +152,7 @@ export async function getOrdenParaFactura(id: string): Promise<OrdenParaFactura 
 
   const { data: lineas, error } = await supabase
     .from("orden_compra_lineas")
-    .select("producto_id, cuenta_id, descripcion, cantidad, costo, itbis_tasa")
+    .select("producto_id, cuenta_id, descripcion, cantidad, costo, impuesto_id, itbis_tasa")
     .eq("orden_id", id)
     .order("id")
     .returns<
@@ -159,6 +162,7 @@ export async function getOrdenParaFactura(id: string): Promise<OrdenParaFactura 
         descripcion: string;
         cantidad: number;
         costo: number;
+        impuesto_id: string | null;
         itbis_tasa: number;
       }[]
     >();
@@ -180,6 +184,7 @@ export async function getOrdenParaFactura(id: string): Promise<OrdenParaFactura 
         descripcion: linea.descripcion,
         cantidad: linea.cantidad,
         costo: linea.costo,
+        impuesto_id: linea.impuesto_id,
         itbis_tasa: linea.itbis_tasa,
       })),
     },

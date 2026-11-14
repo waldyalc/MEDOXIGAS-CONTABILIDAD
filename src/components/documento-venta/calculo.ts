@@ -14,6 +14,7 @@ export interface LineaFormulario {
   cantidad: string;
   precio: string;
   descuentoPct: string;
+  impuestoId: string;
   itbisTasa: string;
 }
 
@@ -61,8 +62,8 @@ export interface DocumentoCalculado {
   totales: TotalesFactura;
 }
 
-export function lineaVacia(clave: string): LineaFormulario {
-  return { clave, productoId: "", cantidad: "1", precio: "0.00", descuentoPct: "0", itbisTasa: "18" };
+export function lineaVacia(clave: string, impuestoId = "", itbisTasa = "0"): LineaFormulario {
+  return { clave, productoId: "", cantidad: "1", precio: "0.00", descuentoPct: "0", impuestoId, itbisTasa };
 }
 
 export function numero(texto: string): number {
@@ -120,6 +121,7 @@ export function construirEntrada(datos: DatosDocumento) {
         precio: centavosAValor(parsearCentavos(linea.precio) ?? 0),
         descuento_pct: numero(linea.descuentoPct),
         itbis_tasa: numero(linea.itbisTasa),
+        impuesto_id: linea.impuestoId || null,
       };
     }),
     ...(datos.pago

@@ -11,6 +11,7 @@ import { getCentrosCostoActivos } from "@/lib/centros-costo/consultas";
 import { crearRemision } from "@/lib/conduces/acciones";
 import { getContactosClientes, getEmpresa, getProductosActivos } from "@/lib/facturacion/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
+import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { getPlantillaImpresion } from "@/lib/plantillas-impresion/consultas";
 import { getVendedoresActivos } from "@/lib/vendedores/consultas";
 
@@ -40,13 +41,14 @@ export default async function Page() {
 }
 
 async function ConduceContenido() {
-  const [empresa, contactos, productos, vendedores, centrosCosto, plantilla] = await Promise.all([
+  const [empresa, contactos, productos, vendedores, centrosCosto, plantilla, impuestos] = await Promise.all([
     getEmpresa(),
     getContactosClientes(),
     getProductosActivos(),
     getVendedoresActivos(),
     getCentrosCostoActivos(),
     getPlantillaImpresion("conduce"),
+    getImpuestosActivos(),
   ]);
 
   return (
@@ -56,6 +58,7 @@ async function ConduceContenido() {
       productos={productos}
       vendedores={vendedores}
       centrosCosto={centrosCosto}
+      impuestos={impuestos}
       notasIniciales={plantilla.notas}
       terminosIniciales={plantilla.terminos}
       mostrarLogo={plantilla.mostrarLogo}

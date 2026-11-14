@@ -25,6 +25,10 @@ export const esquemaLineaFactura = z
     cantidad: numero.positive("La cantidad debe ser mayor que 0."),
     costo: numero.min(0, "El costo no puede ser negativo."),
     itbis_tasa: numero.min(0, "El ITBIS no puede ser negativo.").max(100, "El ITBIS no puede pasar de 100 %."),
+    impuesto_id: z
+      .union([id, z.literal("")])
+      .optional()
+      .transform((valor) => valor || null),
   })
   .refine((linea) => (linea.producto_id == null) !== (linea.cuenta_id == null), {
     message: "Cada línea debe ser un producto o una cuenta de gasto.",

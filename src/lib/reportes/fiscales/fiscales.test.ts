@@ -37,6 +37,8 @@ function documento(overrides: Partial<DocumentoFiscal> = {}): DocumentoFiscal {
     baseBienes: 0,
     baseServicios: 0,
     itbis: 253800,
+    otrosImpuestos: 0,
+    propina: 0,
     total: 1663800,
     pagado: 0,
     credito: 0,
@@ -58,6 +60,8 @@ function detalle(overrides: Partial<DetalleImpuesto> = {}): DetalleImpuesto {
     contactoNombre: "Constructora Prueba SRL",
     fecha: "2026-11-13",
     tasa: 18,
+    tipo: "itbis",
+    impuestoNombre: "ITBIS (18.00%)",
     base: 1410000,
     impuesto: 253800,
     ruta: "/dashboard/facturacion/f1",
@@ -330,7 +334,9 @@ describe("impuestos", () => {
       detalle(),
       detalle({ base: 440000, impuesto: 79200 }),
       detalle({ tasa: 0, base: 100000, impuesto: 0 }),
-      detalle({ tasa: null, base: 50000, impuesto: 0 }),
+      detalle({ tasa: null, tipo: "exento", base: 50000, impuesto: 0 }),
+      detalle({ tasa: 10, tipo: "propina", base: 50000, impuesto: 5000 }),
+      detalle({ tasa: 2, tipo: "otro", base: 50000, impuesto: 1000 }),
     ]);
 
     expect(resumen.filas.map((fila) => [fila.etiqueta, fila.base, fila.impuesto])).toEqual([
@@ -338,9 +344,11 @@ describe("impuestos", () => {
       ["ITBIS (16%)", 0, 0],
       ["ITBIS (0%)", 100000, 0],
       ["Exento (0%)", 50000, 0],
+      ["Propina (10%)", 50000, 5000],
+      ["CDT (2%)", 50000, 1000],
     ]);
-    expect(resumen.totalBase).toBe(2000000);
-    expect(resumen.totalImpuesto).toBe(333000);
+    expect(resumen.totalBase).toBe(2100000);
+    expect(resumen.totalImpuesto).toBe(339000);
   });
 
   test("calcula la diferencia a favor o a pagar", () => {

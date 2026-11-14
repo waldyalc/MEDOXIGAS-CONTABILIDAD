@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { aNumero, calcularTotales, desdeCentavos } from "@/lib/compras/calculo";
 import { hoyEnRd } from "@/lib/compras/fechas";
 import { formatoMoneda } from "@/lib/compras/formato";
 import { rutaOrdenCompra } from "@/lib/enlaces";
+import { impuestoNinguno } from "@/lib/impuestos/tipos";
 import { crearOrdenCompra } from "@/lib/ordenes-compra/acciones";
 import { esquemaOrdenCompra } from "@/lib/ordenes-compra/esquema";
 import type { OpcionesOrden } from "@/lib/ordenes-compra/tipos";
@@ -38,18 +40,13 @@ interface LineaFormulario {
   descripcion: string;
   cantidad: string;
   costo: string;
+  impuestoId: string;
   itbisTasa: string;
 }
 
 const OPCIONES_MODO = [
   { value: "producto", label: "Producto" },
   { value: "gasto", label: "Gasto" },
-];
-
-const OPCIONES_ITBIS = [
-  { value: "18", label: "18 %" },
-  { value: "16", label: "16 %" },
-  { value: "0", label: "0 %" },
 ];
 
 let contadorLineas = 0;
@@ -64,11 +61,12 @@ function nuevaLinea(): LineaFormulario {
     descripcion: "",
     cantidad: "1",
     costo: "",
-    itbisTasa: "18",
+    impuestoId: "",
+    itbisTasa: "0",
   };
 }
 
-export function FormularioOrden({ contactos, productos, cuentasGasto }: OpcionesOrden) {
+export function FormularioOrden({ contactos, productos, cuentasGasto, impuestos }: OpcionesOrden) {
   const router = useRouter();
   const hoy = hoyEnRd();
   const [proveedorId, setProveedorId] = useState("");
@@ -76,7 +74,9 @@ export function FormularioOrden({ contactos, productos, cuentasGasto }: Opciones
   const [fechaEntrega, setFechaEntrega] = useState(hoy);
   const [notas, setNotas] = useState("");
   const [terminos, setTerminos] = useState("");
-  const [lineas, setLineas] = useState<LineaFormulario[]>([nuevaLinea()]);
+  const [lineas, setLineas] = useState<LineaFormulario[]>(() => [
+    { ...nuevaLinea(), impuestoId: impuestoNinguno(impuestos)?.id ?? "" },
+  ]);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
 
@@ -121,6 +121,7 @@ export function FormularioOrden({ contactos, productos, cuentasGasto }: Opciones
       cuentaId: "",
       descripcion: producto.nombre,
       costo: String(aNumero(producto.costo)),
+      impuestoId: producto.impuesto_id ?? "",
       itbisTasa: String(aNumero(producto.itbis_tasa)),
     });
   }
@@ -165,6 +166,7 @@ export function FormularioOrden({ contactos, productos, cuentasGasto }: Opciones
         cantidad: aNumero(linea.cantidad),
         costo: aNumero(linea.costo),
         itbis_tasa: aNumero(linea.itbisTasa),
+        impuesto_id: linea.impuestoId || undefined,
       })),
     };
 
@@ -274,7 +276,12 @@ export function FormularioOrden({ contactos, productos, cuentasGasto }: Opciones
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => setLineas((actuales) => [...actuales, nuevaLinea()])}
+            onClick={() =>
+              setLineas((actuales) => [
+                ...actuales,
+                { ...nuevaLinea(), impuestoId: impuestoNinguno(impuestos)?.id ?? "" },
+              ])
+            }
           >
             <Plus data-icon="inline-start" />
             Agregar línea
@@ -363,25 +370,19 @@ export function FormularioOrden({ contactos, productos, cuentasGasto }: Opciones
                   </InputGroup>
                 </div>
                 <div className="flex flex-col gap-2 lg:col-span-1">
-                  <Label className="text-muted-foreground text-xs">ITBIS</Label>
-                  <Select
-                    value={linea.itbisTasa}
-                    items={OPCIONES_ITBIS}
-                    onValueChange={(valor: string | null) => {
-                      if (valor) actualizarLinea(linea.id, { itbisTasa: valor });
+                  <Label className="text-muted-foreground text-xs">Impuesto</Label>
+                  <SelectorImpuesto
+                    className="w-full"
+                    impuestos={impuestos}
+                    value={linea.impuestoId}
+                    onValueChange={(impuestoId) => {
+                      const impuesto = impuestos.find((item) => item.id === impuestoId);
+                      actualizarLinea(linea.id, {
+                        impuestoId,
+                        itbisTasa: String(impuesto?.tarifa ?? 0),
+                      });
                     }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {OPCIONES_ITBIS.map((opcion) => (
-                        <SelectItem key={opcion.value} value={opcion.value}>
-                          {opcion.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  />
                 </div>
                 <div className="flex flex-col gap-2 lg:col-span-2">
                   <Label className="text-muted-foreground text-xs">Subtotal</Label>
@@ -402,7 +403,7 @@ export function FormularioOrden({ contactos, productos, cuentasGasto }: Opciones
             <span className="tabular-nums">{formatoMoneda(desdeCentavos(totales.subtotalCentavos))}</span>
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">ITBIS</span>
+            <span className="text-muted-foreground">Impuestos</span>
             <span className="tabular-nums">{formatoMoneda(desdeCentavos(totales.itbisCentavos))}</span>
           </div>
           <Separator />

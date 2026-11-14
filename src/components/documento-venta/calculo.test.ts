@@ -87,6 +87,7 @@ describe("construirEntrada", () => {
           precio: 650,
           descuento_pct: 0,
           itbis_tasa: 18,
+          impuesto_id: null,
         },
         {
           producto_id: "p2",
@@ -95,6 +96,7 @@ describe("construirEntrada", () => {
           precio: 100,
           descuento_pct: 0,
           itbis_tasa: 0,
+          impuesto_id: null,
         },
       ],
       pago: { cuenta_id: "cuenta-1", metodo: "efectivo", monto: 1634 },
@@ -124,7 +126,8 @@ describe("construirEntrada", () => {
           cantidad: 1,
           precio: 0,
           descuento_pct: 0,
-          itbis_tasa: 18,
+          itbis_tasa: 0,
+          impuesto_id: null,
         },
       ],
     });

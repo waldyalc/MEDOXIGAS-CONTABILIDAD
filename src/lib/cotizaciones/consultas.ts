@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import { getEmpresa } from "@/lib/facturacion/consultas";
+import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -35,9 +36,9 @@ const TABLAS: Record<TipoDocumento, Tablas> = {
 
 const COLUMNAS_RESUMEN = "id, numero, contacto_id, fecha, vencimiento, total, estado, factura_id";
 const COLUMNAS_DETALLE_BASE =
-  "id, numero, contacto_id, fecha, vencimiento, subtotal, itbis, total, estado, factura_id, notas";
+  "id, numero, contacto_id, fecha, vencimiento, subtotal, itbis, otros_impuestos, propina, total, estado, factura_id, notas";
 const COLUMNAS_LINEAS =
-  "id, producto_id, descripcion, cantidad, precio, descuento_pct, itbis_tasa, subtotal, itbis, total";
+  "id, producto_id, descripcion, cantidad, precio, descuento_pct, itbis_tasa, impuesto_id, subtotal, itbis, total";
 
 async function cliente(): Promise<SupabaseClient> {
   return (await createClient()) as unknown as SupabaseClient;
@@ -87,7 +88,7 @@ export async function getDocumentoVista(tipo: TipoDocumento, id: string): Promis
   const detalle = documento.data as unknown as DocumentoDetalle;
   if (tipo === "remision") detalle.descuento = 0;
 
-  const [lineas, contacto, empresa, factura] = await Promise.all([
+  const [lineas, contacto, empresa, impuestos, factura] = await Promise.all([
     supabase.from(TABLAS[tipo].lineas).select(COLUMNAS_LINEAS).eq(TABLAS[tipo].claveLineas, id).order("id"),
     supabase
       .from("contactos")
@@ -95,6 +96,7 @@ export async function getDocumentoVista(tipo: TipoDocumento, id: string): Promis
       .eq("id", detalle.contacto_id)
       .maybeSingle(),
     getEmpresa(),
+    getImpuestosActivos(),
     detalle.factura_id
       ? supabase
           .from("facturas")
@@ -113,6 +115,7 @@ export async function getDocumentoVista(tipo: TipoDocumento, id: string): Promis
   return {
     documento: detalle,
     lineas: (lineas.data ?? []) as unknown as DocumentoLinea[],
+    impuestos,
     contacto: contacto.data as unknown as DocumentoVista["contacto"],
     empresa,
     facturaRelacionada: factura.data,

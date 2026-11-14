@@ -5,6 +5,7 @@ import { type FormEvent, useState, useTransition } from "react";
 import { ChevronDown, Pencil, Plus, Search } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { rutaProducto } from "@/lib/enlaces";
+import { type Impuesto, impuestoNinguno, impuestoPorTasa } from "@/lib/impuestos/tipos";
 import { etiquetaTipoLista } from "@/lib/inventario/precios";
 import type { CategoriaProducto, ListaPrecio } from "@/lib/inventario/tipos";
 import { actualizarProducto, crearProducto } from "@/lib/productos/actions";
@@ -27,10 +29,7 @@ import {
   type Producto,
   type ProductoTipo,
   SIN_CATEGORIA,
-  TASAS_ITBIS,
 } from "@/lib/productos/productos";
-
-const OPCIONES_ITBIS = TASAS_ITBIS.map((tasa) => ({ value: String(tasa.valor), label: tasa.etiqueta }));
 
 const OPCIONES_TIPO = [
   { value: "producto", label: "Producto" },
@@ -94,15 +93,24 @@ function FormularioProducto({
   producto,
   categorias,
   listasPrecios,
+  impuestos,
   onGuardado,
 }: {
   readonly producto: Producto | null;
   readonly categorias: CategoriaProducto[];
   readonly listasPrecios: ListaPrecio[];
+  readonly impuestos: Impuesto[];
   readonly onGuardado: () => void;
 }) {
   const [tipo, setTipo] = useState<ProductoTipo>(producto?.tipo ?? "producto");
   const [inventariable, setInventariable] = useState(producto?.inventariable ?? false);
+  const [impuestoId, setImpuestoId] = useState(
+    producto?.impuesto_id ??
+      impuestoPorTasa(impuestos, producto?.itbis_tasa ?? 18)?.id ??
+      impuestoNinguno(impuestos)?.id ??
+      "",
+  );
+  const [itbisTasa, setItbisTasa] = useState(String(producto?.itbis_tasa ?? 18));
   const [error, setError] = useState<string | null>(null);
   const [pendiente, startTransition] = useTransition();
 
@@ -149,19 +157,20 @@ function FormularioProducto({
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="itbis_tasa">ITBIS</FieldLabel>
-            <Select name="itbis_tasa" defaultValue={String(producto?.itbis_tasa ?? 18)} items={OPCIONES_ITBIS}>
-              <SelectTrigger id="itbis_tasa" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {OPCIONES_ITBIS.map((opcion) => (
-                  <SelectItem key={opcion.value} value={opcion.value}>
-                    {opcion.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FieldLabel htmlFor="impuesto_id">Impuesto</FieldLabel>
+            <SelectorImpuesto
+              id="impuesto_id"
+              name="impuesto_id"
+              className="w-full"
+              impuestos={impuestos}
+              value={impuestoId}
+              onValueChange={(id) => {
+                const impuesto = impuestos.find((item) => item.id === id);
+                setImpuestoId(id);
+                setItbisTasa(String(impuesto?.tarifa ?? 0));
+              }}
+            />
+            <input type="hidden" name="itbis_tasa" value={itbisTasa} />
           </Field>
         </div>
 
@@ -296,11 +305,13 @@ export function ProductosCliente({
   productos,
   categorias,
   listasPrecios,
+  impuestos,
   puedeEditar,
 }: {
   readonly productos: Producto[];
   readonly categorias: CategoriaProducto[];
   readonly listasPrecios: ListaPrecio[];
+  readonly impuestos: Impuesto[];
   readonly puedeEditar: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
@@ -429,6 +440,7 @@ export function ProductosCliente({
             producto={productoEditando}
             categorias={categorias}
             listasPrecios={listasPrecios}
+            impuestos={impuestos}
             onGuardado={cerrarTrasGuardar}
           />
         </DialogContent>
