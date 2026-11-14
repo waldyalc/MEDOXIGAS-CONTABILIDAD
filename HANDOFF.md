@@ -1,5 +1,11 @@
 # Handoff — Medoxigas Contabilidad
 
+## Fix — Títulos largos del menú ya no se parten en dos líneas (14 nov 2026)
+
+- «Notas de crédito en compras» (Compras) se veía en dos líneas en el menú lateral. Causa: `SidebarMenuButton`/`SidebarMenuSubButton` truncan con `[&>span:last-child]:truncate`, pero `IndicadorEnlace` renderiza un `<span>` después del título, así que el truncate caía sobre el puntito indicador y el título envolvía.
+- Fix: `className="truncate"` explícito en los `<span>` de título de `nav-main.tsx` (enlace principal, trigger colapsable, subítem colapsable, trigger del dropdown colapsado e ítem del dropdown). Así no depende del selector `last-child`. `overflow:hidden` del truncate también deja el min-width del flex item en 0, así que sale la elipsis.
+- Solo clases en `src/app/(main)/dashboard/_components/sidebar/nav-main.tsx`; sin cambios en `sidebar-items.ts` ni en `components/ui`. Verificado: `pnpm typecheck` y Biome del archivo en verde. Sin verificación visual (la hace Coder).
+
 ## S28 — Formularios con el diseño de Alegra (13 nov 2026)
 
 - Todos los formularios de alta/edición pasaron a `FormCard`/`FormGrid`/`FormField`/`FormSectionTitle`/`FormDivider`/`FormTotal` (`src/components/formularios/formulario.tsx`) con las medidas de `GUIA-FORMULARIOS.md` (rama `docs/alegra-pagos`): campos de 40 px radio 10 borde slate-300, foco de 2 px con el primario, etiquetas 14/500 slate-700 con asterisco primario, rejilla `gap-x-8 gap-y-4`, tarjeta radio 12 borde slate-200 sin sombra, total a la derecha y botones de 44 px (`h-11 rounded-[12px]`) con Cancelar al lado. Los diálogos usan la misma rejilla y campos; la tarjeta es el propio `DialogContent`.

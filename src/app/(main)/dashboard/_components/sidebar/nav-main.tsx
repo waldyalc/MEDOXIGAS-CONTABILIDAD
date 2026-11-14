@@ -199,7 +199,7 @@ function NavLinkItem({ item, isActive, showIconFallback, onNavigate }: NavLinkIt
   const contenido = (
     <>
       <NavLinkIcon item={item} showFallback={showIconFallback} />
-      <span>{item.title}</span>
+      <span className="truncate">{item.title}</span>
       <IndicadorEnlace />
     </>
   );
@@ -255,7 +255,7 @@ function NavDropdownItem({ item, isActive, isSubItemActive, onNavigate }: NavDro
           render={<SidebarMenuButton tooltip={item.title} isActive={isActive} disabled={item.disabled} />}
         >
           {Icon ? <Icon /> : <CollapsedIconFallback title={item.title} />}
-          <span>{item.title}</span>
+          <span className="truncate">{item.title}</span>
         </DropdownMenuTrigger>
 
         <DropdownMenuContent side="right" align="start" sideOffset={12} className="w-48">
@@ -279,7 +279,7 @@ function NavDropdownItem({ item, isActive, isSubItemActive, onNavigate }: NavDro
                   disabled={subItem.disabled}
                 >
                   {SubIcon && <SubIcon />}
-                  <span>{subItem.title}</span>
+                  <span className="truncate">{subItem.title}</span>
                   <IndicadorEnlace />
                 </DropdownMenuItem>
               );
@@ -304,7 +304,7 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive, onNa
         render={<SidebarMenuButton tooltip={item.title} isActive={isActive} disabled={item.disabled} />}
       >
         {Icon && <Icon />}
-        <span>{item.title}</span>
+        <span className="truncate">{item.title}</span>
         <ChevronRight className="ml-auto transition-transform duration-200 group-data-panel-open/menu-button:rotate-90" />
       </CollapsibleTrigger>
       <NavItemBadge badge={item.badge} />
@@ -329,7 +329,7 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive, onNa
                   isActive={isSubItemActive(subItem.url)}
                 >
                   {SubIcon && <SubIcon />}
-                  <span>{subItem.title}</span>
+                  <span className="truncate">{subItem.title}</span>
                   <IndicadorEnlace />
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
