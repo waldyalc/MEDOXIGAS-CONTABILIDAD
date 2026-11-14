@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { errorIdentificacion, normalizarIdentificacion, type TipoIdentificacion } from "./contacto-rapido";
+
 export type ContactoTipo = "cliente" | "proveedor" | "ambos";
 export type PestanaContactos = "todos" | "clientes" | "proveedores";
 
@@ -14,6 +16,8 @@ export interface Contacto {
   direccion: string | null;
   tipo: ContactoTipo;
   lista_precio_id: string | null;
+  tipo_identificacion?: TipoIdentificacion | null;
+  municipio_provincia?: string | null;
 }
 
 export const TIPOS_CONTACTO: { valor: ContactoTipo; etiqueta: string }[] = [
@@ -58,29 +62,43 @@ export function normalizarBusqueda(valor: string) {
 
 const campoTipo = z.enum(["cliente", "proveedor", "ambos"]);
 const campoOpcional = z.string().nullish().transform(textoOpcional);
+const campoTipoIdentificacion = z.enum(["rnc", "cedula", "pasaporte"]);
 
-export const esquemaContacto = z.object({
-  nombre: z
-    .string()
-    .transform(normalizarNombre)
-    .refine((valor) => valor.length > 0, "El nombre es obligatorio")
-    .refine((valor) => valor.length <= 200, "El nombre no puede pasar de 200 caracteres"),
-  tipo: campoTipo.default("cliente"),
-  rnc_cedula: campoOpcional
-    .transform((valor) => (valor === null ? null : normalizarRncCedula(valor)))
-    .refine((valor) => valor === null || esRncCedulaValida(valor), "El RNC o la cédula debe tener 9 u 11 dígitos"),
-  telefono: campoOpcional.transform((valor) => (valor === null ? null : normalizarTelefono(valor))),
-  correo: campoOpcional.refine(
-    (valor) => valor === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor),
-    "El correo no es válido",
-  ),
-  direccion: campoOpcional,
-  lista_precio_id: z
-    .string()
-    .nullish()
-    .transform((valor) => textoOpcional(valor))
-    .refine((valor) => valor === null || z.uuid().safeParse(valor).success, "La lista de precios no es válida"),
-});
+export const esquemaContacto = z
+  .object({
+    nombre: z
+      .string()
+      .transform(normalizarNombre)
+      .refine((valor) => valor.length > 0, "El nombre es obligatorio")
+      .refine((valor) => valor.length <= 200, "El nombre no puede pasar de 200 caracteres"),
+    tipo: campoTipo.default("cliente"),
+    tipo_identificacion: campoTipoIdentificacion.nullish(),
+    rnc_cedula: campoOpcional,
+    telefono: campoOpcional.transform((valor) => (valor === null ? null : normalizarTelefono(valor))),
+    correo: campoOpcional.refine(
+      (valor) => valor === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor),
+      "El correo no es válido",
+    ),
+    direccion: campoOpcional,
+    municipio_provincia: z.string().nullish(),
+    lista_precio_id: z
+      .string()
+      .nullish()
+      .transform((valor) => textoOpcional(valor))
+      .refine((valor) => valor === null || z.uuid().safeParse(valor).success, "La lista de precios no es válida"),
+  })
+  .superRefine((datos, ctx) => {
+    const error = errorIdentificacion(datos.tipo_identificacion, datos.rnc_cedula ?? "");
+    if (error) ctx.addIssue({ code: "custom", path: ["rnc_cedula"], message: error });
+  })
+  .transform((datos) => ({
+    ...datos,
+    rnc_cedula:
+      datos.rnc_cedula === null ? null : normalizarIdentificacion(datos.tipo_identificacion, datos.rnc_cedula),
+    ...(datos.municipio_provincia === undefined
+      ? {}
+      : { municipio_provincia: textoOpcional(datos.municipio_provincia) }),
+  }));
 
 export type DatosContacto = z.infer<typeof esquemaContacto>;
 
