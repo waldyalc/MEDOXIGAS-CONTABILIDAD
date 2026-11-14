@@ -1,6 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "cn";
@@ -44,12 +46,14 @@ interface NavItemProps {
   readonly isItemActive: (item: NavMainItem) => boolean;
   readonly isSubItemActive: (url: string) => boolean;
   readonly isSubmenuOpen: (item: NavMainParentItem) => boolean;
+  readonly onNavigate: (url: string) => void;
 }
 
 interface NavLinkItemProps {
   readonly item: NavMainLinkItem;
   readonly isActive: boolean;
   readonly showIconFallback: boolean;
+  readonly onNavigate: (url: string) => void;
 }
 
 interface NavLinkIconProps {
@@ -61,6 +65,7 @@ interface NavDropdownItemProps {
   readonly item: NavMainParentItem;
   readonly isActive: boolean;
   readonly isSubItemActive: (url: string) => boolean;
+  readonly onNavigate: (url: string) => void;
 }
 
 interface NavCollapsibleItemProps {
@@ -68,6 +73,21 @@ interface NavCollapsibleItemProps {
   readonly isActive: boolean;
   readonly defaultOpen: boolean;
   readonly isSubItemActive: (url: string) => boolean;
+  readonly onNavigate: (url: string) => void;
+}
+
+function IndicadorEnlace() {
+  const { pending } = useLinkStatus();
+
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "ml-auto size-1.5 shrink-0 rounded-full bg-current opacity-0 transition-opacity duration-150",
+        pending && "animate-pulse opacity-60",
+      )}
+    />
+  );
 }
 
 function CollapsedIconFallback({ title }: { title: string }) {
@@ -84,21 +104,29 @@ function hasSubItems(item: NavMainItem): item is NavMainParentItem {
 
 export function NavMain({ items }: NavMainProps) {
   const path = usePathname();
+  // Al hacer clic se marca el destino al instante; el estado se descarta solo
+  // cuando la ruta cambia, sin efectos ni esperas a la navegación.
+  const [pendiente, setPendiente] = useState<{ url: string; desde: string } | null>(null);
+  const urlPendiente = pendiente?.desde === path ? pendiente.url : null;
+
+  const onNavigate = (url: string) => {
+    setPendiente({ url, desde: path });
+  };
 
   const isItemActive = (item: NavMainItem) => {
     if (hasSubItems(item)) {
-      return item.subItems.some((sub) => path.startsWith(sub.url));
+      return item.subItems.some((sub) => sub.url === urlPendiente || path.startsWith(sub.url));
     }
 
-    return path === item.url;
+    return item.url === urlPendiente || path === item.url;
   };
 
   const isSubItemActive = (url: string) => {
-    return path === url;
+    return url === urlPendiente || path === url;
   };
 
   const isSubmenuOpen = (item: NavMainParentItem) => {
-    return item.subItems.some((sub) => path.startsWith(sub.url));
+    return item.subItems.some((sub) => sub.url === urlPendiente || path.startsWith(sub.url));
   };
 
   return (
@@ -119,6 +147,7 @@ export function NavMain({ items }: NavMainProps) {
                   isItemActive={isItemActive}
                   isSubItemActive={isSubItemActive}
                   isSubmenuOpen={isSubmenuOpen}
+                  onNavigate={onNavigate}
                 />
               ))}
             </SidebarMenu>
@@ -129,16 +158,30 @@ export function NavMain({ items }: NavMainProps) {
   );
 }
 
-function NavItem({ item, isItemActive, isSubItemActive, isSubmenuOpen }: NavItemProps) {
+function NavItem({ item, isItemActive, isSubItemActive, isSubmenuOpen, onNavigate }: NavItemProps) {
   const { state, isMobile } = useSidebar();
   const isCollapsedDesktop = state === "collapsed" && !isMobile;
 
   if (!hasSubItems(item)) {
-    return <NavLinkItem item={item} isActive={isItemActive(item)} showIconFallback={isCollapsedDesktop} />;
+    return (
+      <NavLinkItem
+        item={item}
+        isActive={isItemActive(item)}
+        showIconFallback={isCollapsedDesktop}
+        onNavigate={onNavigate}
+      />
+    );
   }
 
   if (isCollapsedDesktop) {
-    return <NavDropdownItem item={item} isActive={isItemActive(item)} isSubItemActive={isSubItemActive} />;
+    return (
+      <NavDropdownItem
+        item={item}
+        isActive={isItemActive(item)}
+        isSubItemActive={isSubItemActive}
+        onNavigate={onNavigate}
+      />
+    );
   }
 
   return (
@@ -147,15 +190,17 @@ function NavItem({ item, isItemActive, isSubItemActive, isSubmenuOpen }: NavItem
       isActive={isItemActive(item)}
       defaultOpen={isSubmenuOpen(item)}
       isSubItemActive={isSubItemActive}
+      onNavigate={onNavigate}
     />
   );
 }
 
-function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
+function NavLinkItem({ item, isActive, showIconFallback, onNavigate }: NavLinkItemProps) {
   const contenido = (
     <>
       <NavLinkIcon item={item} showFallback={showIconFallback} />
       <span>{item.title}</span>
+      <IndicadorEnlace />
     </>
   );
 
@@ -169,10 +214,10 @@ function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
         <SidebarMenuButton
           render={
             <Link
-              prefetch={false}
               href={item.url}
               target={item.newTab ? "_blank" : undefined}
               rel={item.newTab ? "noreferrer" : undefined}
+              onClick={() => onNavigate(item.url)}
             />
           }
           tooltip={item.title}
@@ -200,7 +245,7 @@ function NavLinkIcon({ item, showFallback }: NavLinkIconProps) {
   return null;
 }
 
-function NavDropdownItem({ item, isActive, isSubItemActive }: NavDropdownItemProps) {
+function NavDropdownItem({ item, isActive, isSubItemActive, onNavigate }: NavDropdownItemProps) {
   const Icon = item.icon;
 
   return (
@@ -223,18 +268,19 @@ function NavDropdownItem({ item, isActive, isSubItemActive }: NavDropdownItemPro
                   key={subItem.id}
                   render={
                     <Link
-                      prefetch={false}
                       href={subItem.url}
                       target={subItem.newTab ? "_blank" : undefined}
                       rel={subItem.newTab ? "noreferrer" : undefined}
                       aria-current={isSubItemActive(subItem.url) ? "page" : undefined}
                       className="flex items-center gap-2"
+                      onClick={() => onNavigate(subItem.url)}
                     />
                   }
                   disabled={subItem.disabled}
                 >
                   {SubIcon && <SubIcon />}
                   <span>{subItem.title}</span>
+                  <IndicadorEnlace />
                 </DropdownMenuItem>
               );
             })}
@@ -245,7 +291,7 @@ function NavDropdownItem({ item, isActive, isSubItemActive }: NavDropdownItemPro
   );
 }
 
-function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive }: NavCollapsibleItemProps) {
+function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive, onNavigate }: NavCollapsibleItemProps) {
   const Icon = item.icon;
 
   return (
@@ -273,10 +319,10 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive }: Na
                 <SidebarMenuSubButton
                   render={
                     <Link
-                      prefetch={false}
                       href={subItem.url}
                       target={subItem.newTab ? "_blank" : undefined}
                       rel={subItem.newTab ? "noreferrer" : undefined}
+                      onClick={() => onNavigate(subItem.url)}
                     />
                   }
                   aria-disabled={subItem.disabled}
@@ -284,6 +330,7 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive }: Na
                 >
                   {SubIcon && <SubIcon />}
                   <span>{subItem.title}</span>
+                  <IndicadorEnlace />
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             );

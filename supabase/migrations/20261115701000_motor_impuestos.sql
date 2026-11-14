@@ -38,6 +38,12 @@ begin
       rename to _crear_documento_no_contable_sin_impuestos;
   end if;
 
+  if to_regprocedure('public._editar_documento_no_contable(text, jsonb)') is not null
+     and to_regprocedure('public._editar_documento_no_contable_sin_impuestos(text, jsonb)') is null then
+    alter function public._editar_documento_no_contable(text, jsonb)
+      rename to _editar_documento_no_contable_sin_impuestos;
+  end if;
+
   if to_regprocedure('public.actualizar_producto(uuid, jsonb)') is not null
      and to_regprocedure('public._actualizar_producto_sin_impuestos(uuid, jsonb)') is null then
     alter function public.actualizar_producto(uuid, jsonb)
@@ -600,6 +606,44 @@ begin
 end;
 $$;
 
+create or replace function public._editar_documento_no_contable(p_tipo text, p jsonb)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_id uuid;
+  v_tabla_lineas text;
+  v_clave text;
+  v_tabla_documento text;
+begin
+  if p is null or jsonb_typeof(p->'lineas') <> 'array' then
+    return public._editar_documento_no_contable_sin_impuestos(p_tipo, p);
+  end if;
+
+  v_id := public._editar_documento_no_contable_sin_impuestos(
+    p_tipo,
+    p || jsonb_build_object('lineas', public._impuestos_preparar(p->'lineas'))
+  );
+
+  if p_tipo = 'cotizacion' then
+    v_tabla_documento := 'cotizaciones';
+    v_tabla_lineas := 'cotizacion_lineas';
+    v_clave := 'cotizacion_id';
+  else
+    v_tabla_documento := 'remisiones';
+    v_tabla_lineas := 'remision_lineas';
+    v_clave := 'remision_id';
+  end if;
+
+  perform public._impuestos_sincronizar(v_tabla_lineas, v_clave, v_id);
+  perform public._impuestos_actualizar_totales(v_tabla_documento, v_id, v_tabla_lineas, v_clave);
+
+  return v_id;
+end;
+$$;
+
 create or replace function public.crear_orden_compra(p jsonb)
 returns uuid
 language plpgsql
@@ -862,6 +906,7 @@ revoke all on function public._crear_nota_debito_venta_sin_impuestos(jsonb) from
 revoke all on function public._crear_nota_credito_compra_sin_impuestos(jsonb) from public, anon, authenticated;
 revoke all on function public._crear_gasto_menor_sin_impuestos(jsonb) from public, anon, authenticated;
 revoke all on function public._crear_documento_no_contable_sin_impuestos(text, jsonb) from public, anon, authenticated;
+revoke all on function public._editar_documento_no_contable_sin_impuestos(text, jsonb) from public, anon, authenticated;
 revoke all on function public._crear_orden_compra_sin_impuestos(jsonb) from public, anon, authenticated;
 revoke all on function public._crear_producto_sin_impuestos(jsonb) from public, anon, authenticated;
 revoke all on function public._actualizar_producto_sin_impuestos(uuid, jsonb) from public, anon, authenticated;
@@ -880,6 +925,7 @@ revoke all on function public.crear_nota_debito_venta(jsonb) from public, anon, 
 revoke all on function public.crear_nota_credito_compra(jsonb) from public, anon, authenticated;
 revoke all on function public.crear_gasto_menor(jsonb) from public, anon, authenticated;
 revoke all on function public._crear_documento_no_contable(text, jsonb) from public, anon, authenticated;
+revoke all on function public._editar_documento_no_contable(text, jsonb) from public, anon, authenticated;
 revoke all on function public.crear_orden_compra(jsonb) from public, anon, authenticated;
 revoke all on function public.crear_producto(jsonb) from public, anon, authenticated;
 revoke all on function public.actualizar_producto(uuid, jsonb) from public, anon, authenticated;

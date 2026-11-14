@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { ChevronDown, Loader2 } from "lucide-react";
 
+import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,6 @@ export function GastoForm({
   const [proveedorId, setProveedorId] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const proveedoresItems = proveedores.map((proveedor) => ({ value: proveedor.id, label: proveedor.nombre }));
   const cuentasItems: OpcionCuenta[] = cuentas.map((cuenta) => ({
     value: cuenta.id,
     label: etiquetaCuenta(cuenta),
@@ -244,24 +244,14 @@ export function GastoForm({
                   </div>
                   <div className="flex flex-col gap-2 md:col-span-2">
                     <Label htmlFor="proveedor">Proveedor</Label>
-                    <Combobox
-                      items={proveedoresItems}
-                      onValueChange={(item: { value: string; label: string } | null) =>
-                        setProveedorId(item?.value ?? "")
-                      }
-                    >
-                      <ComboboxInput id="proveedor" className="w-full" placeholder="Buscar proveedor…" showClear />
-                      <ComboboxContent>
-                        <ComboboxEmpty>Sin resultados</ComboboxEmpty>
-                        <ComboboxList>
-                          {(item: { value: string; label: string }) => (
-                            <ComboboxItem key={item.value} value={item}>
-                              {item.label}
-                            </ComboboxItem>
-                          )}
-                        </ComboboxList>
-                      </ComboboxContent>
-                    </Combobox>
+                    <SelectorContacto
+                      id="proveedor"
+                      contactos={proveedores}
+                      valor={proveedorId}
+                      onCambio={(contacto) => setProveedorId(contacto?.id ?? "")}
+                      tipoInicial="proveedor"
+                      placeholder="Buscar proveedor…"
+                    />
                   </div>
                 </div>
               </CollapsibleContent>
@@ -270,7 +260,7 @@ export function GastoForm({
         </CardContent>
       </Card>
 
-      <div className="mt-4 flex flex-col gap-3 rounded-xl bg-muted/50 p-4 text-sm">
+      <div className="bg-muted/50 mt-4 flex flex-col gap-3 rounded-xl p-4 text-sm">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Subtotal</span>
           <span>{formatoMonedaCentavos(calculo.subtotalCentavos)}</span>

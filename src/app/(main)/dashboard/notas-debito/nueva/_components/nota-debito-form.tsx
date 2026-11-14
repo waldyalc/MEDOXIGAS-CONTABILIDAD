@@ -8,7 +8,9 @@ import { useRouter } from "next/navigation";
 
 import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
 
+import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
+import { type ProductoSeleccionable, SelectorProducto } from "@/components/productos/selector-producto";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -107,6 +109,7 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
 
   const facturaPrevia = datos.facturas.find((factura) => factura.id === facturaInicial);
   const [clienteId, setClienteId] = useState(facturaPrevia?.contacto_id ?? "");
+  const [productos, setProductos] = useState<readonly ProductoSeleccionable[]>(datos.productos);
   const [tipo, setTipo] = useState<TipoNotaDebito>("montos");
   const [fecha, setFecha] = useState(fechaHoy);
   const [facturaId, setFacturaId] = useState(facturaPrevia?.id ?? "");
@@ -114,8 +117,6 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
   const [notas, setNotas] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const clientesItems = datos.contactos.map((contacto) => ({ value: contacto.id, label: contacto.nombre }));
-  const productosItems = datos.productos.map((producto) => ({ value: producto.id, label: producto.nombre }));
   const tiposItems = TIPOS_NOTA_DEBITO.map((opcion) => ({ value: opcion.valor, label: opcion.etiqueta }));
   const facturasCliente = datos.facturas.filter(
     (factura) => factura.contacto_id === clienteId && factura.estado !== "anulada",
@@ -140,21 +141,23 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
     setLineas((actuales) => actuales.map((linea) => (linea.clave === clave ? { ...linea, ...cambios } : linea)));
   }
 
-  function seleccionarProducto(clave: string, productoId: string) {
-    const producto = datos.productos.find((item) => item.id === productoId);
+  function seleccionarProducto(clave: string, producto: ProductoSeleccionable | null) {
+    if (!producto) {
+      actualizarLinea(clave, { productoId: "" });
+      return;
+    }
+
+    setProductos((actuales) => (actuales.some((item) => item.id === producto.id) ? actuales : [...actuales, producto]));
     actualizarLinea(clave, {
-      productoId,
-      ...(producto
-        ? {
-            precio: producto.precio.toFixed(2),
-            impuestoId: producto.impuesto_id ?? "",
-            itbisTasa: String(producto.itbis_tasa),
-          }
-        : {}),
+      productoId: producto.id,
+      precio: producto.precio.toFixed(2),
+      impuestoId: producto.impuesto_id ?? "",
+      itbisTasa: String(producto.itbis_tasa),
     });
   }
 
-  function seleccionarCliente(id: string) {
+  function seleccionarCliente(contacto: ContactoOpcion | null) {
+    const id = contacto?.id ?? "";
     setClienteId(id);
     if (!datos.facturas.some((factura) => factura.id === facturaId && factura.contacto_id === id)) {
       setFacturaId("");
@@ -191,7 +194,7 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
     }
 
     const payloadLineas = lineas.map((linea) => {
-      const producto = datos.productos.find((item) => item.id === linea.productoId);
+      const producto = productos.find((item) => item.id === linea.productoId);
       return {
         producto_id: linea.productoId,
         descripcion: producto?.nombre ?? "",
@@ -272,22 +275,15 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
               <Etiqueta htmlFor="cliente" requerido>
                 Cliente
               </Etiqueta>
-              <Combobox
-                items={clientesItems}
-                onValueChange={(item: { value: string; label: string } | null) => seleccionarCliente(item?.value ?? "")}
-              >
-                <ComboboxInput id="cliente" className={COMBO_MEDIO} placeholder="Buscar cliente…" showClear />
-                <ComboboxContent>
-                  <ComboboxEmpty>Sin resultados</ComboboxEmpty>
-                  <ComboboxList>
-                    {(item: { value: string; label: string }) => (
-                      <ComboboxItem key={item.value} value={item}>
-                        {item.label}
-                      </ComboboxItem>
-                    )}
-                  </ComboboxList>
-                </ComboboxContent>
-              </Combobox>
+              <SelectorContacto
+                id="cliente"
+                contactos={datos.contactos}
+                valor={clienteId}
+                onCambio={seleccionarCliente}
+                tipoInicial="cliente"
+                className={COMBO_MEDIO}
+                placeholder="Buscar cliente…"
+              />
             </Campo>
 
             <Campo>
@@ -371,29 +367,14 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
                   <div key={linea.clave} className="contents">
                     <div className="flex justify-center py-2 pr-1 text-xs leading-10 text-slate-500">{indice + 1}</div>
                     <div className="min-w-0 py-2 pr-1">
-                      <Combobox
-                        items={productosItems}
-                        onValueChange={(item: { value: string; label: string } | null) =>
-                          seleccionarProducto(linea.clave, item?.value ?? "")
-                        }
-                      >
-                        <ComboboxInput
-                          id={`producto-${linea.clave}`}
-                          className="w-full border-slate-300 bg-white dark:bg-white [&>input]:text-sm"
-                          placeholder="Buscar producto…"
-                          aria-label={`Producto de la línea ${indice + 1}`}
-                        />
-                        <ComboboxContent>
-                          <ComboboxEmpty>Sin productos</ComboboxEmpty>
-                          <ComboboxList>
-                            {(item: { value: string; label: string }) => (
-                              <ComboboxItem key={item.value} value={item}>
-                                {item.label}
-                              </ComboboxItem>
-                            )}
-                          </ComboboxList>
-                        </ComboboxContent>
-                      </Combobox>
+                      <SelectorProducto
+                        id={`producto-${linea.clave}`}
+                        productos={productos}
+                        valor={linea.productoId}
+                        onCambio={(producto) => seleccionarProducto(linea.clave, producto)}
+                        className="w-full border-slate-300 bg-white dark:bg-white [&>input]:text-sm"
+                        aria-label={`Producto de la línea ${indice + 1}`}
+                      />
                     </div>
                     <div className="min-w-0 py-2 pr-1">
                       <Input

@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import Link from "next/link";
 
 import {
@@ -74,7 +76,9 @@ export default async function Page({ searchParams }: Props) {
         </p>
       </div>
 
-      <AvisoSaldoNegativo />
+      <Suspense fallback={null}>
+        <AvisoSaldoNegativo />
+      </Suspense>
 
       <form method="get" className="flex flex-wrap items-end gap-3">
         <div className="flex min-w-64 flex-1 flex-col gap-1.5">

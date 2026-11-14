@@ -7,11 +7,13 @@ import { getFacturaVista } from "@/lib/facturacion/consultas";
 import { getPlantillaImpresion } from "@/lib/plantillas-impresion/consultas";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-  const perfil = await getPerfil();
-  if (perfil?.rol == null) redirect("/unauthorized");
-
   const { id } = await params;
-  const [datos, plantilla] = await Promise.all([getFacturaVista(id), getPlantillaImpresion("factura")]);
+  const [perfil, datos, plantilla] = await Promise.all([
+    getPerfil(),
+    getFacturaVista(id),
+    getPlantillaImpresion("factura"),
+  ]);
+  if (perfil?.rol == null) redirect("/unauthorized");
   if (!datos) notFound();
 
   return (

@@ -4,6 +4,7 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { ChevronDown } from "lucide-react";
 
+import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import { RetencionesCampo } from "@/components/retenciones/retenciones-campo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -45,12 +46,6 @@ export function FormularioPago({ contactos, cuentasCajaBanco, facturasAbiertas, 
   const [exito, setExito] = useState(false);
   const [pendiente, iniciar] = useTransition();
 
-  const opcionesContactos: OpcionCombobox[] = contactos.map((contacto) => ({
-    value: contacto.id,
-    label: contacto.nombre,
-    hint: contacto.rnc_cedula ?? undefined,
-  }));
-
   const opcionesFacturas: OpcionCombobox[] = facturasAbiertasDeProveedor(facturasAbiertas, proveedorId).map(
     (factura) => ({
       value: factura.id,
@@ -77,8 +72,8 @@ export function FormularioPago({ contactos, cuentasCajaBanco, facturasAbiertas, 
     setMonto(Math.max(0, Math.round((saldoFactura(factura) - nuevoRetenido) * 100) / 100).toFixed(2));
   }
 
-  function cambiarProveedor(valor: string) {
-    setProveedorId(valor);
+  function cambiarProveedor(contacto: { id: string } | null) {
+    setProveedorId(contacto?.id ?? "");
     setFacturaId("");
     setMonto("");
     setRetencionesIds([]);
@@ -170,13 +165,13 @@ export function FormularioPago({ contactos, cuentasCajaBanco, facturasAbiertas, 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2 sm:col-span-2">
               <Label htmlFor="proveedor">Proveedor *</Label>
-              <ComboboxCampo
+              <SelectorContacto
                 id="proveedor"
-                opciones={opcionesContactos}
+                contactos={contactos}
                 valor={proveedorId}
                 onCambio={cambiarProveedor}
+                tipoInicial="proveedor"
                 placeholder="Buscar proveedor…"
-                vacio="No hay proveedores registrados."
               />
             </div>
             <div className="flex flex-col gap-2 sm:col-span-2">

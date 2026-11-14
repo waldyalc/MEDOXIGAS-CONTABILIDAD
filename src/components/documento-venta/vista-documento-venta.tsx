@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   Ban,
   ChevronDown,
+  Copy,
   Download,
   FileMinus,
   FilePlus2,
@@ -20,6 +21,7 @@ import {
   Plus,
   Printer,
   Share2,
+  Truck,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -59,9 +61,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
 import { convertirRemisionAFactura } from "@/lib/conduces/acciones";
 import { convertirCotizacionAFactura } from "@/lib/cotizaciones/acciones";
-import type { DocumentoDetalle, DocumentoVista, FacturaRelacionada } from "@/lib/cotizaciones/tipos";
+import type {
+  DocumentoDetalle,
+  DocumentoRelacionado,
+  DocumentoVista,
+  FacturaRelacionada,
+} from "@/lib/cotizaciones/tipos";
 import {
+  rutaConduce,
   rutaContacto,
+  rutaCotizacion,
   rutaFactura,
   rutaNotaCreditoVenta,
   rutaNotaDebitoVenta,
@@ -571,14 +580,58 @@ function TablaFacturaRelacionada({ factura }: { factura: FacturaRelacionada }) {
   );
 }
 
-function EstadoVacio({ puedeConvertir, onConvertir }: { puedeConvertir: boolean; onConvertir: () => void }) {
+function etiquetaEstadoRelacionado(estado: string): string {
+  if (estado === "anulada") return "Anulada";
+  if (estado === "convertida") return "Convertida";
+  return "Abierta";
+}
+
+function TablaDocumentoRelacionado({
+  documento,
+  tipo,
+}: {
+  documento: DocumentoRelacionado;
+  tipo: "cotizacion" | "conduce";
+}) {
+  return (
+    <TablaDatos
+      columnas={[{ titulo: "Número" }, { titulo: "Fecha" }, { titulo: "Total" }, { titulo: "Estado" }]}
+      vacio="Sin documento asociado."
+      hayFilas
+    >
+      <TableRow>
+        <TableCell className="h-12 px-4 text-sm">
+          <Link
+            href={tipo === "cotizacion" ? rutaCotizacion(documento.id) : rutaConduce(documento.id)}
+            className="text-primary hover:underline"
+          >
+            #{documento.numero}
+          </Link>
+        </TableCell>
+        <TableCell className="h-12 px-4 text-sm">{formatoDia(documento.fecha)}</TableCell>
+        <TableCell className="h-12 px-4 text-sm tabular-nums">{formatoMoneda(documento.total)}</TableCell>
+        <TableCell className="h-12 px-4 text-sm">{etiquetaEstadoRelacionado(documento.estado)}</TableCell>
+      </TableRow>
+    </TablaDatos>
+  );
+}
+
+function EstadoVacio({
+  mensaje,
+  textoBoton,
+  onAccion,
+}: {
+  mensaje: string;
+  textoBoton?: string;
+  onAccion?: () => void;
+}) {
   return (
     <div className="border-border mt-4 flex flex-col items-center justify-center gap-4 rounded-[12px] border p-4 text-center">
       <FileText className="text-muted-foreground size-16" aria-hidden="true" />
-      <p className="text-muted-foreground text-base leading-6 font-medium">Aquí se mostrará la factura asociada</p>
-      {puedeConvertir ? (
-        <Button variant="outline" className="h-9 rounded-[10px]" onClick={onConvertir}>
-          Convertir en factura
+      <p className="text-muted-foreground text-base leading-6 font-medium">{mensaje}</p>
+      {textoBoton && onAccion ? (
+        <Button variant="outline" className="h-9 rounded-[10px]" onClick={onAccion}>
+          {textoBoton}
         </Button>
       ) : null}
     </div>
@@ -676,18 +729,62 @@ function MenuAcciones(props: MenuAccionesProps) {
 }
 
 interface AccionesDocumentoProps extends MenuAccionesProps {
+  tipo: TipoVistaDocumento;
   esFactura: boolean;
+  documentoId: string | null;
   contactoId: string | null;
   puedePagar: boolean;
   puedeConvertir: boolean;
+  puedeConvertirEnConduce: boolean;
+  puedeEditar: boolean;
+  puedeClonar: boolean;
   pendiente: boolean;
   onCompartir: () => void;
   onAbrirConvertir: () => void;
+  onConvertirEnConduce: () => void;
+  onClonar: () => void;
 }
 
 function AccionesDocumento(props: AccionesDocumentoProps) {
+  const rutaEditar = props.tipo === "factura" ? null : `${RUTAS_VOLVER[props.tipo]}/${props.documentoId ?? ""}/editar`;
+
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {props.puedeEditar && rutaEditar ? (
+        <Button variant="outline" className={BOTON_TEXTO} render={<Link href={rutaEditar} />}>
+          <Pencil />
+          Editar
+        </Button>
+      ) : null}
+
+      {props.puedeClonar ? (
+        <Button variant="outline" className={BOTON_TEXTO} onClick={props.onClonar}>
+          <Copy />
+          Clonar
+        </Button>
+      ) : null}
+
+      {props.puedeConvertir ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger render={<Button className="h-9 rounded-[10px] px-4" disabled={props.pendiente} />}>
+            Convertir
+            <ChevronDown />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={4} className="min-w-[185px] rounded-lg">
+            {props.puedeConvertirEnConduce ? (
+              <DropdownMenuItem className="px-4 py-2" onClick={props.onConvertirEnConduce}>
+                <Truck />
+                Convertir en conduce
+              </DropdownMenuItem>
+            ) : null}
+            <DropdownMenuItem className="px-4 py-2" onClick={props.onAbrirConvertir}>
+              <FilePlus2 />
+              Convertir en factura
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
+
       <DropdownMenu>
         <DropdownMenuTrigger
           render={<Button variant="outline" size="icon" className={BOTON_ICONO} aria-label="Más acciones" />}
@@ -731,30 +828,6 @@ function AccionesDocumento(props: AccionesDocumentoProps) {
           Agregar pago
         </Button>
       ) : null}
-
-      {props.esFactura ? null : (
-        <>
-          <Button variant="outline" className={BOTON_TEXTO} disabled title="La edición todavía no está disponible">
-            <Pencil />
-            Editar
-          </Button>
-
-          {props.puedeConvertir ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button className="h-9 rounded-[10px] px-4" disabled={props.pendiente} />}>
-                Convertir
-                <ChevronDown />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" sideOffset={4} className="min-w-[185px] rounded-lg">
-                <DropdownMenuItem className="px-4 py-2" onClick={props.onAbrirConvertir}>
-                  <FilePlus2 />
-                  Convertir en factura
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : null}
-        </>
-      )}
     </div>
   );
 }
@@ -879,14 +952,64 @@ function PanelFactura({
   );
 }
 
-function PanelDocumento({
-  facturaRelacionada,
+function ContenidoFacturaRelacionada({
+  factura,
   puedeConvertir,
   onConvertir,
 }: {
-  facturaRelacionada: FacturaRelacionada | null;
+  factura: FacturaRelacionada | null;
   puedeConvertir: boolean;
   onConvertir: () => void;
+}) {
+  if (factura) return <TablaFacturaRelacionada factura={factura} />;
+
+  return (
+    <EstadoVacio
+      mensaje="Aquí se mostrará la factura asociada"
+      textoBoton={puedeConvertir ? "Convertir en factura" : undefined}
+      onAccion={puedeConvertir ? onConvertir : undefined}
+    />
+  );
+}
+
+function ContenidoConduceRelacionado({
+  remision,
+  puedeConvertir,
+  onConvertir,
+}: {
+  remision: DocumentoRelacionado | null;
+  puedeConvertir: boolean;
+  onConvertir: () => void;
+}) {
+  if (remision) return <TablaDocumentoRelacionado documento={remision} tipo="conduce" />;
+
+  return (
+    <EstadoVacio
+      mensaje="Aquí se mostrará el conduce asociado"
+      textoBoton={puedeConvertir ? "Convertir en conduce" : undefined}
+      onAccion={puedeConvertir ? onConvertir : undefined}
+    />
+  );
+}
+
+function PanelDocumento({
+  tipo,
+  facturaRelacionada,
+  cotizacionOrigen,
+  remisionRelacionada,
+  puedeConvertir,
+  puedeConvertirEnConduce,
+  onConvertir,
+  onConvertirEnConduce,
+}: {
+  tipo: "cotizacion" | "conduce";
+  facturaRelacionada: FacturaRelacionada | null;
+  cotizacionOrigen: DocumentoRelacionado | null;
+  remisionRelacionada: DocumentoRelacionado | null;
+  puedeConvertir: boolean;
+  puedeConvertirEnConduce: boolean;
+  onConvertir: () => void;
+  onConvertirEnConduce: () => void;
 }) {
   return (
     <Card className="bg-card gap-0 rounded-[12px] border border-slate-400/20 px-2 pt-2 pb-6 shadow-none ring-0 [--card-spacing:0px] sm:px-8 sm:pb-8">
@@ -898,15 +1021,41 @@ function PanelDocumento({
           <TabsTrigger value="facturas" className={PESTANA}>
             Facturas
           </TabsTrigger>
+          {tipo === "cotizacion" ? (
+            <TabsTrigger value="conduces" className={PESTANA}>
+              Conduces
+            </TabsTrigger>
+          ) : null}
+          {tipo === "conduce" && cotizacionOrigen ? (
+            <TabsTrigger value="cotizacion" className={PESTANA}>
+              Cotización
+            </TabsTrigger>
+          ) : null}
         </TabsList>
 
         <TabsContent value="facturas" className="mt-6">
-          {facturaRelacionada ? (
-            <TablaFacturaRelacionada factura={facturaRelacionada} />
-          ) : (
-            <EstadoVacio puedeConvertir={puedeConvertir} onConvertir={onConvertir} />
-          )}
+          <ContenidoFacturaRelacionada
+            factura={facturaRelacionada}
+            puedeConvertir={puedeConvertir}
+            onConvertir={onConvertir}
+          />
         </TabsContent>
+
+        {tipo === "cotizacion" ? (
+          <TabsContent value="conduces" className="mt-6">
+            <ContenidoConduceRelacionado
+              remision={remisionRelacionada}
+              puedeConvertir={puedeConvertirEnConduce}
+              onConvertir={onConvertirEnConduce}
+            />
+          </TabsContent>
+        ) : null}
+
+        {tipo === "conduce" && cotizacionOrigen ? (
+          <TabsContent value="cotizacion" className="mt-6">
+            <TablaDocumentoRelacionado documento={cotizacionOrigen} tipo="cotizacion" />
+          </TabsContent>
+        ) : null}
       </Tabs>
     </Card>
   );
@@ -1044,6 +1193,8 @@ interface VistaPreparada {
   notasDebito: NotaVentaResumen[];
   asiento: AsientoVista | null;
   facturaRelacionada: FacturaRelacionada | null;
+  cotizacionOrigen: DocumentoRelacionado | null;
+  remisionRelacionada: DocumentoRelacionado | null;
   resumen: ReturnType<typeof resumenFactura> | null;
   estado: ReturnType<typeof estadoDeFactura>;
   descuento: number;
@@ -1064,6 +1215,8 @@ function prepararVista(props: Props): VistaPreparada | null {
   let notasDebito: NotaVentaResumen[] = [];
   let asiento: AsientoVista | null = null;
   let facturaRelacionada: FacturaRelacionada | null = null;
+  let cotizacionOrigen: DocumentoRelacionado | null = null;
+  let remisionRelacionada: DocumentoRelacionado | null = null;
 
   if (props.tipo === "factura") {
     factura = props.datos.factura;
@@ -1074,6 +1227,8 @@ function prepararVista(props: Props): VistaPreparada | null {
   } else {
     documento = props.datos.documento;
     facturaRelacionada = props.datos.facturaRelacionada;
+    cotizacionOrigen = props.datos.cotizacionOrigen;
+    remisionRelacionada = props.datos.remisionRelacionada;
   }
 
   const base = factura ?? documento;
@@ -1097,12 +1252,17 @@ function prepararVista(props: Props): VistaPreparada | null {
     notasDebito,
     asiento,
     facturaRelacionada,
+    cotizacionOrigen,
+    remisionRelacionada,
     resumen,
-    estado: factura ? estadoDeFactura(factura.estado, saldoPorCobrar) : estadoDeDocumento(base.estado),
+    estado: factura
+      ? estadoDeFactura(factura.estado, saldoPorCobrar)
+      : estadoDeDocumento(base.estado, facturaRelacionada != null),
     descuento: factura ? factura.descuento : descuentoDeLineas(lineas),
-    permisos: factura
-      ? permisosDeFactura(factura.estado, saldoPorCobrar, props.puedeEscribir)
-      : permisosDeDocumento(base.estado, props.puedeEscribir),
+    permisos:
+      props.tipo === "factura"
+        ? permisosDeFactura(base.estado, saldoPorCobrar, props.puedeEscribir)
+        : permisosDeDocumento(base.estado, props.puedeEscribir, props.tipo),
     titulo: factura
       ? `${tituloTipoComprobante(factura.tipo_comprobante)}${factura.ncf ? ` NCF ${factura.ncf}` : ""}`
       : `${TITULOS_DOCUMENTO[tipo]} ${base.numero}`,
@@ -1172,6 +1332,22 @@ function useAccionesVista({
     setConvertirAbierto(true);
   }
 
+  function convertirEnConduce() {
+    if (tipo !== "cotizacion" || !documento) return;
+    router.push(`/dashboard/conduces/nueva?cotizacion=${encodeURIComponent(documento.id)}`);
+  }
+
+  function clonar() {
+    const id = factura?.id ?? documento?.id;
+    if (!id) return;
+
+    const ruta =
+      tipo === "factura"
+        ? "/dashboard/facturacion/nueva"
+        : `/dashboard/${tipo === "cotizacion" ? "cotizaciones" : "conduces"}/nueva`;
+    router.push(`${ruta}?clonar=${encodeURIComponent(id)}`);
+  }
+
   function cambiarConvertir(abierto: boolean) {
     setError(null);
     setConvertirAbierto(abierto);
@@ -1231,6 +1407,8 @@ function useAccionesVista({
     navegar,
     compartir,
     abrirConvertir,
+    convertirEnConduce,
+    clonar,
     cambiarConvertir,
     cambiarAnular,
     convertir,
@@ -1252,6 +1430,26 @@ export function VistaDocumentoVenta(props: Props) {
   if (!preparado) return null;
 
   const { factura, base, lineas, contacto, empresa, pagos, notasCredito, notasDebito, asiento } = preparado;
+  const tipoDocumento = props.tipo === "factura" ? null : props.tipo;
+  const documentoId = factura?.id ?? preparado.documento?.id ?? null;
+
+  let panel: ReactNode = null;
+  if (factura) {
+    panel = <PanelFactura pagos={pagos} notasCredito={notasCredito} notasDebito={notasDebito} asiento={asiento} />;
+  } else if (tipoDocumento) {
+    panel = (
+      <PanelDocumento
+        tipo={tipoDocumento}
+        facturaRelacionada={preparado.facturaRelacionada}
+        cotizacionOrigen={preparado.cotizacionOrigen}
+        remisionRelacionada={preparado.remisionRelacionada}
+        puedeConvertir={preparado.permisos.convertir}
+        puedeConvertirEnConduce={preparado.permisos.convertirEnConduce}
+        onConvertir={acciones.abrirConvertir}
+        onConvertirEnConduce={acciones.convertirEnConduce}
+      />
+    );
+  }
 
   return (
     <div className="bg-muted/40 -m-4 p-4 md:-m-6 md:p-6 print:m-0 print:bg-transparent print:p-0">
@@ -1263,8 +1461,10 @@ export function VistaDocumentoVenta(props: Props) {
           etiquetaVolver={preparado.etiquetaVolver}
           acciones={
             <AccionesDocumento
+              tipo={props.tipo}
               esFactura={factura != null}
               facturaId={factura?.id ?? null}
+              documentoId={documentoId}
               contactoId={factura?.contacto_id ?? null}
               facturaRelacionada={preparado.facturaRelacionada}
               puedePagar={preparado.permisos.pagar}
@@ -1272,12 +1472,17 @@ export function VistaDocumentoVenta(props: Props) {
               puedeNotaDebito={preparado.permisos.notaDebito}
               puedeAnular={preparado.permisos.anular}
               puedeConvertir={preparado.permisos.convertir}
+              puedeConvertirEnConduce={preparado.permisos.convertirEnConduce}
+              puedeEditar={preparado.permisos.editar}
+              puedeClonar={preparado.permisos.clonar}
               pendiente={acciones.pendiente}
               onNavegar={acciones.navegar}
               onDescargarPdf={acciones.descargarPdf}
               onImprimir={acciones.imprimir}
               onCompartir={() => void acciones.compartir()}
               onAbrirConvertir={acciones.abrirConvertir}
+              onConvertirEnConduce={acciones.convertirEnConduce}
+              onClonar={acciones.clonar}
               onAnular={() => {
                 acciones.cambiarAnular(true);
               }}
@@ -1304,15 +1509,7 @@ export function VistaDocumentoVenta(props: Props) {
           total={base.total}
         />
 
-        {factura ? (
-          <PanelFactura pagos={pagos} notasCredito={notasCredito} notasDebito={notasDebito} asiento={asiento} />
-        ) : (
-          <PanelDocumento
-            facturaRelacionada={preparado.facturaRelacionada}
-            puedeConvertir={preparado.permisos.convertir}
-            onConvertir={acciones.abrirConvertir}
-          />
-        )}
+        {panel}
       </div>
 
       <DialogoConvertir

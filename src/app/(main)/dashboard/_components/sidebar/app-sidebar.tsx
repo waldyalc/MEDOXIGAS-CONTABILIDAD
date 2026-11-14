@@ -36,7 +36,7 @@ export function AppSidebar({ rol, ...props }: React.ComponentProps<typeof Sideba
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link prefetch={false} href="/dashboard" />} tooltip={APP_CONFIG.name}>
+            <SidebarMenuButton size="lg" render={<Link href="/dashboard" />} tooltip={APP_CONFIG.name}>
               <div
                 aria-hidden="true"
                 className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold"

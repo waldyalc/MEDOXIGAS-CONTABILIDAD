@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { PrecioLista } from "@/lib/inventario/tipos";
 
 export type ProductoTipo = "producto" | "servicio";
+export type TasaItbis = 0 | 2 | 10 | 16 | 18;
 
 export const SIN_CATEGORIA = "__sin_categoria__";
 
@@ -20,9 +21,10 @@ export interface Producto {
   costo: number;
   categoria_id: string | null;
   precios: PrecioLista[];
+  activo: boolean;
 }
 
-export const TASAS_ITBIS: { valor: number; etiqueta: string }[] = [
+export const TASAS_ITBIS: { valor: TasaItbis; etiqueta: string }[] = [
   { valor: 18, etiqueta: "18 %" },
   { valor: 16, etiqueta: "16 %" },
   { valor: 0, etiqueta: "0 %" },
@@ -170,6 +172,7 @@ export const esquemaProducto = z
         return texto === SIN_CATEGORIA ? null : texto;
       })
       .refine((valor) => valor === null || z.uuid().safeParse(valor).success, "La categoría no es válida"),
+    activo: z.boolean().optional(),
   })
   .transform((datos) => {
     const inventariable = datos.tipo === "servicio" ? false : datos.inventariable;
@@ -185,6 +188,7 @@ export const esquemaProducto = z
       cantidad: inventariable ? datos.cantidad : 0,
       costo: inventariable ? datos.costo : 0,
       categoria_id: datos.categoria_id,
+      activo: datos.activo,
     };
   });
 
