@@ -1,5 +1,36 @@
 # Handoff — Medoxigas Contabilidad
 
+## S21 — Todo conectado: enlaces de entidades (13 nov 2026)
+
+- `src/lib/enlaces.ts`: `rutaAjusteInventario`, `rutaTransferenciaInventario` y
+  `rutaOrigenAsiento` (documento de origen de un asiento, incluidas
+  transferencias/depósitos y conciliaciones).
+- Vistas: el asiento de factura y compra enlaza a su asiento; en compras la
+  cuenta de cada línea enlaza a la ficha; en órdenes de compra enlazan producto y
+  cuenta; en pagos recurrentes enlazan las cuentas y el asiento del gasto
+  generado; en notas de crédito/débito (venta y compra) el producto de cada línea
+  enlaza; la factura de los pagos en la ficha del contacto enlaza.
+- Ficha de contacto: nuevas pestañas «Notas de crédito y débito» y «Notas de
+  crédito de compra» (número/NCF, tipo, fecha, total y estado). Ya tenía facturas,
+  facturas de proveedor, cotizaciones, conduces, pagos y asientos con estado y
+  saldo. La ficha de producto ya muestra ventas, compras y kardex, y la de cuenta
+  sus movimientos/asientos.
+- Listados: el NCF de facturas, compras y notas enlaza a su documento; el origen
+  de los asientos enlaza; cotizaciones/conduces usan los helpers de ruta; el
+  código del banco enlaza a la cuenta contable.
+- Reportes: libro diario, movimientos por cuenta, agrupado, balance, auxiliar y
+  balanza por tercero enlazan asiento, cuenta y tercero; transacciones enlaza la
+  cuenta; estados financieros y estado de resultados enlazan la cuenta;
+  impuestos/retenciones, IR-17 y cartas enlazan el contacto; 606/607/608 enlazan
+  NCF y RNC sin tocar Excel/PDF/TXT (las rutas van en campos `__ruta`/
+  `__contactoId` que no forman columnas del formato).
+- Sin migraciones. `typecheck`, `test` (577), Biome de lo tocado y `build` en
+  verde. Sin verificación visual (la hace Coder).
+- Quedó fuera: almacén, vendedor y centro de costo no tienen ficha propia (se
+  editan en Configuración), así que siguen como texto; los conceptos agregados
+  del flujo de efectivo no se enlazan; el documento de una retención en IR-17 y
+  cartas no tiene `factura_id` para enlazar.
+
 ## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
 
 - El saldo por pagar ahora es `total - pagado - credito` en el reporte Cuentas
