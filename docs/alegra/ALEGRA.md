@@ -919,6 +919,12 @@ Los enlaces a reportes llevan en la URL el rango de fechas del filtro de periodo
 - La basura de la gráfica.
 - La fórmula exacta de "Productos vendidos" y de la etiqueta "0%".
 
+### Guía de diseño (CSS)
+
+El 14/11/2026 se midió el CSS del Inicio (colores, tipografía, rejilla, tarjetas, gráficas, botones, menú de periodo, diálogo y modal) sobre la misma cuenta de prueba. Guía completa para Coder en `css-inicio/GUIA-INICIO.md`, con copia local en `css-inicio/inicio/` y capturas anotadas `20-guia-inicio-*.png` en `capturas/`.
+
+Nota: desde entonces el panel "Funciones sugeridas" ya no está visible y sí se agregaron 2 gráficas (Total de ventas, Distribución de costos y Flujo de transacciones), así que el orden de arriba a abajo cambió; manda lo que dice la guía de diseño.
+
 ## Formularios de pago
 
 Revisado el 13/11/2026 en Fiel Ferreteria, solo mirando: no se guardó ningún pago. Capturas en `capturas/19-pago-*.png` y `capturas/19-guia-*.png`. Copias offline de las dos páginas en `css-pagos/` (ver `css-pagos/NOTA.md`).
