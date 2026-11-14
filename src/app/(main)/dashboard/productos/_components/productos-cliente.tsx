@@ -2,10 +2,12 @@
 
 import { type FormEvent, useState, useTransition } from "react";
 
-import { ChevronDown, Pencil, Plus, Search } from "lucide-react";
+import { ChevronDown, Pencil, Plus, Search, Upload } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -30,6 +32,9 @@ import {
   TASAS_ITBIS,
 } from "@/lib/productos/productos";
 
+import { EditarSeleccionadosDialogo } from "./editar-seleccionados-dialogo";
+import { ImportarProductosDialogo } from "./importar-productos-dialogo";
+
 const OPCIONES_ITBIS = TASAS_ITBIS.map((tasa) => ({ value: String(tasa.valor), label: tasa.etiqueta }));
 
 const OPCIONES_TIPO = [
@@ -39,6 +44,62 @@ const OPCIONES_TIPO = [
 
 function muestraInventario(producto: Producto) {
   return producto.tipo === "producto" && producto.inventariable;
+}
+
+function FilaProducto({
+  producto,
+  puedeEditar,
+  seleccionado,
+  onAlternar,
+  onEditar,
+}: {
+  readonly producto: Producto;
+  readonly puedeEditar: boolean;
+  readonly seleccionado: boolean;
+  readonly onAlternar: (id: string, marcado: boolean) => void;
+  readonly onEditar: (producto: Producto) => void;
+}) {
+  return (
+    <TableRow data-state={seleccionado ? "selected" : undefined}>
+      {puedeEditar ? (
+        <TableCell>
+          <Checkbox
+            checked={seleccionado}
+            onCheckedChange={(valor) => onAlternar(producto.id, valor === true)}
+            aria-label={`Seleccionar ${producto.nombre}`}
+          />
+        </TableCell>
+      ) : null}
+      <TableCell className="font-medium">
+        <Enlace href={rutaProducto(producto.id)}>{producto.nombre}</Enlace>
+      </TableCell>
+      <TableCell className="text-muted-foreground">{producto.referencia?.trim() || "—"}</TableCell>
+      <TableCell className="text-right tabular-nums">{formatoMoneda(producto.precio)}</TableCell>
+      <TableCell className="text-right">{etiquetaTasaItbis(producto.itbis_tasa)}</TableCell>
+      <TableCell className="text-right tabular-nums">
+        {muestraInventario(producto) ? formatoCantidad(producto.cantidad) : "—"}
+      </TableCell>
+      <TableCell className="text-right tabular-nums">
+        {muestraInventario(producto) ? formatoMoneda(producto.costo) : "—"}
+      </TableCell>
+      <TableCell>
+        <Badge variant={producto.activo ? "outline" : "secondary"}>{producto.activo ? "Activo" : "Inactivo"}</Badge>
+      </TableCell>
+      {puedeEditar ? (
+        <TableCell className="text-right">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Editar ${producto.nombre}`}
+            onClick={() => onEditar(producto)}
+          >
+            <Pencil />
+          </Button>
+        </TableCell>
+      ) : null}
+    </TableRow>
+  );
 }
 
 function CamposInventario({
@@ -306,8 +367,39 @@ export function ProductosCliente({
   const [busqueda, setBusqueda] = useState("");
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [productoEditando, setProductoEditando] = useState<Producto | null>(null);
+  const [importarAbierto, setImportarAbierto] = useState(false);
+  const [edicionMasivaAbierta, setEdicionMasivaAbierta] = useState(false);
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(() => new Set());
 
   const filtrados = filtrarProductos(productos, busqueda);
+  const productosSeleccionados = productos.filter((producto) => seleccionados.has(producto.id));
+  const todosVisiblesSeleccionados =
+    filtrados.length > 0 && filtrados.every((producto) => seleccionados.has(producto.id));
+
+  function alternarSeleccion(id: string, marcado: boolean) {
+    setSeleccionados((anterior) => {
+      const siguiente = new Set(anterior);
+      if (marcado) siguiente.add(id);
+      else siguiente.delete(id);
+      return siguiente;
+    });
+  }
+
+  function alternarTodosVisibles(marcado: boolean) {
+    setSeleccionados((anterior) => {
+      const siguiente = new Set(anterior);
+      for (const producto of filtrados) {
+        if (marcado) siguiente.add(producto.id);
+        else siguiente.delete(producto.id);
+      }
+      return siguiente;
+    });
+  }
+
+  function terminarEdicionMasiva() {
+    setEdicionMasivaAbierta(false);
+    setSeleccionados(new Set());
+  }
 
   function abrirNuevo() {
     setProductoEditando(null);
@@ -337,34 +429,63 @@ export function ProductosCliente({
           <p className="text-muted-foreground">Administra los productos y servicios que vendes.</p>
         </div>
         {puedeEditar ? (
-          <Button type="button" onClick={abrirNuevo}>
-            <Plus />
-            Nuevo producto
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" onClick={() => setImportarAbierto(true)}>
+              <Upload />
+              Importar
+            </Button>
+            <Button type="button" onClick={abrirNuevo}>
+              <Plus />
+              Nuevo producto
+            </Button>
+          </div>
         ) : null}
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-        <Input
-          value={busqueda}
-          onChange={(event) => setBusqueda(event.target.value)}
-          placeholder="Buscar por nombre o referencia…"
-          aria-label="Buscar productos"
-          className="pl-8"
-        />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+          <Input
+            value={busqueda}
+            onChange={(event) => setBusqueda(event.target.value)}
+            placeholder="Buscar por nombre o referencia…"
+            aria-label="Buscar productos"
+            className="pl-8"
+          />
+        </div>
+        {puedeEditar ? (
+          <Button
+            type="button"
+            variant="outline"
+            disabled={seleccionados.size === 0}
+            onClick={() => setEdicionMasivaAbierta(true)}
+          >
+            <Pencil />
+            Editar seleccionados{seleccionados.size > 0 ? ` (${seleccionados.size})` : ""}
+          </Button>
+        ) : null}
       </div>
 
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
+              {puedeEditar ? (
+                <TableHead className="w-8">
+                  <Checkbox
+                    checked={todosVisiblesSeleccionados}
+                    onCheckedChange={(valor) => alternarTodosVisibles(valor === true)}
+                    aria-label="Seleccionar todos los productos visibles"
+                  />
+                </TableHead>
+              ) : null}
               <TableHead>Nombre</TableHead>
               <TableHead>Referencia</TableHead>
               <TableHead className="text-right">Precio</TableHead>
               <TableHead className="text-right">ITBIS</TableHead>
               <TableHead className="text-right">Existencia</TableHead>
               <TableHead className="text-right">Costo</TableHead>
+              <TableHead>Estado</TableHead>
               {puedeEditar ? (
                 <TableHead className="w-10">
                   <span className="sr-only">Acciones</span>
@@ -376,7 +497,7 @@ export function ProductosCliente({
             {filtrados.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={puedeEditar ? 7 : 6}
+                  colSpan={puedeEditar ? 9 : 7}
                   className="text-muted-foreground h-24 text-center whitespace-normal"
                 >
                   {busqueda.trim()
@@ -386,33 +507,14 @@ export function ProductosCliente({
               </TableRow>
             ) : (
               filtrados.map((producto) => (
-                <TableRow key={producto.id}>
-                  <TableCell className="font-medium">
-                    <Enlace href={rutaProducto(producto.id)}>{producto.nombre}</Enlace>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{producto.referencia?.trim() || "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoMoneda(producto.precio)}</TableCell>
-                  <TableCell className="text-right">{etiquetaTasaItbis(producto.itbis_tasa)}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {muestraInventario(producto) ? formatoCantidad(producto.cantidad) : "—"}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {muestraInventario(producto) ? formatoMoneda(producto.costo) : "—"}
-                  </TableCell>
-                  {puedeEditar ? (
-                    <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Editar ${producto.nombre}`}
-                        onClick={() => abrirEditar(producto)}
-                      >
-                        <Pencil />
-                      </Button>
-                    </TableCell>
-                  ) : null}
-                </TableRow>
+                <FilaProducto
+                  key={producto.id}
+                  producto={producto}
+                  puedeEditar={puedeEditar}
+                  seleccionado={seleccionados.has(producto.id)}
+                  onAlternar={alternarSeleccion}
+                  onEditar={abrirEditar}
+                />
               ))
             )}
           </TableBody>
@@ -433,6 +535,20 @@ export function ProductosCliente({
           />
         </DialogContent>
       </Dialog>
+
+      <ImportarProductosDialogo
+        abierto={importarAbierto}
+        categorias={categorias}
+        onCambiarAbierto={setImportarAbierto}
+      />
+
+      <EditarSeleccionadosDialogo
+        abierto={edicionMasivaAbierta}
+        productos={productosSeleccionados}
+        categorias={categorias}
+        onCambiarAbierto={setEdicionMasivaAbierta}
+        onTerminado={terminarEdicionMasiva}
+      />
     </div>
   );
 }

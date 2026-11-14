@@ -25,6 +25,7 @@ function producto(parcial: Partial<Producto> & Pick<Producto, "id" | "nombre">):
     costo: 0,
     categoria_id: null,
     precios: [],
+    activo: true,
     ...parcial,
   };
 }

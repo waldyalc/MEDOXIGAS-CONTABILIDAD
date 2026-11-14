@@ -7,8 +7,37 @@
 - Selectores cambiados en: factura, cotización y conduce (plantilla `documento-venta-form`), nota de débito, pago recibido, factura de proveedor, pago a proveedor, gasto menor y orden de compra. En líneas se agregó «Crear nuevo producto» en factura/cotización/conduce, nota de débito, factura de proveedor y orden de compra.
 - Validación pura en `src/lib/contactos/contacto-rapido.ts` con Vitest (RNC 9 dígitos, cédula 11, pasaporte alfanumérico y tipo cliente/proveedor/ambos).
 - Migración **aditiva** `20261115600000_contacto_rapido_identificacion.sql` (NO aplicada al remoto; la revisa Coder): agrega `tipo_identificacion` y `municipio_provincia` a `contactos` y actualiza `crear_contacto`/`actualizar_contacto`. `types.ts` actualizado a mano solo en esas columnas.
-- Verificado: `pnpm typecheck`, `pnpm test` (584), Biome sobre lo tocado y `pnpm build`. Sin verificación visual.
+- Verificado: `pnpm typecheck`, `pnpm test` (616), Biome sobre lo tocado y `pnpm build`. Sin verificación visual.
 - Quedó fuera: facturas/pagos recurrentes (no estaban en la lista) y las notas de crédito, que no tienen selector propio porque toman el contacto de la factura.
+
+## Productos: importar CSV/Excel y edición masiva (13 nov 2026)
+
+- Lista de productos: botón «Importar» con diálogo shadcn. Descarga la
+  plantilla CSV (nombre, referencia, tipo, precio, ITBIS, costo inicial,
+  unidad, categoría, descripción), lee `.csv` o `.xlsx` (ExcelJS, ya instalado;
+  sin dependencias nuevas), muestra vista previa con las filas listas y los
+  errores por fila en español, y crea solo las filas válidas reutilizando
+  `crearProducto` (RPC `crear_producto`). La columna «unidad» se acepta y se
+  valida, pero no se guarda: `productos` no tiene ese campo y la app muestra
+  «Unidad» fijo (decisión de Coder).
+- Los productos importados de tipo «Producto» quedan inventariables con
+  cantidad 0 y el costo inicial del archivo; «Servicio» queda sin inventario.
+- Selección con casillas (incluye «seleccionar visibles») y «Editar
+  seleccionados»: precio fijo o ajuste porcentual con signo, ITBIS, categoría
+  y activo/inactivo. Usa `actualizarProducto` (RPC `actualizar_producto`) con
+  los datos completos del producto; la UI muestra la columna «Estado».
+- Lógica pura en `src/lib/productos/importar.ts` con Vitest (CSV con comas,
+  punto y coma, comillas y BOM; validación por fila; cálculo del ajuste).
+  `Producto` incluye `activo` y conserva `precios` (listas de precios).
+- Merge con `origin/prueba` (inventario 2): importación y edición masiva no
+  envían campos `precio_lista_*`; `actualizarProducto` omite la clave `precios`
+  cuando el formulario no trae listas, así que no borra ni cambia los precios
+  de listas (el formulario normal sí los manda y puede vaciarlos). Cubierto en
+  `precios-formulario.test.ts`.
+- Sin migración ni cambios de datos. `typecheck`, `test` (609), Biome de lo
+  tocado y `build` en verde.
+- Aparte: corregido solo el valor esperado del pgTAP de periodos (`3202`
+  débito−crédito = resultado, sin negarlo). La función no se tocó.
 
 ## Higiene de migraciones: orden S15, notas de crédito y pgTAP aislados (15 nov 2026)
 
