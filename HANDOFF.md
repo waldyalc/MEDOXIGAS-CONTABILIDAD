@@ -25,7 +25,19 @@
   `20261115700000_impuestos_catalogo.sql` (tabla, cuentas, columnas, helpers,
   triggers y RLS) y `20261115701000_motor_impuestos.sql` (wrappers del motor).
   pgTAP `supabase/tests/impuestos_catalogo_test.sql` (23 asserts, aislado).
-- Verificado: `pnpm typecheck`, Biome sobre lo tocado, `pnpm test` (582) y
+- Funciones envueltas y base exacta de la que parten (rename + wrapper, sin
+  reescribir el cuerpo): `crear_factura` y `crear_factura_proveedor`
+  (`20261115500000`), `crear_nota_credito_venta` y `crear_nota_credito_compra`
+  (`20261115500000`), `crear_nota_debito_venta` (`20261114100000`),
+  `crear_gasto_menor` (`20261113160000`), `_crear_documento_no_contable`
+  (`20261115201000`), `_editar_documento_no_contable` (`20261115400000`),
+  `crear_orden_compra` (`20261114201000`), `crear_producto` y
+  `actualizar_producto` (`20261114900000`). `convertir_a_factura`
+  (`20261115201000`) se reescribe solo para pasar `impuesto_id` de la línea.
+  `crear_cotizacion`, `crear_remision`, `editar_cotizacion`,
+  `editar_remision` y `crear_remision_desde_cotizacion` (`20261115400000`) se
+  conservan y llaman a los wrappers.
+- Verificado: `pnpm typecheck`, Biome sobre lo tocado, `pnpm test` (621) y
   `pnpm build`. Los pgTAP no se pudieron correr aquí (sin Docker/Supabase CLI).
 - Pendiente: regenerar `src/lib/supabase/types.ts` con `pnpm db:types` después
   de aplicar las migraciones. Quedaron fuera los selectores de facturas
