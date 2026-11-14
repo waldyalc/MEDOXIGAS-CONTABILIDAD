@@ -12,6 +12,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y Oxymat), República Dominicana. Dueño: Waldy Alcántara. **Inspirado** en Alegra (alegra.com), **no es una copia**: nada de su código, textos, logos ni diseño exacto; no se hace ingeniería inversa (sus términos lo prohíben). El estudio de cómo trabaja Waldy en Alegra va en `docs/alegra/`. El contexto completo para seguir el sistema en local, sin Coder, está en `docs/CONTEXTO-CODER.md`.
 
+- **Fuente de la verdad:** `docs/alegra/ALEGRA.md` (con sus capturas y las guías `css-*`). Todo se construye copiando el comportamiento y el orden de Alegra Contabilidad documentados ahí; si hay dudas, manda ese archivo.
 - Producción: rama `main` → https://medoxigas-contabilidad.vercel.app · Prueba: rama `prueba` → https://medoxigas-contabilidad-prueba.vercel.app · Repo: `waldyalc/MEDOXIGAS-CONTABILIDAD`.
 - Base de datos: Supabase, proyecto **MEDOXIGAS-CONTABILIDAD** (`ljfdhrnvlsfaweuvnqxz`, ca-central-1, plan gratis). **Única fuente de la verdad.** Roles en `perfiles`: `admin`, `contador`, `lector`.
 - Mismo stack que Medoxigas-OPP (`waldyalc/MEDOXIGAS-OPP`): Next.js 16, React 19, Supabase (`@supabase/ssr`), shadcn/ui + Tailwind 4, Biome, Vitest, Playwright, pnpm, Vercel. Diseño: plantilla Studio Admin → `docs/plantilla-diseno.md`.

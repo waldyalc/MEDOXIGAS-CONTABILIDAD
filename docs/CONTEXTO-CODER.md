@@ -1,8 +1,20 @@
 # Contexto para seguir Medoxigas Contabilidad sin Coder
 
-Este archivo es para **Waldy** y para cualquier agente (T3 Code, OpenCode, Claude u otro). Reúne lo que Coder sabía hasta el **14 de noviembre de 2026** (hora de República Dominicana, zona America/Santo_Domingo): qué es el sistema, dónde vive, cómo trabajar, lo que ya está hecho, lo que falta y cómo está documentado Alegra.
+Este archivo es para **Waldy** y para cualquier agente (T3 Code, OpenCode, Claude u otro). Reúne lo que Coder sabía hasta el **14 de noviembre de 2026** (hora de República Dominicana, zona America/Santo_Domingo): qué es el sistema, dónde vive, cómo se trabajaba, cómo seguir ahora en local, lo que ya está hecho y lo que falta.
 
-Léelo junto con `AGENTS.md`, `HANDOFF.md` y las habilidades de `.opencode/skills/`. El estudio de las pantallas de Alegra está en `docs/alegra/ALEGRA.md`.
+Léelo junto con `AGENTS.md`, `HANDOFF.md` y las habilidades de `.opencode/skills/`.
+
+---
+
+## Fuente de la verdad: `docs/alegra/ALEGRA.md`
+
+**`docs/alegra/ALEGRA.md`**, con sus capturas en `docs/alegra/capturas/` y las guías `docs/alegra/css-factura/`, `docs/alegra/css-vista/` y `docs/alegra/css-pagos/`, es **LA FUENTE DE LA VERDAD** de este sistema.
+
+Todo se construye copiando el **comportamiento** y el **orden** de Alegra Contabilidad que están documentados ahí: campos, flujos, asientos, fichas, reportes y cómo se ve cada pantalla. No se inventa un flujo distinto ni se «mejora» Alegra por cuenta propia.
+
+- Si hay una duda (¿este campo va aquí?, ¿qué asiento arma este documento?, ¿cómo se ve el pago recibido?), **manda `ALEGRA.md`**: abre la sección que corresponde y, si hace falta, las capturas y la guía `css-*` de esa pantalla.
+- No copies al producto el código, el CSS, los textos largos ni los logos de Alegra. Lo que se copia es el comportamiento y el orden, con los colores de Medoxigas y shadcn/ui tal cual.
+- Si `ALEGRA.md` no cubre un caso, anótalo; no adivines.
 
 ---
 
@@ -36,7 +48,77 @@ El checkout de trabajo en el box de los agentes (si aparece) suele estar en `/wo
 
 ---
 
-## 3. Cómo arrancar en local
+## 3. Cómo trabajábamos
+
+Hasta ahora el trabajo lo orquestaba **Coder**, un bot de **Grok Bot** y líder de ingeniería de Medoxigas. Waldy le hablaba en español, corto y claro. Coder **no escribía el código a mano**: diseñaba la solución, escribía el brief y lanzaba sesiones en la computadora **MSI** de Waldy.
+
+- Las sesiones corrían en **T3 Code / OpenCode**, con el modelo `opencode-go/deepseek-v4.1-flash`, variante **max**.
+- Cada sesión partía de un **worktree** desde `origin/prueba`, en su propia rama `feat/...`. Coder podía tener hasta **10 sesiones a la vez**, sin que se pisaran los mismos archivos.
+- Un **vigilante local** en la MSI avisaba cuando una sesión terminaba (o se quedaba callada).
+- Entonces Coder **revisaba el diff**, probaba las migraciones en BEGIN/ROLLBACK con pgTAP, las aplicaba si correspondía, hacía merge a `prueba`, corría typecheck / test / check / build, hacía push, actualizaba la copia de la PC (`git pull`) y **le avisaba a Waldy**.
+- `main` y la web de producción solo se tocaban cuando Waldy lo decidía.
+
+**Asistente Code** (otro bot de Grok Bot) se encargaba del estudio de Alegra. Recorría la cuenta de prueba **Fiel Ferreteria** (nunca la cuenta real de Medoxigas) y documentaba pantallas, campos y asientos en `docs/alegra/ALEGRA.md`, con capturas y las guías `css-*`. En esa cuenta de estudio **no se crea nada nuevo**: se mira lo que ya está y se escribe en el documento. Si hace falta ampliar el estudio, se vuelve a recorrer y se actualiza `ALEGRA.md`; no se programa a ciegas.
+
+Ese modo (Coder orquestando en la nube, con la MSI prendida) es el que se deja atrás. A partir de ahora Waldy sigue en local, con un agente a su lado o él mismo. El conocimiento queda en este archivo y en `ALEGRA.md`.
+
+---
+
+## 4. Cómo seguir ahora, trabajando en local sin Coder
+
+Waldy trabaja en su PC, en `C:\Users\wardy\proyectos\MEDOXIGAS-CONTABILIDAD`, con un agente de código (**OpenCode**, T3 Code u otro). Ya no hace falta que Coder lance ni vigile las sesiones, aunque se pueden seguir usando T3 Code y el mismo modelo si se quiere (sección 7).
+
+### Al empezar cada tarea, el agente lee, en este orden:
+
+1. `AGENTS.md` — reglas del repo, comandos y lo que nunca hay que hacer.
+2. `HANDOFF.md` — lo último que se integró y cómo se resolvió.
+3. `docs/CONTEXTO-CODER.md` — este archivo (meta, preferencias, pendientes y cómo trabajar).
+4. `docs/alegra/ALEGRA.md` — **la fuente de la verdad**. Si la tarea toca una pantalla, también las capturas y la guía `css-*` de esa pantalla.
+
+Sin esos cuatro, no se empieza a programar.
+
+### Flujo paso a paso
+
+1. Acuerda con Waldy **una sola tarea** y el resultado que se debe ver.
+2. Lee los cuatro archivos de arriba y la sección de `ALEGRA.md` que aplica. Si hay duda, manda `ALEGRA.md`; no inventes el flujo.
+3. Parte de `origin/prueba` (nunca de `main`) y crea una rama `feat/<nombre-corto>`. Mejor en un worktree, para no ensuciar la carpeta donde corre `localhost:3000`.
+4. Programa el comportamiento y el orden de Alegra, con colores Medoxigas y shadcn/ui tal cual. Si es solo diseño, no cambies cálculos ni lo que se guarda.
+5. Si hace falta base de datos: migración **aditiva**, tests (Vitest y, si tocas SQL, pgTAP). No edites una migración ya aplicada. No apliques la migración al proyecto remoto tú solo, salvo que Waldy lo pida con claridad.
+6. Corre `pnpm typecheck`, los tests del cambio y Biome en lo tocado. Actualiza `HANDOFF.md`.
+7. Commit chico en español y, si aplica, push de **tu rama**. Nunca `--no-verify`, nunca force-push, nunca merge a `main`.
+8. Waldy lo mira en http://localhost:3000 (la ventana «NO CERRAR»). Cuando esté bien, se fusiona a `prueba` (fast-forward si se puede), se hace push y `git pull --ff-only origin prueba` en la carpeta principal.
+9. Pasar a `main` y a producción **solo cuando Waldy lo decida**.
+
+El detalle técnico de git y migraciones está en la sección 6.
+
+### Plantilla de brief (cópiala y rellénala)
+
+```
+Tarea: (una sola, con el resultado que se debe ver)
+Parte de: origin/prueba
+Rama: feat/nombre-corto
+
+Fuente de la verdad: docs/alegra/ALEGRA.md
+Sección de Alegra: (número y título, más la guía css-* si aplica)
+
+Qué sí hacer:
+- …
+
+Qué no tocar:
+- main, secretos, .env.local, otras pantallas
+- (cálculos / lo que se guarda, si es solo diseño)
+
+Migración: no / sí (aditiva, con pgTAP, no aplicar en el remoto)
+
+Al terminar:
+- pnpm typecheck y tests del cambio en verde
+- actualizar HANDOFF.md
+```
+
+No pegues claves, tokens ni el contenido de ningún `.env` en el brief.
+
+---
+## 5. Cómo arrancar en local
 
 Hace falta Node.js 22 LTS y pnpm 10. En PowerShell, en la carpeta del repo:
 
@@ -77,7 +159,7 @@ Nunca imprimas el contenido de `.env.local`.
 
 ---
 
-## 4. Flujo de trabajo
+## 6. Flujo de trabajo (git, migraciones y pruebas)
 
 1. **Parte siempre de `origin/prueba`**, nunca de `main`. Crea una rama `feat/<nombre-corto>`.
 2. Si hay cambio de base de datos, la migración debe ser **aditiva** (archivo nuevo en `supabase/migrations/`, nombre `YYYYMMDDHHMMSS_descripcion.sql`). No edites una migración que ya está en el repo o ya se aplicó.
@@ -95,9 +177,9 @@ Antes de decir «listo»: actualiza `HANDOFF.md` con lo que se hizo y cómo se r
 
 ---
 
-## 5. Cómo usar T3 Code y OpenCode, y cómo escribir un buen brief
+## 7. Cómo usar T3 Code y OpenCode, y cómo escribir un buen brief
 
-El código lo escribe **OpenCode dentro de T3 Code**, en la computadora MSI de Waldy. El modelo es `opencode-go/deepseek-v4.1-flash`, variante **max**. La MSI tiene que estar prendida y con T3 Code abierto. El repo de T3 es el mismo: MEDOXIGAS-CONTABILIDAD.
+Si Waldy sigue usando **T3 Code / OpenCode** en la MSI, el modelo es `opencode-go/deepseek-v4.1-flash`, variante **max**. La MSI tiene que estar prendida y con T3 Code abierto. El repo es el mismo: MEDOXIGAS-CONTABILIDAD. El flujo de cada tarea (leer `ALEGRA.md`, una rama desde `prueba`, avisarle a Waldy) es el de la sección 4. La plantilla corta del brief también está ahí; abajo van más detalles.
 
 Forma habitual de una sesión:
 
@@ -123,7 +205,7 @@ Las habilidades del repo (cargarlas según el caso): `localhost`, `probar-cambio
 
 ---
 
-## 6. Preferencias de diseño y de producto de Waldy
+## 8. Preferencias de diseño y de producto de Waldy
 
 Estas reglas se mantienen aunque el agente sea otro:
 
@@ -146,7 +228,7 @@ Estas reglas se mantienen aunque el agente sea otro:
 
 ---
 
-## 7. Historial de lo hecho (hasta S28)
+## 9. Historial de lo hecho (hasta S28)
 
 Casi todo se construyó el **13 de noviembre de 2026**, en muchas sesiones paralelas de T3 Code / OpenCode, y se fue integrando a la rama `prueba`. La numeración S1–S14 no quedó siempre escrita con ese nombre; abajo va primero la **Beta 1** y el resto de módulos, y luego las sesiones que sí quedaron numeradas (S15 a S28). El detalle de cada una está en `HANDOFF.md`.
 
@@ -195,7 +277,7 @@ Al cerrar S28, `prueba` estaba en `2947d7b`, con typecheck, **662** tests de la 
 
 ---
 
-## 8. Migraciones aplicadas
+## 10. Migraciones aplicadas
 
 En el proyecto Supabase compartido (`ljfdhrnvlsfaweuvnqxz`) ya están aplicadas, en este orden, las migraciones que viven en `supabase/migrations/` de la rama `prueba` (estado al 14 nov 2026):
 
@@ -248,7 +330,7 @@ Algunas notas de `HANDOFF.md` dicen «migración no aplicada» porque se escribi
 
 ---
 
-## 9. Pendiente y lo que Waldy dejó para el futuro
+## 11. Pendiente y lo que Waldy dejó para el futuro
 
 ### Lo dejó para más adelante (no hacerlo ahora, hasta que lo pida)
 
@@ -279,7 +361,7 @@ Pasar `prueba` a `main` y a producción **solo cuando Waldy lo decida**. Producc
 
 ---
 
-## 10. Plan de pruebas intensivas (en pausa)
+## 12. Plan de pruebas intensivas (en pausa)
 
 Waldy pidió un plan de pruebas fuertes y después dijo **«todavía no»**. El plan queda guardado y **solo se arranca cuando él lo diga**. No se crearon datos de esa ronda.
 
@@ -293,7 +375,29 @@ Cuando lo autorice:
 
 ---
 
-## 11. Reglas de seguridad
+## 13. Otros proyectos de Medoxigas (contexto breve)
+
+Estos sistemas **no son** Medoxigas Contabilidad. Están aquí para que un agente no los mezcle ni busque sus archivos en este repo. Sin secretos: solo nombres, rutas y lo que está pendiente.
+
+### ERP Medoxigas-OPP
+
+Es el ERP de operaciones (producción, **Punto de Venta** y **Caja Chica**), no el de contabilidad.
+
+- Repo: `waldyalc/MEDOXIGAS-OPP` (privado).
+- Supabase: proyecto **MEDOXIGAS-OPP**, ref `roykriwnmzzcyztxlycg` (otra base, distinta de la de Contabilidad).
+- Web: https://medoxigas-opp.vercel.app (también se usa el dominio `app.medoxigas.com`). Hay un enlace de prueba aparte.
+- Módulos principales ya en uso: Producción (llenados, merma, ISOs), Caja Chica y POS (turno, efectivo/transferencia, ticket de 58 mm). Waldy ve todo; Héctor Alcántara solo Caja Chica y Punto de Venta.
+- Pendiente conocido: el **backend del POS** en Supabase (la caja aún no está del todo del lado del servidor) y las **imágenes de productos** del mostrador (Waldy las pasa, se les quita el fondo y van en `public/pos/productos/` de ese repo).
+
+### Pipeline de producción (WhatsApp → Gemini → Supabase)
+
+Lee el grupo de WhatsApp de operaciones (solo lectura: no envía ni escribe), manda las fotos del reloj del tanque LOX a Gemini y guarda lecturas y llenados en la base de **Medoxigas-OPP**. Con eso se calcula la merma de cada ISO (camión de Air Liquide) y, si el reloj sube como una descarga, el cambio de ISO es automático. Las fotos que no son del reloj se ignoran.
+
+La descripción completa está en el box de Grok Bot, **no en la PC de Waldy**: `/home/box/medoxigas/produccion/COMO-FUNCIONA.md`. El script vive en `/home/box/medoxigas/produccion/pipeline/`. No copies claves ni tokens de ese entorno a este repo.
+
+---
+
+## 14. Reglas de seguridad
 
 - **Ninguna clave, token ni secreto en el repo.** Ni en este archivo, ni en `ALEGRA.md`, ni en un brief, ni en un log. Las claves viven solo en variables de entorno (`.env.local` en la PC, variables de Vercel, secretos de GitHub).
 - Nunca subas `.env*`, el contenido de `aviso.env`, la clave `service_role`, contraseñas de Alegra, de Supabase o de la DGII.
@@ -306,7 +410,7 @@ Cuando lo autorice:
 
 ---
 
-## 12. Índice de `docs/alegra`
+## 15. Índice de `docs/alegra`
 
 Esta carpeta es el estudio de **Alegra Contabilidad**, recorrido en una cuenta de prueba (nunca la cuenta real de Medoxigas). El archivo principal es `ALEGRA.md` (unas 1085 líneas). Las capturas van en `docs/alegra/capturas/`. Hay también `catalogo-cuentas-alegra.xlsx`.
 
@@ -350,7 +454,7 @@ Esta carpeta es el estudio de **Alegra Contabilidad**, recorrido en una cuenta d
 
 ---
 
-## 13. Cómo está la copia local (14 nov 2026)
+## 16. Cómo está la copia local (14 nov 2026)
 
 La carpeta `C:\Users\wardy\proyectos\MEDOXIGAS-CONTABILIDAD` debe estar en la rama `prueba`, al día con GitHub. Ahí tienen que verse este archivo y el `ALEGRA.md` completo (unas 1085 líneas), con capturas, guías `css-*` y el Excel del catálogo.
 
