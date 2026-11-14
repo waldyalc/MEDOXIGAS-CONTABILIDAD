@@ -5,7 +5,11 @@ import type { FacturaVenta, NumeracionOpcion } from "./tipos";
 const TAMANO_LOTE = 1000;
 
 const CAMPOS_FACTURA =
-  "id, numero, ncf, tipo_comprobante, contacto_id, fecha, subtotal, descuento, itbis, total, pagado, estado";
+  "id, numero, ncf, tipo_comprobante, contacto_id, fecha, subtotal, descuento, itbis, total, pagado, estado, contactos(nombre)";
+
+interface FacturaVentaConContacto extends FacturaVenta {
+  contactos: { nombre: string } | null;
+}
 
 export interface RespuestaVentas {
   facturas: FacturaVenta[];
@@ -15,7 +19,7 @@ export interface RespuestaVentas {
 }
 
 interface LoteFacturas {
-  facturas: FacturaVenta[];
+  facturas: FacturaVentaConContacto[];
   error: string | null;
 }
 
@@ -24,7 +28,7 @@ async function consultarFacturas(
   desde: string,
   hasta: string,
 ): Promise<LoteFacturas> {
-  const facturas: FacturaVenta[] = [];
+  const facturas: FacturaVentaConContacto[] = [];
   let inicio = 0;
 
   for (;;) {
@@ -36,7 +40,7 @@ async function consultarFacturas(
       .order("fecha", { ascending: true })
       .order("numero", { ascending: true })
       .range(inicio, inicio + TAMANO_LOTE - 1)
-      .returns<FacturaVenta[]>();
+      .returns<FacturaVentaConContacto[]>();
 
     if (error) return { facturas: [], error: error.message };
 
@@ -68,23 +72,11 @@ export async function obtenerVentas(desde: string, hasta: string): Promise<Respu
   if (error) return { facturas: [], clientes: {}, numeraciones: [], error };
   if (numeraciones.error) return { facturas: [], clientes: {}, numeraciones: [], error: numeraciones.error.message };
 
-  const ids = [...new Set(facturas.map((factura) => factura.contacto_id))];
+  // El nombre del cliente viene en el mismo viaje (join); antes era una
+  // segunda consulta después de conocer los ids.
   const clientes: Record<string, string> = {};
-
-  if (ids.length > 0) {
-    const contactos = await cliente
-      .from("contactos")
-      .select("id, nombre")
-      .in("id", ids)
-      .returns<{ id: string; nombre: string }[]>();
-
-    if (contactos.error) {
-      return { facturas: [], clientes: {}, numeraciones: [], error: contactos.error.message };
-    }
-
-    for (const contacto of contactos.data) {
-      clientes[contacto.id] = contacto.nombre;
-    }
+  for (const factura of facturas) {
+    clientes[factura.contacto_id] = factura.contactos?.nombre ?? "—";
   }
 
   return {

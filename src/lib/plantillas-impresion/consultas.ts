@@ -1,10 +1,12 @@
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
 
 import { type PlantillaImpresion, type PlantillaResuelta, TIPOS_PLANTILLA, type TipoPlantilla } from "./tipos";
 
 const ORDEN: Record<TipoPlantilla, number> = { factura: 0, cotizacion: 1, conduce: 2 };
 
-export async function getPlantillasImpresion(): Promise<PlantillaImpresion[]> {
+export const getPlantillasImpresion = cache(async (): Promise<PlantillaImpresion[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("plantillas_impresion")
@@ -13,7 +15,7 @@ export async function getPlantillasImpresion(): Promise<PlantillaImpresion[]> {
 
   if (error) throw new Error(error.message);
   return data.sort((a, b) => ORDEN[a.tipo_documento] - ORDEN[b.tipo_documento]);
-}
+});
 
 export async function getPlantillaImpresion(tipo: TipoPlantilla): Promise<PlantillaResuelta> {
   const plantillas = await getPlantillasImpresion();

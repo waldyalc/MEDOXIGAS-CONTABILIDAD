@@ -1,9 +1,10 @@
+import { cache } from "react";
+
 import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/server";
 
 import type {
-  AsientoLineaVista,
   AsientoResumen,
   AsientoVista,
   ContactoResumen,
@@ -23,7 +24,12 @@ export interface FacturaFila extends FacturaLista {
   cliente_nombre: string;
 }
 
-export async function getEmpresa(): Promise<Empresa | null> {
+interface FacturaListaConContacto extends FacturaLista {
+  contactos: { nombre: string } | null;
+}
+
+// cache() dedupe la consulta de la empresa dentro de la misma petición.
+export const getEmpresa = cache(async (): Promise<Empresa | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("empresa")
@@ -34,7 +40,7 @@ export async function getEmpresa(): Promise<Empresa | null> {
 
   if (error) throw new Error(error.message);
   return data;
-}
+});
 
 export async function getContactosClientes(): Promise<ContactoResumen[]> {
   const supabase = await createClient();
@@ -112,37 +118,39 @@ export async function getCuentasCajaBanco(): Promise<CuentaCajaBanco[]> {
 
 export async function getFacturasLista(): Promise<FacturaFila[]> {
   const supabase = await createClient();
+  // Un solo viaje: el nombre del cliente viene en el join en vez de una
+  // segunda consulta que dependía de los ids de la primera.
   const { data, error } = await supabase
     .from("facturas")
     .select(
-      "id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, estado",
+      "id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, estado, contactos(nombre)",
     )
     .order("numero", { ascending: false })
     .limit(300)
-    .returns<FacturaLista[]>();
+    .returns<FacturaListaConContacto[]>();
 
   if (error) throw new Error(error.message);
 
-  const ids = [...new Set(data.map((factura) => factura.contacto_id))];
-  if (ids.length === 0) return [];
+  return data.map(({ contactos, ...factura }) => ({
+    ...factura,
+    cliente_nombre: contactos?.nombre ?? "—",
+  }));
+}
 
-  const contactos = await supabase
-    .from("contactos")
-    .select("id, nombre")
-    .in("id", ids)
-    .returns<{ id: string; nombre: string }[]>();
-
-  if (contactos.error) throw new Error(contactos.error.message);
-
-  const nombres = new Map(contactos.data.map((contacto) => [contacto.id, contacto.nombre]));
-  return data.map((factura) => ({ ...factura, cliente_nombre: nombres.get(factura.contacto_id) ?? "—" }));
+interface AsientoLineaConCuenta {
+  id: string;
+  cuenta_id: string;
+  descripcion: string;
+  debito: number;
+  credito: number;
+  cuentas: { codigo: string; nombre: string } | null;
 }
 
 async function getAsiento(asientoId: string | null): Promise<AsientoVista> {
   if (!asientoId) return { asiento: null, lineas: [] };
 
   const supabase = await createClient();
-  const [asiento, lineas] = await Promise.all([
+  const [asiento, lineasRes] = await Promise.all([
     supabase
       .from("asientos")
       .select("id, numero, fecha, descripcion")
@@ -151,43 +159,28 @@ async function getAsiento(asientoId: string | null): Promise<AsientoVista> {
       .returns<AsientoResumen | null>(),
     supabase
       .from("asiento_lineas")
-      .select("id, cuenta_id, descripcion, debito, credito")
+      .select("id, cuenta_id, descripcion, debito, credito, cuentas(codigo, nombre)")
       .eq("asiento_id", asientoId)
       .order("id")
-      .returns<{ id: string; cuenta_id: string; descripcion: string; debito: number; credito: number }[]>(),
+      .returns<AsientoLineaConCuenta[]>(),
   ]);
 
   if (asiento.error) throw new Error(asiento.error.message);
-  if (lineas.error) throw new Error(lineas.error.message);
+  if (lineasRes.error) throw new Error(lineasRes.error.message);
   if (!asiento.data) return { asiento: null, lineas: [] };
 
-  const cuentaIds = [...new Set(lineas.data.map((linea) => linea.cuenta_id))];
-  const cuentas =
-    cuentaIds.length > 0
-      ? await supabase
-          .from("cuentas")
-          .select("id, codigo, nombre")
-          .in("id", cuentaIds)
-          .returns<{ id: string; codigo: string; nombre: string }[]>()
-      : { data: [], error: null };
-
-  if (cuentas.error) throw new Error(cuentas.error.message);
-
-  const porId = new Map(cuentas.data.map((cuenta) => [cuenta.id, cuenta]));
-  const lineasVista: AsientoLineaVista[] = lineas.data.map((linea) => {
-    const cuenta = porId.get(linea.cuenta_id);
-    return {
+  return {
+    asiento: asiento.data,
+    lineas: lineasRes.data.map((linea) => ({
       id: linea.id,
       cuenta_id: linea.cuenta_id,
-      codigo: cuenta?.codigo ?? "—",
-      nombre: cuenta?.nombre ?? "—",
+      codigo: linea.cuentas?.codigo ?? "—",
+      nombre: linea.cuentas?.nombre ?? "—",
       descripcion: linea.descripcion,
       debito: linea.debito,
       credito: linea.credito,
-    };
-  });
-
-  return { asiento: asiento.data, lineas: lineasVista };
+    })),
+  };
 }
 
 export async function getFacturaVista(id: string): Promise<FacturaVista | null> {
