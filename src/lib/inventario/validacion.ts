@@ -70,6 +70,42 @@ export const almacenSchema = z.object({
   activo: z.boolean().optional(),
 });
 
+export const TIPOS_LISTA_PRECIO = ["fijo", "porcentaje"] as const;
+
+export const listaPrecioSchema = z.object({
+  nombre: z
+    .string()
+    .trim()
+    .min(1, { message: "Escribe el nombre de la lista de precios." })
+    .max(120, { message: "El nombre de la lista de precios es demasiado largo." }),
+  tipo: z.enum(TIPOS_LISTA_PRECIO, { message: "Selecciona el tipo de lista." }),
+  es_principal: z.boolean().optional(),
+  activo: z.boolean().optional(),
+});
+
+export const transferenciaLineaSchema = z.object({
+  producto_id: z.uuid({ message: "Selecciona un producto válido." }),
+  cantidad: z.coerce.number().finite().positive({ message: "La cantidad debe ser mayor que cero." }),
+});
+
+export const transferenciaSchema = z
+  .object({
+    fecha: z.iso.date({ message: "La fecha no es válida." }),
+    origen_id: z.uuid({ message: "Selecciona el almacén de origen." }),
+    destino_id: z.uuid({ message: "Selecciona el almacén de destino." }),
+    observaciones: z.string().trim().max(2000, { message: "Las observaciones son demasiado largas." }).optional(),
+    lineas: z
+      .array(transferenciaLineaSchema)
+      .min(1, { message: "Agrega al menos un producto." })
+      .max(200, { message: "Una transferencia no puede pasar de 200 líneas." }),
+  })
+  .refine((datos) => datos.origen_id !== datos.destino_id, {
+    message: "El almacén de origen y el de destino deben ser distintos.",
+    path: ["destino_id"],
+  });
+
 export type AjusteEntrada = z.infer<typeof ajusteSchema>;
 export type CategoriaEntrada = z.infer<typeof categoriaSchema>;
 export type AlmacenEntrada = z.infer<typeof almacenSchema>;
+export type ListaPrecioEntrada = z.infer<typeof listaPrecioSchema>;
+export type TransferenciaEntrada = z.infer<typeof transferenciaSchema>;

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { PrecioLista } from "@/lib/inventario/tipos";
+
 export type ProductoTipo = "producto" | "servicio";
 export type TasaItbis = 0 | 16 | 18;
 
@@ -17,6 +19,7 @@ export interface Producto {
   cantidad: number;
   costo: number;
   categoria_id: string | null;
+  precios: PrecioLista[];
   activo: boolean;
 }
 

@@ -1,3 +1,9 @@
+export interface ConciliacionResumen {
+  id: string;
+  estado: string;
+  fechaHasta: string;
+}
+
 export interface CuentaBanco {
   id: string;
   codigo: string;
@@ -5,6 +11,7 @@ export interface CuentaBanco {
   saldo: number | string | null;
   tipoBanco: string | null;
   numeroCuenta: string | null;
+  conciliacion: ConciliacionResumen | null;
 }
 
 export interface CuentaSeleccion {

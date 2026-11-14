@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { validarCuentaBanco, validarDeposito, validarTransferencia } from "./validacion";
+import { validarConciliacion, validarCuentaBanco, validarDeposito, validarTransferencia } from "./validacion";
 
 const transferencia = {
   cuenta_origen_id: "1101",
@@ -66,6 +66,40 @@ describe("validarCuentaBanco", () => {
   test("exige la fecha del saldo inicial", () => {
     expect(validarCuentaBanco({ ...cuentaBanco, fecha_saldo_inicial: "" })).toBe(
       "Selecciona la fecha del saldo inicial.",
+    );
+  });
+});
+
+const conciliacion = {
+  fecha_desde: "2026-11-01",
+  fecha_hasta: "2026-11-30",
+  saldoCentavos: 5500000,
+  lineas: ["linea-1"],
+  requiereMovimientos: true,
+};
+
+describe("validarConciliacion", () => {
+  test("acepta una conciliación válida", () => {
+    expect(validarConciliacion(conciliacion)).toBeNull();
+  });
+
+  test("rechaza el rango invertido", () => {
+    expect(validarConciliacion({ ...conciliacion, fecha_desde: "2026-12-01" })).toBe("El rango de fechas es inválido.");
+  });
+
+  test("exige el saldo del extracto", () => {
+    expect(validarConciliacion({ ...conciliacion, saldoCentavos: null })).toBe("Escribe el saldo del extracto.");
+    expect(validarConciliacion({ ...conciliacion, saldoCentavos: -1 })).toBe("Escribe el saldo del extracto.");
+  });
+
+  test("exige un movimiento al conciliar", () => {
+    expect(validarConciliacion({ ...conciliacion, lineas: [] })).toBe("Selecciona al menos un movimiento.");
+    expect(validarConciliacion({ ...conciliacion, lineas: [], requiereMovimientos: false })).toBeNull();
+  });
+
+  test("rechaza movimientos repetidos", () => {
+    expect(validarConciliacion({ ...conciliacion, lineas: ["linea-1", "linea-1"] })).toBe(
+      "Hay un movimiento repetido en la conciliación.",
     );
   });
 });

@@ -13,6 +13,7 @@ const FILA_CONSTRUCTORA: FilaEstadoCuenta = {
   vencimiento: "2026-12-13",
   total: "16638.00",
   cobrado: "8000.00",
+  retenido: "0.00",
 };
 
 describe("calcularEstadoCuenta", () => {
@@ -45,6 +46,7 @@ describe("calcularEstadoCuenta", () => {
           vencimiento: "2026-11-10",
           total: "5192.00",
           cobrado: "5192.00",
+          retenido: "0.00",
         },
       ],
       CORTE,
@@ -62,6 +64,13 @@ describe("calcularEstadoCuenta", () => {
     const documentos = calcularEstadoCuenta([{ ...FILA_CONSTRUCTORA, cobrado: "16638.00" }], CORTE);
     expect(documentos[0]?.estado).toBe("Cobrada");
     expect(documentos[0]?.saldo).toBe(0);
+  });
+
+  test("resta lo retenido del saldo", () => {
+    const documentos = calcularEstadoCuenta([{ ...FILA_CONSTRUCTORA, retenido: "154.00" }], CORTE);
+
+    expect(documentos[0]?.retenido).toBe(15400);
+    expect(documentos[0]?.saldo).toBe(848400);
   });
 
   test("calcula antigüedad y días vencidos contra el corte", () => {

@@ -3,8 +3,12 @@ import type { CuentaOpcion, FacturaAbierta } from "./tipos";
 
 const CODIGO_BANCO_PRINCIPAL = "1102";
 
-export function saldoFactura(factura: Pick<FacturaAbierta, "total" | "pagado" | "credito">): number {
-  return Math.round((aNumero(factura.total) - aNumero(factura.pagado) - aNumero(factura.credito)) * 100) / 100;
+export function saldoFactura(factura: Pick<FacturaAbierta, "total" | "pagado" | "credito" | "retenido">): number {
+  return (
+    Math.round(
+      (aNumero(factura.total) - aNumero(factura.pagado) - aNumero(factura.credito) - aNumero(factura.retenido)) * 100,
+    ) / 100
+  );
 }
 
 export function facturasAbiertasDeProveedor(

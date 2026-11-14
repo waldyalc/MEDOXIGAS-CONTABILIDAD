@@ -65,6 +65,7 @@ describe("antigüedad de la cartera", () => {
   test("el saldo por pagar resta pagos y créditos de la factura", () => {
     expect(saldoCartera(236000, 50000, 94400)).toBe(91600);
     expect(saldoCartera(236000, 50000)).toBe(186000);
+    expect(saldoCartera(118000, 50000, 0, 5400)).toBe(62600);
   });
 
   test("clasifica los tramos de 30, 60, 90 y 91+ días", () => {

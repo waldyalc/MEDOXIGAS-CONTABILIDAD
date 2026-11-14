@@ -54,6 +54,7 @@ export interface FacturaParaNota {
   total: number;
   pagado: number;
   credito: number;
+  retenido: number;
   estado: string;
   contacto_id: string;
   cliente_nombre: string;

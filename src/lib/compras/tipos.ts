@@ -1,3 +1,6 @@
+import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
+import type { RetencionOpcion } from "@/lib/configuracion/tipos";
+
 export type EstadoDocumento = "abierta" | "pagada" | "anulada";
 
 export type MetodoPago = "efectivo" | "transferencia" | "tarjeta" | "cheque";
@@ -31,6 +34,12 @@ export interface CuentaOpcion {
   es_caja_banco: boolean;
 }
 
+export interface AlmacenOpcion {
+  id: string;
+  nombre: string;
+  es_principal: boolean;
+}
+
 export interface CuentaAsiento {
   codigo: string;
   nombre: string;
@@ -46,6 +55,7 @@ export interface FacturaLista {
   total: number;
   pagado: number;
   credito: number;
+  retenido: number;
   estado: EstadoDocumento;
   contactos: ContactoResumen | null;
 }
@@ -62,12 +72,12 @@ export interface FacturaDetalle {
   total: number;
   pagado: number;
   credito: number;
+  retenido: number;
   estado: EstadoDocumento;
   notas: string | null;
   asiento_id: string | null;
   contactos: { nombre: string; rnc_cedula: string | null } | null;
 }
-
 export interface LineaDetalle {
   id: string;
   descripcion: string;
@@ -116,9 +126,12 @@ export interface FacturaAbierta {
   ncf: string | null;
   fecha: string;
   vencimiento: string;
+  subtotal: number;
+  itbis: number;
   total: number;
   pagado: number;
   credito: number;
+  retenido: number;
   contacto_id: string;
   contactos: ContactoResumen | null;
 }
@@ -141,12 +154,15 @@ export interface OpcionesFactura {
   contactos: ContactoOpcion[];
   productos: ProductoOpcion[];
   cuentasGasto: CuentaOpcion[];
+  centrosCosto: CentroCostoOpcion[];
+  almacenes: AlmacenOpcion[];
 }
 
 export interface OpcionesPago {
   contactos: ContactoOpcion[];
   cuentasCajaBanco: CuentaOpcion[];
   facturasAbiertas: FacturaAbierta[];
+  retenciones: RetencionOpcion[];
 }
 
 export interface DetalleFacturaCompleto {

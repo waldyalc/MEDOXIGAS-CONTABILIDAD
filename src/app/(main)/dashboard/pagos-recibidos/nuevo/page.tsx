@@ -52,6 +52,7 @@ async function PagoContenido({ facturaId, clienteId }: { facturaId?: string; cli
       contactos={datos.contactos}
       facturas={datos.facturas}
       cuentas={datos.cuentas}
+      retenciones={datos.retenciones}
       initialCliente={datos.contactos.some((contacto) => contacto.id === cliente) ? cliente : ""}
       initialFactura={factura?.id ?? ""}
       fechaHoy={hoyRD()}

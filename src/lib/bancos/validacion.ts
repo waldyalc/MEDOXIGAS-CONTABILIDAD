@@ -97,3 +97,56 @@ export const depositoSchema = z.object({
 export type TransferenciaEntrada = z.infer<typeof transferenciaSchema>;
 export type DepositoEntrada = z.infer<typeof depositoSchema>;
 export type CuentaBancoEntrada = z.infer<typeof cuentaBancoSchema>;
+
+export const iniciarConciliacionSchema = z.object({
+  cuenta_id: z.uuid({ message: "Selecciona la cuenta a conciliar." }),
+  fecha_hasta: z.iso.date({ message: "La fecha de corte no es válida." }),
+  saldo_bancario: z.coerce
+    .number()
+    .finite({ message: "Escribe un saldo del extracto válido." })
+    .min(0, { message: "El saldo del extracto no puede ser negativo." }),
+});
+
+export const conciliacionSchema = z
+  .object({
+    conciliacion_id: z.uuid({ message: "La conciliación no es válida." }),
+    cuenta_id: z.uuid({ message: "Selecciona la cuenta a conciliar." }),
+    fecha_desde: z.iso.date({ message: "La fecha desde no es válida." }),
+    fecha_hasta: z.iso.date({ message: "La fecha de corte no es válida." }),
+    saldo_bancario: z.coerce
+      .number()
+      .finite({ message: "Escribe un saldo del extracto válido." })
+      .min(0, { message: "El saldo del extracto no puede ser negativo." }),
+    gastos_bancarios: z.coerce.number().finite().min(0).default(0),
+    entradas_bancarias: z.coerce.number().finite().min(0).default(0),
+    lineas: z.array(z.uuid()).max(5000),
+  })
+  .refine((datos) => datos.fecha_desde <= datos.fecha_hasta, {
+    message: "El rango de fechas es inválido.",
+    path: ["fecha_hasta"],
+  })
+  .refine((datos) => new Set(datos.lineas).size === datos.lineas.length, {
+    message: "Hay un movimiento repetido en la conciliación.",
+    path: ["lineas"],
+  });
+
+export interface ConciliacionValidable {
+  fecha_desde: string;
+  fecha_hasta: string;
+  saldoCentavos: number | null;
+  lineas: readonly string[];
+  requiereMovimientos: boolean;
+}
+
+export function validarConciliacion(datos: ConciliacionValidable): string | null {
+  if (datos.fecha_desde > datos.fecha_hasta) return "El rango de fechas es inválido.";
+  if (datos.saldoCentavos === null || !Number.isFinite(datos.saldoCentavos) || datos.saldoCentavos < 0) {
+    return "Escribe el saldo del extracto.";
+  }
+  if (datos.requiereMovimientos && datos.lineas.length === 0) return "Selecciona al menos un movimiento.";
+  if (new Set(datos.lineas).size !== datos.lineas.length) return "Hay un movimiento repetido en la conciliación.";
+  return null;
+}
+
+export type IniciarConciliacionEntrada = z.infer<typeof iniciarConciliacionSchema>;
+export type ConciliacionEntrada = z.infer<typeof conciliacionSchema>;

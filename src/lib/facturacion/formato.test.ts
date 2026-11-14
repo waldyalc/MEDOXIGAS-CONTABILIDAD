@@ -17,4 +17,9 @@ describe("saldo de factura", () => {
     expect(saldoDeFactura(100, 80, 50)).toBe(0);
     expect(saldoDeFactura(null, null, null)).toBe(0);
   });
+
+  test("resta también lo retenido", () => {
+    expect(saldoDeFactura(1180, 500, 0, 54)).toBe(626);
+    expect(saldoDeFactura(1180, 1126, 0, 54)).toBe(0);
+  });
 });

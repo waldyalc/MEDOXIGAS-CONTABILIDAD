@@ -1,7 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { BookOpen, Building2, CalendarClock, Hash, type LucideIcon, Percent, Users } from "lucide-react";
+import {
+  BookOpen,
+  Building2,
+  CalendarClock,
+  Coins,
+  Hash,
+  type LucideIcon,
+  MapPin,
+  Percent,
+  Printer,
+  ReceiptText,
+  UserRound,
+  Users,
+} from "lucide-react";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRol } from "@/lib/auth/rol";
@@ -36,6 +49,20 @@ export default async function Page() {
           url: "/dashboard/configuracion/empresa",
           icon: Building2,
         },
+        {
+          id: "centros-costo",
+          titulo: "Centros de costo",
+          descripcion: "Áreas o sucursales para separar ingresos y gastos.",
+          url: "/dashboard/configuracion/centros-costo",
+          icon: MapPin,
+        },
+        {
+          id: "monedas",
+          titulo: "Monedas",
+          descripcion: "Moneda base y tasas de cambio por fecha.",
+          url: "/dashboard/configuracion/monedas",
+          icon: Coins,
+        },
         ...(rol === "admin"
           ? [
               {
@@ -61,6 +88,20 @@ export default async function Page() {
           icon: CalendarClock,
         },
         {
+          id: "vendedores",
+          titulo: "Vendedores",
+          descripcion: "Personas que venden y se eligen en los documentos.",
+          url: "/dashboard/configuracion/vendedores",
+          icon: UserRound,
+        },
+        {
+          id: "plantillas-impresion",
+          titulo: "Plantillas de impresión",
+          descripcion: "Notas al pie, términos y logo por tipo de documento.",
+          url: "/dashboard/configuracion/plantillas-impresion",
+          icon: Printer,
+        },
+        {
           id: "numeraciones",
           titulo: "Numeraciones",
           descripcion: "Secuencias del NCF por tipo de comprobante.",
@@ -79,6 +120,13 @@ export default async function Page() {
           descripcion: "Tasas de ITBIS disponibles en productos y facturas.",
           url: "/dashboard/configuracion/impuestos",
           icon: Percent,
+        },
+        {
+          id: "retenciones",
+          titulo: "Retenciones",
+          descripcion: "Retenciones de ITBIS e ISR para los pagos.",
+          url: "/dashboard/configuracion/retenciones",
+          icon: ReceiptText,
         },
       ],
     },

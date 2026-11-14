@@ -18,11 +18,69 @@
   los datos completos del producto; la UI muestra la columna «Estado».
 - Lógica pura en `src/lib/productos/importar.ts` con Vitest (CSV con comas,
   punto y coma, comillas y BOM; validación por fila; cálculo del ajuste).
-  `Producto` ahora incluye `activo` y el formulario no lo pisa al editar.
-- Sin migración ni cambios de datos. `typecheck`, `test` (539), Biome de lo
+  `Producto` incluye `activo` y conserva `precios` (listas de precios).
+- Merge con `origin/prueba` (inventario 2): importación y edición masiva no
+  envían campos `precio_lista_*`; `actualizarProducto` omite la clave `precios`
+  cuando el formulario no trae listas, así que no borra ni cambia los precios
+  de listas (el formulario normal sí los manda y puede vaciarlos). Cubierto en
+  `precios-formulario.test.ts`.
+- Sin migración ni cambios de datos. `typecheck`, `test` (609), Biome de lo
   tocado y `build` en verde.
 - Aparte: corregido solo el valor esperado del pgTAP de periodos (`3202`
   débito−crédito = resultado, sin negarlo). La función no se tocó.
+
+## Higiene de migraciones: orden S15, notas de crédito y pgTAP aislados (15 nov 2026)
+
+- `20261114900000_inventario_existencias_precios.sql` vuelve a la versión de
+  inventario 2, sin referencias a `vendedores` ni `centros_costo`: una base
+  limpia ya puede correrla antes de `2026111520*`.
+- Migración aditiva `20261115500000_funciones_fusionadas_s15.sql` (NO aplicada;
+  la revisa Coder): vuelve a definir con `CREATE OR REPLACE` las mismas firmas
+  con todo junto: stock por almacén + vendedor/centro en `crear_factura` y
+  `crear_factura_proveedor`; anulación con almacén, centro de costo y retenido;
+  y NCF B04/E34 en notas de crédito de compra. El resultado de las funciones
+  coincide con la base actual (definiciones comparadas contra `2026111490*`,
+  `2026111510*` y `2026111520*`). No cambia datos ni permisos.
+- Notas de crédito de venta: el estado de la factura ahora se recalcula con
+  `pagado + retenido + crédito >= total`, el mismo criterio de pagos y CxC.
+- pgTAP aislados: `configuracion_extra_test.sql` captura los ids de la factura,
+  cotización y factura convertida, usa nombres únicos y busca las cuentas por
+  `config_contable` (ya no asume 4101/6101). `inventario_test.sql` captura sus
+  propios almacenes, productos, ajustes y asientos, y también busca las cuentas
+  por `config_contable` (1104/5102 ya no están fijos).
+- `pnpm typecheck`, `pnpm test`, Biome sobre lo tocado y `pnpm build` en verde.
+  pgTAP no se pudo correr aquí (sin Docker/Supabase CLI); lo corre el integrador.
+- Quedó fuera: anular notas de crédito de venta y revertir el costo promedio al
+  anular ajustes (pendientes ya conocidos). Nada se aplicó a Supabase.
+## Clonar, editar y convertir documentos de venta (15 nov 2026)
+
+- La ficha de factura, cotización y conduce tiene «Clonar»: abre el formulario
+  del mismo tipo con cliente, líneas, notas y términos prellenados, fecha de
+  hoy y numeración/NCF nuevos al guardar (no guarda nada hasta confirmar).
+  También se prellena el tipo de comprobante al clonar una factura.
+- Cotización y conduce tienen «Editar» solo mientras están abiertos (no
+  convertidos/facturados ni anulados). Reusan `DocumentoVentaForm` y la acción
+  `editar_cotizacion`/`editar_remision` reemplaza las líneas y recalcula totales
+  sin asiento ni inventario. Las tablas ganaron `terminos`, que ya se guarda y
+  se imprime.
+- «Convertir» en cotización ofrece conduce y factura. Convertir en conduce
+  abre `/dashboard/conduces/nueva?cotizacion=<id>` prellenado; al guardar,
+  `crear_remision_desde_cotizacion` crea el conduce (sin inventario), marca la
+  cotización como convertida y deja `cotizaciones.remision_id` /
+  `remisiones.cotizacion_id`; las dos fichas muestran la pestaña enlazada.
+  Cotización → factura se conserva igual.
+- Lógica pura en `src/components/documento-venta/prellenado.ts` con Vitest (7).
+  Permisos de la vista (`editar`, `clonar`, `convertirEnConduce`) en `vista.ts`.
+- Migración aditiva `20261115400000_documentos_venta_editar_clonar.sql` (NO
+  aplicada; la revisa Coder) y pgTAP aislado
+  `supabase/tests/documentos_venta_editar_clonar_test.sql` (31 asserts). Tipos
+  de las columnas nuevas puestos a mano en `types.ts`.
+- `typecheck`, `test` (556), Biome y `build` en verde. pgTAP no se pudo correr
+  aquí (sin Docker/Supabase CLI).
+- Fuera: clonar desde la lista (solo desde la ficha), editar facturas y
+  anulación de cotizaciones/conduces.
+
+- Integración en `prueba`: la migración ya está aplicada en el remoto. `_editar_documento_no_contable` y `crear_remision_desde_cotizacion` conservan `vendedor_id` y `centro_costo_id`. El pgTAP no reinicia secuencias compartidas. `types.ts` se regeneró con el generador.
 
 ## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
 
@@ -45,6 +103,76 @@
 - Atajos y etiquetas en `src/lib/fechas/rangos.ts`, puros y con Vitest (cambio de año, trimestres, febrero). La semana empieza el lunes y las fechas van en `America/Santo_Domingo`; `hoyRd` de reportes ahora reexporta `hoyEnRd`.
 - Las fechas siguen en la URL (`?desde=&hasta=`; `hasta`/`corte` en los reportes de corte). Migrados todos los reportes con fechas: se borraron `filtro-fechas.tsx`, `libros/campos-fecha.tsx` y todos los `input type="date"` de `reportes/**`. Reporte anual conserva su selector de año (no es un rango).
 - Sin migración ni cambios de datos. `typecheck`, `test` (501), Biome y `build` en verde.
+
+## Bancos: fichas, transferencias y conciliaciones (14 nov 2026)
+
+- Lista de bancos con Nombre, Tipo, Número, Saldo y Conciliación (última
+  conciliación o borrador). Ficha `/dashboard/bancos/[id]` con saldo actual,
+  movimientos enlazados (documento, asiento y tercero) y filtro Desde/Hasta.
+- Transferencia con `Select` y `DatePicker`, observaciones en «Más opciones»; al
+  guardar abre `/dashboard/bancos/transferencias/[id]` con las cuentas y su
+  asiento. El diálogo de depósito se conservó con los mismos componentes.
+- Conciliaciones: lista, nueva (cuenta, fecha de corte y saldo del extracto; el
+  desde sale del último corte) y detalle editable con movimientos marcables,
+  diferencia en vivo, ajustes bancarios, guardar borrador y conciliar. Usa las
+  RPC `guardar_borrador_conciliacion` y `conciliar_cuenta` ya existentes.
+- Enlaces nuevos en `src/lib/enlaces.ts` (`rutaBanco`, `rutaTransferencia`,
+  `rutaConciliacion`); el origen del asiento reconoce transferencias, depósitos,
+  conciliaciones y notas. Menú lateral: Bancos → Cuentas y Conciliaciones.
+- Lógica pura en `src/lib/bancos/movimientos.ts` y `conciliacion.ts` con
+  Vitest. Sin migración nueva. `typecheck`, `test` (506), Biome y `build` en verde.
+
+## Configuración extra: vendedores, centros de costo, monedas y plantillas (15 nov 2026)
+
+- **Vendedores**: `/dashboard/configuracion/vendedores` (lista, crear y editar; nombre, identificación, observación y activo). Campo opcional «Vendedor» en «Más opciones» de factura, cotización y conduce; se guarda en `facturas.vendedor_id`, `cotizaciones.vendedor_id` y `remisiones.vendedor_id`, y se conserva al convertir cotización/conduce a factura. El reporte **Ventas por vendedor** ya consulta estas facturas y agrupa por el nombre del vendedor, con filtro por vendedor.
+- **Centros de costo**: `/dashboard/configuracion/centros-costo` (código, nombre, descripción y activo). Campo opcional en «Más opciones» de factura, cotización, conduce y compra. El centro del documento se copia a todas las líneas de su asiento; en asientos manuales se elige por línea. El **estado de resultados** tiene filtro por centro (RPC `reporte_estado_resultados_centro`). Las anulaciones conservan el centro en el asiento de reversión.
+- **Monedas**: `/dashboard/configuracion/monedas` con DOP (base), USD y EUR y tasas de cambio editables por fecha (upsert por moneda + fecha). Por decisión con Coder en esta sesión **no** se agregó selector de moneda a los documentos ni se tocó el motor: los comprobantes siguen en DOP.
+- **Plantillas de impresión**: `/dashboard/configuracion/plantillas-impresion` con notas al pie, términos por defecto y «mostrar logo» para factura, cotización y conduce. La factura es la base: si cotización o conduce no tienen textos propios, se usan los de factura. Los formularios nuevos precargan notas/términos y el logo se oculta en el formulario y en la impresión según la plantilla.
+- Migraciones **aditivas** (no aplicadas al remoto; las revisa Coder): `20261115200000_vendedores.sql`, `20261115201000_centros_costo.sql`, `20261115202000_monedas.sql` y `20261115203000_plantillas_impresion.sql`. pgTAP `supabase/tests/configuracion_extra_test.sql` (36 asserts). Tipos de tablas y RPC nuevos añadidos a mano en `src/lib/supabase/types.ts`.
+- Verificado: `pnpm typecheck`, Biome sobre lo tocado, `pnpm test` (503) y `pnpm build`. Los pgTAP no se pudieron correr aquí (sin Docker/Supabase CLI).
+- Quedó fuera: conversión real de documentos a moneda extranjera, ficha propia para vendedores/centros/monedas (se editan en diálogo) y rediseño del PDF (sesión de `feat/pdf-documentos`).
+
+## Inventario 2: stock por almacén, transferencias y listas de precios (14 nov 2026)
+
+- Nuevas tablas `existencias` (producto + almacén), `listas_precios`, `producto_precios` y `transferencias_inventario` + líneas. La semilla copia la existencia global actual al almacén Principal; `productos.cantidad` sigue siendo el total.
+- Ventas, compras, notas de crédito y ajustes guardan `almacen_id` y mueven la existencia de ese almacén (Principal por defecto). Los documentos viejos sin almacén se tratan como Principal. Los conduces siguen sin mover stock, como en Alegra.
+- Ajustes: nueva columna `estado`; se anulan con `anular_documento('ajuste_inventario', id)`, revirtiendo existencia y asiento.
+- Transferencias: lista, nueva y detalle en `/dashboard/inventario/transferencias`; sin asiento y con anulación que devuelve las cantidades. No permite origen = destino, producto repetido ni stock insuficiente en origen.
+- Listas de precios: `/dashboard/inventario/listas-precios` (Nombre, Principal, Tipo). Precio por lista en «Más opciones» del producto, lista por defecto opcional en el contacto y selector en «Más opciones» de la factura que cambia los precios sugeridos. En porcentaje, 10 = +10 % y -10 = descuento.
+- Ficha de producto: tabla de existencia por almacén.
+- Migraciones aditivas `20261114900000_inventario_existencias_precios.sql` y `20261114901000_transferencias_inventario.sql` (NO aplicadas al remoto). pgTAP `supabase/tests/inventario_almacenes_test.sql` (36 asserts, aislado). Tipos de las tablas nuevas a mano en `types.ts`.
+- `typecheck`, `test` (503), Biome y `build` en verde. pgTAP no se pudo correr aquí (sin Docker/Supabase CLI).
+- Pendiente/fuera: conduces no mueven stock; anular una nota de crédito de venta sigue sin soporte; la anulación de ajustes no revierte el costo promedio.
+## Retenciones de ITBIS e ISR (15 nov 2026)
+
+- Configuración > Retenciones: catálogo con nombre, tipo (ITBIS/ISR), porcentaje,
+  cuenta cuando retenemos (pasivo), cuenta cuando nos retienen (activo) y activa.
+  Lista, crear y editar. Semilla con ITBIS 30 %, ITBIS 100 %, ISR 10 %
+  honorarios, ISR 2 % servicios e ISR 5 % alquileres (`ON CONFLICT DO NOTHING`).
+- Pagos recibidos y pagos a proveedores: «Más opciones» > Retenciones. El
+  servidor recalcula la base (ITBIS sobre el ITBIS de la factura, ISR sobre el
+  subtotal) y arma el asiento. Lo retenido por un cliente va a activo/anticipo;
+  lo retenido a un proveedor, a pasivo por pagar. El saldo de la factura resta
+  `pagado + credito + retenido`; «Valor retenido» de la factura ya es real y la
+  anulación del pago revierte ambos.
+- Reportes IR-17 (retenciones a proveedores por tipo y totales) y Cartas de
+  retención (lista por proveedor y período con carta imprimible). Son de solo
+  lectura: no crean ni envían nada hasta que el usuario guarde un documento.
+- Migraciones aditivas `20261115100000_retenciones.sql`,
+  `20261115100100_pagos_retenciones.sql` y
+  `20261115100200_reporte_cxc_retenciones.sql` (NO aplicadas al remoto).
+  Reemplazan `registrar_pago_recibido`, `registrar_pago_proveedor`,
+  `anular_documento` y `reporte_cxc` manteniendo su firma. Tipos de las tablas y
+  RPC nuevas agregados a mano en `types.ts`.
+- pgTAP `supabase/tests/retenciones_test.sql` (27 asserts, aislados). No se pudo
+  correr en local (sin Docker/Supabase CLI).
+- VERIFICAR con DGII: tasas y cuentas sembradas (1107/1108/2103/2104). Ver los
+  comentarios `VERIFICAR` en la migración.
+- Pendiente menor: las RPC de notas de crédito aún recalculan el estado de la
+  factura sin `retenido`; el saldo de los reportes sí lo resta. Los pgTAP no se
+  corrieron en local.
+
+- Integración en `prueba`: la migración de pagos no se aplicó cruda. `anular_documento` conserva movimiento de existencias por almacén, centro de costo y anulación de ajustes, y suma el recálculo de `retenido`. Las tres migraciones ya están aplicadas en el remoto compartido; `types.ts` se regeneró con el generador.
 
 ## Inventario: ajustes, almacenes y categorías (14 nov 2026)
 
@@ -71,9 +199,15 @@
 - El logo se sube desde el navegador a Storage y el PDF/encabezado ya usan `empresa.logo_url`, RNC, dirección, teléfono y correo con campos vacíos ocultos.
 - pgTAP en `supabase/tests/configuracion_test.sql`; tipos añadidos a mano en `src/lib/supabase/types.ts`. `typecheck`, Biome y Vitest en verde.
 
+## PDF de factura, cotización y conduce con el diseño de Alegra (13 nov 2026)
+
+- Nuevo `src/components/documento-venta/documento-papel.tsx`: un solo papel para los tres documentos, tomado de `docs/alegra/capturas/05-factura-B01.pdf`, `05-factura-B02.pdf`, `07-cotizacion.pdf` y `07-remision.pdf`. Carta, márgenes de 16 pt (28 pt arriba), Inter y logo a 50 pt; encabezado con logo, empresa, RNC, dirección, teléfono y correo (oculta lo vacío), título/NCF a la derecha, cliente, tabla con las mismas columnas, monto en letras, totales y pie. Cotización y conduce conservan su orden, totales y firmas.
+- El menú ⋮ agrega «Descargar PDF» (abre la impresión con el nombre sugerido `factura-<NCF>`, `cotizacion-<n>` o `conduce-<n>`) e «Imprimir». Se usa el mismo papel HTML/CSS, no `@react-pdf`; el `@page documento-venta` de `src/app/globals.css` aísla tamaño y márgenes.
+- Se borraron `facturacion/[id]/_components/factura-papel.tsx` y `cotizaciones/_components/documento-papel.tsx`. Formato puro en `papel.ts` con `papel.test.ts` (6). `typecheck`, Biome, `test` (474) y `build` en verde.
+
 ## Vista de documento de venta compartida (13 nov 2026)
 
-- Nuevo `src/components/documento-venta/vista-documento-venta.tsx` + `vista.ts`: factura, cotización y conduce comparten la vista de tarjetas (máx. 1040 px, fondo gris, 24 px entre tarjetas), con el orden de la guía de Alegra. Solo cambia la pantalla: la impresión/PDF sigue con `FacturaPapel` y `DocumentoPapel` en el portal `data-print-root`.
+- Nuevo `src/components/documento-venta/vista-documento-venta.tsx` + `vista.ts`: factura, cotización y conduce comparten la vista de tarjetas (máx. 1040 px, fondo gris, 24 px entre tarjetas), con el orden de la guía de Alegra. Solo cambia la pantalla: la impresión/PDF usa el `DocumentoPapel` compartido en el portal `data-print-root`.
 - Factura: resumen de 4 cifras, acciones en íconos de 40×40 y menú ⋮ (notas de crédito/débito, imprimir copia y anular en rojo), tabla de productos y pestañas Pagos / Notas crédito / Notas débito / Contabilidad. `getFacturaVista` ahora trae las notas de crédito y débito de la factura.
 - Cotización y conduce: «Editar» queda deshabilitado porque todavía no existe pantalla de edición; «Convertir» abre el diálogo existente para factura. La pestaña Facturas muestra la factura relacionada o el vacío con «Convertir en factura». No hay relación cotización↔conduce en la base, así que esa pestaña no se muestra; clonar y descargar PDF no existen y quedaron fuera.
 - Se eliminaron `vista-factura.tsx`, `vista-documento.tsx` (cotizaciones) y el `asiento-contable.tsx` de la ruta; el asiento vive ahora en la pestaña Contabilidad. Tests nuevos en `vista.test.ts` (14). `typecheck`, Biome, `test` (468) y `build` en verde.
@@ -118,7 +252,6 @@
 - El motor de código pasó a **T3 Code en la PC de Waldy** (Windows, MSI), modelo `opencode-go/deepseek-v4.1-flash` variante `max`. Ya no se programa con OpenCode en el box. Waldy habla solo con Coder; Coder lanza y revisa las sesiones.
 - Hecho: rama `feat/fac-ajustes` (logo más grande, `RD$`/`%` dentro del input, `Select` en vez de lista nativa, calendario al estilo de las medidas de `docs/alegra/css-factura/GUIA-CALENDARIO.md`). Ya está en `prueba`.
 - Se agregó a `docs/alegra/` la guía de calendario y las capturas `calendario-*.png` (sin el HTML/CSS original de Alegra).
-
 
 ## Diseño del formulario de factura (13 nov 2026)
 

@@ -14,6 +14,7 @@ import { aCentavos, aNumero } from "@/lib/compras/calculo";
 import { cargarCuentasCajaBanco, obtenerFacturaProveedor } from "@/lib/compras/consultas";
 import { formatoCantidad, formatoMoneda } from "@/lib/compras/formato";
 import type { MetodoPago } from "@/lib/compras/tipos";
+import { getRetencionesActivas } from "@/lib/configuracion/consultas";
 import { rutaAsiento, rutaContacto, rutaCuenta, rutaPagoProveedor, rutaProducto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 
@@ -37,6 +38,13 @@ function EstadoAsiento({ cuadrado }: { cuadrado: boolean }) {
   );
 }
 
+async function cargarOpcionesPago(puedeEscribir: boolean, estado: string) {
+  if (!puedeEscribir || estado !== "abierta") return { cuentas: [], retenciones: [] };
+
+  const [cuentas, retenciones] = await Promise.all([cargarCuentasCajaBanco(), getRetencionesActivas()]);
+  return { cuentas, retenciones };
+}
+
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -48,12 +56,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   const { factura, lineas, asiento, lineasAsiento, pagos } = detalle;
   const puedeEscribir = rol === "admin" || rol === "contador";
-  const cuentasCajaBanco = puedeEscribir && factura.estado === "abierta" ? await cargarCuentasCajaBanco() : [];
+  const opcionesPago = await cargarOpcionesPago(puedeEscribir, factura.estado);
+  const cuentasCajaBanco = opcionesPago.cuentas;
+  const retenciones = opcionesPago.retenciones;
 
   const total = aNumero(factura.total);
   const pagado = aNumero(factura.pagado);
   const credito = aNumero(factura.credito);
-  const saldo = total - pagado - credito;
+  const retenido = aNumero(factura.retenido);
+  const saldo = total - pagado - credito - retenido;
 
   const debitos = lineasAsiento.reduce((suma, linea) => suma + aNumero(linea.debito), 0);
   const creditos = lineasAsiento.reduce((suma, linea) => suma + aNumero(linea.credito), 0);
@@ -91,7 +102,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               numero={factura.numero}
               estado={factura.estado}
               saldo={saldo}
+              subtotal={aNumero(factura.subtotal)}
+              itbis={aNumero(factura.itbis)}
               cuentas={cuentasCajaBanco}
+              retenciones={retenciones}
               puedeRegistrarPago={puedeEscribir}
               puedeAnular={puedeEscribir}
             />

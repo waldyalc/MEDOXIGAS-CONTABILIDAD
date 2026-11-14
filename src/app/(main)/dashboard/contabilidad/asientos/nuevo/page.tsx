@@ -39,5 +39,12 @@ export default async function Page() {
 async function AsientoContenido() {
   const datos = await getDatosFormularioAsiento();
 
-  return <AsientoForm cuentas={datos.cuentas} contactos={datos.contactos} fechaHoy={hoyRD()} />;
+  return (
+    <AsientoForm
+      cuentas={datos.cuentas}
+      contactos={datos.contactos}
+      centrosCosto={datos.centrosCosto}
+      fechaHoy={hoyRD()}
+    />
+  );
 }

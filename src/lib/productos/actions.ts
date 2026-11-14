@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 
-import { type DatosProducto, esquemaProducto } from "./productos";
+import { construirPayloadProducto, leerPreciosFormulario } from "./precios-formulario";
+import { esquemaProducto } from "./productos";
 
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };
 
@@ -34,12 +35,6 @@ function datosDesdeFormulario(formData: FormData) {
   };
 }
 
-function sinIndefinidos(datos: DatosProducto) {
-  const resultado = { ...datos };
-  if (resultado.activo === undefined) delete resultado.activo;
-  return resultado;
-}
-
 function idValido(id: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 }
@@ -50,8 +45,11 @@ export async function crearProducto(formData: FormData): Promise<ResultadoAccion
     return { ok: false, error: parseo.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
+  const precios = leerPreciosFormulario(formData);
+  if (precios === null) return { ok: false, error: "El precio de una lista no es válido" };
+
   const supabase = await createClient();
-  const { error } = await supabase.rpc("crear_producto", { p: sinIndefinidos(parseo.data) });
+  const { error } = await supabase.rpc("crear_producto", { p: construirPayloadProducto(parseo.data, precios) });
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard/productos");
@@ -66,8 +64,14 @@ export async function actualizarProducto(id: string, formData: FormData): Promis
     return { ok: false, error: parseo.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
+  const precios = leerPreciosFormulario(formData);
+  if (precios === null) return { ok: false, error: "El precio de una lista no es válido" };
+
   const supabase = await createClient();
-  const { error } = await supabase.rpc("actualizar_producto", { p_id: id, p: sinIndefinidos(parseo.data) });
+  const { error } = await supabase.rpc("actualizar_producto", {
+    p_id: id,
+    p: construirPayloadProducto(parseo.data, precios),
+  });
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard/productos");

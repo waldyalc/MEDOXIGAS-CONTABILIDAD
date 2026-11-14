@@ -17,7 +17,7 @@ import {
 
 describe("resumenFactura", () => {
   test("calcula cobrado y por cobrar", () => {
-    expect(resumenFactura({ total: 767, pagado: 200, credito: 67 })).toEqual({
+    expect(resumenFactura({ total: 767, pagado: 200, credito: 67, retenido: 0 })).toEqual({
       valorTotal: 767,
       valorRetenido: 0,
       totalCobrado: 200,
@@ -25,8 +25,17 @@ describe("resumenFactura", () => {
     });
   });
 
+  test("muestra el valor retenido real y lo resta del saldo", () => {
+    expect(resumenFactura({ total: 1180, pagado: 500, credito: 0, retenido: 54 })).toEqual({
+      valorTotal: 1180,
+      valorRetenido: 54,
+      totalCobrado: 500,
+      porCobrar: 626,
+    });
+  });
+
   test("nunca deja por cobrar negativo", () => {
-    expect(resumenFactura({ total: 100, pagado: 80, credito: 30 }).porCobrar).toBe(0);
+    expect(resumenFactura({ total: 100, pagado: 80, credito: 30, retenido: 0 }).porCobrar).toBe(0);
   });
 });
 
@@ -50,6 +59,10 @@ describe("estadoDeDocumento", () => {
     expect(estadoDeDocumento("abierta")).toEqual({ etiqueta: "Sin facturar", tono: "amber" });
     expect(estadoDeDocumento("convertida")).toEqual({ etiqueta: "Facturada", tono: "green" });
     expect(estadoDeDocumento("anulada")).toEqual({ etiqueta: "Anulada", tono: "red" });
+  });
+
+  test("convertida a conduce no dice facturada", () => {
+    expect(estadoDeDocumento("convertida", false)).toEqual({ etiqueta: "Convertida", tono: "green" });
   });
 });
 
@@ -91,13 +104,16 @@ describe("cálculos de líneas", () => {
 });
 
 describe("permisos de la vista", () => {
-  test("factura abierta con saldo permite pagar, notas y anular", () => {
+  test("factura abierta con saldo permite pagar, notas, anular y clonar", () => {
     expect(permisosDeFactura("abierta", 500, true)).toEqual({
       pagar: true,
       notaCredito: true,
       notaDebito: true,
       anular: true,
       convertir: false,
+      convertirEnConduce: false,
+      editar: false,
+      clonar: true,
     });
   });
 
@@ -108,25 +124,49 @@ describe("permisos de la vista", () => {
       notaDebito: true,
       anular: true,
       convertir: false,
+      convertirEnConduce: false,
+      editar: false,
+      clonar: true,
     });
   });
 
-  test("factura anulada o lector no puede nada", () => {
+  test("factura anulada o lector no puede nada salvo clonar", () => {
     expect(permisosDeFactura("anulada", 500, true)).toEqual({
       pagar: false,
       notaCredito: false,
       notaDebito: false,
       anular: false,
       convertir: false,
+      convertirEnConduce: false,
+      editar: false,
+      clonar: true,
     });
     expect(permisosDeFactura("abierta", 500, false).pagar).toBe(false);
+    expect(permisosDeFactura("abierta", 500, false).clonar).toBe(false);
   });
 
-  test("cotización abierta solo convierte", () => {
-    expect(permisosDeDocumento("abierta", true).convertir).toBe(true);
-    expect(permisosDeDocumento("abierta", true).anular).toBe(false);
-    expect(permisosDeDocumento("convertida", true).convertir).toBe(false);
-    expect(permisosDeDocumento("abierta", false).convertir).toBe(false);
+  test("cotización abierta convierte, edita y clona", () => {
+    expect(permisosDeDocumento("abierta", true, "cotizacion")).toEqual({
+      pagar: false,
+      notaCredito: false,
+      notaDebito: false,
+      anular: false,
+      convertir: true,
+      convertirEnConduce: true,
+      editar: true,
+      clonar: true,
+    });
+    expect(permisosDeDocumento("convertida", true, "cotizacion").convertir).toBe(false);
+    expect(permisosDeDocumento("convertida", true, "cotizacion").editar).toBe(false);
+    expect(permisosDeDocumento("convertida", true, "cotizacion").clonar).toBe(true);
+    expect(permisosDeDocumento("abierta", false, "cotizacion").convertir).toBe(false);
+  });
+
+  test("conduce abierto convierte a factura pero no a conduce", () => {
+    expect(permisosDeDocumento("abierta", true, "conduce").convertirEnConduce).toBe(false);
+    expect(permisosDeDocumento("abierta", true, "conduce").editar).toBe(true);
+    expect(permisosDeDocumento("anulada", true, "conduce").editar).toBe(false);
+    expect(permisosDeDocumento("anulada", true, "conduce").clonar).toBe(true);
   });
 });
 

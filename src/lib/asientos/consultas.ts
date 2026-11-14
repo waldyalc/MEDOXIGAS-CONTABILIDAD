@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 
-import type { AsientoLista, ContactoAsiento, CuentaAsiento, DatosFormularioAsiento } from "./tipos";
+import type { AsientoLista, CentroCostoAsiento, ContactoAsiento, CuentaAsiento, DatosFormularioAsiento } from "./tipos";
 
 const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -28,7 +28,7 @@ export async function getAsientosLista(desde?: string, hasta?: string): Promise<
 
 export async function getDatosFormularioAsiento(): Promise<DatosFormularioAsiento> {
   const supabase = await createClient();
-  const [cuentas, contactos] = await Promise.all([
+  const [cuentas, contactos, centrosCosto] = await Promise.all([
     supabase
       .from("cuentas")
       .select("id, codigo, nombre")
@@ -37,10 +37,17 @@ export async function getDatosFormularioAsiento(): Promise<DatosFormularioAsient
       .order("codigo")
       .returns<CuentaAsiento[]>(),
     supabase.from("contactos").select("id, nombre").eq("activo", true).order("nombre").returns<ContactoAsiento[]>(),
+    supabase
+      .from("centros_costo")
+      .select("id, codigo, nombre")
+      .eq("activo", true)
+      .order("codigo")
+      .returns<CentroCostoAsiento[]>(),
   ]);
 
   if (cuentas.error) throw new Error(cuentas.error.message);
   if (contactos.error) throw new Error(contactos.error.message);
+  if (centrosCosto.error) throw new Error(centrosCosto.error.message);
 
-  return { cuentas: cuentas.data, contactos: contactos.data };
+  return { cuentas: cuentas.data, contactos: contactos.data, centrosCosto: centrosCosto.data };
 }

@@ -14,7 +14,8 @@ export function calcularEstadoCuenta(filas: readonly FilaEstadoCuenta[], corte: 
   const documentos = filas.map((fila) => {
     const total = centavos(fila.total);
     const cobrado = centavos(fila.cobrado);
-    const saldo = total - cobrado;
+    const retenido = centavos(fila.retenido);
+    const saldo = total - cobrado - retenido;
     const estado: DocumentoEstadoCuenta["estado"] = saldo > 0 ? "Pendiente" : "Cobrada";
 
     return {
@@ -27,7 +28,7 @@ export function calcularEstadoCuenta(filas: readonly FilaEstadoCuenta[], corte: 
       estado,
       moneda: "DOP" as const,
       total,
-      retenido: 0,
+      retenido,
       cobrado,
       saldo,
     };

@@ -19,6 +19,7 @@ function contacto(parcial: Partial<Contacto> & Pick<Contacto, "id" | "nombre">):
     correo: null,
     direccion: null,
     tipo: "cliente",
+    lista_precio_id: null,
     ...parcial,
   };
 }
@@ -98,6 +99,7 @@ describe("validación del formulario de contacto", () => {
         telefono: "8095551234",
         correo: "ana@medoxigas.do",
         direccion: "Av. 27 de Febrero",
+        lista_precio_id: null,
       });
     }
   });

@@ -13,6 +13,7 @@ import type {
   FacturaLinea,
   FacturaLista,
   FacturaVista,
+  ListaPrecioResumen,
   NotaVentaResumen,
   PagoFacturaVista,
   ProductoResumen,
@@ -39,7 +40,7 @@ export async function getContactosClientes(): Promise<ContactoResumen[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("contactos")
-    .select("id, nombre, rnc_cedula, direccion, telefono")
+    .select("id, nombre, rnc_cedula, direccion, telefono, lista_precio_id")
     .eq("activo", true)
     .in("tipo", ["cliente", "ambos"])
     .order("nombre")
@@ -56,7 +57,40 @@ export async function getProductosActivos(): Promise<ProductoResumen[]> {
     .select("id, nombre, referencia, precio, itbis_tasa")
     .eq("activo", true)
     .order("nombre")
-    .returns<ProductoResumen[]>();
+    .returns<Omit<ProductoResumen, "precios">[]>();
+
+  if (error) throw new Error(error.message);
+  if (data.length === 0) return [];
+
+  const preciosRes = await supabase
+    .from("producto_precios")
+    .select("producto_id, lista_id, precio")
+    .in(
+      "producto_id",
+      data.map((producto) => producto.id),
+    );
+
+  if (preciosRes.error) throw new Error(preciosRes.error.message);
+
+  const preciosPorProducto = new Map<string, { lista_id: string; precio: number }[]>();
+  for (const fila of preciosRes.data as { producto_id: string; lista_id: string; precio: number }[]) {
+    const actuales = preciosPorProducto.get(fila.producto_id) ?? [];
+    actuales.push({ lista_id: fila.lista_id, precio: fila.precio });
+    preciosPorProducto.set(fila.producto_id, actuales);
+  }
+
+  return data.map((producto) => ({ ...producto, precios: preciosPorProducto.get(producto.id) ?? [] }));
+}
+
+export async function getListasPrecios(): Promise<ListaPrecioResumen[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("listas_precios")
+    .select("id, nombre, es_principal, tipo")
+    .eq("activo", true)
+    .order("es_principal", { ascending: false })
+    .order("nombre")
+    .returns<ListaPrecioResumen[]>();
 
   if (error) throw new Error(error.message);
   return data;
@@ -80,7 +114,9 @@ export async function getFacturasLista(): Promise<FacturaFila[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("facturas")
-    .select("id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, total, pagado, credito, estado")
+    .select(
+      "id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, estado",
+    )
     .order("numero", { ascending: false })
     .limit(300)
     .returns<FacturaLista[]>();
@@ -161,7 +197,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   const factura = await supabase
     .from("facturas")
     .select(
-      "id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, subtotal, descuento, itbis, total, pagado, credito, estado, notas, terminos, pie, asiento_id",
+      "id, numero, ncf, tipo_comprobante, contacto_id, vendedor_id, centro_costo_id, fecha, vencimiento, subtotal, descuento, itbis, total, pagado, credito, retenido, estado, notas, terminos, pie, asiento_id",
     )
     .eq("id", id)
     .maybeSingle()

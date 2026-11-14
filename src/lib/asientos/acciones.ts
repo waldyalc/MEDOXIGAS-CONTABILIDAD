@@ -28,6 +28,7 @@ export async function crearAsientoManual(entrada: unknown): Promise<ResultadoAsi
     lineas: datos.lineas.map((linea) => ({
       cuenta_id: linea.cuenta_id,
       ...(linea.contacto_id ? { contacto_id: linea.contacto_id } : {}),
+      ...(linea.centro_costo_id ? { centro_costo_id: linea.centro_costo_id } : {}),
       ...(linea.descripcion ? { descripcion: linea.descripcion } : {}),
       debito: centavosAValor(valorACentavos(linea.debito)),
       credito: centavosAValor(valorACentavos(linea.credito)),

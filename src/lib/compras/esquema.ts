@@ -35,6 +35,10 @@ export const esquemaFacturaProveedor = z
     contacto_id: id,
     fecha,
     vencimiento: fecha,
+    almacen_id: z
+      .union([id, z.literal("")])
+      .optional()
+      .transform((valor) => valor || null),
     ncf: z
       .string()
       .trim()
@@ -45,6 +49,10 @@ export const esquemaFacturaProveedor = z
       .string()
       .trim()
       .max(500, "Las notas son muy largas.")
+      .optional()
+      .transform((valor) => valor || null),
+    centro_costo_id: z
+      .union([id, z.literal("")])
       .optional()
       .transform((valor) => valor || null),
     lineas: z.array(esquemaLineaFactura).min(1, "Agrega al menos una línea."),
@@ -60,6 +68,11 @@ export const esquemaPagoProveedor = z.object({
   cuenta_id: id,
   metodo: z.enum(METODOS_PAGO),
   monto: numero.positive("El monto debe ser mayor que 0."),
+  retenciones: z
+    .array(z.object({ retencion_id: id }))
+    .max(20)
+    .optional()
+    .default([]),
 });
 
 export type EntradaLineaFactura = z.input<typeof esquemaLineaFactura>;

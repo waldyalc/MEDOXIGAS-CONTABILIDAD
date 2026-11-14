@@ -35,8 +35,9 @@ export function saldoDeFactura(
   total: number | string | null | undefined,
   pagado: number | string | null | undefined,
   credito: number | string | null | undefined = 0,
+  retenido: number | string | null | undefined = 0,
 ): number {
-  return Math.max(0, aNumero(total) - aNumero(pagado) - aNumero(credito));
+  return Math.max(0, aNumero(total) - aNumero(pagado) - aNumero(credito) - aNumero(retenido));
 }
 
 export function hoyRD(): string {

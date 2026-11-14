@@ -34,10 +34,14 @@ export interface DatosDocumento {
   notas: string;
   lineas: LineaFormulario[];
   productos: readonly ProductoParaLinea[];
+  almacenId?: string;
   tipoComprobante?: string;
   terminos?: string;
   pie?: string;
+  vendedorId?: string;
+  centroCostoId?: string;
   pago?: PagoFormulario;
+  cotizacionId?: string;
 }
 
 export interface LineaCalculadaFormulario {
@@ -99,12 +103,16 @@ export function construirEntrada(datos: DatosDocumento) {
 
   return {
     ...(datos.tipoComprobante ? { tipo_comprobante: datos.tipoComprobante } : {}),
+    ...(datos.cotizacionId ? { cotizacion_id: datos.cotizacionId } : {}),
     contacto_id: datos.clienteId,
     fecha: datos.fecha,
     vencimiento: datos.vencimiento,
+    ...(datos.almacenId ? { almacen_id: datos.almacenId } : {}),
     ...(notas ? { notas } : {}),
     ...(terminos ? { terminos } : {}),
     ...(pie ? { pie } : {}),
+    ...(datos.vendedorId ? { vendedor_id: datos.vendedorId } : {}),
+    ...(datos.centroCostoId ? { centro_costo_id: datos.centroCostoId } : {}),
     lineas: datos.lineas.map((linea) => {
       const producto = datos.productos.find((item) => item.id === linea.productoId);
       return {

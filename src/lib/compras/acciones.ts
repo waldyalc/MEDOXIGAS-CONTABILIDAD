@@ -45,8 +45,10 @@ export async function crearFacturaProveedor(
         contacto_id: datos.contacto_id,
         fecha: datos.fecha,
         vencimiento: datos.vencimiento,
+        ...(datos.almacen_id ? { almacen_id: datos.almacen_id } : {}),
         ...(datos.ncf ? { ncf: datos.ncf } : {}),
         ...(datos.notas ? { notas: datos.notas } : {}),
+        ...(datos.centro_costo_id ? { centro_costo_id: datos.centro_costo_id } : {}),
         lineas: datos.lineas.map((linea) => ({
           ...(linea.producto_id ? { producto_id: linea.producto_id } : {}),
           ...(linea.cuenta_id ? { cuenta_id: linea.cuenta_id } : {}),
@@ -95,6 +97,7 @@ export async function registrarPagoProveedor(entrada: EntradaPagoProveedor): Pro
         cuenta_id: datos.cuenta_id,
         metodo: datos.metodo,
         monto: datos.monto,
+        ...(datos.retenciones.length > 0 ? { retenciones: datos.retenciones } : {}),
       },
     })
     .returns<string>();

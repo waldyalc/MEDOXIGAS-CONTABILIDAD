@@ -34,14 +34,27 @@ export interface PermisosVista {
   notaDebito: boolean;
   anular: boolean;
   convertir: boolean;
+  convertirEnConduce: boolean;
+  editar: boolean;
+  clonar: boolean;
 }
 
 function sinPermisos(): PermisosVista {
-  return { pagar: false, notaCredito: false, notaDebito: false, anular: false, convertir: false };
+  return {
+    pagar: false,
+    notaCredito: false,
+    notaDebito: false,
+    anular: false,
+    convertir: false,
+    convertirEnConduce: false,
+    editar: false,
+    clonar: false,
+  };
 }
 
 export function permisosDeFactura(estado: string, porCobrar: number, puedeEscribir: boolean): PermisosVista {
-  if (!puedeEscribir || estado === "anulada") return sinPermisos();
+  if (!puedeEscribir) return sinPermisos();
+  if (estado === "anulada") return { ...sinPermisos(), clonar: true };
 
   return {
     pagar: estado === "abierta" && porCobrar > 0,
@@ -49,11 +62,19 @@ export function permisosDeFactura(estado: string, porCobrar: number, puedeEscrib
     notaDebito: true,
     anular: true,
     convertir: false,
+    convertirEnConduce: false,
+    editar: false,
+    clonar: true,
   };
 }
 
-export function permisosDeDocumento(estado: string, puedeEscribir: boolean): PermisosVista {
-  if (!puedeEscribir || estado !== "abierta") return sinPermisos();
+export function permisosDeDocumento(
+  estado: string,
+  puedeEscribir: boolean,
+  tipo: "cotizacion" | "conduce",
+): PermisosVista {
+  if (!puedeEscribir) return sinPermisos();
+  if (estado !== "abierta") return { ...sinPermisos(), clonar: true };
 
   return {
     pagar: false,
@@ -61,6 +82,9 @@ export function permisosDeDocumento(estado: string, puedeEscribir: boolean): Per
     notaDebito: false,
     anular: false,
     convertir: true,
+    convertirEnConduce: tipo === "cotizacion",
+    editar: true,
+    clonar: true,
   };
 }
 
@@ -68,12 +92,17 @@ export function redondearDinero(valor: number): number {
   return Math.round(valor * 100) / 100;
 }
 
-export function resumenFactura(factura: { total: number; pagado: number; credito: number }): ResumenFacturaVista {
+export function resumenFactura(factura: {
+  total: number;
+  pagado: number;
+  credito: number;
+  retenido: number;
+}): ResumenFacturaVista {
   return {
     valorTotal: factura.total,
-    valorRetenido: 0,
+    valorRetenido: factura.retenido,
     totalCobrado: factura.pagado,
-    porCobrar: Math.max(0, redondearDinero(factura.total - factura.pagado - factura.credito)),
+    porCobrar: Math.max(0, redondearDinero(factura.total - factura.pagado - factura.credito - factura.retenido)),
   };
 }
 
@@ -83,9 +112,9 @@ export function estadoDeFactura(estado: string, porCobrar: number): EtiquetaEsta
   return { etiqueta: "Por cobrar", tono: "amber" };
 }
 
-export function estadoDeDocumento(estado: string): EtiquetaEstado {
+export function estadoDeDocumento(estado: string, facturada = true): EtiquetaEstado {
   if (estado === "anulada") return { etiqueta: "Anulada", tono: "red" };
-  if (estado === "convertida") return { etiqueta: "Facturada", tono: "green" };
+  if (estado === "convertida") return { etiqueta: facturada ? "Facturada" : "Convertida", tono: "green" };
   return { etiqueta: "Sin facturar", tono: "amber" };
 }
 

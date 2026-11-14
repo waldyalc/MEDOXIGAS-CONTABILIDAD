@@ -132,8 +132,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
       </Card>
 
       <p className="text-muted-foreground text-xs">
-        El sistema todavía no registra retenciones de renta ni de ITBIS; estas filas muestran el ITBIS de los documentos
-        del período.
+        Estas filas muestran el ITBIS de los documentos del período. Las retenciones aplicadas a proveedores se ven en
+        el reporte IR-17 y en las cartas de retención.
       </p>
     </div>
   );

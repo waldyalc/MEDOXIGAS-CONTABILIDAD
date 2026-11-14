@@ -1,6 +1,9 @@
+import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
+import { getRetencionesActivas } from "@/lib/configuracion/consultas";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
+  AlmacenOpcion,
   AsientoDetalle,
   AsientoLinea,
   ContactoOpcion,
@@ -24,7 +27,9 @@ export async function listarFacturasProveedor(): Promise<FacturaLista[]> {
   const supabase = await cliente();
   const { data, error } = await supabase
     .from("facturas_proveedor")
-    .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, estado, contactos(nombre)")
+    .select(
+      "id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, estado, contactos(nombre)",
+    )
     .order("fecha", { ascending: false })
     .order("numero", { ascending: false })
     .returns<FacturaLista[]>();
@@ -38,7 +43,7 @@ export async function obtenerFacturaProveedor(id: string): Promise<DetalleFactur
   const { data: factura, error } = await supabase
     .from("facturas_proveedor")
     .select(
-      "id, numero, ncf, contacto_id, fecha, vencimiento, subtotal, itbis, total, pagado, credito, estado, notas, asiento_id, contactos(nombre, rnc_cedula)",
+      "id, numero, ncf, contacto_id, fecha, vencimiento, subtotal, itbis, total, pagado, credito, retenido, estado, notas, asiento_id, contactos(nombre, rnc_cedula)",
     )
     .eq("id", id)
     .maybeSingle<DetalleFacturaCompleto["factura"]>();
@@ -117,7 +122,7 @@ export async function listarPagosProveedor(): Promise<PagoLista[]> {
 
 export async function cargarOpcionesFactura(): Promise<OpcionesFactura> {
   const supabase = await cliente();
-  const [contactos, productos, cuentasGasto] = await Promise.all([
+  const [contactos, productos, cuentasGasto, centrosCosto, almacenes] = await Promise.all([
     supabase
       .from("contactos")
       .select("id, nombre, rnc_cedula")
@@ -139,16 +144,33 @@ export async function cargarOpcionesFactura(): Promise<OpcionesFactura> {
       .eq("activa", true)
       .order("codigo")
       .returns<CuentaOpcion[]>(),
+    supabase
+      .from("centros_costo")
+      .select("id, codigo, nombre")
+      .eq("activo", true)
+      .order("codigo")
+      .returns<CentroCostoOpcion[]>(),
+    supabase
+      .from("almacenes")
+      .select("id, nombre, es_principal")
+      .eq("activo", true)
+      .order("es_principal", { ascending: false })
+      .order("nombre")
+      .returns<AlmacenOpcion[]>(),
   ]);
 
   if (contactos.error) throw new Error(contactos.error.message);
   if (productos.error) throw new Error(productos.error.message);
   if (cuentasGasto.error) throw new Error(cuentasGasto.error.message);
+  if (centrosCosto.error) throw new Error(centrosCosto.error.message);
+  if (almacenes.error) throw new Error(almacenes.error.message);
 
   return {
     contactos: contactos.data ?? [],
     productos: productos.data ?? [],
     cuentasGasto: cuentasGasto.data ?? [],
+    centrosCosto: centrosCosto.data ?? [],
+    almacenes: almacenes.data ?? [],
   };
 }
 
@@ -169,7 +191,7 @@ export async function cargarCuentasCajaBanco(): Promise<CuentaOpcion[]> {
 
 export async function cargarOpcionesPago(): Promise<OpcionesPago> {
   const supabase = await cliente();
-  const [contactos, cuentasCajaBanco, facturasAbiertas] = await Promise.all([
+  const [contactos, cuentasCajaBanco, facturasAbiertas, retenciones] = await Promise.all([
     supabase
       .from("contactos")
       .select("id, nombre, rnc_cedula")
@@ -180,10 +202,13 @@ export async function cargarOpcionesPago(): Promise<OpcionesPago> {
     cargarCuentasCajaBanco(),
     supabase
       .from("facturas_proveedor")
-      .select("id, numero, ncf, fecha, vencimiento, total, pagado, credito, contacto_id, contactos(nombre)")
+      .select(
+        "id, numero, ncf, fecha, vencimiento, subtotal, itbis, total, pagado, credito, retenido, contacto_id, contactos(nombre)",
+      )
       .eq("estado", "abierta")
       .order("vencimiento")
       .returns<FacturaAbierta[]>(),
+    getRetencionesActivas(),
   ]);
 
   if (contactos.error) throw new Error(contactos.error.message);
@@ -193,5 +218,6 @@ export async function cargarOpcionesPago(): Promise<OpcionesPago> {
     contactos: contactos.data ?? [],
     cuentasCajaBanco,
     facturasAbiertas: facturasAbiertas.data ?? [],
+    retenciones,
   };
 }

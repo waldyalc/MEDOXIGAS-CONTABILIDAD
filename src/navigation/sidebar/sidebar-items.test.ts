@@ -52,7 +52,7 @@ describe("filtrarItemsPorRol", () => {
     expect(reportes.url).toBe("/dashboard/reportes");
   });
 
-  test("Ingresos, Compras, Inventario y Contabilidad agrupan sus submenús", () => {
+  test("Ingresos, Compras, Inventario, Contabilidad y Bancos agrupan sus submenús", () => {
     const ingresos = items("admin").find((item) => item.id === "ingresos");
     if (ingresos?.subItems == null) throw new Error("Ingresos debe tener submenú");
     expect(ingresos.subItems.map((sub) => sub.url)).toEqual([
@@ -80,6 +80,8 @@ describe("filtrarItemsPorRol", () => {
     if (inventario?.subItems == null) throw new Error("Inventario debe tener submenú");
     expect(inventario.subItems.map((sub) => sub.url)).toEqual([
       "/dashboard/inventario/ajustes",
+      "/dashboard/inventario/transferencias",
+      "/dashboard/inventario/listas-precios",
       "/dashboard/inventario/almacenes",
       "/dashboard/inventario/categorias",
     ]);
@@ -93,6 +95,10 @@ describe("filtrarItemsPorRol", () => {
       "/dashboard/contabilidad/activos",
       "/dashboard/contabilidad/periodos",
     ]);
+
+    const bancos = items("admin").find((item) => item.id === "bancos");
+    if (bancos?.subItems == null) throw new Error("Bancos debe tener submenú");
+    expect(bancos.subItems.map((sub) => sub.url)).toEqual(["/dashboard/bancos", "/dashboard/bancos/conciliaciones"]);
   });
 
   test("el grupo se titula Módulos", () => {

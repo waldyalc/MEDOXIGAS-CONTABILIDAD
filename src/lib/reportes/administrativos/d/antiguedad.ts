@@ -67,9 +67,9 @@ export function totalCartera(filas: readonly FilaCartera[]): number {
   return filas.reduce((total, fila) => total + fila.saldo, 0);
 }
 
-/** Saldo pendiente en centavos: total - pagado - crédito. */
-export function saldoCartera(total: number, pagado: number, credito = 0): number {
-  return total - pagado - credito;
+/** Saldo pendiente en centavos: total - pagado - crédito - retenido. */
+export function saldoCartera(total: number, pagado: number, credito = 0, retenido = 0): number {
+  return total - pagado - credito - retenido;
 }
 
 export function totalesPorVista(filas: readonly FilaCartera[]): Record<VistaConcreta, number> {

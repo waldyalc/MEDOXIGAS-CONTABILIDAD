@@ -25,16 +25,22 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
+import { centavosAValor } from "@/lib/facturacion/calculo";
 import { esTipoComprobante, OPCIONES_TIPO_COMPROBANTE } from "@/lib/facturacion/comprobantes";
 import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import type {
   ContactoResumen,
   CuentaCajaBanco,
   Empresa,
+  ListaPrecioResumen,
   ProductoResumen,
   TipoComprobante,
 } from "@/lib/facturacion/tipos";
+import { precioSugeridoCentavos } from "@/lib/inventario/precios";
+import type { Almacen } from "@/lib/inventario/tipos";
 import type { MetodoPago } from "@/lib/pagos/tipos";
+import type { VendedorOpcion } from "@/lib/vendedores/tipos";
 
 import {
   calcularDocumento,
@@ -44,6 +50,7 @@ import {
   lineaVacia,
   mensajeValidacionDocumento,
 } from "./calculo";
+import type { ValoresIniciales } from "./prellenado";
 
 export type ResultadoAccionDocumento = { ok: true; id: string } | { ok: false; error: string };
 
@@ -52,6 +59,13 @@ interface Props {
   contactos: ContactoResumen[];
   productos: ProductoResumen[];
   cuentas?: CuentaCajaBanco[];
+  vendedores?: VendedorOpcion[];
+  centrosCosto?: CentroCostoOpcion[];
+  notasIniciales?: string;
+  terminosIniciales?: string;
+  mostrarLogo?: boolean;
+  listasPrecios?: ListaPrecioResumen[];
+  almacenes?: Almacen[];
   fechaHoy: string;
   titulo: string;
   etiquetaNumero: string;
@@ -64,6 +78,9 @@ interface Props {
   rutaCancelar: string;
   rutaDestino: string;
   accion: (entrada: unknown) => Promise<ResultadoAccionDocumento>;
+  valoresIniciales?: ValoresIniciales;
+  cotizacionOrigenId?: string;
+  numeroActual?: string;
 }
 
 interface OpcionSelect {
@@ -86,6 +103,7 @@ const TITULO_SECCION = "text-base leading-6 font-semibold text-slate-700";
 const DIVISOR = "h-px w-full bg-slate-400/20";
 const CELDA_ENCABEZADO =
   "flex h-10 items-center border-b border-slate-400/20 bg-slate-50 px-1 text-xs leading-4 font-medium text-gray-500";
+const SIN_SELECCION = "__ninguno";
 const METODOS_PAGO: readonly { value: MetodoPago; label: string }[] = [
   { value: "efectivo", label: "Efectivo" },
   { value: "transferencia", label: "Transferencia" },
@@ -100,6 +118,10 @@ const OPCIONES_ITBIS: readonly { value: string; label: string }[] = [
 
 function esMetodoPago(valor: string | null): valor is MetodoPago {
   return METODOS_PAGO.some((metodo) => metodo.value === valor);
+}
+
+function tipoComprobanteInicial(valor: string | undefined): TipoComprobante {
+  return valor && esTipoComprobante(valor) ? valor : "02";
 }
 
 function claseColumnasOpciones(campos: number): string {
@@ -134,15 +156,19 @@ function Encabezado({
   conComprobante,
   etiquetaNumero,
   tipo,
+  numeroActual,
   onTipo,
   comprobantesItems,
+  mostrarLogo,
 }: {
   empresa: Empresa | null;
   conComprobante: boolean;
   etiquetaNumero: string;
   tipo: TipoComprobante;
+  numeroActual?: string;
   onTipo: (tipo: TipoComprobante) => void;
   comprobantesItems: OpcionSelect[];
+  mostrarLogo: boolean;
 }) {
   function cambiarTipo(valor: string | null) {
     if (valor && esTipoComprobante(valor)) onTipo(valor);
@@ -151,12 +177,14 @@ function Encabezado({
   return (
     <header className="flex flex-col gap-4 py-3 md:flex-row md:items-center md:justify-between md:gap-6 md:py-6 lg:py-8">
       <div className="flex min-w-0 justify-center md:w-1/3 md:justify-start">
-        {/* biome-ignore lint/performance/noImgElement: logo configurable de la empresa */}
-        <img
-          src={empresa?.logo_url?.trim() || "/marca/logo-medoxigas.png"}
-          alt={empresa?.nombre ?? "Medoxigas"}
-          className="h-[72px] w-auto object-contain md:h-24"
-        />
+        {mostrarLogo ? (
+          // biome-ignore lint/performance/noImgElement: logo configurable de la empresa
+          <img
+            src={empresa?.logo_url?.trim() || "/marca/logo-medoxigas.png"}
+            alt={empresa?.nombre ?? "Medoxigas"}
+            className="h-[72px] w-auto object-contain md:h-24"
+          />
+        ) : null}
       </div>
 
       <div className="min-w-0 text-center md:w-1/3">
@@ -189,7 +217,7 @@ function Encabezado({
         ) : null}
         <div className="flex items-center gap-2.5 pl-2.5 text-base">
           <span className="text-slate-500">{conComprobante ? "NCF" : etiquetaNumero}</span>
-          <span className="truncate text-slate-700">Se asigna al guardar</span>
+          <span className="truncate text-slate-700">{numeroActual ?? "Se asigna al guardar"}</span>
         </div>
       </div>
     </header>
@@ -327,6 +355,7 @@ function LineasDocumento({
           {lineas.map((linea, indice) => {
             const calculo = calculadas.find((item) => item.clave === linea.clave)?.calculo;
             const producto = productos.find((item) => item.id === linea.productoId);
+            const productoSeleccionado = opcionesProductos.find((item) => item.value === linea.productoId) ?? null;
 
             return (
               <div key={linea.clave} className="contents">
@@ -334,9 +363,12 @@ function LineasDocumento({
                 <div className="min-w-0 py-2 pr-1">
                   <Combobox
                     items={opcionesProductos}
+                    value={productoSeleccionado}
                     onValueChange={(item: { value: string; label: string } | null) =>
                       onSeleccionarProducto(linea.clave, item?.value ?? "")
                     }
+                    itemToStringLabel={(item: { value: string; label: string }) => item.label}
+                    isItemEqualToValue={(a: { value: string }, b: { value: string }) => a.value === b.value}
                   >
                     <ComboboxInput
                       id={`producto-${linea.clave}`}
@@ -471,6 +503,18 @@ function MasOpciones({
   onTerminos,
   pie,
   onPie,
+  vendedoresItems,
+  vendedorId,
+  onVendedor,
+  centrosItems,
+  centroCostoId,
+  onCentroCosto,
+  listasPrecios,
+  listaPrecioId,
+  onListaPrecio,
+  almacenes,
+  almacenId,
+  onAlmacen,
 }: {
   conTerminos: boolean;
   conPie: boolean;
@@ -480,8 +524,36 @@ function MasOpciones({
   onTerminos: (valor: string) => void;
   pie: string;
   onPie: (valor: string) => void;
+  vendedoresItems: OpcionSelect[];
+  vendedorId: string;
+  onVendedor: (valor: string) => void;
+  centrosItems: OpcionSelect[];
+  centroCostoId: string;
+  onCentroCosto: (valor: string) => void;
+  listasPrecios: ListaPrecioResumen[];
+  listaPrecioId: string;
+  onListaPrecio: (valor: string) => void;
+  almacenes: Almacen[];
+  almacenId: string;
+  onAlmacen: (valor: string) => void;
 }) {
-  const columnas = claseColumnasOpciones(1 + (conTerminos ? 1 : 0) + (conPie ? 1 : 0));
+  const columnas = claseColumnasOpciones(
+    1 +
+      (conTerminos ? 1 : 0) +
+      (conPie ? 1 : 0) +
+      (vendedoresItems.length > 1 ? 1 : 0) +
+      (centrosItems.length > 1 ? 1 : 0) +
+      (listasPrecios.length > 0 ? 1 : 0) +
+      (almacenes.length > 0 ? 1 : 0),
+  );
+  const opcionesListas = listasPrecios.map((lista) => ({
+    value: lista.id,
+    label: lista.es_principal ? `${lista.nombre} (principal)` : lista.nombre,
+  }));
+  const opcionesAlmacenes = almacenes.map((almacen) => ({
+    value: almacen.id,
+    label: almacen.es_principal ? `${almacen.nombre} (principal)` : almacen.nombre,
+  }));
 
   return (
     <section>
@@ -492,6 +564,48 @@ function MasOpciones({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className={`grid gap-4 pt-2 ${columnas}`}>
+            {listasPrecios.length > 0 ? (
+              <Campo>
+                <Etiqueta htmlFor="lista-precios">Lista de precios</Etiqueta>
+                <Select
+                  items={opcionesListas}
+                  value={listaPrecioId}
+                  onValueChange={(valor: string | null) => onListaPrecio(valor ?? "")}
+                >
+                  <SelectTrigger id="lista-precios" className={SELECT_CHICO}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {opcionesListas.map((opcion) => (
+                      <SelectItem key={opcion.value} value={opcion.value}>
+                        {opcion.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Campo>
+            ) : null}
+            {almacenes.length > 0 ? (
+              <Campo>
+                <Etiqueta htmlFor="almacen-documento">Almacén</Etiqueta>
+                <Select
+                  items={opcionesAlmacenes}
+                  value={almacenId}
+                  onValueChange={(valor: string | null) => onAlmacen(valor ?? "")}
+                >
+                  <SelectTrigger id="almacen-documento" className={SELECT_CHICO}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {opcionesAlmacenes.map((opcion) => (
+                      <SelectItem key={opcion.value} value={opcion.value}>
+                        {opcion.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Campo>
+            ) : null}
             <Campo>
               <Etiqueta htmlFor="notas">Notas</Etiqueta>
               <Textarea
@@ -512,6 +626,52 @@ function MasOpciones({
                   onChange={(evento) => onTerminos(evento.target.value)}
                   className="focus-visible:border-primary min-h-20 border-slate-300 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus-visible:ring-0"
                 />
+              </Campo>
+            ) : null}
+            {vendedoresItems.length > 1 ? (
+              <Campo>
+                <Etiqueta htmlFor="vendedor">Vendedor</Etiqueta>
+                <Select
+                  items={vendedoresItems}
+                  value={vendedorId || SIN_SELECCION}
+                  onValueChange={(valor: string | null) =>
+                    onVendedor(valor == null || valor === SIN_SELECCION ? "" : valor)
+                  }
+                >
+                  <SelectTrigger id="vendedor" className={SELECT_CHICO}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {vendedoresItems.map((opcion) => (
+                      <SelectItem key={opcion.value} value={opcion.value}>
+                        {opcion.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Campo>
+            ) : null}
+            {centrosItems.length > 1 ? (
+              <Campo>
+                <Etiqueta htmlFor="centro-costo">Centro de costo</Etiqueta>
+                <Select
+                  items={centrosItems}
+                  value={centroCostoId || SIN_SELECCION}
+                  onValueChange={(valor: string | null) =>
+                    onCentroCosto(valor == null || valor === SIN_SELECCION ? "" : valor)
+                  }
+                >
+                  <SelectTrigger id="centro-costo" className={SELECT_CHICO}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {centrosItems.map((opcion) => (
+                      <SelectItem key={opcion.value} value={opcion.value}>
+                        {opcion.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </Campo>
             ) : null}
             {conPie ? (
@@ -538,6 +698,13 @@ export function DocumentoVentaForm({
   contactos,
   productos,
   cuentas = [],
+  vendedores = [],
+  centrosCosto = [],
+  notasIniciales = "",
+  terminosIniciales = "",
+  mostrarLogo = true,
+  listasPrecios = [],
+  almacenes = [],
   fechaHoy,
   titulo,
   etiquetaNumero,
@@ -550,24 +717,35 @@ export function DocumentoVentaForm({
   rutaCancelar,
   rutaDestino,
   accion,
+  valoresIniciales,
+  cotizacionOrigenId,
+  numeroActual,
 }: Props) {
   const router = useRouter();
-  const contador = useRef(1);
+  const lineasIniciales =
+    valoresIniciales?.lineas && valoresIniciales.lineas.length > 0 ? valoresIniciales.lineas : [lineaVacia("l1")];
+  const contador = useRef(lineasIniciales.length);
   const [pendiente, iniciar] = useTransition();
 
-  const [tipo, setTipo] = useState<TipoComprobante>("02");
-  const [clienteId, setClienteId] = useState("");
-  const [fecha, setFecha] = useState(fechaHoy);
-  const [vencimiento, setVencimiento] = useState(fechaHoy);
-  const [lineas, setLineas] = useState<LineaFormulario[]>([lineaVacia("l1")]);
-  const [notas, setNotas] = useState("");
-  const [terminos, setTerminos] = useState("");
+  const [tipo, setTipo] = useState<TipoComprobante>(tipoComprobanteInicial(valoresIniciales?.tipoComprobante));
+  const [clienteId, setClienteId] = useState(valoresIniciales?.clienteId ?? "");
+  const [fecha, setFecha] = useState(valoresIniciales?.fecha ?? fechaHoy);
+  const [vencimiento, setVencimiento] = useState(valoresIniciales?.vencimiento ?? fechaHoy);
+  const [lineas, setLineas] = useState<LineaFormulario[]>(lineasIniciales);
+  const [notas, setNotas] = useState(valoresIniciales?.notas ?? notasIniciales);
+  const [terminos, setTerminos] = useState(valoresIniciales?.terminos ?? terminosIniciales);
   const [pie, setPie] = useState("");
+  const [vendedorId, setVendedorId] = useState(valoresIniciales?.vendedorId ?? "");
+  const [centroCostoId, setCentroCostoId] = useState(valoresIniciales?.centroCostoId ?? "");
   const [registrarPago, setRegistrarPago] = useState(false);
   const [cuentaPago, setCuentaPago] = useState(
     cuentas.find((cuenta) => cuenta.codigo === "1101")?.id ?? cuentas[0]?.id ?? "",
   );
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("efectivo");
+  const [listaPrecioId, setListaPrecioId] = useState(listasPrecios.find((lista) => lista.es_principal)?.id ?? "");
+  const [almacenId, setAlmacenId] = useState(
+    almacenes.find((almacen) => almacen.es_principal)?.id ?? almacenes[0]?.id ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
 
   const clientesItems = contactos.map((contacto) => ({ value: contacto.id, label: contacto.nombre }));
@@ -576,6 +754,15 @@ export function DocumentoVentaForm({
     label: opcion.etiqueta,
   }));
   const cuentasItems = cuentas.map((cuenta) => ({ value: cuenta.id, label: `${cuenta.codigo} · ${cuenta.nombre}` }));
+  const vendedoresItems = [
+    { value: SIN_SELECCION, label: "Sin vendedor" },
+    ...vendedores.map((vendedor) => ({ value: vendedor.id, label: vendedor.nombre })),
+  ];
+  const centrosItems = [
+    { value: SIN_SELECCION, label: "Sin centro" },
+    ...centrosCosto.map((centro) => ({ value: centro.id, label: `${centro.codigo} · ${centro.nombre}` })),
+  ];
+  const clienteSeleccionado = clientesItems.find((item) => item.value === clienteId) ?? null;
 
   const { calculadas, totales } = calcularDocumento(lineas);
 
@@ -583,12 +770,36 @@ export function DocumentoVentaForm({
     setLineas((actuales) => actuales.map((linea) => (linea.clave === clave ? { ...linea, ...cambios } : linea)));
   }
 
+  function precioDeProducto(producto: ProductoResumen, listaId: string): string {
+    const centavos = precioSugeridoCentavos(producto.precio, listasPrecios, producto.precios, listaId);
+    return centavosAValor(centavos).toFixed(2);
+  }
+
   function seleccionarProducto(clave: string, productoId: string) {
     const producto = productos.find((item) => item.id === productoId);
     actualizarLinea(clave, {
       productoId,
-      ...(producto ? { precio: producto.precio.toFixed(2), itbisTasa: String(producto.itbis_tasa) } : {}),
+      ...(producto
+        ? { precio: precioDeProducto(producto, listaPrecioId), itbisTasa: String(producto.itbis_tasa) }
+        : {}),
     });
+  }
+
+  function seleccionarCliente(item: { value: string; label: string } | null) {
+    setClienteId(item?.value ?? "");
+    const contacto = contactos.find((cliente) => cliente.id === item?.value);
+    const lista = contacto?.lista_precio_id;
+    if (lista && listasPrecios.some((opcion) => opcion.id === lista)) cambiarListaPrecio(lista);
+  }
+
+  function cambiarListaPrecio(listaId: string) {
+    setListaPrecioId(listaId);
+    setLineas((actuales) =>
+      actuales.map((linea) => {
+        const producto = productos.find((item) => item.id === linea.productoId);
+        return producto ? { ...linea, precio: precioDeProducto(producto, listaId) } : linea;
+      }),
+    );
   }
 
   function agregarLinea() {
@@ -622,9 +833,13 @@ export function DocumentoVentaForm({
       notas,
       lineas,
       productos,
+      vendedorId,
+      centroCostoId,
+      ...(almacenId ? { almacenId } : {}),
       ...(conComprobante ? { tipoComprobante: tipo } : {}),
       ...(conTerminos ? { terminos } : {}),
       ...(conPie ? { pie } : {}),
+      cotizacionId: cotizacionOrigenId,
       ...(conPago && registrarPago ? { pago: { cuentaId: cuentaPago, metodo: metodoPago } } : {}),
     });
 
@@ -660,8 +875,10 @@ export function DocumentoVentaForm({
           conComprobante={conComprobante}
           etiquetaNumero={etiquetaNumero}
           tipo={tipo}
+          numeroActual={numeroActual}
           onTipo={setTipo}
           comprobantesItems={comprobantesItems}
+          mostrarLogo={mostrarLogo}
         />
 
         {conPago ? (
@@ -687,7 +904,10 @@ export function DocumentoVentaForm({
               </Etiqueta>
               <Combobox
                 items={clientesItems}
-                onValueChange={(item: { value: string; label: string } | null) => setClienteId(item?.value ?? "")}
+                value={clienteSeleccionado}
+                onValueChange={seleccionarCliente}
+                itemToStringLabel={(item: { value: string; label: string }) => item.label}
+                isItemEqualToValue={(a: { value: string }, b: { value: string }) => a.value === b.value}
               >
                 <ComboboxInput id="cliente" className={COMBO_MEDIO} placeholder="Buscar cliente…" showClear />
                 <ComboboxContent>
@@ -759,6 +979,18 @@ export function DocumentoVentaForm({
           onTerminos={setTerminos}
           pie={pie}
           onPie={setPie}
+          vendedoresItems={vendedoresItems}
+          vendedorId={vendedorId}
+          onVendedor={setVendedorId}
+          centrosItems={centrosItems}
+          centroCostoId={centroCostoId}
+          onCentroCosto={setCentroCostoId}
+          listasPrecios={listasPrecios}
+          listaPrecioId={listaPrecioId}
+          onListaPrecio={cambiarListaPrecio}
+          almacenes={almacenes}
+          almacenId={almacenId}
+          onAlmacen={setAlmacenId}
         />
       </div>
 

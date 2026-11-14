@@ -1,4 +1,5 @@
 import { calcularLinea, centavosAValor, valorACentavos } from "@/lib/facturacion/calculo";
+import type { ExistenciaAlmacen } from "@/lib/inventario/tipos";
 
 import type { ResultadoKardex } from "./kardex";
 import type { ProductoTipo } from "./productos";
@@ -66,6 +67,7 @@ export interface FichaProducto {
   facturasCompra: DocumentoFicha[];
   cotizaciones: DocumentoComercialFicha[];
   conduces: DocumentoComercialFicha[];
+  existencias: ExistenciaAlmacen[];
   kardex: ResultadoKardex;
 }
 

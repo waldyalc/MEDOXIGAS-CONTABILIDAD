@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { Enlace } from "@/components/enlace";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaCuenta } from "@/lib/enlaces";
 import { type CuentaFicha, type FichaProducto, precioConItbis } from "@/lib/productos/ficha";
 import { etiquetaTasaItbis, formatoCantidad, formatoMoneda } from "@/lib/productos/productos";
@@ -33,7 +34,7 @@ function CuentaDato({ etiqueta, cuenta }: { readonly etiqueta: string; readonly 
 }
 
 export function DatosProducto({ ficha }: { readonly ficha: FichaProducto }) {
-  const { producto, cuentas, kardex } = ficha;
+  const { producto, cuentas, existencias, kardex } = ficha;
 
   return (
     <Card>
@@ -62,6 +63,45 @@ export function DatosProducto({ ficha }: { readonly ficha: FichaProducto }) {
           <CuentaDato etiqueta="Cuenta de inventario" cuenta={cuentas.inventario} />
           <CuentaDato etiqueta="Cuenta de costo" cuenta={cuentas.costo} />
         </dl>
+
+        {producto.inventariable ? (
+          <div className="col-span-full flex flex-col gap-2">
+            <h3 className="text-sm font-medium">Existencia por almacén</h3>
+            <div className="overflow-x-auto rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Almacén</TableHead>
+                    <TableHead className="text-right">Cantidad</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {existencias.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-muted-foreground text-center">
+                        Sin existencias registradas por almacén.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    existencias.map((existencia) => (
+                      <TableRow key={existencia.almacen_id}>
+                        <TableCell>
+                          {existencia.almacen_nombre}
+                          {existencia.es_principal ? (
+                            <span className="text-muted-foreground text-xs"> (principal)</span>
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatoCantidad(existencia.cantidad)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

@@ -5,11 +5,13 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
+import { RetencionesCampo } from "@/components/retenciones/retenciones-campo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Combobox,
   ComboboxContent,
@@ -20,23 +22,45 @@ import {
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { RetencionOpcion } from "@/lib/configuracion/tipos";
 import { centavosAValor, parsearCentavos, valorACentavos } from "@/lib/facturacion/calculo";
 import { formatoMoneda, saldoDeFactura } from "@/lib/facturacion/formato";
 import type { ContactoResumen, CuentaCajaBanco } from "@/lib/facturacion/tipos";
 import { registrarPago } from "@/lib/pagos/acciones";
 import type { FacturaAbierta, MetodoPago } from "@/lib/pagos/tipos";
+import { calcularRetenciones, totalRetenido } from "@/lib/retenciones/calculo";
+
+const METODOS = [
+  { value: "efectivo", label: "Efectivo" },
+  { value: "transferencia", label: "Transferencia" },
+  { value: "tarjeta", label: "Tarjeta" },
+  { value: "cheque", label: "Cheque" },
+] as const;
 
 interface Props {
   contactos: ContactoResumen[];
   facturas: FacturaAbierta[];
   cuentas: CuentaCajaBanco[];
+  retenciones: RetencionOpcion[];
   initialCliente: string;
   initialFactura: string;
   fechaHoy: string;
 }
 
-export function PagoForm({ contactos, facturas, cuentas, initialCliente, initialFactura, fechaHoy }: Props) {
+function saldoDisponible(factura: FacturaAbierta): number {
+  return saldoDeFactura(factura.total, factura.pagado, factura.credito, factura.retenido);
+}
+
+export function PagoForm({
+  contactos,
+  facturas,
+  cuentas,
+  retenciones,
+  initialCliente,
+  initialFactura,
+  fechaHoy,
+}: Props) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
   const facturaInicial = facturas.find((factura) => factura.id === initialFactura);
@@ -48,15 +72,28 @@ export function PagoForm({ contactos, facturas, cuentas, initialCliente, initial
     cuentas.find((cuenta) => cuenta.codigo === "1101")?.id ?? cuentas[0]?.id ?? "",
   );
   const [metodo, setMetodo] = useState<MetodoPago>("efectivo");
-  const [monto, setMonto] = useState(
-    facturaInicial ? saldoDeFactura(facturaInicial.total, facturaInicial.pagado).toFixed(2) : "",
-  );
+  const [monto, setMonto] = useState(facturaInicial ? saldoDisponible(facturaInicial).toFixed(2) : "");
+  const [retencionesIds, setRetencionesIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const clientesItems = contactos.map((contacto) => ({ value: contacto.id, label: contacto.nombre }));
   const facturasDelCliente = facturas.filter((factura) => factura.contacto_id === clienteId);
   const facturaSeleccionada = facturasDelCliente.find((factura) => factura.id === facturaId);
-  const saldo = facturaSeleccionada ? saldoDeFactura(facturaSeleccionada.total, facturaSeleccionada.pagado) : 0;
+  const saldo = facturaSeleccionada ? saldoDisponible(facturaSeleccionada) : 0;
+  const base = facturaSeleccionada
+    ? { subtotal: facturaSeleccionada.subtotal, itbis: facturaSeleccionada.itbis }
+    : { subtotal: 0, itbis: 0 };
+  const filasRetencion = calcularRetenciones(retencionesIds, retenciones, base);
+  const retenido = totalRetenido(filasRetencion);
+
+  const facturasItems = facturasDelCliente.map((factura) => ({
+    value: factura.id,
+    label: `#${factura.numero}${factura.ncf ? ` · ${factura.ncf}` : ""} · Saldo ${formatoMoneda(
+      saldoDisponible(factura),
+    )}`,
+  }));
+
+  const cuentasItems = cuentas.map((cuenta) => ({ value: cuenta.id, label: `${cuenta.codigo} · ${cuenta.nombre}` }));
 
   function textoPlaceholderFactura(cliente: string, cantidad: number) {
     if (!cliente) return "Primero selecciona un cliente";
@@ -64,16 +101,32 @@ export function PagoForm({ contactos, facturas, cuentas, initialCliente, initial
     return "Selecciona una factura";
   }
 
+  function ajustarMonto(factura: FacturaAbierta, ids: string[]) {
+    const nuevoSaldo = saldoDisponible(factura);
+    const nuevoRetenido = totalRetenido(
+      calcularRetenciones(ids, retenciones, { subtotal: factura.subtotal, itbis: factura.itbis }),
+    );
+    const nuevoMonto = Math.max(0, Math.round((nuevoSaldo - nuevoRetenido) * 100) / 100);
+    setMonto(nuevoMonto.toFixed(2));
+  }
+
   function cambiarCliente(id: string) {
     setClienteId(id);
     setFacturaId("");
     setMonto("");
+    setRetencionesIds([]);
   }
 
   function cambiarFactura(id: string) {
     setFacturaId(id);
+    setRetencionesIds([]);
     const factura = facturasDelCliente.find((item) => item.id === id);
-    setMonto(factura ? saldoDeFactura(factura.total, factura.pagado).toFixed(2) : "");
+    setMonto(factura ? saldoDisponible(factura).toFixed(2) : "");
+  }
+
+  function cambiarRetenciones(ids: string[]) {
+    setRetencionesIds(ids);
+    if (facturaSeleccionada) ajustarMonto(facturaSeleccionada, ids);
   }
 
   function guardar() {
@@ -97,8 +150,10 @@ export function PagoForm({ contactos, facturas, cuentas, initialCliente, initial
       setError("El monto debe ser mayor que cero.");
       return;
     }
-    if (valorCentavos > valorACentavos(saldo)) {
-      setError("El monto no puede superar el saldo de la factura.");
+
+    const totalCentavos = valorCentavos + Math.round(retenido * 100);
+    if (totalCentavos > valorACentavos(saldo)) {
+      setError("El monto más las retenciones no puede superar el saldo de la factura.");
       return;
     }
 
@@ -110,6 +165,7 @@ export function PagoForm({ contactos, facturas, cuentas, initialCliente, initial
         cuenta_id: cuentaId,
         metodo,
         monto: centavosAValor(valorCentavos),
+        retenciones: retencionesIds.map((id) => ({ retencion_id: id })),
       });
 
       if (!resultado.ok) {
@@ -155,24 +211,22 @@ export function PagoForm({ contactos, facturas, cuentas, initialCliente, initial
 
           <div className="flex flex-col gap-2 md:col-span-2">
             <Label htmlFor="factura">Factura abierta *</Label>
-            <NativeSelect
-              id="factura"
-              className="w-full"
-              value={facturaId}
-              disabled={!clienteId || facturasDelCliente.length === 0}
-              onChange={(evento) => cambiarFactura(evento.target.value)}
+            <Select
+              items={facturasItems}
+              value={facturaId || null}
+              onValueChange={(valor: string | null) => cambiarFactura(valor ?? "")}
             >
-              <NativeSelectOption value="">
-                {textoPlaceholderFactura(clienteId, facturasDelCliente.length)}
-              </NativeSelectOption>
-              {facturasDelCliente.map((factura) => (
-                <NativeSelectOption key={factura.id} value={factura.id}>
-                  #{factura.numero}
-                  {factura.ncf ? ` · ${factura.ncf}` : ""} · Saldo{" "}
-                  {formatoMoneda(saldoDeFactura(factura.total, factura.pagado))}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              <SelectTrigger id="factura" className="w-full" disabled={!clienteId || facturasDelCliente.length === 0}>
+                <SelectValue placeholder={textoPlaceholderFactura(clienteId, facturasDelCliente.length)} />
+              </SelectTrigger>
+              <SelectContent>
+                {facturasItems.map((factura) => (
+                  <SelectItem key={factura.value} value={factura.value}>
+                    {factura.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {facturaSeleccionada ? (
               <p className="text-muted-foreground text-xs">Saldo disponible: {formatoMoneda(saldo)}</p>
             ) : null}
@@ -196,34 +250,73 @@ export function PagoForm({ contactos, facturas, cuentas, initialCliente, initial
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="cuenta">Cuenta *</Label>
-            <NativeSelect
-              id="cuenta"
-              className="w-full"
+            <Select
+              items={cuentasItems}
               value={cuentaId}
-              onChange={(evento) => setCuentaId(evento.target.value)}
+              onValueChange={(valor: string | null) => setCuentaId(valor ?? "")}
             >
-              {cuentas.map((cuenta) => (
-                <NativeSelectOption key={cuenta.id} value={cuenta.id}>
-                  {cuenta.codigo} · {cuenta.nombre}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              <SelectTrigger id="cuenta" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {cuentasItems.map((cuenta) => (
+                  <SelectItem key={cuenta.value} value={cuenta.value}>
+                    {cuenta.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="metodo">Método *</Label>
-            <NativeSelect
-              id="metodo"
-              className="w-full"
+            <Select
+              items={[...METODOS]}
               value={metodo}
-              onChange={(evento) => setMetodo(evento.target.value as MetodoPago)}
+              onValueChange={(valor: string | null) => {
+                if (valor === "efectivo" || valor === "transferencia" || valor === "tarjeta" || valor === "cheque") {
+                  setMetodo(valor);
+                }
+              }}
             >
-              <NativeSelectOption value="efectivo">Efectivo</NativeSelectOption>
-              <NativeSelectOption value="transferencia">Transferencia</NativeSelectOption>
-              <NativeSelectOption value="tarjeta">Tarjeta</NativeSelectOption>
-              <NativeSelectOption value="cheque">Cheque</NativeSelectOption>
-            </NativeSelect>
+              <SelectTrigger id="metodo" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {METODOS.map((metodoPago) => (
+                  <SelectItem key={metodoPago.value} value={metodoPago.value}>
+                    {metodoPago.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          <div className="md:col-span-2">
+            <Collapsible>
+              <CollapsibleTrigger className="flex w-full items-center justify-between py-2 text-sm font-medium [&[data-panel-open]>svg]:rotate-180">
+                Más opciones
+                <ChevronDown className="size-4 transition-transform" />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="pt-2">
+                  <RetencionesCampo
+                    retenciones={retenciones}
+                    base={base}
+                    seleccionadas={retencionesIds}
+                    onCambiar={cambiarRetenciones}
+                    deshabilitado={!facturaSeleccionada}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+
+          {facturaSeleccionada ? (
+            <p className="text-muted-foreground text-xs md:col-span-2">
+              Total aplicado: {formatoMoneda((parsearCentavos(monto) ?? 0) / 100 + retenido)} (monto + retenciones)
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 
