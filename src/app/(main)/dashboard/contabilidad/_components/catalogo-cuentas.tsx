@@ -266,11 +266,7 @@ export function CatalogoCuentas({ cuentas, saldos, configuracion, puedeEditar }:
   const esLg = useIsLg();
 
   const filtro = useMemo(() => (busqueda.trim() === "" ? null : filtrarArbol(arbol, busqueda)), [arbol, busqueda]);
-  const expandidosVisibles = filtro ? filtro.expandidos : expandidos;
-  const filas = useMemo(
-    () => aplanarArbol(filtro ? filtro.nodos : arbol, expandidosVisibles),
-    [arbol, filtro, expandidosVisibles],
-  );
+  const filas = useMemo(() => aplanarArbol(filtro ? filtro.nodos : arbol, expandidos), [arbol, filtro, expandidos]);
   const nodosPorId = useMemo(() => indexarNodos(arbol), [arbol]);
   const seleccionada = seleccionadaId == null ? null : (nodosPorId.get(seleccionadaId) ?? null);
 
@@ -292,6 +288,11 @@ export function CatalogoCuentas({ cuentas, saldos, configuracion, puedeEditar }:
   function seleccionar(id: string) {
     setSeleccionadaId(id);
     if (!esLg) setSheetAbierto(true);
+  }
+
+  function buscar(valor: string) {
+    setBusqueda(valor);
+    if (valor.trim() !== "") setExpandidos(filtrarArbol(arbol, valor).expandidos);
   }
 
   function expandir() {
@@ -326,7 +327,7 @@ export function CatalogoCuentas({ cuentas, saldos, configuracion, puedeEditar }:
             <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
             <Input
               value={busqueda}
-              onChange={(event) => setBusqueda(event.target.value)}
+              onChange={(event) => buscar(event.target.value)}
               placeholder="Buscar por nombre o código…"
               aria-label="Buscar cuentas"
               className="pl-8"
