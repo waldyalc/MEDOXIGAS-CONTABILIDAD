@@ -3239,6 +3239,10 @@ export type Database = {
       crear_termino_pago: { Args: { p: Json }; Returns: string }
       crear_transferencia_inventario: { Args: { p: Json }; Returns: string }
       crear_vendedor: { Args: { p: Json }; Returns: string }
+      dashboard_resumen: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: Json
+      }
       depreciar_activo: {
         Args: { p_activo_id: string; p_periodo?: string }
         Returns: string
