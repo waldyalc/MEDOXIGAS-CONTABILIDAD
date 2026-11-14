@@ -7,6 +7,7 @@ import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
 import { rutaAsiento, rutaContacto, rutaCuenta, rutaFactura } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
@@ -76,21 +77,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <dd>{formatoDia(pago.fecha)}</dd>
             <dt className="text-muted-foreground">Monto</dt>
             <dd className="font-medium tabular-nums">{formatoMoneda(pago.monto)}</dd>
+            <dt className="text-muted-foreground">Retención</dt>
+            <dd className="tabular-nums">{formatoMoneda(pago.retenido)}</dd>
             <dt className="text-muted-foreground">Método</dt>
             <dd>{ETIQUETAS_METODO[pago.metodo]}</dd>
             <dt className="text-muted-foreground">Cliente</dt>
             <dd>
               <Enlace href={rutaContacto(pago.contacto_id)}>{pago.contacto?.nombre ?? "—"}</Enlace>
-            </dd>
-            <dt className="text-muted-foreground">Factura</dt>
-            <dd>
-              {pago.factura_id && pago.factura ? (
-                <Enlace href={rutaFactura(pago.factura_id)}>
-                  {`#${pago.factura.numero}${pago.factura.ncf ? ` · ${pago.factura.ncf}` : ""}`}
-                </Enlace>
-              ) : (
-                "—"
-              )}
             </dd>
             <dt className="text-muted-foreground">Cuenta</dt>
             <dd>
@@ -101,6 +94,46 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <dt className="text-muted-foreground">Notas</dt>
             <dd className="whitespace-pre-line">{pago.notas ?? "—"}</dd>
           </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Facturas aplicadas</CardTitle>
+        </CardHeader>
+        <CardContent className="px-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-(--card-spacing)">Número</TableHead>
+                <TableHead>NCF</TableHead>
+                <TableHead className="text-right">Monto</TableHead>
+                <TableHead className="pr-(--card-spacing) text-right">Retención</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pago.aplicaciones.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-muted-foreground py-8 text-center">
+                    Este pago no tiene facturas aplicadas.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                pago.aplicaciones.map((aplicacion) => (
+                  <TableRow key={aplicacion.factura_id}>
+                    <TableCell className="pl-(--card-spacing) font-medium">
+                      <Enlace href={rutaFactura(aplicacion.factura_id)}>#{aplicacion.numero}</Enlace>
+                    </TableCell>
+                    <TableCell>{aplicacion.ncf ?? "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatoMoneda(aplicacion.monto)}</TableCell>
+                    <TableCell className="pr-(--card-spacing) text-right tabular-nums">
+                      {formatoMoneda(aplicacion.retenido)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

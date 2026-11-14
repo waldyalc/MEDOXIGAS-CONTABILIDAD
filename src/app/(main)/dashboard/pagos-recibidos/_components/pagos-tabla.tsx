@@ -18,6 +18,22 @@ const METODOS: Record<PagoLista["metodo"], string> = {
   cheque: "Cheque",
 };
 
+function CeldaFactura({ pago }: { pago: PagoLista }) {
+  if (pago.aplicaciones > 1) {
+    return <span className="text-muted-foreground">Varias facturas ({pago.aplicaciones})</span>;
+  }
+
+  if (pago.factura_id) {
+    return (
+      <Enlace href={rutaFactura(pago.factura_id)}>
+        #{pago.factura_numero} {pago.factura_ncf ? `· ${pago.factura_ncf}` : ""}
+      </Enlace>
+    );
+  }
+
+  return "—";
+}
+
 export function PagosTabla({ pagos, puedeEscribir }: { pagos: PagoLista[]; puedeEscribir: boolean }) {
   return (
     <div className="flex flex-col gap-4">
@@ -65,13 +81,7 @@ export function PagosTabla({ pagos, puedeEscribir }: { pagos: PagoLista[]; puede
                     <Enlace href={rutaContacto(pago.contacto_id)}>{pago.cliente_nombre}</Enlace>
                   </TableCell>
                   <TableCell>
-                    {pago.factura_id ? (
-                      <Enlace href={rutaFactura(pago.factura_id)}>
-                        #{pago.factura_numero} {pago.factura_ncf ? `· ${pago.factura_ncf}` : ""}
-                      </Enlace>
-                    ) : (
-                      "—"
-                    )}
+                    <CeldaFactura pago={pago} />
                   </TableCell>
                   <TableCell>{METODOS[pago.metodo]}</TableCell>
                   <TableCell className="text-right font-medium">{formatoMoneda(pago.monto)}</TableCell>

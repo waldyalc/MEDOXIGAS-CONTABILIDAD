@@ -3,13 +3,13 @@ import { redirect } from "next/navigation";
 
 import { ArrowLeft } from "lucide-react";
 
+import { PagoForm } from "@/components/pagos/pago-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { hoyRD } from "@/lib/facturacion/formato";
+import { registrarPagoMultifactura } from "@/lib/pagos/acciones";
 import { getDatosFormularioPago } from "@/lib/pagos/consultas";
-
-import { PagoForm } from "./_components/pago-form";
 
 interface Props {
   searchParams: Promise<{ factura?: string; cliente?: string }>;
@@ -22,13 +22,13 @@ export default async function Page({ searchParams }: Props) {
   const params = await searchParams;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon-sm" render={<Link href="/dashboard/pagos-recibidos" />}>
           <ArrowLeft />
           <span className="sr-only">Volver</span>
         </Button>
-        <h1 className="text-2xl tracking-tight">Nuevo pago recibido</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Nuevo pago recibido</h1>
       </div>
 
       {perfil.rol === "lector" ? (
@@ -49,13 +49,20 @@ async function PagoContenido({ facturaId, clienteId }: { facturaId?: string; cli
 
   return (
     <PagoForm
+      tipo="recibido"
+      empresa={datos.empresa}
       contactos={datos.contactos}
       facturas={datos.facturas}
       cuentas={datos.cuentas}
+      cuentasMovimiento={datos.cuentasIngreso}
+      centrosCosto={datos.centrosCosto}
       retenciones={datos.retenciones}
-      initialCliente={datos.contactos.some((contacto) => contacto.id === cliente) ? cliente : ""}
+      siguienteNumero={datos.siguienteNumero}
+      initialContacto={datos.contactos.some((contacto) => contacto.id === cliente) ? cliente : ""}
       initialFactura={factura?.id ?? ""}
       fechaHoy={hoyRD()}
+      rutaCancelar="/dashboard/pagos-recibidos"
+      accion={registrarPagoMultifactura}
     />
   );
 }

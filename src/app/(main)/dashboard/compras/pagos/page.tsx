@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
@@ -10,13 +10,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
 import { aNumero } from "@/lib/compras/calculo";
-import { cargarOpcionesPago, listarPagosProveedor } from "@/lib/compras/consultas";
+import { listarPagosProveedor } from "@/lib/compras/consultas";
 import { formatoMoneda } from "@/lib/compras/formato";
 import type { MetodoPago, PagoLista } from "@/lib/compras/tipos";
 import { rutaCompra, rutaContacto, rutaCuenta, rutaPagoProveedor } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
-
-import { FormularioPago } from "../_components/formulario-pago";
 
 const ETIQUETAS_METODO: Record<MetodoPago, string> = {
   efectivo: "Efectivo",
@@ -37,11 +35,28 @@ function CeldaCuenta({ pago }: { pago: PagoLista }) {
   return <Enlace href={rutaCuenta(pago.cuenta_id)}>{pago.cuentas.nombre}</Enlace>;
 }
 
+function CeldaFacturaProveedor({ pago }: { pago: PagoLista }) {
+  if (pago.aplicaciones > 1) {
+    return <span>Varias facturas ({pago.aplicaciones})</span>;
+  }
+
+  if (pago.facturas_proveedor) {
+    return (
+      <Enlace href={rutaCompra(pago.facturas_proveedor.id)}>
+        #{pago.facturas_proveedor.numero}
+        {pago.facturas_proveedor.ncf ? ` · ${pago.facturas_proveedor.ncf}` : ""}
+      </Enlace>
+    );
+  }
+
+  return "—";
+}
+
 export default async function Page() {
   const rol = await getRol();
   if (rol == null) redirect("/unauthorized");
 
-  const [pagos, opciones] = await Promise.all([listarPagosProveedor(), cargarOpcionesPago()]);
+  const pagos = await listarPagosProveedor();
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,13 +67,19 @@ export default async function Page() {
             Registra pagos contra facturas abiertas y consulta el historial.
           </p>
         </div>
-        <Button variant="outline" render={<Link href="/dashboard/compras" prefetch={false} />}>
-          <ArrowLeft data-icon="inline-start" />
-          Compras
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" render={<Link href="/dashboard/compras" prefetch={false} />}>
+            <ArrowLeft data-icon="inline-start" />
+            Compras
+          </Button>
+          {rol !== "lector" ? (
+            <Button render={<Link href="/dashboard/compras/pagos/nuevo" prefetch={false} />}>
+              <Plus data-icon="inline-start" />
+              Nuevo pago
+            </Button>
+          ) : null}
+        </div>
       </div>
-
-      {rol !== "lector" ? <FormularioPago {...opciones} /> : null}
 
       <Card>
         <CardContent className="px-0">
@@ -92,14 +113,7 @@ export default async function Page() {
                       <CeldaProveedor pago={pago} />
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {pago.facturas_proveedor ? (
-                        <Enlace href={rutaCompra(pago.facturas_proveedor.id)}>
-                          #{pago.facturas_proveedor.numero}
-                          {pago.facturas_proveedor.ncf ? ` · ${pago.facturas_proveedor.ncf}` : ""}
-                        </Enlace>
-                      ) : (
-                        "—"
-                      )}
+                      <CeldaFacturaProveedor pago={pago} />
                     </TableCell>
                     <TableCell>{formatoDia(pago.fecha)}</TableCell>
                     <TableCell>{ETIQUETAS_METODO[pago.metodo]}</TableCell>
