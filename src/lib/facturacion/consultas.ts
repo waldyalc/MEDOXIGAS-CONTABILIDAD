@@ -197,7 +197,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   const factura = await supabase
     .from("facturas")
     .select(
-      "id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, subtotal, descuento, itbis, total, pagado, credito, retenido, estado, notas, terminos, pie, asiento_id",
+      "id, numero, ncf, tipo_comprobante, contacto_id, vendedor_id, centro_costo_id, fecha, vencimiento, subtotal, descuento, itbis, total, pagado, credito, retenido, estado, notas, terminos, pie, asiento_id",
     )
     .eq("id", id)
     .maybeSingle()

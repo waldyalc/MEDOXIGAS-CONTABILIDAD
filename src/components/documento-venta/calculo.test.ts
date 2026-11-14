@@ -166,6 +166,33 @@ describe("construirEntrada", () => {
 
     expect(entrada.pago).toEqual({ cuenta_id: "cuenta-1", metodo: "transferencia", monto: 106.2 });
   });
+
+  test("incluye la cotización de origen al crear un conduce", () => {
+    const entrada = construirEntrada({
+      clienteId: "c1",
+      fecha: "2026-11-15",
+      vencimiento: "2026-11-15",
+      notas: "",
+      cotizacionId: "cotizacion-1",
+      lineas: [linea()],
+      productos: PRODUCTOS,
+    });
+
+    expect(entrada.cotizacion_id).toBe("cotizacion-1");
+  });
+
+  test("no incluye cotización de origen en un documento normal", () => {
+    const entrada = construirEntrada({
+      clienteId: "c1",
+      fecha: "2026-11-15",
+      vencimiento: "2026-11-15",
+      notas: "",
+      lineas: [linea()],
+      productos: PRODUCTOS,
+    });
+
+    expect("cotizacion_id" in entrada).toBe(false);
+  });
 });
 
 describe("mensajeValidacionDocumento", () => {

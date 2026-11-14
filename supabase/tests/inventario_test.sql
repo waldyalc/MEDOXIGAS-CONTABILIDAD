@@ -1,6 +1,9 @@
 begin;
 select plan(26);
 
+create temp table _ids (clave text primary key, id uuid) on commit drop;
+grant select, insert, update, delete on _ids to authenticated;
+
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'admin@prueba.local'),
   ('22222222-2222-2222-2222-222222222222', 'contador@prueba.local'),
@@ -25,27 +28,28 @@ select is(
 );
 
 select is(
-  (select nombre from public.almacenes where es_principal),
-  'Principal',
-  'el almacén principal se llama Principal'
+  (select activo from public.almacenes where es_principal),
+  true,
+  'el almacén principal está activo'
 );
 
-select public.crear_almacen('{"nombre":"Sucursal"}'::jsonb);
+insert into _ids (clave, id)
+select 'almacen', public.crear_almacen('{"nombre":"Sucursal pgTAP S18"}'::jsonb);
 
 select is(
-  (select count(*) from public.almacenes),
-  2::bigint,
+  (select count(*) from public.almacenes where nombre = 'Sucursal pgTAP S18'),
+  1::bigint,
   'crear_almacen agrega un almacén'
 );
 
 select public.actualizar_almacen(
-  (select id from public.almacenes where nombre = 'Sucursal'),
-  '{"nombre":"Sucursal Norte"}'::jsonb
+  (select id from _ids where clave = 'almacen'),
+  '{"nombre":"Sucursal Norte pgTAP S18"}'::jsonb
 );
 
 select is(
-  (select nombre from public.almacenes where nombre = 'Sucursal Norte'),
-  'Sucursal Norte',
+  (select nombre from public.almacenes where id = (select id from _ids where clave = 'almacen')),
+  'Sucursal Norte pgTAP S18',
   'actualizar_almacen cambia el nombre'
 );
 
@@ -54,23 +58,23 @@ select is(
 -- ---------------------------------------------------------------------------
 
 select public.crear_categoria_producto(
-  '{"nombre":"Herramientas","descripcion":"Herramientas de trabajo"}'::jsonb
+  '{"nombre":"Herramientas pgTAP S18","descripcion":"Herramientas de trabajo"}'::jsonb
 );
 
 select is(
-  (select nombre from public.categorias_productos where nombre = 'Herramientas'),
-  'Herramientas',
+  (select nombre from public.categorias_productos where nombre = 'Herramientas pgTAP S18'),
+  'Herramientas pgTAP S18',
   'crear_categoria_producto guarda la categoría'
 );
 
 select public.actualizar_categoria_producto(
-  (select id from public.categorias_productos where nombre = 'Herramientas'),
-  '{"nombre":"Herramientas manuales"}'::jsonb
+  (select id from public.categorias_productos where nombre = 'Herramientas pgTAP S18'),
+  '{"nombre":"Herramientas manuales pgTAP S18"}'::jsonb
 );
 
 select is(
-  (select nombre from public.categorias_productos where nombre = 'Herramientas manuales'),
-  'Herramientas manuales',
+  (select nombre from public.categorias_productos where nombre = 'Herramientas manuales pgTAP S18'),
+  'Herramientas manuales pgTAP S18',
   'actualizar_categoria_producto cambia el nombre'
 );
 
@@ -78,29 +82,31 @@ select is(
 -- Producto con categoría
 -- ---------------------------------------------------------------------------
 
-select public.crear_producto(
+insert into _ids (clave, id)
+select 'producto', public.crear_producto(
   jsonb_build_object(
     'tipo', 'producto',
-    'nombre', 'Cemento gris 42.5kg',
+    'nombre', 'Cemento gris pgTAP S18',
     'precio', 650,
     'itbis_tasa', 18,
     'inventariable', true,
     'cantidad', 10,
     'costo', 100,
-    'categoria_id', (select id from public.categorias_productos where nombre = 'Herramientas manuales')
+    'categoria_id', (select id from public.categorias_productos where nombre = 'Herramientas manuales pgTAP S18')
   )
 );
 
-select public.crear_producto(
-  '{"tipo":"servicio","nombre":"Transporte","precio":500,"itbis_tasa":18}'::jsonb
+insert into _ids (clave, id)
+select 'servicio', public.crear_producto(
+  '{"tipo":"servicio","nombre":"Transporte pgTAP S18","precio":500,"itbis_tasa":18}'::jsonb
 );
 
 select is(
   (select c.nombre
      from public.productos p
      join public.categorias_productos c on c.id = p.categoria_id
-    where p.nombre = 'Cemento gris 42.5kg'),
-  'Herramientas manuales',
+    where p.id = (select id from _ids where clave = 'producto')),
+  'Herramientas manuales pgTAP S18',
   'crear_producto guarda la categoría'
 );
 
@@ -108,14 +114,15 @@ select is(
 -- Ajuste de entrada
 -- ---------------------------------------------------------------------------
 
-select public.crear_ajuste_inventario(
+insert into _ids (clave, id)
+select 'ajuste_entrada', public.crear_ajuste_inventario(
   jsonb_build_object(
     'fecha', '2026-11-14',
-    'almacen_id', (select id from public.almacenes where es_principal),
-    'observaciones', 'Conteo físico',
+    'almacen_id', (select id from _ids where clave = 'almacen'),
+    'observaciones', 'Conteo físico pgTAP S18',
     'lineas', jsonb_build_array(
       jsonb_build_object(
-        'producto_id', (select id from public.productos where nombre = 'Cemento gris 42.5kg'),
+        'producto_id', (select id from _ids where clave = 'producto'),
         'tipo', 'entrada',
         'cantidad', 5,
         'costo_unitario', 120
@@ -125,35 +132,34 @@ select public.crear_ajuste_inventario(
 );
 
 select is(
-  (select cantidad from public.productos where nombre = 'Cemento gris 42.5kg'),
+  (select cantidad from public.productos where id = (select id from _ids where clave = 'producto')),
   15.00::numeric,
   'entrada: la cantidad sube de 10 a 15'
 );
 
 select is(
-  (select costo from public.productos where nombre = 'Cemento gris 42.5kg'),
+  (select costo from public.productos where id = (select id from _ids where clave = 'producto')),
   106.67::numeric,
   'entrada: el costo promedio pasa a 106.67'
 );
 
 select is(
-  (select total from public.ajustes_inventario order by numero limit 1),
+  (select total from public.ajustes_inventario where id = (select id from _ids where clave = 'ajuste_entrada')),
   600.00::numeric,
   'entrada: el total ajustado es 600.00'
 );
 
 select is(
-  (select almacen_id::text from public.ajustes_inventario order by numero limit 1),
-  (select id::text from public.almacenes where es_principal),
-  'el ajuste guarda el almacén Principal'
+  (select almacen_id::text from public.ajustes_inventario where id = (select id from _ids where clave = 'ajuste_entrada')),
+  (select id::text from _ids where clave = 'almacen'),
+  'el ajuste guarda el almacén elegido'
 );
 
 select is(
   (select a.origen_tipo
      from public.ajustes_inventario ai
      join public.asientos a on a.id = ai.asiento_id
-    order by ai.numero
-    limit 1),
+    where ai.id = (select id from _ids where clave = 'ajuste_entrada')),
   'ajuste_inventario',
   'el asiento usa origen ajuste_inventario'
 );
@@ -162,7 +168,7 @@ select is(
   (select sum(al.debito) - sum(al.credito)
      from public.ajustes_inventario ai
      join public.asiento_lineas al on al.asiento_id = ai.asiento_id
-    where ai.numero = 1),
+    where ai.id = (select id from _ids where clave = 'ajuste_entrada')),
   0::numeric,
   'asiento del ajuste cuadrado'
 );
@@ -171,26 +177,26 @@ select is(
   (select coalesce(sum(al.debito), 0)
      from public.ajustes_inventario ai
      join public.asiento_lineas al on al.asiento_id = ai.asiento_id
-     join public.cuentas c on c.id = al.cuenta_id
-    where ai.numero = 1
-      and c.codigo = '1104'),
+    where ai.id = (select id from _ids where clave = 'ajuste_entrada')
+      and al.cuenta_id = (select cuenta_id from public.config_contable where clave = 'inventario')),
   600.00::numeric,
-  'entrada: Dr 1104 inventario = 600.00'
+  'entrada: Dr inventario = 600.00'
 );
 
 select is(
   (select coalesce(sum(al.credito), 0)
      from public.ajustes_inventario ai
      join public.asiento_lineas al on al.asiento_id = ai.asiento_id
-     join public.cuentas c on c.id = al.cuenta_id
-    where ai.numero = 1
-      and c.codigo = '5102'),
+    where ai.id = (select id from _ids where clave = 'ajuste_entrada')
+      and al.cuenta_id = (select cuenta_id from public.config_contable where clave = 'ajuste_inventario')),
   600.00::numeric,
-  'entrada: Cr 5102 ajustes de inventario = 600.00'
+  'entrada: Cr ajustes de inventario = 600.00'
 );
 
 select is(
-  (select tipo from public.ajuste_inventario_lineas order by id limit 1),
+  (select tipo from public.ajuste_inventario_lineas
+    where ajuste_id = (select id from _ids where clave = 'ajuste_entrada')
+    order by id limit 1),
   'entrada',
   'la línea guarda el tipo entrada'
 );
@@ -199,13 +205,14 @@ select is(
 -- Ajuste de salida (costo en blanco: toma el promedio del producto)
 -- ---------------------------------------------------------------------------
 
-select public.crear_ajuste_inventario(
+insert into _ids (clave, id)
+select 'ajuste_salida', public.crear_ajuste_inventario(
   jsonb_build_object(
     'fecha', '2026-11-14',
-    'almacen_id', (select id from public.almacenes where es_principal),
+    'almacen_id', (select id from _ids where clave = 'almacen'),
     'lineas', jsonb_build_array(
       jsonb_build_object(
-        'producto_id', (select id from public.productos where nombre = 'Cemento gris 42.5kg'),
+        'producto_id', (select id from _ids where clave = 'producto'),
         'tipo', 'salida',
         'cantidad', 3
       )
@@ -214,19 +221,19 @@ select public.crear_ajuste_inventario(
 );
 
 select is(
-  (select cantidad from public.productos where nombre = 'Cemento gris 42.5kg'),
+  (select cantidad from public.productos where id = (select id from _ids where clave = 'producto')),
   12.00::numeric,
   'salida: la cantidad baja de 15 a 12'
 );
 
 select is(
-  (select costo from public.productos where nombre = 'Cemento gris 42.5kg'),
+  (select costo from public.productos where id = (select id from _ids where clave = 'producto')),
   106.67::numeric,
   'salida: el costo promedio no cambia'
 );
 
 select is(
-  (select total from public.ajustes_inventario order by numero desc limit 1),
+  (select total from public.ajustes_inventario where id = (select id from _ids where clave = 'ajuste_salida')),
   320.01::numeric,
   'salida: el total ajustado es 3 x 106.67 = 320.01'
 );
@@ -235,22 +242,20 @@ select is(
   (select coalesce(sum(al.debito), 0)
      from public.ajustes_inventario ai
      join public.asiento_lineas al on al.asiento_id = ai.asiento_id
-     join public.cuentas c on c.id = al.cuenta_id
-    where ai.numero = 2
-      and c.codigo = '5102'),
+    where ai.id = (select id from _ids where clave = 'ajuste_salida')
+      and al.cuenta_id = (select cuenta_id from public.config_contable where clave = 'ajuste_inventario')),
   320.01::numeric,
-  'salida: Dr 5102 ajustes de inventario = 320.01'
+  'salida: Dr ajustes de inventario = 320.01'
 );
 
 select is(
   (select coalesce(sum(al.credito), 0)
      from public.ajustes_inventario ai
      join public.asiento_lineas al on al.asiento_id = ai.asiento_id
-     join public.cuentas c on c.id = al.cuenta_id
-    where ai.numero = 2
-      and c.codigo = '1104'),
+    where ai.id = (select id from _ids where clave = 'ajuste_salida')
+      and al.cuenta_id = (select cuenta_id from public.config_contable where clave = 'inventario')),
   320.01::numeric,
-  'salida: Cr 1104 inventario = 320.01'
+  'salida: Cr inventario = 320.01'
 );
 
 -- ---------------------------------------------------------------------------
@@ -260,7 +265,7 @@ select is(
 select throws_ok(
   $q$select public.crear_ajuste_inventario(jsonb_build_object(
     'fecha', '2026-11-14',
-    'almacen_id', (select id from public.almacenes where es_principal),
+    'almacen_id', (select id from _ids where clave = 'almacen'),
     'lineas', '[]'::jsonb
   ))$q$,
   '22023',
@@ -271,9 +276,9 @@ select throws_ok(
 select throws_ok(
   $q$select public.crear_ajuste_inventario(jsonb_build_object(
     'fecha', '2026-11-14',
-    'almacen_id', (select id from public.almacenes where es_principal),
+    'almacen_id', (select id from _ids where clave = 'almacen'),
     'lineas', jsonb_build_array(jsonb_build_object(
-      'producto_id', (select id from public.productos where nombre = 'Transporte'),
+      'producto_id', (select id from _ids where clave = 'servicio'),
       'tipo', 'entrada',
       'cantidad', 1,
       'costo_unitario', 100
@@ -308,9 +313,9 @@ set local request.jwt.claims = '{"sub":"33333333-3333-3333-3333-333333333333","r
 select throws_ok(
   $q$select public.crear_ajuste_inventario(jsonb_build_object(
     'fecha', '2026-11-14',
-    'almacen_id', (select id from public.almacenes where es_principal),
+    'almacen_id', (select id from _ids where clave = 'almacen'),
     'lineas', jsonb_build_array(jsonb_build_object(
-      'producto_id', (select id from public.productos where nombre = 'Cemento gris 42.5kg'),
+      'producto_id', (select id from _ids where clave = 'producto'),
       'tipo', 'entrada',
       'cantidad', 1,
       'costo_unitario', 100

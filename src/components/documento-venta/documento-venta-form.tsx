@@ -44,6 +44,7 @@ import {
   lineaVacia,
   mensajeValidacionDocumento,
 } from "./calculo";
+import type { ValoresIniciales } from "./prellenado";
 
 export type ResultadoAccionDocumento = { ok: true; id: string } | { ok: false; error: string };
 
@@ -71,6 +72,9 @@ interface Props {
   rutaCancelar: string;
   rutaDestino: string;
   accion: (entrada: unknown) => Promise<ResultadoAccionDocumento>;
+  valoresIniciales?: ValoresIniciales;
+  cotizacionOrigenId?: string;
+  numeroActual?: string;
 }
 
 interface OpcionSelect {
@@ -110,6 +114,39 @@ function esMetodoPago(valor: string | null): valor is MetodoPago {
   return METODOS_PAGO.some((metodo) => metodo.value === valor);
 }
 
+function tipoComprobanteInicial(valor: string | undefined): TipoComprobante {
+  return valor && esTipoComprobante(valor) ? valor : "02";
+}
+
+interface EstadoInicialDocumento {
+  tipo: TipoComprobante;
+  clienteId: string;
+  fecha: string;
+  vencimiento: string;
+  lineas: LineaFormulario[];
+  notas: string;
+  terminos: string;
+}
+
+function estadoInicialDocumento(
+  valores: ValoresIniciales | undefined,
+  fechaHoy: string,
+  notasIniciales: string,
+  terminosIniciales: string,
+): EstadoInicialDocumento {
+  const lineas = valores?.lineas && valores.lineas.length > 0 ? valores.lineas : [lineaVacia("l1")];
+
+  return {
+    tipo: tipoComprobanteInicial(valores?.tipoComprobante),
+    clienteId: valores?.clienteId ?? "",
+    fecha: valores?.fecha ?? fechaHoy,
+    vencimiento: valores?.vencimiento ?? fechaHoy,
+    lineas,
+    notas: valores?.notas ?? notasIniciales,
+    terminos: valores?.terminos ?? terminosIniciales,
+  };
+}
+
 function claseColumnasOpciones(campos: number): string {
   if (campos <= 1) return "";
   if (campos === 2) return "md:grid-cols-2";
@@ -128,6 +165,7 @@ interface OpcionesDocumento {
   registrarPago: boolean;
   cuentaPago: string;
   metodoPago: MetodoPago;
+  cotizacionOrigenId?: string;
 }
 
 function opcionesDocumento(opciones: OpcionesDocumento) {
@@ -136,6 +174,7 @@ function opcionesDocumento(opciones: OpcionesDocumento) {
     ...(opciones.conComprobante ? { tipoComprobante: opciones.tipo } : {}),
     ...(opciones.conTerminos ? { terminos: opciones.terminos } : {}),
     ...(opciones.conPie ? { pie: opciones.pie } : {}),
+    ...(opciones.cotizacionOrigenId ? { cotizacionId: opciones.cotizacionOrigenId } : {}),
     ...(opciones.conPago && opciones.registrarPago
       ? { pago: { cuentaId: opciones.cuentaPago, metodo: opciones.metodoPago } }
       : {}),
@@ -168,6 +207,7 @@ function Encabezado({
   conComprobante,
   etiquetaNumero,
   tipo,
+  numeroActual,
   onTipo,
   comprobantesItems,
   mostrarLogo,
@@ -176,6 +216,7 @@ function Encabezado({
   conComprobante: boolean;
   etiquetaNumero: string;
   tipo: TipoComprobante;
+  numeroActual?: string;
   onTipo: (tipo: TipoComprobante) => void;
   comprobantesItems: OpcionSelect[];
   mostrarLogo: boolean;
@@ -227,7 +268,7 @@ function Encabezado({
         ) : null}
         <div className="flex items-center gap-2.5 pl-2.5 text-base">
           <span className="text-slate-500">{conComprobante ? "NCF" : etiquetaNumero}</span>
-          <span className="truncate text-slate-700">Se asigna al guardar</span>
+          <span className="truncate text-slate-700">{numeroActual ?? "Se asigna al guardar"}</span>
         </div>
       </div>
     </header>
@@ -706,22 +747,26 @@ export function DocumentoVentaForm({
   rutaCancelar,
   rutaDestino,
   accion,
+  valoresIniciales,
+  cotizacionOrigenId,
+  numeroActual,
 }: Props) {
   const router = useRouter();
-  const contador = useRef(1);
+  const inicial = estadoInicialDocumento(valoresIniciales, fechaHoy, notasIniciales, terminosIniciales);
+  const contador = useRef(inicial.lineas.length);
   const [pendiente, iniciar] = useTransition();
 
-  const [tipo, setTipo] = useState<TipoComprobante>("02");
-  const [clienteId, setClienteId] = useState("");
+  const [tipo, setTipo] = useState<TipoComprobante>(inicial.tipo);
+  const [clienteId, setClienteId] = useState(inicial.clienteId);
   const [productosLocales, setProductosLocales] = useState<readonly ProductoSeleccionable[]>(productos);
-  const [fecha, setFecha] = useState(fechaHoy);
-  const [vencimiento, setVencimiento] = useState(fechaHoy);
-  const [lineas, setLineas] = useState<LineaFormulario[]>([lineaVacia("l1")]);
-  const [notas, setNotas] = useState(notasIniciales);
-  const [terminos, setTerminos] = useState(terminosIniciales);
+  const [fecha, setFecha] = useState(inicial.fecha);
+  const [vencimiento, setVencimiento] = useState(inicial.vencimiento);
+  const [lineas, setLineas] = useState<LineaFormulario[]>(inicial.lineas);
+  const [notas, setNotas] = useState(inicial.notas);
+  const [terminos, setTerminos] = useState(inicial.terminos);
   const [pie, setPie] = useState("");
-  const [vendedorId, setVendedorId] = useState("");
-  const [centroCostoId, setCentroCostoId] = useState("");
+  const [vendedorId, setVendedorId] = useState(valoresIniciales?.vendedorId ?? "");
+  const [centroCostoId, setCentroCostoId] = useState(valoresIniciales?.centroCostoId ?? "");
   const [registrarPago, setRegistrarPago] = useState(false);
   const [cuentaPago, setCuentaPago] = useState(
     cuentas.find((cuenta) => cuenta.codigo === "1101")?.id ?? cuentas[0]?.id ?? "",
@@ -746,7 +791,6 @@ export function DocumentoVentaForm({
     { value: SIN_SELECCION, label: "Sin centro" },
     ...centrosCosto.map((centro) => ({ value: centro.id, label: `${centro.codigo} · ${centro.nombre}` })),
   ];
-
   const { calculadas, totales } = calcularDocumento(lineas);
 
   function actualizarLinea(clave: string, cambios: Partial<LineaFormulario>) {
@@ -835,6 +879,7 @@ export function DocumentoVentaForm({
         registrarPago,
         cuentaPago,
         metodoPago,
+        cotizacionOrigenId,
       }),
     });
 
@@ -870,6 +915,7 @@ export function DocumentoVentaForm({
           conComprobante={conComprobante}
           etiquetaNumero={etiquetaNumero}
           tipo={tipo}
+          numeroActual={numeroActual}
           onTipo={setTipo}
           comprobantesItems={comprobantesItems}
           mostrarLogo={mostrarLogo}

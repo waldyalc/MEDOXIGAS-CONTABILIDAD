@@ -10,6 +10,59 @@
 - Verificado: `pnpm typecheck`, `pnpm test` (584), Biome sobre lo tocado y `pnpm build`. Sin verificación visual.
 - Quedó fuera: facturas/pagos recurrentes (no estaban en la lista) y las notas de crédito, que no tienen selector propio porque toman el contacto de la factura.
 
+## Higiene de migraciones: orden S15, notas de crédito y pgTAP aislados (15 nov 2026)
+
+- `20261114900000_inventario_existencias_precios.sql` vuelve a la versión de
+  inventario 2, sin referencias a `vendedores` ni `centros_costo`: una base
+  limpia ya puede correrla antes de `2026111520*`.
+- Migración aditiva `20261115500000_funciones_fusionadas_s15.sql` (NO aplicada;
+  la revisa Coder): vuelve a definir con `CREATE OR REPLACE` las mismas firmas
+  con todo junto: stock por almacén + vendedor/centro en `crear_factura` y
+  `crear_factura_proveedor`; anulación con almacén, centro de costo y retenido;
+  y NCF B04/E34 en notas de crédito de compra. El resultado de las funciones
+  coincide con la base actual (definiciones comparadas contra `2026111490*`,
+  `2026111510*` y `2026111520*`). No cambia datos ni permisos.
+- Notas de crédito de venta: el estado de la factura ahora se recalcula con
+  `pagado + retenido + crédito >= total`, el mismo criterio de pagos y CxC.
+- pgTAP aislados: `configuracion_extra_test.sql` captura los ids de la factura,
+  cotización y factura convertida, usa nombres únicos y busca las cuentas por
+  `config_contable` (ya no asume 4101/6101). `inventario_test.sql` captura sus
+  propios almacenes, productos, ajustes y asientos, y también busca las cuentas
+  por `config_contable` (1104/5102 ya no están fijos).
+- `pnpm typecheck`, `pnpm test`, Biome sobre lo tocado y `pnpm build` en verde.
+  pgTAP no se pudo correr aquí (sin Docker/Supabase CLI); lo corre el integrador.
+- Quedó fuera: anular notas de crédito de venta y revertir el costo promedio al
+  anular ajustes (pendientes ya conocidos). Nada se aplicó a Supabase.
+## Clonar, editar y convertir documentos de venta (15 nov 2026)
+
+- La ficha de factura, cotización y conduce tiene «Clonar»: abre el formulario
+  del mismo tipo con cliente, líneas, notas y términos prellenados, fecha de
+  hoy y numeración/NCF nuevos al guardar (no guarda nada hasta confirmar).
+  También se prellena el tipo de comprobante al clonar una factura.
+- Cotización y conduce tienen «Editar» solo mientras están abiertos (no
+  convertidos/facturados ni anulados). Reusan `DocumentoVentaForm` y la acción
+  `editar_cotizacion`/`editar_remision` reemplaza las líneas y recalcula totales
+  sin asiento ni inventario. Las tablas ganaron `terminos`, que ya se guarda y
+  se imprime.
+- «Convertir» en cotización ofrece conduce y factura. Convertir en conduce
+  abre `/dashboard/conduces/nueva?cotizacion=<id>` prellenado; al guardar,
+  `crear_remision_desde_cotizacion` crea el conduce (sin inventario), marca la
+  cotización como convertida y deja `cotizaciones.remision_id` /
+  `remisiones.cotizacion_id`; las dos fichas muestran la pestaña enlazada.
+  Cotización → factura se conserva igual.
+- Lógica pura en `src/components/documento-venta/prellenado.ts` con Vitest (7).
+  Permisos de la vista (`editar`, `clonar`, `convertirEnConduce`) en `vista.ts`.
+- Migración aditiva `20261115400000_documentos_venta_editar_clonar.sql` (NO
+  aplicada; la revisa Coder) y pgTAP aislado
+  `supabase/tests/documentos_venta_editar_clonar_test.sql` (31 asserts). Tipos
+  de las columnas nuevas puestos a mano en `types.ts`.
+- `typecheck`, `test` (556), Biome y `build` en verde. pgTAP no se pudo correr
+  aquí (sin Docker/Supabase CLI).
+- Fuera: clonar desde la lista (solo desde la ficha), editar facturas y
+  anulación de cotizaciones/conduces.
+
+- Integración en `prueba`: la migración ya está aplicada en el remoto. `_editar_documento_no_contable` y `crear_remision_desde_cotizacion` conservan `vendedor_id` y `centro_costo_id`. El pgTAP no reinicia secuencias compartidas. `types.ts` se regeneró con el generador.
+
 ## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
 
 - El saldo por pagar ahora es `total - pagado - credito` en el reporte Cuentas
