@@ -1,5 +1,17 @@
 # Handoff — Medoxigas Contabilidad
 
+## Navegación rápida: esqueletos, streaming y menos viajes (15 nov 2026)
+
+- **Causa principal**: cada navegación hacía `auth.getUser()` en el proxy y otra vez en `getPerfil` (dos llamadas de red a Supabase Auth), más consultas en serie y ningún `loading.tsx`. Con Supabase a ~151 ms de RTT desde RD, una ficha de factura sumaba 6 rondas secuenciales (~900 ms) antes de pintar nada.
+- **Auth**: `src/lib/supabase/proxy.ts` y `getPerfil` ahora usan `auth.getClaims()` (verifica el JWT contra el JWKS en caché; con HS256 cae a `getUser()`). Se eliminó una llamada de red por request. La verificación de sesión y los redirects siguen igual.
+- **Consultas**: la lista de facturas trae el nombre del cliente en el mismo join (`contactos(nombre)`) en vez de una segunda consulta; Ventas generales hace lo mismo; el asiento de la factura trae sus cuentas en el join (una ronda menos); rol y datos de fichas van en `Promise.all`; `getEmpresa` y `getPlantillasImpresion` usan `cache()` de React para deduplicar dentro del request.
+- **Streaming**: `Inicio`, Facturas de venta, Compras y Ventas generales renderizan encabezado y filtros al instante; tarjetas, gráfico y tabla van en `<Suspense>` con esqueletos. `Ventas generales` comparte una sola consulta/cálculo con `cache()` entre las cuatro partes.
+- **Esqueletos**: `loading.tsx` en **todas** las rutas del dashboard (incluidos cada reporte, fichas y formularios) con `src/components/carga/esqueletos.tsx` (encabezado real + tarjetas/filtros/tabla grises). El índice de Reportes muestra «Ya vienen tus reportes…».
+- **Sidebar**: se quitó `prefetch={false}` del menú y de `Enlace` (las rutas dinámicas prefetchean su `loading.tsx`); al hacer clic el ítem se marca al instante con estado optimista y un punto de progreso (`useLinkStatus`).
+- **Índices**: migración **aditiva** `20261115900000_indices_rendimiento.sql` (`CREATE INDEX IF NOT EXISTS`): contacto+fecha en facturas/compras/cotizaciones/remisiones/pagos, fecha+número en listados, facturas abiertas de proveedor, notas por factura+fecha, nombre de contactos/productos y asientos por fecha+número. **No aplicada** al remoto.
+- **Medición local** (`pnpm build && pnpm start`, sin sesión): shell liviano por el proxy p50 59–81 ms; RTT a Supabase p50 151 ms (n=15). No se pudieron medir las rutas autenticadas: no hay credenciales de prueba en este worktree (la solicitud de credencial expiró). Rondas de red secuenciales antes → después: Inicio 4→2, Facturas 5→2, Ficha de factura 6→3, Compras 4→2, Ficha de compra 5→3, Contactos 4→2, Productos 4→2, Ficha de contacto 5→3, Ficha de producto 7→5, Ventas generales 3→1.
+- Verificado: `pnpm typecheck`, `pnpm test` (577), Biome sobre lo tocado y `pnpm build` en verde. Sin cambios de lógica contable ni de apariencia (los esqueletos son nuevos estados de carga).
+
 ## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
 
 - El saldo por pagar ahora es `total - pagado - credito` en el reporte Cuentas
