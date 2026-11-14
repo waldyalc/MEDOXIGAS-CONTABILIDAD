@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
-import { agruparCxc } from "./cxc";
 import { centavos } from "./dinero";
-import { hoyRd, rangoMesActual } from "./fechas";
-import { calcularEstadoResultados } from "./resultados";
+import { hoyRd } from "./fechas";
 import type {
   CuentaContable,
   FilaBalanceComprobacion,
@@ -53,7 +51,6 @@ export async function obtenerEstadoResultados(
   if (error) return { filas: [], error: error.message };
   return { filas: (data ?? []) as unknown as FilaEstadoResultados[], error: null };
 }
-
 export async function obtenerCxc(fecha: string): Promise<RespuestaReporte<FilaCxc>> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("reporte_cxc", { p_fecha: fecha });
@@ -97,31 +94,4 @@ export async function obtenerCatalogoContable(): Promise<RespuestaCatalogo> {
     saldos,
     error: null,
   };
-}
-
-export interface KpisInicio {
-  ventas: number;
-  porCobrar: number;
-  gastos: number;
-  utilidad: number;
-}
-
-/** KPIs del mes actual en centavos; si un reporte falla, ese KPI queda en 0. */
-export async function obtenerKpisInicio(): Promise<KpisInicio> {
-  try {
-    const { desde, hasta } = rangoMesActual(hoyRd());
-    const [resultados, cxc] = await Promise.all([obtenerEstadoResultados(desde, hasta), obtenerCxc(hasta)]);
-
-    const estado = calcularEstadoResultados(resultados.filas);
-    const cartera = agruparCxc(cxc.filas);
-
-    return {
-      ventas: estado.totalIngresos,
-      porCobrar: cartera.totalSaldo,
-      gastos: estado.totalGastos,
-      utilidad: estado.utilidadNeta,
-    };
-  } catch {
-    return { ventas: 0, porCobrar: 0, gastos: 0, utilidad: 0 };
-  }
 }
