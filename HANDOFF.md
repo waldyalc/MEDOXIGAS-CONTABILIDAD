@@ -1,5 +1,16 @@
 # Handoff — Medoxigas Contabilidad
 
+## S25 — Pagos multifactura con el diseño nuevo de Alegra (16 nov 2026)
+
+- «Nuevo pago recibido» y «Nuevo pago a proveedor» se rehicieron con el diseño nuevo de Alegra: una tarjeta blanca (radio 12, borde slate-200, sin sombra), encabezado con empresa/RNC/dirección a la izquierda y «No. N» + «Recibo de caja» o «Comprobante de egreso» a la derecha, rejilla de 3 columnas, pestañas «Pago a factura de …» / «Otros ingresos|egresos», tabla de facturas con buscador, paginación de 8, retenciones por factura en modal «Retenciones aplicadas» y total + observaciones. Sirve igual para cobros y pagos.
+- Componentes reutilizables en `src/components/formularios/formulario.tsx`: `FormCard`, `FormGrid`, `FormField`, `FormSectionTitle`, `FormDivider`, `FormTotal` y las clases de campo (40 px, radio 10, foco de 2 px). Son la base para la revisión de formularios de la otra sesión.
+- «Nuevo pago a proveedor» pasó de formulario incrustado en el listado a página propia `/dashboard/compras/pagos/nuevo`; el listado conserva el botón «Nuevo pago» y muestra «Varias facturas (N)» cuando aplica.
+- Migración **aditiva** `20261116200000_pagos_multifactura.sql` (NO aplicada; la revisa Coder): tablas `pago_recibido_aplicaciones`, `pago_proveedor_aplicaciones` y sus retenciones por aplicación; RPC nuevas `registrar_pago_recibido_multi(p_encabezado, p_aplicaciones)` y `registrar_pago_proveedor_multi(...)`. El servidor recalcula retenciones e ITBIS, valida saldos y arma **un solo asiento** para todas las facturas. «Otros ingresos» acredita la cuenta de ingreso (+ ITBIS por pagar); «Otros egresos» debita gasto/costo (+ ITBIS adelantado). `anular_documento` revierte las aplicaciones nuevas y conserva los pagos viejos. `pagos_proveedor.factura_proveedor_id` admite null para egresos sin factura.
+- Pagos viejos de una sola factura siguen usando `registrar_pago_recibido` / `registrar_pago_proveedor` sin cambios; además se guarda su detalle en las tablas históricas de retenciones. Las vistas de pago, la ficha de factura/compra, el estado de cuenta, el 607, ventas por cliente y las cartas/IR-17 leen también las aplicaciones nuevas.
+- pgTAP `supabase/tests/pagos_multifactura_test.sql` (39 asserts, datos propios): pago a 2 facturas + retención cuadra, ambos saldos bajan, no se paga de más, no se repite la retención, otros ingresos con ITBIS, pago a 2 compras y anulación. Vitest `src/lib/pagos/multifactura.test.ts` (14) para saldos, retenciones, validación, totales y paginación.
+- Verificado: `pnpm typecheck`, `pnpm test` (637), Biome de lo tocado y `pnpm build` en verde. Sin verificación visual (la hace Coder). pgTAP no se pudo correr aquí (sin Docker/Supabase CLI). `types.ts` se actualizó a mano solo con las tablas/RPC nuevas.
+- Quedó fuera: el lápiz de «Cambiar numeración» (no existe numeración configurable de recibos); editar el «Valor retenido» del modal (el motor lo calcula por porcentaje); y la revisión de estilos del resto de formularios (otra sesión).
+
 ## S24 — Papel impreso/PDF de factura, cotización y conduce (13 nov 2026)
 
 - `DocumentoPapel`: las columnas de montos (Precio, Descuento, Impuesto y
