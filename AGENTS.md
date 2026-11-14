@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # AGENTS.md — Medoxigas Contabilidad
 
-Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y Oxymat), República Dominicana. Dueño: Waldy Alcántara. **Inspirado** en Alegra (alegra.com), **no es una copia**: nada de su código, textos, logos ni diseño exacto; no se hace ingeniería inversa (sus términos lo prohíben). El estudio de cómo trabaja Waldy en Alegra va en `docs/alegra/`.
+Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y Oxymat), República Dominicana. Dueño: Waldy Alcántara. **Inspirado** en Alegra (alegra.com), **no es una copia**: nada de su código, textos, logos ni diseño exacto; no se hace ingeniería inversa (sus términos lo prohíben). El estudio de cómo trabaja Waldy en Alegra va en `docs/alegra/`. El contexto completo para seguir el sistema en local, sin Coder, está en `docs/CONTEXTO-CODER.md`.
 
 - Producción: rama `main` → https://medoxigas-contabilidad.vercel.app · Prueba: rama `prueba` → https://medoxigas-contabilidad-prueba.vercel.app · Repo: `waldyalc/MEDOXIGAS-CONTABILIDAD`.
 - Base de datos: Supabase, proyecto **MEDOXIGAS-CONTABILIDAD** (`ljfdhrnvlsfaweuvnqxz`, ca-central-1, plan gratis). **Única fuente de la verdad.** Roles en `perfiles`: `admin`, `contador`, `lector`.

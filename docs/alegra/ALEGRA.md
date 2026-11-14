@@ -838,3 +838,248 @@ Líneas como en la factura normal. Importante: por defecto la factura se genera 
 Se guardó el formulario vacío de nueva factura con su CSS en `css-factura/`, como referencia de diseño. `index.html` + `styles.css` abren bien sin Alegra; los detalles y límites están en [css-factura/NOTA.md](css-factura/NOTA.md). Capturas: `capturas/18-factura-original.png` (Alegra) y `capturas/18-factura-copia-local.png` (copia local).
 
 Guía de diseño para rehacer nuestro formulario de factura: tiene medidas, grid/flex, columnas, colores, tipografía, CSS y HTML propios, equivalentes en Tailwind y una lista para comparar. Está en [css-factura/GUIA-DISENO-FACTURA.md](css-factura/GUIA-DISENO-FACTURA.md). Capturas: `capturas/18-guia-*.png`.
+
+## Inicio (dashboard)
+
+Ruta: `/` (menú izquierdo "Inicio"). Revisado el 13/11/2026 en Fiel Ferreteria, solo mirando. No se creó, ocultó ni borró nada. El filtro quedó en "Mes actual".
+
+La página es corta: todo cabe en una pantalla sin scroll, así que `12-inicio-arriba.png`, `-medio.png` y `-abajo.png` son la misma imagen. Abajo de la gráfica no hay nada más (solo un botón flotante teal "?" de ayuda, abajo a la derecha). Ojo: `12-inicio-arriba.png` salió mientras cargaban los datos (las tarjetas dicen RD$0.00). Los valores ya cargados se ven en `12-inicio-agregar-grafica-abierto.png`. Al cargar, las tarjetas muestran primero RD$0.00 o un bloque gris (skeleton) y luego se llenan.
+
+Orden de la página, de arriba a abajo:
+
+### Bloque 1. "Funciones sugeridas" (guía de inicio)
+
+- Título h2 "Funciones sugeridas". Subtítulo: "Basados en tus necesidades, hemos preparado estas funciones ideales para ti."
+- Enlace "Ocultar" arriba a la derecha del panel. No se probó, porque podría ocultarlo para siempre.
+- Columna izquierda con 5 pasos. Los completados salen con check verde y tachados:
+  1. "Facturación electrónica": sin completar, seleccionado por defecto.
+  2. "Crea tu primera factura": completado.
+  3. "Organiza tu inventario": completado.
+  4. "Añade tus contactos": completado.
+  5. "Administra usuarios y roles": sin completar.
+- Debajo de la lista: "3 de 5 funcionalidades completadas".
+- Panel derecho: cambia según el paso que se elija.
+  - "Facturación electrónica": ícono de documento, título "Activa tu facturación electrónica", texto "Configura tu facturación electrónica para tener todo organizado y al día con la DGII." y botón teal "Activar facturación ↗". No se dio clic (es e-CF).
+  - "Administra usuarios y roles": título "Gestiona tus usuarios", texto "Protege tu información asignando roles y permisos a tu equipo de trabajo." y botón "Configurar usuarios ↗", que abre una pestaña nueva en `https://mi.alegra.com/users`.
+  - No se vio el panel de los pasos 2, 3 y 4.
+- Capturas: `12-inicio-sugeridas-facturacion.png`, `12-inicio-sugeridas-usuarios.png`.
+
+### Bloque 2. Encabezado "Resumen del negocio"
+
+- Título h1 "Resumen del negocio" a la izquierda. A la derecha hay dos botones:
+- **Filtro de periodo** (botón blanco con flecha, por defecto "Mes actual"). Se aplica a las tarjetas y a la gráfica. Tiene 3 opciones; cada una muestra su rango de fechas debajo, en gris:
+  - "Mes actual": 01/11/2026 - 13/11/2026 (desde el día 1 hasta hoy).
+  - "Últimos 3 meses": 13/08/2026 - 13/11/2026.
+  - "Últimos 6 meses": 13/05/2026 - 13/11/2026.
+  - No hay rango personalizado.
+- **"Agregar gráfica"** (botón teal con flecha). Abre un menú con 4 gráficas opcionales, cada una con ícono: "Flujo de transacciones", "Distribución de gastos", "Productos más vendidos" y "Mejores clientes". No se agregó ninguna, así que no se sabe cómo se ven.
+- Capturas: `12-inicio-periodo-cerrado.png`, `12-inicio-periodo-abierto.png`, `12-inicio-agregar-grafica-cerrado.png`, `12-inicio-agregar-grafica-abierto.png`.
+
+### Bloque 3. Tarjetas de cifras (KPI)
+
+Hay dos tarjetas grandes (Cuentas por cobrar y Cuentas por pagar) y, a su derecha, una cuadrícula de 2×2 con cuatro tarjetas chicas. Al pasar el mouse sobre cualquier tarjeta sale un ícono de basura. Ese ícono abre el diálogo "Eliminar gráfica", con el texto `Al confirmar, se eliminará la gráfica "Cuentas por cobrar" de tu resumen.` y los botones "Conservar" y "Sí, eliminar". Se dio "Conservar". O sea, cada tarjeta se puede quitar y volver a poner con "Agregar gráfica". Captura: `12-inicio-tarjeta-eliminar-dialogo.png`.
+
+En el título de algunas tarjetas hay un enlace (subrayado). Los "a dónde lleva" marcados como verificados se probaron dando clic.
+
+| Tarjeta | Valor en "Mes actual" | Qué muestra | Clic lleva a |
+|---|---|---|---|
+| "Cuentas por cobrar" (grande) | RD$7,871.00 | Total arriba. Debajo, una barra verde con "Vigentes" RD$7,871.00 y "1 documento", y una barra roja con "Vencidas" RD$0.00 y "0 documentos". Sale de las facturas de venta con saldo pendiente (vigentes = no vencidas). | `/report/invoices-open/from/2026-11-01/to/2026-11-13` (verificado) |
+| "Cuentas por pagar" (grande) | RD$0.00 | Igual que la anterior, pero con facturas de proveedor: "Vigentes" RD$0.00, 0 documentos; "Vencidas" RD$0.00, 0 documentos. | `/report/bills-open/from/2026-11-01/to/2026-11-13` (verificado) |
+| "Impuestos en venta" | RD$3,303.00 | Impuestos (ITBIS) de las ventas del periodo. | El enlace apunta a `/` y se queda en el Inicio |
+| "Productos vendidos" | 42 | Cantidad de unidades vendidas en el periodo (dato de Alegra; no se cuadró contra las facturas). | El enlace apunta a `/` (no se probó) |
+| "Devoluciones de clientes" | RD$767.00 | Subtítulo "Incluye impuestos". Coincide con la nota de crédito B0400000001 de RD$767 (sección 13.1). | El enlace apunta a `/` (no se probó) |
+| "Clientes con ventas" | 2 | Clientes distintos con ventas en el periodo. | `/report/sales-by-client/from/2026-11-01/to/2026-11-13` (verificado) |
+
+Los enlaces a reportes llevan en la URL el rango de fechas del filtro de periodo. Al cambiar a "Últimos 3 meses" y "Últimos 6 meses", todas las cifras quedaron iguales, porque los datos de prueba son de noviembre. "Cuentas por cobrar" pasó un momento por skeleton y luego mostró RD$7,871.00 en 3 meses; en 6 meses no se esperó a que cargara.
+
+### Bloque 4. Gráfica "Total de ventas"
+
+- Título "Total de ventas" (enlace) con un ícono "ⓘ". Subtítulo: "La gráfica muestra el valor de tus ventas con impuestos incluidos."
+- Arriba a la derecha está el total del periodo, "RD$21,653.00", con una etiqueta "0%" al lado. Esa etiqueta parece ser la variación contra el año anterior, pero no se comprobó.
+- El título lleva a `/report/sales/from/2026-11-01/to/2026-11-13` (verificado).
+- Al pasar el mouse salen dos íconos: expandir (⤢), que abre la misma gráfica en un modal grande con "×" para cerrar, y basura (no se probó). Captura: `12-inicio-grafico-expandido.png`.
+- **Con "Mes actual", la gráfica es de líneas:**
+  - Eje X: un punto por día, "1 nov" … "13 nov".
+  - Eje Y: RD$0, RD$5 K, RD$10 K, RD$15 K, RD$20 K, RD$25 K.
+  - Serie 1, línea sólida azul oscuro: "1 nov de 2026 - 13 nov de 2026". Está en 0 hasta el 12 nov y sube a unos RD$22 K el 13 nov. Como todas las ventas de prueba son del 13/11, no se sabe si la línea es diaria o acumulada.
+  - Serie 2, línea punteada verde: el mismo rango del año anterior ("1 nov de 2025 - 13 nov de 2025"). Está en RD$0.
+  - La leyenda de abajo solo muestra la serie azul, "1 nov de 2026 - 13 nov de 2026".
+  - El tooltip, al pasar sobre 13 nov, muestra el encabezado "13 nov" y dos líneas con un punto de color: "1 nov de 2026 - 13 nov de 2026: RD$22 K" y "1 nov de 2025 - 13 nov de 2025: RD$0". Captura: `12-inicio-grafico-tooltip.png`.
+- **Con "Últimos 3 meses" o "Últimos 6 meses", la gráfica es de barras por mes:**
+  - Eje X: Nov, Oct, Sept, Ago (en 6 meses también Jul, Jun, May). El mes más reciente sale a la izquierda.
+  - Eje Y: RD$0 a RD$25 K. Leyenda: "2026", en azul.
+  - Solo la barra de Nov tiene altura. El tooltip dice "Nov" y "2026: RD$21,653.00".
+  - Capturas: `12-inicio-grafico-barras-tooltip.png`, `12-inicio-periodo-3meses.png`, `12-inicio-periodo-6meses.png`.
+
+### Lo que no se vio
+
+- Las 4 gráficas de "Agregar gráfica" (no se agregaron).
+- Qué pasa con "Ocultar" en Funciones sugeridas.
+- Los paneles de los pasos 2, 3 y 4.
+- La basura de la gráfica.
+- La fórmula exacta de "Productos vendidos" y de la etiqueta "0%".
+
+## Formularios de pago
+
+Revisado el 13/11/2026 en Fiel Ferreteria, solo mirando: no se guardó ningún pago. Capturas en `capturas/19-pago-*.png` y `capturas/19-guia-*.png`. Copias offline de las dos páginas en `css-pagos/` (ver `css-pagos/NOTA.md`).
+
+### 1. Nuevo pago recibido
+
+Ruta: `/income-payments/add` (Ingresos > Pagos recibidos > "Nuevo pago recibido"). Título de la página: "Nuevo pago recibido". Lista: `/income-payments`. Revisado sin guardar nada.
+
+**Encabezado** (`19-pago-recibido-encabezado.png`, recorte ampliado):
+- A la izquierda, el nombre de la empresa "Fiel Ferreteria". En este formulario **no sale el RNC**.
+- A la derecha, "No. 5" y debajo "Recibo de caja", con un lápiz.
+- El lápiz abre el modal "Cambiar numeración" (`19-pago-recibido-lapiz.png`, `-lapiz-numeracion.png`):
+  - "Numeración *": por defecto "Recibo de caja". Opciones: "Numeración registro único de ingreso (12)" y "Recibo de caja".
+  - "Siguiente numero *": por defecto 5.
+  - Botones "Cancelar" y "Guardar cambios" (este último desactivado hasta que se cambia algo).
+
+**Campos** (en orden; `19-pago-recibido-vacio-arriba.png`):
+
+| Campo | Obligatorio | Defecto / placeholder | Opciones | Captura |
+|---|---|---|---|---|
+| Cliente | No lleva asterisco, pero sin cliente no salen facturas | "Seleccionar" | Lista paginada de 5 en 5 ("1-5 de 9"), con el RNC o cédula debajo del nombre y el enlace "Crear nuevo cliente" | `-cliente.png`, `-cliente-pag2.png` |
+| Cuenta bancaria | Sí (*), con ícono de ayuda | "Seleccionar" | Banco 1, Banco Popular Prueba, Caja chica, Caja general, Tarjeta de crédito empresarial | `-cuenta-bancaria.png` |
+| Fecha de pago | Sí (*) | hoy (13/11/2026), con ícono de calendario y × para borrar | calendario de un mes con selectores de mes y año | `-fecha-pago.png` |
+| Forma de pago | Sí (*) | "Seleccionar" | Efectivo, Cheque, Transferencia, Depósito, Tarjeta débito, Tarjeta crédito, Venta a crédito, Permuta, Bonos o certificados de regalos, Otras formas de ventas | `-forma-pago.png` |
+| Centro de costo | No, con ícono de ayuda | "Seleccionar" | vacío en esta empresa ("0-0 de 0") | `-centro-costo.png` |
+
+Al elegir el cliente "Constructora Prueba SRL", Alegra llenó solas la Cuenta bancaria ("Caja general") y la Forma de pago ("Transferencia"). Parece que usa los datos del último pago de ese cliente o los de su ficha; no se comprobó cuál de los dos.
+
+**Tipo de ingreso**: un interruptor de dos pestañas, "Pago a factura de cliente" (por defecto) y "Otros ingresos". Los campos de arriba no cambian entre pestañas; solo cambia el bloque del medio.
+
+**Pestaña "Pago a factura de cliente"**
+- Sin cliente elegido sale un aviso azul: "Selecciona un cliente para traer sus facturas por cobrar."
+- Si el cliente no debe nada, sale un aviso amarillo: "El cliente seleccionado no tiene facturas pendientes de cobro." (`-cliente-sin-facturas.png`, con Juan Pérez).
+- Con facturas pendientes sale la tabla (`19-pago-recibido-facturas.png`):
+  - Título "Facturas por cobrar" y subtítulo "Agrega el monto recibido a las facturas relacionadas con este ingreso."
+  - Buscador con el placeholder "Buscar por número de factura".
+  - Columnas: **Número** | **Vencimiento** | **Total** | **Retenciones** | **Por cobrar** | **Monto recibido**.
+  - Ejemplo: B0100000001, 13/12/2026, RD$ 16,638.00, "RD$ 0" con lápiz, RD$ 8,461.00, campo "RD$ 0".
+  - Paginación "1-1 de 1" con flechas.
+  - **Vencimiento en rojo**: no se pudo ver. La única factura pendiente no está vencida, y su fecha sale en gris normal.
+- **Monto recibido** (`-monto-escribiendo.png`, `-monto.png`):
+  - Al escribir sale un globo con "RD$8,461.00 Restante por pagar".
+  - Al salir del campo, este queda "RD$ 1,000" y el Total de abajo pasa de RD$ 0.00 a RD$ 1,000.00.
+  - No hay botón para "pagar todo"; el monto se escribe a mano.
+- **Lápiz de Retenciones**: abre el modal "Retenciones aplicadas" (`-retenciones-modal.png`, `-retenciones-dropdown.png`).
+  - Arriba dice "Número de factura: B0100000001" y "Monto pendiente: RD$ 8,461.00".
+  - Cada fila tiene "Tipo de retención *" ("Seleccionar") y "Valor retenido *" (RD$, en 0), con una × para quitar la fila. Debajo está "+ Agregar otra retención".
+  - Pie: "Los campos marcados con * son obligatorios". Botones "Cancelar" y "Guardar" (desactivado hasta llenar).
+  - Opciones de Tipo de retención (los cortes con "..." son de Alegra):
+    - Retencion ITBIS: 30%, 75% y 100%
+    - Alquileres del 10% (10%) y Alquileres del 15% (15%)
+    - Honorarios por servicios del...: 10% y 15%
+    - Otras rentas Ley 11-92 del 1...: 10% y 15%
+    - Otras rentas Decreto 139-98 ...: 2% y 3%
+    - Otras retenciones Norma 07-2...: 2% y 3%
+    - Premios Ley 253-12 del 25% (25%)
+    - Transferencia de título y pr... (2%)
+    - Dividendos del 10% (10%)
+    - Intereses jurídicas no resid...: 10% y 5%
+    - Intereses físicas no residen...: 10% y 5%
+- **Varias facturas**: no se pudo probar. El único cliente con deuda tiene una sola factura, y guardar estaba fuera de esta revisión. Por cómo está hecha la tabla, cada fila lleva su propio "Monto recibido" y el Total suma todas las filas; un solo recibo puede cubrir varias facturas. Lo que hace el asiento con varias facturas no se vio. Con una factura, el asiento del recibo está en la sección 3 ("Pago recibido (abono parcial)", `04-pago-recibido-asiento.png`).
+
+**Pestaña "Otros ingresos"** (`-otros-ingresos.png`, `-otros-cuenta.png`)
+- La tabla de facturas se cambia por "Cuentas contables", con el subtítulo "Selecciona las cuentas contables que están relacionadas con este ingreso".
+- Columnas: **Concepto** | **Cantidad** | **Valor** | **Impuesto** | **Total**, y una × para borrar la fila.
+  - Concepto: "Seleccionar".
+  - Cantidad: placeholder 1.
+  - Valor: RD$, placeholder 0.
+  - Impuesto: "Seleccionar". No se abrió.
+  - Total: RD$ 0.00.
+- El Concepto es el catálogo de cuentas en árbol, con niveles sangrados y carga por páginas. Empieza así: Activos > Activos corrientes > Efectivo y equivalentes > Caja (Caja general, Caja chica), Bancos (Banco Popular Prueba, Banco 1), Deudores comerciales > Cuentas por cobrar clientes…
+- Debajo van "+ Agregar línea", luego una sección "Retenciones" con "+ Agregar retención", y después Total.
+
+**Debajo de la tabla, en las dos pestañas**
+- "Total RD$ 0.00", alineado a la derecha.
+- "Notas", un área de texto con el placeholder "Agrega detalles adicionales que serán visibles en la impresión."
+- Un solo botón: **"Guardar"**, teal. No hay botón "Cancelar" en la página, ni menú "Guardar y …", ni "Adjuntar archivos", ni Subtotal.
+- Al salir sin guardar (con clic en el menú izquierdo), Alegra no pidió confirmar.
+- Más abajo hay un panel de "Comentarios" y "Recordatorios":
+  - Filtro "Recientes" y el texto "Aún no hay comentarios".
+  - Una caja "Escribir un comentario" con el texto "Menciona con @, asigna tareas o agenda recordatorios para tu equipo" y un contador de 0/1000.
+- `19-pago-recibido-botones.png` es la misma imagen que `-otros-ingresos.png`.
+
+### 2. Nuevo pago a proveedor (Compras > Pagos / Gastos > "Nuevo pago")
+
+Ruta: `/payment/add`. Título "Nuevo pago" y el subtítulo "Los comprobantes de egreso te ayudarán a respaldar los gastos o salidas de dinero de tu empresa." Lista: `/payment`.
+
+**Ojo: este formulario tiene un diseño distinto al de pago recibido.** Pago recibido usa el diseño nuevo: una sola tarjeta, rejilla de 3 columnas y pestañas. Pago a proveedor usa el diseño viejo: dos tarjetas ("Información general del pago" y "Cuentas contables"), campos en 3 columnas que no llenan la tarjeta y botones Cancelar y Guardar abajo, fuera de las tarjetas. Compara `19-pago-recibido-facturas.png` con `19-pago-proveedor-vacio.png`.
+
+**Arriba de la tarjeta**: un aviso azul con la "i", que se puede cerrar con ×: "Para **trasladar dinero** entre tus **cuentas bancarias**, utiliza la opción de [Transferencias bancarias]."
+
+**Tarjeta 1: "Información general del pago"** (subtítulo "Indica los detalles generales asociados a este egreso")
+- Arriba a la derecha:
+  - Selector de numeración. Por defecto "Gasto"; opciones "Gasto" y "Comprobante para pagos al exterior (17)" (`19-pago-proveedor-numeracion-dropdown.png`).
+  - Debajo, "No." con el número 3 y un lápiz. El lápiz no abrió nada en la prueba (`19-pago-proveedor-encabezado.png`).
+  - No sale el nombre de la empresa ni el RNC.
+
+| Campo | Obligatorio | Defecto | Opciones | Captura |
+|---|---|---|---|---|
+| Contacto | No | vacío | "Nuevo contacto" y luego todos los contactos (clientes y proveedores mezclados) | `-contacto.png` |
+| Cuenta bancaria | Sí (*), con ícono de ayuda | vacío | Agrupadas: Bancos (Banco Popular Prueba, Banco 1), Tarjeta de crédito (Tarjeta de crédito empresarial), Efectivo (Caja general, Caja chica) | `-cuenta-bancaria.png` |
+| Fecha | Sí (*) | hoy, 13/11/2026 | calendario con LU…DO | `-fecha.png` |
+| Forma de pago | Sí (*) | vacío | Efectivo, Cheque, Transferencia, Depósito, Tarjeta débito, Tarjeta crédito, Venta a crédito, Permuta (sale dos veces), Bonos o certificados de regalos, Mixto, Otras formas de ventas, Compra a crédito | `-forma-pago.png` |
+| Moneda | Sí (*), con ícono de ayuda | DOP | DOP y "Nueva moneda" | `-moneda.png` |
+| Nota de egreso | No | vacío | área de texto ancha (2 columnas) | `19-pago-proveedor-vacio.png` |
+
+Al lado de Nota de egreso va el texto "Los campos marcados con * son obligatorios." Este formulario **no tiene Centro de costo**.
+
+**Facturas pendientes del proveedor**
+- Hoy ningún contacto de Fiel Ferreteria tiene facturas de proveedor pendientes: la única, B0100000050, ya se pagó con CE-1.
+- Al elegir cualquier contacto sale el aviso: "El proveedor no tiene facturas pendientes de pago. Puedes asociar una cuenta contable a este egreso." (`19-pago-proveedor-sin-facturas.png`).
+- Por eso hoy no se pudo ver la tabla de facturas por pagar ni su lápiz de retenciones.
+- Cuando sí había deuda, la tabla salía como "Facturas pendientes". Eso está en la sección 3 (CE-1) y en la captura `06-pago-proveedor-lleno.png`.
+- **No hay pestañas** como en pago recibido. La tabla de facturas (si hay) y la de cuentas contables salen juntas en la misma página.
+
+**Tarjeta 2: "Cuentas contables"** (subtítulo "Selecciona a qué cuentas contables pertenece este egreso.")
+- Columnas: **Concepto** | **Valor** | **Impuesto** | **Cantidad** | **Observaciones** | **Total**, y una × para borrar la fila. El orden es distinto al de "Otros ingresos", que es Concepto, Cantidad, Valor, Impuesto, Total.
+  - Concepto: "Seleccionar".
+  - Valor: 0.
+  - Impuesto: "Ninguno".
+  - Cantidad: 1.
+  - Observaciones: placeholder "Descripción".
+  - Total: RD$0.00.
+- El Concepto es el catálogo en árbol, empezando por Gastos > Gastos de venta > Gastos de personal de ventas > … (`19-pago-proveedor-cuenta-contable.png`).
+- Opciones de Impuesto: "Nuevo impuesto", Ninguno, ITBIS (18.00%), ITBIS 16% (16.00%), ITBIS 0% (0.00%), Exento (0.00%), Propina (10.00%) y CDT (2.00%) (`19-pago-proveedor-impuesto.png`).
+- Debajo va el enlace teal "+ Agregar cuenta contable".
+- Luego viene la sección plegable "Retenciones sobre valores de cuentas contables" (`19-pago-proveedor-retenciones-cuentas.png`):
+  - Su texto: "Aplica retenciones únicamente a los valores registrados en Cuentas contables. Estas retenciones no afectan las facturas de compra".
+  - Remite al "Valor retenido" de la tabla de facturas, con el enlace "Ir a facturas pendientes".
+- En la imagen vacía no se ve un Total general aparte.
+
+**Abajo**
+- Un panel "Comentarios" con ícono de ayuda, una caja "Escribe un comentario" y el texto "Utiliza los comentarios para agregar información importante. No son visibles en la impresión."
+- Abajo a la derecha, fuera de las tarjetas, van los botones **"Cancelar"** (blanco con borde) y **"Guardar"** (teal). Guardar no tiene menú.
+- Al salir sin guardar, Alegra no pide confirmar.
+
+### 3. Guía de estilo de los formularios
+
+La guía completa, con medidas tomadas de las copias locales, está en [`css-pagos/GUIA-FORMULARIOS.md`](css-pagos/GUIA-FORMULARIOS.md). Las capturas con medidas son `19-guia-pago-recibido.png`, `19-guia-rejilla.png`, `19-guia-campo.png`, `19-guia-botones.png` y `19-guia-pago-proveedor.png`.
+
+Lo principal, del diseño nuevo (pago recibido), que es el que conviene copiar:
+- **Página**
+  - Fondo `#f4f5fb`, letra Inter y contenido de máximo 1040 px.
+  - Título de la página fuera de la tarjeta, en 20 px, peso 600 y color `#0f172a`.
+- **Tarjeta**
+  - Blanca, con radio 12 y borde 1 px `#e2e8f0`, sin sombra.
+  - Los campos quedan a unos 33 px del borde.
+- **Rejilla**
+  - 3 columnas desde 768 px de ancho, con 32 px entre columnas y 16 px entre filas.
+  - Abajo de 768 px pasa a 2 columnas.
+- **Etiqueta**
+  - 14 px, peso 500, color `#334155`, a 4 px encima del campo.
+  - El asterisco va en teal `#30aba9`, a 12 px; el "?" de ayuda es de 18 px.
+- **Campo**
+  - 40 px de alto, radio 10 y borde 1 px `#cbd5e1`.
+  - El borde pasa a `#94a3b8` al pasar el mouse y a 2 px `#30bbb7` al escribir.
+  - Texto de 16 px; el placeholder va en `#94a3b8`.
+- **Pestañas**
+  - Barra gris de 42 px con radio 8.
+  - La pestaña activa es una píldora blanca de 32 px con sombra suave.
+- **Botones**
+  - Un solo "Guardar" teal `#30aba9` de unos 109×44, con radio 12, fuera de la tarjeta, 24 px debajo y alineado a la derecha. No hay Cancelar.
+  - En el diseño viejo (pago a proveedor) van "Cancelar" (blanco con borde) y "Guardar" (teal), los dos de unos 97×36, también fuera de las tarjetas y abajo a la derecha.
+- **Sin medir**: la tabla de facturas con datos, los estados de error, el hover de los botones y la pantalla de menos de 640 px.

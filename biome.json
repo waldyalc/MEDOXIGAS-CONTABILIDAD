@@ -40,6 +40,7 @@
       "!.next",
       "!dist",
       "!out",
+      "!docs/alegra",
       "!src/components/ui",
       "!src/components/calendar",
       "!src/lib/supabase/types.ts"

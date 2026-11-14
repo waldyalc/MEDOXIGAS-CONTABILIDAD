@@ -1,0 +1,173 @@
+/* vista-documento.css: reimplementación propia de Medoxigas, inspirada en Alegra.
+   Valores medidos en la copia local de Alegra (13/11/2026). No es código de Alegra. */
+.dv {
+  --dv-primary: var(--primary, #1e56c7);       /* Alegra: teal 600 #30aba9 */
+  --dv-primary-soft: var(--secondary, #eaf0fc); /* Alegra: teal 50 #e9fafa */
+  --dv-ring: var(--ring, #1e56c7);              /* Alegra: teal 500 #30bbb7 */
+  --dv-text: #334155;        /* slate-700 */
+  --dv-strong: #0f172a;      /* slate-900 */
+  --dv-muted: #64748b;       /* slate-500 */
+  --dv-disabled: #cbd5e1;    /* slate-300 */
+  --dv-line: #e2e8f0;        /* slate-200: bordes de tablas, tarjetas chicas, menú */
+  --dv-line-strong: #cbd5e1; /* slate-300: línea bajo las pestañas */
+  --dv-card-border: rgb(148 163 184 / 0.2);
+  --dv-btn-border: rgb(148 163 184 / 0.4);
+  --dv-head-bg: rgb(226 232 240 / 0.2);
+  --dv-hover: rgb(226 232 240 / 0.45);
+  --dv-danger: #be123c;      /* rose-700: monto "Por cobrar" */
+  --dv-danger-menu: #e11d48; /* rose-600: "Anular" en el menú */
+  --dv-r-sm: 8px; --dv-r-md: 10px; --dv-r-lg: 12px; --dv-r-xl: 16px;
+  font-family: var(--font-inter, Inter), system-ui, sans-serif;
+  color: var(--dv-text);
+  max-width: 1040px;
+  margin-inline: auto;
+}
+.dv *, .dv *::before, .dv *::after { box-sizing: border-box; }
+.dv :where(p, h1, h2, h3, h4, dl, dd) { margin: 0; } /* :where = sin peso, no pisa .dv-title */
+
+/* 1. Volver + título + estado + botones */
+.dv-back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 8px;
+  font-size: 12px; line-height: 16px; font-weight: 500; color: var(--dv-primary); text-decoration: none; }
+.dv-heading { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+@media (min-width: 768px) { .dv-heading { flex-direction: row; } }
+.dv-heading__title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; }
+.dv-h1 { font-size: 20px; line-height: 28px; font-weight: 600; color: var(--dv-strong); }
+.dv-tag { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 1px 5px;
+  border: 1px solid; border-radius: 4px; font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; }
+.dv-tag--amber { background: #fffbeb; color: #b45309; border-color: rgb(180 83 9 / 0.15); } /* Por cobrar, Sin facturar */
+.dv-tag--green { background: #f0fdf4; color: #15803d; border-color: rgb(21 128 61 / 0.15); } /* Cobrada (aprox., captura de Coder) */
+.dv-tag--primary { background: var(--dv-primary-soft); color: var(--dv-primary);
+  border-color: color-mix(in srgb, var(--dv-primary) 15%, transparent); }
+.dv-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* Botones */
+.dv-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+  height: 36px; padding: 7px 16px; border-radius: var(--dv-r-md); font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.dv-btn:focus-visible { outline: none; box-shadow: 0 0 0 1px #fff, 0 0 0 3px var(--dv-ring); }
+.dv-btn--outline { background: #fff; color: var(--dv-strong); border: 1px solid var(--dv-btn-border); }
+.dv-btn--outline:hover, .dv-btn--outline[aria-expanded="true"] { background: #eceff6; } /* hover no medido; abierto ≈ #eceff6 */
+.dv-btn--primary { background: var(--dv-primary); color: #fff; border: 0; padding: 8px 16px; }
+.dv-btn--primary:hover { filter: brightness(0.92); }
+.dv-btn--icon { width: 40px; height: 40px; padding: 0; }
+.dv-btn--sm { height: 32px; padding: 5px 16px; border-radius: var(--dv-r-sm); }
+.dv-btn--ghost { background: transparent; border: 0; color: var(--dv-primary); }
+.dv-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* Menú de los tres puntos */
+.dv-menu-anchor { position: relative; }
+.dv-menu { position: absolute; z-index: 50; top: calc(100% + 4px); left: 0; min-width: 185px; max-height: 352px;
+  overflow-y: auto; padding: 6px 0; background: #fff; border: 1px solid var(--dv-line); border-radius: var(--dv-r-sm);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+.dv-menu--wide { width: 210px; }
+.dv-menu__item { display: flex; align-items: flex-start; gap: 5px; width: 100%; padding: 8px 16px; border: 0;
+  background: none; font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 400; color: var(--dv-text); text-align: left; cursor: pointer; }
+.dv-menu__item svg { width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; }
+.dv-menu__item:hover { background: var(--dv-hover); } /* no medido */
+.dv-menu__item[aria-disabled="true"] { color: var(--dv-disabled); cursor: not-allowed; background: none; }
+.dv-menu__item--danger { color: var(--dv-danger-menu); }
+.dv-menu__sep { height: 1px; margin: 6px 16px; background: var(--dv-line); }
+
+/* 2. Tarjetas de resumen (solo factura) */
+.dv-stats { background: #fff; border: 1px solid var(--dv-line); border-radius: var(--dv-r-xl); overflow: hidden; }
+.dv-stats__row { display: flex; flex-wrap: wrap; }
+.dv-stats__row:not(:last-child) { border-bottom: 1px solid var(--dv-line); }
+.dv-stat { width: 100%; display: flex; flex-direction: column; gap: 4px; padding: 16px; border-bottom: 1px solid var(--dv-line); }
+.dv-stat:last-child { border-bottom: 0; }
+@media (min-width: 768px) {
+  .dv-stats__row { flex-wrap: nowrap; }
+  .dv-stat { flex: 1 1 0; width: auto; border-bottom: 0; border-right: 1px solid var(--dv-line); }
+  .dv-stat:last-child { border-right: 0; }
+}
+.dv-stat__label { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--dv-muted); }
+.dv-stat__value { font-size: 20px; line-height: 28px; font-weight: 600; color: var(--dv-text); }
+.dv-stat__value--danger { color: var(--dv-danger); }
+.dv-stats__extra { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease-in-out; overflow: hidden; }
+.dv-stats__extra[data-open="true"] { grid-template-rows: 1fr; }
+.dv-stats__extra > div { min-height: 0; }
+.dv-stats__more { display: flex; align-items: center; justify-content: center; gap: 4px; width: 100%; padding: 8px 16px;
+  border: 0; border-top: 1px solid var(--dv-line); background: #fff; cursor: pointer;
+  font-family: inherit; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--dv-primary); }
+.dv-stats__more:hover { background: #f8fafc; }
+
+/* 3. Tarjeta del documento */
+.dv-card { margin-top: 24px; padding: 12px; background: #fff; border: 1px solid var(--dv-card-border); border-radius: var(--dv-r-lg); }
+@media (min-width: 640px) { .dv-card { padding: 20px; } }
+@media (min-width: 768px) { .dv-card { padding: 32px; } }
+.dv-head { display: flex; flex-direction: column; gap: 16px; padding-block: 12px; margin-bottom: 30px; }
+.dv-head > * { width: 100%; min-width: 0; display: flex; justify-content: center; }
+@media (min-width: 768px) {
+  .dv-head { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; padding-block: 0; }
+  .dv-head > * { width: 33.333%; }
+  .dv-head__logo { justify-content: flex-start; }
+  .dv-head__num { justify-content: flex-end; }
+}
+.dv-logo { width: 100%; max-width: 300px; height: 117px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--dv-r-sm); overflow: hidden; background: #fff; }
+.dv-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.dv-company { text-align: center; }
+.dv-company__name { font-size: 16px; line-height: 24px; font-weight: 600; }
+.dv-company__sub { font-size: 12px; line-height: 16px; }
+.dv-number { font-size: 16px; line-height: 24px; font-weight: 600; text-align: center; }
+@media (min-width: 768px) { .dv-number { text-align: right; } }
+
+/* 4. Información (grid de etiqueta arriba y valor abajo) */
+.dv-title { margin-bottom: 16px; font-size: 16px; line-height: 24px; font-weight: 600; }
+.dv-info { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; }
+@media (min-width: 640px) {
+  .dv-info--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } /* factura */
+  .dv-info--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } /* cotización y conduce */
+}
+.dv-field { display: flex; flex-direction: column; gap: 8px; }
+.dv-field__label { font-size: 14px; line-height: 20px; font-weight: 500; }
+.dv-field__value { font-size: 14px; line-height: 20px; font-weight: 400; }
+.dv-field__value a { color: inherit; text-decoration: none; }
+.dv-field__value a:hover { text-decoration: underline; }
+.dv-field__value--link a { font-size: 16px; line-height: 24px; text-decoration: underline; } /* cliente en cotización/conduce */
+
+/* 5. Productos y servicios (tabla) */
+.dv-items { margin-top: 40px; }
+.dv-items__title { margin-bottom: 24px; font-size: 16px; line-height: 24px; font-weight: 700; }
+.dv-table-wrap { overflow-x: auto; background: #fff; border: 1px solid var(--dv-line); border-radius: var(--dv-r-xl); }
+.dv-table { width: 100%; border-collapse: collapse; }
+.dv-table th { position: relative; height: 40px; padding: 0 16px; background: var(--dv-head-bg); text-align: left;
+  font-size: 12px; line-height: 16px; font-weight: 500; color: var(--dv-text); white-space: nowrap; }
+.dv-table th:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 8px; width: 1px; height: 60%; background: var(--dv-line); }
+.dv-table td { height: 48px; padding: 0 16px; border-top: 1px solid var(--dv-line); font-size: 14px; line-height: 20px; color: var(--dv-text); }
+.dv-table .num { text-align: right; white-space: nowrap; }
+.dv-table tbody tr.is-hover:hover { background: var(--dv-hover); }
+.dv-item-link { color: var(--dv-text); text-decoration: underline; cursor: pointer; }
+.dv-item-desc { font-size: 12px; line-height: 16px; color: var(--dv-muted); white-space: pre-line; }
+
+/* 6. Totales */
+.dv-totals-wrap { margin-top: 40px; display: flex; }
+@media (min-width: 768px) { .dv-totals-wrap { justify-content: flex-end; } }
+.dv-totals { width: 320px; max-width: 100%; font-size: 16px; line-height: 24px; color: var(--dv-muted); }
+.dv-totals__row { display: flex; justify-content: space-between; gap: 16px; }
+.dv-totals__total { margin-top: 28px; font-size: 20px; line-height: 28px; font-weight: 600; color: var(--dv-strong); }
+
+/* 7. Tarjetas de abajo (Lista de precios / Archivos adjuntos) */
+.dv-side { margin-top: 24px; display: flex; flex-direction: column; gap: 16px; }
+@media (min-width: 768px) { .dv-side { flex-direction: row; } }
+.dv-panel { flex: 1 1 0; min-width: 0; background: #fff; border: 1px solid var(--dv-line); border-radius: var(--dv-r-sm); padding: 24px 32px; }
+.dv-panel--list { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+@media (min-width: 768px) { .dv-panel--list { padding: 24px 32px; } }
+.dv-kv { display: flex; justify-content: space-between; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--dv-line); font-size: 14px; line-height: 20px; }
+.dv-kv dt { font-weight: 500; }
+.dv-panel--files { display: flex; flex-direction: column; gap: 16px; }
+.dv-panel__title { font-size: 14px; line-height: 20px; font-weight: 600; }
+.dv-files__body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; font-size: 14px; line-height: 20px; }
+
+/* 8. Pestañas de documentos asociados */
+.dv-assoc { margin-top: 24px; padding: 8px 32px 32px; background: #fff; border: 1px solid var(--dv-card-border); border-radius: var(--dv-r-lg); }
+.dv-tabs { display: flex; overflow-x: auto; }
+.dv-tab { position: relative; padding: 8px 24px; border: 0; border-bottom: 1px solid var(--dv-line-strong); background: none;
+  font-family: inherit; font-size: 14px; line-height: 20px; font-weight: 400; color: var(--dv-muted); white-space: nowrap; cursor: pointer; transition: color 0.11s ease-out; }
+.dv-tab:hover:not([aria-selected="true"]) { box-shadow: inset 0 -1px 0 rgb(148 163 184 / 0.4); }
+.dv-tab[aria-selected="true"] { color: var(--dv-text); }
+.dv-tab[aria-selected="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--dv-primary); }
+.dv-tabpanel { margin-top: 24px; }
+.dv-pager { display: flex; justify-content: flex-end; align-items: center; gap: 16px; height: 48px; padding: 0 8px;
+  border-top: 1px solid var(--dv-line); font-size: 14px; line-height: 20px; }
+.dv-empty { margin-top: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  padding: 16px; border: 1px solid #e5e7eb; border-radius: var(--dv-r-lg); text-align: center; }
+.dv-empty__text { font-size: 24px; line-height: 32px; font-weight: 500; color: #6b7280; }

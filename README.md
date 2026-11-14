@@ -1,6 +1,6 @@
 # Medoxigas Contabilidad
 
-Sistema de contabilidad y facturación de **MEDOXIGAS ALC, SRL**, inspirado en Alegra sin copiar su código, textos ni diseño. El estudio de sus flujos de trabajo vive en `docs/alegra/`.
+Sistema de contabilidad y facturación de **MEDOXIGAS ALC, SRL**, inspirado en Alegra sin copiar su código, textos ni diseño. El estudio de sus flujos de trabajo vive en `docs/alegra/`. Para continuar el sistema por tu cuenta, empieza por `docs/CONTEXTO-CODER.md`.
 
 Esta versión es el **cascarón**: login con Supabase Auth (correo/contraseña y Google) y un dashboard **Inicio** con menú lateral. Los módulos siguientes aparecen en el menú deshabilitados con el badge «soon»: Facturación, Clientes, Productos, Gastos, Bancos y Reportes.
 
