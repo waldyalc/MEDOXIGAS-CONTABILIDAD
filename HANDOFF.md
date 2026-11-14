@@ -61,19 +61,21 @@
   `Combobox` con búsqueda de `components/ui`; acepta `name` (input oculto),
   `valorInicial`/`valor` + `onCambio`, `requerido`, `deshabilitado` y usa el
   centinela `__ninguno` para «Todos/Elige…», que se guarda como cadena vacía.
-- Reemplazados **18** selects nativos (`NativeSelect`/`<select>`) en 13 archivos:
-  diálogo Nueva cuenta (Tipo y Naturaleza), filtros de reportes (libros, estados,
-  ventas, vendedores, transacciones, anual, inventario, estado de cuenta) y
-  paginación. Las listas largas (cuentas, contactos, centros y vendedores) usan
-  el combobox con búsqueda.
+- Primera parte: **18** selects nativos (`NativeSelect`/`<select>`) en 13
+  archivos: diálogo Nueva cuenta (Tipo y Naturaleza), filtros de reportes
+  (libros, estados, ventas, vendedores, transacciones, anual, inventario, estado
+  de cuenta) y paginación. Las listas largas (cuentas, contactos, centros y
+  vendedores) usan el combobox con búsqueda.
+- Segunda parte (con S20 ya en `prueba`): convertidos los 2 que quedaban, ambos
+  en `compras/formulario-factura` (Almacén y Tipo de línea). Los ITBIS de compras
+  y gastos ya venían con `SelectorImpuesto` (Select de shadcn) desde S20, así que
+  no se tocó su lógica ni `impuesto_id`; gastos no tenía NativeSelect.
 - Regla nueva: `src/lib/selects-nativos.test.ts` falla si aparece `<select>` o
-  `NativeSelect` fuera de `components/ui` (con los pendientes permitidos). Anotada
-  en `AGENTS.md`.
-- Pendientes por otras sesiones activas (no tocados): `compras/formulario-factura`
-  (Almacén, Tipo de línea e ITBIS) y `gastos/gasto-form` (ITBIS), porque
-  `feat/impuestos-completos` los está editando. Tampoco se tocaron pagos,
-  facturación, Inicio ni papel PDF.
-- Sin migraciones. `typecheck`, `test` (625), Biome de lo tocado y `build` en verde.
+  `NativeSelect` fuera de `components/ui`, sin lista de pendientes. Anotada en
+  `AGENTS.md`.
+- No se tocaron los formularios de pago ni el catálogo de cuentas. Sin
+  migraciones. `typecheck`, `test` (639), Biome de lo tocado y `build` en verde.
+
 ## S27 — Catálogo de cuentas en árbol (13 nov 2026)
 
 - El catálogo de `/dashboard/contabilidad` ya no es una tabla plana: nuevo

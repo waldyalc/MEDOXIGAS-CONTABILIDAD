@@ -8,6 +8,7 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import { type ProductoSeleccionable, SelectorProducto } from "@/components/productos/selector-producto";
+import { SelectCampo } from "@/components/select-campo";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect } from "@/components/ui/native-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
@@ -301,18 +301,15 @@ export function FormularioFactura({
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="almacen">Almacén</Label>
-                    <NativeSelect
+                    <SelectCampo
                       id="almacen"
-                      className="w-full"
-                      value={almacenId}
-                      onChange={(evento) => setAlmacenId(evento.target.value)}
-                    >
-                      {almacenes.map((almacen) => (
-                        <option key={almacen.id} value={almacen.id}>
-                          {almacen.es_principal ? `${almacen.nombre} (principal)` : almacen.nombre}
-                        </option>
-                      ))}
-                    </NativeSelect>
+                      opciones={almacenes.map((almacen) => ({
+                        value: almacen.id,
+                        label: almacen.es_principal ? `${almacen.nombre} (principal)` : almacen.nombre,
+                      }))}
+                      valor={almacenId}
+                      onCambio={setAlmacenId}
+                    />
                   </div>
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="notas">Notas</Label>
@@ -396,16 +393,14 @@ export function FormularioFactura({
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12">
                   <div className="flex flex-col gap-2 lg:col-span-2">
                     <Label className="text-muted-foreground text-xs">Tipo</Label>
-                    <NativeSelect
-                      value={linea.modo}
-                      onChange={(evento) =>
-                        cambiarModo(linea.id, evento.target.value === "gasto" ? "gasto" : "producto")
-                      }
-                      className="w-full"
-                    >
-                      <option value="producto">Producto</option>
-                      <option value="gasto">Gasto</option>
-                    </NativeSelect>
+                    <SelectCampo
+                      opciones={[
+                        { value: "producto", label: "Producto" },
+                        { value: "gasto", label: "Gasto" },
+                      ]}
+                      valor={linea.modo}
+                      onCambio={(valor) => cambiarModo(linea.id, valor === "gasto" ? "gasto" : "producto")}
+                    />
                   </div>
                   <div className="flex flex-col gap-2 lg:col-span-4">
                     <Label className="text-muted-foreground text-xs">
