@@ -23,6 +23,35 @@
   pgTAP no se pudo correr aquí (sin Docker/Supabase CLI); lo corre el integrador.
 - Quedó fuera: anular notas de crédito de venta y revertir el costo promedio al
   anular ajustes (pendientes ya conocidos). Nada se aplicó a Supabase.
+## Clonar, editar y convertir documentos de venta (15 nov 2026)
+
+- La ficha de factura, cotización y conduce tiene «Clonar»: abre el formulario
+  del mismo tipo con cliente, líneas, notas y términos prellenados, fecha de
+  hoy y numeración/NCF nuevos al guardar (no guarda nada hasta confirmar).
+  También se prellena el tipo de comprobante al clonar una factura.
+- Cotización y conduce tienen «Editar» solo mientras están abiertos (no
+  convertidos/facturados ni anulados). Reusan `DocumentoVentaForm` y la acción
+  `editar_cotizacion`/`editar_remision` reemplaza las líneas y recalcula totales
+  sin asiento ni inventario. Las tablas ganaron `terminos`, que ya se guarda y
+  se imprime.
+- «Convertir» en cotización ofrece conduce y factura. Convertir en conduce
+  abre `/dashboard/conduces/nueva?cotizacion=<id>` prellenado; al guardar,
+  `crear_remision_desde_cotizacion` crea el conduce (sin inventario), marca la
+  cotización como convertida y deja `cotizaciones.remision_id` /
+  `remisiones.cotizacion_id`; las dos fichas muestran la pestaña enlazada.
+  Cotización → factura se conserva igual.
+- Lógica pura en `src/components/documento-venta/prellenado.ts` con Vitest (7).
+  Permisos de la vista (`editar`, `clonar`, `convertirEnConduce`) en `vista.ts`.
+- Migración aditiva `20261115400000_documentos_venta_editar_clonar.sql` (NO
+  aplicada; la revisa Coder) y pgTAP aislado
+  `supabase/tests/documentos_venta_editar_clonar_test.sql` (31 asserts). Tipos
+  de las columnas nuevas puestos a mano en `types.ts`.
+- `typecheck`, `test` (556), Biome y `build` en verde. pgTAP no se pudo correr
+  aquí (sin Docker/Supabase CLI).
+- Fuera: clonar desde la lista (solo desde la ficha), editar facturas y
+  anulación de cotizaciones/conduces.
+
+- Integración en `prueba`: la migración ya está aplicada en el remoto. `_editar_documento_no_contable` y `crear_remision_desde_cotizacion` conservan `vendedor_id` y `centro_costo_id`. El pgTAP no reinicia secuencias compartidas. `types.ts` se regeneró con el generador.
 
 ## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
 

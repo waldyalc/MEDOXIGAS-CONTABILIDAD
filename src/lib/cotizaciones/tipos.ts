@@ -23,6 +23,11 @@ export interface DocumentoDetalle extends DocumentoResumen {
   descuento: number;
   itbis: number;
   notas: string | null;
+  terminos: string | null;
+  vendedor_id: string | null;
+  centro_costo_id: string | null;
+  remision_id?: string | null;
+  cotizacion_id?: string | null;
 }
 
 export interface DocumentoLinea {
@@ -47,10 +52,20 @@ export interface FacturaRelacionada {
   estado: string;
 }
 
+export interface DocumentoRelacionado {
+  id: string;
+  numero: number;
+  fecha: string;
+  total: number;
+  estado: string;
+}
+
 export interface DocumentoVista {
   documento: DocumentoDetalle;
   lineas: DocumentoLinea[];
   contacto: ContactoResumen;
   empresa: Empresa | null;
   facturaRelacionada: FacturaRelacionada | null;
+  cotizacionOrigen: DocumentoRelacionado | null;
+  remisionRelacionada: DocumentoRelacionado | null;
 }

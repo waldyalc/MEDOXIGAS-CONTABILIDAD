@@ -68,6 +68,8 @@ export interface FacturaDetalle extends FacturaLista {
   terminos: string | null;
   pie: string | null;
   asiento_id: string | null;
+  vendedor_id: string | null;
+  centro_costo_id: string | null;
 }
 
 export interface FacturaLinea {

@@ -763,7 +763,9 @@ export type Database = {
           itbis: number
           notas: string | null
           numero: number
+          remision_id: string | null
           subtotal: number
+          terminos: string | null
           total: number
           vencimiento: string
           vendedor_id: string | null
@@ -781,7 +783,9 @@ export type Database = {
           itbis?: number
           notas?: string | null
           numero?: number
+          remision_id?: string | null
           subtotal?: number
+          terminos?: string | null
           total?: number
           vencimiento: string
           vendedor_id?: string | null
@@ -799,7 +803,9 @@ export type Database = {
           itbis?: number
           notas?: string | null
           numero?: number
+          remision_id?: string | null
           subtotal?: number
+          terminos?: string | null
           total?: number
           vencimiento?: string
           vendedor_id?: string | null
@@ -824,6 +830,13 @@ export type Database = {
             columns: ["factura_id"]
             isOneToOne: false
             referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_remision_id_fkey"
+            columns: ["remision_id"]
+            isOneToOne: false
+            referencedRelation: "remisiones"
             referencedColumns: ["id"]
           },
           {
@@ -2767,6 +2780,7 @@ export type Database = {
         Row: {
           centro_costo_id: string | null
           contacto_id: string
+          cotizacion_id: string | null
           creado_en: string
           creado_por: string | null
           estado: string
@@ -2777,6 +2791,7 @@ export type Database = {
           notas: string | null
           numero: number
           subtotal: number
+          terminos: string | null
           total: number
           vencimiento: string
           vendedor_id: string | null
@@ -2784,6 +2799,7 @@ export type Database = {
         Insert: {
           centro_costo_id?: string | null
           contacto_id: string
+          cotizacion_id?: string | null
           creado_en?: string
           creado_por?: string | null
           estado?: string
@@ -2794,6 +2810,7 @@ export type Database = {
           notas?: string | null
           numero?: number
           subtotal?: number
+          terminos?: string | null
           total?: number
           vencimiento: string
           vendedor_id?: string | null
@@ -2801,6 +2818,7 @@ export type Database = {
         Update: {
           centro_costo_id?: string | null
           contacto_id?: string
+          cotizacion_id?: string | null
           creado_en?: string
           creado_por?: string | null
           estado?: string
@@ -2811,6 +2829,7 @@ export type Database = {
           notas?: string | null
           numero?: number
           subtotal?: number
+          terminos?: string | null
           total?: number
           vencimiento?: string
           vendedor_id?: string | null
@@ -2828,6 +2847,13 @@ export type Database = {
             columns: ["contacto_id"]
             isOneToOne: false
             referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remisiones_cotizacion_id_fkey"
+            columns: ["cotizacion_id"]
+            isOneToOne: false
+            referencedRelation: "cotizaciones"
             referencedColumns: ["id"]
           },
           {
@@ -3097,6 +3123,10 @@ export type Database = {
         Returns: string
       }
       _cuenta_config: { Args: { p_clave: string }; Returns: string }
+      _editar_documento_no_contable: {
+        Args: { p: Json; p_tipo: string }
+        Returns: string
+      }
       _guardar_conciliacion_cabecera: {
         Args: {
           p_conciliacion_id: string
@@ -3198,6 +3228,7 @@ export type Database = {
       crear_pago_recurrente: { Args: { p: Json }; Returns: string }
       crear_producto: { Args: { p: Json }; Returns: string }
       crear_remision: { Args: { p: Json }; Returns: string }
+      crear_remision_desde_cotizacion: { Args: { p: Json }; Returns: string }
       crear_retencion: { Args: { p: Json }; Returns: string }
       crear_termino_pago: { Args: { p: Json }; Returns: string }
       crear_transferencia_inventario: { Args: { p: Json }; Returns: string }
@@ -3206,6 +3237,8 @@ export type Database = {
         Args: { p_activo_id: string; p_periodo?: string }
         Returns: string
       }
+      editar_cotizacion: { Args: { p: Json }; Returns: string }
+      editar_remision: { Args: { p: Json }; Returns: string }
       generar_factura_recurrente: {
         Args: { p_fecha?: string; p_recurrente_id: string }
         Returns: string
