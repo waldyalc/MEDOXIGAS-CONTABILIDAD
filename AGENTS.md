@@ -43,6 +43,7 @@ Viven en `.opencode/skills/<nombre>/SKILL.md`. Cárgalas con la herramienta `ski
 - `motor-contable` — motor de doble partida (archivos, cuentas por defecto, invariantes) y tests antes de cambiar un cálculo.
 - `supabase-migraciones` — cómo escribir una migración; no aplicarla en el remoto ni usar `service_role`; RLS en tablas nuevas.
 - `pedir-ayuda` — si te atascas, pregunta a Coder con la herramienta `question`; no des vueltas ni inventes atajos.
+- `biome` — cómo convertir cada corrección de Waldy en un candado (test o regla de Biome) y resumen de la charla de Lauren Tan.
 
 ## Módulos (menú lateral)
 
@@ -86,6 +87,17 @@ Próximos: datos de la empresa (RNC, dirección, logo), numeraciones B14/B15/B16
 ## Git y despliegue
 
 - Trabajo en ramas `feat/*` desde `origin/prueba`. El agente hace commits chicos y empuja **su rama**. Coder revisa y fusiona a `prueba` (Waldy prueba). `main` solo por fast-forward con OK de Waldy. Nunca force-push ni fusionar a `prueba`/`main` desde una tarea. Ver skill `flujo-git`.
+
+## Candados: cada corrección se vuelve un test o una regla
+
+- **Regla de oro:** cada vez que Waldy te corrija algo, no lo apuntes solo aquí. Crea un **test** (Vitest, pgTAP o Playwright) o una **regla de Biome** que falle si alguien lo vuelve a hacer, con un mensaje que diga cómo arreglarlo de raíz. Después agrega una línea abajo. Cómo hacerlo: skill `biome`.
+- **Por qué:** este archivo es un consejo y la IA a veces no lo lee, se le olvida o busca una excusa. Un test o una regla es un candado: si se rompe, el commit no entra.
+- **Test** = un programa pequeño que revisa que el sistema funcione (ej.: una factura de 1,000 genera un asiento que cuadra). **Regla de Biome** = revisa cómo está escrito el código (ej.: prohibido `<select>` nativo).
+- La IA copia lo que ve en el repo: no dejes parches ni comentarios que justifiquen atajos; limpia los casos viejos cuando crees una regla.
+
+Candados que ya existen:
+
+- `src/lib/selects-nativos.test.ts` — prohíbe `<select>` y `NativeSelect` fuera de `components/ui`.
 
 ## Antes de decir "listo"
 
