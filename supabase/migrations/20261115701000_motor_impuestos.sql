@@ -119,6 +119,7 @@ declare
   v_fuente_id uuid;
   v_impuesto_id uuid;
   v_tasa numeric(5,2);
+  v_filas bigint;
   v_impuesto public.impuestos%rowtype;
 begin
   create temp table if not exists pg_temp._impuestos_lineas (
@@ -142,7 +143,9 @@ begin
       into v_impuesto_id, v_tasa
       using v_fuente_id;
 
-    if not found then
+    -- EXECUTE ... INTO no actualiza FOUND; se usa ROW_COUNT.
+    get diagnostics v_filas = row_count;
+    if v_filas = 0 then
       raise exception 'línea de origen no encontrada' using errcode = '22023';
     end if;
 
@@ -244,6 +247,8 @@ as $$
 declare
   v_original public.asiento_lineas%rowtype;
   v_grupo record;
+  v_monto_original numeric(14,2);
+  v_monto_repartido numeric(14,2) := 0;
 begin
   if p_asiento_id is null then
     return;
@@ -264,6 +269,8 @@ begin
   if not found then
     return;
   end if;
+
+  v_monto_original := case when p_lado = 'debito' then v_original.debito else v_original.credito end;
 
   delete from public.asiento_lineas where id = v_original.id;
 
@@ -300,7 +307,14 @@ begin
       case when p_lado = 'debito' then v_grupo.monto else 0 end,
       case when p_lado = 'credito' then v_grupo.monto else 0 end
     );
+
+    v_monto_repartido := v_monto_repartido + v_grupo.monto;
   end loop;
+
+  if v_monto_repartido <> v_monto_original then
+    raise exception 'no se pudo repartir el impuesto del asiento % (original %, repartido %)',
+      p_asiento_id, v_monto_original, v_monto_repartido using errcode = '22023';
+  end if;
 end;
 $$;
 

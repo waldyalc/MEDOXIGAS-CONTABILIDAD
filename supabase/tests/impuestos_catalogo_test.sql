@@ -1,5 +1,5 @@
 begin;
-select plan(23);
+select plan(25);
 
 create temp table _ids (clave text primary key, id uuid) on commit drop;
 grant select, insert, update, delete on _ids to authenticated;
@@ -254,6 +254,38 @@ select is(
    where n.id = (select id from _ids where clave = 'nota') and c.codigo = '2102'),
   18.00::numeric(14,2),
   'la nota de crédito debita el ITBIS de 2102'
+);
+
+-- Nota de crédito de compra: también resuelve la línea de origen y el CDT.
+insert into _ids (clave, id)
+select 'nota_compra', public.crear_nota_credito_compra(jsonb_build_object(
+  'factura_proveedor_id', (select id from _ids where clave = 'compra'),
+  'fecha', '2026-11-14',
+  'lineas', jsonb_build_array(jsonb_build_object(
+    'factura_proveedor_linea_id', (
+      select fpl.id from public.facturas_proveedor_lineas fpl
+      where fpl.factura_proveedor_id = (select id from _ids where clave = 'compra')
+      limit 1
+    ),
+    'cantidad', 1.00::numeric
+  ))
+));
+
+select is(
+  (select otros_impuestos::numeric(14,2)
+   from public.notas_credito_compra
+   where id = (select id from _ids where clave = 'nota_compra')),
+  2.00::numeric(14,2),
+  'la nota de crédito de compra conserva el CDT en otros_impuestos'
+);
+select is(
+  (select sum(l.credito)::numeric(14,2)
+   from public.asiento_lineas l
+   join public.notas_credito_compra n on n.asiento_id = l.asiento_id
+   join public.cuentas c on c.id = l.cuenta_id
+   where n.id = (select id from _ids where clave = 'nota_compra') and c.codigo = '2105'),
+  2.00::numeric(14,2),
+  'la nota de crédito de compra acredita el CDT a 2105'
 );
 
 select * from finish();
