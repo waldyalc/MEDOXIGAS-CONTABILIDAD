@@ -65,7 +65,8 @@ type Props =
 
 const CELDA = "px-[5pt] py-[2.5pt] align-top";
 const CELDA_TEXTO = `${CELDA} text-[10pt] leading-[12.1pt] font-semibold`;
-const CELDA_NUMERO = `${CELDA} text-right tabular-nums`;
+const CELDA_MONTO = "px-[3pt] py-[2.5pt] align-top whitespace-nowrap tabular-nums";
+const CELDA_NUMERO = "px-[3pt] py-[2.5pt] align-top text-right whitespace-nowrap tabular-nums";
 const CELDA_ETIQUETA = "border-r border-b border-[#c9d0da] bg-[#eef0f3] px-[4pt] py-[2pt] font-bold";
 
 function nombreEmpresa(empresa: Empresa | null): string {
@@ -183,16 +184,18 @@ function EncabezadoFactura({ datos }: { datos: DatosPapel }) {
           <span className="font-semibold">Fecha de creación:</span> {formatoDia(datos.fecha)}
         </p>
         <p>
-          <span className="font-semibold">Vencimiento de la factura</span> {formatoDia(datos.vencimiento)}
+          <span className="font-semibold">Vencimiento de la factura:</span> {formatoDia(datos.vencimiento)}
         </p>
       </div>
 
       <div className="shrink-0 text-right">
         <p className="font-semibold">{datos.titulo}</p>
         <p className="my-[2pt] text-[14pt] leading-[16pt] font-semibold">NCF {datos.ncf ?? "—"}</p>
-        <p>
-          <span className="font-semibold">Vencimiento NCF:</span> {datos.ncfVence ? formatoDia(datos.ncfVence) : ""}
-        </p>
+        {datos.ncfVence?.trim() ? (
+          <p>
+            <span className="font-semibold">Vencimiento NCF:</span> {formatoDia(datos.ncfVence)}
+          </p>
+        ) : null}
         {datos.estado === "anulada" ? <p className="mt-[4pt] font-bold text-red-600">ANULADA</p> : null}
       </div>
     </header>
@@ -254,12 +257,16 @@ function BloqueClienteFactura({ datos }: { datos: DatosPapel }) {
         <p>
           <span className="font-semibold">Cliente:</span> {datos.contacto.nombre}
         </p>
-        <p>
-          <span className="font-semibold">RNC:</span> {datos.contacto.rnc_cedula?.trim() ?? ""}
-        </p>
-        <p>
-          <span className="font-semibold">Teléfono:</span> {datos.contacto.telefono?.trim() ?? ""}
-        </p>
+        {datos.contacto.rnc_cedula?.trim() ? (
+          <p>
+            <span className="font-semibold">RNC:</span> {datos.contacto.rnc_cedula}
+          </p>
+        ) : null}
+        {datos.contacto.telefono?.trim() ? (
+          <p>
+            <span className="font-semibold">Teléfono:</span> {datos.contacto.telefono}
+          </p>
+        ) : null}
       </div>
 
       <div className="flex shrink-0 flex-col items-end">
@@ -283,9 +290,11 @@ function BloqueClienteCotizacion({ datos }: { datos: DatosPapel }) {
         <p>
           <span className="font-semibold">Cliente:</span> {datos.contacto.nombre}
         </p>
-        <p>
-          <span className="font-semibold">RNC:</span> {datos.contacto.rnc_cedula?.trim() ?? ""}
-        </p>
+        {datos.contacto.rnc_cedula?.trim() ? (
+          <p>
+            <span className="font-semibold">RNC:</span> {datos.contacto.rnc_cedula}
+          </p>
+        ) : null}
       </div>
 
       <div className="shrink-0 text-right">
@@ -330,23 +339,23 @@ function TablaFactura({ lineas }: { lineas: LineaPapel[] }) {
   return (
     <table className="mx-[5pt] mt-[12pt] w-[calc(100%-10pt)] table-fixed border-collapse text-left">
       <colgroup>
-        <col className="w-[7.5%]" />
-        <col className="w-[50.3%]" />
-        <col className="w-[6.3%]" />
-        <col className="w-[7%]" />
-        <col className="w-[8.5%]" />
-        <col className="w-[10%]" />
-        <col className="w-[10.4%]" />
+        <col className="w-[52pt]" />
+        <col />
+        <col className="w-[46pt]" />
+        <col className="w-[90pt]" />
+        <col className="w-[90pt]" />
+        <col className="w-[90pt]" />
+        <col className="w-[90pt]" />
       </colgroup>
       <thead>
         <tr className="border-y border-[#d7dce3] bg-[#f7f8fa] text-[7.5pt]">
           <th className="px-[5pt] py-[2.5pt] font-semibold">Cantidad</th>
           <th className="px-[5pt] py-[2.5pt] font-semibold">Descripción</th>
           <th className="px-[5pt] py-[2.5pt] font-semibold">Unidad</th>
-          <th className="px-[5pt] py-[2.5pt] font-semibold">Precio</th>
-          <th className="px-[5pt] py-[2.5pt] font-semibold">Descuento</th>
-          <th className="px-[5pt] py-[2.5pt] font-semibold">Impuesto</th>
-          <th className="px-[5pt] py-[2.5pt] text-right font-semibold">Valor</th>
+          <th className="px-[5pt] py-[2.5pt] font-semibold whitespace-nowrap">Precio</th>
+          <th className="px-[5pt] py-[2.5pt] font-semibold whitespace-nowrap">Descuento</th>
+          <th className="px-[5pt] py-[2.5pt] font-semibold whitespace-nowrap">Impuesto</th>
+          <th className="px-[5pt] py-[2.5pt] text-right font-semibold whitespace-nowrap">Valor</th>
         </tr>
       </thead>
       <tbody>
@@ -355,9 +364,11 @@ function TablaFactura({ lineas }: { lineas: LineaPapel[] }) {
             <td className={CELDA}>{formatoCantidad(linea.cantidad)}</td>
             <td className={CELDA_TEXTO}>{linea.descripcion}</td>
             <td className={CELDA}>Unidad</td>
-            <td className={CELDA}>{formatearPrecioPapel(linea.precio)}</td>
-            <td className={CELDA}>{linea.descuento_pct > 0 ? formatearMontoPapel(descuentoDeLinea(linea)) : ""}</td>
-            <td className={CELDA}>{formatearMontoPapel(linea.itbis)}</td>
+            <td className={CELDA_MONTO}>{formatearPrecioPapel(linea.precio)}</td>
+            <td className={CELDA_MONTO}>
+              {linea.descuento_pct > 0 ? formatearMontoPapel(descuentoDeLinea(linea)) : ""}
+            </td>
+            <td className={CELDA_MONTO}>{formatearMontoPapel(linea.itbis)}</td>
             <td className={CELDA_NUMERO}>{formatearMontoPapel(linea.subtotal)}</td>
           </tr>
         ))}
@@ -370,34 +381,36 @@ function TablaCotizacion({ lineas }: { lineas: LineaPapel[] }) {
   return (
     <table className="mx-[5pt] mt-[20pt] w-[calc(100%-10pt)] table-fixed border-collapse text-left">
       <colgroup>
-        <col className="w-[30%]" />
-        <col className="w-[14.5%]" />
-        <col className="w-[9%]" />
-        <col className="w-[7.5%]" />
-        <col className="w-[12.4%]" />
-        <col className="w-[18.6%]" />
-        <col className="w-[8%]" />
+        <col />
+        <col className="w-[90pt]" />
+        <col className="w-[46pt]" />
+        <col className="w-[52pt]" />
+        <col className="w-[90pt]" />
+        <col className="w-[90pt]" />
+        <col className="w-[90pt]" />
       </colgroup>
       <thead>
         <tr className="border-y border-[#d7dce3] bg-[#f7f8fa] text-[7.5pt]">
           <th className="px-[5pt] py-[3pt] font-semibold">Concepto</th>
-          <th className="px-[5pt] py-[3pt] font-semibold">Precio</th>
+          <th className="px-[5pt] py-[3pt] font-semibold whitespace-nowrap">Precio</th>
           <th className="px-[5pt] py-[3pt] font-semibold">Unidad</th>
-          <th className="px-[5pt] py-[3pt] text-right font-semibold">Cantidad</th>
-          <th className="px-[5pt] py-[3pt] font-semibold">Descuento</th>
-          <th className="px-[5pt] py-[3pt] font-semibold">Impuesto</th>
-          <th className="px-[5pt] py-[3pt] text-right font-semibold">Subtotal</th>
+          <th className="px-[5pt] py-[3pt] text-right font-semibold whitespace-nowrap">Cantidad</th>
+          <th className="px-[5pt] py-[3pt] font-semibold whitespace-nowrap">Descuento</th>
+          <th className="px-[5pt] py-[3pt] font-semibold whitespace-nowrap">Impuesto</th>
+          <th className="px-[5pt] py-[3pt] text-right font-semibold whitespace-nowrap">Subtotal</th>
         </tr>
       </thead>
       <tbody>
         {lineas.map((linea) => (
           <tr key={linea.id} className="border-b border-[#e2e5ea]">
             <td className={CELDA_TEXTO}>{linea.descripcion}</td>
-            <td className={CELDA}>{formatearPrecioPapel(linea.precio)}</td>
+            <td className={CELDA_MONTO}>{formatearPrecioPapel(linea.precio)}</td>
             <td className={CELDA}>Unidad</td>
             <td className={CELDA_NUMERO}>{formatoCantidad(linea.cantidad)}</td>
-            <td className={CELDA}>{linea.descuento_pct > 0 ? formatearMontoPapel(descuentoDeLinea(linea)) : ""}</td>
-            <td className={CELDA}>{formatearMontoPapel(linea.itbis)}</td>
+            <td className={CELDA_MONTO}>
+              {linea.descuento_pct > 0 ? formatearMontoPapel(descuentoDeLinea(linea)) : ""}
+            </td>
+            <td className={CELDA_MONTO}>{formatearMontoPapel(linea.itbis)}</td>
             <td className={CELDA_NUMERO}>{formatearMontoPapel(linea.subtotal)}</td>
           </tr>
         ))}
@@ -410,21 +423,21 @@ function TablaConduce({ lineas }: { lineas: LineaPapel[] }) {
   return (
     <table className="mt-[14pt] w-full table-fixed border-collapse text-left text-[8pt]">
       <colgroup>
-        <col className="w-[44%]" />
-        <col className="w-[12%]" />
-        <col className="w-[10%]" />
-        <col className="w-[12%]" />
-        <col className="w-[11%]" />
-        <col className="w-[11%]" />
+        <col />
+        <col className="w-[80pt]" />
+        <col className="w-[46pt]" />
+        <col className="w-[80pt]" />
+        <col className="w-[80pt]" />
+        <col className="w-[80pt]" />
       </colgroup>
       <thead>
         <tr className="border border-[#c9d0da] bg-[#e6e8eb] text-[8pt]">
           <th className="border-r border-[#c9d0da] px-[5pt] py-[2pt] font-bold">Ítem</th>
-          <th className="border-r border-[#c9d0da] px-[5pt] py-[2pt] font-bold">Precio</th>
-          <th className="border-r border-[#c9d0da] px-[5pt] py-[2pt] font-bold">Cantidad</th>
-          <th className="border-r border-[#c9d0da] px-[5pt] py-[2pt] font-bold">Descuento</th>
-          <th className="border-r border-[#c9d0da] px-[5pt] py-[2pt] font-bold">Impuesto</th>
-          <th className="px-[5pt] py-[2pt] font-bold">Subtotal</th>
+          <th className="border-r border-[#c9d0da] px-[5pt] py-[2pt] font-bold whitespace-nowrap">Precio</th>
+          <th className="border-r border-[#c9d0da] px-[5pt] py-[2pt] font-bold whitespace-nowrap">Cantidad</th>
+          <th className="border-r border-[#c9d0da] px-[5pt] py-[2pt] font-bold whitespace-nowrap">Descuento</th>
+          <th className="border-r border-[#c9d0da] px-[5pt] py-[2pt] font-bold whitespace-nowrap">Impuesto</th>
+          <th className="px-[5pt] py-[2pt] font-bold whitespace-nowrap">Subtotal</th>
         </tr>
       </thead>
       <tbody>

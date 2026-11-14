@@ -16,6 +16,10 @@ export interface NotaCreditoCompraLista {
 
 export interface NotaCreditoCompraLinea {
   id: string;
+  producto_id: string | null;
+  productos: { nombre: string } | null;
+  cuenta_id: string | null;
+  cuentas: { codigo: string; nombre: string } | null;
   descripcion: string;
   cantidad: number;
   costo: number;

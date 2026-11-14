@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import Link from "next/link";
 
@@ -25,6 +25,7 @@ import {
   etiquetaEstadoComercial,
   etiquetaEstadoDocumento,
   filtrarPorNumero,
+  type NotaFicha,
   type PagoFicha,
   saldoDocumento,
   type TransaccionFicha,
@@ -40,6 +41,9 @@ import {
   rutaCotizacion,
   rutaCuenta,
   rutaFactura,
+  rutaNotaCreditoCompra,
+  rutaNotaCreditoVenta,
+  rutaNotaDebitoVenta,
   rutaPagoProveedor,
   rutaPagoRecibido,
 } from "@/lib/enlaces";
@@ -52,6 +56,8 @@ type PestanaFicha =
   | "facturas-proveedor"
   | "cotizaciones"
   | "conduces"
+  | "notas-venta"
+  | "notas-compra"
   | "pagos-recibidos"
   | "pagos-proveedores"
   | "asientos";
@@ -68,6 +74,8 @@ const PESTANAS: Pestana[] = [
   { valor: "facturas-proveedor", etiqueta: "Facturas de proveedor", aplicaA: "compra" },
   { valor: "cotizaciones", etiqueta: "Cotizaciones", aplicaA: "venta" },
   { valor: "conduces", etiqueta: "Conduces", aplicaA: "venta" },
+  { valor: "notas-venta", etiqueta: "Notas de crédito y débito", aplicaA: "venta" },
+  { valor: "notas-compra", etiqueta: "Notas de crédito de compra", aplicaA: "compra" },
   { valor: "pagos-recibidos", etiqueta: "Pagos recibidos", aplicaA: "venta" },
   { valor: "pagos-proveedores", etiqueta: "Pagos a proveedores", aplicaA: "compra" },
   { valor: "asientos", etiqueta: "Asientos", aplicaA: "siempre" },
@@ -79,6 +87,8 @@ const FILTROS_INICIALES: Record<PestanaFicha, string> = {
   "facturas-proveedor": "",
   cotizaciones: "",
   conduces: "",
+  "notas-venta": "",
+  "notas-compra": "",
   "pagos-recibidos": "",
   "pagos-proveedores": "",
   asientos: "",
@@ -313,6 +323,73 @@ function TablaComerciales({
   );
 }
 
+function rutaNotaFicha(nota: NotaFicha): string {
+  if (nota.tipo === "credito") return rutaNotaCreditoVenta(nota.id);
+  if (nota.tipo === "debito") return rutaNotaDebitoVenta(nota.id);
+  return rutaNotaCreditoCompra(nota.id);
+}
+
+function etiquetaTipoNota(tipo: NotaFicha["tipo"]): string {
+  if (tipo === "credito") return "Crédito";
+  if (tipo === "debito") return "Débito";
+  return "Crédito de compra";
+}
+
+function TablaNotas({ filas }: { readonly filas: NotaFicha[] }) {
+  return (
+    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Número / NCF</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Fecha</TableHead>
+            <TableHead className="text-right">Total</TableHead>
+            <TableHead>Estado</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filas.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
+                No hay notas.
+              </TableCell>
+            </TableRow>
+          ) : (
+            filas.map((fila) => (
+              <TableRow key={`${fila.tipo}-${fila.id}`} className="relative cursor-pointer">
+                <TableCell className="font-medium">
+                  <Enlace
+                    className="absolute inset-0"
+                    href={rutaNotaFicha(fila)}
+                    aria-label={`Ver nota ${fila.numero}`}
+                  />
+                  <span className="pointer-events-none relative flex flex-col">
+                    <span>#{fila.numero}</span>
+                    <span className="text-muted-foreground font-mono text-xs">{fila.ncf ?? "—"}</span>
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary">{etiquetaTipoNota(fila.tipo)}</Badge>
+                </TableCell>
+                <TableCell>{formatoDia(fila.fecha)}</TableCell>
+                <TableCell className="text-right tabular-nums">{formatoMoneda(fila.total)}</TableCell>
+                <TableCell>
+                  {fila.estado === "anulada" ? (
+                    <Badge variant="destructive">Anulada</Badge>
+                  ) : (
+                    <Badge variant="secondary">Activa</Badge>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 function TablaPagos({ filas, tipo }: { readonly filas: PagoFicha[]; readonly tipo: "recibido" | "proveedor" }) {
   return (
     <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
@@ -346,7 +423,13 @@ function TablaPagos({ filas, tipo }: { readonly filas: PagoFicha[]; readonly tip
                 </TableCell>
                 <TableCell>{formatoDia(fila.fecha)}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {fila.factura_numero === null ? "—" : `#${fila.factura_numero}`}
+                  {fila.factura_numero === null || fila.factura_id === null ? (
+                    "—"
+                  ) : (
+                    <Enlace href={tipo === "recibido" ? rutaFactura(fila.factura_id) : rutaCompra(fila.factura_id)}>
+                      #{fila.factura_numero}
+                    </Enlace>
+                  )}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
                   {formatoMonedaCentavos(aCentavos(fila.monto))}
@@ -445,6 +528,8 @@ export function FichaContacto({
     facturasProveedor,
     cotizaciones,
     conduces,
+    notasVenta,
+    notasCompra,
     pagosRecibidos,
     pagosProveedor,
     asientos,
@@ -466,33 +551,30 @@ export function FichaContacto({
     setFiltros((actuales) => ({ ...actuales, [valor]: texto }));
   }
 
-  function tablaDe(valor: PestanaFicha) {
-    if (valor === "transacciones") {
-      return (
-        <TablaTransacciones
-          filas={filtrarPorNumero(construirTransacciones(pagosRecibidos, pagosProveedor), filtros.transacciones)}
-        />
-      );
-    }
-    if (valor === "facturas")
-      return <TablaFacturas filas={filtrarPorNumero(facturas, filtros.facturas)} tipo="venta" />;
-    if (valor === "facturas-proveedor") {
-      return <TablaFacturas filas={filtrarPorNumero(facturasProveedor, filtros["facturas-proveedor"])} tipo="compra" />;
-    }
-    if (valor === "cotizaciones") {
-      return <TablaComerciales filas={filtrarPorNumero(cotizaciones, filtros.cotizaciones)} tipo="cotizacion" />;
-    }
-    if (valor === "conduces") {
-      return <TablaComerciales filas={filtrarPorNumero(conduces, filtros.conduces)} tipo="conduce" />;
-    }
-    if (valor === "pagos-recibidos") {
-      return <TablaPagos filas={filtrarPorNumero(pagosRecibidos, filtros["pagos-recibidos"])} tipo="recibido" />;
-    }
-    if (valor === "pagos-proveedores") {
-      return <TablaPagos filas={filtrarPorNumero(pagosProveedor, filtros["pagos-proveedores"])} tipo="proveedor" />;
-    }
-    return <TablaAsientos filas={filtrarPorNumero(asientos, filtros.asientos)} />;
-  }
+  const tablas: Record<PestanaFicha, () => ReactNode> = {
+    transacciones: () => (
+      <TablaTransacciones
+        filas={filtrarPorNumero(construirTransacciones(pagosRecibidos, pagosProveedor), filtros.transacciones)}
+      />
+    ),
+    facturas: () => <TablaFacturas filas={filtrarPorNumero(facturas, filtros.facturas)} tipo="venta" />,
+    "facturas-proveedor": () => (
+      <TablaFacturas filas={filtrarPorNumero(facturasProveedor, filtros["facturas-proveedor"])} tipo="compra" />
+    ),
+    cotizaciones: () => (
+      <TablaComerciales filas={filtrarPorNumero(cotizaciones, filtros.cotizaciones)} tipo="cotizacion" />
+    ),
+    conduces: () => <TablaComerciales filas={filtrarPorNumero(conduces, filtros.conduces)} tipo="conduce" />,
+    "notas-venta": () => <TablaNotas filas={filtrarPorNumero(notasVenta, filtros["notas-venta"])} />,
+    "notas-compra": () => <TablaNotas filas={filtrarPorNumero(notasCompra, filtros["notas-compra"])} />,
+    "pagos-recibidos": () => (
+      <TablaPagos filas={filtrarPorNumero(pagosRecibidos, filtros["pagos-recibidos"])} tipo="recibido" />
+    ),
+    "pagos-proveedores": () => (
+      <TablaPagos filas={filtrarPorNumero(pagosProveedor, filtros["pagos-proveedores"])} tipo="proveedor" />
+    ),
+    asientos: () => <TablaAsientos filas={filtrarPorNumero(asientos, filtros.asientos)} />,
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -586,7 +668,7 @@ export function FichaContacto({
               onChange={(texto) => cambiarFiltro(item.valor, texto)}
               ariaLabel={`Filtrar ${item.etiqueta} por número`}
             />
-            {tablaDe(item.valor)}
+            {tablas[item.valor]()}
           </TabsContent>
         ))}
       </Tabs>

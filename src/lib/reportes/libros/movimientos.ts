@@ -12,9 +12,12 @@ export interface FilaMovimientoCuenta {
   clave: string;
   tipoDocumento: string;
   fecha: string;
+  asientoId: string;
   asientoNumero: number;
   estado: string;
+  contactoId: string | null;
   tercero: string;
+  cuentaId: string;
   cuentaCodigo: string;
   cuentaNombre: string;
   saldoInicial: number;
@@ -56,9 +59,12 @@ export function calcularMovimientosCuenta(
       clave: `${fila.asiento_id}-${indice}`,
       tipoDocumento: ETIQUETAS_DOCUMENTO[fila.origen_tipo] ?? fila.origen_tipo,
       fecha: fila.fecha,
+      asientoId: fila.asiento_id,
       asientoNumero: fila.asiento_numero,
       estado: fila.estado || "Contabilizado",
+      contactoId: fila.contacto_id,
       tercero: fila.tercero ?? "Sin tercero",
+      cuentaId: fila.cuenta_id,
       cuentaCodigo: fila.cuenta_codigo,
       cuentaNombre: fila.cuenta_nombre,
       saldoInicial,

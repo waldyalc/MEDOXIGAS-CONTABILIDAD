@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaContacto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
 import type { DetalleImpuesto } from "@/lib/reportes/fiscales/tipos";
@@ -54,7 +55,15 @@ export function DetalleRetencion({ titulo, filas }: Props) {
                       </Link>
                     )}
                   </TableCell>
-                  <TableCell>{fila.contactoNombre || "—"}</TableCell>
+                  <TableCell>
+                    {fila.contactoId ? (
+                      <Link href={rutaContacto(fila.contactoId)} prefetch={false} className="hover:underline">
+                        {fila.contactoNombre || "—"}
+                      </Link>
+                    ) : (
+                      fila.contactoNombre || "—"
+                    )}
+                  </TableCell>
                   <TableCell>{formatoDia(fila.fecha)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatearRd(fila.base)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatearRd(fila.impuesto)}</TableCell>

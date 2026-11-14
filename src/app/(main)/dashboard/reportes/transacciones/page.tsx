@@ -12,7 +12,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { rutaContacto, rutaGasto, rutaPagoProveedor, rutaPagoRecibido } from "@/lib/enlaces";
+import { rutaContacto, rutaCuenta, rutaGasto, rutaPagoProveedor, rutaPagoRecibido } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { obtenerTransacciones } from "@/lib/reportes/administrativos/e/consultas";
 import { tablaTransacciones } from "@/lib/reportes/administrativos/e/tablas";
@@ -60,7 +60,11 @@ function FilaTransaccion({ movimiento }: { movimiento: MovimientoTransaccion }) 
         </Link>
       </TableCell>
       <TableCell>{formatoDia(movimiento.fecha)}</TableCell>
-      <TableCell>{movimiento.cuenta}</TableCell>
+      <TableCell>
+        <Link href={rutaCuenta(movimiento.cuentaId)} className="hover:underline">
+          {movimiento.cuenta}
+        </Link>
+      </TableCell>
       <TableCell>
         {movimiento.contactoId ? (
           <Link href={rutaContacto(movimiento.contactoId)} className="hover:underline">

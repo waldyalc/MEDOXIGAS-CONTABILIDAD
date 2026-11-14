@@ -15,7 +15,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const compras = await obtenerCompras(desde, hasta);
 
   const documentos = compras.datos.documentos.filter((documento) => documento.ncf.trim() !== "");
-  const filas = documentos.map(fila606);
+  const filas = documentos.map((documento) => ({
+    ...fila606(documento),
+    __ruta: documento.ruta ?? "",
+    __contactoId: documento.contactoId ?? "",
+  }));
   const encabezado = encabezado606(documentos, empresa.datos.rnc, periodo);
   const texto = libroTexto(FORMATO_606.encabezado, FORMATO_606.detalle, encabezado, filas);
   const totalItbis = documentos.reduce((total, documento) => total + documento.itbis, 0);

@@ -6,6 +6,7 @@ import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaAjusteInventario } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import type { AjusteLista } from "@/lib/inventario/tipos";
@@ -51,7 +52,7 @@ export function AjustesTabla({ ajustes, puedeEscribir }: { ajustes: AjusteLista[
               ajustes.map((ajuste) => (
                 <TableRow key={ajuste.id}>
                   <TableCell className="font-medium">
-                    <Enlace href={`/dashboard/inventario/ajustes/${ajuste.id}`}>{ajuste.numero}</Enlace>
+                    <Enlace href={rutaAjusteInventario(ajuste.id)}>{ajuste.numero}</Enlace>
                   </TableCell>
                   <TableCell>{formatoDia(ajuste.fecha)}</TableCell>
                   <TableCell>{ajuste.almacen_nombre}</TableCell>

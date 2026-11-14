@@ -1,6 +1,8 @@
 import { cn } from "cn";
 
+import { Enlace } from "@/components/enlace";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaCuenta } from "@/lib/enlaces";
 import { formatoPct } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
 import type { FilaReporte } from "@/lib/reportes/estados/tipos";
@@ -61,7 +63,17 @@ export function TablaComparativa({ filas, rotuloCuenta, rotuloActual, rotuloAnte
               )}
             >
               <TableCell className={cn(fila.clase === "detalle" && "pl-6")}>
-                {fila.codigo === "" ? null : <span className="text-muted-foreground">{fila.codigo}</span>} {fila.nombre}
+                {fila.cuentaId ? (
+                  <Enlace href={rutaCuenta(fila.cuentaId)}>
+                    {fila.codigo === "" ? null : <span className="text-muted-foreground">{fila.codigo}</span>}{" "}
+                    {fila.nombre}
+                  </Enlace>
+                ) : (
+                  <>
+                    {fila.codigo === "" ? null : <span className="text-muted-foreground">{fila.codigo}</span>}{" "}
+                    {fila.nombre}
+                  </>
+                )}
               </TableCell>
               <Montos fila={fila} />
             </TableRow>

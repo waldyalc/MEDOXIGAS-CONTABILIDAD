@@ -1,8 +1,10 @@
 import { CircleCheck, Scale, TriangleAlert } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaCuenta } from "@/lib/enlaces";
 import { formatearRd } from "@/lib/reportes/dinero";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 import { calcularBalanza } from "@/lib/reportes/libros/balance";
@@ -86,7 +88,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                     }
                   >
                     <TableCell style={{ paddingLeft: `${8 + fila.nivel * 16}px` }}>
-                      <span className="text-muted-foreground tabular-nums">{fila.codigo}</span> {fila.nombre}
+                      <Enlace href={rutaCuenta(fila.cuentaId)}>
+                        <span className="text-muted-foreground tabular-nums">{fila.codigo}</span> {fila.nombre}
+                      </Enlace>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {fila.saldoInicialDebito === 0 ? "" : formatearRd(fila.saldoInicialDebito)}

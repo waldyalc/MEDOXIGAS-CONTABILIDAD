@@ -13,7 +13,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const empresa = await obtenerEmpresa();
   const anulados = await obtenerAnulados(desde, hasta);
 
-  const filas = anulados.datos.map(fila608);
+  const filas = anulados.datos.map((documento) => ({
+    ...fila608(documento),
+    __ruta: documento.ruta ?? "",
+    __contactoId: documento.contactoId ?? "",
+  }));
   const encabezado = encabezado608(anulados.datos, empresa.datos.rnc, periodo);
   const texto = libroTexto(FORMATO_608.encabezado, FORMATO_608.detalle, encabezado, filas);
 

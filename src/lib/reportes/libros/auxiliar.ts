@@ -4,8 +4,10 @@ import type { FilaSaldoTercero } from "./tipos";
 
 export interface FilaAuxiliarCalculada {
   clave: string;
+  cuentaId: string;
   cuentaCodigo: string;
   cuentaNombre: string;
+  contactoId: string | null;
   tercero: string;
   saldoAnterior: number;
   debito: number;
@@ -25,8 +27,10 @@ export function calcularAuxiliar(filas: readonly FilaSaldoTercero[]): FilaAuxili
 
       return {
         clave: `${fila.cuenta_id}-${fila.contacto_id ?? "sin-tercero"}`,
+        cuentaId: fila.cuenta_id,
         cuentaCodigo: fila.cuenta_codigo,
         cuentaNombre: fila.cuenta_nombre,
+        contactoId: fila.contacto_id,
         tercero: fila.tercero ?? "Sin tercero",
         saldoAnterior,
         debito,

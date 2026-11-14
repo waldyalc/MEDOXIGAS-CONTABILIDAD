@@ -2,9 +2,11 @@
 
 import { ChevronRight } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaAsiento, rutaContacto, rutaCuenta } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
 import type { GrupoAgrupado, TotalesAgrupado } from "@/lib/reportes/libros/agrupado";
@@ -71,14 +73,26 @@ export function TablaAgrupada({ grupos, total }: Props) {
                   <TableBody>
                     {grupo.detalles.map((detalle) => (
                       <TableRow key={detalle.clave}>
-                        <TableCell className="tabular-nums">{detalle.asientoNumero}</TableCell>
+                        <TableCell className="tabular-nums">
+                          <Enlace href={rutaAsiento(detalle.asientoId)}>#{detalle.asientoNumero}</Enlace>
+                        </TableCell>
                         <TableCell>{formatoDia(detalle.fecha)}</TableCell>
                         <TableCell>
                           <EstadoAsiento estado={detalle.estado} />
                         </TableCell>
-                        <TableCell>{detalle.tercero}</TableCell>
-                        <TableCell className="text-muted-foreground tabular-nums">{detalle.cuentaCodigo}</TableCell>
-                        <TableCell>{detalle.cuentaNombre}</TableCell>
+                        <TableCell>
+                          {detalle.contactoId ? (
+                            <Enlace href={rutaContacto(detalle.contactoId)}>{detalle.tercero}</Enlace>
+                          ) : (
+                            detalle.tercero
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground tabular-nums">
+                          <Enlace href={rutaCuenta(detalle.cuentaId)}>{detalle.cuentaCodigo}</Enlace>
+                        </TableCell>
+                        <TableCell>
+                          <Enlace href={rutaCuenta(detalle.cuentaId)}>{detalle.cuentaNombre}</Enlace>
+                        </TableCell>
                         <TableCell>{detalle.tipoDocumento}</TableCell>
                         <TableCell className="text-right tabular-nums">
                           {detalle.debito === 0 ? "" : formatearRd(detalle.debito)}

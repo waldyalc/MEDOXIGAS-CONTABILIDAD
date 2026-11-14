@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getPerfil } from "@/lib/auth/rol";
-import { rutaAsiento, rutaContacto, rutaFactura } from "@/lib/enlaces";
+import { rutaAsiento, rutaContacto, rutaFactura, rutaProducto } from "@/lib/enlaces";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import { getNotaDebitoVista } from "@/lib/notas-debito/consultas";
@@ -109,7 +109,20 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <TableBody>
               {nota.lineas.map((linea) => (
                 <TableRow key={linea.id}>
-                  <TableCell className="font-medium">{linea.descripcion}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col">
+                      <span>{linea.descripcion}</span>
+                      {linea.productos ? (
+                        <span className="text-muted-foreground text-xs">
+                          {linea.producto_id ? (
+                            <Enlace href={rutaProducto(linea.producto_id)}>{linea.productos.nombre}</Enlace>
+                          ) : (
+                            linea.productos.nombre
+                          )}
+                        </span>
+                      ) : null}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">{formatoCantidad(linea.cantidad)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatoMoneda(linea.precio)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatoCantidad(linea.descuento_pct)}</TableCell>

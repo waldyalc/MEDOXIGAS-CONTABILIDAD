@@ -24,7 +24,7 @@
 - Migraciones **aditivas** (NO aplicadas al remoto; las revisa Coder):
   `20261115700000_impuestos_catalogo.sql` (tabla, cuentas, columnas, helpers,
   triggers y RLS) y `20261115701000_motor_impuestos.sql` (wrappers del motor).
-  pgTAP `supabase/tests/impuestos_catalogo_test.sql` (23 asserts, aislado).
+  pgTAP `supabase/tests/impuestos_catalogo_test.sql` (25 asserts, aislado).
 - Funciones envueltas y base exacta de la que parten (rename + wrapper, sin
   reescribir el cuerpo): `crear_factura` y `crear_factura_proveedor`
   (`20261115500000`), `crear_nota_credito_venta` y `crear_nota_credito_compra`
@@ -37,7 +37,11 @@
   `crear_cotizacion`, `crear_remision`, `editar_cotizacion`,
   `editar_remision` y `crear_remision_desde_cotizacion` (`20261115400000`) se
   conservan y llaman a los wrappers.
-- Verificado: `pnpm typecheck`, Biome sobre lo tocado, `pnpm test` (621) y
+- Corrección: `_impuestos_preparar_fuente` usaba `FOUND` después de un
+  `EXECUTE ... INTO` (que no lo actualiza); ahora usa `GET DIAGNOSTICS ROW_COUNT`.
+  `_impuestos_dividir_asiento` valida que el reparto sume el monto original.
+  El pgTAP cubre también la nota de crédito de compra.
+- Verificado: `pnpm typecheck`, Biome sobre lo tocado, `pnpm test` y
   `pnpm build`. Los pgTAP no se pudieron correr aquí (sin Docker/Supabase CLI).
 - Pendiente: regenerar `src/lib/supabase/types.ts` con `pnpm db:types` después
   de aplicar las migraciones. Quedaron fuera los selectores de facturas
@@ -50,6 +54,48 @@
   que editar cotización/conduce conserve `impuesto_id` y totales.
 - Otras sesiones: no se tocaron los archivos de `2026111550*` ni las pantallas de
   importar productos/clonar cotización; solo se integraron sus cambios.
+## S24 — Papel impreso/PDF de factura, cotización y conduce (13 nov 2026)
+
+- `DocumentoPapel`: las columnas de montos (Precio, Descuento, Impuesto y
+  Valor/Subtotal) tienen ancho mínimo en pt y `whitespace-nowrap` para
+  `RD$9,999,999.99`; la descripción absorbe el resto y puede partir.
+- Bloque del cliente: RNC y Teléfono solo se muestran si tienen dato. Se oculta
+  «Vencimiento NCF» sin fecha y «Vencimiento de la factura» lleva dos puntos.
+- Tests de render con `renderToStaticMarkup` en `documento-papel.test.tsx` (7).
+  Sin migraciones. `typecheck`, `test` (623), Biome de lo tocado y `build` en
+  verde; sin verificación visual.
+
+## S21 — Todo conectado: enlaces de entidades (13 nov 2026)
+
+- `src/lib/enlaces.ts`: `rutaAjusteInventario`, `rutaTransferenciaInventario` y
+  `rutaOrigenAsiento` (documento de origen de un asiento, incluidas
+  transferencias/depósitos y conciliaciones).
+- Vistas: el asiento de factura y compra enlaza a su asiento; en compras la
+  cuenta de cada línea enlaza a la ficha; en órdenes de compra enlazan producto y
+  cuenta; en pagos recurrentes enlazan las cuentas y el asiento del gasto
+  generado; en notas de crédito/débito (venta y compra) el producto de cada línea
+  enlaza; la factura de los pagos en la ficha del contacto enlaza.
+- Ficha de contacto: nuevas pestañas «Notas de crédito y débito» y «Notas de
+  crédito de compra» (número/NCF, tipo, fecha, total y estado). Ya tenía facturas,
+  facturas de proveedor, cotizaciones, conduces, pagos y asientos con estado y
+  saldo. La ficha de producto ya muestra ventas, compras y kardex, y la de cuenta
+  sus movimientos/asientos.
+- Listados: el NCF de facturas, compras y notas enlaza a su documento; el origen
+  de los asientos enlaza; cotizaciones/conduces usan los helpers de ruta; el
+  código del banco enlaza a la cuenta contable.
+- Reportes: libro diario, movimientos por cuenta, agrupado, balance, auxiliar y
+  balanza por tercero enlazan asiento, cuenta y tercero; transacciones enlaza la
+  cuenta; estados financieros y estado de resultados enlazan la cuenta;
+  impuestos/retenciones, IR-17 y cartas enlazan el contacto; 606/607/608 enlazan
+  NCF y RNC sin tocar Excel/PDF/TXT (las rutas van en campos `__ruta`/
+  `__contactoId` que no forman columnas del formato).
+- Sin migraciones. `typecheck`, `test` (577), Biome de lo tocado y `build` en
+  verde. Sin verificación visual (la hace Coder).
+- Quedó fuera: almacén, vendedor y centro de costo no tienen ficha propia (se
+  editan en Configuración), así que siguen como texto; los conceptos agregados
+  del flujo de efectivo no se enlazan; el documento de una retención en IR-17 y
+  cartas no tiene `factura_id` para enlazar.
+
 ## Crear contacto y producto rápido desde los selectores (15 nov 2026)
 
 - Nuevos componentes reutilizables: `src/components/contactos/selector-contacto.tsx` y `dialogo-nuevo-contacto.tsx`; `src/components/productos/selector-producto.tsx` y `dialogo-nuevo-producto.tsx`. El combobox muestra la identificación en gris bajo el nombre, fija arriba «Crear nuevo cliente/proveedor» (o producto) y, si hay búsqueda, la usa para prellenar el nombre del diálogo. El modal de contacto tiene toggles Cliente/Proveedor, tipo y número de identificación, nombre, municipio/provincia, dirección, correo, teléfono, «Formulario avanzado» (abre `/dashboard/contactos#nuevo` en otra pestaña) y «Crear contacto».

@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 
 import { Plus } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getAsientosLista, normalizarFecha } from "@/lib/asientos/consultas";
 import { getPerfil } from "@/lib/auth/rol";
-import { rutaAsiento } from "@/lib/enlaces";
+import { rutaAsiento, rutaOrigenAsiento } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
@@ -90,19 +91,28 @@ export default async function Page({ searchParams }: Props) {
                 </TableCell>
               </TableRow>
             ) : (
-              asientos.map((asiento) => (
-                <TableRow key={asiento.id}>
-                  <TableCell className="font-medium">
-                    <Link className="hover:underline" href={rutaAsiento(asiento.id)} prefetch={false}>
-                      #{asiento.numero}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{formatoDia(asiento.fecha)}</TableCell>
-                  <TableCell className="whitespace-normal">{asiento.descripcion}</TableCell>
-                  <TableCell>{ORIGENES[asiento.origen_tipo] ?? asiento.origen_tipo}</TableCell>
-                  <TableCell className="text-right font-medium tabular-nums">{formatoMoneda(asiento.total)}</TableCell>
-                </TableRow>
-              ))
+              asientos.map((asiento) => {
+                const hrefOrigen = rutaOrigenAsiento(asiento.origen_tipo, asiento.origen_id, asiento.id);
+                const etiquetaOrigen = ORIGENES[asiento.origen_tipo] ?? asiento.origen_tipo;
+
+                return (
+                  <TableRow key={asiento.id}>
+                    <TableCell className="font-medium">
+                      <Link className="hover:underline" href={rutaAsiento(asiento.id)} prefetch={false}>
+                        #{asiento.numero}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{formatoDia(asiento.fecha)}</TableCell>
+                    <TableCell className="whitespace-normal">{asiento.descripcion}</TableCell>
+                    <TableCell>
+                      {hrefOrigen ? <Enlace href={hrefOrigen}>{etiquetaOrigen}</Enlace> : etiquetaOrigen}
+                    </TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {formatoMoneda(asiento.total)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

@@ -12,7 +12,7 @@ import { getPerfil } from "@/lib/auth/rol";
 import { aCentavos, aNumero } from "@/lib/compras/calculo";
 import { formatoCantidad, formatoMoneda } from "@/lib/compras/formato";
 import { getNotaCreditoCompraVista } from "@/lib/compras/notas-credito/consultas";
-import { rutaAsiento, rutaCompra, rutaContacto, rutaCuenta } from "@/lib/enlaces";
+import { rutaAsiento, rutaCompra, rutaContacto, rutaCuenta, rutaProducto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 
 import { AccionesNotaCompra } from "../_components/acciones-nota-compra";
@@ -122,7 +122,31 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <TableBody>
               {nota.lineas.map((linea) => (
                 <TableRow key={linea.id}>
-                  <TableCell className="font-medium">{linea.descripcion}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col">
+                      <span>{linea.descripcion}</span>
+                      {linea.productos ? (
+                        <span className="text-muted-foreground text-xs">
+                          {linea.producto_id ? (
+                            <Enlace href={rutaProducto(linea.producto_id)}>{linea.productos.nombre}</Enlace>
+                          ) : (
+                            linea.productos.nombre
+                          )}
+                        </span>
+                      ) : null}
+                      {linea.cuentas ? (
+                        <span className="text-muted-foreground text-xs">
+                          {linea.cuenta_id ? (
+                            <Enlace href={rutaCuenta(linea.cuenta_id)}>
+                              {linea.cuentas.codigo} · {linea.cuentas.nombre}
+                            </Enlace>
+                          ) : (
+                            `${linea.cuentas.codigo} · ${linea.cuentas.nombre}`
+                          )}
+                        </span>
+                      ) : null}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">{formatoCantidad(linea.cantidad)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatoMoneda(linea.costo)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatoCantidad(linea.itbis_tasa)}</TableCell>

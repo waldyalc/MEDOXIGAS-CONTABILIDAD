@@ -109,13 +109,22 @@ export function calcularSituacionFinanciera(
 
   const filas: FilaReporte[] = [];
 
-  const agregar = (clave: string, clase: ClaseFila, nombre: string, actual: number, anterior: number, codigo = "") => {
+  const agregar = (
+    clave: string,
+    clase: ClaseFila,
+    nombre: string,
+    actual: number,
+    anterior: number,
+    codigo = "",
+    cuentaId: string | null = null,
+  ) => {
     filas.push(
       crearFila({
         clave,
         clase,
         codigo,
         nombre,
+        cuentaId,
         actual,
         anterior,
         porcentajeActual: calcularPorcentaje(Math.abs(actual), Math.abs(totalActivosActual)),
@@ -132,6 +141,7 @@ export function calcularSituacionFinanciera(
       saldoDe(cuenta, saldosActuales),
       saldoDe(cuenta, saldosAnteriores),
       cuenta.codigo,
+      cuenta.id,
     );
   };
 

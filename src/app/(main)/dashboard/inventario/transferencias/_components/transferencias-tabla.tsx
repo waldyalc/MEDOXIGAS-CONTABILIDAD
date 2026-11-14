@@ -6,6 +6,7 @@ import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaTransferenciaInventario } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import type { TransferenciaLista } from "@/lib/inventario/tipos";
 
@@ -56,9 +57,7 @@ export function TransferenciasTabla({
               transferencias.map((transferencia) => (
                 <TableRow key={transferencia.id}>
                   <TableCell className="font-medium">
-                    <Enlace href={`/dashboard/inventario/transferencias/${transferencia.id}`}>
-                      {transferencia.numero}
-                    </Enlace>
+                    <Enlace href={rutaTransferenciaInventario(transferencia.id)}>{transferencia.numero}</Enlace>
                   </TableCell>
                   <TableCell>{formatoDia(transferencia.fecha)}</TableCell>
                   <TableCell>{transferencia.origen_nombre}</TableCell>

@@ -25,6 +25,7 @@ export interface OpcionesBalanza {
 
 export interface FilaBalanzaCalculada {
   clave: string;
+  cuentaId: string;
   tipo: string;
   codigo: string;
   nombre: string;
@@ -200,6 +201,7 @@ export function calcularBalanza(
 
     filas.push({
       clave: nodo.cuenta.id,
+      cuentaId: nodo.cuenta.id,
       tipo: nodo.cuenta.tipo,
       codigo: nodo.cuenta.codigo,
       nombre: nodo.cuenta.nombre,

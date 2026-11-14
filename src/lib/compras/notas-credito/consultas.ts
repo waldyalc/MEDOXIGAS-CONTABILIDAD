@@ -106,7 +106,9 @@ export async function getNotaCreditoCompraVista(id: string): Promise<NotaCredito
   const [lineas, contacto, factura] = await Promise.all([
     supabase
       .from("nota_credito_compra_lineas")
-      .select("id, descripcion, cantidad, costo, itbis_tasa, subtotal, itbis, total")
+      .select(
+        "id, producto_id, productos(nombre), cuenta_id, cuentas(codigo, nombre), descripcion, cantidad, costo, itbis_tasa, subtotal, itbis, total",
+      )
       .eq("nota_id", id)
       .order("id")
       .returns<NotaCreditoCompraLinea[]>(),

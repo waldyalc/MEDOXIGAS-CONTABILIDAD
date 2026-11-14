@@ -48,6 +48,18 @@ export interface DocumentoComercialFicha {
   estado: string;
 }
 
+export type TipoNotaFicha = "credito" | "debito" | "credito_compra";
+
+export interface NotaFicha {
+  id: string;
+  numero: number;
+  ncf: string | null;
+  fecha: string;
+  total: number | string;
+  estado: string;
+  tipo: TipoNotaFicha;
+}
+
 export interface AsientoFicha {
   id: string;
   numero: number;
@@ -76,6 +88,8 @@ export interface DatosFichaContacto {
   facturasProveedor: DocumentoFicha[];
   cotizaciones: DocumentoComercialFicha[];
   conduces: DocumentoComercialFicha[];
+  notasVenta: NotaFicha[];
+  notasCompra: NotaFicha[];
   pagosRecibidos: PagoFicha[];
   pagosProveedor: PagoFicha[];
   asientos: AsientoFicha[];

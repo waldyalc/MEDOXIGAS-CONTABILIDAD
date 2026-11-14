@@ -9,6 +9,7 @@ export interface FilaReporte {
   clase: ClaseFila;
   codigo: string;
   nombre: string;
+  cuentaId: string | null;
   actual: number;
   anterior: number;
   porcentajeActual: number;
@@ -21,6 +22,7 @@ export interface OpcionesReporte {
   busqueda?: string;
   resumido?: boolean;
   centroCostoId?: string | null;
+  cuentasPorCodigo?: ReadonlyMap<string, string>;
 }
 
 export interface CuentaEstado {

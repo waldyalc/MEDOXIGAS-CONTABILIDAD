@@ -7,10 +7,13 @@ export type AgruparPor = "cuenta" | "tercero";
 
 export interface DetalleAgrupado {
   clave: string;
+  asientoId: string;
   asientoNumero: number;
   fecha: string;
   estado: string;
+  contactoId: string | null;
   tercero: string;
+  cuentaId: string;
   cuentaCodigo: string;
   cuentaNombre: string;
   tipoDocumento: string;
@@ -112,10 +115,13 @@ export function calcularAgrupado(
     grupo.saldoFinal = grupo.saldoInicial + grupo.neto;
     grupo.detalles.push({
       clave: `${fila.asiento_id}-${fila.cuenta_id}-${grupo.detalles.length}`,
+      asientoId: fila.asiento_id,
       asientoNumero: fila.asiento_numero,
       fecha: fila.fecha,
       estado: fila.estado || "Contabilizado",
+      contactoId: fila.contacto_id,
       tercero: fila.tercero ?? "Sin tercero",
+      cuentaId: fila.cuenta_id,
       cuentaCodigo: fila.cuenta_codigo,
       cuentaNombre: fila.cuenta_nombre,
       tipoDocumento: ETIQUETAS_DOCUMENTO[fila.origen_tipo] ?? fila.origen_tipo,

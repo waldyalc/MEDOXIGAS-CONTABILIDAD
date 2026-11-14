@@ -59,7 +59,9 @@ export function NotasDebitoTabla({ notas, puedeEscribir }: { notas: NotaDebitoLi
                   <TableCell className="font-medium">
                     <Enlace href={rutaNotaDebitoVenta(nota.id)}>{nota.numero}</Enlace>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{nota.ncf}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    <Enlace href={rutaNotaDebitoVenta(nota.id)}>{nota.ncf}</Enlace>
+                  </TableCell>
                   <TableCell>
                     <Enlace href={rutaFactura(nota.factura_id)}>
                       #{nota.factura_numero}

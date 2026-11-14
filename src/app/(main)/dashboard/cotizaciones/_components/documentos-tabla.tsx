@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { DocumentoFila, EstadoDocumento, TipoDocumento } from "@/lib/cotizaciones/tipos";
-import { rutaContacto } from "@/lib/enlaces";
+import { rutaConduce, rutaContacto, rutaCotizacion } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
@@ -99,7 +99,9 @@ export function DocumentosTabla({ tipo, documentos, puedeEscribir }: Props) {
               documentos.map((documento) => (
                 <TableRow key={documento.id}>
                   <TableCell className="font-medium">
-                    <Enlace href={`${textos.rutaBase}/${documento.id}`}>{documento.numero}</Enlace>
+                    <Enlace href={tipo === "cotizacion" ? rutaCotizacion(documento.id) : rutaConduce(documento.id)}>
+                      {documento.numero}
+                    </Enlace>
                   </TableCell>
                   <TableCell>
                     <Enlace href={rutaContacto(documento.contacto_id)}>{documento.cliente_nombre}</Enlace>

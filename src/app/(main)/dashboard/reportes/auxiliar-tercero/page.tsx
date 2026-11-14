@@ -1,8 +1,10 @@
 import { UserRound } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaContacto, rutaCuenta } from "@/lib/enlaces";
 import { formatearRd } from "@/lib/reportes/dinero";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 import { calcularAuxiliar } from "@/lib/reportes/libros/auxiliar";
@@ -94,10 +96,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                 {auxiliar.map((fila) => (
                   <TableRow key={fila.clave}>
                     <TableCell>
-                      <span className="text-muted-foreground tabular-nums">{fila.cuentaCodigo}</span>{" "}
-                      {fila.cuentaNombre}
+                      <Enlace href={rutaCuenta(fila.cuentaId)}>
+                        <span className="text-muted-foreground tabular-nums">{fila.cuentaCodigo}</span>{" "}
+                        {fila.cuentaNombre}
+                      </Enlace>
                     </TableCell>
-                    <TableCell>{fila.tercero}</TableCell>
+                    <TableCell>
+                      {fila.contactoId ? (
+                        <Enlace href={rutaContacto(fila.contactoId)}>{fila.tercero}</Enlace>
+                      ) : (
+                        fila.tercero
+                      )}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{formatearRd(fila.saldoAnterior)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatearRd(fila.debito)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatearRd(fila.credito)}</TableCell>

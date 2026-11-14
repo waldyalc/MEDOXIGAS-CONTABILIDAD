@@ -1,5 +1,8 @@
+import Link from "next/link";
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaContacto } from "@/lib/enlaces";
 import { formatearRd } from "@/lib/reportes/dinero";
 import type { ColumnaDgii } from "@/lib/reportes/fiscales/formatos/tipos";
 import type { FilaDgii } from "@/lib/reportes/fiscales/tipos";
@@ -8,6 +11,32 @@ interface Props {
   columnas: readonly ColumnaDgii[];
   filas: readonly FilaDgii[];
   vacio?: string;
+}
+
+function valorCelda(fila: FilaDgii, columna: ColumnaDgii, valor: string | number | undefined) {
+  if (columna.tipo === "dinero") {
+    return formatearRd(typeof valor === "number" ? valor : Number(valor ?? 0));
+  }
+
+  const texto = String(valor ?? "");
+
+  if (columna.clave === "ncf" && typeof fila.__ruta === "string" && fila.__ruta !== "") {
+    return (
+      <Link href={fila.__ruta} prefetch={false} className="font-medium hover:underline">
+        {texto}
+      </Link>
+    );
+  }
+
+  if (columna.clave === "rnc" && typeof fila.__contactoId === "string" && fila.__contactoId !== "") {
+    return (
+      <Link href={rutaContacto(fila.__contactoId)} prefetch={false} className="hover:underline">
+        {texto}
+      </Link>
+    );
+  }
+
+  return texto;
 }
 
 export function TablaFormato({ columnas, filas, vacio = "No hay registros en el período." }: Props) {
@@ -42,9 +71,7 @@ export function TablaFormato({ columnas, filas, vacio = "No hay registros en el 
                     key={columna.clave}
                     className={columna.tipo === "dinero" ? "text-right tabular-nums" : "whitespace-nowrap"}
                   >
-                    {columna.tipo === "dinero"
-                      ? formatearRd(typeof valor === "number" ? valor : Number(valor ?? 0))
-                      : String(valor ?? "")}
+                    {valorCelda(fila, columna, valor)}
                   </TableCell>
                 );
               })}

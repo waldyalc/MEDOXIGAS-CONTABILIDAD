@@ -19,6 +19,7 @@ function movimiento(
     origen: entradas > 0 ? "pago_recibido" : "gasto_menor",
     comprobante,
     fecha: "2026-11-13",
+    cuentaId: "cuenta-1",
     cuenta: "Caja chica",
     contactoId: null,
     contactoNombre: null,

@@ -81,7 +81,9 @@ async function TablaCompras() {
                     <TableCell className="pl-(--card-spacing) font-medium">
                       <Enlace href={rutaCompra(factura.id)}>#{factura.numero}</Enlace>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{factura.ncf || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {factura.ncf ? <Enlace href={rutaCompra(factura.id)}>{factura.ncf}</Enlace> : "—"}
+                    </TableCell>
                     <TableCell>
                       {factura.contactos ? (
                         <Enlace href={rutaContacto(factura.contacto_id)}>{factura.contactos.nombre}</Enlace>

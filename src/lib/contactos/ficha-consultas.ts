@@ -11,8 +11,10 @@ import {
   type DocumentoComercialFicha,
   type DocumentoFicha,
   type LineaAsientoContacto,
+  type NotaFicha,
   type PagoFicha,
   sumarLineasAsiento,
+  type TipoNotaFicha,
   type TotalesAsiento,
 } from "./ficha";
 
@@ -21,6 +23,7 @@ const UUID = z.uuid();
 const CAMPOS_CONTACTO = "id, nombre, rnc_cedula, telefono, correo, direccion, tipo, cuenta_cxc_id, cuenta_cxp_id";
 const CAMPOS_DOCUMENTO = "id, numero, ncf, fecha, vencimiento, total, pagado, credito, estado";
 const CAMPOS_COMERCIAL = "id, numero, fecha, total, estado";
+const CAMPOS_NOTA = "id, numero, ncf, fecha, total, estado";
 const CAMPOS_PAGO = "id, numero, fecha, monto, estado, factura_id";
 
 interface ContactoConCuentas extends ContactoFicha {
@@ -107,6 +110,19 @@ function mapearPagosProveedor(
   }));
 }
 
+interface NotaCruda {
+  id: string;
+  numero: number;
+  ncf: string | null;
+  fecha: string;
+  total: number | string;
+  estado: string;
+}
+
+function mapearNotas(notas: readonly NotaCruda[], tipo: TipoNotaFicha): NotaFicha[] {
+  return notas.map((nota) => ({ ...nota, tipo }));
+}
+
 function mapearAsientos(
   asientos: readonly AsientoFila[],
   totalesAsientos: ReadonlyMap<string, TotalesAsiento>,
@@ -151,6 +167,9 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     comprasRes,
     cotizacionesRes,
     conducesRes,
+    notasCreditoRes,
+    notasDebitoRes,
+    notasCompraRes,
     pagosRes,
     pagosProveedorRes,
     lineasRes,
@@ -186,6 +205,27 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
       .order("numero", { ascending: false })
       .returns<DocumentoComercialFicha[]>(),
     supabase
+      .from("notas_credito_venta")
+      .select(CAMPOS_NOTA)
+      .eq("contacto_id", id)
+      .order("fecha", { ascending: false })
+      .order("numero", { ascending: false })
+      .returns<NotaCruda[]>(),
+    supabase
+      .from("notas_debito_venta")
+      .select(CAMPOS_NOTA)
+      .eq("contacto_id", id)
+      .order("fecha", { ascending: false })
+      .order("numero", { ascending: false })
+      .returns<NotaCruda[]>(),
+    supabase
+      .from("notas_credito_compra")
+      .select(CAMPOS_NOTA)
+      .eq("contacto_id", id)
+      .order("fecha", { ascending: false })
+      .order("numero", { ascending: false })
+      .returns<NotaCruda[]>(),
+    supabase
       .from("pagos_recibidos")
       .select(CAMPOS_PAGO)
       .eq("contacto_id", id)
@@ -217,6 +257,9 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     comprasRes,
     cotizacionesRes,
     conducesRes,
+    notasCreditoRes,
+    notasDebitoRes,
+    notasCompraRes,
     pagosRes,
     pagosProveedorRes,
     lineasRes,
@@ -265,6 +308,10 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
   const pagosRecibidos = mapearPagosRecibidos(filasDe(pagosRes.data), numerosFactura);
   const pagosProveedor = mapearPagosProveedor(filasDe(pagosProveedorRes.data), numerosCompra);
   const asientos = mapearAsientos(filasDe(asientosRes.data), totalesAsientos);
+  const notasVenta = [
+    ...mapearNotas(filasDe(notasCreditoRes.data), "credito"),
+    ...mapearNotas(filasDe(notasDebitoRes.data), "debito"),
+  ].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.numero - a.numero);
 
   return {
     contacto: mapearContacto(contacto),
@@ -274,6 +321,8 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     facturasProveedor: compras,
     cotizaciones: filasDe(cotizacionesRes.data),
     conduces: filasDe(conducesRes.data),
+    notasVenta,
+    notasCompra: mapearNotas(filasDe(notasCompraRes.data), "credito_compra"),
     pagosRecibidos,
     pagosProveedor,
     asientos,

@@ -4,6 +4,7 @@ export interface AsientoLista {
   fecha: string;
   descripcion: string;
   origen_tipo: string;
+  origen_id: string | null;
   total: number;
 }
 

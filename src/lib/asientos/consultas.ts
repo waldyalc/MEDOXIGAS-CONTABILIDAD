@@ -13,7 +13,7 @@ export async function getAsientosLista(desde?: string, hasta?: string): Promise<
   const supabase = await createClient();
   let consulta = supabase
     .from("asientos")
-    .select("id, numero, fecha, descripcion, origen_tipo, total")
+    .select("id, numero, fecha, descripcion, origen_tipo, origen_id, total")
     .order("numero", { ascending: false })
     .limit(300);
 

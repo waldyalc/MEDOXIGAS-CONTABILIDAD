@@ -7,6 +7,7 @@ export interface MovimientoTransaccion {
   origen: OrigenTransaccion;
   comprobante: string;
   fecha: string;
+  cuentaId: string;
   cuenta: string;
   contactoId: string | null;
   contactoNombre: string | null;

@@ -74,7 +74,9 @@ export default async function Page() {
                     <TableCell className="pl-(--card-spacing) font-medium">
                       <Enlace href={rutaNotaCreditoCompra(nota.id)}>#{nota.numero}</Enlace>
                     </TableCell>
-                    <TableCell className="font-mono text-xs">{nota.ncf ?? "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {nota.ncf ? <Enlace href={rutaNotaCreditoCompra(nota.id)}>{nota.ncf}</Enlace> : "—"}
+                    </TableCell>
                     <TableCell>
                       <Enlace href={rutaCompra(nota.factura_proveedor_id)}>
                         #{nota.factura_numero}
