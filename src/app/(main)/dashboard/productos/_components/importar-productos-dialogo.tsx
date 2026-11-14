@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Download, Upload } from "lucide-react";
 
+import { FORM_INPUT, FormField } from "@/components/formularios/formulario";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -231,19 +232,17 @@ export function ImportarProductosDialogo({
           </span>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label htmlFor="archivo-productos" className="text-sm font-medium">
-            Archivo CSV o Excel (.xlsx)
-          </label>
+        <FormField htmlFor="archivo-productos" label="Archivo CSV o Excel (.xlsx)">
           <Input
             id="archivo-productos"
             type="file"
             accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             onChange={cambiarArchivo}
             disabled={pendiente}
+            className={FORM_INPUT}
           />
           {nombreArchivo ? <p className="text-muted-foreground text-xs">{nombreArchivo}</p> : null}
-        </div>
+        </FormField>
 
         {errorArchivo ? (
           <p role="alert" className="text-destructive text-sm">

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { FORM_INPUT_GROUP, FORM_SELECT, FormField } from "@/components/formularios/formulario";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CategoriaProducto } from "@/lib/inventario/tipos";
@@ -139,15 +139,14 @@ export function EditarSeleccionadosDialogo({
           </DialogDescription>
         </DialogHeader>
 
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="precio-modo">Precio</FieldLabel>
+        <div className="flex flex-col gap-4">
+          <FormField htmlFor="precio-modo" label="Precio">
             <Select
               value={precioModo}
               onValueChange={(valor) => setPrecioModo((valor as CambiosEdicionMasiva["precioModo"]) ?? "sin_cambio")}
               items={OPCIONES_PRECIO}
             >
-              <SelectTrigger id="precio-modo" className="w-full">
+              <SelectTrigger id="precio-modo" className={FORM_SELECT}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -158,12 +157,11 @@ export function EditarSeleccionadosDialogo({
                 ))}
               </SelectContent>
             </Select>
-          </Field>
+          </FormField>
 
           {precioModo === "fijo" ? (
-            <Field>
-              <FieldLabel htmlFor="precio-fijo">Precio fijo</FieldLabel>
-              <InputGroup>
+            <FormField htmlFor="precio-fijo" label="Precio fijo">
+              <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
                 </InputGroupAddon>
@@ -175,13 +173,12 @@ export function EditarSeleccionadosDialogo({
                   placeholder="0"
                 />
               </InputGroup>
-            </Field>
+            </FormField>
           ) : null}
 
           {precioModo === "porcentaje" ? (
-            <Field>
-              <FieldLabel htmlFor="porcentaje">Ajuste</FieldLabel>
-              <InputGroup>
+            <FormField htmlFor="porcentaje" label="Ajuste">
+              <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupInput
                   id="porcentaje"
                   inputMode="decimal"
@@ -193,14 +190,13 @@ export function EditarSeleccionadosDialogo({
                   %
                 </InputGroupAddon>
               </InputGroup>
-            </Field>
+            </FormField>
           ) : null}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="itbis-masivo">ITBIS</FieldLabel>
+          <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            <FormField htmlFor="itbis-masivo" label="ITBIS">
               <Select value={itbisTasa} onValueChange={(valor) => setItbisTasa(valor ?? "")} items={OPCIONES_ITBIS}>
-                <SelectTrigger id="itbis-masivo" className="w-full">
+                <SelectTrigger id="itbis-masivo" className={FORM_SELECT}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -211,16 +207,15 @@ export function EditarSeleccionadosDialogo({
                   ))}
                 </SelectContent>
               </Select>
-            </Field>
+            </FormField>
 
-            <Field>
-              <FieldLabel htmlFor="estado-masivo">Estado</FieldLabel>
+            <FormField htmlFor="estado-masivo" label="Estado">
               <Select
                 value={activo}
                 onValueChange={(valor) => setActivo((valor as CambiosEdicionMasiva["activo"]) ?? "")}
                 items={OPCIONES_ESTADO}
               >
-                <SelectTrigger id="estado-masivo" className="w-full">
+                <SelectTrigger id="estado-masivo" className={FORM_SELECT}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -231,17 +226,16 @@ export function EditarSeleccionadosDialogo({
                   ))}
                 </SelectContent>
               </Select>
-            </Field>
+            </FormField>
           </div>
 
-          <Field>
-            <FieldLabel htmlFor="categoria-masiva">Categoría</FieldLabel>
+          <FormField htmlFor="categoria-masiva" label="Categoría">
             <Select
               value={categoriaId}
               onValueChange={(valor) => setCategoriaId(valor ?? "")}
               items={opcionesCategoria}
             >
-              <SelectTrigger id="categoria-masiva" className="w-full">
+              <SelectTrigger id="categoria-masiva" className={FORM_SELECT}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -252,7 +246,7 @@ export function EditarSeleccionadosDialogo({
                 ))}
               </SelectContent>
             </Select>
-          </Field>
+          </FormField>
 
           {error ? (
             <p role="alert" className="text-destructive text-sm">
@@ -278,13 +272,23 @@ export function EditarSeleccionadosDialogo({
               ) : null}
             </div>
           ) : null}
-        </FieldGroup>
+        </div>
 
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => cambiarAbierto(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => cambiarAbierto(false)}
+            className="h-11 rounded-[12px] px-6"
+          >
             Cancelar
           </Button>
-          <Button type="button" onClick={aplicar} disabled={pendiente || productos.length === 0 || resumen !== null}>
+          <Button
+            type="button"
+            onClick={aplicar}
+            disabled={pendiente || productos.length === 0 || resumen !== null}
+            className="h-11 rounded-[12px] px-6"
+          >
             {pendiente ? "Aplicando..." : "Aplicar cambios"}
           </Button>
         </DialogFooter>

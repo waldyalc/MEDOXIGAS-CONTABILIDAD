@@ -5,13 +5,13 @@ import { type FormEvent, useState, useTransition } from "react";
 import { ChevronDown, Pencil, Plus, Search, Upload } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FORM_INPUT, FORM_SELECT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -111,7 +111,7 @@ function CamposInventario({
   readonly onCambiarInventariable: (valor: boolean) => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border p-3">
+    <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3">
       <div className="flex items-center justify-between gap-3">
         <Label htmlFor="inventariable">Controlar inventario</Label>
         <Switch
@@ -123,27 +123,27 @@ function CamposInventario({
       </div>
 
       {inventariable ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field>
-            <FieldLabel htmlFor="cantidad">Cantidad inicial</FieldLabel>
+        <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          <FormField htmlFor="cantidad" label="Cantidad inicial">
             <Input
               id="cantidad"
               name="cantidad"
               inputMode="decimal"
               placeholder="0"
               defaultValue={producto ? String(producto.cantidad) : ""}
+              className={FORM_INPUT}
             />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="costo">Costo</FieldLabel>
+          </FormField>
+          <FormField htmlFor="costo" label="Costo">
             <Input
               id="costo"
               name="costo"
               inputMode="decimal"
               placeholder="0"
               defaultValue={producto ? String(producto.costo) : ""}
+              className={FORM_INPUT}
             />
-          </Field>
+          </FormField>
         </div>
       ) : null}
     </div>
@@ -199,30 +199,35 @@ function FormularioProducto({
 
   return (
     <form onSubmit={enviar} className="flex flex-col gap-4">
-      <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor="nombre">Nombre *</FieldLabel>
-          <Input id="nombre" name="nombre" required maxLength={200} defaultValue={producto?.nombre ?? ""} />
-        </Field>
+      <div className="flex flex-col gap-4">
+        <FormField htmlFor="nombre" label="Nombre" required>
+          <Input
+            id="nombre"
+            name="nombre"
+            required
+            maxLength={200}
+            defaultValue={producto?.nombre ?? ""}
+            className={FORM_INPUT}
+          />
+        </FormField>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field>
-            <FieldLabel htmlFor="precio">Precio *</FieldLabel>
+        <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          <FormField htmlFor="precio" label="Precio" required>
             <Input
               id="precio"
               name="precio"
               inputMode="decimal"
               required
               defaultValue={producto ? String(producto.precio) : ""}
+              className={FORM_INPUT}
             />
-          </Field>
+          </FormField>
 
-          <Field>
-            <FieldLabel htmlFor="impuesto_id">Impuesto</FieldLabel>
+          <FormField htmlFor="impuesto_id" label="Impuesto">
             <SelectorImpuesto
               id="impuesto_id"
               name="impuesto_id"
-              className="w-full"
+              className={FORM_SELECT}
               impuestos={impuestos}
               value={impuestoId}
               onValueChange={(id) => {
@@ -232,18 +237,17 @@ function FormularioProducto({
               }}
             />
             <input type="hidden" name="itbis_tasa" value={itbisTasa} />
-          </Field>
+          </FormField>
         </div>
 
-        <Field>
-          <FieldLabel htmlFor="tipo">Tipo</FieldLabel>
+        <FormField htmlFor="tipo" label="Tipo">
           <Select
             name="tipo"
             value={tipo}
             onValueChange={(valor) => setTipo(valor ?? "producto")}
             items={OPCIONES_TIPO}
           >
-            <SelectTrigger id="tipo" className="w-full">
+            <SelectTrigger id="tipo" className={FORM_SELECT}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -254,7 +258,7 @@ function FormularioProducto({
               ))}
             </SelectContent>
           </Select>
-        </Field>
+        </FormField>
 
         {tipo === "producto" ? (
           <CamposInventario
@@ -265,7 +269,7 @@ function FormularioProducto({
         ) : null}
 
         <Collapsible
-          className="rounded-lg border"
+          className="rounded-xl border border-slate-200"
           defaultOpen={Boolean(
             producto?.referencia ??
               producto?.descripcion ??
@@ -277,15 +281,14 @@ function FormularioProducto({
             Más opciones
             <ChevronDown className="size-4" />
           </CollapsibleTrigger>
-          <CollapsibleContent className="flex flex-col gap-4 border-t p-3">
-            <Field>
-              <FieldLabel htmlFor="categoria_id">Categoría</FieldLabel>
+          <CollapsibleContent className="flex flex-col gap-4 border-t border-slate-200 p-3">
+            <FormField htmlFor="categoria_id" label="Categoría">
               <Select
                 name="categoria_id"
                 defaultValue={producto?.categoria_id ?? SIN_CATEGORIA}
                 items={opcionesCategoria}
               >
-                <SelectTrigger id="categoria_id" className="w-full">
+                <SelectTrigger id="categoria_id" className={FORM_SELECT}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -296,7 +299,7 @@ function FormularioProducto({
                   ))}
                 </SelectContent>
               </Select>
-            </Field>
+            </FormField>
             {listasPrecios.length > 0 ? (
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1">
@@ -305,43 +308,48 @@ function FormularioProducto({
                     Valor fijo en RD$ o porcentaje sobre el precio (10 = +10 %, -10 = descuento).
                   </span>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
                   {listasPrecios.map((lista) => {
                     const valor = producto?.precios.find((precio) => precio.lista_id === lista.id)?.precio;
 
                     return (
-                      <Field key={lista.id}>
-                        <FieldLabel htmlFor={`precio_lista_${lista.id}`}>
-                          {lista.nombre}
-                          {lista.es_principal ? " (principal)" : ""}
-                        </FieldLabel>
+                      <FormField
+                        key={lista.id}
+                        htmlFor={`precio_lista_${lista.id}`}
+                        label={`${lista.nombre}${lista.es_principal ? " (principal)" : ""}`}
+                      >
                         <Input
                           id={`precio_lista_${lista.id}`}
                           name={`precio_lista_${lista.id}`}
                           inputMode="decimal"
                           placeholder={lista.tipo === "porcentaje" ? "0" : "0.00"}
                           defaultValue={valor === undefined ? "" : String(valor)}
+                          className={FORM_INPUT}
                         />
                         <span className="text-muted-foreground text-xs">{etiquetaTipoLista(lista.tipo)}</span>
-                      </Field>
+                      </FormField>
                     );
                   })}
                 </div>
               </div>
             ) : null}
-            <Field>
-              <FieldLabel htmlFor="referencia">Referencia</FieldLabel>
+            <FormField htmlFor="referencia" label="Referencia">
               <Input
                 id="referencia"
                 name="referencia"
                 defaultValue={producto?.referencia ?? ""}
                 placeholder="Ej. OXI-001"
+                className={FORM_INPUT}
               />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="descripcion">Descripción</FieldLabel>
-              <Textarea id="descripcion" name="descripcion" defaultValue={producto?.descripcion ?? ""} />
-            </Field>
+            </FormField>
+            <FormField htmlFor="descripcion" label="Descripción">
+              <Textarea
+                id="descripcion"
+                name="descripcion"
+                defaultValue={producto?.descripcion ?? ""}
+                className={FORM_TEXTAREA}
+              />
+            </FormField>
           </CollapsibleContent>
         </Collapsible>
 
@@ -350,11 +358,13 @@ function FormularioProducto({
             {error}
           </p>
         ) : null}
-      </FieldGroup>
+      </div>
 
       <DialogFooter>
-        <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>
-        <Button type="submit" disabled={pendiente}>
+        <DialogClose render={<Button type="button" variant="outline" className="h-11 rounded-[12px] px-6" />}>
+          Cancelar
+        </DialogClose>
+        <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
           {pendiente ? "Guardando..." : "Guardar"}
         </Button>
       </DialogFooter>

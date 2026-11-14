@@ -4,9 +4,9 @@ import { type FormEvent, useEffect, useRef, useState, useTransition } from "reac
 
 import { ArrowUpRight, Check, Loader2 } from "lucide-react";
 
+import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { crearContacto } from "@/lib/contactos/actions";
@@ -159,9 +159,8 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
             </Button>
           </div>
 
-          <FieldGroup className="gap-4">
-            <Field>
-              <FieldLabel htmlFor="contacto-tipo-identificacion">Tipo de identificación *</FieldLabel>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+            <FormField htmlFor="contacto-tipo-identificacion" label="Tipo de identificación" required>
               <Select
                 items={OPCIONES_IDENTIFICACION}
                 value={tipoIdentificacion}
@@ -169,7 +168,7 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
                   if (valor === "rnc" || valor === "cedula" || valor === "pasaporte") setTipoIdentificacion(valor);
                 }}
               >
-                <SelectTrigger id="contacto-tipo-identificacion" className="w-full">
+                <SelectTrigger id="contacto-tipo-identificacion" className={FORM_SELECT}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false}>
@@ -180,75 +179,71 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
                   ))}
                 </SelectContent>
               </Select>
-            </Field>
+            </FormField>
 
-            <Field>
-              <FieldLabel htmlFor="contacto-numero">Número</FieldLabel>
+            <FormField htmlFor="contacto-numero" label="Número">
               <Input
                 id="contacto-numero"
                 inputMode={tipoIdentificacion === "pasaporte" ? "text" : "numeric"}
                 value={numero}
                 onChange={(evento) => setNumero(evento.target.value)}
+                className={FORM_INPUT}
               />
-            </Field>
+            </FormField>
 
-            <Field>
-              <FieldLabel htmlFor="contacto-nombre">Nombre o Razón social *</FieldLabel>
+            <FormField htmlFor="contacto-nombre" label="Nombre o Razón social" required className="sm:col-span-2">
               <Input
                 id="contacto-nombre"
                 required
                 maxLength={200}
                 value={nombre}
                 onChange={(evento) => setNombre(evento.target.value)}
+                className={FORM_INPUT}
               />
-            </Field>
+            </FormField>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="contacto-municipio">Municipio / Provincia</FieldLabel>
-                <Input
-                  id="contacto-municipio"
-                  placeholder="Ej. Santiago de los Caballeros"
-                  value={municipio}
-                  onChange={(evento) => setMunicipio(evento.target.value)}
-                />
-              </Field>
+            <FormField htmlFor="contacto-municipio" label="Municipio / Provincia">
+              <Input
+                id="contacto-municipio"
+                placeholder="Ej. Santiago de los Caballeros"
+                value={municipio}
+                onChange={(evento) => setMunicipio(evento.target.value)}
+                className={FORM_INPUT}
+              />
+            </FormField>
 
-              <Field>
-                <FieldLabel htmlFor="contacto-direccion">Dirección</FieldLabel>
-                <Input
-                  id="contacto-direccion"
-                  placeholder="Calle, número, sector"
-                  value={direccion}
-                  onChange={(evento) => setDireccion(evento.target.value)}
-                />
-              </Field>
-            </div>
+            <FormField htmlFor="contacto-direccion" label="Dirección">
+              <Input
+                id="contacto-direccion"
+                placeholder="Calle, número, sector"
+                value={direccion}
+                onChange={(evento) => setDireccion(evento.target.value)}
+                className={FORM_INPUT}
+              />
+            </FormField>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="contacto-correo">Correo electrónico</FieldLabel>
-                <Input
-                  id="contacto-correo"
-                  type="email"
-                  placeholder="ejemplo@correo.com"
-                  value={correo}
-                  onChange={(evento) => setCorreo(evento.target.value)}
-                />
-              </Field>
+            <FormField htmlFor="contacto-correo" label="Correo electrónico">
+              <Input
+                id="contacto-correo"
+                type="email"
+                placeholder="ejemplo@correo.com"
+                value={correo}
+                onChange={(evento) => setCorreo(evento.target.value)}
+                className={FORM_INPUT}
+              />
+            </FormField>
 
-              <Field>
-                <FieldLabel htmlFor="contacto-telefono">Teléfono</FieldLabel>
-                <Input
-                  id="contacto-telefono"
-                  inputMode="tel"
-                  placeholder="809-555-1234"
-                  value={telefono}
-                  onChange={(evento) => setTelefono(evento.target.value)}
-                />
-              </Field>
-            </div>
-          </FieldGroup>
+            <FormField htmlFor="contacto-telefono" label="Teléfono">
+              <Input
+                id="contacto-telefono"
+                inputMode="tel"
+                placeholder="809-555-1234"
+                value={telefono}
+                onChange={(evento) => setTelefono(evento.target.value)}
+                className={FORM_INPUT}
+              />
+            </FormField>
+          </div>
 
           {error ? (
             <p role="alert" className="text-destructive text-sm">
@@ -260,12 +255,13 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
             <Button
               type="button"
               variant="outline"
+              className="h-11 rounded-[12px] px-6"
               render={<a href="/dashboard/contactos#nuevo" target="_blank" rel="noreferrer" />}
             >
               <ArrowUpRight />
               Formulario avanzado
             </Button>
-            <Button type="submit" disabled={pendiente}>
+            <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
               {pendiente ? <Loader2 className="animate-spin" /> : null}
               Crear contacto
             </Button>

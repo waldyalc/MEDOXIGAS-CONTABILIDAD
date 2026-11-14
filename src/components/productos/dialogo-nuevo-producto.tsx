@@ -4,9 +4,9 @@ import { type FormEvent, useEffect, useRef, useState, useTransition } from "reac
 
 import { Loader2 } from "lucide-react";
 
+import { FORM_INPUT, FORM_INPUT_GROUP, FORM_SELECT, FormField } from "@/components/formularios/formulario";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -113,21 +113,20 @@ export function DialogoNuevoProducto({ abierto, onOpenChange, nombreInicial = ""
         </DialogHeader>
 
         <form onSubmit={enviar} className="flex flex-col gap-4">
-          <FieldGroup className="gap-4">
-            <Field>
-              <FieldLabel htmlFor="producto-rapido-nombre">Nombre *</FieldLabel>
+          <div className="flex flex-col gap-4">
+            <FormField htmlFor="producto-rapido-nombre" label="Nombre" required>
               <Input
                 id="producto-rapido-nombre"
                 required
                 maxLength={200}
                 value={nombre}
                 onChange={(evento) => setNombre(evento.target.value)}
+                className={FORM_INPUT}
               />
-            </Field>
+            </FormField>
 
-            <Field>
-              <FieldLabel htmlFor="producto-rapido-precio">Precio *</FieldLabel>
-              <InputGroup>
+            <FormField htmlFor="producto-rapido-precio" label="Precio" required>
+              <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
                 </InputGroupAddon>
@@ -139,17 +138,16 @@ export function DialogoNuevoProducto({ abierto, onOpenChange, nombreInicial = ""
                   className="pl-1"
                 />
               </InputGroup>
-            </Field>
+            </FormField>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="producto-rapido-itbis">ITBIS</FieldLabel>
+            <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+              <FormField htmlFor="producto-rapido-itbis" label="ITBIS">
                 <Select
                   items={OPCIONES_ITBIS}
                   value={itbisTasa}
                   onValueChange={(valor: string | null) => setItbisTasa(valor ?? "18")}
                 >
-                  <SelectTrigger id="producto-rapido-itbis" className="w-full">
+                  <SelectTrigger id="producto-rapido-itbis" className={FORM_SELECT}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent alignItemWithTrigger={false}>
@@ -160,10 +158,9 @@ export function DialogoNuevoProducto({ abierto, onOpenChange, nombreInicial = ""
                     ))}
                   </SelectContent>
                 </Select>
-              </Field>
+              </FormField>
 
-              <Field>
-                <FieldLabel htmlFor="producto-rapido-tipo">Tipo</FieldLabel>
+              <FormField htmlFor="producto-rapido-tipo" label="Tipo">
                 <Select
                   items={OPCIONES_TIPO}
                   value={tipo}
@@ -171,7 +168,7 @@ export function DialogoNuevoProducto({ abierto, onOpenChange, nombreInicial = ""
                     if (valor === "producto" || valor === "servicio") setTipo(valor);
                   }}
                 >
-                  <SelectTrigger id="producto-rapido-tipo" className="w-full">
+                  <SelectTrigger id="producto-rapido-tipo" className={FORM_SELECT}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent alignItemWithTrigger={false}>
@@ -182,9 +179,9 @@ export function DialogoNuevoProducto({ abierto, onOpenChange, nombreInicial = ""
                     ))}
                   </SelectContent>
                 </Select>
-              </Field>
+              </FormField>
             </div>
-          </FieldGroup>
+          </div>
 
           {error ? (
             <p role="alert" className="text-destructive text-sm">
@@ -193,10 +190,15 @@ export function DialogoNuevoProducto({ abierto, onOpenChange, nombreInicial = ""
           ) : null}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="h-11 rounded-[12px] px-6"
+            >
               Cancelar
             </Button>
-            <Button type="submit" disabled={pendiente}>
+            <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
               {pendiente ? <Loader2 className="animate-spin" /> : null}
               Crear producto
             </Button>
