@@ -8,6 +8,30 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+# REDISEÑO COMPLETO — SOLO DISEÑO (leer primero)
+
+Esta carpeta (`MEDOXIGAS-DISENO`, rama `diseno/rediseno`) es **solo para el rediseño completo de la interfaz**. Waldy dice lo que quiere ("crea un botón", "pon esta tabla así") y tú lo haces **solo en el frontend con shadcn/ui**.
+
+**Sí puedes tocar:**
+- `src/app/**` (páginas, layouts, `loading.tsx`) y `src/components/**`: estructura visual, componentes, estilos, textos de pantalla.
+- `src/app/globals.css`, tema, colores, tipografía, espaciado.
+- Agregar componentes de shadcn/ui (`pnpm dlx shadcn@latest add <componente>`) y usarlos tal cual.
+- `docs/diseno/**` (guía de estilo, prompts, capturas).
+
+**NO toques (no hace falta backend):**
+- Nada de base de datos: ni `supabase/` (migraciones, funciones, RLS), ni SQL, ni tablas nuevas.
+- Nada de lógica ni datos: ni `src/lib/**` (consultas, acciones, cálculos, fiscal), ni server actions, ni rutas `api/`, ni `middleware`/`proxy`.
+- Ni `tests/`, ni `docs/pruebas/`, ni `.env*`, ni `package.json` (salvo lo que agregue `shadcn add`).
+- Si un diseño necesita un dato que no existe, **no lo crees**: usa los datos que ya llegan o pon un texto de ejemplo marcado `// TODO backend` y avísale a Waldy.
+- No crees, edites ni borres datos en la app: el localhost usa la misma base de datos de prueba.
+
+**Cómo se trabaja:**
+- Localhost de diseño en el puerto **3002**: `pnpm dev --port 3002` (el 3000 es de Waldy y el 3001 de las pruebas).
+- shadcn/ui tal cual, sin inventar componentes que shadcn ya tiene. Guía de estilo y prompts en `docs/diseno/`.
+- Antes de terminar: `pnpm exec tsc --noEmit` y `pnpm exec biome check` en verde.
+- Commits pequeños en `diseno/rediseno`. Nunca a `main` ni a `prueba` sin el OK de Waldy; nada de force-push ni `--no-verify`.
+
+
 # AGENTS.md — Medoxigas Contabilidad
 
 Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y Oxymat), República Dominicana. Dueño: Waldy Alcántara. **Inspirado** en Alegra (alegra.com), **no es una copia**: nada de su código, textos, logos ni diseño exacto; no se hace ingeniería inversa (sus términos lo prohíben). El estudio de cómo trabaja Waldy en Alegra va en `docs/alegra/`. El contexto completo para seguir el sistema en local, sin Coder, está en `docs/CONTEXTO-CODER.md`.
