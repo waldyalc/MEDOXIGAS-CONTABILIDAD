@@ -1,5 +1,16 @@
 # Handoff — Medoxigas Contabilidad
 
+## S24 — Papel impreso/PDF de factura, cotización y conduce (13 nov 2026)
+
+- `DocumentoPapel`: las columnas de montos (Precio, Descuento, Impuesto y
+  Valor/Subtotal) tienen ancho mínimo en pt y `whitespace-nowrap` para
+  `RD$9,999,999.99`; la descripción absorbe el resto y puede partir.
+- Bloque del cliente: RNC y Teléfono solo se muestran si tienen dato. Se oculta
+  «Vencimiento NCF» sin fecha y «Vencimiento de la factura» lleva dos puntos.
+- Tests de render con `renderToStaticMarkup` en `documento-papel.test.tsx` (7).
+  Sin migraciones. `typecheck`, `test` (623), Biome de lo tocado y `build` en
+  verde; sin verificación visual.
+
 ## S21 — Todo conectado: enlaces de entidades (13 nov 2026)
 
 - `src/lib/enlaces.ts`: `rutaAjusteInventario`, `rutaTransferenciaInventario` y
