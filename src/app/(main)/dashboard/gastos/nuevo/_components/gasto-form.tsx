@@ -8,10 +8,20 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Loader2 } from "lucide-react";
 
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
+import {
+  FORM_BUTTON,
+  FORM_COMBO,
+  FORM_INPUT,
+  FORM_SELECT,
+  FormActions,
+  FormCard,
+  FormField,
+  FormSectionTitle,
+  FormTotal,
+} from "@/components/formularios/formulario";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Combobox,
@@ -22,7 +32,6 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 import { calcularLinea, centavosAValor, parsearCentavos } from "@/lib/facturacion/calculo";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
@@ -129,167 +138,171 @@ export function GastoForm({
 
   return (
     <form
+      className="mx-auto flex w-full max-w-[1040px] flex-col gap-6"
       onSubmit={(evento) => {
         evento.preventDefault();
         guardar();
       }}
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos del gasto</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="flex flex-col gap-2 md:col-span-2">
-            <Label htmlFor="descripcion">Descripción *</Label>
-            <Input
-              id="descripcion"
-              required
-              placeholder="Ej. Compra de útiles de oficina"
-              value={descripcion}
-              onChange={(evento) => setDescripcion(evento.target.value)}
-            />
-          </div>
+      <FormCard>
+        <section>
+          <FormSectionTitle className="mb-4">Datos del gasto</FormSectionTitle>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
+            <FormField htmlFor="descripcion" label="Descripción" required className="md:col-span-2">
+              <Input
+                id="descripcion"
+                required
+                placeholder="Ej. Compra de útiles de oficina"
+                value={descripcion}
+                onChange={(evento) => setDescripcion(evento.target.value)}
+                className={FORM_INPUT}
+              />
+            </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="monto">Monto *</Label>
-            <Input
-              id="monto"
-              inputMode="decimal"
-              required
-              placeholder="0.00"
-              value={monto}
-              onChange={(evento) => setMonto(evento.target.value)}
-            />
-            <p className="text-muted-foreground text-xs">Monto sin ITBIS.</p>
-          </div>
+            <FormField htmlFor="monto" label="Monto" required>
+              <Input
+                id="monto"
+                inputMode="decimal"
+                required
+                placeholder="0.00"
+                value={monto}
+                onChange={(evento) => setMonto(evento.target.value)}
+                className={FORM_INPUT}
+              />
+              <p className="text-muted-foreground text-xs">Monto sin ITBIS.</p>
+            </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="fecha">Fecha *</Label>
-            <Input id="fecha" type="date" required value={fecha} onChange={(evento) => setFecha(evento.target.value)} />
-          </div>
+            <FormField htmlFor="fecha" label="Fecha" required>
+              <Input
+                id="fecha"
+                type="date"
+                required
+                value={fecha}
+                onChange={(evento) => setFecha(evento.target.value)}
+                className={FORM_INPUT}
+              />
+            </FormField>
 
-          <div className="flex flex-col gap-2 md:col-span-2">
-            <Label htmlFor="cuenta">Cuenta de gasto *</Label>
-            <Combobox
-              items={cuentasItems}
-              value={cuentaSeleccionada}
-              onValueChange={(item) => setCuentaId(item?.value ?? "")}
-              itemToStringLabel={(item) => item.label}
-              isItemEqualToValue={(a, b) => a.value === b.value}
-            >
-              <ComboboxInput id="cuenta" className="w-full" placeholder="Buscar cuenta…" showClear={false} />
-              <ComboboxContent>
-                <ComboboxEmpty>Sin resultados</ComboboxEmpty>
-                <ComboboxList>
-                  {(item: OpcionCuenta) => (
-                    <ComboboxItem key={item.value} value={item}>
-                      {item.label}
-                    </ComboboxItem>
-                  )}
-                </ComboboxList>
-              </ComboboxContent>
-            </Combobox>
-          </div>
+            <FormField htmlFor="cuenta" label="Cuenta de gasto" required className="md:col-span-2">
+              <Combobox
+                items={cuentasItems}
+                value={cuentaSeleccionada}
+                onValueChange={(item) => setCuentaId(item?.value ?? "")}
+                itemToStringLabel={(item) => item.label}
+                isItemEqualToValue={(a, b) => a.value === b.value}
+              >
+                <ComboboxInput id="cuenta" className={FORM_COMBO} placeholder="Buscar cuenta…" showClear={false} />
+                <ComboboxContent>
+                  <ComboboxEmpty>Sin resultados</ComboboxEmpty>
+                  <ComboboxList>
+                    {(item: OpcionCuenta) => (
+                      <ComboboxItem key={item.value} value={item}>
+                        {item.label}
+                      </ComboboxItem>
+                    )}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+            </FormField>
 
-          <p className="text-muted-foreground text-xs md:col-span-2">El comprobante B13 se asigna al guardar.</p>
+            <p className="text-muted-foreground text-xs md:col-span-2">El comprobante B13 se asigna al guardar.</p>
 
-          <div className="col-span-full">
-            <Collapsible>
-              <CollapsibleTrigger className="flex w-full items-center justify-between border-t py-2 text-sm font-medium">
-                Más opciones
-                <ChevronDown className="size-4" />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="grid gap-4 pt-2 md:grid-cols-2">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="cuenta-pago">Pagado desde</Label>
-                    <Combobox
-                      items={cuentasPagoItems}
-                      value={cuentaPagoSeleccionada}
-                      onValueChange={(item) => setCuentaPagoId(item?.value ?? "")}
-                      itemToStringLabel={(item) => item.label}
-                      isItemEqualToValue={(a, b) => a.value === b.value}
-                    >
-                      <ComboboxInput
-                        id="cuenta-pago"
-                        className="w-full"
-                        placeholder="Buscar cuenta…"
-                        showClear={false}
+            <div className="col-span-full">
+              <Collapsible>
+                <CollapsibleTrigger className="flex w-full items-center justify-between border-t py-2 text-sm font-medium">
+                  Más opciones
+                  <ChevronDown className="size-4" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="grid gap-x-8 gap-y-4 pt-2 md:grid-cols-2">
+                    <FormField htmlFor="cuenta-pago" label="Pagado desde">
+                      <Combobox
+                        items={cuentasPagoItems}
+                        value={cuentaPagoSeleccionada}
+                        onValueChange={(item) => setCuentaPagoId(item?.value ?? "")}
+                        itemToStringLabel={(item) => item.label}
+                        isItemEqualToValue={(a, b) => a.value === b.value}
+                      >
+                        <ComboboxInput
+                          id="cuenta-pago"
+                          className={FORM_COMBO}
+                          placeholder="Buscar cuenta…"
+                          showClear={false}
+                        />
+                        <ComboboxContent>
+                          <ComboboxEmpty>Sin resultados</ComboboxEmpty>
+                          <ComboboxList>
+                            {(item: OpcionCuenta) => (
+                              <ComboboxItem key={item.value} value={item}>
+                                {item.label}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                    </FormField>
+                    <FormField htmlFor="itbis" label="Impuesto">
+                      <SelectorImpuesto
+                        id="itbis"
+                        className={FORM_SELECT}
+                        impuestos={impuestos}
+                        value={impuestoId}
+                        onValueChange={(id) => {
+                          const impuesto = impuestos.find((item) => item.id === id);
+                          setImpuestoId(id);
+                          setItbisTasa(String(impuesto?.tarifa ?? 0));
+                        }}
                       />
-                      <ComboboxContent>
-                        <ComboboxEmpty>Sin resultados</ComboboxEmpty>
-                        <ComboboxList>
-                          {(item: OpcionCuenta) => (
-                            <ComboboxItem key={item.value} value={item}>
-                              {item.label}
-                            </ComboboxItem>
-                          )}
-                        </ComboboxList>
-                      </ComboboxContent>
-                    </Combobox>
+                    </FormField>
+                    <FormField htmlFor="proveedor" label="Proveedor" className="md:col-span-2">
+                      <SelectorContacto
+                        id="proveedor"
+                        contactos={proveedores}
+                        valor={proveedorId}
+                        onCambio={(contacto) => setProveedorId(contacto?.id ?? "")}
+                        tipoInicial="proveedor"
+                        placeholder="Buscar proveedor…"
+                        className={FORM_COMBO}
+                      />
+                    </FormField>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="itbis">Impuesto</Label>
-                    <SelectorImpuesto
-                      id="itbis"
-                      className="w-full"
-                      impuestos={impuestos}
-                      value={impuestoId}
-                      onValueChange={(id) => {
-                        const impuesto = impuestos.find((item) => item.id === id);
-                        setImpuestoId(id);
-                        setItbisTasa(String(impuesto?.tarifa ?? 0));
-                      }}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2 md:col-span-2">
-                    <Label htmlFor="proveedor">Proveedor</Label>
-                    <SelectorContacto
-                      id="proveedor"
-                      contactos={proveedores}
-                      valor={proveedorId}
-                      onCambio={(contacto) => setProveedorId(contacto?.id ?? "")}
-                      tipoInicial="proveedor"
-                      placeholder="Buscar proveedor…"
-                    />
-                  </div>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </section>
 
-      <div className="bg-muted/50 mt-4 flex flex-col gap-3 rounded-xl p-4 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Subtotal</span>
-          <span>{formatoMonedaCentavos(calculo.subtotalCentavos)}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Impuestos</span>
-          <span>{formatoMonedaCentavos(calculo.itbisCentavos)}</span>
-        </div>
-        <div className="flex items-center justify-between border-t pt-2 text-base font-semibold">
-          <span>Total</span>
-          <span>{formatoMonedaCentavos(calculo.totalCentavos)}</span>
-        </div>
-      </div>
+        <FormTotal>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Subtotal</span>
+            <span>{formatoMonedaCentavos(calculo.subtotalCentavos)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">Impuestos</span>
+            <span>{formatoMonedaCentavos(calculo.itbisCentavos)}</span>
+          </div>
+          <div className="mt-3 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
+            <span>Total</span>
+            <span>{formatoMonedaCentavos(calculo.totalCentavos)}</span>
+          </div>
+        </FormTotal>
+      </FormCard>
 
       {error ? (
-        <Alert variant="destructive" className="mt-4">
+        <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
 
-      <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" render={<Link href="/dashboard/gastos" />}>
+      <FormActions>
+        <Button type="button" variant="outline" className={FORM_BUTTON} render={<Link href="/dashboard/gastos" />}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={pendiente}>
+        <Button type="submit" disabled={pendiente} className={FORM_BUTTON}>
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           Guardar gasto
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

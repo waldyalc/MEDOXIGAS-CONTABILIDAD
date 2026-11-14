@@ -9,9 +9,19 @@ import { Loader2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
 import { Enlace } from "@/components/enlace";
+import {
+  FORM_BUTTON,
+  FORM_INPUT,
+  FORM_TEXTAREA,
+  FormActions,
+  FormCard,
+  FormDivider,
+  FormField,
+  FormSectionTitle,
+  FormTotal,
+} from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -112,17 +122,15 @@ export function NotaCreditoCompraForm({ datos, fechaHoy }: Props) {
 
   return (
     <form
-      className="flex flex-col gap-4"
+      className="mx-auto flex w-full max-w-[1040px] flex-col gap-6"
       onSubmit={(evento) => {
         evento.preventDefault();
         guardar();
       }}
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Factura de proveedor #{datos.factura.numero}</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-2 text-sm md:grid-cols-2">
+      <FormCard>
+        <FormSectionTitle>Factura de proveedor #{datos.factura.numero}</FormSectionTitle>
+        <div className="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
           <div className="flex flex-col gap-1">
             <p>
               <span className="text-muted-foreground">NCF: </span>
@@ -152,118 +160,114 @@ export function NotaCreditoCompraForm({ datos, fechaHoy }: Props) {
             </p>
             <Enlace href={rutaCompra(datos.factura.id)}>Ver factura de proveedor</Enlace>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos de la nota</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="ncf">NCF del proveedor (B04)</Label>
-            <Input
-              id="ncf"
-              className="font-mono"
-              maxLength={13}
-              placeholder="B0400000001"
-              value={ncf}
-              onChange={(evento) => setNcf(evento.target.value)}
-            />
-            <p className="text-muted-foreground text-xs">
-              Opcional. Lo emite el proveedor; no consume nuestra numeración.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="fecha">Fecha *</Label>
-            <DatePicker id="fecha" value={fecha} onChange={setFecha} />
-          </div>
-          <div className="flex items-start gap-2 pt-6">
-            <Checkbox
-              id="devuelve-inventario"
-              checked={devuelveInventario}
-              onCheckedChange={(valor) => setDevuelveInventario(valor)}
-            />
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="devuelve-inventario">Devuelve inventario</Label>
+        <FormDivider />
+
+        <section>
+          <FormSectionTitle className="mb-4">Datos de la nota</FormSectionTitle>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
+            <FormField htmlFor="ncf" label="NCF del proveedor (B04)">
+              <Input
+                id="ncf"
+                className={`${FORM_INPUT} font-mono`}
+                maxLength={13}
+                placeholder="B0400000001"
+                value={ncf}
+                onChange={(evento) => setNcf(evento.target.value)}
+              />
               <p className="text-muted-foreground text-xs">
-                Saca las cantidades del inventario y recalcula el costo promedio.
+                Opcional. Lo emite el proveedor; no consume nuestra numeración.
               </p>
+            </FormField>
+            <FormField htmlFor="fecha" label="Fecha" required>
+              <DatePicker id="fecha" value={fecha} onChange={setFecha} />
+            </FormField>
+            <div className="flex items-start gap-2 pt-6">
+              <Checkbox
+                id="devuelve-inventario"
+                checked={devuelveInventario}
+                onCheckedChange={(valor) => setDevuelveInventario(valor)}
+              />
+              <div className="flex flex-col gap-1">
+                <Label htmlFor="devuelve-inventario">Devuelve inventario</Label>
+                <p className="text-muted-foreground text-xs">
+                  Saca las cantidades del inventario y recalcula el costo promedio.
+                </p>
+              </div>
             </div>
+            <FormField htmlFor="notas" label="Notas" className="md:col-span-2">
+              <Textarea
+                id="notas"
+                placeholder="Motivo o detalle de la devolución (opcional)"
+                value={notas}
+                onChange={(evento) => setNotas(evento.target.value)}
+                className={FORM_TEXTAREA}
+              />
+            </FormField>
           </div>
-          <div className="flex flex-col gap-2 md:col-span-2">
-            <Label htmlFor="notas">Notas</Label>
-            <Textarea
-              id="notas"
-              placeholder="Motivo o detalle de la devolución (opcional)"
-              value={notas}
-              onChange={(evento) => setNotas(evento.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
+        </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Líneas a acreditar</CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descripción</TableHead>
-                <TableHead className="text-right">Comprada</TableHead>
-                <TableHead className="text-right">Acreditada</TableHead>
-                <TableHead className="text-right">Pendiente</TableHead>
-                <TableHead className="text-right">Costo</TableHead>
-                <TableHead className="w-28 text-right">A devolver</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {calculadas.map((item) => (
-                <TableRow key={item.linea.id}>
-                  <TableCell className="font-medium">{item.linea.descripcion}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoCantidad(item.linea.cantidad)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoCantidad(item.linea.acreditado)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoCantidad(item.linea.pendiente)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoMoneda(item.linea.costo)}</TableCell>
-                  <TableCell>
-                    <Input
-                      className="text-right"
-                      inputMode="decimal"
-                      aria-label={`Cantidad a devolver de ${item.linea.descripcion}`}
-                      value={cantidades[item.linea.id] ?? "0"}
-                      disabled={item.linea.pendiente <= 0}
-                      onChange={(evento) => cambiarCantidad(item.linea.id, evento.target.value)}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatoMoneda(desdeCentavos(item.calculo.totalCentavos))}
-                  </TableCell>
+        <FormDivider />
+
+        <section>
+          <FormSectionTitle className="mb-4">Líneas a acreditar</FormSectionTitle>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead className="text-right">Comprada</TableHead>
+                  <TableHead className="text-right">Acreditada</TableHead>
+                  <TableHead className="text-right">Pendiente</TableHead>
+                  <TableHead className="text-right">Costo</TableHead>
+                  <TableHead className="w-28 text-right">A devolver</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {calculadas.map((item) => (
+                  <TableRow key={item.linea.id}>
+                    <TableCell className="font-medium">{item.linea.descripcion}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatoCantidad(item.linea.cantidad)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatoCantidad(item.linea.acreditado)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatoCantidad(item.linea.pendiente)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatoMoneda(item.linea.costo)}</TableCell>
+                    <TableCell>
+                      <Input
+                        className={`${FORM_INPUT} text-right`}
+                        inputMode="decimal"
+                        aria-label={`Cantidad a devolver de ${item.linea.descripcion}`}
+                        value={cantidades[item.linea.id] ?? "0"}
+                        disabled={item.linea.pendiente <= 0}
+                        onChange={(evento) => cambiarCantidad(item.linea.id, evento.target.value)}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatoMoneda(desdeCentavos(item.calculo.totalCentavos))}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </section>
 
-      <div className="flex justify-end">
-        <div className="bg-muted/50 flex w-full flex-col gap-2 rounded-xl p-4 text-sm md:w-80">
+        <FormTotal>
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
+            <span>Subtotal</span>
             <span>{formatoMoneda(desdeCentavos(totales.subtotalCentavos))}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Impuestos</span>
+            <span>Impuestos</span>
             <span>{formatoMoneda(desdeCentavos(totales.itbisCentavos))}</span>
           </div>
-          <div className="flex items-center justify-between border-t pt-2 text-base font-semibold">
+          <div className="mt-3 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
             <span>Total nota</span>
             <span>{formatoMoneda(desdeCentavos(totales.totalCentavos))}</span>
           </div>
-        </div>
-      </div>
+        </FormTotal>
+      </FormCard>
 
       {error ? (
         <Alert variant="destructive">
@@ -271,15 +275,20 @@ export function NotaCreditoCompraForm({ datos, fechaHoy }: Props) {
         </Alert>
       ) : null}
 
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" render={<Link href={rutaCompra(datos.factura.id)} />}>
+      <FormActions>
+        <Button
+          type="button"
+          variant="outline"
+          className={FORM_BUTTON}
+          render={<Link href={rutaCompra(datos.factura.id)} />}
+        >
           Cancelar
         </Button>
-        <Button type="submit" disabled={pendiente}>
+        <Button type="submit" disabled={pendiente} className={FORM_BUTTON}>
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           Crear nota de crédito
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

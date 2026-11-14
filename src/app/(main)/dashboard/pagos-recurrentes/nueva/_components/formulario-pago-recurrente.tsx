@@ -8,13 +8,23 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import {
+  FORM_BUTTON,
+  FORM_INPUT,
+  FORM_INPUT_GROUP,
+  FORM_SELECT,
+  FORM_TEXTAREA,
+  FormActions,
+  FormCard,
+  FormField,
+  FormSectionTitle,
+  FormTotal,
+} from "@/components/formularios/formulario";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { aNumero, calcularLinea, desdeCentavos } from "@/lib/compras/calculo";
@@ -104,7 +114,7 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
   }
 
   return (
-    <form onSubmit={enviar} className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+    <form onSubmit={enviar} className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-2">
           <Button
@@ -118,9 +128,6 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
           </Button>
           <h1 className="text-2xl font-semibold tracking-tight">Nueva plantilla de pago</h1>
         </div>
-        <Button type="submit" disabled={pendiente}>
-          {pendiente ? "Guardando…" : "Guardar plantilla"}
-        </Button>
       </div>
 
       {error ? (
@@ -129,166 +136,163 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
         </Alert>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos del pago</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-2 sm:col-span-2">
-            <Label htmlFor="nombre">Nombre *</Label>
-            <Input
-              id="nombre"
-              value={nombre}
-              onChange={(evento) => setNombre(evento.target.value)}
-              placeholder="Alquiler del local, luz, internet…"
-              maxLength={120}
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="cuenta-gasto">Cuenta de gasto *</Label>
-            <Select
-              value={cuentaGastoId}
-              items={opcionesCuentasGasto}
-              onValueChange={(valor: string | null) => {
-                if (valor) setCuentaGastoId(valor);
-              }}
-            >
-              <SelectTrigger id="cuenta-gasto" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {opcionesCuentasGasto.map((opcion) => (
-                  <SelectItem key={opcion.value} value={opcion.value}>
-                    {opcion.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="cuenta-pago">Cuenta de pago *</Label>
-            <Select
-              value={cuentaPagoId}
-              items={opcionesCuentasPago}
-              onValueChange={(valor: string | null) => {
-                if (valor) setCuentaPagoId(valor);
-              }}
-            >
-              <SelectTrigger id="cuenta-pago" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {opcionesCuentasPago.map((opcion) => (
-                  <SelectItem key={opcion.value} value={opcion.value}>
-                    {opcion.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="subtotal">Monto *</Label>
-            <InputGroup>
-              <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
-                RD$
-              </InputGroupAddon>
-              <InputGroupInput
-                id="subtotal"
-                inputMode="decimal"
-                value={subtotal}
-                placeholder="0.00"
-                onChange={(evento) => setSubtotal(evento.target.value)}
+      <FormCard>
+        <section>
+          <FormSectionTitle className="mb-4">Datos del pago</FormSectionTitle>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+            <FormField htmlFor="nombre" label="Nombre" required className="sm:col-span-2">
+              <Input
+                id="nombre"
+                value={nombre}
+                onChange={(evento) => setNombre(evento.target.value)}
+                placeholder="Alquiler del local, luz, internet…"
+                maxLength={120}
                 required
+                className={FORM_INPUT}
               />
-            </InputGroup>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="itbis">ITBIS</Label>
-            <Select
-              value={itbisTasa}
-              items={OPCIONES_ITBIS}
-              onValueChange={(valor: string | null) => {
-                if (valor) setItbisTasa(valor);
-              }}
-            >
-              <SelectTrigger id="itbis" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {OPCIONES_ITBIS.map((opcion) => (
-                  <SelectItem key={opcion.value} value={opcion.value}>
-                    {opcion.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="fecha-inicio">Fecha de inicio *</Label>
-            <DatePicker id="fecha-inicio" value={fechaInicio} onChange={setFechaInicio} />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="frecuencia">Frecuencia (meses) *</Label>
-            <Input
-              id="frecuencia"
-              inputMode="numeric"
-              value={frecuencia}
-              onChange={(evento) => setFrecuencia(evento.target.value)}
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="vigencia">Vigencia hasta (opcional)</Label>
-              {vigenciaHasta ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2"
-                  onClick={() => setVigenciaHasta("")}
-                >
-                  <X data-icon="inline-start" />
-                  Quitar
-                </Button>
-              ) : null}
-            </div>
-            <DatePicker id="vigencia" value={vigenciaHasta} onChange={setVigenciaHasta} placeholder="Sin vigencia" />
-          </div>
-          <div className="flex flex-col gap-2 sm:col-span-2">
-            <Label htmlFor="contacto">Contacto (opcional)</Label>
-            <ComboboxCampo
-              id="contacto"
-              opciones={opcionesContactos}
-              valor={contactoId}
-              onCambio={setContactoId}
-              placeholder="Buscar proveedor…"
-              vacio="No hay proveedores registrados."
-            />
-          </div>
-          <Accordion className="sm:col-span-2">
-            <AccordionItem value="mas" className="border-0">
-              <AccordionTrigger>Más opciones</AccordionTrigger>
-              <AccordionContent>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="notas">Observaciones</Label>
-                  <Textarea
-                    id="notas"
-                    value={notas}
-                    onChange={(evento) => setNotas(evento.target.value)}
-                    placeholder="Detalle del gasto fijo"
-                    maxLength={500}
+            </FormField>
+            <FormField htmlFor="cuenta-gasto" label="Cuenta de gasto" required>
+              <Select
+                value={cuentaGastoId}
+                items={opcionesCuentasGasto}
+                onValueChange={(valor: string | null) => {
+                  if (valor) setCuentaGastoId(valor);
+                }}
+              >
+                <SelectTrigger id="cuenta-gasto" className={FORM_SELECT}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {opcionesCuentasGasto.map((opcion) => (
+                    <SelectItem key={opcion.value} value={opcion.value}>
+                      {opcion.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField htmlFor="cuenta-pago" label="Cuenta de pago" required>
+              <Select
+                value={cuentaPagoId}
+                items={opcionesCuentasPago}
+                onValueChange={(valor: string | null) => {
+                  if (valor) setCuentaPagoId(valor);
+                }}
+              >
+                <SelectTrigger id="cuenta-pago" className={FORM_SELECT}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {opcionesCuentasPago.map((opcion) => (
+                    <SelectItem key={opcion.value} value={opcion.value}>
+                      {opcion.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField htmlFor="subtotal" label="Monto" required>
+              <InputGroup className={FORM_INPUT_GROUP}>
+                <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
+                  RD$
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="subtotal"
+                  inputMode="decimal"
+                  value={subtotal}
+                  placeholder="0.00"
+                  onChange={(evento) => setSubtotal(evento.target.value)}
+                  required
+                />
+              </InputGroup>
+            </FormField>
+            <FormField htmlFor="itbis" label="ITBIS">
+              <Select
+                value={itbisTasa}
+                items={OPCIONES_ITBIS}
+                onValueChange={(valor: string | null) => {
+                  if (valor) setItbisTasa(valor);
+                }}
+              >
+                <SelectTrigger id="itbis" className={FORM_SELECT}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {OPCIONES_ITBIS.map((opcion) => (
+                    <SelectItem key={opcion.value} value={opcion.value}>
+                      {opcion.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField htmlFor="fecha-inicio" label="Fecha de inicio" required>
+              <DatePicker id="fecha-inicio" value={fechaInicio} onChange={setFechaInicio} />
+            </FormField>
+            <FormField htmlFor="frecuencia" label="Frecuencia (meses)" required>
+              <Input
+                id="frecuencia"
+                inputMode="numeric"
+                value={frecuencia}
+                onChange={(evento) => setFrecuencia(evento.target.value)}
+                required
+                className={FORM_INPUT}
+              />
+            </FormField>
+            <FormField htmlFor="vigencia" label="Vigencia hasta (opcional)">
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <DatePicker
+                    id="vigencia"
+                    value={vigenciaHasta}
+                    onChange={setVigenciaHasta}
+                    placeholder="Sin vigencia"
                   />
                 </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </CardContent>
-      </Card>
+                {vigenciaHasta ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setVigenciaHasta("")}
+                    aria-label="Quitar la vigencia"
+                  >
+                    <X />
+                  </Button>
+                ) : null}
+              </div>
+            </FormField>
+            <FormField htmlFor="contacto" label="Contacto (opcional)" className="sm:col-span-2">
+              <ComboboxCampo
+                id="contacto"
+                opciones={opcionesContactos}
+                valor={contactoId}
+                onCambio={setContactoId}
+                placeholder="Buscar proveedor…"
+                vacio="No hay proveedores registrados."
+              />
+            </FormField>
+            <Accordion className="sm:col-span-2">
+              <AccordionItem value="mas" className="border-0">
+                <AccordionTrigger>Más opciones</AccordionTrigger>
+                <AccordionContent>
+                  <FormField htmlFor="notas" label="Observaciones">
+                    <Textarea
+                      id="notas"
+                      value={notas}
+                      onChange={(evento) => setNotas(evento.target.value)}
+                      placeholder="Detalle del gasto fijo"
+                      maxLength={500}
+                      className={FORM_TEXTAREA}
+                    />
+                  </FormField>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        </section>
 
-      <Card>
-        <CardContent className="mx-auto flex w-full max-w-sm flex-col gap-2">
+        <FormTotal>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Subtotal</span>
             <span className="tabular-nums">{formatoMoneda(desdeCentavos(calculo.subtotalCentavos))}</span>
@@ -297,15 +301,26 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
             <span className="text-muted-foreground">ITBIS</span>
             <span className="tabular-nums">{formatoMoneda(desdeCentavos(calculo.itbisCentavos))}</span>
           </div>
-          <div className="flex items-center justify-between border-t pt-2 font-medium">
+          <div className="mt-3 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
             <span>Total por periodo</span>
             <span className="tabular-nums">{formatoMoneda(desdeCentavos(calculo.totalCentavos))}</span>
           </div>
-          <Button type="submit" className="mt-2" disabled={pendiente}>
-            {pendiente ? "Guardando…" : "Guardar plantilla"}
-          </Button>
-        </CardContent>
-      </Card>
+        </FormTotal>
+      </FormCard>
+
+      <FormActions>
+        <Button
+          type="button"
+          variant="outline"
+          className={FORM_BUTTON}
+          render={<Link href="/dashboard/pagos-recurrentes" />}
+        >
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={pendiente} className={FORM_BUTTON}>
+          {pendiente ? "Guardando…" : "Guardar plantilla"}
+        </Button>
+      </FormActions>
     </form>
   );
 }

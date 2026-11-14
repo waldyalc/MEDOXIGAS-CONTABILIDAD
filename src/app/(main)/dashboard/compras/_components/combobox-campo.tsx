@@ -23,6 +23,7 @@ interface ComboboxCampoProps {
   placeholder?: string;
   vacio?: string;
   disabled?: boolean;
+  className?: string;
 }
 
 export function ComboboxCampo({
@@ -33,6 +34,7 @@ export function ComboboxCampo({
   placeholder = "Buscar…",
   vacio = "Sin resultados",
   disabled = false,
+  className = "w-full",
 }: ComboboxCampoProps) {
   const seleccion = opciones.find((opcion) => opcion.value === valor) ?? null;
 
@@ -44,7 +46,7 @@ export function ComboboxCampo({
       itemToStringLabel={(opcion) => opcion.label}
       isItemEqualToValue={(a, b) => a.value === b.value}
     >
-      <ComboboxInput id={id} placeholder={placeholder} showClear={false} disabled={disabled} className="w-full" />
+      <ComboboxInput id={id} placeholder={placeholder} showClear={false} disabled={disabled} className={className} />
       <ComboboxContent>
         <ComboboxEmpty>{vacio}</ComboboxEmpty>
         <ComboboxList>
