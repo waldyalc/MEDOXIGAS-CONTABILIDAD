@@ -635,10 +635,12 @@ export type Database = {
           direccion: string | null
           id: string
           lista_precio_id: string | null
+          municipio_provincia: string | null
           nombre: string
           rnc_cedula: string | null
           telefono: string | null
           tipo: string
+          tipo_identificacion: string | null
         }
         Insert: {
           activo?: boolean
@@ -649,10 +651,12 @@ export type Database = {
           direccion?: string | null
           id?: string
           lista_precio_id?: string | null
+          municipio_provincia?: string | null
           nombre: string
           rnc_cedula?: string | null
           telefono?: string | null
           tipo?: string
+          tipo_identificacion?: string | null
         }
         Update: {
           activo?: boolean
@@ -663,10 +667,12 @@ export type Database = {
           direccion?: string | null
           id?: string
           lista_precio_id?: string | null
+          municipio_provincia?: string | null
           nombre?: string
           rnc_cedula?: string | null
           telefono?: string | null
           tipo?: string
+          tipo_identificacion?: string | null
         }
         Relationships: [
           {

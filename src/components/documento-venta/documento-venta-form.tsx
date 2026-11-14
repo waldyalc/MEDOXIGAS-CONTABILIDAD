@@ -7,19 +7,13 @@ import { useRouter } from "next/navigation";
 
 import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
 
+import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
+import { type ProductoSeleccionable, SelectorProducto } from "@/components/productos/selector-producto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
@@ -124,10 +118,67 @@ function tipoComprobanteInicial(valor: string | undefined): TipoComprobante {
   return valor && esTipoComprobante(valor) ? valor : "02";
 }
 
+interface EstadoInicialDocumento {
+  tipo: TipoComprobante;
+  clienteId: string;
+  fecha: string;
+  vencimiento: string;
+  lineas: LineaFormulario[];
+  notas: string;
+  terminos: string;
+}
+
+function estadoInicialDocumento(
+  valores: ValoresIniciales | undefined,
+  fechaHoy: string,
+  notasIniciales: string,
+  terminosIniciales: string,
+): EstadoInicialDocumento {
+  const lineas = valores?.lineas && valores.lineas.length > 0 ? valores.lineas : [lineaVacia("l1")];
+
+  return {
+    tipo: tipoComprobanteInicial(valores?.tipoComprobante),
+    clienteId: valores?.clienteId ?? "",
+    fecha: valores?.fecha ?? fechaHoy,
+    vencimiento: valores?.vencimiento ?? fechaHoy,
+    lineas,
+    notas: valores?.notas ?? notasIniciales,
+    terminos: valores?.terminos ?? terminosIniciales,
+  };
+}
+
 function claseColumnasOpciones(campos: number): string {
   if (campos <= 1) return "";
   if (campos === 2) return "md:grid-cols-2";
   return "md:grid-cols-3";
+}
+
+interface OpcionesDocumento {
+  almacenId: string;
+  conComprobante: boolean;
+  tipo: TipoComprobante;
+  conTerminos: boolean;
+  terminos: string;
+  conPie: boolean;
+  pie: string;
+  conPago: boolean;
+  registrarPago: boolean;
+  cuentaPago: string;
+  metodoPago: MetodoPago;
+  cotizacionOrigenId?: string;
+}
+
+function opcionesDocumento(opciones: OpcionesDocumento) {
+  return {
+    ...(opciones.almacenId ? { almacenId: opciones.almacenId } : {}),
+    ...(opciones.conComprobante ? { tipoComprobante: opciones.tipo } : {}),
+    ...(opciones.conTerminos ? { terminos: opciones.terminos } : {}),
+    ...(opciones.conPie ? { pie: opciones.pie } : {}),
+    ...(opciones.cotizacionOrigenId ? { cotizacionId: opciones.cotizacionOrigenId } : {}),
+    ...(opciones.conPago && opciones.registrarPago
+      ? { pago: { cuentaId: opciones.cuentaPago, metodo: opciones.metodoPago } }
+      : {}),
+  };
 }
 
 function Campo({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -328,15 +379,13 @@ function LineasDocumento({
   onQuitar,
 }: {
   lineas: LineaFormulario[];
-  productos: ProductoResumen[];
+  productos: readonly ProductoSeleccionable[];
   calculadas: LineaCalculadaFormulario[];
   onActualizar: (clave: string, cambios: Partial<LineaFormulario>) => void;
-  onSeleccionarProducto: (clave: string, productoId: string) => void;
+  onSeleccionarProducto: (clave: string, producto: ProductoSeleccionable | null) => void;
   onAgregar: () => void;
   onQuitar: (clave: string) => void;
 }) {
-  const opcionesProductos = productos.map((item) => ({ value: item.id, label: item.nombre }));
-
   return (
     <section>
       <div className={`mb-4 ${DIVISOR}`} />
@@ -355,38 +404,19 @@ function LineasDocumento({
           {lineas.map((linea, indice) => {
             const calculo = calculadas.find((item) => item.clave === linea.clave)?.calculo;
             const producto = productos.find((item) => item.id === linea.productoId);
-            const productoSeleccionado = opcionesProductos.find((item) => item.value === linea.productoId) ?? null;
 
             return (
               <div key={linea.clave} className="contents">
                 <div className="flex justify-center py-2 pr-1 text-xs leading-10 text-slate-500">{indice + 1}</div>
                 <div className="min-w-0 py-2 pr-1">
-                  <Combobox
-                    items={opcionesProductos}
-                    value={productoSeleccionado}
-                    onValueChange={(item: { value: string; label: string } | null) =>
-                      onSeleccionarProducto(linea.clave, item?.value ?? "")
-                    }
-                    itemToStringLabel={(item: { value: string; label: string }) => item.label}
-                    isItemEqualToValue={(a: { value: string }, b: { value: string }) => a.value === b.value}
-                  >
-                    <ComboboxInput
-                      id={`producto-${linea.clave}`}
-                      className="w-full border-slate-300 bg-white dark:bg-white [&>input]:text-sm"
-                      placeholder="Buscar producto…"
-                      aria-label={`Producto de la línea ${indice + 1}`}
-                    />
-                    <ComboboxContent>
-                      <ComboboxEmpty>Sin productos</ComboboxEmpty>
-                      <ComboboxList>
-                        {(item: { value: string; label: string }) => (
-                          <ComboboxItem key={item.value} value={item}>
-                            {item.label}
-                          </ComboboxItem>
-                        )}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
+                  <SelectorProducto
+                    id={`producto-${linea.clave}`}
+                    productos={productos}
+                    valor={linea.productoId}
+                    onCambio={(producto) => onSeleccionarProducto(linea.clave, producto)}
+                    className="w-full border-slate-300 bg-white dark:bg-white [&>input]:text-sm"
+                    aria-label={`Producto de la línea ${indice + 1}`}
+                  />
                   {producto?.referencia ? (
                     <p className="mt-1 text-xs leading-4 text-slate-500">Ref. {producto.referencia}</p>
                   ) : null}
@@ -722,18 +752,18 @@ export function DocumentoVentaForm({
   numeroActual,
 }: Props) {
   const router = useRouter();
-  const lineasIniciales =
-    valoresIniciales?.lineas && valoresIniciales.lineas.length > 0 ? valoresIniciales.lineas : [lineaVacia("l1")];
-  const contador = useRef(lineasIniciales.length);
+  const inicial = estadoInicialDocumento(valoresIniciales, fechaHoy, notasIniciales, terminosIniciales);
+  const contador = useRef(inicial.lineas.length);
   const [pendiente, iniciar] = useTransition();
 
-  const [tipo, setTipo] = useState<TipoComprobante>(tipoComprobanteInicial(valoresIniciales?.tipoComprobante));
-  const [clienteId, setClienteId] = useState(valoresIniciales?.clienteId ?? "");
-  const [fecha, setFecha] = useState(valoresIniciales?.fecha ?? fechaHoy);
-  const [vencimiento, setVencimiento] = useState(valoresIniciales?.vencimiento ?? fechaHoy);
-  const [lineas, setLineas] = useState<LineaFormulario[]>(lineasIniciales);
-  const [notas, setNotas] = useState(valoresIniciales?.notas ?? notasIniciales);
-  const [terminos, setTerminos] = useState(valoresIniciales?.terminos ?? terminosIniciales);
+  const [tipo, setTipo] = useState<TipoComprobante>(inicial.tipo);
+  const [clienteId, setClienteId] = useState(inicial.clienteId);
+  const [productosLocales, setProductosLocales] = useState<readonly ProductoSeleccionable[]>(productos);
+  const [fecha, setFecha] = useState(inicial.fecha);
+  const [vencimiento, setVencimiento] = useState(inicial.vencimiento);
+  const [lineas, setLineas] = useState<LineaFormulario[]>(inicial.lineas);
+  const [notas, setNotas] = useState(inicial.notas);
+  const [terminos, setTerminos] = useState(inicial.terminos);
   const [pie, setPie] = useState("");
   const [vendedorId, setVendedorId] = useState(valoresIniciales?.vendedorId ?? "");
   const [centroCostoId, setCentroCostoId] = useState(valoresIniciales?.centroCostoId ?? "");
@@ -748,7 +778,6 @@ export function DocumentoVentaForm({
   );
   const [error, setError] = useState<string | null>(null);
 
-  const clientesItems = contactos.map((contacto) => ({ value: contacto.id, label: contacto.nombre }));
   const comprobantesItems = OPCIONES_TIPO_COMPROBANTE.map((opcion) => ({
     value: opcion.valor,
     label: opcion.etiqueta,
@@ -762,32 +791,35 @@ export function DocumentoVentaForm({
     { value: SIN_SELECCION, label: "Sin centro" },
     ...centrosCosto.map((centro) => ({ value: centro.id, label: `${centro.codigo} · ${centro.nombre}` })),
   ];
-  const clienteSeleccionado = clientesItems.find((item) => item.value === clienteId) ?? null;
-
   const { calculadas, totales } = calcularDocumento(lineas);
 
   function actualizarLinea(clave: string, cambios: Partial<LineaFormulario>) {
     setLineas((actuales) => actuales.map((linea) => (linea.clave === clave ? { ...linea, ...cambios } : linea)));
   }
 
-  function precioDeProducto(producto: ProductoResumen, listaId: string): string {
-    const centavos = precioSugeridoCentavos(producto.precio, listasPrecios, producto.precios, listaId);
+  function precioDeProducto(producto: ProductoSeleccionable, listaId: string): string {
+    const centavos = precioSugeridoCentavos(producto.precio, listasPrecios, producto.precios ?? [], listaId);
     return centavosAValor(centavos).toFixed(2);
   }
 
-  function seleccionarProducto(clave: string, productoId: string) {
-    const producto = productos.find((item) => item.id === productoId);
+  function seleccionarProducto(clave: string, producto: ProductoSeleccionable | null) {
+    if (!producto) {
+      actualizarLinea(clave, { productoId: "" });
+      return;
+    }
+
+    setProductosLocales((actuales) =>
+      actuales.some((item) => item.id === producto.id) ? actuales : [...actuales, producto],
+    );
     actualizarLinea(clave, {
-      productoId,
-      ...(producto
-        ? { precio: precioDeProducto(producto, listaPrecioId), itbisTasa: String(producto.itbis_tasa) }
-        : {}),
+      productoId: producto.id,
+      precio: precioDeProducto(producto, listaPrecioId),
+      itbisTasa: String(producto.itbis_tasa),
     });
   }
 
-  function seleccionarCliente(item: { value: string; label: string } | null) {
-    setClienteId(item?.value ?? "");
-    const contacto = contactos.find((cliente) => cliente.id === item?.value);
+  function seleccionarCliente(contacto: ContactoOpcion | null) {
+    setClienteId(contacto?.id ?? "");
     const lista = contacto?.lista_precio_id;
     if (lista && listasPrecios.some((opcion) => opcion.id === lista)) cambiarListaPrecio(lista);
   }
@@ -796,7 +828,7 @@ export function DocumentoVentaForm({
     setListaPrecioId(listaId);
     setLineas((actuales) =>
       actuales.map((linea) => {
-        const producto = productos.find((item) => item.id === linea.productoId);
+        const producto = productosLocales.find((item) => item.id === linea.productoId);
         return producto ? { ...linea, precio: precioDeProducto(producto, listaId) } : linea;
       }),
     );
@@ -832,15 +864,23 @@ export function DocumentoVentaForm({
       vencimiento: conVencimiento ? vencimiento : fecha,
       notas,
       lineas,
-      productos,
+      productos: productosLocales,
       vendedorId,
       centroCostoId,
-      ...(almacenId ? { almacenId } : {}),
-      ...(conComprobante ? { tipoComprobante: tipo } : {}),
-      ...(conTerminos ? { terminos } : {}),
-      ...(conPie ? { pie } : {}),
-      cotizacionId: cotizacionOrigenId,
-      ...(conPago && registrarPago ? { pago: { cuentaId: cuentaPago, metodo: metodoPago } } : {}),
+      ...opcionesDocumento({
+        almacenId,
+        conComprobante,
+        tipo,
+        conTerminos,
+        terminos,
+        conPie,
+        pie,
+        conPago,
+        registrarPago,
+        cuentaPago,
+        metodoPago,
+        cotizacionOrigenId,
+      }),
     });
 
     iniciar(async () => {
@@ -902,25 +942,15 @@ export function DocumentoVentaForm({
               <Etiqueta htmlFor="cliente" requerido>
                 Cliente
               </Etiqueta>
-              <Combobox
-                items={clientesItems}
-                value={clienteSeleccionado}
-                onValueChange={seleccionarCliente}
-                itemToStringLabel={(item: { value: string; label: string }) => item.label}
-                isItemEqualToValue={(a: { value: string }, b: { value: string }) => a.value === b.value}
-              >
-                <ComboboxInput id="cliente" className={COMBO_MEDIO} placeholder="Buscar cliente…" showClear />
-                <ComboboxContent>
-                  <ComboboxEmpty>Sin resultados</ComboboxEmpty>
-                  <ComboboxList>
-                    {(item: { value: string; label: string }) => (
-                      <ComboboxItem key={item.value} value={item}>
-                        {item.label}
-                      </ComboboxItem>
-                    )}
-                  </ComboboxList>
-                </ComboboxContent>
-              </Combobox>
+              <SelectorContacto
+                id="cliente"
+                contactos={contactos}
+                valor={clienteId}
+                onCambio={seleccionarCliente}
+                tipoInicial="cliente"
+                className={COMBO_MEDIO}
+                placeholder="Buscar cliente…"
+              />
             </Campo>
             <Campo>
               <Etiqueta htmlFor="fecha" requerido>
@@ -941,7 +971,7 @@ export function DocumentoVentaForm({
 
         <LineasDocumento
           lineas={lineas}
-          productos={productos}
+          productos={productosLocales}
           calculadas={calculadas}
           onActualizar={actualizarLinea}
           onSeleccionarProducto={seleccionarProducto}

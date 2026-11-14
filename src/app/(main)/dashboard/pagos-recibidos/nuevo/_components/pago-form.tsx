@@ -7,19 +7,12 @@ import { useRouter } from "next/navigation";
 
 import { ChevronDown, Loader2 } from "lucide-react";
 
+import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import { RetencionesCampo } from "@/components/retenciones/retenciones-campo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -76,7 +69,6 @@ export function PagoForm({
   const [retencionesIds, setRetencionesIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const clientesItems = contactos.map((contacto) => ({ value: contacto.id, label: contacto.nombre }));
   const facturasDelCliente = facturas.filter((factura) => factura.contacto_id === clienteId);
   const facturaSeleccionada = facturasDelCliente.find((factura) => factura.id === facturaId);
   const saldo = facturaSeleccionada ? saldoDisponible(facturaSeleccionada) : 0;
@@ -191,22 +183,14 @@ export function PagoForm({
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="flex flex-col gap-2 md:col-span-2">
             <Label htmlFor="cliente">Cliente *</Label>
-            <Combobox
-              items={clientesItems}
-              onValueChange={(item: { value: string; label: string } | null) => cambiarCliente(item?.value ?? "")}
-            >
-              <ComboboxInput id="cliente" className="w-full" placeholder="Buscar cliente…" showClear />
-              <ComboboxContent>
-                <ComboboxEmpty>Sin resultados</ComboboxEmpty>
-                <ComboboxList>
-                  {(item: { value: string; label: string }) => (
-                    <ComboboxItem key={item.value} value={item}>
-                      {item.label}
-                    </ComboboxItem>
-                  )}
-                </ComboboxList>
-              </ComboboxContent>
-            </Combobox>
+            <SelectorContacto
+              id="cliente"
+              contactos={contactos}
+              valor={clienteId}
+              onCambio={(contacto) => cambiarCliente(contacto?.id ?? "")}
+              tipoInicial="cliente"
+              placeholder="Buscar cliente…"
+            />
           </div>
 
           <div className="flex flex-col gap-2 md:col-span-2">

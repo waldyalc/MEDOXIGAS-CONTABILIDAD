@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { construirPayloadProducto, leerPreciosFormulario } from "./precios-formulario";
 import { esquemaProducto } from "./productos";
 
-export type ResultadoAccion = { ok: true } | { ok: false; error: string };
+export type ResultadoAccion = { ok: true; id?: string } | { ok: false; error: string };
 
 function texto(formData: FormData, campo: string) {
   const valor = formData.get(campo);
@@ -49,11 +49,13 @@ export async function crearProducto(formData: FormData): Promise<ResultadoAccion
   if (precios === null) return { ok: false, error: "El precio de una lista no es válido" };
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("crear_producto", { p: construirPayloadProducto(parseo.data, precios) });
+  const { data, error } = await supabase.rpc("crear_producto", {
+    p: construirPayloadProducto(parseo.data, precios),
+  });
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard/productos");
-  return { ok: true };
+  return { ok: true, id: data ?? undefined };
 }
 
 export async function actualizarProducto(id: string, formData: FormData): Promise<ResultadoAccion> {

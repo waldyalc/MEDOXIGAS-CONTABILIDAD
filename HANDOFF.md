@@ -1,5 +1,15 @@
 # Handoff — Medoxigas Contabilidad
 
+## Crear contacto y producto rápido desde los selectores (15 nov 2026)
+
+- Nuevos componentes reutilizables: `src/components/contactos/selector-contacto.tsx` y `dialogo-nuevo-contacto.tsx`; `src/components/productos/selector-producto.tsx` y `dialogo-nuevo-producto.tsx`. El combobox muestra la identificación en gris bajo el nombre, fija arriba «Crear nuevo cliente/proveedor» (o producto) y, si hay búsqueda, la usa para prellenar el nombre del diálogo. El modal de contacto tiene toggles Cliente/Proveedor, tipo y número de identificación, nombre, municipio/provincia, dirección, correo, teléfono, «Formulario avanzado» (abre `/dashboard/contactos#nuevo` en otra pestaña) y «Crear contacto».
+- Al crear se usa la acción existente (`crearContacto` / `crearProducto`), ahora devuelve el id para dejar el registro seleccionado sin tocar lo ya llenado. El formulario de contactos abre el diálogo con `#nuevo` y conserva el tipo de identificación al editar.
+- Selectores cambiados en: factura, cotización y conduce (plantilla `documento-venta-form`), nota de débito, pago recibido, factura de proveedor, pago a proveedor, gasto menor y orden de compra. En líneas se agregó «Crear nuevo producto» en factura/cotización/conduce, nota de débito, factura de proveedor y orden de compra.
+- Validación pura en `src/lib/contactos/contacto-rapido.ts` con Vitest (RNC 9 dígitos, cédula 11, pasaporte alfanumérico y tipo cliente/proveedor/ambos).
+- Migración **aditiva** `20261115600000_contacto_rapido_identificacion.sql` (NO aplicada al remoto; la revisa Coder): agrega `tipo_identificacion` y `municipio_provincia` a `contactos` y actualiza `crear_contacto`/`actualizar_contacto`. `types.ts` actualizado a mano solo en esas columnas.
+- Verificado: `pnpm typecheck`, `pnpm test` (616), Biome sobre lo tocado y `pnpm build`. Sin verificación visual.
+- Quedó fuera: facturas/pagos recurrentes (no estaban en la lista) y las notas de crédito, que no tienen selector propio porque toman el contacto de la factura.
+
 ## Productos: importar CSV/Excel y edición masiva (13 nov 2026)
 
 - Lista de productos: botón «Importar» con diálogo shadcn. Descarga la
