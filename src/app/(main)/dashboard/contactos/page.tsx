@@ -7,10 +7,12 @@ import { listarListasPreciosActivas } from "@/lib/inventario/consultas";
 import { ContactosCliente } from "./_components/contactos-cliente";
 
 export default async function Page() {
-  const rol = await getRol();
+  const [rol, contactos, listasPrecios] = await Promise.all([
+    getRol(),
+    listarContactos(),
+    listarListasPreciosActivas(),
+  ]);
   if (rol === null) redirect("/unauthorized");
-
-  const [contactos, listasPrecios] = await Promise.all([listarContactos(), listarListasPreciosActivas()]);
 
   return <ContactosCliente contactos={contactos} listasPrecios={listasPrecios} puedeEditar={rol !== "lector"} />;
 }

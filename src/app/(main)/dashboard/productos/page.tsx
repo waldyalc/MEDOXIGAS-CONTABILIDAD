@@ -7,14 +7,13 @@ import { listarProductos } from "@/lib/productos/consultas";
 import { ProductosCliente } from "./_components/productos-cliente";
 
 export default async function Page() {
-  const rol = await getRol();
-  if (rol === null) redirect("/unauthorized");
-
-  const [productos, categorias, listasPrecios] = await Promise.all([
+  const [rol, productos, categorias, listasPrecios] = await Promise.all([
+    getRol(),
     listarProductos(),
     listarCategorias(),
     listarListasPreciosActivas(),
   ]);
+  if (rol === null) redirect("/unauthorized");
 
   return (
     <ProductosCliente

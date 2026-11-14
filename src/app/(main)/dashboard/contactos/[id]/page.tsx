@@ -6,11 +6,9 @@ import { obtenerFichaContacto } from "@/lib/contactos/ficha-consultas";
 import { FichaContacto } from "./_components/ficha-contacto";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-  const rol = await getRol();
-  if (rol == null) redirect("/unauthorized");
-
   const { id } = await params;
-  const datos = await obtenerFichaContacto(id);
+  const [rol, datos] = await Promise.all([getRol(), obtenerFichaContacto(id)]);
+  if (rol == null) redirect("/unauthorized");
   if (!datos) notFound();
 
   return <FichaContacto datos={datos} puedeCrear={rol !== "lector"} />;
