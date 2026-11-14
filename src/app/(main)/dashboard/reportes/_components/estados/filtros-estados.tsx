@@ -1,7 +1,7 @@
+import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
 import type { Vista } from "@/lib/reportes/estados/tipos";
 
@@ -36,23 +36,33 @@ export function FiltrosEstados({
       {centrosCosto.length > 0 ? (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="centro">Centro de costo</Label>
-          <NativeSelect id="centro" name="centro" defaultValue={centroSeleccionado} className="w-52">
-            <NativeSelectOption value="">Todos los centros</NativeSelectOption>
-            {centrosCosto.map((centro) => (
-              <NativeSelectOption key={centro.id} value={centro.id}>
-                {centro.codigo} · {centro.nombre}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+          <SelectCampo
+            id="centro"
+            name="centro"
+            opciones={centrosCosto.map((centro) => ({
+              value: centro.id,
+              label: `${centro.codigo} · ${centro.nombre}`,
+            }))}
+            valorInicial={centroSeleccionado}
+            etiquetaVacia="Todos los centros"
+            buscable
+            className="w-52"
+          />
         </div>
       ) : null}
       {vista != null ? (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="vista">Vista</Label>
-          <NativeSelect id="vista" name="vista" defaultValue={vista} className="w-48">
-            <NativeSelectOption value="detallado">Reporte detallado</NativeSelectOption>
-            <NativeSelectOption value="resumido">Reporte resumido</NativeSelectOption>
-          </NativeSelect>
+          <SelectCampo
+            id="vista"
+            name="vista"
+            opciones={[
+              { value: "detallado", label: "Reporte detallado" },
+              { value: "resumido", label: "Reporte resumido" },
+            ]}
+            valorInicial={vista}
+            className="w-48"
+          />
         </div>
       ) : null}
       <div className="flex flex-col gap-1.5">

@@ -8,8 +8,118 @@
 - Migración **aditiva** `20261116200000_pagos_multifactura.sql` (NO aplicada; la revisa Coder): tablas `pago_recibido_aplicaciones`, `pago_proveedor_aplicaciones` y sus retenciones por aplicación; RPC nuevas `registrar_pago_recibido_multi(p_encabezado, p_aplicaciones)` y `registrar_pago_proveedor_multi(...)`. El servidor recalcula retenciones e ITBIS, valida saldos y arma **un solo asiento** para todas las facturas. «Otros ingresos» acredita la cuenta de ingreso (+ ITBIS por pagar); «Otros egresos» debita gasto/costo (+ ITBIS adelantado). `anular_documento` revierte las aplicaciones nuevas y conserva los pagos viejos. `pagos_proveedor.factura_proveedor_id` admite null para egresos sin factura.
 - Pagos viejos de una sola factura siguen usando `registrar_pago_recibido` / `registrar_pago_proveedor` sin cambios; además se guarda su detalle en las tablas históricas de retenciones. Las vistas de pago, la ficha de factura/compra, el estado de cuenta, el 607, ventas por cliente y las cartas/IR-17 leen también las aplicaciones nuevas.
 - pgTAP `supabase/tests/pagos_multifactura_test.sql` (39 asserts, datos propios): pago a 2 facturas + retención cuadra, ambos saldos bajan, no se paga de más, no se repite la retención, otros ingresos con ITBIS, pago a 2 compras y anulación. Vitest `src/lib/pagos/multifactura.test.ts` (14) para saldos, retenciones, validación, totales y paginación.
-- Verificado: `pnpm typecheck`, `pnpm test` (637), Biome de lo tocado y `pnpm build` en verde. Sin verificación visual (la hace Coder). pgTAP no se pudo correr aquí (sin Docker/Supabase CLI). `types.ts` se actualizó a mano solo con las tablas/RPC nuevas.
+- Verificado tras integrar `prueba` (`dd4f71f`): `pnpm typecheck`, `pnpm test` (662), Biome de lo tocado y `pnpm build` en verde. Sin verificación visual (la hace Coder). pgTAP no se pudo correr aquí (sin Docker/Supabase CLI). `types.ts` se actualizó a mano solo con las tablas/RPC nuevas.
 - Quedó fuera: el lápiz de «Cambiar numeración» (no existe numeración configurable de recibos); editar el «Valor retenido» del modal (el motor lo calcula por porcentaje); y la revisión de estilos del resto de formularios (otra sesión).
+
+## Catálogo completo de impuestos (15 nov 2026)
+
+- Nuevo catálogo `impuestos` con Ninguno, ITBIS 18 %, ITBIS 16 %, ITBIS 0 %,
+  CDT 2 %, Propina 10 % y Exento 0 %, agrupado como en Alegra. Configuración >
+  Impuestos ahora lee el catálogo (grupo, tarifa, cuenta y estado).
+- Cuentas nuevas: **2105 CDT por pagar** y **2106 Propina legal por pagar**
+  (subcuentas de Pasivos corrientes). ITBIS sigue en **2102 ITBIS por pagar**;
+  Exento y Ninguno no tienen cuenta.
+- Los selectores de factura, cotización, conduce, notas de crédito/débito,
+  factura de proveedor, gasto menor, orden de compra y productos usan
+  `SelectorImpuesto` (shadcn, encabezados de grupo; sin «Crear nuevo impuesto»).
+  La línea guarda `impuesto_id` y `itbis_tasa`.
+- Motor: `crear_factura`, `crear_factura_proveedor`, notas de crédito/débito,
+  gasto menor, cotización/conduce, orden de compra y productos conservan su
+  firma y ahora separan cada impuesto en su cuenta. Propina y CDT quedan en
+  `propina` y `otros_impuestos`, nunca dentro de `itbis`. Los documentos viejos
+  con `itbis_tasa` 18/16/0 se mapean al catálogo (0 → ITBIS 0 %). Exento se
+  conserva distinto de ITBIS 0 % para el reporte detallado.
+- Reportes: 606/607 usan `otros impuestos` y `propina`; el IT-1 solo toma
+  ITBIS; el reporte detallado agrega Propina y CDT y distingue Exento.
+  El PDF/vista muestra una fila por impuesto con su nombre.
+- Migraciones **aditivas** (NO aplicadas al remoto; las revisa Coder):
+  `20261115700000_impuestos_catalogo.sql` (tabla, cuentas, columnas, helpers,
+  triggers y RLS) y `20261115701000_motor_impuestos.sql` (wrappers del motor).
+  pgTAP `supabase/tests/impuestos_catalogo_test.sql` (25 asserts, aislado).
+- Funciones envueltas y base exacta de la que parten (rename + wrapper, sin
+  reescribir el cuerpo): `crear_factura` y `crear_factura_proveedor`
+  (`20261115500000`), `crear_nota_credito_venta` y `crear_nota_credito_compra`
+  (`20261115500000`), `crear_nota_debito_venta` (`20261114100000`),
+  `crear_gasto_menor` (`20261113160000`), `_crear_documento_no_contable`
+  (`20261115201000`), `_editar_documento_no_contable` (`20261115400000`),
+  `crear_orden_compra` (`20261114201000`), `crear_producto` y
+  `actualizar_producto` (`20261114900000`). `convertir_a_factura`
+  (`20261115201000`) se reescribe solo para pasar `impuesto_id` de la línea.
+  `crear_cotizacion`, `crear_remision`, `editar_cotizacion`,
+  `editar_remision` y `crear_remision_desde_cotizacion` (`20261115400000`) se
+  conservan y llaman a los wrappers.
+- Corrección: `_impuestos_preparar_fuente` usaba `FOUND` después de un
+  `EXECUTE ... INTO` (que no lo actualiza); ahora usa `GET DIAGNOSTICS ROW_COUNT`.
+  `_impuestos_dividir_asiento` valida que el reparto sume el monto original.
+  El pgTAP cubre también la nota de crédito de compra.
+- Verificado: `pnpm typecheck`, Biome sobre lo tocado, `pnpm test` y
+  `pnpm build`. Los pgTAP no se pudieron correr aquí (sin Docker/Supabase CLI).
+- Pendiente: regenerar `src/lib/supabase/types.ts` con `pnpm db:types` después
+  de aplicar las migraciones. Quedaron fuera los selectores de facturas
+  recurrentes y pagos recurrentes (siguen con 0/16/18) y «Crear nuevo impuesto».
+- Merge con `origin/prueba` (S15/S16/S17/S19/S22): se conservaron el catálogo y
+  el selector de impuestos junto con los selectores de contacto/producto,
+  edición/clonado, importación masiva y Suspense. El motor no reescribe cuerpos:
+  renombra la última definición de cada función a `*_sin_impuestos` y la envuelve
+  para repartir impuestos; también envuelve `_editar_documento_no_contable` para
+  que editar cotización/conduce conserve `impuesto_id` y totales.
+- Otras sesiones: no se tocaron los archivos de `2026111550*` ni las pantallas de
+  importar productos/clonar cotización; solo se integraron sus cambios.
+
+## S26 — Listas desplegables con shadcn (13 nov 2026)
+
+- Nuevo `src/components/select-campo.tsx`: `SelectCampo` envuelve `Select` o el
+  `Combobox` con búsqueda de `components/ui`; acepta `name` (input oculto),
+  `valorInicial`/`valor` + `onCambio`, `requerido`, `deshabilitado` y usa el
+  centinela `__ninguno` para «Todos/Elige…», que se guarda como cadena vacía.
+- Primera parte: **18** selects nativos (`NativeSelect`/`<select>`) en 13
+  archivos: diálogo Nueva cuenta (Tipo y Naturaleza), filtros de reportes
+  (libros, estados, ventas, vendedores, transacciones, anual, inventario, estado
+  de cuenta) y paginación. Las listas largas (cuentas, contactos, centros y
+  vendedores) usan el combobox con búsqueda.
+- Segunda parte (con S20 ya en `prueba`): convertidos los 2 que quedaban, ambos
+  en `compras/formulario-factura` (Almacén y Tipo de línea). Los ITBIS de compras
+  y gastos ya venían con `SelectorImpuesto` (Select de shadcn) desde S20, así que
+  no se tocó su lógica ni `impuesto_id`; gastos no tenía NativeSelect.
+- Regla nueva: `src/lib/selects-nativos.test.ts` falla si aparece `<select>` o
+  `NativeSelect` fuera de `components/ui`, sin lista de pendientes. Anotada en
+  `AGENTS.md`.
+- No se tocaron los formularios de pago ni el catálogo de cuentas. Sin
+  migraciones. `typecheck`, `test` (639), Biome de lo tocado y `build` en verde.
+
+## S27 — Catálogo de cuentas en árbol (13 nov 2026)
+
+- El catálogo de `/dashboard/contabilidad` ya no es una tabla plana: nuevo
+  `CatalogoCuentas` cliente que arma el árbol con `padre_id` desde las cuentas
+  que carga el servidor. Cada padre tiene chevron; las hijas van sangradas con
+  líneas guía. Las raíces llevan badge de color por tipo y separador. Al cargar,
+  Activos y su primer nivel quedan abiertos; el resto cerrado. Botones «Expandir
+  todo» y «Contraer todo».
+- Columnas: Nombre de la cuenta, Código, Uso de cuenta (con ícono de info y
+  tooltip), Descripción (truncada con tooltip) y Saldo (rojo si es negativo).
+  El uso se deriva de `config_contable` y, para cajas/bancos, de
+  `es_caja_banco`/`tipo_banco`; no hay columna nueva en la base.
+- Buscador por nombre o código, insensible a mayúsculas y acentos: conserva a
+  los ancestros de cada coincidencia y abre las ramas donde hay resultados.
+- Al pasar el mouse salen las acciones: crear subcuenta (el diálogo abre con el
+  padre y el tipo preseleccionados), editar y ver movimientos (`rutaCuenta`).
+  No se agregó papelera porque hoy no existe acción de borrar.
+- Clic en una fila la resalta y abre «Información de la cuenta» (código, nombre,
+  tipo, naturaleza, uso, descripción, saldo y enlace a movimientos): panel fijo
+  a la derecha en escritorio y `Sheet` en móvil.
+- Lógica pura en `src/lib/contabilidad/catalogo.ts` (árbol, filtro, expansión,
+  aplanado, índice y uso) con Vitest en `catalogo.test.ts` (9 tests).
+  `obtenerCatalogoContable` ahora selecciona `descripcion`, `es_caja_banco` y
+  `tipo_banco`; `CuentaContable` los tiene opcionales.
+- `cuenta-formulario.tsx` se tocó lo mínimo: `trigger`, `padreIdInicial` y
+  `tipoInicial` en `NuevaCuenta`/`EditarCuenta` para las acciones de fila. La
+  sesión S26 (`fix/select-shadcn`) también edita ese archivo, pero en los
+  `NativeSelect` del formulario; el conflicto debería ser chico.
+- Sin migraciones. `typecheck`, `test` (632), Biome sobre lo tocado y `build` en
+  verde. Sin verificación visual (la hace Coder).
+- Quedó fuera: editar Descripción y Uso desde el catálogo (el formulario de
+  cuenta no tiene esos campos) y la acción de borrar. El `loading.tsx` existente
+  se mantiene.
 
 ## S24 — Papel impreso/PDF de factura, cotización y conduce (13 nov 2026)
 
@@ -21,6 +131,49 @@
 - Tests de render con `renderToStaticMarkup` en `documento-papel.test.tsx` (7).
   Sin migraciones. `typecheck`, `test` (623), Biome de lo tocado y `build` en
   verde; sin verificación visual.
+
+## S23 — Inicio como «Resumen del negocio» de Alegra (16 nov 2026)
+
+- Inicio (`/dashboard`) ahora es el «Resumen del negocio»: encabezado y filtro
+  de periodo a la derecha (`?periodo=mes|3m|6m`, con el rango dd/mm/aaaa debajo
+  de cada opción). Se conserva arriba el aviso de saldo negativo en caja/banco.
+  «Mes actual» va del día 1 a hoy; 3 m y 6 m cuentan meses calendario hacia
+  atrás, incluido el actual.
+- **Una sola función SQL de solo lectura**:
+  `dashboard_resumen(p_desde, p_hasta)` (`20261116100000_dashboard_resumen.sql`,
+  aditiva, no aplicada al remoto). Es `stable`, `security invoker` y respeta RLS;
+  devuelve un JSON con las tarjetas y la serie. `obtenerResumenNegocio` usa
+  `cache()` para que los tres bloques compartan una sola llamada.
+- Tarjetas grandes: **Cuentas por cobrar** y **Cuentas por pagar**, con total y
+  filas proporcionales verde «Vigentes» y roja «Vencidas» (monto y N documentos).
+  Saldo = `total - pagado - crédito - retenido`; vencidas = vencimiento < hasta
+  (= hoy) y saldo > 0. Solo facturas del periodo con saldo pendiente. El título
+  enlaza a CxC (`?hasta=&creacion_desde=&creacion_hasta=`) / CxP
+  (`?desde=&hasta=`).
+- Tarjetas chicas 2×2: **Impuestos en venta** (suma de `facturas.itbis` del
+  periodo), **Productos vendidos** (unidades de `factura_lineas` de facturas no
+  anuladas), **Devoluciones de clientes** (notas de crédito de venta activas,
+  «Incluye impuestos») y **Clientes con ventas** (contactos distintos, enlaza a
+  Ventas por cliente con fechas).
+- **Total de ventas**: facturas no anuladas, `total` con impuestos; el título
+  enlaza a Ventas generales con fechas. Con un solo mes, líneas diarias (serie
+  sólida del periodo y punteada del mismo rango del año anterior, tooltip con
+  ambas); con 3/6 meses, barras por mes. Total y variación % contra el mismo
+  rango del año anterior; botón para abrir la gráfica en un Dialog grande.
+  Todo con Chart de shadcn/recharts.
+- Cada bloque va en su `<Suspense>` con esqueletos que imitan su forma
+  (`_components/inicio/esqueletos.tsx`) y `loading.tsx` actualizado.
+- pgTAP `dashboard_resumen_test.sql` (27 asserts) con datos propios en fechas
+  2099/2098; cubre CxC/CxP, tarjetas, ventas, variación y series diaria/mensual.
+  Vitest `src/lib/inicio/periodo.test.ts` (9) para el periodo y los rangos.
+  El pgTAP no se pudo correr aquí (sin Docker/Supabase CLI).
+- `types.ts` actualizado a mano solo con `dashboard_resumen` (la migración no
+  está aplicada). `typecheck`, `test` (625), Biome de lo tocado y `build` en
+  verde. Sin verificación visual.
+- Quedó fuera: «Funciones sugeridas», «Agregar gráfica» y eliminar tarjetas
+  (futuro). Las devoluciones no restan de ventas, ITBIS ni unidades (van
+  aparte, como pide el brief); las barras mensuales solo pintan el periodo
+  actual (la variación total sí compara contra el año anterior).
 
 ## S21 — Todo conectado: enlaces de entidades (13 nov 2026)
 
@@ -156,7 +309,6 @@
 - **Índices**: migración **aditiva** `20261115900000_indices_rendimiento.sql` (`CREATE INDEX IF NOT EXISTS`): contacto+fecha en facturas/compras/cotizaciones/remisiones/pagos, fecha+número en listados, facturas abiertas de proveedor, notas por factura+fecha, nombre de contactos/productos y asientos por fecha+número. **No aplicada** al remoto.
 - **Medición local** (`pnpm build && pnpm start`, sin sesión): shell liviano por el proxy p50 59–81 ms; RTT a Supabase p50 151 ms (n=15). No se pudieron medir las rutas autenticadas: no hay credenciales de prueba en este worktree (la solicitud de credencial expiró). Rondas de red secuenciales antes → después: Inicio 4→2, Facturas 5→2, Ficha de factura 6→3, Compras 4→2, Ficha de compra 5→3, Contactos 4→2, Productos 4→2, Ficha de contacto 5→3, Ficha de producto 7→5, Ventas generales 3→1.
 - Verificado: `pnpm typecheck`, `pnpm test` (577), Biome sobre lo tocado y `pnpm build` en verde. Sin cambios de lógica contable ni de apariencia (los esqueletos son nuevos estados de carga).
-
 ## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
 
 - El saldo por pagar ahora es `total - pagado - credito` en el reporte Cuentas

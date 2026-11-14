@@ -1,7 +1,7 @@
+import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { FiltrosVentasUrl, NumeracionOpcion } from "@/lib/reportes/ventas/v1/tipos";
 
 import { SelectorRangoFechas } from "../../_components/selector-fechas";
@@ -20,22 +20,29 @@ export function FiltrosVentas({ desde, hasta, filtros, numeraciones, mostrarNume
       <SelectorRangoFechas desde={desde} hasta={hasta} />
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="almacen">Almacén</Label>
-        <NativeSelect id="almacen" name="almacen" defaultValue={filtros.almacen} className="w-44">
-          <NativeSelectOption value="">Todos los almacenes</NativeSelectOption>
-          <NativeSelectOption value="principal">Principal</NativeSelectOption>
-        </NativeSelect>
+        <SelectCampo
+          id="almacen"
+          name="almacen"
+          opciones={[{ value: "principal", label: "Principal" }]}
+          valorInicial={filtros.almacen}
+          etiquetaVacia="Todos los almacenes"
+          className="w-44"
+        />
       </div>
       {mostrarNumeracion ? (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="numeracion">Numeración</Label>
-          <NativeSelect id="numeracion" name="numeracion" defaultValue={filtros.tipoComprobante} className="w-56">
-            <NativeSelectOption value="">Todas las numeraciones</NativeSelectOption>
-            {numeraciones.map((numeracion) => (
-              <NativeSelectOption key={numeracion.tipo_comprobante} value={numeracion.tipo_comprobante}>
-                {numeracion.prefijo} {numeracion.nombre}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+          <SelectCampo
+            id="numeracion"
+            name="numeracion"
+            opciones={numeraciones.map((numeracion) => ({
+              value: numeracion.tipo_comprobante,
+              label: `${numeracion.prefijo} ${numeracion.nombre}`,
+            }))}
+            valorInicial={filtros.tipoComprobante}
+            etiquetaVacia="Todas las numeraciones"
+            className="w-56"
+          />
         </div>
       ) : null}
       <div className="flex min-w-52 flex-1 flex-col gap-1.5">

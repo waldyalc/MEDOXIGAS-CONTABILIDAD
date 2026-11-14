@@ -1,9 +1,10 @@
 "use client";
 
-import { type FormEvent, useState, useTransition } from "react";
+import { type FormEvent, type ReactElement, useState, useTransition } from "react";
 
 import { ChevronDown, Pencil, Plus } from "lucide-react";
 
+import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -14,10 +15,17 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
 import { actualizarCuenta, crearCuenta } from "@/lib/contabilidad/acciones";
 import {
@@ -29,10 +37,18 @@ import {
   TIPOS_CUENTA,
 } from "@/lib/contabilidad/validacion";
 
+const OPCIONES_TIPO = TIPOS_CUENTA.map((valor) => ({ value: valor, label: etiquetaTipoCuenta(valor) }));
+const OPCIONES_NATURALEZA = NATURALEZAS_CUENTA.map((valor) => ({
+  value: valor,
+  label: etiquetaNaturalezaCuenta(valor),
+}));
+
 interface FormularioCuentaProps {
   cuenta: CuentaEditable | null;
   cuentas: readonly CuentaOpcion[];
   bloquearCodigoTipoNaturaleza?: boolean;
+  padreIdInicial?: string | null;
+  tipoInicial?: string;
   onGuardado: () => void;
 }
 
@@ -40,11 +56,13 @@ function FormularioCuenta({
   cuenta,
   cuentas,
   bloquearCodigoTipoNaturaleza = false,
+  padreIdInicial,
+  tipoInicial,
   onGuardado,
 }: FormularioCuentaProps) {
-  const [tipo, setTipo] = useState(cuenta?.tipo ?? "activo");
+  const [tipo, setTipo] = useState(cuenta?.tipo ?? tipoInicial ?? "activo");
   const [naturaleza, setNaturaleza] = useState(cuenta?.naturaleza ?? "debito");
-  const [padreId, setPadreId] = useState(cuenta?.padre_id ?? "");
+  const [padreId, setPadreId] = useState(cuenta?.padre_id ?? padreIdInicial ?? "");
   const [aceptaMovimientos, setAceptaMovimientos] = useState(cuenta?.acepta_movimientos ?? true);
   const [esCajaBanco, setEsCajaBanco] = useState(cuenta?.es_caja_banco ?? false);
   const [activa, setActiva] = useState(cuenta?.activa ?? true);
@@ -114,38 +132,26 @@ function FormularioCuenta({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="tipo">Tipo</FieldLabel>
-            <NativeSelect
+            <SelectCampo
               id="tipo"
               name="tipo"
-              className="w-full"
-              value={tipo}
-              disabled={bloquearCodigoTipoNaturaleza}
-              onChange={(event) => cambiarTipo(event.target.value)}
-            >
-              {TIPOS_CUENTA.map((valor) => (
-                <NativeSelectOption key={valor} value={valor}>
-                  {etiquetaTipoCuenta(valor)}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              opciones={OPCIONES_TIPO}
+              valor={tipo}
+              onCambio={cambiarTipo}
+              deshabilitado={bloquearCodigoTipoNaturaleza}
+            />
           </Field>
 
           <Field>
             <FieldLabel htmlFor="naturaleza">Naturaleza</FieldLabel>
-            <NativeSelect
+            <SelectCampo
               id="naturaleza"
               name="naturaleza"
-              className="w-full"
-              value={naturaleza}
-              disabled={bloquearCodigoTipoNaturaleza}
-              onChange={(event) => setNaturaleza(event.target.value)}
-            >
-              {NATURALEZAS_CUENTA.map((valor) => (
-                <NativeSelectOption key={valor} value={valor}>
-                  {etiquetaNaturalezaCuenta(valor)}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              opciones={OPCIONES_NATURALEZA}
+              valor={naturaleza}
+              onCambio={setNaturaleza}
+              deshabilitado={bloquearCodigoTipoNaturaleza}
+            />
           </Field>
         </div>
 
@@ -216,24 +222,42 @@ function FormularioCuenta({
   );
 }
 
-export function NuevaCuenta({ cuentas }: { readonly cuentas: readonly CuentaOpcion[] }) {
+export function NuevaCuenta({
+  cuentas,
+  padreIdInicial,
+  tipoInicial,
+  trigger,
+}: {
+  readonly cuentas: readonly CuentaOpcion[];
+  readonly padreIdInicial?: string | null;
+  readonly tipoInicial?: string;
+  readonly trigger?: ReactElement;
+}) {
   const [abierto, setAbierto] = useState(false);
 
   return (
-    <>
-      <Button type="button" onClick={() => setAbierto(true)}>
-        <Plus />
-        Nueva cuenta
-      </Button>
-      <Dialog open={abierto} onOpenChange={setAbierto}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Nueva cuenta</DialogTitle>
-          </DialogHeader>
-          <FormularioCuenta cuenta={null} cuentas={cuentas} onGuardado={() => setAbierto(false)} />
-        </DialogContent>
-      </Dialog>
-    </>
+    <Dialog open={abierto} onOpenChange={setAbierto}>
+      {trigger != null ? (
+        <DialogTrigger render={trigger} />
+      ) : (
+        <DialogTrigger render={<Button type="button" />}>
+          <Plus />
+          Nueva cuenta
+        </DialogTrigger>
+      )}
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Nueva cuenta</DialogTitle>
+        </DialogHeader>
+        <FormularioCuenta
+          cuenta={null}
+          cuentas={cuentas}
+          padreIdInicial={padreIdInicial}
+          tipoInicial={tipoInicial}
+          onGuardado={() => setAbierto(false)}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -241,33 +265,37 @@ export function EditarCuenta({
   cuenta,
   cuentas,
   bloquearCodigoTipoNaturaleza,
+  trigger,
 }: {
   readonly cuenta: CuentaEditable;
   readonly cuentas: readonly CuentaOpcion[];
   readonly bloquearCodigoTipoNaturaleza: boolean;
+  readonly trigger?: ReactElement;
 }) {
   const [abierto, setAbierto] = useState(false);
 
   return (
-    <>
-      <Button type="button" variant="outline" size="sm" onClick={() => setAbierto(true)}>
-        <Pencil />
-        Editar
-      </Button>
-      <Dialog open={abierto} onOpenChange={setAbierto}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Editar cuenta</DialogTitle>
-          </DialogHeader>
-          <FormularioCuenta
-            key={cuenta.id}
-            cuenta={cuenta}
-            cuentas={cuentas}
-            bloquearCodigoTipoNaturaleza={bloquearCodigoTipoNaturaleza}
-            onGuardado={() => setAbierto(false)}
-          />
-        </DialogContent>
-      </Dialog>
-    </>
+    <Dialog open={abierto} onOpenChange={setAbierto}>
+      {trigger != null ? (
+        <DialogTrigger render={trigger} />
+      ) : (
+        <DialogTrigger render={<Button type="button" variant="outline" size="sm" />}>
+          <Pencil />
+          Editar
+        </DialogTrigger>
+      )}
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Editar cuenta</DialogTitle>
+        </DialogHeader>
+        <FormularioCuenta
+          key={cuenta.id}
+          cuenta={cuenta}
+          cuentas={cuentas}
+          bloquearCodigoTipoNaturaleza={bloquearCodigoTipoNaturaleza}
+          onGuardado={() => setAbierto(false)}
+        />
+      </DialogContent>
+    </Dialog>
   );
 }

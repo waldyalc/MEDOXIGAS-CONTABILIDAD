@@ -194,6 +194,7 @@ export interface ProductoImportado {
   descripcion: string | null;
   precio: number;
   itbis_tasa: TasaItbis;
+  impuesto_id: string | null;
   costo: number;
   inventariable: boolean;
   cantidad: number;
@@ -315,6 +316,7 @@ function validarFila(
           descripcion: textoOpcional(celda(fila, mapa, "descripcion")),
           precio: precio.precio,
           itbis_tasa: itbis,
+          impuesto_id: null,
           costo: tipo.tipo === "producto" ? costo.costo : 0,
           inventariable: tipo.tipo === "producto",
           cantidad: 0,
@@ -520,6 +522,7 @@ export function calcularEdicionMasiva(
         descripcion: producto.descripcion,
         precio: precio.precio,
         itbis_tasa: itbis ?? producto.itbis_tasa,
+        impuesto_id: producto.impuesto_id,
         inventariable: producto.inventariable,
         cantidad: producto.cantidad,
         costo: producto.costo,

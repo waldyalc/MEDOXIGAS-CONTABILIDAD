@@ -28,6 +28,7 @@ export async function crearGastoMenor(entrada: unknown): Promise<ResultadoGasto>
     descripcion: datos.descripcion,
     subtotal: centavosAValor(valorACentavos(datos.subtotal)),
     itbis_tasa: datos.itbis_tasa,
+    impuesto_id: datos.impuesto_id ?? null,
     ...(datos.cuenta_gasto_id ? { cuenta_gasto_id: datos.cuenta_gasto_id } : {}),
     ...(datos.cuenta_pago_id ? { cuenta_pago_id: datos.cuenta_pago_id } : {}),
     ...(datos.contacto_id ? { contacto_id: datos.contacto_id } : {}),

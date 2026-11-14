@@ -91,6 +91,7 @@ import type {
   PagoFacturaVista,
 } from "@/lib/facturacion/tipos";
 import { formatoDia } from "@/lib/formato";
+import { type Impuesto, resumenImpuestos } from "@/lib/impuestos/tipos";
 
 import { AsientoContable } from "./asiento-contable";
 import { nombreArchivoPapel } from "./papel";
@@ -99,7 +100,6 @@ import {
   estadoDeDocumento,
   estadoDeFactura,
   etiquetaDescuento,
-  etiquetaItbisTotal,
   etiquetaTasaItbis,
   montoGravadoDeLineas,
   permisosDeDocumento,
@@ -405,15 +405,17 @@ function TotalesDocumento({
   lineas,
   subtotal,
   descuento,
-  itbis,
+  impuestos,
   total,
 }: {
   lineas: FacturaLinea[];
   subtotal: number;
   descuento: number;
-  itbis: number;
+  impuestos: Impuesto[];
   total: number;
 }) {
+  const filasImpuesto = resumenImpuestos(lineas, impuestos);
+
   return (
     <section className="mt-10 flex md:justify-end">
       <div className="text-muted-foreground w-80 max-w-full text-base">
@@ -429,10 +431,12 @@ function TotalesDocumento({
           <span>Monto gravado</span>
           <span className="tabular-nums">{formatoMoneda(montoGravadoDeLineas(lineas))}</span>
         </div>
-        <div className="flex h-6 items-center justify-between gap-4">
-          <span>{etiquetaItbisTotal(lineas)}</span>
-          <span className="tabular-nums">{formatoMoneda(itbis)}</span>
-        </div>
+        {filasImpuesto.map((fila) => (
+          <div key={fila.clave} className="flex h-6 items-center justify-between gap-4">
+            <span>{fila.nombre}</span>
+            <span className="tabular-nums">{formatoMoneda(fila.total)}</span>
+          </div>
+        ))}
         <div className="text-foreground mt-7 flex items-center justify-between gap-4 text-xl leading-7 font-semibold">
           <span>Total</span>
           <span className="tabular-nums">{formatoMoneda(total)}</span>
@@ -870,7 +874,7 @@ interface DocumentoVentaCardProps {
   lineas: FacturaLinea[];
   subtotal: number;
   descuento: number;
-  itbis: number;
+  impuestos: Impuesto[];
   total: number;
 }
 
@@ -891,7 +895,7 @@ function DocumentoVentaCard(props: DocumentoVentaCardProps) {
           lineas={props.lineas}
           subtotal={props.subtotal}
           descuento={props.descuento}
-          itbis={props.itbis}
+          impuestos={props.impuestos}
           total={props.total}
         />
       </div>
@@ -1181,6 +1185,7 @@ interface VistaPreparada {
   documento: DocumentoDetalle | null;
   base: FacturaDetalle | DocumentoDetalle;
   lineas: FacturaLinea[];
+  impuestos: Impuesto[];
   contacto: ContactoResumen;
   empresa: Empresa | null;
   pagos: PagoFacturaVista[];
@@ -1239,6 +1244,7 @@ function prepararVista(props: Props): VistaPreparada | null {
     documento,
     base,
     lineas,
+    impuestos: props.datos.impuestos,
     contacto: props.datos.contacto,
     empresa: props.datos.empresa,
     pagos,
@@ -1499,7 +1505,7 @@ export function VistaDocumentoVenta(props: Props) {
           lineas={lineas}
           subtotal={base.subtotal}
           descuento={preparado.descuento}
-          itbis={base.itbis}
+          impuestos={preparado.impuestos}
           total={base.total}
         />
 

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Loader2 } from "lucide-react";
 
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
+import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +23,6 @@ import {
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { toast } from "@/components/ui/toast";
 import { calcularLinea, centavosAValor, parsearCentavos } from "@/lib/facturacion/calculo";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
@@ -30,6 +30,7 @@ import type { ContactoResumen } from "@/lib/facturacion/tipos";
 import { crearGastoMenor } from "@/lib/gastos/acciones";
 import { etiquetaCuenta } from "@/lib/gastos/seleccion";
 import type { CuentaCajaBanco, CuentaGasto } from "@/lib/gastos/tipos";
+import { type Impuesto, impuestoNinguno } from "@/lib/impuestos/tipos";
 
 interface Props {
   cuentas: CuentaGasto[];
@@ -37,6 +38,7 @@ interface Props {
   proveedores: ContactoResumen[];
   cuentaPorDefecto: string;
   cuentaPagoPorDefecto: string;
+  impuestos: Impuesto[];
   fechaHoy: string;
 }
 
@@ -51,6 +53,7 @@ export function GastoForm({
   proveedores,
   cuentaPorDefecto,
   cuentaPagoPorDefecto,
+  impuestos,
   fechaHoy,
 }: Props) {
   const router = useRouter();
@@ -59,6 +62,7 @@ export function GastoForm({
   const [descripcion, setDescripcion] = useState("");
   const [monto, setMonto] = useState("");
   const [fecha, setFecha] = useState(fechaHoy);
+  const [impuestoId, setImpuestoId] = useState(impuestoNinguno(impuestos)?.id ?? "");
   const [itbisTasa, setItbisTasa] = useState("0");
   const [cuentaId, setCuentaId] = useState(cuentaPorDefecto);
   const [cuentaPagoId, setCuentaPagoId] = useState(cuentaPagoPorDefecto);
@@ -104,6 +108,7 @@ export function GastoForm({
         descripcion: descripcion.trim(),
         subtotal: centavosAValor(subtotalCentavos),
         itbis_tasa: Number(itbisTasa),
+        impuesto_id: impuestoId || null,
         cuenta_gasto_id: cuentaId,
         cuenta_pago_id: cuentaPagoId || undefined,
         contacto_id: proveedorId || undefined,
@@ -224,17 +229,18 @@ export function GastoForm({
                     </Combobox>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="itbis">ITBIS %</Label>
-                    <NativeSelect
+                    <Label htmlFor="itbis">Impuesto</Label>
+                    <SelectorImpuesto
                       id="itbis"
                       className="w-full"
-                      value={itbisTasa}
-                      onChange={(evento) => setItbisTasa(evento.target.value)}
-                    >
-                      <NativeSelectOption value="0">0 %</NativeSelectOption>
-                      <NativeSelectOption value="16">16 %</NativeSelectOption>
-                      <NativeSelectOption value="18">18 %</NativeSelectOption>
-                    </NativeSelect>
+                      impuestos={impuestos}
+                      value={impuestoId}
+                      onValueChange={(id) => {
+                        const impuesto = impuestos.find((item) => item.id === id);
+                        setImpuestoId(id);
+                        setItbisTasa(String(impuesto?.tarifa ?? 0));
+                      }}
+                    />
                   </div>
                   <div className="flex flex-col gap-2 md:col-span-2">
                     <Label htmlFor="proveedor">Proveedor</Label>
@@ -260,7 +266,7 @@ export function GastoForm({
           <span>{formatoMonedaCentavos(calculo.subtotalCentavos)}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">ITBIS</span>
+          <span className="text-muted-foreground">Impuestos</span>
           <span>{formatoMonedaCentavos(calculo.itbisCentavos)}</span>
         </div>
         <div className="flex items-center justify-between border-t pt-2 text-base font-semibold">

@@ -52,6 +52,7 @@ export async function crearFactura(entrada: unknown): Promise<ResultadoAccion> {
       precio: centavosAValor(valorACentavos(linea.precio)),
       descuento_pct: linea.descuento_pct,
       itbis_tasa: linea.itbis_tasa,
+      impuesto_id: linea.impuesto_id ?? null,
     })),
     ...(datos.pago
       ? {

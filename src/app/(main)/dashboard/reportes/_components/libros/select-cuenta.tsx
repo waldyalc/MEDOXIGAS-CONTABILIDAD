@@ -1,4 +1,4 @@
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { SelectCampo } from "@/components/select-campo";
 import type { CuentaContable } from "@/lib/reportes/tipos";
 
 interface Props {
@@ -22,22 +22,22 @@ export function SelectCuenta({
   etiquetaTodas = "Todas las cuentas",
   deshabilitado = false,
 }: Props) {
+  const opciones = cuentas.map((cuenta) => ({
+    value: cuenta.codigo,
+    label: `${cuenta.codigo} · ${cuenta.nombre}`,
+  }));
+
   return (
-    <NativeSelect
+    <SelectCampo
       id={id}
       name={name}
-      defaultValue={valor ?? ""}
-      required={requerido}
-      disabled={deshabilitado}
+      opciones={opciones}
+      valorInicial={valor ?? ""}
+      etiquetaVacia={todas ? etiquetaTodas : "Elige una cuenta"}
+      buscable
+      requerido={requerido}
+      deshabilitado={deshabilitado}
       className="min-w-56"
-    >
-      {todas ? <NativeSelectOption value="">{etiquetaTodas}</NativeSelectOption> : null}
-      {!todas ? <NativeSelectOption value="">Elige una cuenta</NativeSelectOption> : null}
-      {cuentas.map((cuenta) => (
-        <NativeSelectOption key={cuenta.id} value={cuenta.codigo}>
-          {cuenta.codigo} · {cuenta.nombre}
-        </NativeSelectOption>
-      ))}
-    </NativeSelect>
+    />
   );
 }

@@ -1,9 +1,9 @@
 import { Search } from "lucide-react";
 
+import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
 import { SelectorFechaFormulario, SelectorRangoFechas } from "../../_components/selector-fechas";
 
@@ -31,19 +31,31 @@ export function FiltrosTransacciones({ desde, hasta, comprobante, fecha, estado,
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="estado">Estado</Label>
-        <NativeSelect id="estado" name="estado" defaultValue={estado} className="w-32">
-          <NativeSelectOption value="">Todos</NativeSelectOption>
-          <NativeSelectOption value="activo">Activo</NativeSelectOption>
-          <NativeSelectOption value="anulado">Anulado</NativeSelectOption>
-        </NativeSelect>
+        <SelectCampo
+          id="estado"
+          name="estado"
+          opciones={[
+            { value: "activo", label: "Activo" },
+            { value: "anulado", label: "Anulado" },
+          ]}
+          valorInicial={estado}
+          etiquetaVacia="Todos"
+          className="w-32"
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="tipo">Tipo</Label>
-        <NativeSelect id="tipo" name="tipo" defaultValue={tipo} className="w-32">
-          <NativeSelectOption value="">Todos</NativeSelectOption>
-          <NativeSelectOption value="entrada">Entrada</NativeSelectOption>
-          <NativeSelectOption value="salida">Salida</NativeSelectOption>
-        </NativeSelect>
+        <SelectCampo
+          id="tipo"
+          name="tipo"
+          opciones={[
+            { value: "entrada", label: "Entrada" },
+            { value: "salida", label: "Salida" },
+          ]}
+          valorInicial={tipo}
+          etiquetaVacia="Todos"
+          className="w-32"
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="valor">Valor</Label>

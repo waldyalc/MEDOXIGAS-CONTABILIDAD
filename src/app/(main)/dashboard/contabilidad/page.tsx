@@ -1,5 +1,3 @@
-import { Fragment } from "react";
-
 import { BookOpen, TriangleAlert } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
@@ -8,64 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
+import { CONFIGURACION_CONTABLE } from "@/lib/contabilidad/catalogo";
 import { rutaCuenta } from "@/lib/enlaces";
 import { obtenerCatalogoContable } from "@/lib/reportes/consultas";
-import { construirArbolCuentas, type NodoCuenta } from "@/lib/reportes/contabilidad";
-import { formatearRd } from "@/lib/reportes/dinero";
 
+import { CatalogoCuentas } from "./_components/catalogo-cuentas";
 import { NuevaCuenta } from "./_components/cuenta-formulario";
-
-const CONFIGURACION_CONTABLE = [
-  { clave: "caja", etiqueta: "Caja" },
-  { clave: "banco", etiqueta: "Banco" },
-  { clave: "cxc", etiqueta: "Cuentas por cobrar" },
-  { clave: "inventario", etiqueta: "Inventario" },
-  { clave: "itbis_adelantado", etiqueta: "ITBIS adelantado en compras" },
-  { clave: "cxp", etiqueta: "Cuentas por pagar" },
-  { clave: "itbis_por_pagar", etiqueta: "ITBIS por pagar" },
-  { clave: "ventas", etiqueta: "Ventas de productos" },
-  { clave: "ventas_servicios", etiqueta: "Ventas de servicios" },
-  { clave: "costo_ventas", etiqueta: "Costo de ventas" },
-  { clave: "gastos_generales", etiqueta: "Gastos generales" },
-];
-
-function FilasCuenta({ nodos, nivel }: { nodos: readonly NodoCuenta[]; nivel: number }) {
-  const sangria = { paddingLeft: `${nivel * 20}px` };
-
-  return (
-    <>
-      {nodos.map((nodo) => (
-        <Fragment key={nodo.cuenta.id}>
-          <TableRow>
-            <TableCell className="text-muted-foreground tabular-nums">
-              <Enlace href={rutaCuenta(nodo.cuenta.id)} style={sangria} className="inline-block">
-                {nodo.cuenta.codigo}
-              </Enlace>
-            </TableCell>
-            <TableCell>
-              <Enlace
-                href={rutaCuenta(nodo.cuenta.id)}
-                style={sangria}
-                className={`inline-block ${nodo.cuenta.acepta_movimientos ? "" : "font-medium"}`}
-              >
-                {nodo.cuenta.nombre}
-              </Enlace>
-            </TableCell>
-            <TableCell className="capitalize">{nodo.cuenta.tipo}</TableCell>
-            <TableCell className={`text-right tabular-nums ${nodo.saldo < 0 ? "text-destructive" : ""}`}>
-              {formatearRd(nodo.saldo)}
-            </TableCell>
-          </TableRow>
-          <FilasCuenta nodos={nodo.hijos} nivel={nivel + 1} />
-        </Fragment>
-      ))}
-    </>
-  );
-}
 
 export default async function Page() {
   const [{ cuentas, configuracion, saldos, error }, rol] = await Promise.all([obtenerCatalogoContable(), getRol()]);
-  const arbol = construirArbolCuentas(cuentas, saldos);
   const cuentasPorId = new Map(cuentas.map((cuenta) => [cuenta.id, cuenta]));
   const configuracionPorClave = new Map(configuracion.map((fila) => [fila.clave, fila]));
   const puedeEditar = rol === "admin" || rol === "contador";
@@ -90,12 +39,9 @@ export default async function Page() {
         </Alert>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Catálogo de cuentas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {arbol.length === 0 ? (
+      {cuentas.length === 0 ? (
+        <Card>
+          <CardContent>
             <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">
@@ -105,23 +51,11 @@ export default async function Page() {
                 <EmptyDescription>No hay cuentas contables registradas.</EmptyDescription>
               </EmptyHeader>
             </Empty>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Cuenta</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead className="text-right">Saldo</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <FilasCuenta nodos={arbol} nivel={0} />
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <CatalogoCuentas cuentas={cuentas} saldos={saldos} configuracion={configuracion} puedeEditar={puedeEditar} />
+      )}
 
       <Card>
         <CardHeader>

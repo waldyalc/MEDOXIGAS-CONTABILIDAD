@@ -6,6 +6,7 @@ export interface LineaOrigen {
   precio: number;
   descuento_pct: number;
   itbis_tasa: number;
+  impuesto_id?: string | null;
 }
 
 export interface DocumentoOrigen {
@@ -47,6 +48,7 @@ export function prellenarDocumento(
     cantidad: String(linea.cantidad),
     precio: linea.precio.toFixed(2),
     descuentoPct: String(linea.descuento_pct),
+    impuestoId: linea.impuesto_id ?? "",
     itbisTasa: String(linea.itbis_tasa),
   }));
 

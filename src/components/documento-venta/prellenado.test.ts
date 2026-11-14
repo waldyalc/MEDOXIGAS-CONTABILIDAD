@@ -28,6 +28,7 @@ describe("prellenarDocumento", () => {
         cantidad: "2.5",
         precio: "650.00",
         descuentoPct: "10",
+        impuestoId: "",
         itbisTasa: "18",
       },
       {
@@ -36,6 +37,7 @@ describe("prellenarDocumento", () => {
         cantidad: "1",
         precio: "99.50",
         descuentoPct: "0",
+        impuestoId: "",
         itbisTasa: "0",
       },
     ]);

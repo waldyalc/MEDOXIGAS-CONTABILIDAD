@@ -20,6 +20,7 @@ function producto(parcial: Partial<Producto> & Pick<Producto, "id" | "nombre">):
     descripcion: null,
     precio: 0,
     itbis_tasa: 18,
+    impuesto_id: null,
     inventariable: false,
     cantidad: 0,
     costo: 0,
@@ -95,9 +96,10 @@ describe("validación del formulario de producto", () => {
     if (valido.success) expect(valido.data.precio).toBe(1250.5);
   });
 
-  test("rechaza una tasa de ITBIS distinta de 0, 16 o 18", () => {
-    expect(esquemaProducto.safeParse({ nombre: "Cilindro", precio: "10", itbis_tasa: "10" }).success).toBe(false);
+  test("rechaza una tarifa que no está en el catálogo", () => {
+    expect(esquemaProducto.safeParse({ nombre: "Cilindro", precio: "10", itbis_tasa: "12" }).success).toBe(false);
     expect(esquemaProducto.safeParse({ nombre: "Cilindro", precio: "10", itbis_tasa: 16 }).success).toBe(true);
+    expect(esquemaProducto.safeParse({ nombre: "Cilindro", precio: "10", itbis_tasa: 10 }).success).toBe(true);
   });
 
   test("usa 18 % de ITBIS y producto como valores por defecto", () => {
@@ -177,6 +179,7 @@ describe("validación del formulario de producto", () => {
         descripcion: "Cilindro de 10 litros",
         precio: 2500,
         itbis_tasa: 18,
+        impuesto_id: null,
         inventariable: false,
         cantidad: 0,
         costo: 0,

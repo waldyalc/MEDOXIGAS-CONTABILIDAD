@@ -27,6 +27,7 @@ function datosDesdeFormulario(formData: FormData) {
     descripcion: texto(formData, "descripcion"),
     precio: texto(formData, "precio"),
     itbis_tasa: texto(formData, "itbis_tasa") || "18",
+    impuesto_id: texto(formData, "impuesto_id"),
     inventariable: booleano(formData, "inventariable"),
     cantidad: texto(formData, "cantidad") || "0",
     costo: texto(formData, "costo") || "0",

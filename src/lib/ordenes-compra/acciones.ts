@@ -37,6 +37,7 @@ export async function crearOrdenCompra(entrada: EntradaOrdenCompra): Promise<Res
           cantidad: linea.cantidad,
           costo: linea.costo,
           itbis_tasa: linea.itbis_tasa,
+          impuesto_id: linea.impuesto_id,
         })),
       },
     })

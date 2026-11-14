@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { hoyRD } from "@/lib/facturacion/formato";
 import { getDatosFormularioGasto } from "@/lib/gastos/consultas";
+import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 
 import { GastoForm } from "./_components/gasto-form";
 
@@ -37,7 +38,7 @@ export default async function Page() {
 }
 
 async function GastoContenido() {
-  const datos = await getDatosFormularioGasto();
+  const [datos, impuestos] = await Promise.all([getDatosFormularioGasto(), getImpuestosActivos()]);
 
   return (
     <GastoForm
@@ -46,6 +47,7 @@ async function GastoContenido() {
       proveedores={datos.proveedores}
       cuentaPorDefecto={datos.cuentaPorDefecto}
       cuentaPagoPorDefecto={datos.cuentaPagoPorDefecto}
+      impuestos={impuestos}
       fechaHoy={hoyRD()}
     />
   );

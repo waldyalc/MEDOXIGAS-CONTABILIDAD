@@ -13,6 +13,7 @@ import { crearCotizacion } from "@/lib/cotizaciones/acciones";
 import { getDocumentoVista } from "@/lib/cotizaciones/consultas";
 import { getContactosClientes, getEmpresa, getProductosActivos } from "@/lib/facturacion/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
+import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { getPlantillaImpresion } from "@/lib/plantillas-impresion/consultas";
 import { getVendedoresActivos } from "@/lib/vendedores/consultas";
 
@@ -44,7 +45,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
 }
 
 async function CotizacionContenido({ clonar }: { clonar?: string }) {
-  const [empresa, contactos, productos, vendedores, centrosCosto, plantilla, vista] = await Promise.all([
+  const [empresa, contactos, productos, vendedores, centrosCosto, plantilla, vista, impuestos] = await Promise.all([
     getEmpresa(),
     getContactosClientes(),
     getProductosActivos(),
@@ -52,6 +53,7 @@ async function CotizacionContenido({ clonar }: { clonar?: string }) {
     getCentrosCostoActivos(),
     getPlantillaImpresion("cotizacion"),
     clonar ? getDocumentoVista("cotizacion", clonar) : Promise.resolve(null),
+    getImpuestosActivos(),
   ]);
 
   const hoy = hoyRD();
@@ -64,6 +66,7 @@ async function CotizacionContenido({ clonar }: { clonar?: string }) {
       productos={productos}
       vendedores={vendedores}
       centrosCosto={centrosCosto}
+      impuestos={impuestos}
       notasIniciales={plantilla.notas}
       terminosIniciales={plantilla.terminos}
       mostrarLogo={plantilla.mostrarLogo}

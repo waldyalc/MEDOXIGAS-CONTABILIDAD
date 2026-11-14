@@ -32,6 +32,7 @@ export async function crearNotaDebitoVenta(entrada: unknown): Promise<ResultadoN
       precio: centavosAValor(Math.round(linea.precio * 100)),
       descuento_pct: linea.descuento_pct,
       itbis_tasa: linea.itbis_tasa,
+      impuesto_id: linea.impuesto_id ?? null,
     })),
   };
 

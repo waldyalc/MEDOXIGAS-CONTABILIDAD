@@ -1,4 +1,5 @@
 import type { ContactoResumen, Empresa } from "@/lib/facturacion/tipos";
+import type { Impuesto } from "@/lib/impuestos/tipos";
 
 export type TipoDocumento = "cotizacion" | "remision";
 export type EstadoDocumento = "abierta" | "convertida" | "anulada";
@@ -22,6 +23,8 @@ export interface DocumentoDetalle extends DocumentoResumen {
   subtotal: number;
   descuento: number;
   itbis: number;
+  otros_impuestos: number;
+  propina: number;
   notas: string | null;
   terminos: string | null;
   vendedor_id: string | null;
@@ -38,6 +41,7 @@ export interface DocumentoLinea {
   precio: number;
   descuento_pct: number;
   itbis_tasa: number;
+  impuesto_id: string | null;
   subtotal: number;
   itbis: number;
   total: number;
@@ -63,6 +67,7 @@ export interface DocumentoRelacionado {
 export interface DocumentoVista {
   documento: DocumentoDetalle;
   lineas: DocumentoLinea[];
+  impuestos: Impuesto[];
   contacto: ContactoResumen;
   empresa: Empresa | null;
   facturaRelacionada: FacturaRelacionada | null;

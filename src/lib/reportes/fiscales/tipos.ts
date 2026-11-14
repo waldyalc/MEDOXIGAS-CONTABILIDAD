@@ -27,6 +27,8 @@ export interface DocumentoFiscal {
   baseBienes: number;
   baseServicios: number;
   itbis: number;
+  otrosImpuestos: number;
+  propina: number;
   total: number;
   pagado: number;
   credito: number;
@@ -45,6 +47,8 @@ export interface DetalleImpuesto {
   contactoNombre: string;
   fecha: string;
   tasa: number | null;
+  tipo: "itbis" | "otro" | "propina" | "exento";
+  impuestoNombre: string;
   base: number;
   impuesto: number;
   ruta: string | null;

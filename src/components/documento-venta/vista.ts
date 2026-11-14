@@ -128,15 +128,17 @@ export function descuentoDeLineas(lineas: readonly LineaCalculable[]): number {
 }
 
 export function montoGravadoDeLineas(lineas: readonly LineaCalculable[]): number {
-  const centavos = lineas.reduce(
-    (total, linea) => total + (linea.itbis_tasa > 0 ? Math.round(linea.subtotal * 100) : 0),
-    0,
-  );
+  const centavos = lineas.reduce((total, linea) => {
+    const esItbis = linea.itbis_tasa > 0 && linea.itbis_tasa !== 2 && linea.itbis_tasa !== 10;
+    return total + (esItbis ? Math.round(linea.subtotal * 100) : 0);
+  }, 0);
   return centavos / 100;
 }
 
 export function etiquetaTasaItbis(tasa: number): string {
-  return tasa > 0 ? `ITBIS ${formatoCantidad(tasa)}%` : "—";
+  if (tasa === 2) return "CDT 2%";
+  if (tasa === 10) return "Propina 10%";
+  return tasa > 0 ? `ITBIS ${formatoCantidad(tasa)}%` : "\u2014";
 }
 
 export function etiquetaDescuento(porcentaje: number): string {

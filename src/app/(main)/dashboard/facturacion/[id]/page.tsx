@@ -29,6 +29,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           lineas={datos.lineas}
           contacto={datos.contacto}
           ncfVence={datos.ncfVence}
+          impuestos={datos.impuestos}
           mostrarLogo={plantilla.mostrarLogo}
         />
       }

@@ -7,6 +7,7 @@ export interface DatosFormularioProducto {
   descripcion: string | null;
   precio: number;
   itbis_tasa: number;
+  impuesto_id?: string | null;
   inventariable: boolean;
   cantidad: number;
   costo: number;
@@ -22,6 +23,7 @@ export function formDataProducto(datos: DatosFormularioProducto): FormData {
   formulario.set("descripcion", datos.descripcion ?? "");
   formulario.set("precio", String(datos.precio));
   formulario.set("itbis_tasa", String(datos.itbis_tasa));
+  if (datos.impuesto_id) formulario.set("impuesto_id", datos.impuesto_id);
   formulario.set("inventariable", String(datos.inventariable));
   formulario.set("cantidad", String(datos.cantidad));
   formulario.set("costo", String(datos.costo));

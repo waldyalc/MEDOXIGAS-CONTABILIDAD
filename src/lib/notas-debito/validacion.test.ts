@@ -56,10 +56,10 @@ describe("validación de la nota de débito", () => {
     expect(resultado.success).toBe(false);
   });
 
-  test("rechaza un ITBIS fuera de 0, 16 o 18", () => {
+  test("rechaza una tarifa que no está en el catálogo", () => {
     const resultado = crearNotaDebitoVentaSchema.safeParse(
       entrada({
-        lineas: [{ producto_id: productoId, cantidad: 1, precio: 500, itbis_tasa: 10 }],
+        lineas: [{ producto_id: productoId, cantidad: 1, precio: 500, itbis_tasa: 12 }],
       }),
     );
     expect(resultado.success).toBe(false);

@@ -1,4 +1,4 @@
-import type { ProductoTipo, TasaItbis } from "./productos";
+import type { ProductoTipo } from "./productos";
 
 export type PrecioListaFormulario = {
   lista_id: string;
@@ -16,7 +16,8 @@ export type DatosPayloadProducto = {
   referencia: string | null;
   descripcion: string | null;
   precio: number;
-  itbis_tasa: TasaItbis;
+  itbis_tasa: number;
+  impuesto_id: string | null;
   inventariable: boolean;
   cantidad: number;
   costo: number;

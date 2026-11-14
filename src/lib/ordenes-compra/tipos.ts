@@ -46,10 +46,13 @@ export interface OrdenCompraVista {
   lineas: OrdenCompraLinea[];
 }
 
+import type { Impuesto } from "@/lib/impuestos/tipos";
+
 export interface OpcionesOrden {
   contactos: ContactoOpcion[];
   productos: ProductoOpcion[];
   cuentasGasto: CuentaOpcion[];
+  impuestos: Impuesto[];
 }
 
 export interface LineaInicialFactura {
@@ -58,6 +61,7 @@ export interface LineaInicialFactura {
   descripcion: string;
   cantidad: number;
   costo: number;
+  impuesto_id: string | null;
   itbis_tasa: number;
 }
 

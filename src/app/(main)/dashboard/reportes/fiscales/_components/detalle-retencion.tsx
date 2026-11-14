@@ -45,7 +45,7 @@ export function DetalleRetencion({ titulo, filas }: Props) {
             </TableHeader>
             <TableBody>
               {filas.map((fila) => (
-                <TableRow key={`${fila.documentoId}-${fila.tasa}`}>
+                <TableRow key={`${fila.documentoId}-${fila.tipo}-${fila.tasa}`}>
                   <TableCell>
                     {fila.ruta == null ? (
                       fila.ncf || `#${fila.numero}`

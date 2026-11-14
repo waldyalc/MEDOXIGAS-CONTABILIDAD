@@ -1,10 +1,10 @@
 import { UserRound } from "lucide-react";
 import { z } from "zod";
 
+import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoEntero } from "@/lib/formato";
@@ -77,14 +77,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           <SelectorRangoFechas desde={desde} hasta={hasta} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="vendedor">Vendedores</Label>
-            <NativeSelect id="vendedor" name="vendedor" defaultValue={vendedorId ?? ""} className="w-52">
-              <NativeSelectOption value="">Todos los vendedores</NativeSelectOption>
-              {vendedores.map((vendedor) => (
-                <NativeSelectOption key={vendedor.id} value={vendedor.id}>
-                  {vendedor.nombre}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+            <SelectCampo
+              id="vendedor"
+              name="vendedor"
+              opciones={vendedores.map((vendedor) => ({ value: vendedor.id, label: vendedor.nombre }))}
+              valorInicial={vendedorId ?? ""}
+              etiquetaVacia="Todos los vendedores"
+              buscable
+              className="w-52"
+            />
           </div>
           <Button type="submit" variant="secondary">
             Aplicar

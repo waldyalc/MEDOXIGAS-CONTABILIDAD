@@ -74,8 +74,8 @@ export function fila606(documento: DocumentoFiscal): FilaDgii {
     montoRetencionRenta: 0,
     isrPercibido: 0,
     impuestoSelectivo: 0,
-    otrosImpuestos: 0,
-    propina: 0,
+    otrosImpuestos: documento.otrosImpuestos,
+    propina: documento.propina,
     formaPago: documento.clase === "gasto" ? "1" : "4",
   };
 }

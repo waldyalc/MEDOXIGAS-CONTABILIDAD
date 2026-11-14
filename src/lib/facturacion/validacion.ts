@@ -1,16 +1,17 @@
 import { z } from "zod";
 
-import { TASAS_ITBIS } from "./calculo";
 import { TIPOS_COMPROBANTE } from "./tipos";
 
 export const METODOS_PAGO = ["efectivo", "transferencia", "tarjeta", "cheque"] as const;
 
 export const metodoPagoSchema = z.enum(METODOS_PAGO);
 
-const tasaItbisSchema = z.coerce
+export const TASAS_IMPUESTO = [0, 2, 10, 16, 18] as const;
+
+const tasaImpuestoSchema = z.coerce
   .number()
-  .refine((valor) => TASAS_ITBIS.includes(valor as (typeof TASAS_ITBIS)[number]), {
-    message: "El ITBIS debe ser 0 %, 16 % o 18 %",
+  .refine((valor) => TASAS_IMPUESTO.includes(valor as (typeof TASAS_IMPUESTO)[number]), {
+    message: "La tarifa del impuesto no está en el catálogo",
   });
 
 const textoOpcionalSchema = z.string().trim().max(2000).optional();
@@ -22,7 +23,8 @@ export const lineaFacturaSchema = z
     cantidad: z.coerce.number().finite().positive({ message: "La cantidad debe ser mayor que cero" }),
     precio: z.coerce.number().finite().min(0, { message: "El precio no puede ser negativo" }),
     descuento_pct: z.coerce.number().min(0).max(100).default(0),
-    itbis_tasa: tasaItbisSchema.default(0),
+    itbis_tasa: tasaImpuestoSchema.default(0),
+    impuesto_id: z.uuid().nullish(),
   })
   .superRefine((linea, ctx) => {
     if (!linea.producto_id && !linea.descripcion) {

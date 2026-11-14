@@ -2,10 +2,16 @@ import type { ReactNode } from "react";
 
 import Link from "next/link";
 
+import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { construirUrl, type ValorParametro } from "@/lib/reportes/libros/parametros";
+
+const OPCIONES_POR_PAGINA = [
+  { value: "10", label: "10" },
+  { value: "25", label: "25" },
+  { value: "50", label: "50" },
+];
 
 interface Props {
   ruta: string;
@@ -46,11 +52,13 @@ export function PaginacionLibro({ ruta, parametros, pagina, porPagina, totalPagi
           <Label htmlFor="porPagina" className="text-muted-foreground text-xs">
             Ítems por página
           </Label>
-          <NativeSelect id="porPagina" name="porPagina" defaultValue={String(porPagina)} className="w-24">
-            <NativeSelectOption value="10">10</NativeSelectOption>
-            <NativeSelectOption value="25">25</NativeSelectOption>
-            <NativeSelectOption value="50">50</NativeSelectOption>
-          </NativeSelect>
+          <SelectCampo
+            id="porPagina"
+            name="porPagina"
+            opciones={OPCIONES_POR_PAGINA}
+            valorInicial={String(porPagina)}
+            className="w-24"
+          />
         </div>
         <Button type="submit" variant="secondary" size="sm">
           Aplicar

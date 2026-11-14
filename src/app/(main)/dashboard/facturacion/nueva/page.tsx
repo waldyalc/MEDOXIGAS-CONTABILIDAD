@@ -19,6 +19,7 @@ import {
   getProductosActivos,
 } from "@/lib/facturacion/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
+import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { listarAlmacenesActivos } from "@/lib/inventario/consultas";
 import { getPlantillaImpresion } from "@/lib/plantillas-impresion/consultas";
 import { getVendedoresActivos } from "@/lib/vendedores/consultas";
@@ -51,19 +52,31 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
 }
 
 async function FacturaContenido({ clonar }: { clonar?: string }) {
-  const [empresa, contactos, productos, cuentas, vendedores, centrosCosto, plantilla, listasPrecios, almacenes, vista] =
-    await Promise.all([
-      getEmpresa(),
-      getContactosClientes(),
-      getProductosActivos(),
-      getCuentasCajaBanco(),
-      getVendedoresActivos(),
-      getCentrosCostoActivos(),
-      getPlantillaImpresion("factura"),
-      getListasPrecios(),
-      listarAlmacenesActivos(),
-      clonar ? getFacturaVista(clonar) : Promise.resolve(null),
-    ]);
+  const [
+    empresa,
+    contactos,
+    productos,
+    cuentas,
+    vendedores,
+    centrosCosto,
+    plantilla,
+    listasPrecios,
+    almacenes,
+    vista,
+    impuestos,
+  ] = await Promise.all([
+    getEmpresa(),
+    getContactosClientes(),
+    getProductosActivos(),
+    getCuentasCajaBanco(),
+    getVendedoresActivos(),
+    getCentrosCostoActivos(),
+    getPlantillaImpresion("factura"),
+    getListasPrecios(),
+    listarAlmacenesActivos(),
+    clonar ? getFacturaVista(clonar) : Promise.resolve(null),
+    getImpuestosActivos(),
+  ]);
 
   const hoy = hoyRD();
   const contactosFormulario = vista ? conContactoActual(contactos, vista.contacto) : contactos;
@@ -81,6 +94,7 @@ async function FacturaContenido({ clonar }: { clonar?: string }) {
       mostrarLogo={plantilla.mostrarLogo}
       listasPrecios={listasPrecios}
       almacenes={almacenes}
+      impuestos={impuestos}
       fechaHoy={hoy}
       titulo="Información de la factura"
       etiquetaNumero="NCF"

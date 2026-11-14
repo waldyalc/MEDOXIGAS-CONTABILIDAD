@@ -2,6 +2,7 @@ import { cache } from "react";
 
 import { z } from "zod";
 
+import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -62,7 +63,7 @@ export async function getProductosActivos(): Promise<ProductoResumen[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("productos")
-    .select("id, nombre, referencia, precio, itbis_tasa")
+    .select("id, nombre, referencia, precio, itbis_tasa, impuesto_id")
     .eq("activo", true)
     .order("nombre")
     .returns<Omit<ProductoResumen, "precios">[]>();
@@ -192,7 +193,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   const factura = await supabase
     .from("facturas")
     .select(
-      "id, numero, ncf, tipo_comprobante, contacto_id, vendedor_id, centro_costo_id, fecha, vencimiento, subtotal, descuento, itbis, total, pagado, credito, retenido, estado, notas, terminos, pie, asiento_id",
+      "id, numero, ncf, tipo_comprobante, contacto_id, vendedor_id, centro_costo_id, fecha, vencimiento, subtotal, descuento, itbis, otros_impuestos, propina, total, pagado, credito, retenido, estado, notas, terminos, pie, asiento_id",
     )
     .eq("id", id)
     .maybeSingle()
@@ -201,11 +202,13 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   if (factura.error) throw new Error(factura.error.message);
   if (!factura.data) return null;
 
-  const [lineas, contacto, empresa, asiento, numeraciones, pagos, aplicaciones, notasCredito, notasDebito] =
+  const [lineas, contacto, empresa, impuestos, asiento, numeraciones, pagos, aplicaciones, notasCredito, notasDebito] =
     await Promise.all([
       supabase
         .from("factura_lineas")
-        .select("id, producto_id, descripcion, cantidad, precio, descuento_pct, itbis_tasa, subtotal, itbis, total")
+        .select(
+          "id, producto_id, descripcion, cantidad, precio, descuento_pct, itbis_tasa, impuesto_id, subtotal, itbis, total",
+        )
         .eq("factura_id", id)
         .order("id")
         .returns<FacturaLinea[]>(),
@@ -216,6 +219,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
         .maybeSingle()
         .returns<ContactoResumen | null>(),
       getEmpresa(),
+      getImpuestosActivos(),
       getAsiento(factura.data.asiento_id),
       supabase
         .from("numeraciones")
@@ -300,6 +304,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   return {
     factura: factura.data,
     lineas: lineas.data,
+    impuestos,
     contacto: contacto.data,
     empresa,
     asiento,

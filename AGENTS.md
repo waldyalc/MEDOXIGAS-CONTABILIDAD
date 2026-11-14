@@ -79,6 +79,7 @@ Próximos: datos de la empresa (RNC, dirección, logo), numeraciones B14/B15/B16
 
 - TypeScript estricto extra (`noUncheckedIndexedAccess`, etc.; sin `exactOptionalPropertyTypes`: rompe Base UI). Biome: sin `any` (salvo `src/components/ui`), sin `!`, sin `console` salvo `error`/`warn` (scripts en `src/scripts/` exentos), sin `@ts-ignore`. Toda supresión `biome-ignore` o `@ts-expect-error` lleva el motivo en el mismo comentario.
 - Dinero: nunca `number` flotante para montos guardados; en la base `numeric(14,2)`, cálculos de ITBIS y totales en el servidor.
+- Listas desplegables: siempre `Select`/`SelectCampo` o el `Combobox` de `components/ui`; nunca `<select>` ni `NativeSelect` fuera de `components/ui`. `src/lib/selects-nativos.test.ts` falla si reaparecen.
 - Código simple, poco, sin relleno. Sin nuevas dependencias sin decirlo en el PR y justificarlo.
 
 ## Git y despliegue

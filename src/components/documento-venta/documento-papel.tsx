@@ -6,8 +6,10 @@ import { formatoCantidad, saldoDeFactura } from "@/lib/facturacion/formato";
 import { montoEnLetras } from "@/lib/facturacion/numero-a-letras";
 import type { ContactoResumen, Empresa, FacturaDetalle, FacturaLinea } from "@/lib/facturacion/tipos";
 import { formatoDia } from "@/lib/formato";
+import type { Impuesto } from "@/lib/impuestos/tipos";
+import { resumenImpuestos } from "@/lib/impuestos/tipos";
 
-import { etiquetaItbisPapel, formatearMontoPapel, formatearPrecioPapel, totalItemsPapel } from "./papel";
+import { formatearMontoPapel, formatearPrecioPapel, totalItemsPapel } from "./papel";
 import { descuentoDeLinea, montoGravadoDeLineas } from "./vista";
 
 interface LineaPapel {
@@ -17,6 +19,7 @@ interface LineaPapel {
   precio: number;
   descuento_pct: number;
   itbis_tasa: number;
+  impuesto_id: string | null;
   subtotal: number;
   itbis: number;
 }
@@ -31,6 +34,9 @@ interface DatosPapel {
   subtotal: number;
   descuento: number;
   itbis: number;
+  otrosImpuestos: number;
+  propina: number;
+  impuestos: Impuesto[];
   total: number;
   notas: string | null;
   terminos: string | null;
@@ -52,6 +58,7 @@ type Props =
       lineas: FacturaLinea[];
       contacto: ContactoResumen;
       ncfVence: string | null;
+      impuestos: Impuesto[];
       mostrarLogo?: boolean;
     }
   | { tipo: "cotizacion" | "conduce"; vista: DocumentoVista; mostrarLogo?: boolean };
@@ -73,6 +80,7 @@ function datosDeFactura(
   contacto: ContactoResumen,
   ncfVence: string | null,
   mostrarLogo: boolean,
+  impuestos: Impuesto[],
 ): DatosPapel {
   return {
     tipo: "factura",
@@ -84,6 +92,9 @@ function datosDeFactura(
     subtotal: factura.subtotal,
     descuento: factura.descuento,
     itbis: factura.itbis,
+    otrosImpuestos: factura.otros_impuestos,
+    propina: factura.propina,
+    impuestos,
     total: factura.total,
     notas: factura.notas,
     terminos: factura.terminos,
@@ -114,6 +125,9 @@ function datosDeDocumento(tipo: "cotizacion" | "conduce", vista: DocumentoVista,
     subtotal: documento.subtotal,
     descuento: documento.descuento,
     itbis: documento.itbis,
+    otrosImpuestos: documento.otros_impuestos,
+    propina: documento.propina,
+    impuestos: vista.impuestos,
     total: documento.total,
     notas: documento.notas,
     terminos: documento.terminos,
@@ -453,6 +467,18 @@ function FilaTotal({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   );
 }
 
+function FilasImpuestos({ datos }: { datos: DatosPapel }) {
+  const filas = resumenImpuestos(datos.lineas, datos.impuestos);
+
+  return (
+    <>
+      {filas.map((fila) => (
+        <FilaTotal key={fila.clave} etiqueta={fila.nombre} valor={formatearMontoPapel(fila.total)} />
+      ))}
+    </>
+  );
+}
+
 function TotalesFactura({ datos }: { datos: DatosPapel }) {
   return (
     <div className="flex justify-end">
@@ -460,7 +486,7 @@ function TotalesFactura({ datos }: { datos: DatosPapel }) {
         <FilaTotal etiqueta="SUBTOTAL" valor={formatearMontoPapel(datos.subtotal)} />
         {datos.descuento > 0 ? <FilaTotal etiqueta="DESCUENTO" valor={formatearMontoPapel(datos.descuento)} /> : null}
         <FilaTotal etiqueta="MONTO GRAVADO" valor={formatearMontoPapel(montoGravadoDeLineas(datos.lineas))} />
-        <FilaTotal etiqueta={etiquetaItbisPapel(datos.lineas)} valor={formatearMontoPapel(datos.itbis)} />
+        <FilasImpuestos datos={datos} />
         <div className="mt-[3pt] flex justify-between gap-[12pt] border-t border-[#0a2352] pt-[2pt] text-[10pt] font-semibold">
           <span>Total</span>
           <span className="tabular-nums">{formatearMontoPapel(datos.total)}</span>
@@ -478,7 +504,7 @@ function TotalesCotizacion({ datos }: { datos: DatosPapel }) {
     <div className="flex justify-end">
       <div className="w-[270pt] text-[10pt] leading-[16.1pt]">
         <FilaTotal etiqueta="Subtotal" valor={formatearMontoPapel(datos.subtotal)} />
-        <FilaTotal etiqueta={etiquetaItbisPapel(datos.lineas)} valor={formatearMontoPapel(datos.itbis)} />
+        <FilasImpuestos datos={datos} />
         <div className="mt-[6pt] flex justify-between gap-[12pt] border-t border-[#0a2352] pt-[4pt] text-[13pt] font-semibold">
           <span>Total</span>
           <span className="tabular-nums">{formatearMontoPapel(datos.total)}</span>
@@ -493,7 +519,7 @@ function TotalesConduce({ datos }: { datos: DatosPapel }) {
     <div className="flex justify-end">
       <div className="w-[145pt] text-[9pt] leading-[12pt]">
         <FilaTotal etiqueta="Subtotal" valor={formatearMontoPapel(datos.subtotal)} />
-        <FilaTotal etiqueta={etiquetaItbisPapel(datos.lineas)} valor={formatearMontoPapel(datos.itbis)} />
+        <FilasImpuestos datos={datos} />
         <div className="mt-[2pt] flex justify-between gap-[12pt] border-t border-[#0a2352] pt-[1pt] font-bold">
           <span>Total</span>
           <span className="tabular-nums">{formatearMontoPapel(datos.total)}</span>
@@ -610,6 +636,7 @@ export function DocumentoPapel(props: Props) {
           props.contacto,
           props.ncfVence,
           props.mostrarLogo ?? true,
+          props.impuestos,
         )
       : datosDeDocumento(props.tipo, props.vista, props.mostrarLogo ?? true);
 

@@ -16,25 +16,40 @@ export interface ResumenTasas {
   totalImpuesto: number;
 }
 
-const TASAS = [
+const FILAS = [
   { clave: "itbis18", etiqueta: "ITBIS (18%)", tasa: 18 },
   { clave: "itbis16", etiqueta: "ITBIS (16%)", tasa: 16 },
   { clave: "itbis0", etiqueta: "ITBIS (0%)", tasa: 0 },
   { clave: "exento", etiqueta: "Exento (0%)", tasa: null },
+  { clave: "propina", etiqueta: "Propina (10%)", tasa: 10 },
+  { clave: "cdt", etiqueta: "CDT (2%)", tasa: 2 },
 ] as const;
 
+function claveDeDetalle(detalle: DetalleImpuesto): string | null {
+  if (detalle.tipo === "exento") return "exento";
+  if (detalle.tipo === "propina") return "propina";
+  if (detalle.tipo === "otro") return "cdt";
+
+  const tasa = Math.round(detalle.tasa ?? 0);
+  if (tasa === 18) return "itbis18";
+  if (tasa === 16) return "itbis16";
+  if (tasa === 0) return "itbis0";
+  return null;
+}
+
 export function resumirPorTasa(detalles: readonly DetalleImpuesto[]): ResumenTasas {
-  const filas: FilaResumenTasa[] = TASAS.map((tasa) => ({
-    clave: tasa.clave,
-    etiqueta: tasa.etiqueta,
-    tasa: tasa.tasa,
+  const filas: FilaResumenTasa[] = FILAS.map((fila) => ({
+    clave: fila.clave,
+    etiqueta: fila.etiqueta,
+    tasa: fila.tasa,
     base: 0,
     impuesto: 0,
   }));
 
   for (const detalle of detalles) {
-    const fila =
-      detalle.tasa == null ? filas[3] : filas.find((actual) => actual.tasa === Math.round(detalle.tasa ?? 0));
+    const clave = claveDeDetalle(detalle);
+    if (clave == null) continue;
+    const fila = filas.find((actual) => actual.clave === clave);
     if (fila == null) continue;
 
     fila.base += detalle.base;
@@ -69,10 +84,10 @@ export function tablaDetalleImpuestos(
     titulo,
     subtitulo,
     columnas: [
-      { clave: "ncf", titulo: "NCF/Número", tipo: "texto" },
+      { clave: "ncf", titulo: "NCF/NA�mero", tipo: "texto" },
       { clave: "tipo", titulo: "Tipo de documento", tipo: "texto" },
       { clave: "contacto", titulo: "Contacto", tipo: "texto" },
-      { clave: "fecha", titulo: "Creación", tipo: "fecha" },
+      { clave: "fecha", titulo: "CreaciA3n", tipo: "fecha" },
       { clave: "impuesto", titulo: "Impuesto", tipo: "texto" },
       { clave: "base", titulo: "Base imponible", tipo: "dinero" },
       { clave: "valor", titulo: "Valor impuesto", tipo: "dinero" },
@@ -83,7 +98,7 @@ export function tablaDetalleImpuestos(
         tipo: fila.tipoDocumento,
         contacto: fila.contactoNombre,
         fecha: fila.fecha,
-        impuesto: fila.tasa == null ? "Exento (0%)" : `ITBIS (${fila.tasa}%)`,
+        impuesto: fila.impuestoNombre,
         base: fila.base,
         valor: fila.impuesto,
       },

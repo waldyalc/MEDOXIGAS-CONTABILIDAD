@@ -13,6 +13,7 @@ import { crearRemision } from "@/lib/conduces/acciones";
 import { getDocumentoVista } from "@/lib/cotizaciones/consultas";
 import { getContactosClientes, getEmpresa, getProductosActivos } from "@/lib/facturacion/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
+import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { getPlantillaImpresion } from "@/lib/plantillas-impresion/consultas";
 import { getVendedoresActivos } from "@/lib/vendedores/consultas";
 
@@ -48,16 +49,18 @@ export default async function Page({
 }
 
 async function ConduceContenido({ clonar, cotizacion }: { clonar?: string; cotizacion?: string }) {
-  const [empresa, contactos, productos, vendedores, centrosCosto, plantilla, clon, origen] = await Promise.all([
-    getEmpresa(),
-    getContactosClientes(),
-    getProductosActivos(),
-    getVendedoresActivos(),
-    getCentrosCostoActivos(),
-    getPlantillaImpresion("conduce"),
-    clonar ? getDocumentoVista("remision", clonar) : Promise.resolve(null),
-    cotizacion ? getDocumentoVista("cotizacion", cotizacion) : Promise.resolve(null),
-  ]);
+  const [empresa, contactos, productos, vendedores, centrosCosto, plantilla, clon, origen, impuestos] =
+    await Promise.all([
+      getEmpresa(),
+      getContactosClientes(),
+      getProductosActivos(),
+      getVendedoresActivos(),
+      getCentrosCostoActivos(),
+      getPlantillaImpresion("conduce"),
+      clonar ? getDocumentoVista("remision", clonar) : Promise.resolve(null),
+      cotizacion ? getDocumentoVista("cotizacion", cotizacion) : Promise.resolve(null),
+      getImpuestosActivos(),
+    ]);
 
   const hoy = hoyRD();
   const base = clon ?? (origen?.documento.estado === "abierta" ? origen : null);
@@ -70,6 +73,7 @@ async function ConduceContenido({ clonar, cotizacion }: { clonar?: string; cotiz
       productos={productos}
       vendedores={vendedores}
       centrosCosto={centrosCosto}
+      impuestos={impuestos}
       notasIniciales={plantilla.notas}
       terminosIniciales={plantilla.terminos}
       mostrarLogo={plantilla.mostrarLogo}

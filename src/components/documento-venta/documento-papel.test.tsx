@@ -22,6 +22,7 @@ const linea: FacturaLinea = {
   precio: 359,
   descuento_pct: 0,
   itbis_tasa: 18,
+  impuesto_id: null,
   subtotal: 359,
   itbis: 64.62,
   total: 423.62,
@@ -43,6 +44,8 @@ const factura: FacturaDetalle = {
   subtotal: 359,
   descuento: 0,
   itbis: 64.62,
+  otros_impuestos: 0,
+  propina: 0,
   notas: null,
   terminos: null,
   pie: null,
@@ -64,12 +67,15 @@ const vistaCotizacion: DocumentoVista = {
     subtotal: 359,
     descuento: 0,
     itbis: 64.62,
+    otros_impuestos: 0,
+    propina: 0,
     notas: null,
     terminos: null,
     vendedor_id: null,
     centro_costo_id: null,
   },
   lineas: [linea],
+  impuestos: [],
   contacto,
   empresa: null,
   facturaRelacionada: null,
@@ -86,6 +92,7 @@ function renderFactura(datosContacto: Partial<ContactoResumen> = {}, ncfVence: s
       lineas={[linea]}
       contacto={{ ...contacto, ...datosContacto }}
       ncfVence={ncfVence}
+      impuestos={[]}
       mostrarLogo={false}
     />,
   );

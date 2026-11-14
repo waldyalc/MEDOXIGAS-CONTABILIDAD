@@ -25,20 +25,22 @@ export function filasRetenciones(
   const devolucion = resumirPorTasa(devoluciones);
   const tipo = vista === "ventas" ? "ITBIS" : "ITBIS Acreditable";
 
-  return resumen.filas.map((fila, indice) => {
-    const devuelta = devolucion.filas[indice] ?? { base: 0, impuesto: 0 };
+  return resumen.filas
+    .filter((fila) => fila.clave.startsWith("itbis") || fila.clave === "exento")
+    .map((fila) => {
+      const devuelta = devolucion.filas.find((actual) => actual.clave === fila.clave) ?? { base: 0, impuesto: 0 };
 
-    return {
-      nombre: "ITBIS",
-      tipo,
-      tarifa: fila.tasa,
-      baseGravable: fila.base,
-      impuestos: fila.impuesto,
-      baseDevoluciones: devuelta.base,
-      impuestosDevoluciones: devuelta.impuesto,
-      saldo: fila.impuesto - devuelta.impuesto,
-    };
-  });
+      return {
+        nombre: fila.etiqueta.replace(/\s*\(.*\)$/, ""),
+        tipo,
+        tarifa: fila.tasa,
+        baseGravable: fila.base,
+        impuestos: fila.impuesto,
+        baseDevoluciones: devuelta.base,
+        impuestosDevoluciones: devuelta.impuesto,
+        saldo: fila.impuesto - devuelta.impuesto,
+      };
+    });
 }
 
 export function tablaRetenciones(filas: readonly FilaRetencion[], titulo: string, subtitulo: string): TablaReporte {

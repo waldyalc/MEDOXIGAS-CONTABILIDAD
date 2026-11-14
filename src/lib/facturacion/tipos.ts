@@ -1,3 +1,5 @@
+import type { Impuesto } from "@/lib/impuestos/tipos";
+
 export type EstadoFactura = "abierta" | "pagada" | "anulada";
 export type EstadoDocumento = "activo" | "anulado";
 
@@ -29,6 +31,7 @@ export interface ProductoResumen {
   referencia: string | null;
   precio: number;
   itbis_tasa: number;
+  impuesto_id: string | null;
   precios: { lista_id: string; precio: number }[];
 }
 
@@ -64,6 +67,8 @@ export interface FacturaDetalle extends FacturaLista {
   subtotal: number;
   descuento: number;
   itbis: number;
+  otros_impuestos: number;
+  propina: number;
   notas: string | null;
   terminos: string | null;
   pie: string | null;
@@ -80,6 +85,7 @@ export interface FacturaLinea {
   precio: number;
   descuento_pct: number;
   itbis_tasa: number;
+  impuesto_id: string | null;
   subtotal: number;
   itbis: number;
   total: number;
@@ -130,6 +136,7 @@ export interface NotaVentaResumen {
 export interface FacturaVista {
   factura: FacturaDetalle;
   lineas: FacturaLinea[];
+  impuestos: Impuesto[];
   contacto: ContactoResumen;
   empresa: Empresa | null;
   asiento: AsientoVista;

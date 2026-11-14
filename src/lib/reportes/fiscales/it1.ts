@@ -27,7 +27,7 @@ export interface CasillasIt1 {
 
 function porTasa(detalles: readonly DetalleImpuesto[], tasa: number, campo: "base" | "impuesto"): number {
   return detalles.reduce((total, detalle) => {
-    if (detalle.tasa == null || Math.round(detalle.tasa) !== tasa) return total;
+    if (detalle.tipo !== "itbis" || detalle.tasa == null || Math.round(detalle.tasa) !== tasa) return total;
     return total + detalle[campo];
   }, 0);
 }
@@ -37,12 +37,15 @@ export function calcularIt1(
   comprasDeducibles: readonly DocumentoFiscal[],
   totalFacturadoConImpuestos?: number,
 ): CasillasIt1 {
-  const totalOperaciones = ventas.reduce((total, detalle) => total + detalle.base, 0);
+  const operaciones = ventas.filter((detalle) => detalle.tipo === "itbis" || detalle.tipo === "exento");
+  const totalOperaciones = operaciones.reduce((total, detalle) => total + detalle.base, 0);
   const gravadas18 = porTasa(ventas, 18, "base");
   const gravadas16 = porTasa(ventas, 16, "base");
   const itbisCobrado18 = porTasa(ventas, 18, "impuesto");
   const itbisCobrado16 = porTasa(ventas, 16, "impuesto");
-  const totalItbisCobrado = ventas.reduce((total, detalle) => total + detalle.impuesto, 0);
+  const totalItbisCobrado = ventas
+    .filter((detalle) => detalle.tipo === "itbis")
+    .reduce((total, detalle) => total + detalle.impuesto, 0);
 
   let itbisComprasLocales = 0;
   let itbisServicios = 0;

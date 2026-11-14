@@ -20,6 +20,7 @@ export interface ProductoSeleccionable {
   precio: number;
   costo?: number;
   itbis_tasa: number;
+  impuesto_id?: string | null;
   precios?: { lista_id: string; precio: number }[];
 }
 
