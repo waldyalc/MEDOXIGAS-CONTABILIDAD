@@ -1,6 +1,6 @@
 import { Enlace } from "@/components/enlace";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { rutaCuenta } from "@/lib/enlaces";
+import { rutaAsiento, rutaCuenta } from "@/lib/enlaces";
 import { valorACentavos } from "@/lib/facturacion/calculo";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import type { AsientoVista } from "@/lib/facturacion/tipos";
@@ -18,7 +18,10 @@ export function AsientoContable({ asiento }: { asiento: AsientoVista }) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-muted-foreground text-sm">
-        Asiento #{asiento.asiento.numero} · {formatoDia(asiento.asiento.fecha)} · {asiento.asiento.descripcion}
+        <Enlace href={rutaAsiento(asiento.asiento.id)} className="font-medium">
+          Asiento #{asiento.asiento.numero}
+        </Enlace>{" "}
+        · {formatoDia(asiento.asiento.fecha)} · {asiento.asiento.descripcion}
       </p>
 
       <div className="border-border overflow-hidden rounded-2xl border">

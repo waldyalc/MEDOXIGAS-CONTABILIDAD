@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getPerfil } from "@/lib/auth/rol";
 import { hoyEnRd } from "@/lib/compras/fechas";
 import { formatoMoneda } from "@/lib/compras/formato";
-import { rutaContacto, rutaGasto } from "@/lib/enlaces";
+import { rutaAsiento, rutaContacto, rutaCuenta, rutaGasto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { obtenerPagoRecurrente } from "@/lib/pagos-recurrentes/consultas";
 import { siguientePeriodo } from "@/lib/pagos-recurrentes/periodos";
@@ -68,9 +68,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               )}
             </dd>
             <dt className="text-muted-foreground">Cuenta de gasto</dt>
-            <dd>{plan.cuenta_gasto_nombre}</dd>
+            <dd>
+              <Enlace href={rutaCuenta(plan.cuenta_gasto_id)}>{plan.cuenta_gasto_nombre}</Enlace>
+            </dd>
             <dt className="text-muted-foreground">Cuenta de pago</dt>
-            <dd>{plan.cuenta_pago_nombre}</dd>
+            <dd>
+              <Enlace href={rutaCuenta(plan.cuenta_pago_id)}>{plan.cuenta_pago_nombre}</Enlace>
+            </dd>
             <dt className="text-muted-foreground">Monto</dt>
             <dd className="tabular-nums">{formatoMoneda(plan.subtotal)}</dd>
             <dt className="text-muted-foreground">ITBIS</dt>
@@ -104,6 +108,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 <TableHead>NCF</TableHead>
                 <TableHead>Fecha</TableHead>
                 <TableHead>Periodo</TableHead>
+                <TableHead>Asiento</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="pr-(--card-spacing)">Estado</TableHead>
               </TableRow>
@@ -111,7 +116,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <TableBody>
               {plan.gastos.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
+                  <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
                     Todavía no se ha generado ningún pago.
                   </TableCell>
                 </TableRow>
@@ -124,6 +129,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                     <TableCell className="font-mono text-xs">{gasto.ncf ?? "—"}</TableCell>
                     <TableCell>{formatoDia(gasto.fecha)}</TableCell>
                     <TableCell>{gasto.periodo ? formatoDia(gasto.periodo) : "—"}</TableCell>
+                    <TableCell className="tabular-nums">
+                      {gasto.asiento_id ? <Enlace href={rutaAsiento(gasto.asiento_id)}>Ver asiento</Enlace> : "—"}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{formatoMoneda(gasto.total)}</TableCell>
                     <TableCell className="pr-(--card-spacing)">
                       <Badge variant={gasto.estado === "anulado" ? "destructive" : "default"}>

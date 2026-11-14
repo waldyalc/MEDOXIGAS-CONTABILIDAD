@@ -29,6 +29,8 @@ export interface NotaDebitoLista {
 
 export interface NotaDebitoLinea {
   id: string;
+  producto_id: string | null;
+  productos: { nombre: string } | null;
   descripcion: string;
   cantidad: number;
   precio: number;

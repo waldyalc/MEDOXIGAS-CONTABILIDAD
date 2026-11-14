@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { getPerfil } from "@/lib/auth/rol";
 import { aNumero } from "@/lib/compras/calculo";
 import { formatoCantidad, formatoMoneda } from "@/lib/compras/formato";
-import { rutaCompra, rutaContacto } from "@/lib/enlaces";
+import { rutaCompra, rutaContacto, rutaCuenta, rutaProducto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { obtenerOrdenCompra } from "@/lib/ordenes-compra/consultas";
 
@@ -125,11 +125,23 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                       <div className="flex flex-col">
                         <span>{linea.descripcion || "—"}</span>
                         {linea.productos ? (
-                          <span className="text-muted-foreground text-xs">{linea.productos.nombre}</span>
+                          <span className="text-muted-foreground text-xs">
+                            {linea.producto_id ? (
+                              <Enlace href={rutaProducto(linea.producto_id)}>{linea.productos.nombre}</Enlace>
+                            ) : (
+                              linea.productos.nombre
+                            )}
+                          </span>
                         ) : null}
                         {linea.cuentas ? (
                           <span className="text-muted-foreground text-xs">
-                            {linea.cuentas.codigo} — {linea.cuentas.nombre}
+                            {linea.cuenta_id ? (
+                              <Enlace href={rutaCuenta(linea.cuenta_id)}>
+                                {linea.cuentas.codigo} — {linea.cuentas.nombre}
+                              </Enlace>
+                            ) : (
+                              `${linea.cuentas.codigo} — ${linea.cuentas.nombre}`
+                            )}
                           </span>
                         ) : null}
                       </div>

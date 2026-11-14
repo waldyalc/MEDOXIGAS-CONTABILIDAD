@@ -84,7 +84,9 @@ export async function getNotaDebitoVista(id: string): Promise<NotaDebitoVista | 
   const [lineas, contacto, factura] = await Promise.all([
     supabase
       .from("nota_debito_venta_lineas")
-      .select("id, descripcion, cantidad, precio, descuento_pct, itbis_tasa, subtotal, itbis, total")
+      .select(
+        "id, producto_id, productos(nombre), descripcion, cantidad, precio, descuento_pct, itbis_tasa, subtotal, itbis, total",
+      )
       .eq("nota_id", id)
       .order("id")
       .returns<NotaDebitoLinea[]>(),

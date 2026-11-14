@@ -81,3 +81,31 @@ export function rutaTransferencia(id: string) {
 export function rutaConciliacion(id: string) {
   return ruta("/dashboard/bancos/conciliaciones", id);
 }
+
+export function rutaAjusteInventario(id: string) {
+  return ruta("/dashboard/inventario/ajustes", id);
+}
+
+export function rutaTransferenciaInventario(id: string) {
+  return ruta("/dashboard/inventario/transferencias", id);
+}
+
+const RUTAS_DOCUMENTO_ORIGEN: Record<string, (id: string) => string> = {
+  factura: rutaFactura,
+  factura_proveedor: rutaCompra,
+  pago_recibido: rutaPagoRecibido,
+  pago_proveedor: rutaPagoProveedor,
+  gasto_menor: rutaGasto,
+  nota_credito_venta: rutaNotaCreditoVenta,
+  nota_credito_compra: rutaNotaCreditoCompra,
+  nota_debito: rutaNotaDebitoVenta,
+  conciliacion: rutaConciliacion,
+};
+
+export function rutaOrigenAsiento(tipo: string, origenId: string | null, asientoId: string): string | null {
+  if (tipo === "transferencia" || tipo === "deposito") return rutaTransferencia(asientoId);
+  if (!origenId) return null;
+
+  const construir = RUTAS_DOCUMENTO_ORIGEN[tipo];
+  return construir ? construir(origenId) : null;
+}

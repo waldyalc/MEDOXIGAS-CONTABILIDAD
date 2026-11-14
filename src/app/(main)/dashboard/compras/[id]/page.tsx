@@ -13,7 +13,7 @@ import { getRol } from "@/lib/auth/rol";
 import { aCentavos, aNumero } from "@/lib/compras/calculo";
 import { cargarCuentasCajaBanco, obtenerFacturaProveedor } from "@/lib/compras/consultas";
 import { formatoCantidad, formatoMoneda } from "@/lib/compras/formato";
-import type { MetodoPago } from "@/lib/compras/tipos";
+import type { LineaDetalle, MetodoPago } from "@/lib/compras/tipos";
 import { getRetencionesActivas } from "@/lib/configuracion/consultas";
 import { rutaAsiento, rutaContacto, rutaCuenta, rutaPagoProveedor, rutaProducto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
@@ -27,6 +27,17 @@ const ETIQUETAS_METODO: Record<MetodoPago, string> = {
   tarjeta: "Tarjeta",
   cheque: "Cheque",
 };
+
+function CuentaLinea({ linea }: { linea: LineaDetalle }) {
+  if (!linea.cuentas) return null;
+
+  const texto = `${linea.cuentas.codigo} · ${linea.cuentas.nombre}`;
+  return (
+    <span className="text-muted-foreground text-xs">
+      {linea.cuenta_id ? <Enlace href={rutaCuenta(linea.cuenta_id)}>{texto}</Enlace> : texto}
+    </span>
+  );
+}
 
 function EstadoAsiento({ cuadrado }: { cuadrado: boolean }) {
   if (!cuadrado) return <Badge variant="destructive">Descuadrado</Badge>;
@@ -214,11 +225,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                             )}
                           </span>
                         ) : null}
-                        {linea.cuentas ? (
-                          <span className="text-muted-foreground text-xs">
-                            {linea.cuentas.codigo} · {linea.cuentas.nombre}
-                          </span>
-                        ) : null}
+                        <CuentaLinea linea={linea} />
                       </div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatoCantidad(linea.cantidad)}</TableCell>
@@ -297,7 +304,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <CardTitle>Asiento contable</CardTitle>
             {asiento ? (
               <p className="text-muted-foreground text-sm">
-                #{asiento.numero} · {formatoDia(asiento.fecha)} · {asiento.descripcion}
+                <Enlace href={rutaAsiento(asiento.id)}>Asiento #{asiento.numero}</Enlace> · {formatoDia(asiento.fecha)}{" "}
+                · {asiento.descripcion}
               </p>
             ) : null}
           </div>
