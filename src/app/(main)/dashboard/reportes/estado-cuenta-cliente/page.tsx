@@ -2,13 +2,13 @@ import Link from "next/link";
 
 import { FileText, UserRound } from "lucide-react";
 
+import { SelectCampo } from "@/components/select-campo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto, rutaFactura } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
@@ -106,14 +106,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         <form method="get" className="flex flex-wrap items-end gap-3 print:hidden">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="cliente">Cliente *</Label>
-            <NativeSelect id="cliente" name="cliente" defaultValue={clienteId ?? ""} className="w-60">
-              <NativeSelectOption value="">Elige un cliente</NativeSelectOption>
-              {opciones.map((cliente) => (
-                <NativeSelectOption key={cliente.id} value={cliente.id}>
-                  {cliente.nombre}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+            <SelectCampo
+              id="cliente"
+              name="cliente"
+              opciones={opciones.map((cliente) => ({ value: cliente.id, label: cliente.nombre }))}
+              valorInicial={clienteId ?? ""}
+              etiquetaVacia="Elige un cliente"
+              buscable
+              className="w-60"
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Corte al</Label>
@@ -121,13 +122,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="vencimiento">Estado de vencimiento</Label>
-            <NativeSelect id="vencimiento" name="vencimiento" defaultValue={vencimiento} className="w-56">
-              {OPCIONES_VENCIMIENTO.map((opcion) => (
-                <NativeSelectOption key={opcion} value={opcion}>
-                  {ETIQUETAS_VENCIMIENTO[opcion]}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+            <SelectCampo
+              id="vencimiento"
+              name="vencimiento"
+              opciones={OPCIONES_VENCIMIENTO.map((opcion) => ({
+                value: opcion,
+                label: ETIQUETAS_VENCIMIENTO[opcion],
+              }))}
+              valorInicial={vencimiento}
+              className="w-56"
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="documento">Buscar documento</Label>

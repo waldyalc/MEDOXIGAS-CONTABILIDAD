@@ -54,6 +54,27 @@
   que editar cotización/conduce conserve `impuesto_id` y totales.
 - Otras sesiones: no se tocaron los archivos de `2026111550*` ni las pantallas de
   importar productos/clonar cotización; solo se integraron sus cambios.
+
+## S26 — Listas desplegables con shadcn (13 nov 2026)
+
+- Nuevo `src/components/select-campo.tsx`: `SelectCampo` envuelve `Select` o el
+  `Combobox` con búsqueda de `components/ui`; acepta `name` (input oculto),
+  `valorInicial`/`valor` + `onCambio`, `requerido`, `deshabilitado` y usa el
+  centinela `__ninguno` para «Todos/Elige…», que se guarda como cadena vacía.
+- Reemplazados **18** selects nativos (`NativeSelect`/`<select>`) en 13 archivos:
+  diálogo Nueva cuenta (Tipo y Naturaleza), filtros de reportes (libros, estados,
+  ventas, vendedores, transacciones, anual, inventario, estado de cuenta) y
+  paginación. Las listas largas (cuentas, contactos, centros y vendedores) usan
+  el combobox con búsqueda.
+- Regla nueva: `src/lib/selects-nativos.test.ts` falla si aparece `<select>` o
+  `NativeSelect` fuera de `components/ui` (con los pendientes permitidos). Anotada
+  en `AGENTS.md`.
+- Pendientes por otras sesiones activas (no tocados): `compras/formulario-factura`
+  (Almacén, Tipo de línea e ITBIS) y `gastos/gasto-form` (ITBIS), porque
+  `feat/impuestos-completos` los está editando. Tampoco se tocaron pagos,
+  facturación, Inicio ni papel PDF.
+- Sin migraciones. `typecheck`, `test` (625), Biome de lo tocado y `build` en verde.
+
 ## S24 — Papel impreso/PDF de factura, cotización y conduce (13 nov 2026)
 
 - `DocumentoPapel`: las columnas de montos (Precio, Descuento, Impuesto y

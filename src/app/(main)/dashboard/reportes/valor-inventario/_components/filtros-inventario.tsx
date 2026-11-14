@@ -1,7 +1,7 @@
+import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
 import { SelectorFechaCorte } from "../../_components/selector-fechas";
 
@@ -23,9 +23,12 @@ export function FiltrosInventario({ hasta, almacen, producto, referencia }: Prop
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="almacen">Almacén</Label>
-          <NativeSelect id="almacen" name="almacen" className="w-full" defaultValue={almacen}>
-            <NativeSelectOption value="principal">Principal</NativeSelectOption>
-          </NativeSelect>
+          <SelectCampo
+            id="almacen"
+            name="almacen"
+            opciones={[{ value: "principal", label: "Principal" }]}
+            valorInicial={almacen}
+          />
         </div>
 
         <div className="flex flex-col gap-1.5">

@@ -1,4 +1,4 @@
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { SelectCampo } from "@/components/select-campo";
 import type { ContactoOpcion } from "@/lib/reportes/libros/tipos";
 
 interface Props {
@@ -20,15 +20,18 @@ export function SelectContacto({
   todos = false,
   etiquetaTodos = "Todos los terceros",
 }: Props) {
+  const opciones = contactos.map((contacto) => ({ value: contacto.id, label: contacto.nombre }));
+
   return (
-    <NativeSelect id={id} name={name} defaultValue={valor ?? ""} required={requerido} className="min-w-56">
-      {todos ? <NativeSelectOption value="">{etiquetaTodos}</NativeSelectOption> : null}
-      {!todos ? <NativeSelectOption value="">Elige un tercero</NativeSelectOption> : null}
-      {contactos.map((contacto) => (
-        <NativeSelectOption key={contacto.id} value={contacto.id}>
-          {contacto.nombre}
-        </NativeSelectOption>
-      ))}
-    </NativeSelect>
+    <SelectCampo
+      id={id}
+      name={name}
+      opciones={opciones}
+      valorInicial={valor ?? ""}
+      etiquetaVacia={todos ? etiquetaTodos : "Elige un tercero"}
+      buscable
+      requerido={requerido}
+      className="min-w-56"
+    />
   );
 }
