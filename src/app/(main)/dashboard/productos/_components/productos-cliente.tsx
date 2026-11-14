@@ -150,6 +150,103 @@ function CamposInventario({
   );
 }
 
+function PreciosPorLista({ listas, producto }: { listas: ListaPrecio[]; producto: Producto | null }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <span className="text-sm font-medium">Precios por lista</span>
+        <span className="text-muted-foreground text-xs">
+          Valor fijo en RD$ o porcentaje sobre el precio (10 = +10 %, -10 = descuento).
+        </span>
+      </div>
+      <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+        {listas.map((lista) => {
+          const valor = producto?.precios.find((precio) => precio.lista_id === lista.id)?.precio;
+
+          return (
+            <FormField
+              key={lista.id}
+              htmlFor={`precio_lista_${lista.id}`}
+              label={`${lista.nombre}${lista.es_principal ? " (principal)" : ""}`}
+            >
+              <Input
+                id={`precio_lista_${lista.id}`}
+                name={`precio_lista_${lista.id}`}
+                inputMode="decimal"
+                placeholder={lista.tipo === "porcentaje" ? "0" : "0.00"}
+                defaultValue={valor === undefined ? "" : String(valor)}
+                className={FORM_INPUT}
+              />
+              <span className="text-muted-foreground text-xs">{etiquetaTipoLista(lista.tipo)}</span>
+            </FormField>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MasOpcionesProducto({
+  producto,
+  opcionesCategoria,
+  listasPrecios,
+}: {
+  producto: Producto | null;
+  opcionesCategoria: { value: string; label: string }[];
+  listasPrecios: ListaPrecio[];
+}) {
+  return (
+    <Collapsible
+      className="rounded-xl border border-slate-200"
+      defaultOpen={Boolean(
+        producto?.referencia ??
+          producto?.descripcion ??
+          producto?.categoria_id ??
+          (producto?.precios?.length ? "precios" : null),
+      )}
+    >
+      <CollapsibleTrigger render={<Button type="button" variant="ghost" className="w-full justify-between" />}>
+        Más opciones
+        <ChevronDown className="size-4" />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="flex flex-col gap-4 border-t border-slate-200 p-3">
+        <FormField htmlFor="categoria_id" label="Categoría">
+          <Select name="categoria_id" defaultValue={producto?.categoria_id ?? SIN_CATEGORIA} items={opcionesCategoria}>
+            <SelectTrigger id="categoria_id" className={FORM_SELECT}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {opcionesCategoria.map((opcion) => (
+                <SelectItem key={opcion.value} value={opcion.value}>
+                  {opcion.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </FormField>
+        {listasPrecios.length > 0 ? <PreciosPorLista listas={listasPrecios} producto={producto} /> : null}
+        <FormField htmlFor="referencia" label="Referencia">
+          <Input
+            id="referencia"
+            name="referencia"
+            defaultValue={producto?.referencia ?? ""}
+            placeholder="Ej. OXI-001"
+            className={FORM_INPUT}
+          />
+        </FormField>
+        <FormField htmlFor="descripcion" label="Descripción">
+          <Textarea
+            id="descripcion"
+            name="descripcion"
+            defaultValue={producto?.descripcion ?? ""}
+            className={FORM_TEXTAREA}
+          />
+        </FormField>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 function FormularioProducto({
   producto,
   categorias,
@@ -268,90 +365,7 @@ function FormularioProducto({
           />
         ) : null}
 
-        <Collapsible
-          className="rounded-xl border border-slate-200"
-          defaultOpen={Boolean(
-            producto?.referencia ??
-              producto?.descripcion ??
-              producto?.categoria_id ??
-              (producto?.precios?.length ? "precios" : null),
-          )}
-        >
-          <CollapsibleTrigger render={<Button type="button" variant="ghost" className="w-full justify-between" />}>
-            Más opciones
-            <ChevronDown className="size-4" />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="flex flex-col gap-4 border-t border-slate-200 p-3">
-            <FormField htmlFor="categoria_id" label="Categoría">
-              <Select
-                name="categoria_id"
-                defaultValue={producto?.categoria_id ?? SIN_CATEGORIA}
-                items={opcionesCategoria}
-              >
-                <SelectTrigger id="categoria_id" className={FORM_SELECT}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {opcionesCategoria.map((opcion) => (
-                    <SelectItem key={opcion.value} value={opcion.value}>
-                      {opcion.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormField>
-            {listasPrecios.length > 0 ? (
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="text-sm font-medium">Precios por lista</span>
-                  <span className="text-muted-foreground text-xs">
-                    Valor fijo en RD$ o porcentaje sobre el precio (10 = +10 %, -10 = descuento).
-                  </span>
-                </div>
-                <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-                  {listasPrecios.map((lista) => {
-                    const valor = producto?.precios.find((precio) => precio.lista_id === lista.id)?.precio;
-
-                    return (
-                      <FormField
-                        key={lista.id}
-                        htmlFor={`precio_lista_${lista.id}`}
-                        label={`${lista.nombre}${lista.es_principal ? " (principal)" : ""}`}
-                      >
-                        <Input
-                          id={`precio_lista_${lista.id}`}
-                          name={`precio_lista_${lista.id}`}
-                          inputMode="decimal"
-                          placeholder={lista.tipo === "porcentaje" ? "0" : "0.00"}
-                          defaultValue={valor === undefined ? "" : String(valor)}
-                          className={FORM_INPUT}
-                        />
-                        <span className="text-muted-foreground text-xs">{etiquetaTipoLista(lista.tipo)}</span>
-                      </FormField>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-            <FormField htmlFor="referencia" label="Referencia">
-              <Input
-                id="referencia"
-                name="referencia"
-                defaultValue={producto?.referencia ?? ""}
-                placeholder="Ej. OXI-001"
-                className={FORM_INPUT}
-              />
-            </FormField>
-            <FormField htmlFor="descripcion" label="Descripción">
-              <Textarea
-                id="descripcion"
-                name="descripcion"
-                defaultValue={producto?.descripcion ?? ""}
-                className={FORM_TEXTAREA}
-              />
-            </FormField>
-          </CollapsibleContent>
-        </Collapsible>
+        <MasOpcionesProducto producto={producto} opcionesCategoria={opcionesCategoria} listasPrecios={listasPrecios} />
 
         {error ? (
           <p role="alert" className="text-destructive text-sm">
