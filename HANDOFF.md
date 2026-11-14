@@ -1,5 +1,39 @@
 # Handoff — Medoxigas Contabilidad
 
+## S27 — Catálogo de cuentas en árbol (13 nov 2026)
+
+- El catálogo de `/dashboard/contabilidad` ya no es una tabla plana: nuevo
+  `CatalogoCuentas` cliente que arma el árbol con `padre_id` desde las cuentas
+  que carga el servidor. Cada padre tiene chevron; las hijas van sangradas con
+  líneas guía. Las raíces llevan badge de color por tipo y separador. Al cargar,
+  Activos y su primer nivel quedan abiertos; el resto cerrado. Botones «Expandir
+  todo» y «Contraer todo».
+- Columnas: Nombre de la cuenta, Código, Uso de cuenta (con ícono de info y
+  tooltip), Descripción (truncada con tooltip) y Saldo (rojo si es negativo).
+  El uso se deriva de `config_contable` y, para cajas/bancos, de
+  `es_caja_banco`/`tipo_banco`; no hay columna nueva en la base.
+- Buscador por nombre o código, insensible a mayúsculas y acentos: conserva a
+  los ancestros de cada coincidencia y abre las ramas donde hay resultados.
+- Al pasar el mouse salen las acciones: crear subcuenta (el diálogo abre con el
+  padre y el tipo preseleccionados), editar y ver movimientos (`rutaCuenta`).
+  No se agregó papelera porque hoy no existe acción de borrar.
+- Clic en una fila la resalta y abre «Información de la cuenta» (código, nombre,
+  tipo, naturaleza, uso, descripción, saldo y enlace a movimientos): panel fijo
+  a la derecha en escritorio y `Sheet` en móvil.
+- Lógica pura en `src/lib/contabilidad/catalogo.ts` (árbol, filtro, expansión,
+  aplanado, índice y uso) con Vitest en `catalogo.test.ts` (9 tests).
+  `obtenerCatalogoContable` ahora selecciona `descripcion`, `es_caja_banco` y
+  `tipo_banco`; `CuentaContable` los tiene opcionales.
+- `cuenta-formulario.tsx` se tocó lo mínimo: `trigger`, `padreIdInicial` y
+  `tipoInicial` en `NuevaCuenta`/`EditarCuenta` para las acciones de fila. La
+  sesión S26 (`fix/select-shadcn`) también edita ese archivo, pero en los
+  `NativeSelect` del formulario; el conflicto debería ser chico.
+- Sin migraciones. `typecheck`, `test` (632), Biome sobre lo tocado y `build` en
+  verde. Sin verificación visual (la hace Coder).
+- Quedó fuera: editar Descripción y Uso desde el catálogo (el formulario de
+  cuenta no tiene esos campos) y la acción de borrar. El `loading.tsx` existente
+  se mantiene.
+
 ## S24 — Papel impreso/PDF de factura, cotización y conduce (13 nov 2026)
 
 - `DocumentoPapel`: las columnas de montos (Precio, Descuento, Impuesto y
