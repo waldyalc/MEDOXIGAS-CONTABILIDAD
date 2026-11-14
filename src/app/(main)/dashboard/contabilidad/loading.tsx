@@ -7,7 +7,7 @@ export default function Loading() {
       descripcion="Cuentas contables y su saldo actual."
       acciones={2}
       filtros={1}
-      columnas={5}
+      columnas={6}
       filas={12}
     />
   );
