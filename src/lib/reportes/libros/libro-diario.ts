@@ -8,10 +8,13 @@ export interface OpcionesLibroDiario {
 
 export interface FilaLibroDiarioCalculada {
   clave: string;
+  asientoId: string;
   asientoNumero: number;
   estado: string;
   fecha: string;
+  contactoId: string | null;
   tercero: string;
+  cuentaId: string;
   cuentaCodigo: string;
   cuentaNombre: string;
   centroCosto: string;
@@ -57,10 +60,13 @@ export function calcularLibroDiario(
   return {
     filas: visibles.map((fila, indice) => ({
       clave: `${fila.asiento_id}-${inicio + indice}`,
+      asientoId: fila.asiento_id,
       asientoNumero: fila.asiento_numero,
       estado: fila.estado || "Contabilizado",
       fecha: fila.fecha,
+      contactoId: fila.contacto_id,
       tercero: fila.tercero ?? "",
+      cuentaId: fila.cuenta_id,
       cuentaCodigo: fila.cuenta_codigo,
       cuentaNombre: fila.cuenta_nombre,
       centroCosto: "",

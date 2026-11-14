@@ -1,5 +1,8 @@
+import Link from "next/link";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaContacto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
@@ -80,7 +83,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                 filas.map((fila) => (
                   <TableRow key={fila.id}>
                     <TableCell className="text-muted-foreground">{fila.rnc ?? "—"}</TableCell>
-                    <TableCell className="font-medium">{fila.proveedor}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link href={rutaContacto(fila.contactoId)} prefetch={false} className="hover:underline">
+                        {fila.proveedor}
+                      </Link>
+                    </TableCell>
                     <TableCell>{fila.facturaNcf ?? `#${fila.facturaNumero}`}</TableCell>
                     <TableCell>{formatoDia(fila.fecha)}</TableCell>
                     <TableCell>{fila.tipo === "itbis" ? "ITBIS" : "ISR"}</TableCell>

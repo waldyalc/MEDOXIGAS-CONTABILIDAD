@@ -1,8 +1,10 @@
 import { BookOpen } from "lucide-react";
 
+import { Enlace } from "@/components/enlace";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaAsiento, rutaContacto, rutaCuenta } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
@@ -73,14 +75,26 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                 <TableBody>
                   {libro.filas.map((fila) => (
                     <TableRow key={fila.clave}>
-                      <TableCell className="tabular-nums">{fila.asientoNumero}</TableCell>
+                      <TableCell className="tabular-nums">
+                        <Enlace href={rutaAsiento(fila.asientoId)}>#{fila.asientoNumero}</Enlace>
+                      </TableCell>
                       <TableCell>
                         <EstadoAsiento estado={fila.estado} />
                       </TableCell>
                       <TableCell>{formatoDia(fila.fecha)}</TableCell>
-                      <TableCell>{fila.tercero || "—"}</TableCell>
-                      <TableCell className="text-muted-foreground tabular-nums">{fila.cuentaCodigo}</TableCell>
-                      <TableCell>{fila.cuentaNombre}</TableCell>
+                      <TableCell>
+                        {fila.contactoId ? (
+                          <Enlace href={rutaContacto(fila.contactoId)}>{fila.tercero || "—"}</Enlace>
+                        ) : (
+                          fila.tercero || "—"
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground tabular-nums">
+                        <Enlace href={rutaCuenta(fila.cuentaId)}>{fila.cuentaCodigo}</Enlace>
+                      </TableCell>
+                      <TableCell>
+                        <Enlace href={rutaCuenta(fila.cuentaId)}>{fila.cuentaNombre}</Enlace>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{fila.centroCosto || "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {fila.debito === 0 ? "" : formatearRd(fila.debito)}

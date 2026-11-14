@@ -33,7 +33,7 @@ import { crearCuentaBanco, registrarDeposito, transferirEntreCuentas } from "@/l
 import { tipoCuenta } from "@/lib/bancos/formato";
 import type { CuentaBanco, CuentaSeleccion } from "@/lib/bancos/tipos";
 import { validarCuentaBanco, validarDeposito, validarTransferencia } from "@/lib/bancos/validacion";
-import { rutaBanco, rutaConciliacion, rutaTransferencia } from "@/lib/enlaces";
+import { rutaBanco, rutaConciliacion, rutaCuenta, rutaTransferencia } from "@/lib/enlaces";
 import { centavosAValor, parsearCentavos } from "@/lib/facturacion/calculo";
 import { formatoDia } from "@/lib/formato";
 import { centavos, formatearRd } from "@/lib/reportes/dinero";
@@ -662,7 +662,12 @@ export function PanelBancos({ cuentas, cuentasCajaBanco, cuentasMovimiento, pued
                       <Link className="hover:underline" href={rutaBanco(cuenta.id)}>
                         {cuenta.nombre}
                       </Link>
-                      <span className="text-muted-foreground ml-2 text-xs">{cuenta.codigo}</span>
+                      <Link
+                        className="text-muted-foreground ml-2 text-xs underline-offset-4 hover:underline"
+                        href={rutaCuenta(cuenta.id)}
+                      >
+                        {cuenta.codigo}
+                      </Link>
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{tipoCuenta(cuenta.nombre, cuenta.tipoBanco)}</Badge>

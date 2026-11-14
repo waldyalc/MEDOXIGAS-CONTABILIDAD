@@ -50,6 +50,7 @@ interface PagoRecibidoCrudo {
   monto: number | string;
   estado: string;
   contacto_id: string;
+  cuenta_id: string;
   creado_en: string;
   cuenta: Relacion<{ nombre: string }>;
   contacto: Relacion<{ nombre: string }>;
@@ -63,6 +64,7 @@ interface PagoProveedorCrudo {
   monto: number | string;
   estado: string;
   contacto_id: string;
+  cuenta_id: string;
   creado_en: string;
   cuenta: Relacion<{ nombre: string }>;
   contacto: Relacion<{ nombre: string }>;
@@ -78,6 +80,7 @@ interface GastoMenorCrudo {
   total: number | string;
   estado: string;
   contacto_id: string | null;
+  cuenta_id: string;
   creado_en: string;
   cuenta: Relacion<{ nombre: string }>;
   contacto: Relacion<{ nombre: string }>;
@@ -101,6 +104,7 @@ function movimientoGasto(fila: GastoMenorCrudo): MovimientoOrdenado {
       origen: "gasto_menor",
       comprobante: fila.ncf ?? String(fila.numero),
       fecha: fila.fecha,
+      cuentaId: fila.cuenta_id,
       cuenta: primerRelacion(fila.cuenta)?.nombre ?? "—",
       contactoId: fila.contacto_id,
       contactoNombre: primerRelacion(fila.contacto)?.nombre ?? null,
@@ -122,6 +126,7 @@ function movimientoPagoRecibido(fila: PagoRecibidoCrudo): MovimientoOrdenado {
       origen: "pago_recibido",
       comprobante: String(fila.numero),
       fecha: fila.fecha,
+      cuentaId: fila.cuenta_id,
       cuenta: primerRelacion(fila.cuenta)?.nombre ?? "—",
       contactoId: fila.contacto_id,
       contactoNombre: primerRelacion(fila.contacto)?.nombre ?? null,
@@ -143,6 +148,7 @@ function movimientoPagoProveedor(fila: PagoProveedorCrudo): MovimientoOrdenado {
       origen: "pago_proveedor",
       comprobante: String(fila.numero),
       fecha: fila.fecha,
+      cuentaId: fila.cuenta_id,
       cuenta: primerRelacion(fila.cuenta)?.nombre ?? "—",
       contactoId: fila.contacto_id,
       contactoNombre: primerRelacion(fila.contacto)?.nombre ?? null,
@@ -171,7 +177,7 @@ export async function obtenerTransacciones(desde: string, hasta: string): Promis
     supabase
       .from("pagos_recibidos")
       .select(
-        "id, numero, fecha, monto, estado, contacto_id, creado_en, cuenta:cuentas(nombre), contacto:contactos(nombre), factura:facturas(ncf)",
+        "id, numero, fecha, monto, estado, contacto_id, cuenta_id, creado_en, cuenta:cuentas(nombre), contacto:contactos(nombre), factura:facturas(ncf)",
       )
       .eq("estado", "activo")
       .gte("fecha", desde)
@@ -179,7 +185,7 @@ export async function obtenerTransacciones(desde: string, hasta: string): Promis
     supabase
       .from("pagos_proveedor")
       .select(
-        "id, numero, fecha, monto, estado, contacto_id, creado_en, cuenta:cuentas(nombre), contacto:contactos(nombre), factura:facturas_proveedor(ncf)",
+        "id, numero, fecha, monto, estado, contacto_id, cuenta_id, creado_en, cuenta:cuentas(nombre), contacto:contactos(nombre), factura:facturas_proveedor(ncf)",
       )
       .eq("estado", "activo")
       .gte("fecha", desde)
@@ -187,7 +193,7 @@ export async function obtenerTransacciones(desde: string, hasta: string): Promis
     supabase
       .from("gastos_menores")
       .select(
-        "id, numero, ncf, fecha, descripcion, total, estado, contacto_id, creado_en, cuenta:cuentas!gastos_menores_cuenta_pago_id_fkey(nombre), contacto:contactos(nombre)",
+        "id, numero, ncf, fecha, descripcion, total, estado, contacto_id, cuenta_id, creado_en, cuenta:cuentas!gastos_menores_cuenta_pago_id_fkey(nombre), contacto:contactos(nombre)",
       )
       .eq("estado", "activo")
       .gte("fecha", desde)

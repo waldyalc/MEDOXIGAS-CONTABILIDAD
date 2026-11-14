@@ -5,6 +5,7 @@ import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { rutaContacto } from "@/lib/enlaces";
 import { getEmpresa } from "@/lib/facturacion/consultas";
 import { formatoDia } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
@@ -184,7 +185,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
               ) : (
                 cartas.map((item) => (
                   <TableRow key={item.contactoId}>
-                    <TableCell className="font-medium">{item.proveedor}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link href={rutaContacto(item.contactoId)} prefetch={false} className="hover:underline">
+                        {item.proveedor}
+                      </Link>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{item.rnc ?? "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatearRd(item.totalItbis)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatearRd(item.totalIsr)}</TableCell>

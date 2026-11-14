@@ -4,8 +4,10 @@ import type { FilaSaldoTercero } from "./tipos";
 
 export interface FilaBalanzaTerceroCalculada {
   clave: string;
+  cuentaId: string;
   cuentaCodigo: string;
   cuentaNombre: string;
+  contactoId: string | null;
   tercero: string;
   saldoInicialDebito: number;
   saldoInicialCredito: number;
@@ -50,8 +52,10 @@ export function calcularBalanzaTercero(
 
       return {
         clave: `${fila.cuenta_id}-${fila.contacto_id ?? "sin-tercero"}`,
+        cuentaId: fila.cuenta_id,
         cuentaCodigo: fila.cuenta_codigo,
         cuentaNombre: fila.cuenta_nombre,
+        contactoId: fila.contacto_id,
         tercero: fila.tercero ?? "Sin tercero",
         saldoInicialDebito: inicial.debito,
         saldoInicialCredito: inicial.credito,

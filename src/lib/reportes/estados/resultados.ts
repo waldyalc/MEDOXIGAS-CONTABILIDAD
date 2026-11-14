@@ -88,6 +88,7 @@ export function calcularEstadoResultadosComparativo(
       clase: "detalle",
       codigo: cuenta.codigo,
       nombre: cuenta.nombre,
+      cuentaId: opciones.cuentasPorCodigo?.get(cuenta.codigo) ?? null,
       actual: signo * cuenta.actual,
       anterior: signo * cuenta.anterior,
       porcentajeActual: porcentajeActual(cuenta.actual),

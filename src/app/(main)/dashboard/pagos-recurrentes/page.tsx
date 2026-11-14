@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getRol } from "@/lib/auth/rol";
 import { hoyEnRd } from "@/lib/compras/fechas";
 import { formatoMoneda } from "@/lib/compras/formato";
-import { rutaContacto, rutaPagoRecurrente } from "@/lib/enlaces";
+import { rutaContacto, rutaCuenta, rutaPagoRecurrente } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { listarPagosRecurrentes } from "@/lib/pagos-recurrentes/consultas";
 import { siguientePeriodo } from "@/lib/pagos-recurrentes/periodos";
@@ -41,8 +41,12 @@ function FilaPlan({ plan, hoy, puedeEscribir }: { plan: PagoRecurrenteLista; hoy
           <span className="text-muted-foreground">—</span>
         )}
       </TableCell>
-      <TableCell>{plan.cuenta_gasto_nombre}</TableCell>
-      <TableCell>{plan.cuenta_pago_nombre}</TableCell>
+      <TableCell>
+        <Enlace href={rutaCuenta(plan.cuenta_gasto_id)}>{plan.cuenta_gasto_nombre}</Enlace>
+      </TableCell>
+      <TableCell>
+        <Enlace href={rutaCuenta(plan.cuenta_pago_id)}>{plan.cuenta_pago_nombre}</Enlace>
+      </TableCell>
       <TableCell>{plan.frecuencia_meses === 1 ? "Mensual" : `Cada ${plan.frecuencia_meses} meses`}</TableCell>
       <TableCell className="tabular-nums">{proximo ? formatoDia(proximo) : "—"}</TableCell>
       <TableCell className="text-right tabular-nums">{formatoMoneda(plan.subtotal)}</TableCell>

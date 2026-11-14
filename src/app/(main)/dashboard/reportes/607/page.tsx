@@ -18,7 +18,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   ]);
 
   const documentos = [...ventas.datos.documentos, ...devoluciones.datos.documentos];
-  const filas = documentos.map(fila607);
+  const filas = documentos.map((documento) => ({
+    ...fila607(documento),
+    __ruta: documento.ruta ?? "",
+    __contactoId: documento.contactoId ?? "",
+  }));
   const encabezado = encabezado607(documentos, empresa.datos.rnc, periodo);
   const texto = libroTexto(FORMATO_607.encabezado, FORMATO_607.detalle, encabezado, filas);
   const totalItbis = documentos.reduce(

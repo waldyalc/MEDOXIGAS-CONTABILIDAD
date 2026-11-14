@@ -77,7 +77,9 @@ export function FacturasTabla({ facturas, puedeEscribir }: { facturas: FacturaFi
                   <TableCell className="font-medium">
                     <Enlace href={rutaFactura(factura.id)}>{factura.numero}</Enlace>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{factura.ncf ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {factura.ncf ? <Enlace href={rutaFactura(factura.id)}>{factura.ncf}</Enlace> : "—"}
+                  </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {etiquetaTipoComprobante(factura.tipo_comprobante)}
                   </TableCell>
