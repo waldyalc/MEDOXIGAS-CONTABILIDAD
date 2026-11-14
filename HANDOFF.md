@@ -1,5 +1,48 @@
 # Handoff — Medoxigas Contabilidad
 
+## S23 — Inicio como «Resumen del negocio» de Alegra (16 nov 2026)
+
+- Inicio (`/dashboard`) ahora es el «Resumen del negocio»: encabezado y filtro
+  de periodo a la derecha (`?periodo=mes|3m|6m`, con el rango dd/mm/aaaa debajo
+  de cada opción). Se conserva arriba el aviso de saldo negativo en caja/banco.
+  «Mes actual» va del día 1 a hoy; 3 m y 6 m cuentan meses calendario hacia
+  atrás, incluido el actual.
+- **Una sola función SQL de solo lectura**:
+  `dashboard_resumen(p_desde, p_hasta)` (`20261116100000_dashboard_resumen.sql`,
+  aditiva, no aplicada al remoto). Es `stable`, `security invoker` y respeta RLS;
+  devuelve un JSON con las tarjetas y la serie. `obtenerResumenNegocio` usa
+  `cache()` para que los tres bloques compartan una sola llamada.
+- Tarjetas grandes: **Cuentas por cobrar** y **Cuentas por pagar**, con total y
+  filas proporcionales verde «Vigentes» y roja «Vencidas» (monto y N documentos).
+  Saldo = `total - pagado - crédito - retenido`; vencidas = vencimiento < hasta
+  (= hoy) y saldo > 0. Solo facturas del periodo con saldo pendiente. El título
+  enlaza a CxC (`?hasta=&creacion_desde=&creacion_hasta=`) / CxP
+  (`?desde=&hasta=`).
+- Tarjetas chicas 2×2: **Impuestos en venta** (suma de `facturas.itbis` del
+  periodo), **Productos vendidos** (unidades de `factura_lineas` de facturas no
+  anuladas), **Devoluciones de clientes** (notas de crédito de venta activas,
+  «Incluye impuestos») y **Clientes con ventas** (contactos distintos, enlaza a
+  Ventas por cliente con fechas).
+- **Total de ventas**: facturas no anuladas, `total` con impuestos; el título
+  enlaza a Ventas generales con fechas. Con un solo mes, líneas diarias (serie
+  sólida del periodo y punteada del mismo rango del año anterior, tooltip con
+  ambas); con 3/6 meses, barras por mes. Total y variación % contra el mismo
+  rango del año anterior; botón para abrir la gráfica en un Dialog grande.
+  Todo con Chart de shadcn/recharts.
+- Cada bloque va en su `<Suspense>` con esqueletos que imitan su forma
+  (`_components/inicio/esqueletos.tsx`) y `loading.tsx` actualizado.
+- pgTAP `dashboard_resumen_test.sql` (27 asserts) con datos propios en fechas
+  2099/2098; cubre CxC/CxP, tarjetas, ventas, variación y series diaria/mensual.
+  Vitest `src/lib/inicio/periodo.test.ts` (9) para el periodo y los rangos.
+  El pgTAP no se pudo correr aquí (sin Docker/Supabase CLI).
+- `types.ts` actualizado a mano solo con `dashboard_resumen` (la migración no
+  está aplicada). `typecheck`, `test` (625), Biome de lo tocado y `build` en
+  verde. Sin verificación visual.
+- Quedó fuera: «Funciones sugeridas», «Agregar gráfica» y eliminar tarjetas
+  (futuro). Las devoluciones no restan de ventas, ITBIS ni unidades (van
+  aparte, como pide el brief); las barras mensuales solo pintan el periodo
+  actual (la variación total sí compara contra el año anterior).
+
 ## S21 — Todo conectado: enlaces de entidades (13 nov 2026)
 
 - `src/lib/enlaces.ts`: `rutaAjusteInventario`, `rutaTransferenciaInventario` y
