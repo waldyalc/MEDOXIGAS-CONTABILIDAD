@@ -1,0 +1,511 @@
+{
+  "generado": "2026-11-14T23:09:10.393Z",
+  "escenarios": {
+    "C1": {
+      "esperado": "500 facturas creadas; NCF distintos y consecutivos sin huecos",
+      "real": {
+        "creadas": 500,
+        "ncfDistintos": 500,
+        "ncfMin": 100010771,
+        "ncfMax": 100011270,
+        "ncfConsecutivos": true
+      },
+      "pasa": true,
+      "ids": [
+        "ee1d21f1-deb7-4da9-b4ce-e371b31a8ef9",
+        "18fb9aff-101b-48a6-8f34-e1f1dc4c8a4d",
+        "314efcfe-8b61-453d-8d35-c04bb41ef3fb",
+        "2038b2ed-353d-4af7-be52-b9f1ec7cd230",
+        "795cf9b8-7599-4d06-aee5-e220f062174d",
+        "43983168-6eeb-4403-95ba-96262b7c94b3",
+        "4267a124-b8c1-4aee-b67f-528fa7a2cff4",
+        "027a5ef8-5fb6-4879-9ae1-68cb58565cc4",
+        "022018d1-365f-480e-ba11-16c3adaef56f",
+        "7a9ac0f7-68b0-4725-aef0-3c87b4ad79e0",
+        "66f7c7b1-84d5-4240-bbbd-27a419a7ee11",
+        "6d5cdb5d-0478-4b78-a8a3-dd884a5277ab",
+        "3d514a72-8e98-49a3-a2b8-75f1d3a1b5a9",
+        "9f677cce-c033-42d0-8a98-5a8d48ebe8c9",
+        "4a034f07-00d9-412c-90e5-ae6f59f1a5bd",
+        "7fb8e72b-b089-4cca-b1ae-117162cb1740",
+        "32d40505-779f-4891-a0ff-2ed6229d116d",
+        "46a0df9a-cb7c-47a3-9899-b5226744ef9a",
+        "4e7042b0-9fc6-4c7f-a464-9e73f57ac277",
+        "8c20fa14-6410-4827-aa3b-042da678c179"
+      ],
+      "errores": {}
+    },
+    "C2": {
+      "esperado": "3 cobros exitosos, 2 fallos con error claro, pagado=9000",
+      "real": {
+        "totalFactura": 10000,
+        "exitosos": 3,
+        "fallidos": 2,
+        "errores": [
+          "el monto más las retenciones excede el saldo pendiente de la factura",
+          "el monto más las retenciones excede el saldo pendiente de la factura"
+        ],
+        "pagadoFinal": 9000,
+        "estadoFinal": "abierta"
+      },
+      "pasa": true,
+      "ids": ["bffce291-1c9e-4674-903d-1f2c212d2484"],
+      "errores": {}
+    },
+    "C3": {
+      "esperado": "nunca cobrar más que el saldo de cada factura",
+      "real": {
+        "exitosos": 4,
+        "fallidos": 1,
+        "errores": ["la factura 15626 ya está pagada"],
+        "facturaA": {
+          "total": 6000,
+          "pagado": 6000
+        },
+        "facturaB": {
+          "total": 8000,
+          "pagado": 6000
+        },
+        "sobrepago": false
+      },
+      "pasa": true,
+      "ids": ["c3c4b8cb-ca1d-496d-b799-6fb4070b12ac", "f29dd616-5eef-4039-adf1-272e62b84b35"],
+      "errores": {}
+    },
+    "C4": {
+      "esperado": "existencia final = 3 − ventas creadas (-2); existencias = productos.cantidad",
+      "real": {
+        "ventasCreadas": 5,
+        "productosCantidad": -2,
+        "existenciasCantidad": -2,
+        "existenciasIgualProductos": true
+      },
+      "pasa": true,
+      "ids": [
+        "6a1e0edb-a8c1-44bc-afd7-4552b61c7662",
+        "79909a38-5863-4b83-8cfa-65e8a956ffab",
+        "11a118fd-a61c-4e30-b429-a15f74bc60d8",
+        "3c1e22c3-1b5d-4e82-9382-bfe6e0179bef",
+        "1d814921-4b93-413d-a106-9962e7b6ab51"
+      ],
+      "errores": {}
+    },
+    "C5": {
+      "esperado": "en cada intento gana uno solo: anulada sin pago, o pagada sin anular",
+      "real": {
+        "intentos": 20,
+        "unSoloGanador": 20,
+        "ambos": 0,
+        "ninguno": 0,
+        "detalle": [
+          {
+            "iteracion": 0,
+            "facturaId": "c22f0dc1-e18c-43cb-8fe0-ab01db971272",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 1,
+            "facturaId": "7f16196c-638a-4d91-bca2-35d5cfba8fa4",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 2,
+            "facturaId": "f589e2f7-ad35-4e74-bb57-5e77cf8ca96e",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 3,
+            "facturaId": "18eac2df-5b8b-4ed4-a628-09dbb7cb994e",
+            "anulacion": "ok",
+            "pago": "la factura está anulada",
+            "estadoFinal": "anulada",
+            "pagadoFinal": 0,
+            "resultado": "anulacion"
+          },
+          {
+            "iteracion": 4,
+            "facturaId": "c349e645-9835-40d0-aeea-109793a590bc",
+            "anulacion": "ok",
+            "pago": "la factura está anulada",
+            "estadoFinal": "anulada",
+            "pagadoFinal": 0,
+            "resultado": "anulacion"
+          },
+          {
+            "iteracion": 5,
+            "facturaId": "d811f374-81d1-4d4f-ad7c-80eb26ae7910",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 6,
+            "facturaId": "68801b5b-9b3d-4284-bca2-e5cf84dbbe85",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 7,
+            "facturaId": "8a65590c-1e2e-48d5-95bc-dd16305357af",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 8,
+            "facturaId": "f140f3c9-1ed5-40da-ae27-b940157d9a67",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 9,
+            "facturaId": "2cc08a97-0a22-4545-b42e-bad458135cc3",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 10,
+            "facturaId": "33c47cde-5812-41af-a616-f2ba58337a41",
+            "anulacion": "ok",
+            "pago": "la factura está anulada",
+            "estadoFinal": "anulada",
+            "pagadoFinal": 0,
+            "resultado": "anulacion"
+          },
+          {
+            "iteracion": 11,
+            "facturaId": "003a4418-7f92-43dd-9429-ed43f8d3a7b5",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 12,
+            "facturaId": "1614fba6-370c-4b0d-8e73-85732d34eb95",
+            "anulacion": "ok",
+            "pago": "la factura está anulada",
+            "estadoFinal": "anulada",
+            "pagadoFinal": 0,
+            "resultado": "anulacion"
+          },
+          {
+            "iteracion": 13,
+            "facturaId": "92595539-737c-4ca9-97ae-da4df4ce68ba",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 14,
+            "facturaId": "8ce172af-c241-4a69-b127-8ae52ab6cb4d",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 15,
+            "facturaId": "c9aabcda-fba9-45f4-b1c0-c150a34361d8",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 16,
+            "facturaId": "c692fada-7dd1-4991-a81d-e7aff46834c7",
+            "anulacion": "ok",
+            "pago": "la factura está anulada",
+            "estadoFinal": "anulada",
+            "pagadoFinal": 0,
+            "resultado": "anulacion"
+          },
+          {
+            "iteracion": 17,
+            "facturaId": "dcdc98ea-967d-4301-a0a2-93460f28386a",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 18,
+            "facturaId": "b7481970-44d8-43d8-b5b7-f0dc30128e59",
+            "anulacion": "no se puede anular una factura con pagos activos",
+            "pago": "ok",
+            "estadoFinal": "pagada",
+            "pagadoFinal": 500,
+            "resultado": "pago"
+          },
+          {
+            "iteracion": 19,
+            "facturaId": "45c12aec-dde9-4d72-b377-959d93ffd0fc",
+            "anulacion": "ok",
+            "pago": "la factura está anulada",
+            "estadoFinal": "anulada",
+            "pagadoFinal": 0,
+            "resultado": "anulacion"
+          }
+        ]
+      },
+      "pasa": true,
+      "ids": [
+        "c22f0dc1-e18c-43cb-8fe0-ab01db971272",
+        "7f16196c-638a-4d91-bca2-35d5cfba8fa4",
+        "f589e2f7-ad35-4e74-bb57-5e77cf8ca96e",
+        "18eac2df-5b8b-4ed4-a628-09dbb7cb994e",
+        "c349e645-9835-40d0-aeea-109793a590bc",
+        "d811f374-81d1-4d4f-ad7c-80eb26ae7910",
+        "68801b5b-9b3d-4284-bca2-e5cf84dbbe85",
+        "8a65590c-1e2e-48d5-95bc-dd16305357af",
+        "f140f3c9-1ed5-40da-ae27-b940157d9a67",
+        "2cc08a97-0a22-4545-b42e-bad458135cc3",
+        "33c47cde-5812-41af-a616-f2ba58337a41",
+        "003a4418-7f92-43dd-9429-ed43f8d3a7b5",
+        "1614fba6-370c-4b0d-8e73-85732d34eb95",
+        "92595539-737c-4ca9-97ae-da4df4ce68ba",
+        "8ce172af-c241-4a69-b127-8ae52ab6cb4d",
+        "c9aabcda-fba9-45f4-b1c0-c150a34361d8",
+        "c692fada-7dd1-4991-a81d-e7aff46834c7",
+        "dcdc98ea-967d-4301-a0a2-93460f28386a",
+        "b7481970-44d8-43d8-b5b7-f0dc30128e59",
+        "45c12aec-dde9-4d72-b377-959d93ffd0fc"
+      ],
+      "errores": {}
+    },
+    "C6": {
+      "esperado": "tras el cierre no entra ninguna factura de junio 2020; al final el periodo queda abierto",
+      "real": {
+        "cierre": "ok",
+        "creadasDuranteLaCarrera": 5,
+        "fallidasDuranteLaCarrera": 35,
+        "erroresMuestra": ["el periodo 2020-06 está cerrado; no se pueden crear ni anular asientos con esa fecha"],
+        "sondas": [
+          "el periodo 2020-06 está cerrado; no se pueden crear ni anular asientos con esa fecha",
+          "el periodo 2020-06 está cerrado; no se pueden crear ni anular asientos con esa fecha",
+          "el periodo 2020-06 está cerrado; no se pueden crear ni anular asientos con esa fecha"
+        ],
+        "reapertura": "ok",
+        "estadoPeriodoDespues": "abierto"
+      },
+      "pasa": true,
+      "ids": [
+        "56f54d23-4ca3-49f6-9ced-a3585aa3459a",
+        "1b57c6b2-6907-4861-a0ec-004026a2daaa",
+        "9877ed29-32ce-4b47-a43e-fb4b4d700534",
+        "32d5a5f2-6e34-4252-9f12-7f17c42ccd41",
+        "414049ca-afb4-43ff-946c-86125eca2530"
+      ],
+      "errores": {}
+    },
+    "C7": {
+      "esperado": "facturas p95 < 1 s durante 2 min; nada se cuelga ni da timeout",
+      "real": {
+        "facturasCreadas": 3932,
+        "duracionSegundos": 120,
+        "tiempos": {
+          "intentos": 3932,
+          "ok": 3932,
+          "fallos": 0,
+          "p50": 114,
+          "p95": 164,
+          "maximo": 658,
+          "errores": {}
+        }
+      },
+      "pasa": true,
+      "ids": [],
+      "errores": {}
+    }
+  },
+  "resumenTiempos": {
+    "c1_crear_factura": {
+      "intentos": 500,
+      "ok": 500,
+      "fallos": 0,
+      "p50": 118,
+      "p95": 243,
+      "maximo": 4681,
+      "errores": {}
+    },
+    "c2_crear_factura": {
+      "intentos": 1,
+      "ok": 1,
+      "fallos": 0,
+      "p50": 130,
+      "p95": 130,
+      "maximo": 130,
+      "errores": {}
+    },
+    "c2_pago_3000": {
+      "intentos": 5,
+      "ok": 3,
+      "fallos": 2,
+      "p50": 196,
+      "p95": 215,
+      "maximo": 215,
+      "errores": {
+        "el monto más las retenciones excede el saldo pendiente de la factura": 2
+      }
+    },
+    "c3_crear_factura_a": {
+      "intentos": 1,
+      "ok": 1,
+      "fallos": 0,
+      "p50": 118,
+      "p95": 118,
+      "maximo": 118,
+      "errores": {}
+    },
+    "c3_crear_factura_b": {
+      "intentos": 1,
+      "ok": 1,
+      "fallos": 0,
+      "p50": 117,
+      "p95": 117,
+      "maximo": 117,
+      "errores": {}
+    },
+    "c3_pago_multi": {
+      "intentos": 5,
+      "ok": 4,
+      "fallos": 1,
+      "p50": 202,
+      "p95": 218,
+      "maximo": 218,
+      "errores": {
+        "la factura 15626 ya está pagada": 1
+      }
+    },
+    "c4_crear_factura": {
+      "intentos": 5,
+      "ok": 5,
+      "fallos": 0,
+      "p50": 147,
+      "p95": 163,
+      "maximo": 163,
+      "errores": {}
+    },
+    "c5_crear_factura": {
+      "intentos": 20,
+      "ok": 20,
+      "fallos": 0,
+      "p50": 117,
+      "p95": 135,
+      "maximo": 137,
+      "errores": {}
+    },
+    "c5_pago": {
+      "intentos": 20,
+      "ok": 14,
+      "fallos": 6,
+      "p50": 103,
+      "p95": 113,
+      "maximo": 191,
+      "errores": {
+        "la factura está anulada": 6
+      }
+    },
+    "c5_anular": {
+      "intentos": 20,
+      "ok": 6,
+      "fallos": 14,
+      "p50": 108,
+      "p95": 132,
+      "maximo": 191,
+      "errores": {
+        "no se puede anular una factura con pagos activos": 14
+      }
+    },
+    "c6_crear_factura": {
+      "intentos": 40,
+      "ok": 5,
+      "fallos": 35,
+      "p50": 109,
+      "p95": 241,
+      "maximo": 377,
+      "errores": {
+        "el periodo 2020-06 está cerrado; no se pueden crear ni anular asientos con esa fecha": 35
+      }
+    },
+    "c6_sonda": {
+      "intentos": 3,
+      "ok": 0,
+      "fallos": 3,
+      "p50": 110,
+      "p95": 111,
+      "maximo": 111,
+      "errores": {
+        "el periodo 2020-06 está cerrado; no se pueden crear ni anular asientos con esa fecha": 3
+      }
+    },
+    "c7_crear_factura": {
+      "intentos": 3932,
+      "ok": 3932,
+      "fallos": 0,
+      "p50": 114,
+      "p95": 164,
+      "maximo": 658,
+      "errores": {}
+    },
+    "c7_reporte_607_marzo2023": {
+      "intentos": 185,
+      "ok": 185,
+      "fallos": 0,
+      "p50": 212,
+      "p95": 355,
+      "maximo": 739,
+      "errores": {}
+    },
+    "c7_reporte_607_2023": {
+      "intentos": 184,
+      "ok": 184,
+      "fallos": 0,
+      "p50": 215,
+      "p95": 351,
+      "maximo": 652,
+      "errores": {}
+    },
+    "c7_reporte_ventas_2023": {
+      "intentos": 184,
+      "ok": 184,
+      "fallos": 0,
+      "p50": 156,
+      "p95": 252,
+      "maximo": 363,
+      "errores": {}
+    }
+  }
+}
