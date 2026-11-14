@@ -7,9 +7,19 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
+import {
+  FORM_BUTTON,
+  FORM_INPUT,
+  FORM_SELECT,
+  FormActions,
+  FormCard,
+  FormDivider,
+  FormField,
+  FormSectionTitle,
+  FormTotal,
+} from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Combobox,
   ComboboxContent,
@@ -168,177 +178,188 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
 
   return (
     <form
-      className="flex flex-col gap-4"
+      className="mx-auto flex w-full max-w-[1040px] flex-col gap-6"
       onSubmit={(evento) => {
         evento.preventDefault();
         guardar();
       }}
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos del asiento</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="fecha">Fecha *</Label>
-            <Input id="fecha" type="date" required value={fecha} onChange={(evento) => setFecha(evento.target.value)} />
+      <FormCard>
+        <section>
+          <FormSectionTitle className="mb-4">Datos del asiento</FormSectionTitle>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-3">
+            <FormField htmlFor="fecha" label="Fecha" required>
+              <Input
+                id="fecha"
+                type="date"
+                required
+                value={fecha}
+                onChange={(evento) => setFecha(evento.target.value)}
+                className={FORM_INPUT}
+              />
+            </FormField>
+            <FormField htmlFor="descripcion" label="Descripción" required className="md:col-span-2">
+              <Input
+                id="descripcion"
+                required
+                maxLength={500}
+                value={descripcion}
+                placeholder="Concepto del asiento"
+                onChange={(evento) => setDescripcion(evento.target.value)}
+                className={FORM_INPUT}
+              />
+            </FormField>
           </div>
-          <div className="flex flex-col gap-2 md:col-span-2">
-            <Label htmlFor="descripcion">Descripción *</Label>
-            <Input
-              id="descripcion"
-              required
-              maxLength={500}
-              value={descripcion}
-              placeholder="Concepto del asiento"
-              onChange={(evento) => setDescripcion(evento.target.value)}
-            />
+        </section>
+
+        <FormDivider />
+
+        <section>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <FormSectionTitle>Líneas</FormSectionTitle>
+            <Button type="button" variant="outline" size="sm" onClick={agregarLinea}>
+              <Plus />
+              Agregar línea
+            </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Líneas</CardTitle>
-          <Button type="button" variant="outline" size="sm" onClick={agregarLinea}>
-            <Plus />
-            Agregar línea
-          </Button>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="text-muted-foreground hidden gap-2 px-1 text-xs md:grid md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_auto]">
-            <span>Cuenta *</span>
-            <span>Tercero</span>
-            <span>Centro de costo</span>
-            <span className="text-right">Débito</span>
-            <span className="text-right">Crédito</span>
-            <span className="w-8" />
-          </div>
-
-          {lineas.map((linea, indice) => (
-            <div
-              key={linea.clave}
-              className="grid grid-cols-2 items-end gap-2 rounded-lg border p-2 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_auto] md:border-0 md:p-0"
-            >
-              <div className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
-                <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`cuenta-${linea.clave}`}>
-                  Cuenta {indice === 0 ? "*" : null}
-                </Label>
-                <Combobox
-                  items={cuentasItems}
-                  onValueChange={(item: ItemCombobox | null) =>
-                    actualizarLinea(linea.clave, { cuentaId: item?.value ?? "" })
-                  }
-                >
-                  <ComboboxInput id={`cuenta-${linea.clave}`} className="w-full" placeholder="Buscar cuenta…" />
-                  <ComboboxContent>
-                    <ComboboxEmpty>Sin cuentas</ComboboxEmpty>
-                    <ComboboxList>
-                      {(item: ItemCombobox) => (
-                        <ComboboxItem key={item.value} value={item}>
-                          {item.label}
-                        </ComboboxItem>
-                      )}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-              </div>
-
-              <div className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
-                <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`tercero-${linea.clave}`}>
-                  Tercero
-                </Label>
-                <Combobox
-                  items={contactosItems}
-                  onValueChange={(item: ItemCombobox | null) =>
-                    actualizarLinea(linea.clave, { contactoId: item?.value ?? "" })
-                  }
-                >
-                  <ComboboxInput id={`tercero-${linea.clave}`} className="w-full" placeholder="Opcional" showClear />
-                  <ComboboxContent>
-                    <ComboboxEmpty>Sin contactos</ComboboxEmpty>
-                    <ComboboxList>
-                      {(item: ItemCombobox) => (
-                        <ComboboxItem key={item.value} value={item}>
-                          {item.label}
-                        </ComboboxItem>
-                      )}
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-              </div>
-
-              <div className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
-                <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`centro-${linea.clave}`}>
-                  Centro de costo
-                </Label>
-                <Select
-                  items={centrosItems}
-                  value={linea.centroCostoId || SIN_CENTRO}
-                  onValueChange={(valor: string | null) =>
-                    actualizarLinea(linea.clave, {
-                      centroCostoId: valor == null || valor === SIN_CENTRO ? "" : valor,
-                    })
-                  }
-                >
-                  <SelectTrigger id={`centro-${linea.clave}`} className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false}>
-                    {centrosItems.map((centro) => (
-                      <SelectItem key={centro.value} value={centro.value}>
-                        {centro.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`debito-${linea.clave}`}>
-                  Débito
-                </Label>
-                <Input
-                  id={`debito-${linea.clave}`}
-                  className="text-right"
-                  inputMode="decimal"
-                  value={linea.debito}
-                  onChange={(evento) => actualizarLinea(linea.clave, { debito: evento.target.value })}
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`credito-${linea.clave}`}>
-                  Crédito
-                </Label>
-                <Input
-                  id={`credito-${linea.clave}`}
-                  className="text-right"
-                  inputMode="decimal"
-                  value={linea.credito}
-                  onChange={(evento) => actualizarLinea(linea.clave, { credito: evento.target.value })}
-                />
-              </div>
-
-              <div className="col-span-2 flex justify-end md:col-span-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={lineas.length <= 2}
-                  onClick={() => quitarLinea(linea.clave)}
-                >
-                  <Trash2 />
-                  <span className="sr-only">Quitar línea</span>
-                </Button>
-              </div>
+          <div className="flex flex-col gap-3">
+            <div className="text-muted-foreground hidden gap-2 px-1 text-xs md:grid md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_auto]">
+              <span>Cuenta *</span>
+              <span>Tercero</span>
+              <span>Centro de costo</span>
+              <span className="text-right">Débito</span>
+              <span className="text-right">Crédito</span>
+              <span className="w-8" />
             </div>
-          ))}
-        </CardContent>
-      </Card>
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="bg-muted/50 flex w-full flex-col gap-2 rounded-xl p-4 text-sm md:w-80">
+            {lineas.map((linea, indice) => (
+              <div
+                key={linea.clave}
+                className="grid grid-cols-2 items-end gap-2 rounded-xl border border-slate-200 p-2 md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_auto] md:border-0 md:p-0"
+              >
+                <div className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
+                  <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`cuenta-${linea.clave}`}>
+                    Cuenta {indice === 0 ? "*" : null}
+                  </Label>
+                  <Combobox
+                    items={cuentasItems}
+                    onValueChange={(item: ItemCombobox | null) =>
+                      actualizarLinea(linea.clave, { cuentaId: item?.value ?? "" })
+                    }
+                  >
+                    <ComboboxInput id={`cuenta-${linea.clave}`} className={FORM_SELECT} placeholder="Buscar cuenta…" />
+                    <ComboboxContent>
+                      <ComboboxEmpty>Sin cuentas</ComboboxEmpty>
+                      <ComboboxList>
+                        {(item: ItemCombobox) => (
+                          <ComboboxItem key={item.value} value={item}>
+                            {item.label}
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </div>
+
+                <div className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
+                  <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`tercero-${linea.clave}`}>
+                    Tercero
+                  </Label>
+                  <Combobox
+                    items={contactosItems}
+                    onValueChange={(item: ItemCombobox | null) =>
+                      actualizarLinea(linea.clave, { contactoId: item?.value ?? "" })
+                    }
+                  >
+                    <ComboboxInput
+                      id={`tercero-${linea.clave}`}
+                      className={FORM_SELECT}
+                      placeholder="Opcional"
+                      showClear
+                    />
+                    <ComboboxContent>
+                      <ComboboxEmpty>Sin contactos</ComboboxEmpty>
+                      <ComboboxList>
+                        {(item: ItemCombobox) => (
+                          <ComboboxItem key={item.value} value={item}>
+                            {item.label}
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                </div>
+
+                <div className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
+                  <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`centro-${linea.clave}`}>
+                    Centro de costo
+                  </Label>
+                  <Select
+                    items={centrosItems}
+                    value={linea.centroCostoId || SIN_CENTRO}
+                    onValueChange={(valor: string | null) =>
+                      actualizarLinea(linea.clave, {
+                        centroCostoId: valor == null || valor === SIN_CENTRO ? "" : valor,
+                      })
+                    }
+                  >
+                    <SelectTrigger id={`centro-${linea.clave}`} className={FORM_SELECT}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent alignItemWithTrigger={false}>
+                      {centrosItems.map((centro) => (
+                        <SelectItem key={centro.value} value={centro.value}>
+                          {centro.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`debito-${linea.clave}`}>
+                    Débito
+                  </Label>
+                  <Input
+                    id={`debito-${linea.clave}`}
+                    className={`${FORM_INPUT} text-right`}
+                    inputMode="decimal"
+                    value={linea.debito}
+                    onChange={(evento) => actualizarLinea(linea.clave, { debito: evento.target.value })}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`credito-${linea.clave}`}>
+                    Crédito
+                  </Label>
+                  <Input
+                    id={`credito-${linea.clave}`}
+                    className={`${FORM_INPUT} text-right`}
+                    inputMode="decimal"
+                    value={linea.credito}
+                    onChange={(evento) => actualizarLinea(linea.clave, { credito: evento.target.value })}
+                  />
+                </div>
+
+                <div className="col-span-2 flex justify-end md:col-span-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={lineas.length <= 2}
+                    onClick={() => quitarLinea(linea.clave)}
+                  >
+                    <Trash2 />
+                    <span className="sr-only">Quitar línea</span>
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <FormTotal>
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Total débitos</span>
             <span className="tabular-nums">{formatoMonedaCentavos(debitosCentavos)}</span>
@@ -348,20 +369,20 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
             <span className="tabular-nums">{formatoMonedaCentavos(creditosCentavos)}</span>
           </div>
           <div
-            className={`flex items-center justify-between border-t pt-2 font-semibold ${
-              descuadrado ? "text-destructive" : ""
+            className={`mt-3 flex items-center justify-between text-xl leading-7 font-semibold ${
+              descuadrado ? "text-destructive" : "text-slate-900"
             }`}
           >
             <span>Diferencia</span>
             <span className="tabular-nums">{formatoMonedaCentavos(Math.abs(debitosCentavos - creditosCentavos))}</span>
           </div>
           {descuadrado ? (
-            <p className="text-destructive text-xs">
+            <p className="text-destructive mt-2 text-xs">
               El asiento está descuadrado: los débitos y los créditos deben ser iguales para poder guardar.
             </p>
           ) : null}
-        </div>
-      </div>
+        </FormTotal>
+      </FormCard>
 
       {error ? (
         <Alert variant="destructive">
@@ -369,15 +390,20 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
         </Alert>
       ) : null}
 
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" render={<Link href="/dashboard/contabilidad/asientos" />}>
+      <FormActions>
+        <Button
+          type="button"
+          variant="outline"
+          className={FORM_BUTTON}
+          render={<Link href="/dashboard/contabilidad/asientos" />}
+        >
           Cancelar
         </Button>
-        <Button type="submit" disabled={pendiente || descuadrado}>
+        <Button type="submit" disabled={pendiente || descuadrado} className={FORM_BUTTON}>
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           Guardar asiento
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

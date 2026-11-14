@@ -4,6 +4,7 @@ import { type FormEvent, type ReactElement, useState, useTransition } from "reac
 
 import { ChevronDown, Pencil, Plus } from "lucide-react";
 
+import { FORM_COMBO, FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -24,7 +25,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { actualizarCuenta, crearCuenta } from "@/lib/contabilidad/acciones";
@@ -103,16 +104,15 @@ function FormularioCuenta({
       <input type="hidden" name="es_caja_banco" value={String(esCajaBanco)} />
       <input type="hidden" name="activa" value={String(activa)} />
 
-      <FieldGroup>
+      <div className="flex flex-col gap-4">
         {bloquearCodigoTipoNaturaleza ? (
           <p className="text-muted-foreground text-xs">
             El código, el tipo y la naturaleza no se pueden cambiar porque la cuenta ya tiene movimientos.
           </p>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field>
-            <FieldLabel htmlFor="codigo">Código *</FieldLabel>
+        <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          <FormField htmlFor="codigo" label="Código" required>
             <Input
               id="codigo"
               name="codigo"
@@ -120,18 +120,24 @@ function FormularioCuenta({
               maxLength={20}
               readOnly={bloquearCodigoTipoNaturaleza}
               defaultValue={cuenta?.codigo ?? ""}
+              className={FORM_INPUT}
             />
-          </Field>
+          </FormField>
 
-          <Field>
-            <FieldLabel htmlFor="nombre">Nombre *</FieldLabel>
-            <Input id="nombre" name="nombre" required maxLength={200} defaultValue={cuenta?.nombre ?? ""} />
-          </Field>
+          <FormField htmlFor="nombre" label="Nombre" required>
+            <Input
+              id="nombre"
+              name="nombre"
+              required
+              maxLength={200}
+              defaultValue={cuenta?.nombre ?? ""}
+              className={FORM_INPUT}
+            />
+          </FormField>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field>
-            <FieldLabel htmlFor="tipo">Tipo</FieldLabel>
+        <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          <FormField htmlFor="tipo" label="Tipo">
             <SelectCampo
               id="tipo"
               name="tipo"
@@ -139,11 +145,11 @@ function FormularioCuenta({
               valor={tipo}
               onCambio={cambiarTipo}
               deshabilitado={bloquearCodigoTipoNaturaleza}
+              className={FORM_SELECT}
             />
-          </Field>
+          </FormField>
 
-          <Field>
-            <FieldLabel htmlFor="naturaleza">Naturaleza</FieldLabel>
+          <FormField htmlFor="naturaleza" label="Naturaleza">
             <SelectCampo
               id="naturaleza"
               name="naturaleza"
@@ -151,12 +157,12 @@ function FormularioCuenta({
               valor={naturaleza}
               onCambio={setNaturaleza}
               deshabilitado={bloquearCodigoTipoNaturaleza}
+              className={FORM_SELECT}
             />
-          </Field>
+          </FormField>
         </div>
 
-        <Field>
-          <FieldLabel htmlFor="padre">Padre</FieldLabel>
+        <FormField htmlFor="padre" label="Padre">
           <Combobox
             items={padresItems}
             value={padreSeleccionado}
@@ -164,7 +170,7 @@ function FormularioCuenta({
             itemToStringLabel={(item) => item.label}
             isItemEqualToValue={(a, b) => a.value === b.value}
           >
-            <ComboboxInput id="padre" className="w-full" placeholder="Sin cuenta padre" showClear />
+            <ComboboxInput id="padre" className={FORM_COMBO} placeholder="Sin cuenta padre" showClear />
             <ComboboxContent>
               <ComboboxEmpty>Sin cuentas del mismo tipo</ComboboxEmpty>
               <ComboboxList>
@@ -177,17 +183,17 @@ function FormularioCuenta({
             </ComboboxContent>
           </Combobox>
           <input type="hidden" name="padre_id" value={padreId} />
-        </Field>
+        </FormField>
 
         <Collapsible
-          className="rounded-lg border"
+          className="rounded-xl border border-slate-200"
           defaultOpen={cuenta != null && (!cuenta.acepta_movimientos || cuenta.es_caja_banco || !cuenta.activa)}
         >
           <CollapsibleTrigger render={<Button type="button" variant="ghost" className="w-full justify-between" />}>
             Más opciones
             <ChevronDown className="size-4" />
           </CollapsibleTrigger>
-          <CollapsibleContent className="flex flex-col gap-4 border-t p-3">
+          <CollapsibleContent className="flex flex-col gap-4 border-t border-slate-200 p-3">
             <div className="flex items-center justify-between gap-3">
               <FieldLabel htmlFor="acepta_movimientos">Acepta movimientos</FieldLabel>
               <Switch id="acepta_movimientos" checked={aceptaMovimientos} onCheckedChange={setAceptaMovimientos} />
@@ -210,11 +216,13 @@ function FormularioCuenta({
             {error}
           </p>
         ) : null}
-      </FieldGroup>
+      </div>
 
       <DialogFooter>
-        <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>
-        <Button type="submit" disabled={pendiente}>
+        <DialogClose render={<Button type="button" variant="outline" className="h-11 rounded-[12px] px-6" />}>
+          Cancelar
+        </DialogClose>
+        <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
           {pendiente ? "Guardando..." : "Guardar"}
         </Button>
       </DialogFooter>

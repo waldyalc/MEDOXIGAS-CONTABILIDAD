@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil } from "lucide-react";
 
+import { FORM_INPUT, FormField } from "@/components/formularios/formulario";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -66,19 +66,24 @@ function FormularioNumeracion({
 
   return (
     <form onSubmit={enviar} className="flex flex-col gap-4">
-      <FieldGroup>
-        <p className="text-muted-foreground rounded-lg bg-muted/50 px-3 py-2 text-sm">
+      <div className="flex flex-col gap-4">
+        <p className="text-muted-foreground rounded-lg bg-slate-100 px-3 py-2 text-sm">
           {etiquetaTipoComprobante(numeracion.tipo_comprobante)} · Prefijo {numeracion.prefijo}
         </p>
 
-        <Field>
-          <FieldLabel htmlFor="nombre">Nombre *</FieldLabel>
-          <Input id="nombre" name="nombre" required maxLength={120} defaultValue={numeracion.nombre} />
-        </Field>
+        <FormField htmlFor="nombre" label="Nombre" required>
+          <Input
+            id="nombre"
+            name="nombre"
+            required
+            maxLength={120}
+            defaultValue={numeracion.nombre}
+            className={FORM_INPUT}
+          />
+        </FormField>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field>
-            <FieldLabel htmlFor="siguiente">Siguiente *</FieldLabel>
+        <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          <FormField htmlFor="siguiente" label="Siguiente" required>
             <Input
               id="siguiente"
               name="siguiente"
@@ -87,10 +92,10 @@ function FormularioNumeracion({
               step={1}
               required
               defaultValue={numeracion.siguiente}
+              className={FORM_INPUT}
             />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="hasta">Hasta</FieldLabel>
+          </FormField>
+          <FormField htmlFor="hasta" label="Hasta">
             <Input
               id="hasta"
               name="hasta"
@@ -99,16 +104,16 @@ function FormularioNumeracion({
               step={1}
               defaultValue={numeracion.hasta ?? ""}
               placeholder="Sin límite"
+              className={FORM_INPUT}
             />
-          </Field>
+          </FormField>
         </div>
 
-        <Field>
-          <FieldLabel htmlFor="vence">Vencimiento del NCF</FieldLabel>
-          <Input id="vence" name="vence" type="date" defaultValue={numeracion.vence ?? ""} />
-        </Field>
+        <FormField htmlFor="vence" label="Vencimiento del NCF">
+          <Input id="vence" name="vence" type="date" defaultValue={numeracion.vence ?? ""} className={FORM_INPUT} />
+        </FormField>
 
-        <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3">
           <Label htmlFor="activa">Activa</Label>
           <Switch id="activa" checked={activa} onCheckedChange={setActiva} />
         </div>
@@ -118,11 +123,13 @@ function FormularioNumeracion({
             {error}
           </p>
         ) : null}
-      </FieldGroup>
+      </div>
 
       <DialogFooter>
-        <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>
-        <Button type="submit" disabled={pendiente}>
+        <DialogClose render={<Button type="button" variant="outline" className="h-11 rounded-[12px] px-6" />}>
+          Cancelar
+        </DialogClose>
+        <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           Guardar
         </Button>

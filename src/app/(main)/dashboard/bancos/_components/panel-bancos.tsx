@@ -8,6 +8,14 @@ import { useRouter } from "next/navigation";
 import { ArrowRightLeft, ChevronDown, Loader2, Plus } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import {
+  FORM_BUTTON,
+  FORM_INPUT,
+  FORM_INPUT_GROUP,
+  FORM_SELECT,
+  FORM_TEXTAREA,
+  FormField,
+} from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +32,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -136,8 +143,7 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
           <DialogDescription>Crea la cuenta contable con su saldo inicial.</DialogDescription>
         </DialogHeader>
         <form onSubmit={enviar} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="cuenta-nombre">Nombre de la cuenta *</Label>
+          <FormField htmlFor="cuenta-nombre" label="Nombre de la cuenta" required>
             <Input
               id="cuenta-nombre"
               placeholder="Ej. Banco Popular"
@@ -146,17 +152,17 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
               maxLength={150}
               required
               disabled={pendiente}
+              className={FORM_INPUT}
             />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cuenta-tipo">Tipo de cuenta *</Label>
+          </FormField>
+          <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            <FormField htmlFor="cuenta-tipo" label="Tipo de cuenta" required>
               <Select
                 items={TIPOS_CUENTA}
                 value={tipo}
                 onValueChange={(valor: string | null) => setTipo(valor ?? "banco")}
               >
-                <SelectTrigger id="cuenta-tipo" className="w-full">
+                <SelectTrigger id="cuenta-tipo" className={FORM_SELECT}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false}>
@@ -167,9 +173,8 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cuenta-numero">Número de cuenta</Label>
+            </FormField>
+            <FormField htmlFor="cuenta-numero" label="Número de cuenta">
               <Input
                 id="cuenta-numero"
                 placeholder="Opcional"
@@ -177,13 +182,13 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
                 onChange={(evento) => setNumeroCuenta(evento.target.value)}
                 maxLength={60}
                 disabled={pendiente}
+                className={FORM_INPUT}
               />
-            </div>
+            </FormField>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cuenta-saldo">Saldo inicial *</Label>
-              <InputGroup>
+          <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            <FormField htmlFor="cuenta-saldo" label="Saldo inicial" required>
+              <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
                 </InputGroupAddon>
@@ -197,30 +202,35 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
                   disabled={pendiente}
                 />
               </InputGroup>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cuenta-fecha">Fecha de saldo inicial *</Label>
+            </FormField>
+            <FormField htmlFor="cuenta-fecha" label="Fecha de saldo inicial" required>
               <DatePicker id="cuenta-fecha" value={fecha} onChange={setFecha} />
-            </div>
+            </FormField>
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="cuenta-descripcion">Descripción</Label>
+          <FormField htmlFor="cuenta-descripcion" label="Descripción">
             <Input
               id="cuenta-descripcion"
               placeholder="Opcional"
               value={descripcion}
               onChange={(evento) => setDescripcion(evento.target.value)}
               disabled={pendiente}
+              className={FORM_INPUT}
             />
-          </div>
+          </FormField>
           {error ? (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
           <DialogFooter>
-            <DialogClose render={<Button type="button" variant="outline" disabled={pendiente} />}>Cancelar</DialogClose>
-            <Button type="submit" disabled={pendiente}>
+            <DialogClose
+              render={
+                <Button type="button" variant="outline" disabled={pendiente} className="h-11 rounded-[12px] px-6" />
+              }
+            >
+              Cancelar
+            </DialogClose>
+            <Button type="submit" disabled={pendiente} className={FORM_BUTTON}>
               {pendiente ? <Loader2 className="animate-spin" /> : null}
               Crear cuenta
             </Button>
@@ -313,14 +323,13 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
           <DialogDescription>Mueve dinero de una cuenta de caja o banco a otra.</DialogDescription>
         </DialogHeader>
         <form onSubmit={enviar} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="transferencia-origen">Desde *</Label>
+          <FormField htmlFor="transferencia-origen" label="Desde" required>
             <Select
               items={cuentasItems}
               value={origen}
               onValueChange={(valor: string | null) => setOrigen(valor ?? "")}
             >
-              <SelectTrigger id="transferencia-origen" className="w-full" disabled={pendiente}>
+              <SelectTrigger id="transferencia-origen" className={FORM_SELECT} disabled={pendiente}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
@@ -331,15 +340,14 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="transferencia-destino">Hacia *</Label>
+          </FormField>
+          <FormField htmlFor="transferencia-destino" label="Hacia" required>
             <Select
               items={cuentasItems}
               value={destino}
               onValueChange={(valor: string | null) => setDestino(valor ?? "")}
             >
-              <SelectTrigger id="transferencia-destino" className="w-full" disabled={pendiente}>
+              <SelectTrigger id="transferencia-destino" className={FORM_SELECT} disabled={pendiente}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
@@ -350,11 +358,10 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="transferencia-monto">Monto *</Label>
-              <InputGroup>
+          </FormField>
+          <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            <FormField htmlFor="transferencia-monto" label="Monto" required>
+              <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
                 </InputGroupAddon>
@@ -368,27 +375,28 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
                   disabled={pendiente}
                 />
               </InputGroup>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="transferencia-fecha">Fecha *</Label>
+            </FormField>
+            <FormField htmlFor="transferencia-fecha" label="Fecha" required>
               <DatePicker id="transferencia-fecha" value={fecha} onChange={setFecha} />
-            </div>
+            </FormField>
           </div>
           <Collapsible>
-            <CollapsibleTrigger className="flex w-full items-center justify-between border-t py-2 text-sm font-medium">
+            <CollapsibleTrigger className="flex w-full items-center justify-between border-t border-slate-200 py-2 text-sm font-medium">
               Más opciones
               <ChevronDown className="size-4" />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="flex flex-col gap-2 pt-2">
-                <Label htmlFor="transferencia-observaciones">Observaciones</Label>
-                <Textarea
-                  id="transferencia-observaciones"
-                  placeholder="Ej. Paso de caja a banco"
-                  value={observaciones}
-                  onChange={(evento) => setObservaciones(evento.target.value)}
-                  disabled={pendiente}
-                />
+              <div className="pt-2">
+                <FormField htmlFor="transferencia-observaciones" label="Observaciones">
+                  <Textarea
+                    id="transferencia-observaciones"
+                    placeholder="Ej. Paso de caja a banco"
+                    value={observaciones}
+                    onChange={(evento) => setObservaciones(evento.target.value)}
+                    disabled={pendiente}
+                    className={FORM_TEXTAREA}
+                  />
+                </FormField>
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -398,8 +406,14 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
             </Alert>
           ) : null}
           <DialogFooter>
-            <DialogClose render={<Button type="button" variant="outline" disabled={pendiente} />}>Cancelar</DialogClose>
-            <Button type="submit" disabled={pendiente}>
+            <DialogClose
+              render={
+                <Button type="button" variant="outline" disabled={pendiente} className="h-11 rounded-[12px] px-6" />
+              }
+            >
+              Cancelar
+            </DialogClose>
+            <Button type="submit" disabled={pendiente} className={FORM_BUTTON}>
               {pendiente ? <Loader2 className="animate-spin" /> : null}
               Transferir
             </Button>
@@ -501,10 +515,9 @@ function DialogoDeposito({
           <DialogDescription>Registra un ingreso o aporte a una cuenta de caja o banco.</DialogDescription>
         </DialogHeader>
         <form onSubmit={enviar} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="deposito-destino">Cuenta destino *</Label>
+          <FormField htmlFor="deposito-destino" label="Cuenta destino" required>
             <Select items={destinos} value={destino} onValueChange={(valor: string | null) => setDestino(valor ?? "")}>
-              <SelectTrigger id="deposito-destino" className="w-full" disabled={pendiente}>
+              <SelectTrigger id="deposito-destino" className={FORM_SELECT} disabled={pendiente}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
@@ -515,15 +528,14 @@ function DialogoDeposito({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="deposito-contrapartida">Contrapartida *</Label>
+          </FormField>
+          <FormField htmlFor="deposito-contrapartida" label="Contrapartida" required>
             <Select
               items={contrapartidas}
               value={contrapartida}
               onValueChange={(valor: string | null) => setContrapartida(valor ?? "")}
             >
-              <SelectTrigger id="deposito-contrapartida" className="w-full" disabled={pendiente}>
+              <SelectTrigger id="deposito-contrapartida" className={FORM_SELECT} disabled={pendiente}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
@@ -534,11 +546,10 @@ function DialogoDeposito({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="deposito-monto">Monto *</Label>
-              <InputGroup>
+          </FormField>
+          <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            <FormField htmlFor="deposito-monto" label="Monto" required>
+              <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
                 </InputGroupAddon>
@@ -552,27 +563,28 @@ function DialogoDeposito({
                   disabled={pendiente}
                 />
               </InputGroup>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="deposito-fecha">Fecha *</Label>
+            </FormField>
+            <FormField htmlFor="deposito-fecha" label="Fecha" required>
               <DatePicker id="deposito-fecha" value={fecha} onChange={setFecha} />
-            </div>
+            </FormField>
           </div>
           <Collapsible>
-            <CollapsibleTrigger className="flex w-full items-center justify-between border-t py-2 text-sm font-medium">
+            <CollapsibleTrigger className="flex w-full items-center justify-between border-t border-slate-200 py-2 text-sm font-medium">
               Más opciones
               <ChevronDown className="size-4" />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="flex flex-col gap-2 pt-2">
-                <Label htmlFor="deposito-notas">Notas / descripción</Label>
-                <Input
-                  id="deposito-notas"
-                  placeholder="Ej. Aporte de capital"
-                  value={notas}
-                  onChange={(evento) => setNotas(evento.target.value)}
-                  disabled={pendiente}
-                />
+              <div className="pt-2">
+                <FormField htmlFor="deposito-notas" label="Notas / descripción">
+                  <Input
+                    id="deposito-notas"
+                    placeholder="Ej. Aporte de capital"
+                    value={notas}
+                    onChange={(evento) => setNotas(evento.target.value)}
+                    disabled={pendiente}
+                    className={FORM_INPUT}
+                  />
+                </FormField>
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -582,8 +594,14 @@ function DialogoDeposito({
             </Alert>
           ) : null}
           <DialogFooter>
-            <DialogClose render={<Button type="button" variant="outline" disabled={pendiente} />}>Cancelar</DialogClose>
-            <Button type="submit" disabled={pendiente}>
+            <DialogClose
+              render={
+                <Button type="button" variant="outline" disabled={pendiente} className="h-11 rounded-[12px] px-6" />
+              }
+            >
+              Cancelar
+            </DialogClose>
+            <Button type="submit" disabled={pendiente} className={FORM_BUTTON}>
               {pendiente ? <Loader2 className="animate-spin" /> : null}
               Guardar depósito
             </Button>

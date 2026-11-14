@@ -8,9 +8,18 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Loader2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import {
+  FORM_BUTTON,
+  FORM_COMBO,
+  FORM_INPUT,
+  FORM_SELECT,
+  FormActions,
+  FormCard,
+  FormField,
+  FormSectionTitle,
+} from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Combobox,
@@ -57,6 +66,7 @@ function CampoCuenta({
   valor,
   onChange,
   pendiente,
+  requerido = false,
 }: {
   id: string;
   etiqueta: string;
@@ -64,12 +74,12 @@ function CampoCuenta({
   valor: string;
   onChange: (valor: string) => void;
   pendiente: boolean;
+  requerido?: boolean;
 }) {
   const seleccionada = opciones.find((opcion) => opcion.value === valor) ?? null;
 
   return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>{etiqueta}</Label>
+    <FormField htmlFor={id} label={etiqueta} required={requerido}>
       <Combobox
         items={opciones}
         value={seleccionada}
@@ -77,7 +87,13 @@ function CampoCuenta({
         itemToStringLabel={(item) => item.label}
         isItemEqualToValue={(a, b) => a.value === b.value}
       >
-        <ComboboxInput id={id} className="w-full" placeholder="Buscar cuenta…" showClear={false} disabled={pendiente} />
+        <ComboboxInput
+          id={id}
+          className={FORM_COMBO}
+          placeholder="Buscar cuenta…"
+          showClear={false}
+          disabled={pendiente}
+        />
         <ComboboxContent>
           <ComboboxEmpty>Sin resultados</ComboboxEmpty>
           <ComboboxList>
@@ -89,7 +105,7 @@ function CampoCuenta({
           </ComboboxList>
         </ComboboxContent>
       </Combobox>
-    </div>
+    </FormField>
   );
 }
 
@@ -194,227 +210,225 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
   }
 
   return (
-    <form onSubmit={guardar} className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos del activo</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-2 sm:col-span-2">
-            <Label htmlFor="nombre">Nombre *</Label>
-            <Input
-              id="nombre"
-              required
-              placeholder="Ej. Camioneta de reparto"
-              value={nombre}
-              onChange={(evento) => setNombre(evento.target.value)}
-              maxLength={200}
-              disabled={pendiente}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="tipo-activo">Tipo de activo</Label>
-            <Select
-              value={tipoActivo}
-              onValueChange={(valor) => setTipoActivo(valor ?? "otros_tangibles")}
-              disabled={pendiente}
-            >
-              <SelectTrigger id="tipo-activo" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TIPOS_ACTIVO.map((tipo) => (
-                  <SelectItem key={tipo} value={tipo}>
-                    {ETIQUETAS_TIPO_ACTIVO[tipo]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="fecha-adquisicion">Fecha de adquisición *</Label>
-            <DatePicker id="fecha-adquisicion" value={fechaAdquisicion} onChange={setFechaAdquisicion} />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="costo">Costo de adquisición *</Label>
-            <Input
-              id="costo"
-              inputMode="decimal"
-              required
-              placeholder="0.00"
-              value={costo}
-              onChange={(evento) => setCosto(evento.target.value)}
-              disabled={pendiente}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="cantidad">Cantidad *</Label>
-            <Input
-              id="cantidad"
-              inputMode="decimal"
-              required
-              value={cantidad}
-              onChange={(evento) => setCantidad(evento.target.value)}
-              disabled={pendiente}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2 sm:col-span-2">
-            <Label>Monto total de inversión</Label>
-            <div className="bg-muted/50 flex h-10 items-center justify-between rounded-lg px-3 text-sm">
-              <span className="text-muted-foreground">Costo × cantidad</span>
-              <span className="font-medium tabular-nums">{formatoMonedaCentavos(montoCentavos)}</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="fecha-inicio">Inicio de depreciación *</Label>
-            <DatePicker id="fecha-inicio" value={fechaInicio} onChange={setFechaInicio} />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="vida-util">Vida útil *</Label>
-            <div className="flex items-center gap-2">
+    <form onSubmit={guardar} className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
+      <FormCard>
+        <section>
+          <FormSectionTitle className="mb-4">Datos del activo</FormSectionTitle>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+            <FormField htmlFor="nombre" label="Nombre" required className="sm:col-span-2">
               <Input
-                id="vida-util"
-                inputMode="decimal"
+                id="nombre"
                 required
-                value={vidaUtil}
-                onChange={(evento) => setVidaUtil(evento.target.value)}
+                placeholder="Ej. Camioneta de reparto"
+                value={nombre}
+                onChange={(evento) => setNombre(evento.target.value)}
+                maxLength={200}
                 disabled={pendiente}
-                className="w-24"
+                className={FORM_INPUT}
               />
+            </FormField>
+
+            <FormField htmlFor="tipo-activo" label="Tipo de activo">
               <Select
-                value={periodoDepreciacion}
-                onValueChange={(valor) => setPeriodoDepreciacion(valor === "mensual" ? "mensual" : "anual")}
+                value={tipoActivo}
+                onValueChange={(valor) => setTipoActivo(valor ?? "otros_tangibles")}
                 disabled={pendiente}
               >
-                <SelectTrigger className="w-full" aria-label="Periodo de depreciación">
+                <SelectTrigger id="tipo-activo" className={FORM_SELECT}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="anual">Años</SelectItem>
-                  <SelectItem value="mensual">Meses</SelectItem>
+                  {TIPOS_ACTIVO.map((tipo) => (
+                    <SelectItem key={tipo} value={tipo}>
+                      {ETIQUETAS_TIPO_ACTIVO[tipo]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+            </FormField>
+
+            <FormField htmlFor="fecha-adquisicion" label="Fecha de adquisición" required>
+              <DatePicker id="fecha-adquisicion" value={fechaAdquisicion} onChange={setFechaAdquisicion} />
+            </FormField>
+
+            <FormField htmlFor="costo" label="Costo de adquisición" required>
+              <Input
+                id="costo"
+                inputMode="decimal"
+                required
+                placeholder="0.00"
+                value={costo}
+                onChange={(evento) => setCosto(evento.target.value)}
+                disabled={pendiente}
+                className={FORM_INPUT}
+              />
+            </FormField>
+
+            <FormField htmlFor="cantidad" label="Cantidad" required>
+              <Input
+                id="cantidad"
+                inputMode="decimal"
+                required
+                value={cantidad}
+                onChange={(evento) => setCantidad(evento.target.value)}
+                disabled={pendiente}
+                className={FORM_INPUT}
+              />
+            </FormField>
+
+            <div className="flex flex-col gap-1 sm:col-span-2">
+              <span className="text-sm leading-5 font-medium text-slate-700">Monto total de inversión</span>
+              <div className="flex h-10 items-center justify-between rounded-[10px] border border-slate-200 bg-slate-50 px-3 text-sm">
+                <span className="text-muted-foreground">Costo × cantidad</span>
+                <span className="font-medium tabular-nums">{formatoMonedaCentavos(montoCentavos)}</span>
+              </div>
+            </div>
+
+            <FormField htmlFor="fecha-inicio" label="Inicio de depreciación" required>
+              <DatePicker id="fecha-inicio" value={fechaInicio} onChange={setFechaInicio} />
+            </FormField>
+
+            <FormField htmlFor="vida-util" label="Vida útil" required>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="vida-util"
+                  inputMode="decimal"
+                  required
+                  value={vidaUtil}
+                  onChange={(evento) => setVidaUtil(evento.target.value)}
+                  disabled={pendiente}
+                  className={`${FORM_INPUT} w-24`}
+                />
+                <Select
+                  value={periodoDepreciacion}
+                  onValueChange={(valor) => setPeriodoDepreciacion(valor === "mensual" ? "mensual" : "anual")}
+                  disabled={pendiente}
+                >
+                  <SelectTrigger className={FORM_SELECT} aria-label="Periodo de depreciación">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="anual">Años</SelectItem>
+                    <SelectItem value="mensual">Meses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </FormField>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-sm sm:col-span-2">
+              <span className="text-muted-foreground">
+                {meses > 0 ? `${meses} meses de depreciación` : "Sin depreciación calculada"}
+              </span>
+              <span className="font-medium tabular-nums">
+                {mensualCentavos > 0 ? `${formatoMonedaCentavos(mensualCentavos)} por mes` : "—"}
+              </span>
+            </div>
+
+            <div className="sm:col-span-2">
+              <Collapsible>
+                <CollapsibleTrigger className="flex w-full items-center justify-between border-t border-slate-200 py-2 text-sm font-medium">
+                  Más opciones
+                  <ChevronDown className="size-4" />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="grid gap-x-8 gap-y-4 pt-2 sm:grid-cols-2">
+                    <FormField htmlFor="referencia" label="Referencia">
+                      <Input
+                        id="referencia"
+                        placeholder="Opcional"
+                        value={referencia}
+                        onChange={(evento) => setReferencia(evento.target.value)}
+                        maxLength={100}
+                        disabled={pendiente}
+                        className={FORM_INPUT}
+                      />
+                    </FormField>
+
+                    <FormField htmlFor="proveedor" label="Proveedor">
+                      <Combobox
+                        items={proveedores}
+                        value={proveedorSeleccionado}
+                        onValueChange={(item) => setProveedorId(item?.value ?? "")}
+                        itemToStringLabel={(item) => item.label}
+                        isItemEqualToValue={(a, b) => a.value === b.value}
+                      >
+                        <ComboboxInput
+                          id="proveedor"
+                          className={FORM_COMBO}
+                          placeholder="Buscar proveedor…"
+                          showClear
+                          disabled={pendiente}
+                        />
+                        <ComboboxContent>
+                          <ComboboxEmpty>Sin resultados</ComboboxEmpty>
+                          <ComboboxList>
+                            {(item: Opcion) => (
+                              <ComboboxItem key={item.value} value={item}>
+                                {item.label}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                    </FormField>
+
+                    <FormField htmlFor="residual" label="Valor residual">
+                      <Input
+                        id="residual"
+                        inputMode="decimal"
+                        placeholder="0.00"
+                        value={residual}
+                        onChange={(evento) => setResidual(evento.target.value)}
+                        disabled={pendiente}
+                        className={FORM_INPUT}
+                      />
+                      <p className="text-muted-foreground text-xs">No puede ser mayor ni igual al monto total.</p>
+                    </FormField>
+
+                    <div className="flex items-center justify-between gap-3 sm:col-span-2">
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor="contabilizar">Contabilizar creación del activo</Label>
+                        <p className="text-muted-foreground text-xs">
+                          Crea el asiento de compra contra cuentas por pagar.
+                        </p>
+                      </div>
+                      <Switch id="contabilizar" checked={contabilizar} onCheckedChange={setContabilizar} />
+                    </div>
+
+                    <CampoCuenta
+                      id="cuenta-activo"
+                      etiqueta="Cuenta contable del activo"
+                      requerido
+                      opciones={opcionesCuenta(datos.cuentasActivo)}
+                      valor={cuentaActivoId}
+                      onChange={setCuentaActivoId}
+                      pendiente={pendiente}
+                    />
+                    <CampoCuenta
+                      id="cuenta-depreciacion"
+                      etiqueta="Cuenta de depreciación acumulada"
+                      requerido
+                      opciones={opcionesCuenta(datos.cuentasDepreciacion)}
+                      valor={cuentaDepreciacionId}
+                      onChange={setCuentaDepreciacionId}
+                      pendiente={pendiente}
+                    />
+                    <CampoCuenta
+                      id="cuenta-gasto"
+                      etiqueta="Cuenta contable del gasto"
+                      requerido
+                      opciones={opcionesCuenta(datos.cuentasGasto)}
+                      valor={cuentaGastoId}
+                      onChange={setCuentaGastoId}
+                      pendiente={pendiente}
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           </div>
-
-          <div className="bg-muted/50 col-span-full flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm">
-            <span className="text-muted-foreground">
-              {meses > 0 ? `${meses} meses de depreciación` : "Sin depreciación calculada"}
-            </span>
-            <span className="font-medium tabular-nums">
-              {mensualCentavos > 0 ? `${formatoMonedaCentavos(mensualCentavos)} por mes` : "—"}
-            </span>
-          </div>
-
-          <div className="col-span-full">
-            <Collapsible>
-              <CollapsibleTrigger className="flex w-full items-center justify-between border-t py-2 text-sm font-medium">
-                Más opciones
-                <ChevronDown className="size-4" />
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <div className="grid gap-4 pt-2 sm:grid-cols-2">
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="referencia">Referencia</Label>
-                    <Input
-                      id="referencia"
-                      placeholder="Opcional"
-                      value={referencia}
-                      onChange={(evento) => setReferencia(evento.target.value)}
-                      maxLength={100}
-                      disabled={pendiente}
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="proveedor">Proveedor</Label>
-                    <Combobox
-                      items={proveedores}
-                      value={proveedorSeleccionado}
-                      onValueChange={(item) => setProveedorId(item?.value ?? "")}
-                      itemToStringLabel={(item) => item.label}
-                      isItemEqualToValue={(a, b) => a.value === b.value}
-                    >
-                      <ComboboxInput
-                        id="proveedor"
-                        className="w-full"
-                        placeholder="Buscar proveedor…"
-                        showClear
-                        disabled={pendiente}
-                      />
-                      <ComboboxContent>
-                        <ComboboxEmpty>Sin resultados</ComboboxEmpty>
-                        <ComboboxList>
-                          {(item: Opcion) => (
-                            <ComboboxItem key={item.value} value={item}>
-                              {item.label}
-                            </ComboboxItem>
-                          )}
-                        </ComboboxList>
-                      </ComboboxContent>
-                    </Combobox>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="residual">Valor residual</Label>
-                    <Input
-                      id="residual"
-                      inputMode="decimal"
-                      placeholder="0.00"
-                      value={residual}
-                      onChange={(evento) => setResidual(evento.target.value)}
-                      disabled={pendiente}
-                    />
-                    <p className="text-muted-foreground text-xs">No puede ser mayor ni igual al monto total.</p>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 sm:col-span-2">
-                    <div className="flex flex-col gap-1">
-                      <Label htmlFor="contabilizar">Contabilizar creación del activo</Label>
-                      <p className="text-muted-foreground text-xs">
-                        Crea el asiento de compra contra cuentas por pagar.
-                      </p>
-                    </div>
-                    <Switch id="contabilizar" checked={contabilizar} onCheckedChange={setContabilizar} />
-                  </div>
-
-                  <CampoCuenta
-                    id="cuenta-activo"
-                    etiqueta="Cuenta contable del activo *"
-                    opciones={opcionesCuenta(datos.cuentasActivo)}
-                    valor={cuentaActivoId}
-                    onChange={setCuentaActivoId}
-                    pendiente={pendiente}
-                  />
-                  <CampoCuenta
-                    id="cuenta-depreciacion"
-                    etiqueta="Cuenta de depreciación acumulada *"
-                    opciones={opcionesCuenta(datos.cuentasDepreciacion)}
-                    valor={cuentaDepreciacionId}
-                    onChange={setCuentaDepreciacionId}
-                    pendiente={pendiente}
-                  />
-                  <CampoCuenta
-                    id="cuenta-gasto"
-                    etiqueta="Cuenta contable del gasto *"
-                    opciones={opcionesCuenta(datos.cuentasGasto)}
-                    valor={cuentaGastoId}
-                    onChange={setCuentaGastoId}
-                    pendiente={pendiente}
-                  />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
-        </CardContent>
-      </Card>
+        </section>
+      </FormCard>
 
       {error ? (
         <Alert variant="destructive">
@@ -422,15 +436,20 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
         </Alert>
       ) : null}
 
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" render={<Link href="/dashboard/contabilidad/activos" />}>
+      <FormActions>
+        <Button
+          type="button"
+          variant="outline"
+          className={FORM_BUTTON}
+          render={<Link href="/dashboard/contabilidad/activos" />}
+        >
           Cancelar
         </Button>
-        <Button type="submit" disabled={pendiente}>
+        <Button type="submit" disabled={pendiente} className={FORM_BUTTON}>
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           Guardar activo
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

@@ -7,11 +7,18 @@ import { useRouter } from "next/navigation";
 import { Info, Loader2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import {
+  FORM_BUTTON,
+  FORM_INPUT_GROUP,
+  FORM_SELECT,
+  FormActions,
+  FormCard,
+  FormField,
+  FormSectionTitle,
+} from "@/components/formularios/formulario";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { iniciarConciliacion } from "@/lib/bancos/acciones";
 import type { CuentaSeleccion } from "@/lib/bancos/tipos";
@@ -66,61 +73,58 @@ export function FormNuevaConciliacion({ cuentas, borradores, cuentaInicial, fech
   }
 
   return (
-    <form onSubmit={enviar} className="flex flex-col gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos de la conciliación</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-2 sm:col-span-2">
-            <Label htmlFor="conciliacion-cuenta">Cuenta *</Label>
-            <Select
-              items={opciones}
-              value={cuentaId}
-              onValueChange={(valor: string | null) => setCuentaId(valor ?? "")}
-            >
-              <SelectTrigger id="conciliacion-cuenta" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {opciones.map((opcion) => (
-                  <SelectItem key={opcion.value} value={opcion.value}>
-                    {opcion.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <form onSubmit={enviar} className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
+      <FormCard>
+        <section>
+          <FormSectionTitle className="mb-4">Datos de la conciliación</FormSectionTitle>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+            <FormField htmlFor="conciliacion-cuenta" label="Cuenta" required className="sm:col-span-2">
+              <Select
+                items={opciones}
+                value={cuentaId}
+                onValueChange={(valor: string | null) => setCuentaId(valor ?? "")}
+              >
+                <SelectTrigger id="conciliacion-cuenta" className={FORM_SELECT}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {opciones.map((opcion) => (
+                    <SelectItem key={opcion.value} value={opcion.value}>
+                      {opcion.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="conciliacion-fecha">Fecha de corte *</Label>
-            <DatePicker id="conciliacion-fecha" value={fechaCorte} onChange={setFechaCorte} />
-          </div>
+            <FormField htmlFor="conciliacion-fecha" label="Fecha de corte" required>
+              <DatePicker id="conciliacion-fecha" value={fechaCorte} onChange={setFechaCorte} />
+            </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="conciliacion-saldo">Saldo del extracto *</Label>
-            <InputGroup>
-              <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
-                RD$
-              </InputGroupAddon>
-              <InputGroupInput
-                id="conciliacion-saldo"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={saldo}
-                onChange={(evento) => setSaldo(evento.target.value)}
-                required
-                disabled={pendiente}
-              />
-            </InputGroup>
-          </div>
+            <FormField htmlFor="conciliacion-saldo" label="Saldo del extracto" required>
+              <InputGroup className={FORM_INPUT_GROUP}>
+                <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
+                  RD$
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="conciliacion-saldo"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={saldo}
+                  onChange={(evento) => setSaldo(evento.target.value)}
+                  required
+                  disabled={pendiente}
+                />
+              </InputGroup>
+            </FormField>
 
-          <p className="text-muted-foreground text-sm sm:col-span-2">
-            Los movimientos se toman desde el día siguiente al último corte conciliado. Si es la primera conciliación,
-            desde el primer movimiento de la cuenta.
-          </p>
-        </CardContent>
-      </Card>
+            <p className="text-muted-foreground text-sm sm:col-span-2">
+              Los movimientos se toman desde el día siguiente al último corte conciliado. Si es la primera conciliación,
+              desde el primer movimiento de la cuenta.
+            </p>
+          </div>
+        </section>
+      </FormCard>
 
       {borrador ? (
         <Alert>
@@ -138,15 +142,20 @@ export function FormNuevaConciliacion({ cuentas, borradores, cuentaInicial, fech
         </Alert>
       ) : null}
 
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={() => router.push("/dashboard/bancos/conciliaciones")}>
+      <FormActions>
+        <Button
+          type="button"
+          variant="outline"
+          className={FORM_BUTTON}
+          onClick={() => router.push("/dashboard/bancos/conciliaciones")}
+        >
           Cancelar
         </Button>
-        <Button type="submit" disabled={pendiente || !cuentaId || cuentas.length === 0}>
+        <Button type="submit" disabled={pendiente || !cuentaId || cuentas.length === 0} className={FORM_BUTTON}>
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           {borrador ? "Continuar borrador" : "Crear conciliación"}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }
