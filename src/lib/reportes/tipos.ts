@@ -59,6 +59,9 @@ export interface CuentaContable {
   padre_id: string | null;
   acepta_movimientos: boolean;
   activa: boolean;
+  descripcion?: string | null;
+  es_caja_banco?: boolean;
+  tipo_banco?: string | null;
 }
 
 export interface FilaConfigContable {

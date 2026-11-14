@@ -74,7 +74,9 @@ export async function obtenerCatalogoContable(): Promise<RespuestaCatalogo> {
   const [cuentas, configuracion, balance] = await Promise.all([
     supabase
       .from("cuentas")
-      .select("id, codigo, nombre, tipo, naturaleza, padre_id, acepta_movimientos, activa")
+      .select(
+        "id, codigo, nombre, tipo, naturaleza, padre_id, acepta_movimientos, activa, descripcion, es_caja_banco, tipo_banco",
+      )
       .order("codigo"),
     supabase.from("config_contable").select("clave, cuenta_id"),
     supabase.rpc("reporte_balance_comprobacion", { p_desde: "1900-01-01", p_hasta: hoyRd() }),
