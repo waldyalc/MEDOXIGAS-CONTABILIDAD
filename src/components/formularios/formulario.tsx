@@ -19,6 +19,8 @@ export const FORM_INPUT_GROUP =
 export const FORM_TEXTAREA =
   "min-h-20 rounded-[10px] border-slate-300 bg-white text-base text-slate-700 placeholder:text-slate-400 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary";
 
+export const FORM_BUTTON = "h-11 rounded-[12px] px-6 text-base font-medium";
+
 interface FormCardProps {
   children: ReactNode;
   className?: string;
@@ -83,8 +85,8 @@ export function FormSectionTitle({ children, descripcion, className }: FormSecti
   );
 }
 
-export function FormDivider() {
-  return <div className="h-px w-full bg-slate-400/20" />;
+export function FormDivider({ className }: { className?: string }) {
+  return <div className={cn("h-px w-full bg-slate-400/20", className)} />;
 }
 
 interface FormTotalProps {
@@ -97,4 +99,14 @@ export function FormTotal({ children, className }: FormTotalProps) {
   return (
     <div className={cn("my-8 w-full text-base text-slate-500 md:ml-auto md:w-[400px]", className)}>{children}</div>
   );
+}
+
+interface FormActionsProps {
+  children: ReactNode;
+  className?: string;
+}
+
+/** Fila de botones fuera de la tarjeta: 24 px arriba, alineada a la derecha y con 8 px de hueco. */
+export function FormActions({ children, className }: FormActionsProps) {
+  return <div className={cn("flex flex-wrap justify-end gap-2", className)}>{children}</div>;
 }

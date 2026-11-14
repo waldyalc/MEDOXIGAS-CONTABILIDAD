@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,6 +9,20 @@ import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
+import {
+  FORM_BUTTON,
+  FORM_COMBO,
+  FORM_INPUT,
+  FORM_INPUT_GROUP,
+  FORM_SELECT,
+  FORM_TEXTAREA,
+  FormActions,
+  FormCard,
+  FormDivider,
+  FormField,
+  FormSectionTitle,
+  FormTotal,
+} from "@/components/formularios/formulario";
 import { type ProductoSeleccionable, SelectorProducto } from "@/components/productos/selector-producto";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -85,19 +99,7 @@ interface OpcionSelect {
   label: string;
 }
 
-const CAMPO_CHICO =
-  "h-8 rounded-lg border-slate-300 bg-white px-2 text-sm text-slate-700 placeholder:text-slate-400 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 disabled:bg-slate-50 dark:bg-white dark:disabled:bg-slate-50 md:text-sm";
 const CAMPO_BLOQUEADO = "disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300 disabled:opacity-100";
-const SELECT_CHICO =
-  "w-full rounded-lg border-slate-300 bg-white px-2 text-sm text-slate-700 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300 disabled:opacity-100 dark:bg-white dark:disabled:bg-slate-50";
-const SELECT_MEDIO =
-  "w-full rounded-[10px] border-slate-300 bg-white px-2 text-base text-slate-700 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 data-[size=default]:h-10 dark:bg-white";
-const GRUPO_CAMPO_CHICO =
-  "h-8 w-full rounded-lg border-slate-300 bg-white hover:border-slate-400 has-[[data-slot=input-group-control]:focus-visible]:border-primary has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-white";
-const COMBO_MEDIO =
-  "h-10 rounded-[10px] border-slate-300 bg-white px-2 has-[[data-slot=input-group-control]:focus-visible]:border-primary has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-white [&>input]:text-base";
-const TITULO_SECCION = "text-base leading-6 font-semibold text-slate-700";
-const DIVISOR = "h-px w-full bg-slate-400/20";
 const CELDA_ENCABEZADO =
   "flex h-10 items-center border-b border-slate-400/20 bg-slate-50 px-1 text-xs leading-4 font-medium text-gray-500";
 const SIN_SELECCION = "__ninguno";
@@ -178,27 +180,6 @@ function opcionesDocumento(opciones: OpcionesDocumento) {
   };
 }
 
-function Campo({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`flex min-w-0 flex-col gap-1 ${className}`}>{children}</div>;
-}
-
-function Etiqueta({
-  htmlFor,
-  children,
-  requerido = false,
-}: {
-  htmlFor: string;
-  children: ReactNode;
-  requerido?: boolean;
-}) {
-  return (
-    <Label htmlFor={htmlFor} className="flex items-center gap-1 text-sm leading-5 font-medium text-slate-700">
-      {children}
-      {requerido ? <span className="text-primary text-xs">*</span> : null}
-    </Label>
-  );
-}
-
 function Encabezado({
   empresa,
   conComprobante,
@@ -250,7 +231,7 @@ function Encabezado({
               Tipo de comprobante
             </Label>
             <Select items={comprobantesItems} value={tipo} onValueChange={cambiarTipo}>
-              <SelectTrigger id="tipo-comprobante" className={SELECT_MEDIO}>
+              <SelectTrigger id="tipo-comprobante" className={FORM_SELECT}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
@@ -297,32 +278,30 @@ function AjustesPago({
 
   return (
     <section>
-      <h2 className={`mb-4 ${TITULO_SECCION}`}>Ajustes</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
-        <Campo>
-          <Etiqueta htmlFor="moneda">Moneda</Etiqueta>
-          <Input id="moneda" readOnly value="DOP · Peso dominicano" className={CAMPO_CHICO} />
-        </Campo>
+      <FormSectionTitle className="mb-4">Ajustes</FormSectionTitle>
+      <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-5">
+        <FormField htmlFor="moneda" label="Moneda">
+          <Input id="moneda" readOnly value="DOP · Peso dominicano" className={FORM_INPUT} />
+        </FormField>
 
-        <Campo>
+        <div className="flex min-w-0 flex-col gap-1">
           <span className="flex items-center gap-1 text-sm leading-5 font-medium text-slate-700">Pago recibido</span>
-          <div className="flex h-8 items-center gap-2">
+          <div className="flex h-10 items-center gap-2">
             <Checkbox id="registrar-pago" checked={registrarPago} onCheckedChange={(valor) => onRegistrarPago(valor)} />
             <Label htmlFor="registrar-pago" className="text-sm leading-5 font-medium text-slate-700">
               Registrar
             </Label>
           </div>
-        </Campo>
+        </div>
 
-        <Campo>
-          <Etiqueta htmlFor="cuenta-pago">Cuenta de caja o banco</Etiqueta>
+        <FormField htmlFor="cuenta-pago" label="Cuenta de caja o banco">
           <Select
             items={cuentasItems}
             value={cuentaPago}
             disabled={!registrarPago}
             onValueChange={(valor: string | null) => onCuentaPago(valor ?? "")}
           >
-            <SelectTrigger id="cuenta-pago" className={SELECT_CHICO}>
+            <SelectTrigger id="cuenta-pago" className={FORM_SELECT}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
@@ -333,12 +312,11 @@ function AjustesPago({
               ))}
             </SelectContent>
           </Select>
-        </Campo>
+        </FormField>
 
-        <Campo>
-          <Etiqueta htmlFor="metodo-pago">Método de pago</Etiqueta>
+        <FormField htmlFor="metodo-pago" label="Método de pago">
           <Select items={METODOS_PAGO} value={metodoPago} disabled={!registrarPago} onValueChange={cambiarMetodo}>
-            <SelectTrigger id="metodo-pago" className={SELECT_CHICO}>
+            <SelectTrigger id="metodo-pago" className={FORM_SELECT}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
@@ -349,18 +327,17 @@ function AjustesPago({
               ))}
             </SelectContent>
           </Select>
-        </Campo>
+        </FormField>
 
-        <Campo>
-          <Etiqueta htmlFor="monto-pago">Monto</Etiqueta>
+        <FormField htmlFor="monto-pago" label="Monto">
           <Input
             id="monto-pago"
             readOnly
             disabled={!registrarPago}
             value={formatoMoneda(totalCentavos / 100)}
-            className={`${CAMPO_CHICO} ${CAMPO_BLOQUEADO}`}
+            className={`${FORM_INPUT} ${CAMPO_BLOQUEADO}`}
           />
-        </Campo>
+        </FormField>
       </div>
     </section>
   );
@@ -387,8 +364,8 @@ function LineasDocumento({
 }) {
   return (
     <section>
-      <div className={`mb-4 ${DIVISOR}`} />
-      <h2 className={`mb-4 ${TITULO_SECCION}`}>Productos y servicios</h2>
+      <FormDivider className="mb-4" />
+      <FormSectionTitle className="mb-4">Productos y servicios</FormSectionTitle>
       <div className="overflow-x-auto">
         <div className="grid min-w-[820px] grid-cols-[44px_minmax(0,29fr)_minmax(0,7.4fr)_minmax(0,12.6fr)_148px_minmax(0,13.6fr)_minmax(0,13.5fr)_32px]">
           <div className={`${CELDA_ENCABEZADO} justify-center`}>N.º</div>
@@ -413,7 +390,7 @@ function LineasDocumento({
                     productos={productos}
                     valor={linea.productoId}
                     onCambio={(producto) => onSeleccionarProducto(linea.clave, producto)}
-                    className="w-full border-slate-300 bg-white dark:bg-white [&>input]:text-sm"
+                    className={`${FORM_COMBO} border [&>input]:text-sm`}
                     aria-label={`Producto de la línea ${indice + 1}`}
                   />
                   {producto?.referencia ? (
@@ -427,11 +404,11 @@ function LineasDocumento({
                     value={linea.cantidad}
                     onChange={(evento) => onActualizar(linea.clave, { cantidad: evento.target.value })}
                     aria-label={`Cantidad de la línea ${indice + 1}`}
-                    className={CAMPO_CHICO}
+                    className={FORM_INPUT}
                   />
                 </div>
                 <div className="min-w-0 py-2 pr-1">
-                  <InputGroup className={GRUPO_CAMPO_CHICO}>
+                  <InputGroup className={FORM_INPUT_GROUP}>
                     <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                       RD$
                     </InputGroupAddon>
@@ -446,7 +423,7 @@ function LineasDocumento({
                   </InputGroup>
                 </div>
                 <div className="min-w-0 py-2 pr-1">
-                  <InputGroup className={GRUPO_CAMPO_CHICO}>
+                  <InputGroup className={FORM_INPUT_GROUP}>
                     <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                       %
                     </InputGroupAddon>
@@ -463,7 +440,7 @@ function LineasDocumento({
                 <div className="min-w-0 py-2 pr-1">
                   <SelectorImpuesto
                     id={`itbis-${linea.clave}`}
-                    className={SELECT_CHICO}
+                    className={FORM_SELECT}
                     ariaLabel={`Impuesto de la lA-nea ${indice + 1}`}
                     impuestos={impuestos}
                     value={linea.impuestoId}
@@ -584,16 +561,15 @@ function MasOpciones({
           <ChevronDown className="size-4 transition-transform" />
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className={`grid gap-4 pt-2 ${columnas}`}>
+          <div className={`grid gap-x-8 gap-y-4 pt-2 ${columnas}`}>
             {listasPrecios.length > 0 ? (
-              <Campo>
-                <Etiqueta htmlFor="lista-precios">Lista de precios</Etiqueta>
+              <FormField htmlFor="lista-precios" label="Lista de precios">
                 <Select
                   items={opcionesListas}
                   value={listaPrecioId}
                   onValueChange={(valor: string | null) => onListaPrecio(valor ?? "")}
                 >
-                  <SelectTrigger id="lista-precios" className={SELECT_CHICO}>
+                  <SelectTrigger id="lista-precios" className={FORM_SELECT}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent alignItemWithTrigger={false}>
@@ -604,17 +580,16 @@ function MasOpciones({
                     ))}
                   </SelectContent>
                 </Select>
-              </Campo>
+              </FormField>
             ) : null}
             {almacenes.length > 0 ? (
-              <Campo>
-                <Etiqueta htmlFor="almacen-documento">Almacén</Etiqueta>
+              <FormField htmlFor="almacen-documento" label="Almacén">
                 <Select
                   items={opcionesAlmacenes}
                   value={almacenId}
                   onValueChange={(valor: string | null) => onAlmacen(valor ?? "")}
                 >
-                  <SelectTrigger id="almacen-documento" className={SELECT_CHICO}>
+                  <SelectTrigger id="almacen-documento" className={FORM_SELECT}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent alignItemWithTrigger={false}>
@@ -625,33 +600,30 @@ function MasOpciones({
                     ))}
                   </SelectContent>
                 </Select>
-              </Campo>
+              </FormField>
             ) : null}
-            <Campo>
-              <Etiqueta htmlFor="notas">Notas</Etiqueta>
+            <FormField htmlFor="notas" label="Notas">
               <Textarea
                 id="notas"
                 value={notas}
                 placeholder="Notas internas o para el cliente"
                 onChange={(evento) => onNotas(evento.target.value)}
-                className="focus-visible:border-primary min-h-20 border-slate-300 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus-visible:ring-0"
+                className={FORM_TEXTAREA}
               />
-            </Campo>
+            </FormField>
             {conTerminos ? (
-              <Campo>
-                <Etiqueta htmlFor="terminos">Términos y condiciones</Etiqueta>
+              <FormField htmlFor="terminos" label="Términos y condiciones">
                 <Textarea
                   id="terminos"
                   value={terminos}
                   placeholder="Condiciones de pago"
                   onChange={(evento) => onTerminos(evento.target.value)}
-                  className="focus-visible:border-primary min-h-20 border-slate-300 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus-visible:ring-0"
+                  className={FORM_TEXTAREA}
                 />
-              </Campo>
+              </FormField>
             ) : null}
             {vendedoresItems.length > 1 ? (
-              <Campo>
-                <Etiqueta htmlFor="vendedor">Vendedor</Etiqueta>
+              <FormField htmlFor="vendedor" label="Vendedor">
                 <Select
                   items={vendedoresItems}
                   value={vendedorId || SIN_SELECCION}
@@ -659,7 +631,7 @@ function MasOpciones({
                     onVendedor(valor == null || valor === SIN_SELECCION ? "" : valor)
                   }
                 >
-                  <SelectTrigger id="vendedor" className={SELECT_CHICO}>
+                  <SelectTrigger id="vendedor" className={FORM_SELECT}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent alignItemWithTrigger={false}>
@@ -670,11 +642,10 @@ function MasOpciones({
                     ))}
                   </SelectContent>
                 </Select>
-              </Campo>
+              </FormField>
             ) : null}
             {centrosItems.length > 1 ? (
-              <Campo>
-                <Etiqueta htmlFor="centro-costo">Centro de costo</Etiqueta>
+              <FormField htmlFor="centro-costo" label="Centro de costo">
                 <Select
                   items={centrosItems}
                   value={centroCostoId || SIN_SELECCION}
@@ -682,7 +653,7 @@ function MasOpciones({
                     onCentroCosto(valor == null || valor === SIN_SELECCION ? "" : valor)
                   }
                 >
-                  <SelectTrigger id="centro-costo" className={SELECT_CHICO}>
+                  <SelectTrigger id="centro-costo" className={FORM_SELECT}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent alignItemWithTrigger={false}>
@@ -693,19 +664,18 @@ function MasOpciones({
                     ))}
                   </SelectContent>
                 </Select>
-              </Campo>
+              </FormField>
             ) : null}
             {conPie ? (
-              <Campo>
-                <Etiqueta htmlFor="pie">Pie de factura</Etiqueta>
+              <FormField htmlFor="pie" label="Pie de factura">
                 <Textarea
                   id="pie"
                   value={pie}
                   placeholder="Texto al pie de la factura"
                   onChange={(evento) => onPie(evento.target.value)}
-                  className="focus-visible:border-primary min-h-20 border-slate-300 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus-visible:ring-0"
+                  className={FORM_TEXTAREA}
                 />
-              </Campo>
+              </FormField>
             ) : null}
           </div>
         </CollapsibleContent>
@@ -910,7 +880,7 @@ export function DocumentoVentaForm({
         </Alert>
       ) : null}
 
-      <div className="flex flex-col gap-4 rounded-[12px] border border-slate-400/20 bg-white p-3 text-slate-700 shadow-sm sm:gap-6 sm:p-5 md:gap-8 md:p-8">
+      <FormCard className="gap-6 p-4 sm:p-5">
         <Encabezado
           empresa={empresa}
           conComprobante={conComprobante}
@@ -936,36 +906,27 @@ export function DocumentoVentaForm({
         ) : null}
 
         <section>
-          <div className={`mb-4 ${DIVISOR}`} />
-          <h2 className={`mb-4 ${TITULO_SECCION}`}>{titulo}</h2>
-          <div className={`grid grid-cols-1 gap-8 ${conVencimiento ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-            <Campo>
-              <Etiqueta htmlFor="cliente" requerido>
-                Cliente
-              </Etiqueta>
+          <FormDivider className="mb-4" />
+          <FormSectionTitle className="mb-4">{titulo}</FormSectionTitle>
+          <div className={`grid grid-cols-1 gap-x-8 gap-y-4 ${conVencimiento ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+            <FormField htmlFor="cliente" label="Cliente" required>
               <SelectorContacto
                 id="cliente"
                 contactos={contactos}
                 valor={clienteId}
                 onCambio={seleccionarCliente}
                 tipoInicial="cliente"
-                className={COMBO_MEDIO}
+                className={FORM_COMBO}
                 placeholder="Buscar cliente…"
               />
-            </Campo>
-            <Campo>
-              <Etiqueta htmlFor="fecha" requerido>
-                Fecha de creación
-              </Etiqueta>
+            </FormField>
+            <FormField htmlFor="fecha" label="Fecha de creación" required>
               <DatePicker id="fecha" value={fecha} onChange={setFecha} />
-            </Campo>
+            </FormField>
             {conVencimiento ? (
-              <Campo>
-                <Etiqueta htmlFor="vencimiento" requerido>
-                  Fecha de vencimiento
-                </Etiqueta>
+              <FormField htmlFor="vencimiento" label="Fecha de vencimiento" required>
                 <DatePicker id="vencimiento" value={vencimiento} onChange={setVencimiento} />
-              </Campo>
+              </FormField>
             ) : null}
           </div>
         </section>
@@ -981,26 +942,24 @@ export function DocumentoVentaForm({
           onQuitar={quitarLinea}
         />
 
-        <section className="flex justify-center md:justify-end">
-          <div className="w-full text-base text-slate-500 md:w-80">
-            <div className="flex h-6 items-center justify-between">
-              <span>Subtotal</span>
-              <span className="tabular-nums">{formatoMonedaCentavos(totales.subtotalCentavos)}</span>
-            </div>
-            <div className="flex h-6 items-center justify-between">
-              <span>Descuento</span>
-              <span className="tabular-nums">{formatoMonedaCentavos(totales.descuentoCentavos)}</span>
-            </div>
-            <div className="flex h-6 items-center justify-between">
-              <span>Impuestos</span>
-              <span className="tabular-nums">{formatoMonedaCentavos(totales.itbisCentavos)}</span>
-            </div>
-            <div className="mt-7 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
-              <span>Total</span>
-              <span className="tabular-nums">{formatoMonedaCentavos(totales.totalCentavos)}</span>
-            </div>
+        <FormTotal>
+          <div className="flex h-6 items-center justify-between">
+            <span>Subtotal</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totales.subtotalCentavos)}</span>
           </div>
-        </section>
+          <div className="flex h-6 items-center justify-between">
+            <span>Descuento</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totales.descuentoCentavos)}</span>
+          </div>
+          <div className="flex h-6 items-center justify-between">
+            <span>Impuestos</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totales.itbisCentavos)}</span>
+          </div>
+          <div className="mt-7 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
+            <span>Total</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totales.totalCentavos)}</span>
+          </div>
+        </FormTotal>
 
         <MasOpciones
           conTerminos={conTerminos}
@@ -1024,22 +983,17 @@ export function DocumentoVentaForm({
           almacenId={almacenId}
           onAlmacen={setAlmacenId}
         />
-      </div>
+      </FormCard>
 
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          className="h-12 rounded-[12px] px-6 text-base"
-          render={<Link href={rutaCancelar} />}
-        >
+      <FormActions>
+        <Button type="button" variant="outline" className={FORM_BUTTON} render={<Link href={rutaCancelar} />}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={pendiente} className="h-12 rounded-[12px] px-6 text-base">
+        <Button type="submit" disabled={pendiente} className={FORM_BUTTON}>
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           {textoGuardar}
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

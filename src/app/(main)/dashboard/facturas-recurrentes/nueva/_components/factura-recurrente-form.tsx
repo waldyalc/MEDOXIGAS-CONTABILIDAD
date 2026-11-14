@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -9,6 +9,20 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import {
+  FORM_BUTTON,
+  FORM_COMBO,
+  FORM_INPUT,
+  FORM_INPUT_GROUP,
+  FORM_SELECT,
+  FORM_TEXTAREA,
+  FormActions,
+  FormCard,
+  FormDivider,
+  FormField,
+  FormSectionTitle,
+  FormTotal,
+} from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -22,7 +36,6 @@ import {
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -52,20 +65,6 @@ interface Props {
   fechaHoy: string;
 }
 
-const CAMPO_CHICO =
-  "h-8 rounded-lg border-slate-300 bg-white px-2 text-sm text-slate-700 placeholder:text-slate-400 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 disabled:bg-slate-50 dark:bg-white dark:disabled:bg-slate-50 md:text-sm";
-const CAMPO_MEDIO =
-  "h-10 rounded-[10px] border-slate-300 bg-white px-2 text-base text-slate-700 placeholder:text-slate-400 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 dark:bg-white";
-const SELECT_CHICO =
-  "w-full rounded-lg border-slate-300 bg-white px-2 text-sm text-slate-700 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300 disabled:opacity-100 dark:bg-white dark:disabled:bg-slate-50";
-const SELECT_MEDIO =
-  "w-full rounded-[10px] border-slate-300 bg-white px-2 text-base text-slate-700 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 data-[size=default]:h-10 dark:bg-white";
-const GRUPO_CAMPO_CHICO =
-  "h-8 w-full rounded-lg border-slate-300 bg-white hover:border-slate-400 has-[[data-slot=input-group-control]:focus-visible]:border-primary has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-white";
-const COMBO_MEDIO =
-  "h-10 rounded-[10px] border-slate-300 bg-white px-2 has-[[data-slot=input-group-control]:focus-visible]:border-primary has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-white [&>input]:text-base";
-const TITULO_SECCION = "text-base leading-6 font-semibold text-slate-700";
-const DIVISOR = "h-px w-full bg-slate-400/20";
 const CELDA_ENCABEZADO =
   "flex h-10 items-center border-b border-slate-400/20 bg-slate-50 px-1 text-xs leading-4 font-medium text-gray-500";
 const OPCIONES_ITBIS: readonly { value: string; label: string }[] = [
@@ -81,27 +80,6 @@ function lineaVacia(clave: string): LineaForm {
 function numero(texto: string): number {
   const valor = Number(texto);
   return Number.isFinite(valor) ? valor : 0;
-}
-
-function Campo({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`flex min-w-0 flex-col gap-1 ${className}`}>{children}</div>;
-}
-
-function Etiqueta({
-  htmlFor,
-  children,
-  requerido = false,
-}: {
-  htmlFor: string;
-  children: ReactNode;
-  requerido?: boolean;
-}) {
-  return (
-    <Label htmlFor={htmlFor} className="flex items-center gap-1 text-sm leading-5 font-medium text-slate-700">
-      {children}
-      {requerido ? <span className="text-primary text-xs">*</span> : null}
-    </Label>
-  );
 }
 
 export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
@@ -225,7 +203,7 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
         </Alert>
       ) : null}
 
-      <div className="flex flex-col gap-4 rounded-[12px] border border-slate-400/20 bg-white p-3 text-slate-700 shadow-sm sm:gap-6 sm:p-5 md:gap-8 md:p-8">
+      <FormCard className="gap-6 p-4 sm:p-5">
         <header className="flex flex-col gap-4 py-3 md:flex-row md:items-center md:justify-between md:gap-6 md:py-6 lg:py-8">
           <div className="flex min-w-0 justify-center md:w-1/3 md:justify-start">
             <Image
@@ -253,17 +231,14 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
         </header>
 
         <section>
-          <h2 className={`mb-4 ${TITULO_SECCION}`}>Información de la recurrencia</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Campo>
-              <Etiqueta htmlFor="cliente" requerido>
-                Cliente
-              </Etiqueta>
+          <FormSectionTitle className="mb-4">Información de la recurrencia</FormSectionTitle>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+            <FormField htmlFor="cliente" label="Cliente" required>
               <Combobox
                 items={clientesItems}
                 onValueChange={(item: { value: string; label: string } | null) => setClienteId(item?.value ?? "")}
               >
-                <ComboboxInput id="cliente" className={COMBO_MEDIO} placeholder="Buscar cliente…" showClear />
+                <ComboboxInput id="cliente" className={FORM_COMBO} placeholder="Buscar cliente…" showClear />
                 <ComboboxContent>
                   <ComboboxEmpty>Sin resultados</ComboboxEmpty>
                   <ComboboxList>
@@ -275,12 +250,9 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                   </ComboboxList>
                 </ComboboxContent>
               </Combobox>
-            </Campo>
+            </FormField>
 
-            <Campo>
-              <Etiqueta htmlFor="tipo-comprobante" requerido>
-                Tipo de comprobante
-              </Etiqueta>
+            <FormField htmlFor="tipo-comprobante" label="Tipo de comprobante" required>
               <Select
                 items={comprobantesItems}
                 value={tipo}
@@ -288,7 +260,7 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                   if (valor && esTipoComprobante(valor)) setTipo(valor);
                 }}
               >
-                <SelectTrigger id="tipo-comprobante" className={SELECT_MEDIO}>
+                <SelectTrigger id="tipo-comprobante" className={FORM_SELECT}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false}>
@@ -299,17 +271,13 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                   ))}
                 </SelectContent>
               </Select>
-            </Campo>
+            </FormField>
 
-            <Campo>
-              <Etiqueta htmlFor="fecha-inicio" requerido>
-                Fecha de inicio
-              </Etiqueta>
+            <FormField htmlFor="fecha-inicio" label="Fecha de inicio" required>
               <DatePicker id="fecha-inicio" value={fechaInicio} onChange={setFechaInicio} />
-            </Campo>
+            </FormField>
 
-            <Campo>
-              <Etiqueta htmlFor="vigencia">Vigencia hasta</Etiqueta>
+            <FormField htmlFor="vigencia" label="Vigencia hasta">
               <div className="flex items-center gap-1">
                 <div className="min-w-0 flex-1">
                   <DatePicker
@@ -331,39 +299,33 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                   </Button>
                 ) : null}
               </div>
-            </Campo>
+            </FormField>
 
-            <Campo>
-              <Etiqueta htmlFor="frecuencia" requerido>
-                Frecuencia (meses)
-              </Etiqueta>
+            <FormField htmlFor="frecuencia" label="Frecuencia (meses)" required>
               <Input
                 id="frecuencia"
                 inputMode="numeric"
                 value={frecuencia}
                 onChange={(evento) => setFrecuencia(evento.target.value)}
-                className={CAMPO_MEDIO}
+                className={FORM_INPUT}
               />
-            </Campo>
+            </FormField>
 
-            <Campo>
-              <Etiqueta htmlFor="plazo" requerido>
-                Plazo de pago (días)
-              </Etiqueta>
+            <FormField htmlFor="plazo" label="Plazo de pago (días)" required>
               <Input
                 id="plazo"
                 inputMode="numeric"
                 value={plazo}
                 onChange={(evento) => setPlazo(evento.target.value)}
-                className={CAMPO_MEDIO}
+                className={FORM_INPUT}
               />
-            </Campo>
+            </FormField>
           </div>
         </section>
 
         <section>
-          <div className={`mb-4 ${DIVISOR}`} />
-          <h2 className={`mb-4 ${TITULO_SECCION}`}>Productos y servicios</h2>
+          <FormDivider className="mb-4" />
+          <FormSectionTitle className="mb-4">Productos y servicios</FormSectionTitle>
           <div className="overflow-x-auto">
             <div className="grid min-w-[820px] grid-cols-[44px_minmax(0,29fr)_minmax(0,7.4fr)_minmax(0,12.6fr)_148px_minmax(0,13.6fr)_minmax(0,13.5fr)_32px]">
               <div className={`${CELDA_ENCABEZADO} justify-center`}>N.º</div>
@@ -389,7 +351,7 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                       >
                         <ComboboxInput
                           id={`producto-${linea.clave}`}
-                          className="w-full border-slate-300 bg-white dark:bg-white [&>input]:text-sm"
+                          className={`${FORM_COMBO} border [&>input]:text-sm`}
                           placeholder="Buscar producto…"
                           aria-label={`Producto de la línea ${indice + 1}`}
                         />
@@ -412,11 +374,11 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                         value={linea.cantidad}
                         onChange={(evento) => actualizarLinea(linea.clave, { cantidad: evento.target.value })}
                         aria-label={`Cantidad de la línea ${indice + 1}`}
-                        className={CAMPO_CHICO}
+                        className={FORM_INPUT}
                       />
                     </div>
                     <div className="min-w-0 py-2 pr-1">
-                      <InputGroup className={GRUPO_CAMPO_CHICO}>
+                      <InputGroup className={FORM_INPUT_GROUP}>
                         <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                           RD$
                         </InputGroupAddon>
@@ -431,7 +393,7 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                       </InputGroup>
                     </div>
                     <div className="min-w-0 py-2 pr-1">
-                      <InputGroup className={GRUPO_CAMPO_CHICO}>
+                      <InputGroup className={FORM_INPUT_GROUP}>
                         <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                           %
                         </InputGroupAddon>
@@ -455,7 +417,7 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                       >
                         <SelectTrigger
                           id={`itbis-${linea.clave}`}
-                          className={SELECT_CHICO}
+                          className={FORM_SELECT}
                           aria-label={`ITBIS de la línea ${indice + 1}`}
                         >
                           <SelectValue />
@@ -506,26 +468,24 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
           </div>
         </section>
 
-        <section className="flex justify-center md:justify-end">
-          <div className="w-full text-base text-slate-500 md:w-80">
-            <div className="flex h-6 items-center justify-between">
-              <span>Subtotal</span>
-              <span className="tabular-nums">{formatoMonedaCentavos(totales.subtotalCentavos)}</span>
-            </div>
-            <div className="flex h-6 items-center justify-between">
-              <span>Descuento</span>
-              <span className="tabular-nums">{formatoMonedaCentavos(totales.descuentoCentavos)}</span>
-            </div>
-            <div className="flex h-6 items-center justify-between">
-              <span>ITBIS</span>
-              <span className="tabular-nums">{formatoMonedaCentavos(totales.itbisCentavos)}</span>
-            </div>
-            <div className="mt-7 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
-              <span>Total por factura</span>
-              <span className="tabular-nums">{formatoMonedaCentavos(totales.totalCentavos)}</span>
-            </div>
+        <FormTotal>
+          <div className="flex h-6 items-center justify-between">
+            <span>Subtotal</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totales.subtotalCentavos)}</span>
           </div>
-        </section>
+          <div className="flex h-6 items-center justify-between">
+            <span>Descuento</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totales.descuentoCentavos)}</span>
+          </div>
+          <div className="flex h-6 items-center justify-between">
+            <span>ITBIS</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totales.itbisCentavos)}</span>
+          </div>
+          <div className="mt-7 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
+            <span>Total por factura</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totales.totalCentavos)}</span>
+          </div>
+        </FormTotal>
 
         <section>
           <Collapsible>
@@ -534,57 +494,54 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
               <ChevronDown className="size-4 transition-transform" />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="grid gap-4 pt-2 md:grid-cols-3">
-                <Campo>
-                  <Etiqueta htmlFor="notas">Observaciones</Etiqueta>
+              <div className="grid gap-x-8 gap-y-4 pt-2 md:grid-cols-3">
+                <FormField htmlFor="notas" label="Observaciones">
                   <Textarea
                     id="notas"
                     value={notas}
                     placeholder="Notas internas de la recurrencia"
                     onChange={(evento) => setNotas(evento.target.value)}
-                    className="focus-visible:border-primary min-h-20 border-slate-300 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus-visible:ring-0"
+                    className={FORM_TEXTAREA}
                   />
-                </Campo>
-                <Campo>
-                  <Etiqueta htmlFor="terminos">Términos y condiciones</Etiqueta>
+                </FormField>
+                <FormField htmlFor="terminos" label="Términos y condiciones">
                   <Textarea
                     id="terminos"
                     value={terminos}
                     placeholder="Condiciones de pago de las facturas"
                     onChange={(evento) => setTerminos(evento.target.value)}
-                    className="focus-visible:border-primary min-h-20 border-slate-300 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus-visible:ring-0"
+                    className={FORM_TEXTAREA}
                   />
-                </Campo>
-                <Campo>
-                  <Etiqueta htmlFor="pie">Pie de factura</Etiqueta>
+                </FormField>
+                <FormField htmlFor="pie" label="Pie de factura">
                   <Textarea
                     id="pie"
                     value={pie}
                     placeholder="Texto al pie de las facturas"
                     onChange={(evento) => setPie(evento.target.value)}
-                    className="focus-visible:border-primary min-h-20 border-slate-300 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus-visible:ring-0"
+                    className={FORM_TEXTAREA}
                   />
-                </Campo>
+                </FormField>
               </div>
             </CollapsibleContent>
           </Collapsible>
         </section>
-      </div>
+      </FormCard>
 
-      <div className="flex flex-wrap justify-end gap-2">
+      <FormActions>
         <Button
           type="button"
           variant="outline"
-          className="h-12 rounded-[12px] px-6 text-base"
+          className={FORM_BUTTON}
           render={<Link href="/dashboard/facturas-recurrentes" />}
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={pendiente} className="h-12 rounded-[12px] px-6 text-base">
+        <Button type="submit" disabled={pendiente} className={FORM_BUTTON}>
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           Crear factura recurrente
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }

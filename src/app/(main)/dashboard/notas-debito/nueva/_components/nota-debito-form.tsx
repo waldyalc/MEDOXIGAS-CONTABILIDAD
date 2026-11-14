@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -10,6 +10,20 @@ import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
+import {
+  FORM_BUTTON,
+  FORM_COMBO,
+  FORM_INPUT,
+  FORM_INPUT_GROUP,
+  FORM_SELECT,
+  FORM_TEXTAREA,
+  FormActions,
+  FormCard,
+  FormDivider,
+  FormField,
+  FormSectionTitle,
+  FormTotal,
+} from "@/components/formularios/formulario";
 import { type ProductoSeleccionable, SelectorProducto } from "@/components/productos/selector-producto";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -25,7 +39,6 @@ import {
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -58,18 +71,6 @@ interface Props {
   facturaInicial?: string;
 }
 
-const CAMPO_CHICO =
-  "h-8 rounded-lg border-slate-300 bg-white px-2 text-sm text-slate-700 placeholder:text-slate-400 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 disabled:bg-slate-50 dark:bg-white dark:disabled:bg-slate-50 md:text-sm";
-const SELECT_CHICO =
-  "w-full rounded-lg border-slate-300 bg-white px-2 text-sm text-slate-700 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300 disabled:opacity-100 dark:bg-white dark:disabled:bg-slate-50";
-const SELECT_MEDIO =
-  "w-full rounded-[10px] border-slate-300 bg-white px-2 text-base text-slate-700 hover:border-slate-400 focus-visible:border-primary focus-visible:ring-0 data-[size=default]:h-10 dark:bg-white";
-const GRUPO_CAMPO_CHICO =
-  "h-8 w-full rounded-lg border-slate-300 bg-white hover:border-slate-400 has-[[data-slot=input-group-control]:focus-visible]:border-primary has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-white";
-const COMBO_MEDIO =
-  "h-10 rounded-[10px] border-slate-300 bg-white px-2 has-[[data-slot=input-group-control]:focus-visible]:border-primary has-[[data-slot=input-group-control]:focus-visible]:ring-0 dark:bg-white [&>input]:text-base";
-const TITULO_SECCION = "text-base leading-6 font-semibold text-slate-700";
-const DIVISOR = "h-px w-full bg-slate-400/20";
 const CELDA_ENCABEZADO =
   "flex h-10 items-center border-b border-slate-400/20 bg-slate-50 px-1 text-xs leading-4 font-medium text-gray-500";
 function lineaVacia(clave: string, impuestoId = ""): LineaForm {
@@ -79,27 +80,6 @@ function lineaVacia(clave: string, impuestoId = ""): LineaForm {
 function numero(texto: string): number {
   const valor = Number(texto);
   return Number.isFinite(valor) ? valor : 0;
-}
-
-function Campo({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`flex min-w-0 flex-col gap-1 ${className}`}>{children}</div>;
-}
-
-function Etiqueta({
-  htmlFor,
-  children,
-  requerido = false,
-}: {
-  htmlFor: string;
-  children: ReactNode;
-  requerido?: boolean;
-}) {
-  return (
-    <Label htmlFor={htmlFor} className="flex items-center gap-1 text-sm leading-5 font-medium text-slate-700">
-      {children}
-      {requerido ? <span className="text-primary text-xs">*</span> : null}
-    </Label>
-  );
 }
 
 export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: Props) {
@@ -238,7 +218,7 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
         </Alert>
       ) : null}
 
-      <div className="flex flex-col gap-4 rounded-[12px] border border-slate-400/20 bg-white p-3 text-slate-700 shadow-sm sm:gap-6 sm:p-5 md:gap-8 md:p-8">
+      <FormCard className="gap-6 p-4 sm:p-5">
         <header className="flex flex-col gap-4 py-3 md:flex-row md:items-center md:justify-between md:gap-6 md:py-6 lg:py-8">
           <div className="flex min-w-0 justify-center md:w-1/3 md:justify-start">
             <Image
@@ -269,27 +249,21 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
         </header>
 
         <section>
-          <h2 className={`mb-4 ${TITULO_SECCION}`}>Información de la nota</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Campo>
-              <Etiqueta htmlFor="cliente" requerido>
-                Cliente
-              </Etiqueta>
+          <FormSectionTitle className="mb-4">Información de la nota</FormSectionTitle>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+            <FormField htmlFor="cliente" label="Cliente" required>
               <SelectorContacto
                 id="cliente"
                 contactos={datos.contactos}
                 valor={clienteId}
                 onCambio={seleccionarCliente}
                 tipoInicial="cliente"
-                className={COMBO_MEDIO}
+                className={FORM_COMBO}
                 placeholder="Buscar cliente…"
               />
-            </Campo>
+            </FormField>
 
-            <Campo>
-              <Etiqueta htmlFor="tipo" requerido>
-                Tipo de nota de débito
-              </Etiqueta>
+            <FormField htmlFor="tipo" label="Tipo de nota de débito" required>
               <Select
                 items={tiposItems}
                 value={tipo}
@@ -297,7 +271,7 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
                   if (valor === "texto" || valor === "montos") setTipo(valor);
                 }}
               >
-                <SelectTrigger id="tipo" className={SELECT_MEDIO}>
+                <SelectTrigger id="tipo" className={FORM_SELECT}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false}>
@@ -308,26 +282,20 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
                   ))}
                 </SelectContent>
               </Select>
-            </Campo>
+            </FormField>
 
-            <Campo>
-              <Etiqueta htmlFor="fecha" requerido>
-                Fecha de creación
-              </Etiqueta>
+            <FormField htmlFor="fecha" label="Fecha de creación" required>
               <DatePicker id="fecha" value={fecha} onChange={setFecha} />
-            </Campo>
+            </FormField>
 
-            <Campo>
-              <Etiqueta htmlFor="factura" requerido>
-                Factura asociada
-              </Etiqueta>
+            <FormField htmlFor="factura" label="Factura asociada" required>
               <Combobox
                 items={facturasItems}
                 onValueChange={(item: { value: string; label: string } | null) => setFacturaId(item?.value ?? "")}
               >
                 <ComboboxInput
                   id="factura"
-                  className={COMBO_MEDIO}
+                  className={FORM_COMBO}
                   placeholder={clienteId ? "Buscar factura…" : "Elige primero el cliente"}
                   disabled={!clienteId}
                   showClear
@@ -343,13 +311,13 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
                   </ComboboxList>
                 </ComboboxContent>
               </Combobox>
-            </Campo>
+            </FormField>
           </div>
         </section>
 
         <section>
-          <div className={`mb-4 ${DIVISOR}`} />
-          <h2 className={`mb-4 ${TITULO_SECCION}`}>Productos y servicios</h2>
+          <FormDivider className="mb-4" />
+          <FormSectionTitle className="mb-4">Productos y servicios</FormSectionTitle>
           <div className="overflow-x-auto">
             <div className="grid min-w-[820px] grid-cols-[44px_minmax(0,29fr)_minmax(0,7.4fr)_minmax(0,12.6fr)_148px_minmax(0,13.6fr)_minmax(0,13.5fr)_32px]">
               <div className={`${CELDA_ENCABEZADO} justify-center`}>N.º</div>
@@ -372,7 +340,7 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
                         productos={productos}
                         valor={linea.productoId}
                         onCambio={(producto) => seleccionarProducto(linea.clave, producto)}
-                        className="w-full border-slate-300 bg-white dark:bg-white [&>input]:text-sm"
+                        className={`${FORM_COMBO} border [&>input]:text-sm`}
                         aria-label={`Producto de la línea ${indice + 1}`}
                       />
                     </div>
@@ -383,11 +351,11 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
                         value={linea.cantidad}
                         onChange={(evento) => actualizarLinea(linea.clave, { cantidad: evento.target.value })}
                         aria-label={`Cantidad de la línea ${indice + 1}`}
-                        className={CAMPO_CHICO}
+                        className={FORM_INPUT}
                       />
                     </div>
                     <div className="min-w-0 py-2 pr-1">
-                      <InputGroup className={GRUPO_CAMPO_CHICO}>
+                      <InputGroup className={FORM_INPUT_GROUP}>
                         <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                           RD$
                         </InputGroupAddon>
@@ -402,7 +370,7 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
                       </InputGroup>
                     </div>
                     <div className="min-w-0 py-2 pr-1">
-                      <InputGroup className={GRUPO_CAMPO_CHICO}>
+                      <InputGroup className={FORM_INPUT_GROUP}>
                         <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                           %
                         </InputGroupAddon>
@@ -419,7 +387,7 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
                     <div className="min-w-0 py-2 pr-1">
                       <SelectorImpuesto
                         id={`itbis-${linea.clave}`}
-                        className={SELECT_CHICO}
+                        className={FORM_SELECT}
                         ariaLabel={`Impuesto de la lA-nea ${indice + 1}`}
                         impuestos={impuestos}
                         value={linea.impuestoId}
@@ -469,26 +437,24 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
           </div>
         </section>
 
-        <section className="flex justify-center md:justify-end">
-          <div className="w-full text-base text-slate-500 md:w-80">
-            <div className="flex h-6 items-center justify-between">
-              <span>Subtotal</span>
-              <span className="tabular-nums">{formatoMonedaCentavos(totales.subtotalCentavos)}</span>
-            </div>
-            <div className="flex h-6 items-center justify-between">
-              <span>Descuento</span>
-              <span className="tabular-nums">{formatoMonedaCentavos(totales.descuentoCentavos)}</span>
-            </div>
-            <div className="flex h-6 items-center justify-between">
-              <span>Impuestos</span>
-              <span className="tabular-nums">{formatoMonedaCentavos(totales.itbisCentavos)}</span>
-            </div>
-            <div className="mt-7 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
-              <span>Total</span>
-              <span className="tabular-nums">{formatoMonedaCentavos(totales.totalCentavos)}</span>
-            </div>
+        <FormTotal>
+          <div className="flex h-6 items-center justify-between">
+            <span>Subtotal</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totales.subtotalCentavos)}</span>
           </div>
-        </section>
+          <div className="flex h-6 items-center justify-between">
+            <span>Descuento</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totales.descuentoCentavos)}</span>
+          </div>
+          <div className="flex h-6 items-center justify-between">
+            <span>Impuestos</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totales.itbisCentavos)}</span>
+          </div>
+          <div className="mt-7 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
+            <span>Total</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totales.totalCentavos)}</span>
+          </div>
+        </FormTotal>
 
         <section>
           <Collapsible>
@@ -497,37 +463,36 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
               <ChevronDown className="size-4 transition-transform" />
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="grid gap-4 pt-2 md:grid-cols-3">
-                <Campo>
-                  <Etiqueta htmlFor="notas">Notas</Etiqueta>
+              <div className="grid gap-x-8 gap-y-4 pt-2 md:grid-cols-3">
+                <FormField htmlFor="notas" label="Notas">
                   <Textarea
                     id="notas"
                     value={notas}
                     placeholder="Motivo o detalle del cargo"
                     onChange={(evento) => setNotas(evento.target.value)}
-                    className="focus-visible:border-primary min-h-20 border-slate-300 bg-white text-sm text-slate-700 placeholder:text-slate-400 focus-visible:ring-0"
+                    className={FORM_TEXTAREA}
                   />
-                </Campo>
+                </FormField>
               </div>
             </CollapsibleContent>
           </Collapsible>
         </section>
-      </div>
+      </FormCard>
 
-      <div className="flex flex-wrap justify-end gap-2">
+      <FormActions>
         <Button
           type="button"
           variant="outline"
-          className="h-12 rounded-[12px] px-6 text-base"
+          className={FORM_BUTTON}
           render={<Link href="/dashboard/notas-debito" />}
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={pendiente} className="h-12 rounded-[12px] px-6 text-base">
+        <Button type="submit" disabled={pendiente} className={FORM_BUTTON}>
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           Crear nota de débito
         </Button>
-      </div>
+      </FormActions>
     </form>
   );
 }
