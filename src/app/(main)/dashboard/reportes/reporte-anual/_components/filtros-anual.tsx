@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 
+import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
 
 interface Props {
@@ -25,13 +25,13 @@ export function FiltrosAnual({ anio, anioActual, comparar }: Props) {
     <form method="get" className="flex flex-wrap items-end gap-3 print:hidden">
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="anio">Año</Label>
-        <NativeSelect id="anio" name="anio" defaultValue={String(anio)}>
-          {anios.map((valor) => (
-            <NativeSelectOption key={valor} value={String(valor)}>
-              {valor}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
+        <SelectCampo
+          id="anio"
+          name="anio"
+          opciones={anios.map((valor) => ({ value: String(valor), label: String(valor) }))}
+          valorInicial={String(anio)}
+          className="w-24"
+        />
       </div>
 
       <div className="flex flex-col gap-1.5">

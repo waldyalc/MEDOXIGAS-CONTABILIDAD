@@ -4,6 +4,7 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { ChevronDown, Pencil, Plus } from "lucide-react";
 
+import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -17,7 +18,6 @@ import {
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Switch } from "@/components/ui/switch";
 import { actualizarCuenta, crearCuenta } from "@/lib/contabilidad/acciones";
 import {
@@ -28,6 +28,12 @@ import {
   NATURALEZAS_CUENTA,
   TIPOS_CUENTA,
 } from "@/lib/contabilidad/validacion";
+
+const OPCIONES_TIPO = TIPOS_CUENTA.map((valor) => ({ value: valor, label: etiquetaTipoCuenta(valor) }));
+const OPCIONES_NATURALEZA = NATURALEZAS_CUENTA.map((valor) => ({
+  value: valor,
+  label: etiquetaNaturalezaCuenta(valor),
+}));
 
 interface FormularioCuentaProps {
   cuenta: CuentaEditable | null;
@@ -114,38 +120,26 @@ function FormularioCuenta({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="tipo">Tipo</FieldLabel>
-            <NativeSelect
+            <SelectCampo
               id="tipo"
               name="tipo"
-              className="w-full"
-              value={tipo}
-              disabled={bloquearCodigoTipoNaturaleza}
-              onChange={(event) => cambiarTipo(event.target.value)}
-            >
-              {TIPOS_CUENTA.map((valor) => (
-                <NativeSelectOption key={valor} value={valor}>
-                  {etiquetaTipoCuenta(valor)}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              opciones={OPCIONES_TIPO}
+              valor={tipo}
+              onCambio={cambiarTipo}
+              deshabilitado={bloquearCodigoTipoNaturaleza}
+            />
           </Field>
 
           <Field>
             <FieldLabel htmlFor="naturaleza">Naturaleza</FieldLabel>
-            <NativeSelect
+            <SelectCampo
               id="naturaleza"
               name="naturaleza"
-              className="w-full"
-              value={naturaleza}
-              disabled={bloquearCodigoTipoNaturaleza}
-              onChange={(event) => setNaturaleza(event.target.value)}
-            >
-              {NATURALEZAS_CUENTA.map((valor) => (
-                <NativeSelectOption key={valor} value={valor}>
-                  {etiquetaNaturalezaCuenta(valor)}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              opciones={OPCIONES_NATURALEZA}
+              valor={naturaleza}
+              onCambio={setNaturaleza}
+              deshabilitado={bloquearCodigoTipoNaturaleza}
+            />
           </Field>
         </div>
 

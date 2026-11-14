@@ -1,6 +1,6 @@
+import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { AgruparPor } from "@/lib/reportes/libros/agrupado";
 import type { ContactoOpcion } from "@/lib/reportes/libros/tipos";
 import type { CuentaContable } from "@/lib/reportes/tipos";
@@ -31,10 +31,16 @@ export function FiltroAgrupado({ desde, hasta, cuentas, contactos, cuenta, terce
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="agrupar">Agrupar por</Label>
-        <NativeSelect id="agrupar" name="agrupar" defaultValue={agruparPor} className="w-48">
-          <NativeSelectOption value="cuenta">Cuenta contable</NativeSelectOption>
-          <NativeSelectOption value="tercero">Tercero</NativeSelectOption>
-        </NativeSelect>
+        <SelectCampo
+          id="agrupar"
+          name="agrupar"
+          opciones={[
+            { value: "cuenta", label: "Cuenta contable" },
+            { value: "tercero", label: "Tercero" },
+          ]}
+          valorInicial={agruparPor}
+          className="w-48"
+        />
       </div>
 
       <div className="flex flex-col gap-1.5">

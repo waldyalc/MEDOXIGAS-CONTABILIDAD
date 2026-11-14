@@ -3,11 +3,11 @@ import { notFound, redirect } from "next/navigation";
 
 import { ArrowLeft } from "lucide-react";
 
+import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { getRol } from "@/lib/auth/rol";
 import {
   calcularEstadoCuenta,
@@ -88,13 +88,13 @@ export default async function Page({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="antiguedad">Antigüedad</Label>
-          <NativeSelect id="antiguedad" name="antiguedad" defaultValue={filtros.antiguedad} className="w-44">
-            {OPCIONES_ANTIGUEDAD.map((opcion) => (
-              <NativeSelectOption key={opcion.valor} value={opcion.valor}>
-                {opcion.etiqueta}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+          <SelectCampo
+            id="antiguedad"
+            name="antiguedad"
+            opciones={OPCIONES_ANTIGUEDAD.map((opcion) => ({ value: opcion.valor, label: opcion.etiqueta }))}
+            valorInicial={filtros.antiguedad}
+            className="w-44"
+          />
         </div>
         <Button type="submit" variant="secondary">
           Aplicar
