@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus } from "lucide-react";
 
+import { FORM_INPUT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -163,8 +164,7 @@ export function CentrosCostoCliente({
             <DialogTitle>{editando ? "Editar centro de costo" : "Nuevo centro de costo"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={enviar} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="centro-codigo">Código *</Label>
+            <FormField htmlFor="centro-codigo" label="Código" required>
               <Input
                 id="centro-codigo"
                 value={codigo}
@@ -173,10 +173,10 @@ export function CentrosCostoCliente({
                 placeholder="Ej. CC-01"
                 required
                 disabled={pendiente}
+                className={FORM_INPUT}
               />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="centro-nombre">Nombre *</Label>
+            </FormField>
+            <FormField htmlFor="centro-nombre" label="Nombre" required>
               <Input
                 id="centro-nombre"
                 value={nombre}
@@ -184,18 +184,19 @@ export function CentrosCostoCliente({
                 maxLength={120}
                 required
                 disabled={pendiente}
+                className={FORM_INPUT}
               />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="centro-descripcion">Descripción</Label>
+            </FormField>
+            <FormField htmlFor="centro-descripcion" label="Descripción">
               <Textarea
                 id="centro-descripcion"
                 value={descripcion}
                 onChange={(evento) => setDescripcion(evento.target.value)}
                 maxLength={500}
                 disabled={pendiente}
+                className={FORM_TEXTAREA}
               />
-            </div>
+            </FormField>
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="centro-activo">Activo</Label>
               <Switch id="centro-activo" checked={activo} onCheckedChange={setActivo} disabled={pendiente} />
@@ -208,10 +209,14 @@ export function CentrosCostoCliente({
             ) : null}
 
             <DialogFooter>
-              <DialogClose render={<Button type="button" variant="outline" disabled={pendiente} />}>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline" disabled={pendiente} className="h-11 rounded-[12px] px-6" />
+                }
+              >
                 Cancelar
               </DialogClose>
-              <Button type="submit" disabled={pendiente}>
+              <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
                 {pendiente ? <Loader2 className="animate-spin" /> : null}
                 Guardar
               </Button>

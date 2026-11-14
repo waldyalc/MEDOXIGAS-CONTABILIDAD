@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus } from "lucide-react";
 
+import { FORM_INPUT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -161,8 +162,7 @@ export function VendedoresCliente({
             <DialogTitle>{editando ? "Editar vendedor" : "Nuevo vendedor"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={enviar} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="vendedor-nombre">Nombre *</Label>
+            <FormField htmlFor="vendedor-nombre" label="Nombre" required>
               <Input
                 id="vendedor-nombre"
                 value={nombre}
@@ -170,10 +170,10 @@ export function VendedoresCliente({
                 maxLength={120}
                 required
                 disabled={pendiente}
+                className={FORM_INPUT}
               />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="vendedor-identificacion">Identificación</Label>
+            </FormField>
+            <FormField htmlFor="vendedor-identificacion" label="Identificación">
               <Input
                 id="vendedor-identificacion"
                 value={identificacion}
@@ -181,18 +181,19 @@ export function VendedoresCliente({
                 maxLength={60}
                 placeholder="Cédula o código interno"
                 disabled={pendiente}
+                className={FORM_INPUT}
               />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="vendedor-observacion">Observación</Label>
+            </FormField>
+            <FormField htmlFor="vendedor-observacion" label="Observación">
               <Textarea
                 id="vendedor-observacion"
                 value={observacion}
                 onChange={(evento) => setObservacion(evento.target.value)}
                 maxLength={500}
                 disabled={pendiente}
+                className={FORM_TEXTAREA}
               />
-            </div>
+            </FormField>
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="vendedor-activo">Activo</Label>
               <Switch id="vendedor-activo" checked={activo} onCheckedChange={setActivo} disabled={pendiente} />
@@ -205,10 +206,14 @@ export function VendedoresCliente({
             ) : null}
 
             <DialogFooter>
-              <DialogClose render={<Button type="button" variant="outline" disabled={pendiente} />}>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline" disabled={pendiente} className="h-11 rounded-[12px] px-6" />
+                }
+              >
                 Cancelar
               </DialogClose>
-              <Button type="submit" disabled={pendiente}>
+              <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
                 {pendiente ? <Loader2 className="animate-spin" /> : null}
                 Guardar
               </Button>

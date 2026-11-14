@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus } from "lucide-react";
 
+import { FORM_INPUT, FormField } from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -149,8 +150,7 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
             <DialogTitle>{editando ? "Editar almacén" : "Nuevo almacén"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={enviar} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="almacen-nombre">Nombre *</Label>
+            <FormField htmlFor="almacen-nombre" label="Nombre" required>
               <Input
                 id="almacen-nombre"
                 value={nombre}
@@ -158,8 +158,9 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
                 maxLength={120}
                 required
                 disabled={pendiente}
+                className={FORM_INPUT}
               />
-            </div>
+            </FormField>
             <div className="flex items-center justify-between gap-3">
               <div className="flex flex-col">
                 <Label htmlFor="almacen-activo">Activo</Label>
@@ -182,10 +183,14 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
             ) : null}
 
             <DialogFooter>
-              <DialogClose render={<Button type="button" variant="outline" disabled={pendiente} />}>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline" disabled={pendiente} className="h-11 rounded-[12px] px-6" />
+                }
+              >
                 Cancelar
               </DialogClose>
-              <Button type="submit" disabled={pendiente}>
+              <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
                 {pendiente ? <Loader2 className="animate-spin" /> : null}
                 Guardar
               </Button>

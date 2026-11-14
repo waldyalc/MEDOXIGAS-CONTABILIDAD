@@ -8,11 +8,20 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import {
+  FORM_BUTTON,
+  FORM_INPUT,
+  FORM_SELECT,
+  FORM_TEXTAREA,
+  FormActions,
+  FormCard,
+  FormDivider,
+  FormField,
+  FormSectionTitle,
+} from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,78 +122,75 @@ export function TransferenciaForm({
         evento.preventDefault();
         guardar();
       }}
-      className="flex flex-col gap-4"
+      className="mx-auto flex w-full max-w-[1040px] flex-col gap-6"
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos de la transferencia</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="origen">Almacén de origen *</Label>
-            <Select
-              items={almacenesItems}
-              value={origenId}
-              onValueChange={(valor: string | null) => setOrigenId(valor ?? "")}
-            >
-              <SelectTrigger id="origen" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {almacenesItems.map((almacen) => (
-                  <SelectItem key={almacen.value} value={almacen.value}>
-                    {almacen.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+      <FormCard>
+        <section>
+          <FormSectionTitle className="mb-4">Datos de la transferencia</FormSectionTitle>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+            <FormField htmlFor="origen" label="Almacén de origen" required>
+              <Select
+                items={almacenesItems}
+                value={origenId}
+                onValueChange={(valor: string | null) => setOrigenId(valor ?? "")}
+              >
+                <SelectTrigger id="origen" className={FORM_SELECT}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {almacenesItems.map((almacen) => (
+                    <SelectItem key={almacen.value} value={almacen.value}>
+                      {almacen.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField htmlFor="destino" label="Almacén de destino" required>
+              <Select
+                items={almacenesItems}
+                value={destinoId}
+                onValueChange={(valor: string | null) => setDestinoId(valor ?? "")}
+              >
+                <SelectTrigger id="destino" className={FORM_SELECT}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {almacenesItems.map((almacen) => (
+                    <SelectItem key={almacen.value} value={almacen.value}>
+                      {almacen.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField htmlFor="fecha" label="Fecha" required>
+              <DatePicker id="fecha" value={fecha} onChange={setFecha} />
+            </FormField>
+            <FormField htmlFor="observaciones" label="Observaciones">
+              <Textarea
+                id="observaciones"
+                placeholder="Ej. Traslado a la sucursal"
+                value={observaciones}
+                onChange={(evento) => setObservaciones(evento.target.value)}
+                maxLength={2000}
+                className={FORM_TEXTAREA}
+              />
+            </FormField>
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="destino">Almacén de destino *</Label>
-            <Select
-              items={almacenesItems}
-              value={destinoId}
-              onValueChange={(valor: string | null) => setDestinoId(valor ?? "")}
-            >
-              <SelectTrigger id="destino" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {almacenesItems.map((almacen) => (
-                  <SelectItem key={almacen.value} value={almacen.value}>
-                    {almacen.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="fecha">Fecha *</Label>
-            <DatePicker id="fecha" value={fecha} onChange={setFecha} />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="observaciones">Observaciones</Label>
-            <Textarea
-              id="observaciones"
-              placeholder="Ej. Traslado a la sucursal"
-              value={observaciones}
-              onChange={(evento) => setObservaciones(evento.target.value)}
-              maxLength={2000}
-            />
-          </div>
-        </CardContent>
-      </Card>
+        </section>
 
-      <Card>
-        <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle>Productos</CardTitle>
-          <Button type="button" variant="outline" size="sm" onClick={agregarLinea} disabled={pendiente}>
-            <Plus />
-            Agregar línea
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto rounded-lg border">
+        <FormDivider />
+
+        <section>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <FormSectionTitle>Productos</FormSectionTitle>
+            <Button type="button" variant="outline" size="sm" onClick={agregarLinea} disabled={pendiente}>
+              <Plus />
+              Agregar línea
+            </Button>
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -207,7 +213,7 @@ export function TransferenciaForm({
                         }
                       >
                         <SelectTrigger
-                          className="w-full"
+                          className={FORM_SELECT}
                           aria-label={`Producto de la línea ${indice + 1}`}
                           disabled={pendiente}
                         >
@@ -225,7 +231,7 @@ export function TransferenciaForm({
                     <TableCell>
                       <Input
                         inputMode="decimal"
-                        className="text-right"
+                        className={`${FORM_INPUT} text-right`}
                         value={linea.cantidad}
                         onChange={(evento) => actualizarLinea(linea.clave, { cantidad: evento.target.value })}
                         aria-label={`Cantidad de la línea ${indice + 1}`}
@@ -252,8 +258,8 @@ export function TransferenciaForm({
           <p className="text-muted-foreground mt-2 text-xs">
             La transferencia no genera asiento contable: el costo total no cambia.
           </p>
-        </CardContent>
-      </Card>
+        </section>
+      </FormCard>
 
       {error ? (
         <Alert variant="destructive">
@@ -261,15 +267,24 @@ export function TransferenciaForm({
         </Alert>
       ) : null}
 
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" render={<Link href="/dashboard/inventario/transferencias" />}>
+      <FormActions>
+        <Button
+          type="button"
+          variant="outline"
+          className={FORM_BUTTON}
+          render={<Link href="/dashboard/inventario/transferencias" />}
+        >
           Cancelar
         </Button>
-        <Button type="submit" disabled={pendiente || productos.length === 0 || almacenes.length < 2}>
+        <Button
+          type="submit"
+          disabled={pendiente || productos.length === 0 || almacenes.length < 2}
+          className={FORM_BUTTON}
+        >
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           Guardar transferencia
         </Button>
-      </div>
+      </FormActions>
 
       {almacenes.length < 2 ? (
         <p className="text-muted-foreground text-sm">Necesitas al menos dos almacenes activos para transferir.</p>

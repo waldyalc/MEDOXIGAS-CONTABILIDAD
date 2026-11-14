@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus } from "lucide-react";
 
+import { FORM_INPUT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -158,8 +159,7 @@ export function CategoriasCliente({
             <DialogTitle>{editando ? "Editar categoría" : "Nueva categoría"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={enviar} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="categoria-nombre">Nombre *</Label>
+            <FormField htmlFor="categoria-nombre" label="Nombre" required>
               <Input
                 id="categoria-nombre"
                 value={nombre}
@@ -167,18 +167,19 @@ export function CategoriasCliente({
                 maxLength={120}
                 required
                 disabled={pendiente}
+                className={FORM_INPUT}
               />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="categoria-descripcion">Descripción</Label>
+            </FormField>
+            <FormField htmlFor="categoria-descripcion" label="Descripción">
               <Textarea
                 id="categoria-descripcion"
                 value={descripcion}
                 onChange={(evento) => setDescripcion(evento.target.value)}
                 maxLength={500}
                 disabled={pendiente}
+                className={FORM_TEXTAREA}
               />
-            </div>
+            </FormField>
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="categoria-activa">Activa</Label>
               <Switch id="categoria-activa" checked={activo} onCheckedChange={setActivo} disabled={pendiente} />
@@ -191,10 +192,14 @@ export function CategoriasCliente({
             ) : null}
 
             <DialogFooter>
-              <DialogClose render={<Button type="button" variant="outline" disabled={pendiente} />}>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline" disabled={pendiente} className="h-11 rounded-[12px] px-6" />
+                }
+              >
                 Cancelar
               </DialogClose>
-              <Button type="submit" disabled={pendiente}>
+              <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
                 {pendiente ? <Loader2 className="animate-spin" /> : null}
                 Guardar
               </Button>

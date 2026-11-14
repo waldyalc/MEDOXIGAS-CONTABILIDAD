@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 
 import { Loader2 } from "lucide-react";
 
+import { FORM_BUTTON, FORM_TEXTAREA, FormCard, FormField, FormSectionTitle } from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,18 +50,18 @@ function FormularioPlantilla({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{ETIQUETAS_PLANTILLA[plantilla.tipo_documento]}</CardTitle>
-        <CardDescription>
-          {plantilla.tipo_documento === "factura"
+    <FormCard>
+      <FormSectionTitle
+        descripcion={
+          plantilla.tipo_documento === "factura"
             ? "Plantilla base: si cotización o conduce no tienen textos, se usan estos."
-            : "Si dejas los textos vacíos, se usan los de la factura."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={`notas-${plantilla.tipo_documento}`}>Notas al pie</Label>
+            : "Si dejas los textos vacíos, se usan los de la factura."
+        }
+      >
+        {ETIQUETAS_PLANTILLA[plantilla.tipo_documento]}
+      </FormSectionTitle>
+      <div className="flex flex-col gap-4">
+        <FormField htmlFor={`notas-${plantilla.tipo_documento}`} label="Notas al pie">
           <Textarea
             id={`notas-${plantilla.tipo_documento}`}
             value={notas}
@@ -69,10 +69,10 @@ function FormularioPlantilla({
             maxLength={2000}
             placeholder="Ej. Gracias por su compra"
             disabled={!puedeEditar || pendiente}
+            className={FORM_TEXTAREA}
           />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor={`terminos-${plantilla.tipo_documento}`}>Términos y condiciones</Label>
+        </FormField>
+        <FormField htmlFor={`terminos-${plantilla.tipo_documento}`} label="Términos y condiciones">
           <Textarea
             id={`terminos-${plantilla.tipo_documento}`}
             value={terminos}
@@ -80,8 +80,9 @@ function FormularioPlantilla({
             maxLength={2000}
             placeholder="Ej. Pago a 30 días"
             disabled={!puedeEditar || pendiente}
+            className={FORM_TEXTAREA}
           />
-        </div>
+        </FormField>
         <div className="flex items-center justify-between gap-3">
           <Label htmlFor={`logo-${plantilla.tipo_documento}`}>Mostrar logo</Label>
           <Switch
@@ -100,14 +101,14 @@ function FormularioPlantilla({
 
         {puedeEditar ? (
           <div className="flex justify-end">
-            <Button type="button" onClick={guardar} disabled={pendiente}>
+            <Button type="button" onClick={guardar} disabled={pendiente} className={FORM_BUTTON}>
               {pendiente ? <Loader2 className="animate-spin" /> : null}
               Guardar plantilla
             </Button>
           </div>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </FormCard>
   );
 }
 

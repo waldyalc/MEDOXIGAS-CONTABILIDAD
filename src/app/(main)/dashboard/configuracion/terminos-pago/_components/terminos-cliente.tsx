@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Plus } from "lucide-react";
 
+import { FORM_INPUT, FormField } from "@/components/formularios/formulario";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { crearTerminoPago } from "@/lib/configuracion/acciones";
@@ -42,27 +42,37 @@ function FormularioTermino({ onGuardado }: { readonly onGuardado: () => void }) 
 
   return (
     <form onSubmit={enviar} className="flex flex-col gap-4">
-      <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor="nombre">Nombre *</FieldLabel>
-          <Input id="nombre" name="nombre" required maxLength={80} placeholder="Ej. 45 días" />
-        </Field>
+      <div className="flex flex-col gap-4">
+        <FormField htmlFor="nombre" label="Nombre" required>
+          <Input id="nombre" name="nombre" required maxLength={80} placeholder="Ej. 45 días" className={FORM_INPUT} />
+        </FormField>
 
-        <Field>
-          <FieldLabel htmlFor="dias">Días *</FieldLabel>
-          <Input id="dias" name="dias" type="number" min={0} max={3650} step={1} required placeholder="0" />
-        </Field>
+        <FormField htmlFor="dias" label="Días" required>
+          <Input
+            id="dias"
+            name="dias"
+            type="number"
+            min={0}
+            max={3650}
+            step={1}
+            required
+            placeholder="0"
+            className={FORM_INPUT}
+          />
+        </FormField>
 
         {error ? (
           <p role="alert" className="text-destructive text-sm">
             {error}
           </p>
         ) : null}
-      </FieldGroup>
+      </div>
 
       <DialogFooter>
-        <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>
-        <Button type="submit" disabled={pendiente}>
+        <DialogClose render={<Button type="button" variant="outline" className="h-11 rounded-[12px] px-6" />}>
+          Cancelar
+        </DialogClose>
+        <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           Guardar
         </Button>

@@ -7,12 +7,12 @@ import { useRouter } from "next/navigation";
 import { Loader2, Pencil, Plus } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { hoyRD } from "@/lib/facturacion/formato";
@@ -197,14 +197,13 @@ export function MonedasCliente({
             <DialogTitle>Registrar tasa de cambio</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="tasa-moneda">Moneda *</Label>
+            <FormField htmlFor="tasa-moneda" label="Moneda" required>
               <Select
                 items={opciones}
                 value={monedaCodigo}
                 onValueChange={(valor: string | null) => setMonedaCodigo(valor ?? "")}
               >
-                <SelectTrigger id="tasa-moneda" className="w-full">
+                <SelectTrigger id="tasa-moneda" className={FORM_SELECT}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false}>
@@ -215,13 +214,11 @@ export function MonedasCliente({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="tasa-fecha">Fecha *</Label>
+            </FormField>
+            <FormField htmlFor="tasa-fecha" label="Fecha" required>
               <DatePicker id="tasa-fecha" value={fecha} onChange={setFecha} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="tasa-valor">Tasa en DOP *</Label>
+            </FormField>
+            <FormField htmlFor="tasa-valor" label="Tasa en DOP" required>
               <Input
                 id="tasa-valor"
                 inputMode="decimal"
@@ -229,8 +226,9 @@ export function MonedasCliente({
                 onChange={(evento) => setTasa(evento.target.value)}
                 placeholder="Ej. 58.50"
                 disabled={pendiente}
+                className={FORM_INPUT}
               />
-            </div>
+            </FormField>
 
             {error ? (
               <Alert variant="destructive">
@@ -239,10 +237,19 @@ export function MonedasCliente({
             ) : null}
 
             <DialogFooter>
-              <DialogClose render={<Button type="button" variant="outline" disabled={pendiente} />}>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline" disabled={pendiente} className="h-11 rounded-[12px] px-6" />
+                }
+              >
                 Cancelar
               </DialogClose>
-              <Button type="button" onClick={enviar} disabled={pendiente || !monedaCodigo}>
+              <Button
+                type="button"
+                onClick={enviar}
+                disabled={pendiente || !monedaCodigo}
+                className="h-11 rounded-[12px] px-6"
+              >
                 {pendiente ? <Loader2 className="animate-spin" /> : null}
                 Guardar
               </Button>

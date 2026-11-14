@@ -6,10 +6,17 @@ import { useRouter } from "next/navigation";
 
 import { ChevronDown, Loader2, Upload } from "lucide-react";
 
+import {
+  FORM_BUTTON,
+  FORM_INPUT,
+  FormActions,
+  FormCard,
+  FormDivider,
+  FormField,
+  FormSectionTitle,
+} from "@/components/formularios/formulario";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { guardarEmpresa } from "@/lib/configuracion/acciones";
 import { extensionLogo, LIMITE_LOGO_BYTES, validarLogo } from "@/lib/configuracion/validacion";
@@ -156,17 +163,15 @@ export function EmpresaForm({
   const logo = vistaPrevia ?? empresa?.logo_url?.trim() ?? "";
 
   return (
-    <form onSubmit={enviar} className="flex flex-col gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos de la empresa</CardTitle>
-          <CardDescription>Así aparecen el nombre y los datos en facturas, cotizaciones y conduces.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="nombre">Nombre *</FieldLabel>
+    <form onSubmit={enviar} className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
+      <FormCard>
+        <section>
+          <FormSectionTitle descripcion="Así aparecen el nombre y los datos en facturas, cotizaciones y conduces.">
+            Datos de la empresa
+          </FormSectionTitle>
+          <div className="mt-4 flex flex-col gap-4">
+            <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+              <FormField htmlFor="nombre" label="Nombre" required>
                 <Input
                   id="nombre"
                   name="nombre"
@@ -174,46 +179,52 @@ export function EmpresaForm({
                   maxLength={200}
                   defaultValue={empresa?.nombre ?? ""}
                   disabled={!puedeEditar}
+                  className={FORM_INPUT}
                 />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="rnc">RNC</FieldLabel>
-                <Input id="rnc" name="rnc" maxLength={20} defaultValue={empresa?.rnc ?? ""} disabled={!puedeEditar} />
-              </Field>
+              </FormField>
+              <FormField htmlFor="rnc" label="RNC">
+                <Input
+                  id="rnc"
+                  name="rnc"
+                  maxLength={20}
+                  defaultValue={empresa?.rnc ?? ""}
+                  disabled={!puedeEditar}
+                  className={FORM_INPUT}
+                />
+              </FormField>
             </div>
 
             <Collapsible
-              className="rounded-lg border"
+              className="rounded-xl border border-slate-200"
               defaultOpen={Boolean(empresa?.direccion ?? empresa?.telefono ?? empresa?.correo)}
             >
               <CollapsibleTrigger render={<Button type="button" variant="ghost" className="w-full justify-between" />}>
                 Más opciones
                 <ChevronDown className="size-4" />
               </CollapsibleTrigger>
-              <CollapsibleContent className="flex flex-col gap-4 border-t p-3">
-                <Field>
-                  <FieldLabel htmlFor="direccion">Dirección</FieldLabel>
+              <CollapsibleContent className="flex flex-col gap-4 border-t border-slate-200 p-3">
+                <FormField htmlFor="direccion" label="Dirección">
                   <Input
                     id="direccion"
                     name="direccion"
                     maxLength={300}
                     defaultValue={empresa?.direccion ?? ""}
                     disabled={!puedeEditar}
+                    className={FORM_INPUT}
                   />
-                </Field>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field>
-                    <FieldLabel htmlFor="telefono">Teléfono</FieldLabel>
+                </FormField>
+                <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                  <FormField htmlFor="telefono" label="Teléfono">
                     <Input
                       id="telefono"
                       name="telefono"
                       maxLength={40}
                       defaultValue={empresa?.telefono ?? ""}
                       disabled={!puedeEditar}
+                      className={FORM_INPUT}
                     />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="correo">Correo</FieldLabel>
+                  </FormField>
+                  <FormField htmlFor="correo" label="Correo">
                     <Input
                       id="correo"
                       name="correo"
@@ -221,22 +232,22 @@ export function EmpresaForm({
                       maxLength={200}
                       defaultValue={empresa?.correo ?? ""}
                       disabled={!puedeEditar}
+                      className={FORM_INPUT}
                     />
-                  </Field>
+                  </FormField>
                 </div>
               </CollapsibleContent>
             </Collapsible>
-          </FieldGroup>
-        </CardContent>
-      </Card>
+          </div>
+        </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Logo</CardTitle>
-          <CardDescription>Se usa en el encabezado de los documentos. PNG, JPG o WebP de hasta 2 MB.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap items-center gap-5">
+        <FormDivider />
+
+        <section>
+          <FormSectionTitle descripcion="Se usa en el encabezado de los documentos. PNG, JPG o WebP de hasta 2 MB.">
+            Logo
+          </FormSectionTitle>
+          <div className="mt-4 flex flex-wrap items-center gap-5">
             {logo ? (
               // biome-ignore lint/performance/noImgElement: logo configurable de la empresa
               <img src={logo} alt="Logo de la empresa" className="h-20 max-w-[220px] object-contain" />
@@ -250,8 +261,7 @@ export function EmpresaForm({
             )}
 
             {puedeEditar ? (
-              <div className="flex min-w-0 flex-col gap-2">
-                <FieldLabel htmlFor="logo">Subir imagen</FieldLabel>
+              <FormField htmlFor="logo" label="Subir imagen" className="min-w-0 flex-1">
                 <Input
                   ref={inputLogo}
                   id="logo"
@@ -259,13 +269,14 @@ export function EmpresaForm({
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   onChange={cambiarLogo}
+                  className={FORM_INPUT}
                 />
                 <p className="text-muted-foreground text-xs">{LIMITE_LOGO_BYTES / (1024 * 1024)} MB como máximo.</p>
-              </div>
+              </FormField>
             ) : null}
           </div>
-        </CardContent>
-      </Card>
+        </section>
+      </FormCard>
 
       {error ? (
         <p role="alert" className="text-destructive text-sm">
@@ -280,12 +291,12 @@ export function EmpresaForm({
       ) : null}
 
       {puedeEditar ? (
-        <div className="flex justify-end">
-          <Button type="submit" disabled={pendiente}>
+        <FormActions>
+          <Button type="submit" disabled={pendiente} className={FORM_BUTTON}>
             {pendiente ? <Loader2 className="animate-spin" /> : <Upload />}
             Guardar
           </Button>
-        </div>
+        </FormActions>
       ) : (
         <p className="text-muted-foreground text-sm">Solo el administrador puede cambiar los datos de la empresa.</p>
       )}

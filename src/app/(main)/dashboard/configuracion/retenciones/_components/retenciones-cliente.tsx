@@ -6,10 +6,11 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus } from "lucide-react";
 
+import { FORM_INPUT, FORM_INPUT_GROUP, FORM_SELECT, FormField } from "@/components/formularios/formulario";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -83,9 +84,8 @@ function FormularioRetencion({
 
   return (
     <form onSubmit={enviar} className="flex flex-col gap-4">
-      <FieldGroup>
-        <Field>
-          <FieldLabel htmlFor="nombre">Nombre *</FieldLabel>
+      <div className="flex flex-col gap-4">
+        <FormField htmlFor="nombre" label="Nombre" required>
           <Input
             id="nombre"
             name="nombre"
@@ -93,12 +93,12 @@ function FormularioRetencion({
             maxLength={80}
             defaultValue={retencion?.nombre ?? ""}
             placeholder="Ej. ITBIS 30 %"
+            className={FORM_INPUT}
           />
-        </Field>
+        </FormField>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field>
-            <FieldLabel htmlFor="tipo">Tipo *</FieldLabel>
+        <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          <FormField htmlFor="tipo" label="Tipo" required>
             <Select
               items={[...TIPOS]}
               value={tipo}
@@ -106,7 +106,7 @@ function FormularioRetencion({
                 if (valor === "itbis" || valor === "isr") setTipo(valor);
               }}
             >
-              <SelectTrigger id="tipo" className="w-full">
+              <SelectTrigger id="tipo" className={FORM_SELECT}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -117,11 +117,10 @@ function FormularioRetencion({
                 ))}
               </SelectContent>
             </Select>
-          </Field>
+          </FormField>
 
-          <Field>
-            <FieldLabel htmlFor="porcentaje">Porcentaje *</FieldLabel>
-            <InputGroup>
+          <FormField htmlFor="porcentaje" label="Porcentaje" required>
+            <InputGroup className={FORM_INPUT_GROUP}>
               <InputGroupInput
                 id="porcentaje"
                 name="porcentaje"
@@ -135,17 +134,16 @@ function FormularioRetencion({
                 %
               </InputGroupAddon>
             </InputGroup>
-          </Field>
+          </FormField>
         </div>
 
-        <Field>
-          <FieldLabel htmlFor="cuenta">Cuenta cuando retenemos (pasivo) *</FieldLabel>
+        <FormField htmlFor="cuenta" label="Cuenta cuando retenemos (pasivo)" required>
           <Select
             items={opcionesPasivo}
             value={cuentaId}
             onValueChange={(valor: string | null) => setCuentaId(valor ?? "")}
           >
-            <SelectTrigger id="cuenta" className="w-full">
+            <SelectTrigger id="cuenta" className={FORM_SELECT}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -156,16 +154,15 @@ function FormularioRetencion({
               ))}
             </SelectContent>
           </Select>
-        </Field>
+        </FormField>
 
-        <Field>
-          <FieldLabel htmlFor="cuenta_anticipo">Cuenta cuando nos retienen (activo)</FieldLabel>
+        <FormField htmlFor="cuenta_anticipo" label="Cuenta cuando nos retienen (activo)">
           <Select
             items={opcionesActivo}
             value={anticipoId}
             onValueChange={(valor: string | null) => setAnticipoId(valor ?? SIN_CUENTA)}
           >
-            <SelectTrigger id="cuenta_anticipo" className="w-full">
+            <SelectTrigger id="cuenta_anticipo" className={FORM_SELECT}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -176,7 +173,7 @@ function FormularioRetencion({
               ))}
             </SelectContent>
           </Select>
-        </Field>
+        </FormField>
 
         <div className="flex items-center justify-between gap-3">
           <FieldLabel htmlFor="activa">Activa</FieldLabel>
@@ -188,11 +185,13 @@ function FormularioRetencion({
             {error}
           </p>
         ) : null}
-      </FieldGroup>
+      </div>
 
       <DialogFooter>
-        <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>
-        <Button type="submit" disabled={pendiente}>
+        <DialogClose render={<Button type="button" variant="outline" className="h-11 rounded-[12px] px-6" />}>
+          Cancelar
+        </DialogClose>
+        <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           Guardar
         </Button>

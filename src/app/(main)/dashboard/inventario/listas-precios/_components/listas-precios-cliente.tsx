@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus } from "lucide-react";
 
+import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -166,8 +167,7 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
             <DialogTitle>{editando ? "Editar lista de precios" : "Nueva lista de precios"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={enviar} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="lista-nombre">Nombre *</Label>
+            <FormField htmlFor="lista-nombre" label="Nombre" required>
               <Input
                 id="lista-nombre"
                 value={nombre}
@@ -175,16 +175,16 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
                 maxLength={120}
                 required
                 disabled={pendiente}
+                className={FORM_INPUT}
               />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="lista-tipo">Tipo *</Label>
+            </FormField>
+            <FormField htmlFor="lista-tipo" label="Tipo" required>
               <Select
                 value={tipo}
                 onValueChange={(valor: string | null) => setTipo(valor === "porcentaje" ? "porcentaje" : "fijo")}
                 items={OPCIONES_TIPO}
               >
-                <SelectTrigger id="lista-tipo" className="w-full">
+                <SelectTrigger id="lista-tipo" className={FORM_SELECT}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -195,7 +195,7 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FormField>
             <div className="flex items-center justify-between gap-3">
               <div className="flex flex-col">
                 <Label htmlFor="lista-principal">Principal</Label>
@@ -222,10 +222,14 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
             ) : null}
 
             <DialogFooter>
-              <DialogClose render={<Button type="button" variant="outline" disabled={pendiente} />}>
+              <DialogClose
+                render={
+                  <Button type="button" variant="outline" disabled={pendiente} className="h-11 rounded-[12px] px-6" />
+                }
+              >
                 Cancelar
               </DialogClose>
-              <Button type="submit" disabled={pendiente}>
+              <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
                 {pendiente ? <Loader2 className="animate-spin" /> : null}
                 Guardar
               </Button>

@@ -8,12 +8,23 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import {
+  FORM_BUTTON,
+  FORM_INPUT,
+  FORM_INPUT_GROUP,
+  FORM_SELECT,
+  FORM_TEXTAREA,
+  FormActions,
+  FormCard,
+  FormDivider,
+  FormField,
+  FormSectionTitle,
+  FormTotal,
+} from "@/components/formularios/formulario";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -141,61 +152,59 @@ export function AjusteForm({
         evento.preventDefault();
         guardar();
       }}
-      className="flex flex-col gap-4"
+      className="mx-auto flex w-full max-w-[1040px] flex-col gap-6"
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos del ajuste</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="almacen">Almacén *</Label>
-            <Select
-              items={almacenesItems}
-              value={almacenId}
-              onValueChange={(valor: string | null) => setAlmacenId(valor ?? "")}
-            >
-              <SelectTrigger id="almacen" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {almacenesItems.map((almacen) => (
-                  <SelectItem key={almacen.value} value={almacen.value}>
-                    {almacen.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <FormCard>
+        <section>
+          <FormSectionTitle className="mb-4">Datos del ajuste</FormSectionTitle>
+          <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+            <FormField htmlFor="almacen" label="Almacén" required>
+              <Select
+                items={almacenesItems}
+                value={almacenId}
+                onValueChange={(valor: string | null) => setAlmacenId(valor ?? "")}
+              >
+                <SelectTrigger id="almacen" className={FORM_SELECT}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {almacenesItems.map((almacen) => (
+                    <SelectItem key={almacen.value} value={almacen.value}>
+                      {almacen.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="fecha">Fecha *</Label>
-            <DatePicker id="fecha" value={fecha} onChange={setFecha} />
-          </div>
+            <FormField htmlFor="fecha" label="Fecha" required>
+              <DatePicker id="fecha" value={fecha} onChange={setFecha} />
+            </FormField>
 
-          <div className="flex flex-col gap-2 sm:col-span-2">
-            <Label htmlFor="observaciones">Observaciones</Label>
-            <Textarea
-              id="observaciones"
-              placeholder="Ej. Conteo físico de fin de mes"
-              value={observaciones}
-              onChange={(evento) => setObservaciones(evento.target.value)}
-              maxLength={2000}
-            />
+            <FormField htmlFor="observaciones" label="Observaciones" className="sm:col-span-2">
+              <Textarea
+                id="observaciones"
+                placeholder="Ej. Conteo físico de fin de mes"
+                value={observaciones}
+                onChange={(evento) => setObservaciones(evento.target.value)}
+                maxLength={2000}
+                className={FORM_TEXTAREA}
+              />
+            </FormField>
           </div>
-        </CardContent>
-      </Card>
+        </section>
 
-      <Card>
-        <CardHeader className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle>Productos</CardTitle>
-          <Button type="button" variant="outline" size="sm" onClick={agregarLinea} disabled={pendiente}>
-            <Plus />
-            Agregar línea
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto rounded-lg border">
+        <FormDivider />
+
+        <section>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <FormSectionTitle>Productos</FormSectionTitle>
+            <Button type="button" variant="outline" size="sm" onClick={agregarLinea} disabled={pendiente}>
+              <Plus />
+              Agregar línea
+            </Button>
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -225,7 +234,7 @@ export function AjusteForm({
                           onValueChange={(valor: string | null) => seleccionarProducto(linea.clave, valor ?? "")}
                         >
                           <SelectTrigger
-                            className="w-full"
+                            className={FORM_SELECT}
                             aria-label={`Producto de la línea ${indice + 1}`}
                             disabled={pendiente}
                           >
@@ -249,7 +258,7 @@ export function AjusteForm({
                           }}
                         >
                           <SelectTrigger
-                            className="w-full"
+                            className={FORM_SELECT}
                             aria-label={`Tipo de la línea ${indice + 1}`}
                             disabled={pendiente}
                           >
@@ -271,10 +280,11 @@ export function AjusteForm({
                           onChange={(evento) => actualizarLinea(linea.clave, { cantidad: evento.target.value })}
                           aria-label={`Cantidad de la línea ${indice + 1}`}
                           disabled={pendiente}
+                          className={FORM_INPUT}
                         />
                       </TableCell>
                       <TableCell>
-                        <InputGroup>
+                        <InputGroup className={FORM_INPUT_GROUP}>
                           <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                             RD$
                           </InputGroupAddon>
@@ -310,13 +320,15 @@ export function AjusteForm({
           <p className="text-muted-foreground mt-2 text-xs">
             La entrada recalcula el costo promedio del producto; la salida usa el costo indicado.
           </p>
-        </CardContent>
-      </Card>
+        </section>
 
-      <div className="bg-muted/50 flex items-center justify-between rounded-xl p-4">
-        <span className="text-muted-foreground">Total ajustado</span>
-        <span className="font-semibold tabular-nums">{formatoMonedaCentavos(totalCentavos)}</span>
-      </div>
+        <FormTotal>
+          <div className="flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
+            <span>Total ajustado</span>
+            <span className="tabular-nums">{formatoMonedaCentavos(totalCentavos)}</span>
+          </div>
+        </FormTotal>
+      </FormCard>
 
       {error ? (
         <Alert variant="destructive">
@@ -324,15 +336,24 @@ export function AjusteForm({
         </Alert>
       ) : null}
 
-      <div className="flex flex-wrap justify-end gap-2">
-        <Button type="button" variant="outline" render={<Link href="/dashboard/inventario/ajustes" />}>
+      <FormActions>
+        <Button
+          type="button"
+          variant="outline"
+          className={FORM_BUTTON}
+          render={<Link href="/dashboard/inventario/ajustes" />}
+        >
           Cancelar
         </Button>
-        <Button type="submit" disabled={pendiente || productos.length === 0 || almacenes.length === 0}>
+        <Button
+          type="submit"
+          disabled={pendiente || productos.length === 0 || almacenes.length === 0}
+          className={FORM_BUTTON}
+        >
           {pendiente ? <Loader2 className="animate-spin" /> : null}
           Guardar ajuste
         </Button>
-      </div>
+      </FormActions>
 
       {productos.length === 0 ? (
         <p className="text-muted-foreground text-sm">
