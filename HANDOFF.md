@@ -1,5 +1,29 @@
 # Handoff — Medoxigas Contabilidad
 
+## Productos: importar CSV/Excel y edición masiva (13 nov 2026)
+
+- Lista de productos: botón «Importar» con diálogo shadcn. Descarga la
+  plantilla CSV (nombre, referencia, tipo, precio, ITBIS, costo inicial,
+  unidad, categoría, descripción), lee `.csv` o `.xlsx` (ExcelJS, ya instalado;
+  sin dependencias nuevas), muestra vista previa con las filas listas y los
+  errores por fila en español, y crea solo las filas válidas reutilizando
+  `crearProducto` (RPC `crear_producto`). La columna «unidad» se acepta y se
+  valida, pero no se guarda: `productos` no tiene ese campo y la app muestra
+  «Unidad» fijo (decisión de Coder).
+- Los productos importados de tipo «Producto» quedan inventariables con
+  cantidad 0 y el costo inicial del archivo; «Servicio» queda sin inventario.
+- Selección con casillas (incluye «seleccionar visibles») y «Editar
+  seleccionados»: precio fijo o ajuste porcentual con signo, ITBIS, categoría
+  y activo/inactivo. Usa `actualizarProducto` (RPC `actualizar_producto`) con
+  los datos completos del producto; la UI muestra la columna «Estado».
+- Lógica pura en `src/lib/productos/importar.ts` con Vitest (CSV con comas,
+  punto y coma, comillas y BOM; validación por fila; cálculo del ajuste).
+  `Producto` ahora incluye `activo` y el formulario no lo pisa al editar.
+- Sin migración ni cambios de datos. `typecheck`, `test` (539), Biome de lo
+  tocado y `build` en verde.
+- Aparte: corregido solo el valor esperado del pgTAP de periodos (`3202`
+  débito−crédito = resultado, sin negarlo). La función no se tocó.
+
 ## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
 
 - El saldo por pagar ahora es `total - pagado - credito` en el reporte Cuentas

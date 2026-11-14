@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createClient } from "@/lib/supabase/server";
 
-import { esquemaProducto } from "./productos";
+import { type DatosProducto, esquemaProducto } from "./productos";
 
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };
 
@@ -30,7 +30,14 @@ function datosDesdeFormulario(formData: FormData) {
     cantidad: texto(formData, "cantidad") || "0",
     costo: texto(formData, "costo") || "0",
     categoria_id: texto(formData, "categoria_id"),
+    activo: formData.has("activo") ? booleano(formData, "activo") : undefined,
   };
+}
+
+function sinIndefinidos(datos: DatosProducto) {
+  const resultado = { ...datos };
+  if (resultado.activo === undefined) delete resultado.activo;
+  return resultado;
 }
 
 function idValido(id: string) {
@@ -44,7 +51,7 @@ export async function crearProducto(formData: FormData): Promise<ResultadoAccion
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("crear_producto", { p: parseo.data });
+  const { error } = await supabase.rpc("crear_producto", { p: sinIndefinidos(parseo.data) });
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard/productos");
@@ -60,7 +67,7 @@ export async function actualizarProducto(id: string, formData: FormData): Promis
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("actualizar_producto", { p_id: id, p: parseo.data });
+  const { error } = await supabase.rpc("actualizar_producto", { p_id: id, p: sinIndefinidos(parseo.data) });
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard/productos");
