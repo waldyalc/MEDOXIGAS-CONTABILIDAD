@@ -14,10 +14,8 @@ import { FichaTabs } from "./_components/ficha-tabs";
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const rol = await getRol();
+  const [rol, ficha] = await Promise.all([getRol(), obtenerFichaProducto(id)]);
   if (rol == null) redirect("/unauthorized");
-
-  const ficha = await obtenerFichaProducto(id);
   if (!ficha) notFound();
 
   const { producto, facturasVenta, facturasCompra, cotizaciones, conduces, kardex } = ficha;

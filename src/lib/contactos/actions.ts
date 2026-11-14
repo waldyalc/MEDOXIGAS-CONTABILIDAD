@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 
 import { esquemaContacto, SIN_LISTA_PRECIO } from "./contactos";
 
-export type ResultadoAccion = { ok: true } | { ok: false; error: string };
+export type ResultadoAccion = { ok: true; id?: string } | { ok: false; error: string };
 
 function texto(formData: FormData, campo: string) {
   const valor = formData.get(campo);
@@ -15,6 +15,7 @@ function texto(formData: FormData, campo: string) {
 
 function datosDesdeFormulario(formData: FormData) {
   const lista = texto(formData, "lista_precio_id");
+  const tipoIdentificacion = formData.get("tipo_identificacion");
 
   return {
     nombre: texto(formData, "nombre"),
@@ -24,6 +25,10 @@ function datosDesdeFormulario(formData: FormData) {
     correo: texto(formData, "correo"),
     direccion: texto(formData, "direccion"),
     lista_precio_id: lista === SIN_LISTA_PRECIO ? "" : lista,
+    ...(typeof tipoIdentificacion === "string"
+      ? { tipo_identificacion: tipoIdentificacion === "" ? null : tipoIdentificacion }
+      : {}),
+    ...(formData.has("municipio_provincia") ? { municipio_provincia: texto(formData, "municipio_provincia") } : {}),
   };
 }
 
@@ -38,11 +43,11 @@ export async function crearContacto(formData: FormData): Promise<ResultadoAccion
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("crear_contacto", { p: parseo.data });
+  const { data, error } = await supabase.rpc("crear_contacto", { p: parseo.data });
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/dashboard/contactos");
-  return { ok: true };
+  return { ok: true, id: data ?? undefined };
 }
 
 export async function actualizarContacto(id: string, formData: FormData): Promise<ResultadoAccion> {

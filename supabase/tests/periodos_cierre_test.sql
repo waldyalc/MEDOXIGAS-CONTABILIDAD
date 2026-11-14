@@ -245,7 +245,7 @@ select is(
   (select coalesce(sum(l.debito - l.credito), 0)::numeric(14,2) from public.asiento_lineas l
    join public.cuentas c on c.id = l.cuenta_id
    where l.asiento_id = (select id from _periodos where clave = 'cierre') and c.codigo = '3202'),
-  -(select valor from _saldos where clave = 'resultado'),
+  (select valor from _saldos where clave = 'resultado'),
   'la utilidad del ejercicio recibe el resultado del año'
 );
 

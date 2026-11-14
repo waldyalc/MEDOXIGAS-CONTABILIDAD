@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState, useTransition } from "react";
+import { type FormEvent, useEffect, useState, useTransition } from "react";
 
 import { ChevronDown, Pencil, Plus, Search } from "lucide-react";
 
@@ -74,6 +74,7 @@ function FormularioContacto({
 
   return (
     <form onSubmit={enviar} className="flex flex-col gap-4">
+      <input type="hidden" name="tipo_identificacion" value={contacto?.tipo_identificacion ?? ""} />
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="nombre">Nombre *</FieldLabel>
@@ -192,6 +193,13 @@ export function ContactosCliente({
   const [contactoEditando, setContactoEditando] = useState<Contacto | null>(null);
 
   const filtrados = filtrarContactos(contactos, pestana, busqueda);
+
+  useEffect(() => {
+    if (window.location.hash === "#nuevo") {
+      setContactoEditando(null);
+      setDialogoAbierto(true);
+    }
+  }, []);
 
   function abrirNuevo() {
     setContactoEditando(null);

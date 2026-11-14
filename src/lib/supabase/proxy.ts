@@ -49,16 +49,18 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const { data } = await supabase.auth.getUser();
-  const user = data.user;
+  // getClaims verifica la firma del JWT contra el JWKS en caché. Con claves
+  // asimétricas no hace red; con HS256 cae a getUser(), igual que antes.
+  const { data } = await supabase.auth.getClaims();
+  const autenticado = Boolean(data?.claims.sub);
 
-  if (!user && !esPublica) {
+  if (!autenticado && !esPublica) {
     const destino = request.nextUrl.clone();
     destino.pathname = "/login";
     return conCookies(supabaseResponse, NextResponse.redirect(destino));
   }
 
-  if (user && esLogin) {
+  if (autenticado && esLogin) {
     const destino = request.nextUrl.clone();
     destino.pathname = "/dashboard";
     destino.search = "";

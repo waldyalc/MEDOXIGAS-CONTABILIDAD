@@ -16,12 +16,15 @@ export function normalizarRol(valor: string | null | undefined): Rol | null {
 
 export const getPerfil = cache(async (): Promise<Perfil | null> => {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return null;
+  // getClaims valida el JWT localmente (JWKS en caché) y evita una llamada de
+  // red a Auth en cada navegación. Con HS256 cae a getUser(), sin empeorar.
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  if (!claims?.sub) return null;
 
-  const perfil = await supabase.from("perfiles").select("nombre, rol").eq("user_id", data.user.id).maybeSingle();
+  const perfil = await supabase.from("perfiles").select("nombre, rol").eq("user_id", claims.sub).maybeSingle();
   return {
-    correo: data.user.email ?? null,
+    correo: typeof claims.email === "string" ? claims.email : null,
     nombre: perfil.data?.nombre ?? null,
     rol: normalizarRol(perfil.data?.rol),
   };

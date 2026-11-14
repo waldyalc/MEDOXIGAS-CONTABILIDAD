@@ -31,6 +31,110 @@
   del flujo de efectivo no se enlazan; el documento de una retención en IR-17 y
   cartas no tiene `factura_id` para enlazar.
 
+## Crear contacto y producto rápido desde los selectores (15 nov 2026)
+
+- Nuevos componentes reutilizables: `src/components/contactos/selector-contacto.tsx` y `dialogo-nuevo-contacto.tsx`; `src/components/productos/selector-producto.tsx` y `dialogo-nuevo-producto.tsx`. El combobox muestra la identificación en gris bajo el nombre, fija arriba «Crear nuevo cliente/proveedor» (o producto) y, si hay búsqueda, la usa para prellenar el nombre del diálogo. El modal de contacto tiene toggles Cliente/Proveedor, tipo y número de identificación, nombre, municipio/provincia, dirección, correo, teléfono, «Formulario avanzado» (abre `/dashboard/contactos#nuevo` en otra pestaña) y «Crear contacto».
+- Al crear se usa la acción existente (`crearContacto` / `crearProducto`), ahora devuelve el id para dejar el registro seleccionado sin tocar lo ya llenado. El formulario de contactos abre el diálogo con `#nuevo` y conserva el tipo de identificación al editar.
+- Selectores cambiados en: factura, cotización y conduce (plantilla `documento-venta-form`), nota de débito, pago recibido, factura de proveedor, pago a proveedor, gasto menor y orden de compra. En líneas se agregó «Crear nuevo producto» en factura/cotización/conduce, nota de débito, factura de proveedor y orden de compra.
+- Validación pura en `src/lib/contactos/contacto-rapido.ts` con Vitest (RNC 9 dígitos, cédula 11, pasaporte alfanumérico y tipo cliente/proveedor/ambos).
+- Migración **aditiva** `20261115600000_contacto_rapido_identificacion.sql` (NO aplicada al remoto; la revisa Coder): agrega `tipo_identificacion` y `municipio_provincia` a `contactos` y actualiza `crear_contacto`/`actualizar_contacto`. `types.ts` actualizado a mano solo en esas columnas.
+- Verificado: `pnpm typecheck`, `pnpm test` (616), Biome sobre lo tocado y `pnpm build`. Sin verificación visual.
+- Quedó fuera: facturas/pagos recurrentes (no estaban en la lista) y las notas de crédito, que no tienen selector propio porque toman el contacto de la factura.
+
+## Productos: importar CSV/Excel y edición masiva (13 nov 2026)
+
+- Lista de productos: botón «Importar» con diálogo shadcn. Descarga la
+  plantilla CSV (nombre, referencia, tipo, precio, ITBIS, costo inicial,
+  unidad, categoría, descripción), lee `.csv` o `.xlsx` (ExcelJS, ya instalado;
+  sin dependencias nuevas), muestra vista previa con las filas listas y los
+  errores por fila en español, y crea solo las filas válidas reutilizando
+  `crearProducto` (RPC `crear_producto`). La columna «unidad» se acepta y se
+  valida, pero no se guarda: `productos` no tiene ese campo y la app muestra
+  «Unidad» fijo (decisión de Coder).
+- Los productos importados de tipo «Producto» quedan inventariables con
+  cantidad 0 y el costo inicial del archivo; «Servicio» queda sin inventario.
+- Selección con casillas (incluye «seleccionar visibles») y «Editar
+  seleccionados»: precio fijo o ajuste porcentual con signo, ITBIS, categoría
+  y activo/inactivo. Usa `actualizarProducto` (RPC `actualizar_producto`) con
+  los datos completos del producto; la UI muestra la columna «Estado».
+- Lógica pura en `src/lib/productos/importar.ts` con Vitest (CSV con comas,
+  punto y coma, comillas y BOM; validación por fila; cálculo del ajuste).
+  `Producto` incluye `activo` y conserva `precios` (listas de precios).
+- Merge con `origin/prueba` (inventario 2): importación y edición masiva no
+  envían campos `precio_lista_*`; `actualizarProducto` omite la clave `precios`
+  cuando el formulario no trae listas, así que no borra ni cambia los precios
+  de listas (el formulario normal sí los manda y puede vaciarlos). Cubierto en
+  `precios-formulario.test.ts`.
+- Sin migración ni cambios de datos. `typecheck`, `test` (609), Biome de lo
+  tocado y `build` en verde.
+- Aparte: corregido solo el valor esperado del pgTAP de periodos (`3202`
+  débito−crédito = resultado, sin negarlo). La función no se tocó.
+
+## Higiene de migraciones: orden S15, notas de crédito y pgTAP aislados (15 nov 2026)
+
+- `20261114900000_inventario_existencias_precios.sql` vuelve a la versión de
+  inventario 2, sin referencias a `vendedores` ni `centros_costo`: una base
+  limpia ya puede correrla antes de `2026111520*`.
+- Migración aditiva `20261115500000_funciones_fusionadas_s15.sql` (NO aplicada;
+  la revisa Coder): vuelve a definir con `CREATE OR REPLACE` las mismas firmas
+  con todo junto: stock por almacén + vendedor/centro en `crear_factura` y
+  `crear_factura_proveedor`; anulación con almacén, centro de costo y retenido;
+  y NCF B04/E34 en notas de crédito de compra. El resultado de las funciones
+  coincide con la base actual (definiciones comparadas contra `2026111490*`,
+  `2026111510*` y `2026111520*`). No cambia datos ni permisos.
+- Notas de crédito de venta: el estado de la factura ahora se recalcula con
+  `pagado + retenido + crédito >= total`, el mismo criterio de pagos y CxC.
+- pgTAP aislados: `configuracion_extra_test.sql` captura los ids de la factura,
+  cotización y factura convertida, usa nombres únicos y busca las cuentas por
+  `config_contable` (ya no asume 4101/6101). `inventario_test.sql` captura sus
+  propios almacenes, productos, ajustes y asientos, y también busca las cuentas
+  por `config_contable` (1104/5102 ya no están fijos).
+- `pnpm typecheck`, `pnpm test`, Biome sobre lo tocado y `pnpm build` en verde.
+  pgTAP no se pudo correr aquí (sin Docker/Supabase CLI); lo corre el integrador.
+- Quedó fuera: anular notas de crédito de venta y revertir el costo promedio al
+  anular ajustes (pendientes ya conocidos). Nada se aplicó a Supabase.
+## Clonar, editar y convertir documentos de venta (15 nov 2026)
+
+- La ficha de factura, cotización y conduce tiene «Clonar»: abre el formulario
+  del mismo tipo con cliente, líneas, notas y términos prellenados, fecha de
+  hoy y numeración/NCF nuevos al guardar (no guarda nada hasta confirmar).
+  También se prellena el tipo de comprobante al clonar una factura.
+- Cotización y conduce tienen «Editar» solo mientras están abiertos (no
+  convertidos/facturados ni anulados). Reusan `DocumentoVentaForm` y la acción
+  `editar_cotizacion`/`editar_remision` reemplaza las líneas y recalcula totales
+  sin asiento ni inventario. Las tablas ganaron `terminos`, que ya se guarda y
+  se imprime.
+- «Convertir» en cotización ofrece conduce y factura. Convertir en conduce
+  abre `/dashboard/conduces/nueva?cotizacion=<id>` prellenado; al guardar,
+  `crear_remision_desde_cotizacion` crea el conduce (sin inventario), marca la
+  cotización como convertida y deja `cotizaciones.remision_id` /
+  `remisiones.cotizacion_id`; las dos fichas muestran la pestaña enlazada.
+  Cotización → factura se conserva igual.
+- Lógica pura en `src/components/documento-venta/prellenado.ts` con Vitest (7).
+  Permisos de la vista (`editar`, `clonar`, `convertirEnConduce`) en `vista.ts`.
+- Migración aditiva `20261115400000_documentos_venta_editar_clonar.sql` (NO
+  aplicada; la revisa Coder) y pgTAP aislado
+  `supabase/tests/documentos_venta_editar_clonar_test.sql` (31 asserts). Tipos
+  de las columnas nuevas puestos a mano en `types.ts`.
+- `typecheck`, `test` (556), Biome y `build` en verde. pgTAP no se pudo correr
+  aquí (sin Docker/Supabase CLI).
+- Fuera: clonar desde la lista (solo desde la ficha), editar facturas y
+  anulación de cotizaciones/conduces.
+
+- Integración en `prueba`: la migración ya está aplicada en el remoto. `_editar_documento_no_contable` y `crear_remision_desde_cotizacion` conservan `vendedor_id` y `centro_costo_id`. El pgTAP no reinicia secuencias compartidas. `types.ts` se regeneró con el generador.
+
+## Navegación rápida: esqueletos, streaming y menos viajes (15 nov 2026)
+
+- **Causa principal**: cada navegación hacía `auth.getUser()` en el proxy y otra vez en `getPerfil` (dos llamadas de red a Supabase Auth), más consultas en serie y ningún `loading.tsx`. Con Supabase a ~151 ms de RTT desde RD, una ficha de factura sumaba 6 rondas secuenciales (~900 ms) antes de pintar nada.
+- **Auth**: `src/lib/supabase/proxy.ts` y `getPerfil` ahora usan `auth.getClaims()` (verifica el JWT contra el JWKS en caché; con HS256 cae a `getUser()`). Se eliminó una llamada de red por request. La verificación de sesión y los redirects siguen igual.
+- **Consultas**: la lista de facturas trae el nombre del cliente en el mismo join (`contactos(nombre)`) en vez de una segunda consulta; Ventas generales hace lo mismo; el asiento de la factura trae sus cuentas en el join (una ronda menos); rol y datos de fichas van en `Promise.all`; `getEmpresa` y `getPlantillasImpresion` usan `cache()` de React para deduplicar dentro del request.
+- **Streaming**: `Inicio`, Facturas de venta, Compras y Ventas generales renderizan encabezado y filtros al instante; tarjetas, gráfico y tabla van en `<Suspense>` con esqueletos. `Ventas generales` comparte una sola consulta/cálculo con `cache()` entre las cuatro partes.
+- **Esqueletos**: `loading.tsx` en **todas** las rutas del dashboard (incluidos cada reporte, fichas y formularios) con `src/components/carga/esqueletos.tsx` (encabezado real + tarjetas/filtros/tabla grises). El índice de Reportes muestra «Ya vienen tus reportes…».
+- **Sidebar**: se quitó `prefetch={false}` del menú y de `Enlace` (las rutas dinámicas prefetchean su `loading.tsx`); al hacer clic el ítem se marca al instante con estado optimista y un punto de progreso (`useLinkStatus`).
+- **Índices**: migración **aditiva** `20261115900000_indices_rendimiento.sql` (`CREATE INDEX IF NOT EXISTS`): contacto+fecha en facturas/compras/cotizaciones/remisiones/pagos, fecha+número en listados, facturas abiertas de proveedor, notas por factura+fecha, nombre de contactos/productos y asientos por fecha+número. **No aplicada** al remoto.
+- **Medición local** (`pnpm build && pnpm start`, sin sesión): shell liviano por el proxy p50 59–81 ms; RTT a Supabase p50 151 ms (n=15). No se pudieron medir las rutas autenticadas: no hay credenciales de prueba en este worktree (la solicitud de credencial expiró). Rondas de red secuenciales antes → después: Inicio 4→2, Facturas 5→2, Ficha de factura 6→3, Compras 4→2, Ficha de compra 5→3, Contactos 4→2, Productos 4→2, Ficha de contacto 5→3, Ficha de producto 7→5, Ventas generales 3→1.
+- Verificado: `pnpm typecheck`, `pnpm test` (577), Biome sobre lo tocado y `pnpm build` en verde. Sin cambios de lógica contable ni de apariencia (los esqueletos son nuevos estados de carga).
+
 ## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
 
 - El saldo por pagar ahora es `total - pagado - credito` en el reporte Cuentas

@@ -59,10 +59,8 @@ async function cargarOpcionesPago(puedeEscribir: boolean, estado: string) {
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const rol = await getRol();
+  const [rol, detalle] = await Promise.all([getRol(), obtenerFacturaProveedor(id)]);
   if (rol == null) redirect("/unauthorized");
-
-  const detalle = await obtenerFacturaProveedor(id);
   if (!detalle) notFound();
 
   const { factura, lineas, asiento, lineasAsiento, pagos } = detalle;

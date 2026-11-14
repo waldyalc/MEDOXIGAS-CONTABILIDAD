@@ -7,7 +7,9 @@ import { useRouter } from "next/navigation";
 
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
+import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
+import { type ProductoSeleccionable, SelectorProducto } from "@/components/productos/selector-producto";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -72,6 +74,7 @@ export function FormularioOrden({ contactos, productos, cuentasGasto }: Opciones
   const router = useRouter();
   const hoy = hoyEnRd();
   const [proveedorId, setProveedorId] = useState("");
+  const [productosLocales, setProductosLocales] = useState<readonly ProductoSeleccionable[]>(productos);
   const [fecha, setFecha] = useState(hoy);
   const [fechaEntrega, setFechaEntrega] = useState(hoy);
   const [notas, setNotas] = useState("");
@@ -79,18 +82,6 @@ export function FormularioOrden({ contactos, productos, cuentasGasto }: Opciones
   const [lineas, setLineas] = useState<LineaFormulario[]>([nuevaLinea()]);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
-
-  const opcionesContactos: OpcionCombobox[] = contactos.map((contacto) => ({
-    value: contacto.id,
-    label: contacto.nombre,
-    hint: contacto.rnc_cedula ?? undefined,
-  }));
-
-  const opcionesProductos: OpcionCombobox[] = productos.map((producto) => ({
-    value: producto.id,
-    label: producto.nombre,
-    hint: `ITBIS ${aNumero(producto.itbis_tasa)} %`,
-  }));
 
   const opcionesGastos: OpcionCombobox[] = cuentasGasto.map((cuenta) => ({
     value: cuenta.id,
@@ -109,15 +100,17 @@ export function FormularioOrden({ contactos, productos, cuentasGasto }: Opciones
     actualizarLinea(id, { modo, productoId: "", cuentaId: "", descripcion: "" });
   }
 
-  function seleccionarProducto(id: string, productoId: string) {
-    const producto = productos.find((item) => item.id === productoId);
+  function seleccionarProducto(id: string, producto: ProductoSeleccionable | null) {
     if (!producto) {
       actualizarLinea(id, { productoId: "" });
       return;
     }
 
+    setProductosLocales((actuales) =>
+      actuales.some((item) => item.id === producto.id) ? actuales : [...actuales, producto],
+    );
     actualizarLinea(id, {
-      productoId,
+      productoId: producto.id,
       cuentaId: "",
       descripcion: producto.nombre,
       costo: String(aNumero(producto.costo)),
@@ -218,13 +211,13 @@ export function FormularioOrden({ contactos, productos, cuentasGasto }: Opciones
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2 sm:col-span-2">
             <Label htmlFor="proveedor">Proveedor *</Label>
-            <ComboboxCampo
+            <SelectorContacto
               id="proveedor"
-              opciones={opcionesContactos}
+              contactos={contactos}
               valor={proveedorId}
-              onCambio={setProveedorId}
+              onCambio={(contacto) => setProveedorId(contacto?.id ?? "")}
+              tipoInicial="proveedor"
               placeholder="Buscar proveedor…"
-              vacio="No hay proveedores registrados."
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -323,12 +316,10 @@ export function FormularioOrden({ contactos, productos, cuentasGasto }: Opciones
                     {linea.modo === "producto" ? "Producto" : "Cuenta de gasto"}
                   </Label>
                   {linea.modo === "producto" ? (
-                    <ComboboxCampo
-                      opciones={opcionesProductos}
+                    <SelectorProducto
+                      productos={productosLocales}
                       valor={linea.productoId}
-                      onCambio={(valor) => seleccionarProducto(linea.id, valor)}
-                      placeholder="Buscar producto…"
-                      vacio="No hay productos registrados."
+                      onCambio={(producto) => seleccionarProducto(linea.id, producto)}
                     />
                   ) : (
                     <ComboboxCampo
