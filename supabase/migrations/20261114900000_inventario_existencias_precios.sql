@@ -10,8 +10,6 @@
 -- · listas_precios + producto_precios; contactos.lista_precio_id.
 --
 -- Migración aditiva y reintentable: no borra ni cambia datos existentes.
--- Integrador: las RPC compartidas conservan vendedor/centro (S15) y el NCF B04/E34 de
--- notas de crédito de compra (S9); solo se suma almacen_id y el movimiento por existencias.
 -- RLS activo; las escrituras van solo por RPC (admin o contador).
 -- ---------------------------------------------------------------------------
 
@@ -694,8 +692,6 @@ declare
   v_tipo text;
   v_fecha date;
   v_vencimiento date;
-  v_vendedor_id uuid;
-  v_centro_costo_id uuid;
   v_num public.numeraciones%rowtype;
   v_linea jsonb;
   v_pago jsonb;
@@ -755,18 +751,6 @@ begin
     raise exception 'contacto no encontrado' using errcode = '22023';
   end if;
 
-  v_vendedor_id := nullif(p->>'vendedor_id', '')::uuid;
-  if v_vendedor_id is not null
-     and not exists (select 1 from public.vendedores v where v.id = v_vendedor_id and v.activo) then
-    raise exception 'vendedor no encontrado o inactivo' using errcode = '22023';
-  end if;
-
-  v_centro_costo_id := nullif(p->>'centro_costo_id', '')::uuid;
-  if v_centro_costo_id is not null
-     and not exists (select 1 from public.centros_costo c where c.id = v_centro_costo_id and c.activo) then
-    raise exception 'centro de costo no encontrado o inactivo' using errcode = '22023';
-  end if;
-
   v_almacen_id := nullif(p->>'almacen_id', '')::uuid;
   if v_almacen_id is null then
     v_almacen_id := public._almacen_principal();
@@ -809,12 +793,11 @@ begin
   update public.numeraciones set siguiente = siguiente + 1 where id = v_num.id;
 
   insert into public.facturas (
-    tipo_comprobante, ncf, contacto_id, vendedor_id, centro_costo_id, almacen_id, fecha, vencimiento,
-    notas, terminos, pie, creado_por
+    tipo_comprobante, ncf, contacto_id, almacen_id, fecha, vencimiento, notas, terminos, pie, creado_por
   )
   values (
-    v_tipo, v_ncf, v_contacto.id, v_vendedor_id, v_centro_costo_id, v_almacen_id, v_fecha, v_vencimiento,
-    p->>'notas', p->>'terminos', p->>'pie', auth.uid()
+    v_tipo, v_ncf, v_contacto.id, v_almacen_id, v_fecha, v_vencimiento, p->>'notas', p->>'terminos', p->>'pie',
+    auth.uid()
   )
   returning id, numero into v_factura_id, v_numero;
 
@@ -968,12 +951,6 @@ begin
 
   update public.facturas set asiento_id = v_asiento_id where id = v_factura_id;
 
-  if v_centro_costo_id is not null then
-    update public.asiento_lineas
-    set centro_costo_id = v_centro_costo_id
-    where asiento_id = v_asiento_id;
-  end if;
-
   v_pago := p->'pago';
   if v_pago is not null and jsonb_typeof(v_pago) = 'object' then
     perform public.registrar_pago_recibido(jsonb_build_object(
@@ -1010,7 +987,6 @@ declare
   v_ncf text;
   v_fecha date;
   v_vencimiento date;
-  v_centro_costo_id uuid;
   v_linea jsonb;
   v_asiento_id uuid;
   v_asiento_lineas jsonb := '[]'::jsonb;
@@ -1056,12 +1032,6 @@ begin
     raise exception 'proveedor no encontrado' using errcode = '22023';
   end if;
 
-  v_centro_costo_id := nullif(p->>'centro_costo_id', '')::uuid;
-  if v_centro_costo_id is not null
-     and not exists (select 1 from public.centros_costo c where c.id = v_centro_costo_id and c.activo) then
-    raise exception 'centro de costo no encontrado o inactivo' using errcode = '22023';
-  end if;
-
   v_almacen_id := nullif(p->>'almacen_id', '')::uuid;
   if v_almacen_id is null then
     v_almacen_id := public._almacen_principal();
@@ -1088,8 +1058,8 @@ begin
     raise exception 'la factura de proveedor requiere al menos una línea' using errcode = '22023';
   end if;
 
-  insert into public.facturas_proveedor (ncf, contacto_id, centro_costo_id, almacen_id, fecha, vencimiento, notas, creado_por)
-  values (v_ncf, v_contacto.id, v_centro_costo_id, v_almacen_id, v_fecha, v_vencimiento, p->>'notas', auth.uid())
+  insert into public.facturas_proveedor (ncf, contacto_id, almacen_id, fecha, vencimiento, notas, creado_por)
+  values (v_ncf, v_contacto.id, v_almacen_id, v_fecha, v_vencimiento, p->>'notas', auth.uid())
   returning id, numero into v_factura_id, v_numero;
 
   for v_linea in select * from jsonb_array_elements(p->'lineas') loop
@@ -1231,12 +1201,6 @@ begin
 
   update public.facturas_proveedor set asiento_id = v_asiento_id where id = v_factura_id;
 
-  if v_centro_costo_id is not null then
-    update public.asiento_lineas
-    set centro_costo_id = v_centro_costo_id
-    where asiento_id = v_asiento_id;
-  end if;
-
   return v_factura_id;
 end;
 $$;
@@ -1308,6 +1272,15 @@ begin
     raise exception 'la factura está anulada' using errcode = '22023';
   end if;
 
+  v_almacen_id := nullif(p->>'almacen_id', '')::uuid;
+  if v_almacen_id is null then
+    v_almacen_id := coalesce(v_factura.almacen_id, public._almacen_principal());
+  end if;
+  if v_almacen_id is null
+     or not exists (select 1 from public.almacenes al where al.id = v_almacen_id and al.activo) then
+    raise exception 'almacén no encontrado o inactivo' using errcode = '22023';
+  end if;
+
   if p->'lineas' is null
      or jsonb_typeof(p->'lineas') <> 'array'
      or jsonb_array_length(p->'lineas') = 0 then
@@ -1336,15 +1309,6 @@ begin
 
   v_ncf := v_num.prefijo || lpad(v_num.siguiente::text, 8, '0');
   update public.numeraciones set siguiente = siguiente + 1 where id = v_num.id;
-
-  v_almacen_id := nullif(p->>'almacen_id', '')::uuid;
-  if v_almacen_id is null then
-    v_almacen_id := coalesce(v_factura.almacen_id, public._almacen_principal());
-  end if;
-  if v_almacen_id is null
-     or not exists (select 1 from public.almacenes al where al.id = v_almacen_id and al.activo) then
-    raise exception 'almacén no encontrado o inactivo' using errcode = '22023';
-  end if;
 
   insert into public.notas_credito_venta (
     ncf, factura_id, contacto_id, almacen_id, fecha, devuelve_inventario, notas, creado_por
@@ -1548,6 +1512,7 @@ declare
   v_contacto public.contactos%rowtype;
   v_almacen_id uuid;
   v_nota_id uuid;
+  v_num public.numeraciones%rowtype;
   v_ncf text;
   v_fecha date;
   v_devuelve boolean;
@@ -1594,6 +1559,15 @@ begin
     raise exception 'la factura de proveedor está anulada' using errcode = '22023';
   end if;
 
+  v_almacen_id := nullif(p->>'almacen_id', '')::uuid;
+  if v_almacen_id is null then
+    v_almacen_id := coalesce(v_factura.almacen_id, public._almacen_principal());
+  end if;
+  if v_almacen_id is null
+     or not exists (select 1 from public.almacenes al where al.id = v_almacen_id and al.activo) then
+    raise exception 'almacén no encontrado o inactivo' using errcode = '22023';
+  end if;
+
   if p->'lineas' is null
      or jsonb_typeof(p->'lineas') <> 'array'
      or jsonb_array_length(p->'lineas') = 0 then
@@ -1603,19 +1577,25 @@ begin
   v_fecha := coalesce((p->>'fecha')::date, current_date);
   v_devuelve := coalesce(nullif(p->>'devuelve_inventario', '')::boolean, true);
 
-  v_ncf := nullif(upper(trim(p->>'ncf')), '');
-  if v_ncf is not null and v_ncf !~ '^(B04[0-9]{8}|E34[0-9]{10})$' then
-    raise exception 'el NCF de la nota debe ser B04 + 8 dígitos o E34 + 10 dígitos' using errcode = '22023';
+  select * into v_num
+  from public.numeraciones n
+  where n.tipo_comprobante = '03' and n.activa
+  order by n.id
+  limit 1
+  for update;
+
+  if not found then
+    raise exception 'no hay numeración activa para notas de crédito en compras (03)' using errcode = '22023';
+  end if;
+  if v_num.hasta is not null and v_num.siguiente > v_num.hasta then
+    raise exception 'la numeración % está agotada', v_num.prefijo using errcode = '22023';
+  end if;
+  if v_num.vence is not null and v_num.vence < v_fecha then
+    raise exception 'la numeración % está vencida', v_num.prefijo using errcode = '22023';
   end if;
 
-  v_almacen_id := nullif(p->>'almacen_id', '')::uuid;
-  if v_almacen_id is null then
-    v_almacen_id := coalesce(v_factura.almacen_id, public._almacen_principal());
-  end if;
-  if v_almacen_id is null
-     or not exists (select 1 from public.almacenes al where al.id = v_almacen_id and al.activo) then
-    raise exception 'almacén no encontrado o inactivo' using errcode = '22023';
-  end if;
+  v_ncf := v_num.prefijo || lpad(v_num.siguiente::text, 8, '0');
+  update public.numeraciones set siguiente = siguiente + 1 where id = v_num.id;
 
   insert into public.notas_credito_compra (
     ncf, factura_proveedor_id, contacto_id, almacen_id, fecha, devuelve_inventario, notas, creado_por
@@ -1753,7 +1733,7 @@ begin
     'debito', v_total_nota,
     'credito', 0,
     'contacto_id', v_factura.contacto_id,
-    'descripcion', 'CxP nota de crédito compra ' || coalesce(v_ncf, 'sin NCF')
+    'descripcion', 'CxP nota de crédito compra ' || v_ncf
   )) || v_asiento_lineas;
 
   if v_itbis_nota > 0 then
@@ -1761,13 +1741,13 @@ begin
       'cuenta_id', public._cuenta_config('itbis_adelantado'),
       'debito', 0,
       'credito', v_itbis_nota,
-      'descripcion', 'ITBIS nota de crédito compra ' || coalesce(v_ncf, 'sin NCF')
+      'descripcion', 'ITBIS nota de crédito compra ' || v_ncf
     ));
   end if;
 
   v_asiento_id := public._crear_asiento(
     v_fecha,
-    'Nota de crédito compra ' || coalesce(v_ncf, 'sin NCF'),
+    'Nota de crédito compra ' || v_ncf,
     'nota_credito_compra',
     v_nota_id,
     v_asiento_lineas
@@ -2302,7 +2282,6 @@ begin
   select jsonb_agg(jsonb_build_object(
     'cuenta_id', l.cuenta_id,
     'contacto_id', l.contacto_id,
-    'centro_costo_id', l.centro_costo_id,
     'descripcion', 'Anulación: ' || left(coalesce(l.descripcion, ''), 70),
     'debito', l.credito,
     'credito', l.debito
