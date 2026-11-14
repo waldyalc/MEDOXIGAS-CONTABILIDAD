@@ -1,5 +1,19 @@
 # Handoff — Medoxigas Contabilidad
 
+## S28 — Formularios con el diseño de Alegra (13 nov 2026)
+
+- Todos los formularios de alta/edición pasaron a `FormCard`/`FormGrid`/`FormField`/`FormSectionTitle`/`FormDivider`/`FormTotal` (`src/components/formularios/formulario.tsx`) con las medidas de `GUIA-FORMULARIOS.md` (rama `docs/alegra-pagos`): campos de 40 px radio 10 borde slate-300, foco de 2 px con el primario, etiquetas 14/500 slate-700 con asterisco primario, rejilla `gap-x-8 gap-y-4`, tarjeta radio 12 borde slate-200 sin sombra, total a la derecha y botones de 44 px (`h-11 rounded-[12px]`) con Cancelar al lado. Los diálogos usan la misma rejilla y campos; la tarjeta es el propio `DialogContent`.
+- Se amplió `formulario.tsx` con `FormActions` (fila de botones) y `FORM_BUTTON`, y `FormDivider` acepta `className`. `ComboboxCampo` de compras acepta `className`.
+- Solo diseño: no cambiaron validaciones, nombres de campos, server actions, consultas ni cálculos. Sin migraciones ni base de datos. No se tocaron los formularios de pago recibido y pago a proveedor (S25), que ya siguen la guía. Se mantienen los selectores, «+ Crear nuevo cliente/producto/contacto» y ningún `<select>` nativo (`selects-nativos.test.ts` en verde).
+- Inventario y estado (todos **hechos** salvo los marcados fuera):
+  - **Ventas**: factura (nueva/clonar), cotización (nueva/editar/clonar) y conduce (nueva/editar/clonar) por `DocumentoVentaForm`; nota de crédito de venta; nota de débito; factura recurrente. Pagos recibidos ya venía de S25.
+  - **Compras**: factura de proveedor; nota de crédito de compra; orden de compra; gasto menor; pago recurrente. Pago a proveedor ya venía de S25.
+  - **Contactos/productos**: contacto (alta/edición), contacto rápido de los selectores, producto (alta/edición), producto rápido, edición masiva e importación de productos (solo el campo de archivo).
+  - **Contabilidad/bancos**: asiento manual, cuenta contable (alta/edición), activo fijo, numeraciones, cuenta de banco, depósito, transferencia y nueva conciliación.
+  - **Resto**: empresa, términos de pago, vendedores, centros de costo, monedas/tasas, plantillas de impresión, retenciones, ajuste de inventario, transferencia de inventario, almacenes, categorías y listas de precios.
+- Fuera del inventario (no son alta/edición): login; diálogo «Convertir en factura» de la vista de cotización/conduce (un solo selector); cierre de periodos (solo confirmación); conciliación existente (marcas y guardar, sin campos); impuestos y usuarios (solo lectura); filtros GET de reportes y listados.
+- Verificado: `pnpm typecheck`, `pnpm test` (662), `pnpm check` (solo avisos preexistentes) y `pnpm build` en verde. Sin verificación visual en navegador (la hace Coder; el local bloquea por login).
+
 ## S25 — Pagos multifactura con el diseño nuevo de Alegra (16 nov 2026)
 
 - «Nuevo pago recibido» y «Nuevo pago a proveedor» se rehicieron con el diseño nuevo de Alegra: una tarjeta blanca (radio 12, borde slate-200, sin sombra), encabezado con empresa/RNC/dirección a la izquierda y «No. N» + «Recibo de caja» o «Comprobante de egreso» a la derecha, rejilla de 3 columnas, pestañas «Pago a factura de …» / «Otros ingresos|egresos», tabla de facturas con buscador, paginación de 8, retenciones por factura en modal «Retenciones aplicadas» y total + observaciones. Sirve igual para cobros y pagos.
