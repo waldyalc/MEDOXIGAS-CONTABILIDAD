@@ -1,5 +1,14 @@
 # Handoff — Medoxigas Contabilidad
 
+## Fix — Guardar numeraciones (F15): funciona y queda comprobado (15 nov 2026)
+
+- **Qué era F15:** `actualizarNumeracion` (`src/lib/numeraciones/acciones.ts`) hacía `const rpc = supabase.rpc as unknown as RpcSuelta`; al perder el `this`, la RPC tiraba `TypeError (reading 'rest')`. La server action rechazaba antes de devolver `{ ok: false }`, así que el diálogo seguía abierto, sin mensaje en pantalla y sin error de consola (la promesa de la transición se rechazaba en el servidor).
+- **Estado:** ya está corregido en `origin/prueba` (`cdfea68`, «llamar supabase.rpc directo»), que también agregó `src/lib/rpc-sin-extraer.test.ts`. La acción hoy llama `supabase.rpc("actualizar_numeracion", { p })` directo.
+- **Por qué la sonda anterior no lo vio:** `tests/carga/sonda-ui.ts` apuntaba a `/dashboard/configuracion/numeraciones` (ruta que no existe; la real es `/dashboard/contabilidad/numeraciones`) y solo hacía GET + `networkidle`, sin pulsar Guardar. La comprobación en vivo de 2.5 s tampoco esperaba a la acción ni miraba la respuesta: el fallo ocurría dentro de la transición en el servidor y no se pintaba. F15 se detectó leyendo el código, no con la sonda de UI.
+- **Verificación:** build de producción (`pnpm build` + `next start -p 3005`) y Playwright con los usuarios de `.env.pruebas`: se abrió «Editar numeración» de B16 (Exportaciones), se pulsó Guardar con los mismos valores y el diálogo cerró; la fila quedó igual. Con Nombre en espacios sale «El nombre es obligatorio» y no guarda.
+- **Candados nuevos:** `tests/e2e/numeraciones.spec.ts` (2 pruebas; se salta sin `E2E_EMAIL`/`E2E_PASSWORD`, como el humo) y `src/lib/numeraciones/acciones.test.ts` (4 pruebas: RPC directa con payload validado, error de validación en español, error de RPC y permiso de lector). El candado estático `rpc-sin-extraer.test.ts` ya cubría este archivo.
+- `pnpm typecheck`, `pnpm test`, Biome sobre lo tocado y `pnpm build` en verde. Sin migraciones, sin push ni merge.
+
 ## Fix — Títulos largos del menú ya no se parten en dos líneas (14 nov 2026)
 
 - «Notas de crédito en compras» (Compras) se veía en dos líneas en el menú lateral. Causa: `SidebarMenuButton`/`SidebarMenuSubButton` truncan con `[&>span:last-child]:truncate`, pero `IndicadorEnlace` renderiza un `<span>` después del título, así que el truncate caía sobre el puntito indicador y el título envolvía.
