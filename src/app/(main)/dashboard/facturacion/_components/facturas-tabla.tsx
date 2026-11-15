@@ -47,19 +47,26 @@ const OPCIONES_TIPO: DataTableFacetOption[] = TIPOS_COMPROBANTE.map((tipo) => ({
 const columnHelper = createDataTableColumnHelper<FacturaFila>();
 
 const columnas = columnHelper.columns([
-  createDataTableSelectColumn<FacturaFila>({ getRowLabel: (factura) => `la factura ${factura.numero}` }),
-  columnHelper.accessor("numero", {
+  createDataTableSelectColumn<FacturaFila>({ getRowLabel: (factura) => `la factura ${factura.ncf ?? factura.numero}` }),
+  columnHelper.accessor("ncf", {
     cell: ({ row }) => (
-      <span className="block min-w-0">
-        <DataTableRowLink href={rutaFactura(row.original.id)}>Factura {row.original.numero}</DataTableRowLink>
-        <span className="text-muted-foreground block truncate font-mono text-xs font-normal">
-          {row.original.ncf ?? "Sin comprobante"}
-        </span>
+      <span className="block">
+        <DataTableRowLink href={rutaFactura(row.original.id)} className="font-mono">
+          {row.original.ncf ?? `Factura ${row.original.numero}`}
+        </DataTableRowLink>
+        {row.original.ncf ? (
+          <span className="text-muted-foreground block text-xs font-normal">N.º {row.original.numero}</span>
+        ) : null}
       </span>
     ),
     enableHiding: false,
-    header: "Factura",
-    meta: { primary: true, truncate: true },
+    header: "NCF",
+    meta: { primary: true, cellClassName: "whitespace-nowrap" },
+  }),
+  columnHelper.accessor("numero", {
+    cell: () => null,
+    enableHiding: false,
+    header: "Número",
   }),
   columnHelper.accessor("cliente_nombre", {
     cell: ({ row }) => (
@@ -129,7 +136,7 @@ export function FacturasTabla({ facturas }: { facturas: FacturaFila[] }) {
     columns: columnas,
     data: facturas,
     getRowId: (factura) => factura.id,
-    initialState: { sorting: [{ desc: true, id: "numero" }] },
+    initialState: { columnVisibility: { numero: false }, sorting: [{ desc: true, id: "numero" }] },
     pageSize: 12,
   });
   const seleccionadas = tabla.getSelectedRowModel().rows.length;
