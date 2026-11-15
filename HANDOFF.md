@@ -7,8 +7,17 @@
 - «Nuevo pago» y «Nuevo pago a proveedor» ya no cargan todas las facturas/compras abiertas: el selector pide al servidor por contacto con debounce de 350 ms (8 por página) y busca cualquier número o NCF. Los montos y retenciones ya escritos se conservan al cambiar de página o búsqueda.
 - Piezas nuevas: `src/lib/listas/{parametros,busqueda}.ts` (puros, con Vitest), `src/components/listas/{buscador,paginador}-lista.tsx` y la server action `src/lib/pagos/busqueda.ts`. `getFacturasAbiertas` y la carga masiva de `facturasAbiertas` se eliminaron; el pago inicial se resuelve con `getFacturaPago(id, tipo)`.
 - Verificado con la base llena (5,002 compras, 3,002 pagos a proveedores, 1,023 contactos, 322 productos, 3,932 facturas abiertas de un cliente): se encuentran por número/nombre el pago #66, la compra #66, el contacto `ZZTEST-Proveedor-0200`, el producto `ZZTEST-Producto-289` y la factura vieja #15696. p95 medido en rutas de producción local: Compras 640–983 ms, Pagos 544–701 ms, Contactos 473–544 ms, Productos 616–1,647 ms; búsquedas y selectores 839–1,501 ms. Todo por debajo de 2 s.
-- `pnpm typecheck`, `pnpm test` (688), Biome de lo tocado y `pnpm build` en verde. Sin migraciones ni cambios en cálculos, validaciones o motor contable.
+- `pnpm typecheck`, `pnpm test` (690), Biome de lo tocado y `pnpm build` en verde. Sin migraciones ni cambios en cálculos, validaciones o motor contable.
 - Quedó fuera (otras tareas): paginar Facturación, Pagos recibidos, Notas, Asientos y demás listas con tope; el combobox de contactos de los formularios (F4, sigue cortando en 1,000); el selector de «Nueva nota de débito» (F13); y los reportes/RPC que aún cortan (F5/F6).
+
+## Fix — Guardar numeraciones (F15): funciona y queda comprobado (15 nov 2026)
+
+- **Qué era F15:** `actualizarNumeracion` (`src/lib/numeraciones/acciones.ts`) hacía `const rpc = supabase.rpc as unknown as RpcSuelta`; al perder el `this`, la RPC tiraba `TypeError (reading 'rest')`. La server action rechazaba antes de devolver `{ ok: false }`, así que el diálogo seguía abierto, sin mensaje en pantalla y sin error de consola (la promesa de la transición se rechazaba en el servidor).
+- **Estado:** ya está corregido en `origin/prueba` (`cdfea68`, «llamar supabase.rpc directo»), que también agregó `src/lib/rpc-sin-extraer.test.ts`. La acción hoy llama `supabase.rpc("actualizar_numeracion", { p })` directo.
+- **Por qué la sonda anterior no lo vio:** `tests/carga/sonda-ui.ts` apuntaba a `/dashboard/configuracion/numeraciones` (ruta que no existe; la real es `/dashboard/contabilidad/numeraciones`) y solo hacía GET + `networkidle`, sin pulsar Guardar. La comprobación en vivo de 2.5 s tampoco esperaba a la acción ni miraba la respuesta: el fallo ocurría dentro de la transición en el servidor y no se pintaba. F15 se detectó leyendo el código, no con la sonda de UI.
+- **Verificación:** build de producción (`pnpm build` + `next start -p 3005`) y Playwright con los usuarios de `.env.pruebas`: se abrió «Editar numeración» de B16 (Exportaciones), se pulsó Guardar con los mismos valores y el diálogo cerró; la fila quedó igual. Con Nombre en espacios sale «El nombre es obligatorio» y no guarda.
+- **Candados nuevos:** `tests/e2e/numeraciones.spec.ts` (2 pruebas; se salta sin `E2E_EMAIL`/`E2E_PASSWORD`, como el humo) y `src/lib/numeraciones/acciones.test.ts` (4 pruebas: RPC directa con payload validado, error de validación en español, error de RPC y permiso de lector). El candado estático `rpc-sin-extraer.test.ts` ya cubría este archivo.
+- `pnpm typecheck`, `pnpm test`, Biome sobre lo tocado y `pnpm build` en verde. Sin migraciones, sin push ni merge.
 
 ## Fix — Títulos largos del menú ya no se parten en dos líneas (14 nov 2026)
 
