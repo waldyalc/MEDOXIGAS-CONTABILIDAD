@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import type { PagoEstadoCuenta } from "./estado-cuenta";
@@ -21,40 +22,48 @@ export async function obtenerEstadoCuentaContacto(id: string): Promise<DatosEsta
   if (!contacto) return null;
 
   const supabase = await createClient();
-  const [facturasRes, pagosRes] = await Promise.all([
-    supabase
-      .from("facturas")
-      .select("id, numero, ncf, fecha, vencimiento, total, pagado, estado")
-      .eq("contacto_id", id)
-      .order("fecha")
-      .order("numero")
-      .returns<DocumentoFicha[]>(),
-    supabase
-      .from("pagos_recibidos")
-      .select("id, factura_id, fecha, monto, estado")
-      .eq("contacto_id", id)
-      .returns<(PagoEstadoCuenta & { id: string })[]>(),
+  const [facturasRes, pagosRes, aplicacionesRes] = await Promise.all([
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("facturas")
+        .select("id, numero, ncf, fecha, vencimiento, total, pagado, estado")
+        .eq("contacto_id", id)
+        .order("fecha")
+        .order("numero")
+        .range(inicio, fin)
+        .returns<DocumentoFicha[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("pagos_recibidos")
+        .select("id, factura_id, fecha, monto, estado")
+        .eq("contacto_id", id)
+        .order("id")
+        .range(inicio, fin)
+        .returns<(PagoEstadoCuenta & { id: string })[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("pago_recibido_aplicaciones")
+        .select("pago_id, factura_id, monto, pagos_recibidos!inner(contacto_id)")
+        .eq("pagos_recibidos.contacto_id", id)
+        .order("pago_id")
+        .order("factura_id")
+        .range(inicio, fin)
+        .returns<{ pago_id: string; factura_id: string; monto: number; pagos_recibidos: { contacto_id: string } }[]>(),
+    ),
   ]);
 
   if (facturasRes.error) throw new Error(facturasRes.error.message);
   if (pagosRes.error) throw new Error(pagosRes.error.message);
+  if (aplicacionesRes.error) throw new Error(aplicacionesRes.error.message);
 
   const pagos = pagosRes.data ?? [];
-  const pagosIds = pagos.map((pago) => pago.id);
-  const { data: aplicaciones, error: errorAplicaciones } =
-    pagosIds.length === 0
-      ? { data: [] as { pago_id: string; factura_id: string; monto: number }[], error: null }
-      : await supabase
-          .from("pago_recibido_aplicaciones")
-          .select("pago_id, factura_id, monto")
-          .in("pago_id", pagosIds)
-          .returns<{ pago_id: string; factura_id: string; monto: number }[]>();
-
-  if (errorAplicaciones) throw new Error(errorAplicaciones.message);
+  const aplicaciones = aplicacionesRes.data ?? [];
 
   const pagosPorId = new Map(pagos.map((pago) => [pago.id, pago]));
-  const conAplicaciones = new Set((aplicaciones ?? []).map((aplicacion) => aplicacion.pago_id));
-  const aplicados: PagoEstadoCuenta[] = (aplicaciones ?? []).flatMap((aplicacion) => {
+  const conAplicaciones = new Set(aplicaciones.map((aplicacion) => aplicacion.pago_id));
+  const aplicados: PagoEstadoCuenta[] = aplicaciones.flatMap((aplicacion) => {
     const pago = pagosPorId.get(aplicacion.pago_id);
     if (!pago) return [];
     return [

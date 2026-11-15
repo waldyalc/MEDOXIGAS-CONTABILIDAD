@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import type { ContactoTipo } from "./contactos";
@@ -10,7 +11,6 @@ import {
   type DatosFichaContacto,
   type DocumentoComercialFicha,
   type DocumentoFicha,
-  type LineaAsientoContacto,
   type NotaFicha,
   type PagoFicha,
   sumarLineasAsiento,
@@ -45,6 +45,13 @@ interface AsientoFila {
   numero: number;
   fecha: string;
   descripcion: string;
+}
+
+interface LineaConAsiento {
+  asiento_id: string;
+  debito: number;
+  credito: number;
+  asientos: Omit<AsientoFila, "id">;
 }
 
 function normalizarTipo(valor: string): ContactoTipo {
@@ -176,74 +183,105 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     configRes,
   ] = await Promise.all([
     supabase.from("contactos").select(CAMPOS_CONTACTO).eq("id", id).maybeSingle().returns<ContactoConCuentas | null>(),
-    supabase
-      .from("facturas")
-      .select(CAMPOS_DOCUMENTO)
-      .eq("contacto_id", id)
-      .order("fecha", { ascending: false })
-      .order("numero", { ascending: false })
-      .returns<DocumentoFicha[]>(),
-    supabase
-      .from("facturas_proveedor")
-      .select(CAMPOS_DOCUMENTO)
-      .eq("contacto_id", id)
-      .order("fecha", { ascending: false })
-      .order("numero", { ascending: false })
-      .returns<DocumentoFicha[]>(),
-    supabase
-      .from("cotizaciones")
-      .select(CAMPOS_COMERCIAL)
-      .eq("contacto_id", id)
-      .order("fecha", { ascending: false })
-      .order("numero", { ascending: false })
-      .returns<DocumentoComercialFicha[]>(),
-    supabase
-      .from("remisiones")
-      .select(CAMPOS_COMERCIAL)
-      .eq("contacto_id", id)
-      .order("fecha", { ascending: false })
-      .order("numero", { ascending: false })
-      .returns<DocumentoComercialFicha[]>(),
-    supabase
-      .from("notas_credito_venta")
-      .select(CAMPOS_NOTA)
-      .eq("contacto_id", id)
-      .order("fecha", { ascending: false })
-      .order("numero", { ascending: false })
-      .returns<NotaCruda[]>(),
-    supabase
-      .from("notas_debito_venta")
-      .select(CAMPOS_NOTA)
-      .eq("contacto_id", id)
-      .order("fecha", { ascending: false })
-      .order("numero", { ascending: false })
-      .returns<NotaCruda[]>(),
-    supabase
-      .from("notas_credito_compra")
-      .select(CAMPOS_NOTA)
-      .eq("contacto_id", id)
-      .order("fecha", { ascending: false })
-      .order("numero", { ascending: false })
-      .returns<NotaCruda[]>(),
-    supabase
-      .from("pagos_recibidos")
-      .select(CAMPOS_PAGO)
-      .eq("contacto_id", id)
-      .order("fecha", { ascending: false })
-      .order("numero", { ascending: false })
-      .returns<Omit<PagoFicha, "factura_numero">[]>(),
-    supabase
-      .from("pagos_proveedor")
-      .select("id, numero, fecha, monto, estado, factura_proveedor_id")
-      .eq("contacto_id", id)
-      .order("fecha", { ascending: false })
-      .order("numero", { ascending: false })
-      .returns<PagoProveedorFila[]>(),
-    supabase
-      .from("asiento_lineas")
-      .select("asiento_id, debito, credito")
-      .eq("contacto_id", id)
-      .returns<LineaAsientoContacto[]>(),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("facturas")
+        .select(CAMPOS_DOCUMENTO)
+        .eq("contacto_id", id)
+        .order("fecha", { ascending: false })
+        .order("numero", { ascending: false })
+        .range(inicio, fin)
+        .returns<DocumentoFicha[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("facturas_proveedor")
+        .select(CAMPOS_DOCUMENTO)
+        .eq("contacto_id", id)
+        .order("fecha", { ascending: false })
+        .order("numero", { ascending: false })
+        .range(inicio, fin)
+        .returns<DocumentoFicha[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("cotizaciones")
+        .select(CAMPOS_COMERCIAL)
+        .eq("contacto_id", id)
+        .order("fecha", { ascending: false })
+        .order("numero", { ascending: false })
+        .range(inicio, fin)
+        .returns<DocumentoComercialFicha[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("remisiones")
+        .select(CAMPOS_COMERCIAL)
+        .eq("contacto_id", id)
+        .order("fecha", { ascending: false })
+        .order("numero", { ascending: false })
+        .range(inicio, fin)
+        .returns<DocumentoComercialFicha[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("notas_credito_venta")
+        .select(CAMPOS_NOTA)
+        .eq("contacto_id", id)
+        .order("fecha", { ascending: false })
+        .order("numero", { ascending: false })
+        .range(inicio, fin)
+        .returns<NotaCruda[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("notas_debito_venta")
+        .select(CAMPOS_NOTA)
+        .eq("contacto_id", id)
+        .order("fecha", { ascending: false })
+        .order("numero", { ascending: false })
+        .range(inicio, fin)
+        .returns<NotaCruda[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("notas_credito_compra")
+        .select(CAMPOS_NOTA)
+        .eq("contacto_id", id)
+        .order("fecha", { ascending: false })
+        .order("numero", { ascending: false })
+        .range(inicio, fin)
+        .returns<NotaCruda[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("pagos_recibidos")
+        .select(CAMPOS_PAGO)
+        .eq("contacto_id", id)
+        .order("fecha", { ascending: false })
+        .order("numero", { ascending: false })
+        .range(inicio, fin)
+        .returns<Omit<PagoFicha, "factura_numero">[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("pagos_proveedor")
+        .select("id, numero, fecha, monto, estado, factura_proveedor_id")
+        .eq("contacto_id", id)
+        .order("fecha", { ascending: false })
+        .order("numero", { ascending: false })
+        .range(inicio, fin)
+        .returns<PagoProveedorFila[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("asiento_lineas")
+        .select("asiento_id, debito, credito, asientos!inner(numero, fecha, descripcion)")
+        .eq("contacto_id", id)
+        .order("asiento_id")
+        .range(inicio, fin)
+        .returns<LineaConAsiento[]>(),
+    ),
     supabase
       .from("config_contable")
       .select("clave, cuenta_id")
@@ -278,26 +316,23 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     configuracion.get("cxp"),
   ].filter((valor): valor is string => valor != null);
   const totalesAsientos = sumarLineasAsiento(filasDe(lineasRes.data));
-  const asientoIds = [...totalesAsientos.keys()];
 
-  const [cuentasRes, asientosRes] = await Promise.all([
-    cuentaIds.length > 0
-      ? supabase.from("cuentas").select("id, codigo, nombre").in("id", cuentaIds).returns<CuentaFicha[]>()
-      : Promise.resolve({ data: [] as CuentaFicha[], error: null }),
-    asientoIds.length > 0
-      ? supabase
-          .from("asientos")
-          .select("id, numero, fecha, descripcion")
-          .in("id", asientoIds)
-          .order("fecha", { ascending: false })
-          .order("numero", { ascending: false })
-          .returns<AsientoFila[]>()
-      : Promise.resolve({ data: [] as AsientoFila[], error: null }),
-  ]);
-
-  for (const resultado of [cuentasRes, asientosRes]) {
-    verificarError(resultado);
+  const asientosPorId = new Map<string, AsientoFila>();
+  for (const linea of filasDe(lineasRes.data)) {
+    if (!asientosPorId.has(linea.asiento_id)) {
+      asientosPorId.set(linea.asiento_id, { id: linea.asiento_id, ...linea.asientos });
+    }
   }
+  const asientosOrdenados = [...asientosPorId.values()].sort(
+    (a, b) => b.fecha.localeCompare(a.fecha) || b.numero - a.numero,
+  );
+
+  const cuentasRes =
+    cuentaIds.length > 0
+      ? await supabase.from("cuentas").select("id, codigo, nombre").in("id", cuentaIds).returns<CuentaFicha[]>()
+      : { data: [] as CuentaFicha[], error: null };
+
+  verificarError(cuentasRes);
 
   const cuentas = new Map(filasDe(cuentasRes.data).map((cuenta) => [cuenta.id, cuenta]));
   const facturas = filasDe(facturasRes.data);
@@ -307,7 +342,7 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
 
   const pagosRecibidos = mapearPagosRecibidos(filasDe(pagosRes.data), numerosFactura);
   const pagosProveedor = mapearPagosProveedor(filasDe(pagosProveedorRes.data), numerosCompra);
-  const asientos = mapearAsientos(filasDe(asientosRes.data), totalesAsientos);
+  const asientos = mapearAsientos(asientosOrdenados, totalesAsientos);
   const notasVenta = [
     ...mapearNotas(filasDe(notasCreditoRes.data), "credito"),
     ...mapearNotas(filasDe(notasDebitoRes.data), "debito"),

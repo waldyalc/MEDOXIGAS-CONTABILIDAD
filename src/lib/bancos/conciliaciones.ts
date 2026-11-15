@@ -156,7 +156,7 @@ export async function getDetalleConciliacion(id: string): Promise<DetalleConcili
       .eq("id", conciliacion.cuenta_id)
       .maybeSingle()
       .returns<CuentaFila | null>(),
-    cargarLineasCuenta(cliente, conciliacion.cuenta_id),
+    cargarLineasCuenta(cliente, conciliacion.cuenta_id, conciliacion.fecha_hasta),
     cliente
       .from("conciliacion_movimientos")
       .select("asiento_linea_id")
