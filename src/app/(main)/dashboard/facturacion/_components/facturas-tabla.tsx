@@ -78,7 +78,6 @@ const columnas = columnHelper.columns([
       </span>
     ),
     header: "Cliente",
-    meta: { truncate: true },
   }),
   columnHelper.accessor("tipo_comprobante", {
     cell: ({ getValue }) => (
