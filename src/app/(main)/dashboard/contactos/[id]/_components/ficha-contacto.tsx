@@ -10,7 +10,6 @@ import {
   ArrowLeft,
   ArrowLeftRight,
   Building2,
-  ChevronDown,
   Download,
   EllipsisVertical,
   Eye,
@@ -20,7 +19,6 @@ import {
   FileText,
   Hash,
   LayoutGrid,
-  ListFilter,
   Mail,
   MapPin,
   Phone,
@@ -36,6 +34,20 @@ import {
 
 import { FormularioContacto } from "@/components/contactos/formulario-contacto";
 import { Enlace } from "@/components/enlace";
+import {
+  BotonFiltro,
+  CLASE_PANEL_FICHA,
+  GrillaKpis,
+  ItemDato,
+  ItemPestana,
+  type KpiFicha,
+  MetaItem,
+  type OpcionFiltro,
+  PiePagina,
+  TH,
+  type TonoKpi,
+  usePagina,
+} from "@/components/ficha/ficha-ui";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,8 +56,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -142,8 +152,6 @@ interface FilaUnificada {
 const TX_POR_PAGINA = 10;
 const PERSONAS_POR_PAGINA = 5;
 const DOCS_POR_PAGINA = 8;
-
-const TH = "text-muted-foreground text-xs font-medium tracking-wider uppercase";
 
 function detalleNota(nota: NotaFicha): string {
   if (nota.tipo === "credito") return "Nota de crédito";
@@ -285,87 +293,6 @@ function EstadoFilaBadge({ estado, tipo }: { readonly estado: string; readonly t
   return <Badge variant="secondary">{etiqueta}</Badge>;
 }
 
-function MetaItem({ icono, texto }: { readonly icono: React.ReactNode; readonly texto: string }) {
-  return (
-    <span className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
-      {icono}
-      {texto}
-    </span>
-  );
-}
-
-function usePagina(total: number, porPagina: number): { pagina: number; setPagina: (p: number) => void } {
-  const [pagina, setPagina] = useState(0);
-  const paginas = Math.max(1, Math.ceil(total / porPagina));
-  return { pagina: Math.min(pagina, paginas - 1), setPagina };
-}
-
-function PiePagina({
-  total,
-  porPagina,
-  pagina,
-  setPagina,
-  unidad,
-}: {
-  readonly total: number;
-  readonly porPagina: number;
-  readonly pagina: number;
-  readonly setPagina: (p: number) => void;
-  readonly unidad: string;
-}) {
-  const paginas = Math.max(1, Math.ceil(total / porPagina));
-  const enPagina = Math.max(0, Math.min(porPagina, total - pagina * porPagina));
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <p className="text-muted-foreground text-sm">
-        Mostrando {enPagina} de {total} {unidad}
-      </p>
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" disabled={pagina === 0} onClick={() => setPagina(pagina - 1)}>
-          Anterior
-        </Button>
-        <Button variant="outline" size="sm" disabled={pagina >= paginas - 1} onClick={() => setPagina(pagina + 1)}>
-          Siguiente
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-interface OpcionFiltro {
-  readonly valor: string;
-  readonly etiqueta: string;
-}
-
-function BotonFiltro({
-  valor,
-  opciones,
-  onCambiar,
-}: {
-  readonly valor: string;
-  readonly opciones: readonly OpcionFiltro[];
-  readonly onCambiar: (valor: string) => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-        <ListFilter data-icon="inline-start" />
-        Filtrar
-        <ChevronDown data-icon="inline-end" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuRadioGroup value={valor} onValueChange={(nuevo) => onCambiar(String(nuevo))}>
-          {opciones.map((opcion) => (
-            <DropdownMenuRadioItem key={opcion.valor} value={opcion.valor}>
-              {opcion.etiqueta}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 interface AccionEnlace {
   readonly etiqueta: string;
   readonly href: string;
@@ -457,54 +384,12 @@ function EncabezadoFicha({
   );
 }
 
-function ItemPestana({
-  activo,
-  icono,
-  etiqueta,
-  onClick,
-}: {
-  readonly activo: boolean;
-  readonly icono: React.ReactNode;
-  readonly etiqueta: string;
-  readonly onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={activo}
-      className={cn(
-        "text-muted-foreground hover:text-foreground relative inline-flex h-11 items-center gap-1.5 px-3 text-sm font-medium transition-colors",
-        activo && "text-primary hover:text-primary",
-      )}
-    >
-      {icono}
-      {etiqueta}
-      <span
-        className={cn(
-          "bg-primary absolute inset-x-3 bottom-0 h-0.5 rounded-t-full opacity-0 transition-opacity",
-          activo && "opacity-100",
-        )}
-      />
-    </button>
-  );
-}
-
 function CuentaEnlace({ cuenta }: { readonly cuenta: CuentaFicha | null }) {
   if (!cuenta) return <span className="text-muted-foreground">—</span>;
   return (
     <Enlace href={rutaCuenta(cuenta.id)} className="font-medium">
       {cuenta.codigo} · {cuenta.nombre}
     </Enlace>
-  );
-}
-
-function ItemDato({ etiqueta, children }: { readonly etiqueta: string; readonly children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-muted-foreground text-xs">{etiqueta}</dt>
-      <dd className="text-sm font-medium">{children}</dd>
-    </div>
   );
 }
 
@@ -551,43 +436,8 @@ function ContenidoResumen({
   );
 }
 
-type TonoStat = "normal" | "positivo" | "pendiente";
-
-interface StatMontoDef {
-  readonly etiqueta: string;
-  readonly centavos: number;
-  readonly tono: TonoStat;
-}
-
-const CLASE_TONO_STAT: Record<TonoStat, string> = {
-  normal: "text-foreground",
-  positivo: "text-emerald-600 dark:text-emerald-400",
-  pendiente: "text-red-500",
-};
-
-const CLASE_COLS_KPI: Record<number, string> = {
-  1: "sm:grid-cols-1",
-  2: "sm:grid-cols-2",
-  3: "sm:grid-cols-3",
-  4: "sm:grid-cols-2 lg:grid-cols-4",
-  5: "sm:grid-cols-3 lg:grid-cols-5",
-  6: "sm:grid-cols-3 lg:grid-cols-6",
-  7: "sm:grid-cols-4 lg:grid-cols-7",
-};
-
-function TarjetaKpi({ etiqueta, centavos, tono }: StatMontoDef) {
-  return (
-    <div className="ring-foreground/10 bg-card flex flex-col gap-0.5 rounded-xl px-4 py-3 ring-1">
-      <span className="text-muted-foreground text-xs">{etiqueta}</span>
-      <span className={cn("text-lg font-semibold tabular-nums", CLASE_TONO_STAT[tono])}>
-        {formatoMonedaCentavos(centavos)}
-      </span>
-    </div>
-  );
-}
-
-function construirKpis(datos: DatosFichaContacto, esVenta: boolean, esCompra: boolean): StatMontoDef[] {
-  const kpis: StatMontoDef[] = [];
+function construirKpis(datos: DatosFichaContacto, esVenta: boolean, esCompra: boolean): KpiFicha[] {
+  const kpis: { etiqueta: string; centavos: number; tono: TonoKpi }[] = [];
 
   if (esVenta) {
     kpis.push(
@@ -626,7 +476,7 @@ function construirKpis(datos: DatosFichaContacto, esVenta: boolean, esCompra: bo
       },
     );
   }
-  return kpis;
+  return kpis.map(({ centavos, ...kpi }) => ({ ...kpi, valor: formatoMonedaCentavos(centavos) }));
 }
 
 function coincidenTexto(fila: FilaUnificada, texto: string): boolean {
@@ -1203,7 +1053,7 @@ export function FichaContacto({
         Contactos
       </Button>
 
-      <div className="bg-card ring-foreground/10 rounded-xl ring-1">
+      <div className={CLASE_PANEL_FICHA}>
         <EncabezadoFicha
           contacto={contacto}
           acciones={secundarias}
@@ -1212,11 +1062,7 @@ export function FichaContacto({
         />
 
         <div className="px-5 pb-5">
-          <div className={cn("grid grid-cols-2 gap-3", CLASE_COLS_KPI[kpis.length] ?? "lg:grid-cols-4")}>
-            {kpis.map((kpi) => (
-              <TarjetaKpi key={kpi.etiqueta} {...kpi} />
-            ))}
-          </div>
+          <GrillaKpis kpis={kpis} />
         </div>
 
         <Tabs value={pestana} className="gap-0">
