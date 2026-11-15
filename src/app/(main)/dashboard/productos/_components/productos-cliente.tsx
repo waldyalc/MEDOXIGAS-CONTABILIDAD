@@ -1,11 +1,15 @@
 "use client";
 
-import { type FormEvent, useState, useTransition } from "react";
+import { type FormEvent, useEffect, useState, useTransition } from "react";
 
-import { ChevronDown, Pencil, Plus, Search, Upload } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+import { ChevronDown, Pencil, Plus, Upload } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
 import { FORM_INPUT, FORM_SELECT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
+import { BuscadorLista } from "@/components/listas/buscador-lista";
+import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,10 +26,10 @@ import { rutaProducto } from "@/lib/enlaces";
 import { type Impuesto, impuestoNinguno, impuestoPorTasa } from "@/lib/impuestos/tipos";
 import { etiquetaTipoLista } from "@/lib/inventario/precios";
 import type { CategoriaProducto, ListaPrecio } from "@/lib/inventario/tipos";
+import type { OpcionesLista, ParametrosLista, ResumenPagina } from "@/lib/listas/parametros";
 import { actualizarProducto, crearProducto } from "@/lib/productos/actions";
 import {
   etiquetaTasaItbis,
-  filtrarProductos,
   formatoCantidad,
   formatoMoneda,
   type Producto,
@@ -388,28 +392,46 @@ function FormularioProducto({
 
 export function ProductosCliente({
   productos,
+  resumen,
+  params,
+  opciones,
   categorias,
   listasPrecios,
   impuestos,
   puedeEditar,
 }: {
   readonly productos: Producto[];
+  readonly resumen: ResumenPagina;
+  readonly params: ParametrosLista;
+  readonly opciones: OpcionesLista;
   readonly categorias: CategoriaProducto[];
   readonly listasPrecios: ListaPrecio[];
   readonly impuestos: Impuesto[];
   readonly puedeEditar: boolean;
 }) {
-  const [busqueda, setBusqueda] = useState("");
+  const router = useRouter();
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [productoEditando, setProductoEditando] = useState<Producto | null>(null);
   const [importarAbierto, setImportarAbierto] = useState(false);
   const [edicionMasivaAbierta, setEdicionMasivaAbierta] = useState(false);
   const [seleccionados, setSeleccionados] = useState<Set<string>>(() => new Set());
+  const [productosConocidos, setProductosConocidos] = useState<Record<string, Producto>>(() =>
+    Object.fromEntries(productos.map((producto) => [producto.id, producto])),
+  );
 
-  const filtrados = filtrarProductos(productos, busqueda);
-  const productosSeleccionados = productos.filter((producto) => seleccionados.has(producto.id));
+  useEffect(() => {
+    setProductosConocidos((actuales) => {
+      const siguiente = { ...actuales };
+      for (const producto of productos) siguiente[producto.id] = producto;
+      return siguiente;
+    });
+  }, [productos]);
+
+  const productosSeleccionados = [...seleccionados].flatMap((id) =>
+    productosConocidos[id] ? [productosConocidos[id]] : [],
+  );
   const todosVisiblesSeleccionados =
-    filtrados.length > 0 && filtrados.every((producto) => seleccionados.has(producto.id));
+    productos.length > 0 && productos.every((producto) => seleccionados.has(producto.id));
 
   function alternarSeleccion(id: string, marcado: boolean) {
     setSeleccionados((anterior) => {
@@ -423,7 +445,7 @@ export function ProductosCliente({
   function alternarTodosVisibles(marcado: boolean) {
     setSeleccionados((anterior) => {
       const siguiente = new Set(anterior);
-      for (const producto of filtrados) {
+      for (const producto of productos) {
         if (marcado) siguiente.add(producto.id);
         else siguiente.delete(producto.id);
       }
@@ -434,6 +456,7 @@ export function ProductosCliente({
   function terminarEdicionMasiva() {
     setEdicionMasivaAbierta(false);
     setSeleccionados(new Set());
+    router.refresh();
   }
 
   function abrirNuevo() {
@@ -454,6 +477,7 @@ export function ProductosCliente({
   function cerrarTrasGuardar() {
     setDialogoAbierto(false);
     setProductoEditando(null);
+    router.refresh();
   }
 
   return (
@@ -478,16 +502,14 @@ export function ProductosCliente({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="relative max-w-sm flex-1">
-          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-          <Input
-            value={busqueda}
-            onChange={(event) => setBusqueda(event.target.value)}
-            placeholder="Buscar por nombre o referencia…"
-            aria-label="Buscar productos"
-            className="pl-8"
-          />
-        </div>
+        <BuscadorLista
+          base="/dashboard/productos"
+          parametros={params}
+          valorInicial={opciones.q}
+          placeholder="Buscar por nombre o referencia…"
+          ariaLabel="Buscar productos"
+          className="max-w-sm flex-1"
+        />
         {puedeEditar ? (
           <Button
             type="button"
@@ -501,59 +523,63 @@ export function ProductosCliente({
         ) : null}
       </div>
 
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {puedeEditar ? (
-                <TableHead className="w-8">
-                  <Checkbox
-                    checked={todosVisiblesSeleccionados}
-                    onCheckedChange={(valor) => alternarTodosVisibles(valor === true)}
-                    aria-label="Seleccionar todos los productos visibles"
-                  />
-                </TableHead>
-              ) : null}
-              <TableHead>Nombre</TableHead>
-              <TableHead>Referencia</TableHead>
-              <TableHead className="text-right">Precio</TableHead>
-              <TableHead className="text-right">ITBIS</TableHead>
-              <TableHead className="text-right">Existencia</TableHead>
-              <TableHead className="text-right">Costo</TableHead>
-              <TableHead>Estado</TableHead>
-              {puedeEditar ? (
-                <TableHead className="w-10">
-                  <span className="sr-only">Acciones</span>
-                </TableHead>
-              ) : null}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtrados.length === 0 ? (
+      <div className="flex flex-col gap-3">
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={puedeEditar ? 9 : 7}
-                  className="text-muted-foreground h-24 text-center whitespace-normal"
-                >
-                  {busqueda.trim()
-                    ? "No se encontraron productos con esa búsqueda."
-                    : "Todavía no hay productos registrados."}
-                </TableCell>
+                {puedeEditar ? (
+                  <TableHead className="w-8">
+                    <Checkbox
+                      checked={todosVisiblesSeleccionados}
+                      onCheckedChange={(valor) => alternarTodosVisibles(valor === true)}
+                      aria-label="Seleccionar todos los productos visibles"
+                    />
+                  </TableHead>
+                ) : null}
+                <TableHead>Nombre</TableHead>
+                <TableHead>Referencia</TableHead>
+                <TableHead className="text-right">Precio</TableHead>
+                <TableHead className="text-right">ITBIS</TableHead>
+                <TableHead className="text-right">Existencia</TableHead>
+                <TableHead className="text-right">Costo</TableHead>
+                <TableHead>Estado</TableHead>
+                {puedeEditar ? (
+                  <TableHead className="w-10">
+                    <span className="sr-only">Acciones</span>
+                  </TableHead>
+                ) : null}
               </TableRow>
-            ) : (
-              filtrados.map((producto) => (
-                <FilaProducto
-                  key={producto.id}
-                  producto={producto}
-                  puedeEditar={puedeEditar}
-                  seleccionado={seleccionados.has(producto.id)}
-                  onAlternar={alternarSeleccion}
-                  onEditar={abrirEditar}
-                />
-              ))
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {productos.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={puedeEditar ? 9 : 7}
+                    className="text-muted-foreground h-24 text-center whitespace-normal"
+                  >
+                    {opciones.q
+                      ? "No se encontraron productos con esa búsqueda."
+                      : "Todavía no hay productos registrados."}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                productos.map((producto) => (
+                  <FilaProducto
+                    key={producto.id}
+                    producto={producto}
+                    puedeEditar={puedeEditar}
+                    seleccionado={seleccionados.has(producto.id)}
+                    onAlternar={alternarSeleccion}
+                    onEditar={abrirEditar}
+                  />
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <PaginadorLista base="/dashboard/productos" params={params} resumen={resumen} />
       </div>
 
       <Dialog open={dialogoAbierto} onOpenChange={cambiarDialogo}>

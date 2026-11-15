@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { BuscadorLista } from "@/components/listas/buscador-lista";
+import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +17,9 @@ import { formatoMoneda } from "@/lib/compras/formato";
 import type { MetodoPago, PagoLista } from "@/lib/compras/tipos";
 import { rutaCompra, rutaContacto, rutaCuenta, rutaPagoProveedor } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
+import { leerOpcionesLista, type ParametrosLista } from "@/lib/listas/parametros";
+
+const RUTA = "/dashboard/compras/pagos";
 
 const ETIQUETAS_METODO: Record<MetodoPago, string> = {
   efectivo: "Efectivo",
@@ -52,11 +57,12 @@ function CeldaFacturaProveedor({ pago }: { pago: PagoLista }) {
   return "—";
 }
 
-export default async function Page() {
-  const rol = await getRol();
+export default async function Page({ searchParams }: { searchParams: Promise<ParametrosLista> }) {
+  const [rol, params] = await Promise.all([getRol(), searchParams]);
   if (rol == null) redirect("/unauthorized");
 
-  const pagos = await listarPagosProveedor();
+  const opciones = leerOpcionesLista(params);
+  const { filas: pagos, resumen } = await listarPagosProveedor(opciones);
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,58 +87,70 @@ export default async function Page() {
         </div>
       </div>
 
-      <Card>
-        <CardContent className="px-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-(--card-spacing)">Número</TableHead>
-                <TableHead>Proveedor</TableHead>
-                <TableHead>Factura</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Método</TableHead>
-                <TableHead>Cuenta</TableHead>
-                <TableHead className="text-right">Monto</TableHead>
-                <TableHead className="pr-(--card-spacing)">Estado</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pagos.length === 0 ? (
+      <BuscadorLista
+        base={RUTA}
+        parametros={params}
+        valorInicial={opciones.q}
+        placeholder="Buscar por número, proveedor o factura…"
+        ariaLabel="Buscar pagos a proveedores"
+      />
+
+      <div className="flex flex-col gap-3">
+        <Card>
+          <CardContent className="px-0">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-muted-foreground py-10 text-center">
-                    No hay pagos registrados.
-                  </TableCell>
+                  <TableHead className="pl-(--card-spacing)">Número</TableHead>
+                  <TableHead>Proveedor</TableHead>
+                  <TableHead>Factura</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Método</TableHead>
+                  <TableHead>Cuenta</TableHead>
+                  <TableHead className="text-right">Monto</TableHead>
+                  <TableHead className="pr-(--card-spacing)">Estado</TableHead>
                 </TableRow>
-              ) : (
-                pagos.map((pago) => (
-                  <TableRow key={pago.id}>
-                    <TableCell className="pl-(--card-spacing) font-medium">
-                      <Enlace href={rutaPagoProveedor(pago.id)}>#{pago.numero}</Enlace>
-                    </TableCell>
-                    <TableCell>
-                      <CeldaProveedor pago={pago} />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      <CeldaFacturaProveedor pago={pago} />
-                    </TableCell>
-                    <TableCell>{formatoDia(pago.fecha)}</TableCell>
-                    <TableCell>{ETIQUETAS_METODO[pago.metodo]}</TableCell>
-                    <TableCell>
-                      <CeldaCuenta pago={pago} />
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{formatoMoneda(aNumero(pago.monto))}</TableCell>
-                    <TableCell className="pr-(--card-spacing)">
-                      <Badge variant={pago.estado === "anulado" ? "destructive" : "default"}>
-                        {pago.estado === "anulado" ? "Anulado" : "Activo"}
-                      </Badge>
+              </TableHeader>
+              <TableBody>
+                {pagos.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-muted-foreground py-10 text-center">
+                      {opciones.q ? "No se encontraron pagos con esa búsqueda." : "No hay pagos registrados."}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                ) : (
+                  pagos.map((pago) => (
+                    <TableRow key={pago.id}>
+                      <TableCell className="pl-(--card-spacing) font-medium">
+                        <Enlace href={rutaPagoProveedor(pago.id)}>#{pago.numero}</Enlace>
+                      </TableCell>
+                      <TableCell>
+                        <CeldaProveedor pago={pago} />
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <CeldaFacturaProveedor pago={pago} />
+                      </TableCell>
+                      <TableCell>{formatoDia(pago.fecha)}</TableCell>
+                      <TableCell>{ETIQUETAS_METODO[pago.metodo]}</TableCell>
+                      <TableCell>
+                        <CeldaCuenta pago={pago} />
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{formatoMoneda(aNumero(pago.monto))}</TableCell>
+                      <TableCell className="pr-(--card-spacing)">
+                        <Badge variant={pago.estado === "anulado" ? "destructive" : "default"}>
+                          {pago.estado === "anulado" ? "Anulado" : "Activo"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <PaginadorLista base={RUTA} params={params} resumen={resumen} />
+      </div>
     </div>
   );
 }

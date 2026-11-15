@@ -2,10 +2,14 @@
 
 import { type FormEvent, useEffect, useState, useTransition } from "react";
 
-import { ChevronDown, Pencil, Plus, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+import { ChevronDown, Pencil, Plus } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
 import { FORM_INPUT, FORM_SELECT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
+import { BuscadorLista } from "@/components/listas/buscador-lista";
+import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -19,13 +23,13 @@ import { actualizarContacto, crearContacto } from "@/lib/contactos/actions";
 import {
   type Contacto,
   etiquetaTipoContacto,
-  filtrarContactos,
   type PestanaContactos,
   SIN_LISTA_PRECIO,
   TIPOS_CONTACTO,
 } from "@/lib/contactos/contactos";
 import { rutaContacto } from "@/lib/enlaces";
 import type { ListaPrecio } from "@/lib/inventario/tipos";
+import { type OpcionesLista, type ParametrosLista, type ResumenPagina, urlLista } from "@/lib/listas/parametros";
 
 const OPCIONES_TIPO = TIPOS_CONTACTO.map((tipo) => ({ value: tipo.valor, label: tipo.etiqueta }));
 const SIN_LISTA = SIN_LISTA_PRECIO;
@@ -189,21 +193,32 @@ function FormularioContacto({
   );
 }
 
+function mensajeVacio(q: string, pestana: PestanaContactos): string {
+  if (q) return "No se encontraron contactos con esa búsqueda.";
+  if (pestana !== "todos") return "No hay contactos en esta pestaña.";
+  return "Todavía no hay contactos.";
+}
+
 export function ContactosCliente({
   contactos,
+  resumen,
+  params,
+  opciones,
+  pestana,
   listasPrecios,
   puedeEditar,
 }: {
   readonly contactos: Contacto[];
+  readonly resumen: ResumenPagina;
+  readonly params: ParametrosLista;
+  readonly opciones: OpcionesLista;
+  readonly pestana: PestanaContactos;
   readonly listasPrecios: ListaPrecio[];
   readonly puedeEditar: boolean;
 }) {
-  const [busqueda, setBusqueda] = useState("");
-  const [pestana, setPestana] = useState<PestanaContactos>("todos");
+  const router = useRouter();
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [contactoEditando, setContactoEditando] = useState<Contacto | null>(null);
-
-  const filtrados = filtrarContactos(contactos, pestana, busqueda);
 
   useEffect(() => {
     if (window.location.hash === "#nuevo") {
@@ -230,14 +245,15 @@ export function ContactosCliente({
   function cerrarTrasGuardar() {
     setDialogoAbierto(false);
     setContactoEditando(null);
+    router.refresh();
   }
 
   function cambiarPestana(valor: string | number) {
     if (valor === "clientes" || valor === "proveedores") {
-      setPestana(valor);
+      router.replace(urlLista("/dashboard/contactos", params, { tipo: valor, pagina: null }), { scroll: false });
       return;
     }
-    setPestana("todos");
+    router.replace(urlLista("/dashboard/contactos", params, { tipo: null, pagina: null }), { scroll: false });
   }
 
   return (
@@ -264,72 +280,74 @@ export function ContactosCliente({
           </TabsList>
         </Tabs>
 
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-          <Input
-            value={busqueda}
-            onChange={(event) => setBusqueda(event.target.value)}
-            placeholder="Buscar por nombre, RNC o teléfono…"
-            aria-label="Buscar contactos"
-            className="pl-8"
-          />
-        </div>
+        <BuscadorLista
+          base="/dashboard/contactos"
+          parametros={params}
+          valorInicial={opciones.q}
+          placeholder="Buscar por nombre, RNC o teléfono…"
+          ariaLabel="Buscar contactos"
+          className="sm:max-w-xs"
+        />
       </div>
 
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>RNC / Cédula</TableHead>
-              <TableHead>Teléfono</TableHead>
-              <TableHead>Tipo</TableHead>
-              {puedeEditar ? (
-                <TableHead className="w-10">
-                  <span className="sr-only">Acciones</span>
-                </TableHead>
-              ) : null}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtrados.length === 0 ? (
+      <div className="flex flex-col gap-3">
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={puedeEditar ? 5 : 4}
-                  className="text-muted-foreground h-24 text-center whitespace-normal"
-                >
-                  {busqueda.trim() ? "No se encontraron contactos con esa búsqueda." : "Todavía no hay contactos."}
-                </TableCell>
+                <TableHead>Nombre</TableHead>
+                <TableHead>RNC / Cédula</TableHead>
+                <TableHead>Teléfono</TableHead>
+                <TableHead>Tipo</TableHead>
+                {puedeEditar ? (
+                  <TableHead className="w-10">
+                    <span className="sr-only">Acciones</span>
+                  </TableHead>
+                ) : null}
               </TableRow>
-            ) : (
-              filtrados.map((contacto) => (
-                <TableRow key={contacto.id}>
-                  <TableCell className="font-medium">
-                    <Enlace href={rutaContacto(contacto.id)}>{contacto.nombre}</Enlace>
+            </TableHeader>
+            <TableBody>
+              {contactos.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={puedeEditar ? 5 : 4}
+                    className="text-muted-foreground h-24 text-center whitespace-normal"
+                  >
+                    {mensajeVacio(opciones.q, pestana)}
                   </TableCell>
-                  <TableCell className="tabular-nums">{contacto.rnc_cedula ?? "—"}</TableCell>
-                  <TableCell className="tabular-nums">{contacto.telefono ?? "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{etiquetaTipoContacto(contacto.tipo)}</Badge>
-                  </TableCell>
-                  {puedeEditar ? (
-                    <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Editar ${contacto.nombre}`}
-                        onClick={() => abrirEditar(contacto)}
-                      >
-                        <Pencil />
-                      </Button>
-                    </TableCell>
-                  ) : null}
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                contactos.map((contacto) => (
+                  <TableRow key={contacto.id}>
+                    <TableCell className="font-medium">
+                      <Enlace href={rutaContacto(contacto.id)}>{contacto.nombre}</Enlace>
+                    </TableCell>
+                    <TableCell className="tabular-nums">{contacto.rnc_cedula ?? "—"}</TableCell>
+                    <TableCell className="tabular-nums">{contacto.telefono ?? "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{etiquetaTipoContacto(contacto.tipo)}</Badge>
+                    </TableCell>
+                    {puedeEditar ? (
+                      <TableCell className="text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Editar ${contacto.nombre}`}
+                          onClick={() => abrirEditar(contacto)}
+                        >
+                          <Pencil />
+                        </Button>
+                      </TableCell>
+                    ) : null}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <PaginadorLista base="/dashboard/contactos" params={params} resumen={resumen} />
       </div>
 
       <Dialog open={dialogoAbierto} onOpenChange={cambiarDialogo}>

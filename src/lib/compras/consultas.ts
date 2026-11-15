@@ -3,6 +3,14 @@ import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
 import { getRetencionesActivas } from "@/lib/configuracion/consultas";
 import { getEmpresa } from "@/lib/facturacion/consultas";
 import { getImpuestosActivos } from "@/lib/impuestos/consultas";
+import { limpiarBusqueda, numeroDocumento, patronIlike } from "@/lib/listas/busqueda";
+import {
+  type OpcionesLista,
+  type ResultadoPagina,
+  rangoPagina,
+  resumirPagina,
+  TAMANO_PAGINA_DEFECTO,
+} from "@/lib/listas/parametros";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -12,7 +20,6 @@ import type {
   ContactoOpcion,
   CuentaOpcion,
   DetalleFacturaCompleto,
-  FacturaAbierta,
   FacturaLista,
   LineaDetalle,
   OpcionesFactura,
@@ -26,20 +33,78 @@ async function cliente() {
   return createClient();
 }
 
-export async function listarFacturasProveedor(): Promise<FacturaLista[]> {
-  const supabase = await cliente();
+const CAMPOS_FACTURA_LISTA =
+  "id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, estado, contactos(nombre)";
+
+const LIMITE_IDS_BUSQUEDA = 200;
+
+type Cliente = Awaited<ReturnType<typeof cliente>>;
+
+async function contactosQueCoinciden(supabase: Cliente, q: string): Promise<string[]> {
+  const patron = patronIlike(q);
   const { data, error } = await supabase
-    .from("facturas_proveedor")
-    .select(
-      "id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, estado, contactos(nombre)",
-    )
-    .order("fecha", { ascending: false })
-    .order("numero", { ascending: false })
-    .limit(300)
-    .returns<FacturaLista[]>();
+    .from("contactos")
+    .select("id")
+    .or(`nombre.ilike.${patron},rnc_cedula.ilike.${patron}`)
+    .limit(LIMITE_IDS_BUSQUEDA);
 
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return (data ?? []).map((contacto) => contacto.id);
+}
+
+async function facturasProveedorQueCoinciden(supabase: Cliente, q: string): Promise<string[]> {
+  const numero = numeroDocumento(q);
+  let consulta = supabase.from("facturas_proveedor").select("id");
+
+  consulta = numero != null ? consulta.eq("numero", numero) : consulta.or(`ncf.ilike.${patronIlike(q)}`);
+
+  const { data, error } = await consulta.limit(LIMITE_IDS_BUSQUEDA);
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((factura) => factura.id);
+}
+
+const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
+
+export async function listarFacturasProveedor(
+  opciones: OpcionesLista = OPCIONES_LISTA_DEFECTO,
+): Promise<ResultadoPagina<FacturaLista>> {
+  const supabase = await cliente();
+  const q = limpiarBusqueda(opciones.q);
+  const numero = numeroDocumento(q);
+  const idsContactos = q && numero == null ? await contactosQueCoinciden(supabase, q) : [];
+
+  const consultar = async (pagina: number) => {
+    const { desde, hasta } = rangoPagina(pagina, opciones.tamano);
+    let consulta = supabase.from("facturas_proveedor").select(CAMPOS_FACTURA_LISTA, { count: "exact" });
+
+    if (q) {
+      const condiciones: string[] = [];
+      if (numero != null) condiciones.push(`numero.eq.${numero}`);
+      else condiciones.push(`ncf.ilike.${patronIlike(q)}`);
+      if (idsContactos.length > 0) condiciones.push(`contacto_id.in.(${idsContactos.join(",")})`);
+      consulta = consulta.or(condiciones.join(","));
+    }
+
+    const { data, error, count } = await consulta
+      .order("fecha", { ascending: false })
+      .order("numero", { ascending: false })
+      .range(desde, hasta)
+      .returns<FacturaLista[]>();
+
+    if (error) throw new Error(error.message);
+    return { filas: data ?? [], total: count ?? 0 };
+  };
+
+  const primera = await consultar(opciones.pagina);
+  const resumen = resumirPagina(opciones.pagina, opciones.tamano, primera.total);
+
+  if (resumen.pagina !== opciones.pagina && primera.filas.length === 0) {
+    const ultima = await consultar(resumen.pagina);
+    return { filas: ultima.filas, resumen };
+  }
+
+  return { filas: primera.filas, resumen };
 }
 
 export async function obtenerFacturaProveedor(id: string): Promise<DetalleFacturaCompleto | null> {
@@ -149,21 +214,81 @@ export async function obtenerFacturaProveedor(id: string): Promise<DetalleFactur
   };
 }
 
-export async function listarPagosProveedor(): Promise<PagoLista[]> {
-  const supabase = await cliente();
+const ID_INEXISTENTE = "00000000-0000-0000-0000-000000000000";
+
+async function pagosQueCubrenFacturas(supabase: Cliente, idsFacturas: readonly string[]): Promise<string[]> {
+  if (idsFacturas.length === 0) return [];
+
   const { data, error } = await supabase
-    .from("pagos_proveedor")
-    .select(
-      "id, numero, fecha, metodo, monto, estado, contacto_id, cuenta_id, contactos(nombre), cuentas(nombre), facturas_proveedor(id, numero, ncf)",
-    )
-    .order("fecha", { ascending: false })
-    .order("numero", { ascending: false })
-    .limit(300)
-    .returns<PagoLista[]>();
+    .from("pago_proveedor_aplicaciones")
+    .select("pago_id")
+    .in("factura_proveedor_id", idsFacturas)
+    .limit(LIMITE_IDS_BUSQUEDA);
 
   if (error) throw new Error(error.message);
+  return [...new Set((data ?? []).map((aplicacion) => aplicacion.pago_id))];
+}
 
-  const pagos = data ?? [];
+function filtroPagos(
+  q: string,
+  idsContactos: readonly string[],
+  idsFacturas: readonly string[],
+  idsPagos: readonly string[],
+): string | null {
+  if (!q) return null;
+
+  const condiciones: string[] = [];
+  const numero = numeroDocumento(q);
+  if (numero != null) condiciones.push(`numero.eq.${numero}`);
+  if (idsContactos.length > 0) condiciones.push(`contacto_id.in.(${idsContactos.join(",")})`);
+  if (idsFacturas.length > 0) condiciones.push(`factura_proveedor_id.in.(${idsFacturas.join(",")})`);
+  if (idsPagos.length > 0) condiciones.push(`id.in.(${idsPagos.join(",")})`);
+
+  return condiciones.length > 0 ? condiciones.join(",") : ID_INEXISTENTE;
+}
+
+export async function listarPagosProveedor(
+  opciones: OpcionesLista = OPCIONES_LISTA_DEFECTO,
+): Promise<ResultadoPagina<PagoLista>> {
+  const supabase = await cliente();
+  const q = limpiarBusqueda(opciones.q);
+  const numero = numeroDocumento(q);
+  const [idsContactos, idsFacturas] = await Promise.all([
+    q && numero == null ? contactosQueCoinciden(supabase, q) : Promise.resolve<string[]>([]),
+    q ? facturasProveedorQueCoinciden(supabase, q) : Promise.resolve<string[]>([]),
+  ]);
+  const idsPagos = await pagosQueCubrenFacturas(supabase, idsFacturas);
+  const filtro = filtroPagos(q, idsContactos, idsFacturas, idsPagos);
+
+  const consultar = async (pagina: number) => {
+    const { desde, hasta } = rangoPagina(pagina, opciones.tamano);
+    let consulta = supabase
+      .from("pagos_proveedor")
+      .select(
+        "id, numero, fecha, metodo, monto, estado, contacto_id, cuenta_id, contactos(nombre), cuentas(nombre), facturas_proveedor(id, numero, ncf)",
+        { count: "exact" },
+      );
+
+    if (filtro === ID_INEXISTENTE) consulta = consulta.eq("id", ID_INEXISTENTE);
+    else if (filtro) consulta = consulta.or(filtro);
+
+    const { data, error, count } = await consulta
+      .order("fecha", { ascending: false })
+      .order("numero", { ascending: false })
+      .range(desde, hasta)
+      .returns<PagoLista[]>();
+
+    if (error) throw new Error(error.message);
+    return { filas: data ?? [], total: count ?? 0 };
+  };
+
+  const primera = await consultar(opciones.pagina);
+  const resumen = resumirPagina(opciones.pagina, opciones.tamano, primera.total);
+  const pagos =
+    resumen.pagina !== opciones.pagina && primera.filas.length === 0
+      ? (await consultar(resumen.pagina)).filas
+      : primera.filas;
+
   const ids = pagos.map((pago) => pago.id);
   const { data: aplicaciones, error: errorAplicaciones } =
     ids.length === 0
@@ -181,7 +306,10 @@ export async function listarPagosProveedor(): Promise<PagoLista[]> {
     conteo.set(aplicacion.pago_id, (conteo.get(aplicacion.pago_id) ?? 0) + 1);
   }
 
-  return pagos.map((pago) => ({ ...pago, aplicaciones: conteo.get(pago.id) ?? 0 }));
+  return {
+    filas: pagos.map((pago) => ({ ...pago, aplicaciones: conteo.get(pago.id) ?? 0 })),
+    resumen,
+  };
 }
 
 export async function cargarOpcionesFactura(): Promise<OpcionesFactura> {
@@ -257,46 +385,36 @@ export async function cargarCuentasCajaBanco(): Promise<CuentaOpcion[]> {
 
 export async function cargarOpcionesPago(): Promise<OpcionesPago> {
   const supabase = await cliente();
-  const [empresa, contactos, cuentasCajaBanco, cuentasGasto, centrosCosto, facturasAbiertas, retenciones, numero] =
-    await Promise.all([
-      getEmpresa(),
-      supabase
-        .from("contactos")
-        .select("id, nombre, rnc_cedula")
-        .in("tipo", ["proveedor", "ambos"])
-        .eq("activo", true)
-        .order("nombre")
-        .returns<ContactoOpcion[]>(),
-      cargarCuentasCajaBanco(),
-      supabase
-        .from("cuentas")
-        .select("id, codigo, nombre, tipo, es_caja_banco")
-        .in("tipo", ["gasto", "costo"])
-        .eq("acepta_movimientos", true)
-        .eq("activa", true)
-        .order("codigo")
-        .returns<CuentaOpcion[]>(),
-      getCentrosCostoActivos(),
-      supabase
-        .from("facturas_proveedor")
-        .select(
-          "id, numero, ncf, fecha, vencimiento, subtotal, itbis, total, pagado, credito, retenido, contacto_id, contactos(nombre)",
-        )
-        .eq("estado", "abierta")
-        .order("vencimiento")
-        .returns<FacturaAbierta[]>(),
-      getRetencionesActivas(),
-      supabase
-        .from("pagos_proveedor")
-        .select("numero")
-        .order("numero", { ascending: false })
-        .limit(1)
-        .maybeSingle<{ numero: number }>(),
-    ]);
+  const [empresa, contactos, cuentasCajaBanco, cuentasGasto, centrosCosto, retenciones, numero] = await Promise.all([
+    getEmpresa(),
+    supabase
+      .from("contactos")
+      .select("id, nombre, rnc_cedula")
+      .in("tipo", ["proveedor", "ambos"])
+      .eq("activo", true)
+      .order("nombre")
+      .returns<ContactoOpcion[]>(),
+    cargarCuentasCajaBanco(),
+    supabase
+      .from("cuentas")
+      .select("id, codigo, nombre, tipo, es_caja_banco")
+      .in("tipo", ["gasto", "costo"])
+      .eq("acepta_movimientos", true)
+      .eq("activa", true)
+      .order("codigo")
+      .returns<CuentaOpcion[]>(),
+    getCentrosCostoActivos(),
+    getRetencionesActivas(),
+    supabase
+      .from("pagos_proveedor")
+      .select("numero")
+      .order("numero", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ numero: number }>(),
+  ]);
 
   if (contactos.error) throw new Error(contactos.error.message);
   if (cuentasGasto.error) throw new Error(cuentasGasto.error.message);
-  if (facturasAbiertas.error) throw new Error(facturasAbiertas.error.message);
   if (numero.error) throw new Error(numero.error.message);
 
   return {
@@ -305,7 +423,6 @@ export async function cargarOpcionesPago(): Promise<OpcionesPago> {
     cuentasCajaBanco,
     cuentasGasto: cuentasGasto.data ?? [],
     centrosCosto,
-    facturasAbiertas: facturasAbiertas.data ?? [],
     retenciones,
     siguienteNumero: (numero.data?.numero ?? 0) + 1,
   };

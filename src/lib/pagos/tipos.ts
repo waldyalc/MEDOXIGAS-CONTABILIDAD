@@ -4,21 +4,6 @@ import type { ContactoResumen, CuentaCajaBanco, Empresa, EstadoDocumento } from 
 
 export type MetodoPago = "efectivo" | "transferencia" | "tarjeta" | "cheque";
 
-export interface FacturaAbierta {
-  id: string;
-  numero: number;
-  ncf: string | null;
-  contacto_id: string;
-  fecha: string;
-  vencimiento: string;
-  subtotal: number;
-  itbis: number;
-  total: number;
-  pagado: number;
-  credito: number;
-  retenido: number;
-}
-
 export interface PagoLista {
   id: string;
   numero: number;
@@ -37,7 +22,6 @@ export interface PagoLista {
 export interface DatosFormularioPago {
   empresa: Empresa | null;
   contactos: ContactoResumen[];
-  facturas: FacturaAbierta[];
   cuentas: CuentaCajaBanco[];
   cuentasIngreso: CuentaCajaBanco[];
   centrosCosto: CentroCostoOpcion[];

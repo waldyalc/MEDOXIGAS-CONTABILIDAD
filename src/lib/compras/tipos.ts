@@ -169,7 +169,6 @@ export interface OpcionesPago {
   cuentasCajaBanco: CuentaOpcion[];
   cuentasGasto: CuentaOpcion[];
   centrosCosto: CentroCostoOpcion[];
-  facturasAbiertas: FacturaAbierta[];
   retenciones: RetencionOpcion[];
   siguienteNumero: number;
 }

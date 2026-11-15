@@ -44,7 +44,6 @@ async function PagoProveedorContenido() {
       tipo="proveedor"
       empresa={datos.empresa}
       contactos={datos.contactos}
-      facturas={datos.facturasAbiertas}
       cuentas={datos.cuentasCajaBanco}
       cuentasMovimiento={datos.cuentasGasto}
       centrosCosto={datos.centrosCosto}

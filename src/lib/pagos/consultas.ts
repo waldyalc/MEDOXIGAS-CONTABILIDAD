@@ -1,24 +1,30 @@
 import { getCentrosCostoActivos } from "@/lib/centros-costo/consultas";
 import { getRetencionesActivas } from "@/lib/configuracion/consultas";
 import { getContactosClientes, getCuentasCajaBanco, getEmpresa } from "@/lib/facturacion/consultas";
-import { saldoDeFactura } from "@/lib/facturacion/formato";
 import { createClient } from "@/lib/supabase/server";
 
-import type { DatosFormularioPago, FacturaAbierta, PagoLista } from "./tipos";
+import type { FacturaPago } from "./multifactura";
+import type { DatosFormularioPago, PagoLista } from "./tipos";
 
-export async function getFacturasAbiertas(): Promise<FacturaAbierta[]> {
+const CAMPOS_FACTURA_PAGO =
+  "id, numero, ncf, contacto_id, vencimiento, subtotal, itbis, total, pagado, credito, retenido";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function getFacturaPago(id: string, tipo: "recibido" | "proveedor"): Promise<FacturaPago | null> {
+  if (!UUID.test(id)) return null;
+
   const supabase = await createClient();
+  const tabla = tipo === "recibido" ? "facturas" : "facturas_proveedor";
   const { data, error } = await supabase
-    .from("facturas")
-    .select("id, numero, ncf, contacto_id, fecha, vencimiento, subtotal, itbis, total, pagado, credito, retenido")
+    .from(tabla)
+    .select(CAMPOS_FACTURA_PAGO)
+    .eq("id", id)
     .eq("estado", "abierta")
-    .order("vencimiento")
-    .order("numero")
-    .limit(300)
-    .returns<FacturaAbierta[]>();
+    .maybeSingle<FacturaPago>();
 
   if (error) throw new Error(error.message);
-  return data.filter((factura) => saldoDeFactura(factura.total, factura.pagado, factura.credito, factura.retenido) > 0);
+  return data;
 }
 
 export async function getCuentasIngreso(): Promise<{ id: string; codigo: string; nombre: string }[]> {
@@ -50,19 +56,17 @@ export async function getSiguienteNumeroPago(): Promise<number> {
 }
 
 export async function getDatosFormularioPago(): Promise<DatosFormularioPago> {
-  const [empresa, contactos, facturas, cuentas, cuentasIngreso, centrosCosto, retenciones, siguienteNumero] =
-    await Promise.all([
-      getEmpresa(),
-      getContactosClientes(),
-      getFacturasAbiertas(),
-      getCuentasCajaBanco(),
-      getCuentasIngreso(),
-      getCentrosCostoActivos(),
-      getRetencionesActivas(),
-      getSiguienteNumeroPago(),
-    ]);
+  const [empresa, contactos, cuentas, cuentasIngreso, centrosCosto, retenciones, siguienteNumero] = await Promise.all([
+    getEmpresa(),
+    getContactosClientes(),
+    getCuentasCajaBanco(),
+    getCuentasIngreso(),
+    getCentrosCostoActivos(),
+    getRetencionesActivas(),
+    getSiguienteNumeroPago(),
+  ]);
 
-  return { empresa, contactos, facturas, cuentas, cuentasIngreso, centrosCosto, retenciones, siguienteNumero };
+  return { empresa, contactos, cuentas, cuentasIngreso, centrosCosto, retenciones, siguienteNumero };
 }
 
 export async function getPagosLista(): Promise<PagoLista[]> {

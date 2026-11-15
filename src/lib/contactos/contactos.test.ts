@@ -6,6 +6,7 @@ import {
   esRncCedulaValida,
   etiquetaTipoContacto,
   filtrarContactos,
+  leerPestanaContactos,
   normalizarNombre,
   normalizarRncCedula,
   normalizarTelefono,
@@ -128,5 +129,15 @@ describe("filtro de contactos por pestaña y búsqueda", () => {
   test("busca y filtra la pestaña al mismo tiempo", () => {
     expect(filtrarContactos(lista, "clientes", "ferreteria").map((item) => item.id)).toEqual(["3"]);
     expect(filtrarContactos(lista, "proveedores", "jose")).toEqual([]);
+  });
+});
+
+describe("pestaña desde la URL", () => {
+  test("acepta clientes y proveedores y cae en todos", () => {
+    expect(leerPestanaContactos("clientes")).toBe("clientes");
+    expect(leerPestanaContactos("proveedores")).toBe("proveedores");
+    expect(leerPestanaContactos("todos")).toBe("todos");
+    expect(leerPestanaContactos("")).toBe("todos");
+    expect(leerPestanaContactos("otra")).toBe("todos");
   });
 });

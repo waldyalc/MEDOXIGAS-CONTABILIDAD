@@ -118,3 +118,7 @@ export function filtrarContactos(contactos: Contacto[], pestana: PestanaContacto
   const termino = normalizarBusqueda(busqueda);
   return contactos.filter((contacto) => coincidePestana(contacto.tipo, pestana) && coincideBusqueda(contacto, termino));
 }
+
+export function leerPestanaContactos(valor: string): PestanaContactos {
+  return valor === "clientes" || valor === "proveedores" ? valor : "todos";
+}

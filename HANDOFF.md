@@ -1,5 +1,15 @@
 # Handoff — Medoxigas Contabilidad
 
+## Fix — Listas completas: paginación y búsqueda en servidor (15 nov 2026)
+
+- Rama `fix/listas-completas` (desde `origin/prueba`). Compras, Pagos a proveedores, Contactos y Productos ahora paginan en el servidor con `searchParams` (`pagina`, `tamano`, `q`), muestran el total real y navegan hasta la última página. Se acabaron los cortes silenciosos de 300/1,000 filas.
+- Búsqueda en servidor: Compras por número, NCF o proveedor (nombre/RNC); Pagos por número, proveedor o factura (NCF); Contactos por nombre, RNC, teléfono o correo; Productos por nombre o referencia. Un término numérico de hasta 6 dígitos se trata como número exacto de documento; los RNC (9/11) y los dígitos de un NCF siguen buscándose como texto.
+- «Nuevo pago» y «Nuevo pago a proveedor» ya no cargan todas las facturas/compras abiertas: el selector pide al servidor por contacto con debounce de 350 ms (8 por página) y busca cualquier número o NCF. Los montos y retenciones ya escritos se conservan al cambiar de página o búsqueda.
+- Piezas nuevas: `src/lib/listas/{parametros,busqueda}.ts` (puros, con Vitest), `src/components/listas/{buscador,paginador}-lista.tsx` y la server action `src/lib/pagos/busqueda.ts`. `getFacturasAbiertas` y la carga masiva de `facturasAbiertas` se eliminaron; el pago inicial se resuelve con `getFacturaPago(id, tipo)`.
+- Verificado con la base llena (5,002 compras, 3,002 pagos a proveedores, 1,023 contactos, 322 productos, 3,932 facturas abiertas de un cliente): se encuentran por número/nombre el pago #66, la compra #66, el contacto `ZZTEST-Proveedor-0200`, el producto `ZZTEST-Producto-289` y la factura vieja #15696. p95 medido en rutas de producción local: Compras 640–983 ms, Pagos 544–701 ms, Contactos 473–544 ms, Productos 616–1,647 ms; búsquedas y selectores 839–1,501 ms. Todo por debajo de 2 s.
+- `pnpm typecheck`, `pnpm test` (688), Biome de lo tocado y `pnpm build` en verde. Sin migraciones ni cambios en cálculos, validaciones o motor contable.
+- Quedó fuera (otras tareas): paginar Facturación, Pagos recibidos, Notas, Asientos y demás listas con tope; el combobox de contactos de los formularios (F4, sigue cortando en 1,000); el selector de «Nueva nota de débito» (F13); y los reportes/RPC que aún cortan (F5/F6).
+
 ## Fix — Títulos largos del menú ya no se parten en dos líneas (14 nov 2026)
 
 - «Notas de crédito en compras» (Compras) se veía en dos líneas en el menú lateral. Causa: `SidebarMenuButton`/`SidebarMenuSubButton` truncan con `[&>span:last-child]:truncate`, pero `IndicadorEnlace` renderiza un `<span>` después del título, así que el truncate caía sobre el puntito indicador y el título envolvía.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,17 +41,15 @@ import type { RetencionOpcion } from "@/lib/configuracion/tipos";
 import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import type { Empresa } from "@/lib/facturacion/tipos";
 import { formatoDia } from "@/lib/formato";
+import { buscarFacturasPago } from "@/lib/pagos/busqueda";
 import {
   type FacturaPago,
-  filtroFacturas,
   type LineaOtroPago,
   type PestanaPago,
-  paginaDe,
   retenidoDeFactura,
   saldoPendiente,
   TAMANO_PAGINA_FACTURAS,
   totalOtrosCentavos,
-  totalPaginas,
   validarPago,
 } from "@/lib/pagos/multifactura";
 import type { MetodoPago } from "@/lib/pagos/tipos";
@@ -88,12 +86,11 @@ interface Props {
   cuentas: CuentaPago[];
   cuentasMovimiento: CuentaPago[];
   centrosCosto: CentroPago[];
-  facturas: FacturaPago[];
+  facturaInicial?: FacturaPago | null;
   retenciones: RetencionOpcion[];
   siguienteNumero: number;
   fechaHoy: string;
   initialContacto?: string;
-  initialFactura?: string;
   rutaCancelar: string;
   accion: (entrada: unknown) => Promise<ResultadoAccionPago>;
 }
@@ -137,18 +134,17 @@ export function PagoForm({
   cuentas,
   cuentasMovimiento,
   centrosCosto,
-  facturas,
+  facturaInicial = null,
   retenciones,
   siguienteNumero,
   fechaHoy,
   initialContacto = "",
-  initialFactura = "",
   rutaCancelar,
   accion,
 }: Props) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
-  const inicial = facturas.find((factura) => factura.id === initialFactura && factura.contacto_id === initialContacto);
+  const solicitud = useRef(0);
 
   const [contactoId, setContactoId] = useState(initialContacto);
   const [fecha, setFecha] = useState(fechaHoy);
@@ -159,11 +155,20 @@ export function PagoForm({
   const [centroCostoId, setCentroCostoId] = useState("");
   const [pestana, setPestana] = useState<PestanaPago>("facturas");
   const [montos, setMontos] = useState<Record<string, string>>(
-    inicial ? { [inicial.id]: saldoPendiente(inicial).toFixed(2) } : {},
+    facturaInicial ? { [facturaInicial.id]: saldoPendiente(facturaInicial).toFixed(2) } : {},
   );
   const [retencionesFactura, setRetencionesFactura] = useState<Record<string, string[]>>({});
   const [busqueda, setBusqueda] = useState("");
+  const [busquedaAplicada, setBusquedaAplicada] = useState("");
   const [pagina, setPagina] = useState(1);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalFacturas, setTotalFacturas] = useState(0);
+  const [facturasPagina, setFacturasPagina] = useState<FacturaPago[]>([]);
+  const [facturasPorId, setFacturasPorId] = useState<Record<string, FacturaPago>>(() =>
+    facturaInicial ? { [facturaInicial.id]: facturaInicial } : {},
+  );
+  const [cargandoFacturas, setCargandoFacturas] = useState(false);
   const [dialogoFacturaId, setDialogoFacturaId] = useState<string | null>(null);
   const [borradorRetenciones, setBorradorRetenciones] = useState<string[]>([]);
   const [otros, setOtros] = useState<LineaOtroPago[]>([lineaOtroVacia("otro-1", cuentasMovimiento[0]?.id ?? "")]);
@@ -172,20 +177,8 @@ export function PagoForm({
 
   const esRecibido = tipo === "recibido";
   const documento = esRecibido ? "cliente" : "proveedor";
-  const facturasDelContacto = useMemo(
-    () =>
-      facturas
-        .filter((factura) => factura.contacto_id === contactoId && saldoPendiente(factura) > 0)
-        .sort((a, b) => a.vencimiento.localeCompare(b.vencimiento) || a.numero - b.numero),
-    [facturas, contactoId],
-  );
-  const filtradas = useMemo(() => filtroFacturas(facturasDelContacto, busqueda), [facturasDelContacto, busqueda]);
-  const paginas = totalPaginas(filtradas.length);
-  const paginaActual = Math.min(pagina, paginas);
-  const visibles = paginaDe(filtradas, paginaActual, TAMANO_PAGINA_FACTURAS);
-  const facturaDialogo = dialogoFacturaId
-    ? (facturasDelContacto.find((factura) => factura.id === dialogoFacturaId) ?? null)
-    : null;
+  const visibles = facturasPagina;
+  const facturaDialogo = dialogoFacturaId ? (facturasPorId[dialogoFacturaId] ?? null) : null;
   const cuentasItems = cuentas.map((cuenta) => ({
     value: cuenta.id,
     label: `${cuenta.codigo} · ${cuenta.nombre}`,
@@ -203,30 +196,94 @@ export function PagoForm({
     label: `${retencion.nombre} (${retencion.porcentaje} %)`,
   }));
 
+  useEffect(() => {
+    const temporizador = setTimeout(() => {
+      setBusquedaAplicada(busqueda.trim());
+      setPagina(1);
+    }, 350);
+
+    return () => clearTimeout(temporizador);
+  }, [busqueda]);
+
+  useEffect(() => {
+    if (!contactoId) {
+      setFacturasPagina([]);
+      setFacturasPorId({});
+      setTotalFacturas(0);
+      setPaginaActual(1);
+      setTotalPaginas(1);
+      setCargandoFacturas(false);
+      return;
+    }
+
+    const numeroSolicitud = solicitud.current + 1;
+    solicitud.current = numeroSolicitud;
+    setCargandoFacturas(true);
+
+    buscarFacturasPago({ tipo, contactoId, q: busquedaAplicada, pagina, tamano: TAMANO_PAGINA_FACTURAS })
+      .then((resultado) => {
+        if (solicitud.current !== numeroSolicitud) return;
+
+        const inicialVisible =
+          facturaInicial !== null &&
+          facturaInicial.contacto_id === contactoId &&
+          resultado.pagina === 1 &&
+          busquedaAplicada === "" &&
+          !resultado.facturas.some((factura) => factura.id === facturaInicial.id);
+
+        setFacturasPagina(
+          inicialVisible && facturaInicial !== null
+            ? [facturaInicial, ...resultado.facturas].slice(0, TAMANO_PAGINA_FACTURAS)
+            : resultado.facturas,
+        );
+        setFacturasPorId((actuales) => {
+          const siguiente = { ...actuales };
+          for (const factura of resultado.facturas) siguiente[factura.id] = factura;
+          return siguiente;
+        });
+        setTotalFacturas(resultado.total);
+        setPaginaActual(resultado.pagina);
+        setTotalPaginas(resultado.totalPaginas);
+        setPagina(resultado.pagina);
+      })
+      .catch((fallo: unknown) => {
+        if (solicitud.current !== numeroSolicitud) return;
+        setError(fallo instanceof Error ? fallo.message : "No se pudieron cargar las facturas.");
+      })
+      .finally(() => {
+        if (solicitud.current === numeroSolicitud) setCargandoFacturas(false);
+      });
+  }, [tipo, contactoId, busquedaAplicada, pagina, facturaInicial]);
+
   function centavosMonto(valor: string | undefined): number {
     const limpio = (valor ?? "").trim().replace(/\s/g, "").replace(/,/g, "");
     if (!/^\d{1,15}(\.\d{1,2})?$/.test(limpio)) return 0;
     return Math.round(Number(limpio) * 100);
   }
 
-  const totalFacturasCentavos = facturasDelContacto.reduce(
-    (total, factura) => total + centavosMonto(montos[factura.id]),
-    0,
-  );
-  const totalRetenidoCentavos = facturasDelContacto.reduce(
-    (total, factura) =>
-      total + Math.round(retenidoDeFactura(retencionesFactura[factura.id] ?? [], retenciones, factura) * 100),
-    0,
-  );
+  const totalFacturasCentavos = Object.values(montos).reduce((total, monto) => total + centavosMonto(monto), 0);
+  const totalRetenidoCentavos = Object.entries(retencionesFactura).reduce((total, [facturaId, ids]) => {
+    const factura = facturasPorId[facturaId];
+    return factura ? total + Math.round(retenidoDeFactura(ids, retenciones, factura) * 100) : total;
+  }, 0);
   const totalOtros = totalOtrosCentavos(otros);
   const totalActivoCentavos = pestana === "facturas" ? totalFacturasCentavos : totalOtros;
 
   function cambiarContacto(contacto: ContactoPago | null) {
-    setContactoId(contacto?.id ?? "");
-    setMontos({});
+    const id = contacto?.id ?? "";
+    const inicial = facturaInicial?.contacto_id === id ? facturaInicial : null;
+
+    setContactoId(id);
+    setMontos(inicial ? { [inicial.id]: saldoPendiente(inicial).toFixed(2) } : {});
     setRetencionesFactura({});
     setBusqueda("");
+    setBusquedaAplicada("");
     setPagina(1);
+    setPaginaActual(1);
+    setTotalPaginas(1);
+    setTotalFacturas(0);
+    setFacturasPagina([]);
+    setFacturasPorId(inicial ? { [inicial.id]: inicial } : {});
     setError(null);
   }
 
@@ -237,7 +294,7 @@ export function PagoForm({
   function aplicarRetenciones(facturaId: string, ids: string[]) {
     setRetencionesFactura((actuales) => ({ ...actuales, [facturaId]: ids }));
 
-    const factura = facturasDelContacto.find((item) => item.id === facturaId);
+    const factura = facturasPorId[facturaId];
     if (!factura) return;
 
     const disponible = Math.max(0, saldoPendiente(factura) - retenidoDeFactura(ids, retenciones, factura));
@@ -285,14 +342,19 @@ export function PagoForm({
     setOtros((actuales) => (actuales.length > 1 ? actuales.filter((linea) => linea.clave !== clave) : actuales));
   }
 
+  function mensajeFacturas(): string {
+    if (cargandoFacturas) return "Buscando facturas…";
+    if (busquedaAplicada) return "No hay facturas que coincidan con la búsqueda.";
+    return `El ${documento} no tiene facturas pendientes.`;
+  }
+
   function guardar() {
     setError(null);
 
-    const filas = facturasDelContacto.map((factura) => ({
-      factura,
-      monto: montos[factura.id] ?? "",
-      retenciones: retencionesFactura[factura.id] ?? [],
-    }));
+    const filas = Object.entries(montos).flatMap(([facturaId, monto]) => {
+      const factura = facturasPorId[facturaId];
+      return factura ? [{ factura, monto, retenciones: retencionesFactura[facturaId] ?? [] }] : [];
+    });
     const mensaje = validarPago({
       tipo,
       contactoId,
@@ -527,12 +589,9 @@ export function PagoForm({
                   <Search className="size-4 text-slate-400" />
                 </InputGroupAddon>
                 <InputGroupInput
-                  placeholder="Buscar por número de factura"
+                  placeholder="Buscar por número o NCF"
                   value={busqueda}
-                  onChange={(evento) => {
-                    setBusqueda(evento.target.value);
-                    setPagina(1);
-                  }}
+                  onChange={(evento) => setBusqueda(evento.target.value)}
                   className="text-sm text-slate-700 md:text-sm"
                 />
               </InputGroup>
@@ -559,9 +618,7 @@ export function PagoForm({
                     {contactoId && visibles.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
-                          {busqueda
-                            ? "No hay facturas que coincidan con la búsqueda."
-                            : `El ${documento} no tiene facturas pendientes.`}
+                          {mensajeFacturas()}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -585,7 +642,7 @@ export function PagoForm({
                             >
                               {formatoDia(factura.vencimiento)}
                             </TableCell>
-                            <TableCell className="px-2 py-3 text-right text-sm tabular-nums text-slate-600">
+                            <TableCell className="px-2 py-3 text-right text-sm text-slate-600 tabular-nums">
                               {formatoMoneda(factura.total)}
                             </TableCell>
                             <TableCell className="px-2 py-3">
@@ -594,7 +651,7 @@ export function PagoForm({
                                   readOnly
                                   value={formatoMoneda(retenido)}
                                   aria-label={`Retenciones de la factura ${factura.numero}`}
-                                  className="h-9 w-[105px] rounded-lg border-slate-300 bg-white px-2 text-right text-sm tabular-nums text-slate-700"
+                                  className="h-9 w-[105px] rounded-lg border-slate-300 bg-white px-2 text-right text-sm text-slate-700 tabular-nums"
                                 />
                                 <Button
                                   type="button"
@@ -608,7 +665,7 @@ export function PagoForm({
                                 </Button>
                               </div>
                             </TableCell>
-                            <TableCell className="px-2 py-3 text-right text-sm tabular-nums text-slate-600">
+                            <TableCell className="px-2 py-3 text-right text-sm text-slate-600 tabular-nums">
                               {formatoMoneda(saldo)}
                             </TableCell>
                             <TableCell className="px-2 py-3">
@@ -634,11 +691,11 @@ export function PagoForm({
                 </Table>
               </div>
 
-              {filtradas.length > 0 ? (
+              {totalFacturas > 0 ? (
                 <div className="flex items-center justify-between text-sm text-slate-500">
                   <span>
-                    {Math.min((paginaActual - 1) * TAMANO_PAGINA_FACTURAS + 1, filtradas.length)}–
-                    {Math.min(paginaActual * TAMANO_PAGINA_FACTURAS, filtradas.length)} de {filtradas.length}
+                    {Math.min((paginaActual - 1) * TAMANO_PAGINA_FACTURAS + 1, totalFacturas)}–
+                    {Math.min(paginaActual * TAMANO_PAGINA_FACTURAS, totalFacturas)} de {totalFacturas}
                   </span>
                   <div className="flex items-center gap-1">
                     <Button
@@ -655,8 +712,8 @@ export function PagoForm({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      disabled={paginaActual >= paginas}
-                      onClick={() => setPagina((actual) => Math.min(paginas, actual + 1))}
+                      disabled={paginaActual >= totalPaginas}
+                      onClick={() => setPagina((actual) => Math.min(totalPaginas, actual + 1))}
                       aria-label="Página siguiente"
                     >
                       <ChevronRight className="size-4" />

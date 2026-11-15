@@ -29,6 +29,21 @@ export type PestanaPago = "facturas" | "otros";
 
 export const TAMANO_PAGINA_FACTURAS = 8;
 
+export interface EntradaBusquedaFacturas {
+  tipo: "recibido" | "proveedor";
+  contactoId: string;
+  q: string;
+  pagina: number;
+  tamano?: number;
+}
+
+export interface ResultadoBusquedaFacturas {
+  facturas: FacturaPago[];
+  total: number;
+  pagina: number;
+  totalPaginas: number;
+}
+
 export function saldoPendiente(factura: Pick<FacturaPago, "total" | "pagado" | "credito" | "retenido">): number {
   const total = Number(factura.total) || 0;
   const pagado = Number(factura.pagado) || 0;

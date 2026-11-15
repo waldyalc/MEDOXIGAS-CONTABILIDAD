@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { hoyRD } from "@/lib/facturacion/formato";
 import { registrarPagoMultifactura } from "@/lib/pagos/acciones";
-import { getDatosFormularioPago } from "@/lib/pagos/consultas";
+import { getDatosFormularioPago, getFacturaPago } from "@/lib/pagos/consultas";
 
 interface Props {
   searchParams: Promise<{ factura?: string; cliente?: string }>;
@@ -44,7 +44,7 @@ export default async function Page({ searchParams }: Props) {
 
 async function PagoContenido({ facturaId, clienteId }: { facturaId?: string; clienteId?: string }) {
   const datos = await getDatosFormularioPago();
-  const factura = facturaId ? datos.facturas.find((item) => item.id === facturaId) : undefined;
+  const factura = facturaId ? await getFacturaPago(facturaId, "recibido") : null;
   const cliente = factura?.contacto_id ?? clienteId ?? "";
 
   return (
@@ -52,14 +52,13 @@ async function PagoContenido({ facturaId, clienteId }: { facturaId?: string; cli
       tipo="recibido"
       empresa={datos.empresa}
       contactos={datos.contactos}
-      facturas={datos.facturas}
       cuentas={datos.cuentas}
       cuentasMovimiento={datos.cuentasIngreso}
       centrosCosto={datos.centrosCosto}
       retenciones={datos.retenciones}
       siguienteNumero={datos.siguienteNumero}
       initialContacto={datos.contactos.some((contacto) => contacto.id === cliente) ? cliente : ""}
-      initialFactura={factura?.id ?? ""}
+      facturaInicial={factura}
       fechaHoy={hoyRD()}
       rutaCancelar="/dashboard/pagos-recibidos"
       accion={registrarPagoMultifactura}
