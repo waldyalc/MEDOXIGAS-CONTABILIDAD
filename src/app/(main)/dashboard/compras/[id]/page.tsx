@@ -49,25 +49,23 @@ function EstadoAsiento({ cuadrado }: { cuadrado: boolean }) {
   );
 }
 
-async function cargarOpcionesPago(puedeEscribir: boolean, estado: string) {
-  if (!puedeEscribir || estado !== "abierta") return { cuentas: [], retenciones: [] };
-
-  const [cuentas, retenciones] = await Promise.all([cargarCuentasCajaBanco(), getRetencionesActivas()]);
-  return { cuentas, retenciones };
-}
-
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [rol, detalle] = await Promise.all([getRol(), obtenerFacturaProveedor(id)]);
+  const [rol, detalle, cuentasBase, retencionesBase] = await Promise.all([
+    getRol(),
+    obtenerFacturaProveedor(id),
+    cargarCuentasCajaBanco(),
+    getRetencionesActivas(),
+  ]);
   if (rol == null) redirect("/unauthorized");
   if (!detalle) notFound();
 
   const { factura, lineas, asiento, lineasAsiento, pagos } = detalle;
+  const puedePagar = (rol === "admin" || rol === "contador") && factura.estado === "abierta";
   const puedeEscribir = rol === "admin" || rol === "contador";
-  const opcionesPago = await cargarOpcionesPago(puedeEscribir, factura.estado);
-  const cuentasCajaBanco = opcionesPago.cuentas;
-  const retenciones = opcionesPago.retenciones;
+  const cuentasCajaBanco = puedePagar ? cuentasBase : [];
+  const retenciones = puedePagar ? retencionesBase : [];
 
   const total = aNumero(factura.total);
   const pagado = aNumero(factura.pagado);

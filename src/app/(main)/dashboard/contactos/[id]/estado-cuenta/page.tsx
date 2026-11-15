@@ -44,11 +44,9 @@ export default async function Page({
   params: Promise<{ id: string }>;
   searchParams: Promise<ParametrosEstadoCuenta>;
 }) {
-  const rol = await getRol();
-  if (rol == null) redirect("/unauthorized");
-
   const { id } = await params;
-  const datos = await obtenerEstadoCuentaContacto(id);
+  const [rol, datos] = await Promise.all([getRol(), obtenerEstadoCuentaContacto(id)]);
+  if (rol == null) redirect("/unauthorized");
   if (!datos) notFound();
 
   const filtros = parsearFiltrosEstadoCuenta(await searchParams);

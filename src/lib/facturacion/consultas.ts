@@ -190,6 +190,8 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   if (!z.uuid().safeParse(id).success) return null;
 
   const supabase = await createClient();
+  const empresaP = getEmpresa();
+  const impuestosP = getImpuestosActivos();
   const factura = await supabase
     .from("facturas")
     .select(
@@ -218,8 +220,8 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
         .eq("id", factura.data.contacto_id)
         .maybeSingle()
         .returns<ContactoResumen | null>(),
-      getEmpresa(),
-      getImpuestosActivos(),
+      empresaP,
+      impuestosP,
       getAsiento(factura.data.asiento_id),
       supabase
         .from("numeraciones")
