@@ -500,7 +500,10 @@ function EncabezadoProducto({
       </div>
       {puedeEscribir ? (
         <div className="flex shrink-0 items-center gap-2">
-          <Button render={<Link href={`/dashboard/facturacion/nueva?producto=${id}`} prefetch={false} />}>
+          <Button
+            nativeButton={false}
+            render={<Link href={`/dashboard/facturacion/nueva?producto=${id}`} prefetch={false} />}
+          >
             <ReceiptText data-icon="inline-start" />
             Facturar
           </Button>
@@ -597,6 +600,7 @@ export function FichaProducto({
         variant="ghost"
         size="sm"
         className="w-fit"
+        nativeButton={false}
         render={<Link href="/dashboard/productos" prefetch={false} />}
       >
         <ArrowLeft data-icon="inline-start" />

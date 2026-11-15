@@ -359,7 +359,7 @@ function EncabezadoFicha({
             Editar perfil
           </Button>
         ) : (
-          <Button render={<Link href={estadoCuentaHref} prefetch={false} />}>
+          <Button nativeButton={false} render={<Link href={estadoCuentaHref} prefetch={false} />}>
             <FileText data-icon="inline-start" />
             Estado de cuenta
           </Button>
@@ -1047,6 +1047,7 @@ export function FichaContacto({
         variant="ghost"
         size="sm"
         className="w-fit"
+        nativeButton={false}
         render={<Link href="/dashboard/contactos" prefetch={false} />}
       >
         <ArrowLeft data-icon="inline-start" />
