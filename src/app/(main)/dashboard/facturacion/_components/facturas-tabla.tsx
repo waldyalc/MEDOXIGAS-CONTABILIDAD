@@ -1,86 +1,164 @@
+"use client";
+
+import Link from "next/link";
+
+import { AvatarInicial } from "@/components/avatar-inicial";
+import {
+  createDataTableColumnHelper,
+  createDataTableSelectColumn,
+  DataTableContent,
+  DataTableFacetFilter,
+  type DataTableFacetOption,
+  DataTablePagination,
+  DataTableReset,
+  DataTableSearch,
+  DataTableSelectionBar,
+  DataTableViewOptions,
+  useDataTable,
+} from "@/components/dashboardblocks/data-table";
+import { LinkProvider } from "@/components/dashboardblocks/link";
+import { StatusLabel, type StatusTone } from "@/components/dashboardblocks/status-label";
+import { DataTableRowLink } from "@/components/dashboardblocks/table";
 import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto, rutaFactura } from "@/lib/enlaces";
 import { etiquetaTipoComprobante } from "@/lib/facturacion/comprobantes";
 import type { FacturaFila } from "@/lib/facturacion/consultas";
 import { formatoMoneda, saldoDeFactura } from "@/lib/facturacion/formato";
-import type { EstadoFactura } from "@/lib/facturacion/tipos";
+import { type EstadoFactura, TIPOS_COMPROBANTE } from "@/lib/facturacion/tipos";
 import { formatoDia } from "@/lib/formato";
 
-const ETIQUETAS: Record<EstadoFactura, string> = {
-  abierta: "Abierta",
-  pagada: "Pagada",
-  anulada: "Anulada",
+const ESTADOS: Record<EstadoFactura, { etiqueta: string; tono: StatusTone }> = {
+  abierta: { etiqueta: "Abierta", tono: "warning" },
+  pagada: { etiqueta: "Pagada", tono: "good" },
+  anulada: { etiqueta: "Anulada", tono: "bad" },
 };
 
-function EstadoBadge({ estado }: { estado: EstadoFactura }) {
-  if (estado === "anulada") return <Badge variant="destructive">{ETIQUETAS[estado]}</Badge>;
-  if (estado === "pagada")
-    return (
-      <Badge
-        variant="outline"
-        className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
-      >
-        {ETIQUETAS[estado]}
+const OPCIONES_ESTADO: DataTableFacetOption[] = (["abierta", "pagada", "anulada"] as const).map((estado) => ({
+  label: ESTADOS[estado].etiqueta,
+  value: estado,
+}));
+
+const OPCIONES_TIPO: DataTableFacetOption[] = TIPOS_COMPROBANTE.map((tipo) => ({
+  label: etiquetaTipoComprobante(tipo),
+  value: tipo,
+}));
+
+const columnHelper = createDataTableColumnHelper<FacturaFila>();
+
+const columnas = columnHelper.columns([
+  createDataTableSelectColumn<FacturaFila>({ getRowLabel: (factura) => `la factura ${factura.numero}` }),
+  columnHelper.accessor("numero", {
+    cell: ({ row }) => (
+      <span className="block min-w-0">
+        <DataTableRowLink href={rutaFactura(row.original.id)}>Factura {row.original.numero}</DataTableRowLink>
+        <span className="text-muted-foreground block truncate font-mono text-xs font-normal">
+          {row.original.ncf ?? "Sin comprobante"}
+        </span>
+      </span>
+    ),
+    enableHiding: false,
+    header: "Factura",
+    meta: { primary: true, truncate: true },
+  }),
+  columnHelper.accessor("cliente_nombre", {
+    cell: ({ row }) => (
+      <span className="flex min-w-0 items-center gap-2">
+        <AvatarInicial nombre={row.original.cliente_nombre} size="sm" />
+        <Enlace href={rutaContacto(row.original.contacto_id)} className="truncate">
+          {row.original.cliente_nombre}
+        </Enlace>
+      </span>
+    ),
+    header: "Cliente",
+    meta: { truncate: true },
+  }),
+  columnHelper.accessor("tipo_comprobante", {
+    cell: ({ getValue }) => (
+      <Badge variant="secondary" className="font-normal">
+        {etiquetaTipoComprobante(getValue())}
       </Badge>
-    );
-  return <Badge>{ETIQUETAS[estado]}</Badge>;
-}
+    ),
+    enableGlobalFilter: false,
+    enableSorting: false,
+    header: "Tipo",
+    meta: { cellClassName: "whitespace-nowrap" },
+  }),
+  columnHelper.accessor("fecha", {
+    cell: ({ getValue }) => formatoDia(getValue()),
+    enableGlobalFilter: false,
+    header: "Fecha",
+    meta: { cellClassName: "whitespace-nowrap" },
+    sortDescFirst: true,
+  }),
+  columnHelper.accessor("vencimiento", {
+    cell: ({ getValue }) => formatoDia(getValue()),
+    enableGlobalFilter: false,
+    header: "Vencimiento",
+    meta: { cellClassName: "whitespace-nowrap" },
+    sortDescFirst: true,
+  }),
+  columnHelper.accessor("estado", {
+    cell: ({ getValue }) => {
+      const estado = ESTADOS[getValue()];
+      return <StatusLabel tone={estado.tono}>{estado.etiqueta}</StatusLabel>;
+    },
+    enableGlobalFilter: false,
+    enableSorting: false,
+    header: "Estado",
+    meta: { cellClassName: "whitespace-nowrap" },
+  }),
+  columnHelper.accessor("total", {
+    cell: ({ getValue }) => formatoMoneda(getValue()),
+    enableGlobalFilter: false,
+    header: "Total",
+    meta: { align: "end" },
+    sortDescFirst: true,
+  }),
+  columnHelper.accessor((factura) => saldoDeFactura(factura.total, factura.pagado, factura.credito, factura.retenido), {
+    cell: ({ getValue, row }) => (row.original.estado === "anulada" ? "—" : formatoMoneda(getValue())),
+    enableGlobalFilter: false,
+    header: "Por cobrar",
+    id: "por_cobrar",
+    meta: { align: "end" },
+  }),
+]);
 
 export function FacturasTabla({ facturas }: { facturas: FacturaFila[] }) {
+  const tabla = useDataTable({
+    columns: columnas,
+    data: facturas,
+    getRowId: (factura) => factura.id,
+    initialState: { sorting: [{ desc: true, id: "numero" }] },
+    pageSize: 12,
+  });
+  const seleccionadas = tabla.getSelectedRowModel().rows.length;
+
   return (
-    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16">#</TableHead>
-            <TableHead>NCF</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Cliente</TableHead>
-            <TableHead>Fecha</TableHead>
-            <TableHead>Vencimiento</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-            <TableHead className="text-right">Por cobrar</TableHead>
-            <TableHead>Estado</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {facturas.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
-                No hay facturas todavía.
-              </TableCell>
-            </TableRow>
+    <LinkProvider component={Link}>
+      <section className="bg-card ring-foreground/10 @container/data-table overflow-hidden rounded-xl ring-1">
+        <div className="flex min-h-9 flex-wrap items-center gap-2 p-3">
+          {seleccionadas > 0 ? (
+            <DataTableSelectionBar className="w-full" table={tabla} />
           ) : (
-            facturas.map((factura) => (
-              <TableRow key={factura.id}>
-                <TableCell className="font-medium">
-                  <Enlace href={rutaFactura(factura.id)}>{factura.numero}</Enlace>
-                </TableCell>
-                <TableCell className="font-mono text-xs">
-                  {factura.ncf ? <Enlace href={rutaFactura(factura.id)}>{factura.ncf}</Enlace> : "—"}
-                </TableCell>
-                <TableCell className="whitespace-nowrap">{etiquetaTipoComprobante(factura.tipo_comprobante)}</TableCell>
-                <TableCell>
-                  <Enlace href={rutaContacto(factura.contacto_id)}>{factura.cliente_nombre}</Enlace>
-                </TableCell>
-                <TableCell>{formatoDia(factura.fecha)}</TableCell>
-                <TableCell>{formatoDia(factura.vencimiento)}</TableCell>
-                <TableCell className="text-right font-medium">{formatoMoneda(factura.total)}</TableCell>
-                <TableCell className="text-right">
-                  {factura.estado === "anulada"
-                    ? "—"
-                    : formatoMoneda(saldoDeFactura(factura.total, factura.pagado, factura.credito, factura.retenido))}
-                </TableCell>
-                <TableCell>
-                  <EstadoBadge estado={factura.estado} />
-                </TableCell>
-              </TableRow>
-            ))
+            <>
+              <DataTableSearch table={tabla} placeholder="Buscar factura, cliente o NCF" />
+              <DataTableFacetFilter table={tabla} columnId="estado" options={OPCIONES_ESTADO} title="Estado" />
+              <DataTableFacetFilter table={tabla} columnId="tipo_comprobante" options={OPCIONES_TIPO} title="Tipo" />
+              <DataTableReset table={tabla} />
+              <div className="ml-auto flex items-center gap-2">
+                <DataTableViewOptions table={tabla} />
+              </div>
+            </>
           )}
-        </TableBody>
-      </Table>
-    </div>
+        </div>
+        <div className="border-t">
+          <DataTableContent caption="Facturas de venta" empty="No hay facturas todavía." table={tabla} />
+        </div>
+        <div className="border-t p-3">
+          <DataTablePagination pageSizeOptions={[12, 24, 48]} table={tabla} />
+        </div>
+      </section>
+    </LinkProvider>
   );
 }
