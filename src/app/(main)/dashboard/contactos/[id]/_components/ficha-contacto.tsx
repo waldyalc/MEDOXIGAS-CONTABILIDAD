@@ -1,16 +1,33 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 
 import Link from "next/link";
 
-import { ArrowLeft, FilePlus2, FileText, Search, ShoppingCart } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  Download,
+  FilePlus2,
+  FileText,
+  Hash,
+  Mail,
+  MapPin,
+  MoreHorizontal,
+  Phone,
+  Plus,
+  Search,
+  ShoppingCart,
+  Upload,
+} from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { etiquetaTipoContacto } from "@/lib/contactos/contactos";
@@ -18,17 +35,14 @@ import {
   type AsientoFicha,
   aCentavos,
   type CuentaFicha,
-  construirTransacciones,
   type DatosFichaContacto,
   type DocumentoComercialFicha,
   type DocumentoFicha,
   etiquetaEstadoComercial,
   etiquetaEstadoDocumento,
-  filtrarPorNumero,
+  etiquetaEstadoPago,
   type NotaFicha,
   type PagoFicha,
-  saldoDocumento,
-  type TransaccionFicha,
   totalAnticipos,
   totalPorCobrar,
   totalPorPagar,
@@ -47,457 +61,186 @@ import {
   rutaPagoProveedor,
   rutaPagoRecibido,
 } from "@/lib/enlaces";
-import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
+import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
-type PestanaFicha =
-  | "transacciones"
-  | "facturas"
-  | "facturas-proveedor"
-  | "cotizaciones"
-  | "conduces"
-  | "notas-venta"
-  | "notas-compra"
-  | "pagos-recibidos"
-  | "pagos-proveedores"
-  | "asientos";
+type TipoFila =
+  | "factura"
+  | "compra"
+  | "cotizacion"
+  | "conduce"
+  | "nota"
+  | "pago-recibido"
+  | "pago-proveedor"
+  | "asiento";
 
-interface Pestana {
-  valor: PestanaFicha;
-  etiqueta: string;
-  aplicaA: "siempre" | "venta" | "compra";
-}
-
-const PESTANAS: Pestana[] = [
-  { valor: "transacciones", etiqueta: "Transacciones", aplicaA: "siempre" },
-  { valor: "facturas", etiqueta: "Facturas de venta", aplicaA: "venta" },
-  { valor: "facturas-proveedor", etiqueta: "Facturas de proveedor", aplicaA: "compra" },
-  { valor: "cotizaciones", etiqueta: "Cotizaciones", aplicaA: "venta" },
-  { valor: "conduces", etiqueta: "Conduces", aplicaA: "venta" },
-  { valor: "notas-venta", etiqueta: "Notas de crédito y débito", aplicaA: "venta" },
-  { valor: "notas-compra", etiqueta: "Notas de crédito de compra", aplicaA: "compra" },
-  { valor: "pagos-recibidos", etiqueta: "Pagos recibidos", aplicaA: "venta" },
-  { valor: "pagos-proveedores", etiqueta: "Pagos a proveedores", aplicaA: "compra" },
-  { valor: "asientos", etiqueta: "Asientos", aplicaA: "siempre" },
-];
-
-const FILTROS_INICIALES: Record<PestanaFicha, string> = {
-  transacciones: "",
-  facturas: "",
-  "facturas-proveedor": "",
-  cotizaciones: "",
-  conduces: "",
-  "notas-venta": "",
-  "notas-compra": "",
-  "pagos-recibidos": "",
-  "pagos-proveedores": "",
-  asientos: "",
+const ETIQUETA_TIPO_FILA: Record<TipoFila, string> = {
+  factura: "Factura",
+  compra: "Compra",
+  cotizacion: "Cotización",
+  conduce: "Conduce",
+  nota: "Nota",
+  "pago-recibido": "Pago recibido",
+  "pago-proveedor": "Pago proveedor",
+  asiento: "Asiento",
 };
 
-function aplicaPestana(pestana: Pestana, tipo: DatosFichaContacto["contacto"]["tipo"]): boolean {
-  if (pestana.aplicaA === "siempre") return true;
-  if (pestana.aplicaA === "venta") return tipo !== "proveedor";
-  return tipo !== "cliente";
+interface FilaUnificada {
+  clave: string;
+  numero: number;
+  ncf: string | null;
+  fecha: string;
+  tipo: TipoFila;
+  detalle: string;
+  montoCentavos: number;
+  estado: string;
+  href: string;
 }
 
-function EstadoDocumentoBadge({ estado, tipo }: { estado: string; tipo: "venta" | "compra" }) {
-  const etiqueta = etiquetaEstadoDocumento(estado, tipo);
+const FILAS_POR_PAGINA = 15;
 
-  if (estado === "anulada") return <Badge variant="destructive">{etiqueta}</Badge>;
-  if (estado === "pagada") {
-    return (
-      <Badge
-        variant="outline"
-        className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
-      >
-        {etiqueta}
-      </Badge>
-    );
-  }
-  return <Badge variant="secondary">{etiqueta}</Badge>;
+function detalleNota(nota: NotaFicha): string {
+  if (nota.tipo === "credito") return "Nota de crédito";
+  if (nota.tipo === "debito") return "Nota de débito";
+  return "Nota de crédito de compra";
 }
 
-function EstadoPagoBadge({ estado }: { estado: string }) {
-  if (estado === "anulado") return <Badge variant="destructive">Anulado</Badge>;
-  return <Badge variant="secondary">Activo</Badge>;
+function detallePagoRecibido(pago: PagoFicha): string {
+  if (pago.factura_numero == null) return "Anticipo";
+  return `Factura #${pago.factura_numero}`;
 }
 
-function EstadoComercialBadge({ estado }: { estado: string }) {
-  const etiqueta = etiquetaEstadoComercial(estado);
-
-  if (estado === "anulada") return <Badge variant="destructive">{etiqueta}</Badge>;
-  if (estado === "convertida") {
-    return (
-      <Badge
-        variant="outline"
-        className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
-      >
-        {etiqueta}
-      </Badge>
-    );
-  }
-  return <Badge variant="secondary">{etiqueta}</Badge>;
+function detallePagoProveedor(pago: PagoFicha): string {
+  if (pago.factura_numero == null) return "Pago a proveedor";
+  return `Factura de proveedor #${pago.factura_numero}`;
 }
 
-function FiltroNumero({
-  valor,
-  onChange,
-  ariaLabel,
-}: {
-  readonly valor: string;
-  readonly onChange: (valor: string) => void;
-  readonly ariaLabel: string;
-}) {
-  return (
-    <div className="relative w-full sm:max-w-xs">
-      <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-      <Input
-        value={valor}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="Filtrar por número…"
-        aria-label={ariaLabel}
-        className="pl-8"
-      />
-    </div>
-  );
+function facturasAFilas(facturas: readonly DocumentoFicha[], tipo: "factura" | "compra"): FilaUnificada[] {
+  const esVenta = tipo === "factura";
+  return facturas.map((fila) => ({
+    clave: `${tipo}-${fila.id}`,
+    numero: fila.numero,
+    ncf: fila.ncf,
+    fecha: fila.fecha,
+    tipo,
+    detalle: esVenta ? "Factura de venta" : "Factura de proveedor",
+    montoCentavos: aCentavos(fila.total),
+    estado: fila.estado,
+    href: esVenta ? rutaFactura(fila.id) : rutaCompra(fila.id),
+  }));
 }
 
-function TablaTransacciones({ filas }: { readonly filas: TransaccionFicha[] }) {
-  return (
-    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Fecha</TableHead>
-            <TableHead>Detalle</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead className="text-right">Egresos</TableHead>
-            <TableHead className="text-right">Ingresos</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filas.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
-                No hay transacciones.
-              </TableCell>
-            </TableRow>
-          ) : (
-            filas.map((fila) => (
-              <TableRow key={fila.clave} className="relative cursor-pointer">
-                <TableCell className="font-medium">
-                  <Enlace className="absolute inset-0" href={fila.href} aria-label={`Ver ${fila.detalle}`} />
-                  <span className="pointer-events-none relative">{formatoDia(fila.fecha)}</span>
-                </TableCell>
-                <TableCell className="whitespace-normal">{fila.detalle}</TableCell>
-                <TableCell>
-                  <EstadoPagoBadge estado={fila.estado} />
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {fila.egresosCentavos === 0 ? "—" : formatoMonedaCentavos(fila.egresosCentavos)}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {fila.ingresosCentavos === 0 ? "—" : formatoMonedaCentavos(fila.ingresosCentavos)}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  );
+function comercialesAFilas(filas: readonly DocumentoComercialFicha[], tipo: "cotizacion" | "conduce"): FilaUnificada[] {
+  return filas.map((fila) => ({
+    clave: `${tipo}-${fila.id}`,
+    numero: fila.numero,
+    ncf: null,
+    fecha: fila.fecha,
+    tipo,
+    detalle: tipo === "cotizacion" ? "Cotización" : "Conduce",
+    montoCentavos: aCentavos(fila.total),
+    estado: fila.estado,
+    href: tipo === "cotizacion" ? rutaCotizacion(fila.id) : rutaConduce(fila.id),
+  }));
 }
 
-function TablaFacturas({ filas, tipo }: { readonly filas: DocumentoFicha[]; readonly tipo: "venta" | "compra" }) {
-  const esVenta = tipo === "venta";
-
-  return (
-    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Número / NCF</TableHead>
-            <TableHead>Creación</TableHead>
-            <TableHead>Vencimiento</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-            <TableHead className="text-right">{esVenta ? "Cobrado" : "Pagado"}</TableHead>
-            <TableHead className="text-right">{esVenta ? "Por cobrar" : "Por pagar"}</TableHead>
-            <TableHead>Estado</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filas.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
-                No hay facturas.
-              </TableCell>
-            </TableRow>
-          ) : (
-            filas.map((fila) => (
-              <TableRow key={fila.id} className="relative cursor-pointer">
-                <TableCell className="font-medium">
-                  <Enlace
-                    className="absolute inset-0"
-                    href={esVenta ? rutaFactura(fila.id) : rutaCompra(fila.id)}
-                    aria-label={`Ver factura ${fila.numero}`}
-                  />
-                  <span className="pointer-events-none relative flex flex-col">
-                    <span>#{fila.numero}</span>
-                    <span className="text-muted-foreground font-mono text-xs">{fila.ncf ?? "—"}</span>
-                  </span>
-                </TableCell>
-                <TableCell>{formatoDia(fila.fecha)}</TableCell>
-                <TableCell>{formatoDia(fila.vencimiento)}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatoMonedaCentavos(aCentavos(fila.total))}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatoMonedaCentavos(aCentavos(fila.pagado))}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {fila.estado === "anulada"
-                    ? "—"
-                    : formatoMonedaCentavos(saldoDocumento(fila.total, fila.pagado, fila.credito))}
-                </TableCell>
-                <TableCell>
-                  <EstadoDocumentoBadge estado={fila.estado} tipo={tipo} />
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-
-function TablaComerciales({
-  filas,
-  tipo,
-}: {
-  readonly filas: DocumentoComercialFicha[];
-  readonly tipo: "cotizacion" | "conduce";
-}) {
-  const esCotizacion = tipo === "cotizacion";
-
-  return (
-    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Número</TableHead>
-            <TableHead>Fecha</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-            <TableHead>Estado</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filas.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className="text-muted-foreground py-10 text-center">
-                {esCotizacion ? "No hay cotizaciones." : "No hay conduces."}
-              </TableCell>
-            </TableRow>
-          ) : (
-            filas.map((fila) => (
-              <TableRow key={fila.id} className="relative cursor-pointer">
-                <TableCell className="font-medium">
-                  <Enlace
-                    className="absolute inset-0"
-                    href={esCotizacion ? rutaCotizacion(fila.id) : rutaConduce(fila.id)}
-                    aria-label={`Ver ${esCotizacion ? "cotización" : "conduce"} #${fila.numero}`}
-                  />
-                  <span className="pointer-events-none relative">#{fila.numero}</span>
-                </TableCell>
-                <TableCell>{formatoDia(fila.fecha)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatoMoneda(fila.total)}</TableCell>
-                <TableCell>
-                  <EstadoComercialBadge estado={fila.estado} />
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-
-function rutaNotaFicha(nota: NotaFicha): string {
+function rutaNota(nota: NotaFicha): string {
   if (nota.tipo === "credito") return rutaNotaCreditoVenta(nota.id);
   if (nota.tipo === "debito") return rutaNotaDebitoVenta(nota.id);
   return rutaNotaCreditoCompra(nota.id);
 }
 
-function etiquetaTipoNota(tipo: NotaFicha["tipo"]): string {
-  if (tipo === "credito") return "Crédito";
-  if (tipo === "debito") return "Débito";
-  return "Crédito de compra";
+function notasAFilas(notas: readonly NotaFicha[]): FilaUnificada[] {
+  return notas.map((fila) => ({
+    clave: `nota-${fila.tipo}-${fila.id}`,
+    numero: fila.numero,
+    ncf: fila.ncf,
+    fecha: fila.fecha,
+    tipo: "nota",
+    detalle: detalleNota(fila),
+    montoCentavos: aCentavos(fila.total),
+    estado: fila.estado,
+    href: rutaNota(fila),
+  }));
 }
 
-function TablaNotas({ filas }: { readonly filas: NotaFicha[] }) {
-  return (
-    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Número / NCF</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Fecha</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-            <TableHead>Estado</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filas.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
-                No hay notas.
-              </TableCell>
-            </TableRow>
-          ) : (
-            filas.map((fila) => (
-              <TableRow key={`${fila.tipo}-${fila.id}`} className="relative cursor-pointer">
-                <TableCell className="font-medium">
-                  <Enlace
-                    className="absolute inset-0"
-                    href={rutaNotaFicha(fila)}
-                    aria-label={`Ver nota ${fila.numero}`}
-                  />
-                  <span className="pointer-events-none relative flex flex-col">
-                    <span>#{fila.numero}</span>
-                    <span className="text-muted-foreground font-mono text-xs">{fila.ncf ?? "—"}</span>
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{etiquetaTipoNota(fila.tipo)}</Badge>
-                </TableCell>
-                <TableCell>{formatoDia(fila.fecha)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatoMoneda(fila.total)}</TableCell>
-                <TableCell>
-                  {fila.estado === "anulada" ? (
-                    <Badge variant="destructive">Anulada</Badge>
-                  ) : (
-                    <Badge variant="secondary">Activa</Badge>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  );
+function pagosAFilas(pagos: readonly PagoFicha[], tipo: "pago-recibido" | "pago-proveedor"): FilaUnificada[] {
+  return pagos.map((fila) => ({
+    clave: `${tipo}-${fila.id}`,
+    numero: fila.numero,
+    ncf: null,
+    fecha: fila.fecha,
+    tipo,
+    detalle: tipo === "pago-recibido" ? detallePagoRecibido(fila) : detallePagoProveedor(fila),
+    montoCentavos: aCentavos(fila.monto),
+    estado: fila.estado,
+    href: tipo === "pago-recibido" ? rutaPagoRecibido(fila.id) : rutaPagoProveedor(fila.id),
+  }));
 }
 
-function TablaPagos({ filas, tipo }: { readonly filas: PagoFicha[]; readonly tipo: "recibido" | "proveedor" }) {
-  return (
-    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Número</TableHead>
-            <TableHead>Fecha</TableHead>
-            <TableHead>Factura</TableHead>
-            <TableHead className="text-right">Monto</TableHead>
-            <TableHead>Estado</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filas.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
-                No hay pagos.
-              </TableCell>
-            </TableRow>
-          ) : (
-            filas.map((fila) => (
-              <TableRow key={fila.id} className="relative cursor-pointer">
-                <TableCell className="font-medium">
-                  <Enlace
-                    className="absolute inset-0"
-                    href={tipo === "recibido" ? rutaPagoRecibido(fila.id) : rutaPagoProveedor(fila.id)}
-                    aria-label={`Ver pago ${fila.numero}`}
-                  />
-                  <span className="pointer-events-none relative">#{fila.numero}</span>
-                </TableCell>
-                <TableCell>{formatoDia(fila.fecha)}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {fila.factura_numero === null || fila.factura_id === null ? (
-                    "—"
-                  ) : (
-                    <Enlace href={tipo === "recibido" ? rutaFactura(fila.factura_id) : rutaCompra(fila.factura_id)}>
-                      #{fila.factura_numero}
-                    </Enlace>
-                  )}
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {formatoMonedaCentavos(aCentavos(fila.monto))}
-                </TableCell>
-                <TableCell>
-                  <EstadoPagoBadge estado={fila.estado} />
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  );
+function asientosAFilas(asientos: readonly AsientoFicha[]): FilaUnificada[] {
+  return asientos.map((fila) => ({
+    clave: `asiento-${fila.id}`,
+    numero: fila.numero,
+    ncf: null,
+    fecha: fila.fecha,
+    tipo: "asiento",
+    detalle: fila.descripcion,
+    montoCentavos: fila.debitoCentavos,
+    estado: "activo",
+    href: rutaAsiento(fila.id),
+  }));
 }
 
-function TablaAsientos({ filas }: { readonly filas: AsientoFicha[] }) {
-  return (
-    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Número</TableHead>
-            <TableHead>Fecha</TableHead>
-            <TableHead>Descripción</TableHead>
-            <TableHead className="text-right">Débito</TableHead>
-            <TableHead className="text-right">Crédito</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filas.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
-                No hay asientos.
-              </TableCell>
-            </TableRow>
-          ) : (
-            filas.map((fila) => (
-              <TableRow key={fila.id} className="relative cursor-pointer">
-                <TableCell className="font-medium">
-                  <Enlace
-                    className="absolute inset-0"
-                    href={rutaAsiento(fila.id)}
-                    aria-label={`Ver asiento ${fila.numero}`}
-                  />
-                  <span className="pointer-events-none relative">#{fila.numero}</span>
-                </TableCell>
-                <TableCell>{formatoDia(fila.fecha)}</TableCell>
-                <TableCell className="whitespace-normal">{fila.descripcion}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatoMonedaCentavos(fila.debitoCentavos)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatoMonedaCentavos(fila.creditoCentavos)}</TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  );
+function construirFilas(datos: DatosFichaContacto): FilaUnificada[] {
+  const filas: FilaUnificada[] = [
+    ...facturasAFilas(datos.facturas, "factura"),
+    ...facturasAFilas(datos.facturasProveedor, "compra"),
+    ...comercialesAFilas(datos.cotizaciones, "cotizacion"),
+    ...comercialesAFilas(datos.conduces, "conduce"),
+    ...notasAFilas(datos.notasVenta),
+    ...notasAFilas(datos.notasCompra),
+    ...pagosAFilas(datos.pagosRecibidos, "pago-recibido"),
+    ...pagosAFilas(datos.pagosProveedor, "pago-proveedor"),
+    ...asientosAFilas(datos.asientos),
+  ];
+  return filas.sort((a, b) => b.fecha.localeCompare(a.fecha) || b.numero - a.numero);
 }
 
-function CuentaEnlace({ cuenta }: { readonly cuenta: CuentaFicha | null }) {
-  if (!cuenta) return <span className="text-muted-foreground">—</span>;
+function TipoBadge({ tipo }: { readonly tipo: TipoFila }) {
+  if (tipo === "pago-recibido") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
+      >
+        {ETIQUETA_TIPO_FILA[tipo]}
+      </Badge>
+    );
+  }
+  if (tipo === "factura" || tipo === "compra") return <Badge variant="outline">{ETIQUETA_TIPO_FILA[tipo]}</Badge>;
+  return <Badge variant="secondary">{ETIQUETA_TIPO_FILA[tipo]}</Badge>;
+}
 
-  return (
-    <Enlace href={rutaCuenta(cuenta.id)} className="font-medium">
-      {cuenta.codigo} · {cuenta.nombre}
-    </Enlace>
-  );
+function EstadoFilaBadge({ estado, tipo }: { readonly estado: string; readonly tipo: TipoFila }) {
+  let etiqueta: string;
+  if (tipo === "factura" || tipo === "compra")
+    etiqueta = etiquetaEstadoDocumento(estado, tipo === "factura" ? "venta" : "compra");
+  else if (tipo === "cotizacion" || tipo === "conduce") etiqueta = etiquetaEstadoComercial(estado);
+  else etiqueta = etiquetaEstadoPago(estado);
+
+  if (estado === "anulada" || estado === "anulado") return <Badge variant="destructive">{etiqueta}</Badge>;
+  if (estado === "pagada" || estado === "convertida") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
+      >
+        {etiqueta}
+      </Badge>
+    );
+  }
+  return <Badge variant="secondary">{etiqueta}</Badge>;
 }
 
 function TarjetaResumen({ titulo, centavos }: { readonly titulo: string; readonly centavos: number }) {
@@ -513,110 +256,450 @@ function TarjetaResumen({ titulo, centavos }: { readonly titulo: string; readonl
   );
 }
 
-export function FichaContacto({
-  datos,
-  puedeCrear,
-}: {
-  readonly datos: DatosFichaContacto;
-  readonly puedeCrear: boolean;
-}) {
-  const {
-    contacto,
-    cuentaCxc,
-    cuentaCxp,
-    facturas,
-    facturasProveedor,
-    cotizaciones,
-    conduces,
-    notasVenta,
-    notasCompra,
-    pagosRecibidos,
-    pagosProveedor,
-    asientos,
-  } = datos;
-  const [pestana, setPestana] = useState<PestanaFicha>("transacciones");
-  const [filtros, setFiltros] = useState<Record<PestanaFicha, string>>(FILTROS_INICIALES);
+function CuentaEnlace({ cuenta }: { readonly cuenta: CuentaFicha | null }) {
+  if (!cuenta) return <span className="text-muted-foreground">—</span>;
+  return (
+    <Enlace href={rutaCuenta(cuenta.id)} className="font-medium">
+      {cuenta.codigo} · {cuenta.nombre}
+    </Enlace>
+  );
+}
 
-  const visibles = PESTANAS.filter((item) => aplicaPestana(item, contacto.tipo));
-  const porCobrar = totalPorCobrar(facturas);
-  const anticipos = totalAnticipos(pagosRecibidos);
-  const porPagar = totalPorPagar(facturasProveedor);
+function MetaItem({ icono, texto }: { readonly icono: React.ReactNode; readonly texto: string }) {
+  return (
+    <span className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">
+      {icono}
+      {texto}
+    </span>
+  );
+}
 
-  function cambiarPestana(valor: string | number) {
-    const encontrada = PESTANAS.find((item) => item.valor === valor);
-    if (encontrada) setPestana(encontrada.valor);
-  }
+function TablaUnificada({ filas }: { readonly filas: FilaUnificada[] }) {
+  const [pagina, setPagina] = useState(0);
+  const paginas = Math.max(1, Math.ceil(filas.length / FILAS_POR_PAGINA));
+  const paginaActual = Math.min(pagina, paginas - 1);
+  const visibles = filas.slice(paginaActual * FILAS_POR_PAGINA, (paginaActual + 1) * FILAS_POR_PAGINA);
 
-  function cambiarFiltro(valor: PestanaFicha, texto: string) {
-    setFiltros((actuales) => ({ ...actuales, [valor]: texto }));
-  }
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Número / NCF</TableHead>
+              <TableHead>Fecha</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Detalle</TableHead>
+              <TableHead className="text-right">Monto</TableHead>
+              <TableHead>Estado</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {visibles.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
+                  No hay transacciones.
+                </TableCell>
+              </TableRow>
+            ) : (
+              visibles.map((fila) => (
+                <TableRow key={fila.clave} className="relative cursor-pointer">
+                  <TableCell className="font-medium">
+                    <Enlace
+                      className="absolute inset-0"
+                      href={fila.href}
+                      aria-label={`Ver ${fila.detalle} #${fila.numero}`}
+                    />
+                    <span className="pointer-events-none relative flex flex-col">
+                      <span>#{fila.numero}</span>
+                      {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
+                    </span>
+                  </TableCell>
+                  <TableCell>{formatoDia(fila.fecha)}</TableCell>
+                  <TableCell>
+                    <TipoBadge tipo={fila.tipo} />
+                  </TableCell>
+                  <TableCell className="text-muted-foreground whitespace-normal">{fila.detalle}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatoMonedaCentavos(fila.montoCentavos)}</TableCell>
+                  <TableCell>
+                    <EstadoFilaBadge estado={fila.estado} tipo={fila.tipo} />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="flex items-center justify-between">
+        <p className="text-muted-foreground text-sm">
+          Mostrando {visibles.length} de {filas.length} transacciones
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" disabled={paginaActual === 0} onClick={() => setPagina(paginaActual - 1)}>
+            Anterior
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={paginaActual >= paginas - 1}
+            onClick={() => setPagina(paginaActual + 1)}
+          >
+            Siguiente
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  const tablas: Record<PestanaFicha, () => ReactNode> = {
-    transacciones: () => (
-      <TablaTransacciones
-        filas={filtrarPorNumero(construirTransacciones(pagosRecibidos, pagosProveedor), filtros.transacciones)}
-      />
-    ),
-    facturas: () => <TablaFacturas filas={filtrarPorNumero(facturas, filtros.facturas)} tipo="venta" />,
-    "facturas-proveedor": () => (
-      <TablaFacturas filas={filtrarPorNumero(facturasProveedor, filtros["facturas-proveedor"])} tipo="compra" />
-    ),
-    cotizaciones: () => (
-      <TablaComerciales filas={filtrarPorNumero(cotizaciones, filtros.cotizaciones)} tipo="cotizacion" />
-    ),
-    conduces: () => <TablaComerciales filas={filtrarPorNumero(conduces, filtros.conduces)} tipo="conduce" />,
-    "notas-venta": () => <TablaNotas filas={filtrarPorNumero(notasVenta, filtros["notas-venta"])} />,
-    "notas-compra": () => <TablaNotas filas={filtrarPorNumero(notasCompra, filtros["notas-compra"])} />,
-    "pagos-recibidos": () => (
-      <TablaPagos filas={filtrarPorNumero(pagosRecibidos, filtros["pagos-recibidos"])} tipo="recibido" />
-    ),
-    "pagos-proveedores": () => (
-      <TablaPagos filas={filtrarPorNumero(pagosProveedor, filtros["pagos-proveedores"])} tipo="proveedor" />
-    ),
-    asientos: () => <TablaAsientos filas={filtrarPorNumero(asientos, filtros.asientos)} />,
+interface PersonaContacto {
+  nombre: string;
+  rol: string;
+  departamento: string;
+  correo: string;
+  telefono: string;
+}
+
+// TODO backend: no existe tabla de personas de contacto por cliente; datos de ejemplo del diseño.
+const PERSONAS_EJEMPLO: PersonaContacto[] = [
+  {
+    nombre: "Ana García",
+    rol: "Contacto principal",
+    departamento: "Compras",
+    correo: "ana.garcia@ejemplo.com",
+    telefono: "+1 (809) 555-0101",
+  },
+  {
+    nombre: "Luis Peña",
+    rol: "Contador",
+    departamento: "Finanzas",
+    correo: "luis.pena@ejemplo.com",
+    telefono: "+1 (809) 555-0102",
+  },
+  {
+    nombre: "María Santos",
+    rol: "Recepción",
+    departamento: "Operaciones",
+    correo: "maria.santos@ejemplo.com",
+    telefono: "+1 (809) 555-0103",
+  },
+];
+
+function iniciales(nombre: string): string {
+  return nombre
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((parte) => parte[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+function TarjetaPersona({ persona }: { readonly persona: PersonaContacto }) {
+  return (
+    <div className="bg-card ring-foreground/10 flex flex-col gap-3 rounded-xl p-4 ring-1">
+      <div className="flex items-center gap-3">
+        <Avatar>
+          <AvatarFallback>{iniciales(persona.nombre)}</AvatarFallback>
+        </Avatar>
+        <div className="min-w-0">
+          <p className="truncate font-medium">{persona.nombre}</p>
+          <p className="text-muted-foreground text-sm">{persona.rol}</p>
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5 text-sm">
+        <span className="text-muted-foreground inline-flex items-center gap-1.5">
+          <Mail className="size-3.5" />
+          {persona.correo}
+        </span>
+        <span className="text-muted-foreground inline-flex items-center gap-1.5">
+          <Phone className="size-3.5" />
+          {persona.telefono}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function PestanaContactos({ contacto }: { readonly contacto: DatosFichaContacto["contacto"] }) {
+  // TODO backend: cuando exista la tabla de personas, reemplazar PERSONAS_EJEMPLO por los datos reales.
+  const principal: PersonaContacto = {
+    nombre: contacto.nombre,
+    rol: "Contacto principal",
+    departamento: "—",
+    correo: contacto.correo ?? "—",
+    telefono: contacto.telefono ?? "—",
   };
+  const personas = [principal, ...PERSONAS_EJEMPLO];
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-fit"
-          render={<Link href="/dashboard/contactos" prefetch={false} />}
-        >
-          <ArrowLeft data-icon="inline-start" />
-          Contactos
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Personas de contacto</h2>
+          <p className="text-muted-foreground text-sm">Personas con las que se trata en esta empresa</p>
+        </div>
+        <Button variant="outline" size="sm">
+          <Plus data-icon="inline-start" />
+          Agregar contacto
         </Button>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">{contacto.nombre}</h1>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {personas.map((persona) => (
+          <TarjetaPersona key={`${persona.nombre}-${persona.correo}`} persona={persona} />
+        ))}
+        <button
+          type="button"
+          className="border-muted-foreground/30 text-muted-foreground hover:bg-muted/50 flex min-h-32 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed transition-colors"
+        >
+          <Plus className="size-5" />
+          <span className="text-sm font-medium">Agregar contacto</span>
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <h3 className="font-medium">Todos los contactos</h3>
+        <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Rol</TableHead>
+                <TableHead>Departamento</TableHead>
+                <TableHead>Correo</TableHead>
+                <TableHead>Teléfono</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {personas.map((persona) => (
+                <TableRow key={`fila-${persona.nombre}-${persona.correo}`}>
+                  <TableCell className="font-medium">
+                    <span className="flex items-center gap-2">
+                      <Avatar className="size-6">
+                        <AvatarFallback className="text-xs">{iniciales(persona.nombre)}</AvatarFallback>
+                      </Avatar>
+                      {persona.nombre}
+                    </span>
+                  </TableCell>
+                  <TableCell>{persona.rol}</TableCell>
+                  <TableCell className="text-muted-foreground">{persona.departamento}</TableCell>
+                  <TableCell className="text-muted-foreground">{persona.correo}</TableCell>
+                  <TableCell className="text-muted-foreground tabular-nums">{persona.telefono}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface AdjuntoEjemplo {
+  nombre: string;
+  tipo: string;
+  tamano: string;
+  subidoPor: string;
+  fecha: string;
+}
+
+// TODO backend: no existe tabla de archivos adjuntos; filas de ejemplo del diseño.
+const ADJUNTOS_EJEMPLO: AdjuntoEjemplo[] = [
+  { nombre: "contrato-servicios.pdf", tipo: "Contrato", tamano: "2.4 MB", subidoPor: "Sistema", fecha: "2026-01-15" },
+  { nombre: "factura-1045.pdf", tipo: "Factura", tamano: "158 KB", subidoPor: "Sistema", fecha: "2026-01-10" },
+];
+
+function TarjetaConteo({ titulo, cantidad }: { readonly titulo: string; readonly cantidad: number }) {
+  return (
+    <Card size="sm">
+      <CardHeader className="flex-row items-center justify-between">
+        <CardTitle className="text-muted-foreground text-sm font-normal">{titulo}</CardTitle>
+        <FileText className="text-muted-foreground size-4" />
+      </CardHeader>
+      <CardContent>
+        <p className="text-2xl font-semibold tracking-tight tabular-nums">{cantidad}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PestanaDocumentos({ datos }: { readonly datos: DatosFichaContacto }) {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <TarjetaConteo titulo="Facturas" cantidad={datos.facturas.length + datos.facturasProveedor.length} />
+        <TarjetaConteo titulo="Docs. comerciales" cantidad={datos.cotizaciones.length + datos.conduces.length} />
+        <TarjetaConteo
+          titulo="Otros"
+          cantidad={
+            datos.notasVenta.length +
+            datos.notasCompra.length +
+            datos.pagosRecibidos.length +
+            datos.pagosProveedor.length
+          }
+        />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-medium">Archivos adjuntos</h3>
+          <Button size="sm">
+            <Upload data-icon="inline-start" />
+            Subir documento
+          </Button>
+        </div>
+        <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Tamaño</TableHead>
+                <TableHead>Subido por</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead className="w-10" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ADJUNTOS_EJEMPLO.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
+                    No hay archivos adjuntos.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                ADJUNTOS_EJEMPLO.map((adjunto) => (
+                  <TableRow key={adjunto.nombre}>
+                    <TableCell className="font-medium">
+                      <span className="flex items-center gap-2">
+                        <FileText className="text-muted-foreground size-4" />
+                        {adjunto.nombre}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{adjunto.tipo}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{adjunto.tamano}</TableCell>
+                    <TableCell className="text-muted-foreground">{adjunto.subidoPor}</TableCell>
+                    <TableCell>{formatoDia(adjunto.fecha)}</TableCell>
+                    <TableCell>
+                      <span className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon-sm" aria-label={`Descargar ${adjunto.nombre}`}>
+                          <Download className="size-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon-sm" aria-label="Más acciones">
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EncabezadoFicha({
+  contacto,
+  puedeCrear,
+  esVenta,
+  esCompra,
+}: {
+  readonly contacto: DatosFichaContacto["contacto"];
+  readonly puedeCrear: boolean;
+  readonly esVenta: boolean;
+  readonly esCompra: boolean;
+}) {
+  return (
+    <div className="bg-card ring-foreground/10 flex flex-col gap-4 rounded-xl p-5 ring-1 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex items-start gap-4">
+        <div className="bg-primary/10 text-primary flex size-12 shrink-0 items-center justify-center rounded-xl">
+          <Building2 className="size-6" />
+        </div>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight">{contacto.nombre}</h1>
             <Badge variant="secondary">{etiquetaTipoContacto(contacto.tipo)}</Badge>
+            <Badge
+              variant="outline"
+              className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
+            >
+              Activo
+            </Badge>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {puedeCrear && contacto.tipo !== "proveedor" ? (
-              <Button render={<Link href={`/dashboard/facturacion/nueva?cliente=${contacto.id}`} prefetch={false} />}>
-                <FilePlus2 data-icon="inline-start" />
-                Nueva factura
-              </Button>
-            ) : null}
-            {puedeCrear && contacto.tipo !== "cliente" ? (
-              <Button render={<Link href="/dashboard/compras/nueva" prefetch={false} />}>
-                <ShoppingCart data-icon="inline-start" />
-                Nueva compra
-              </Button>
-            ) : null}
-            <Button variant="outline" render={<Link href={`${rutaContacto(contacto.id)}/estado-cuenta`} />}>
-              <FileText data-icon="inline-start" />
-              Estado de cuenta
-            </Button>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <MetaItem icono={<Hash className="size-3.5" />} texto={contacto.rnc_cedula ?? "Sin RNC"} />
+            <MetaItem icono={<Phone className="size-3.5" />} texto={contacto.telefono ?? "Sin teléfono"} />
+            <MetaItem icono={<Mail className="size-3.5" />} texto={contacto.correo ?? "Sin correo"} />
+            <MetaItem icono={<MapPin className="size-3.5" />} texto={contacto.direccion ?? "Sin dirección"} />
           </div>
         </div>
       </div>
+      <div className="flex shrink-0 flex-wrap gap-2">
+        {puedeCrear && esVenta ? (
+          <Button render={<Link href={`/dashboard/facturacion/nueva?cliente=${contacto.id}`} prefetch={false} />}>
+            <FilePlus2 data-icon="inline-start" />
+            Nueva factura
+          </Button>
+        ) : null}
+        {puedeCrear && esCompra ? (
+          <Button variant="outline" render={<Link href={`/dashboard/compras/nueva`} prefetch={false} />}>
+            <ShoppingCart data-icon="inline-start" />
+            Nueva compra
+          </Button>
+        ) : null}
+        <Button variant="outline" render={<Link href={`${rutaContacto(contacto.id)}/estado-cuenta`} />}>
+          <FileText data-icon="inline-start" />
+          Estado de cuenta
+        </Button>
+      </div>
+    </div>
+  );
+}
 
+interface Kpis {
+  esVenta: boolean;
+  esCompra: boolean;
+  facturado: number;
+  cobrado: number;
+  comprado: number;
+  pagadoProveedor: number;
+  porCobrar: number;
+  porPagar: number;
+  anticipos: number;
+}
+
+function TarjetasKpi({ kpis }: { readonly kpis: Kpis }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {kpis.esVenta ? <TarjetaResumen titulo="Total facturado" centavos={kpis.facturado} /> : null}
+      {kpis.esVenta ? <TarjetaResumen titulo="Total cobrado" centavos={kpis.cobrado} /> : null}
+      {kpis.esVenta ? <TarjetaResumen titulo="Por cobrar" centavos={kpis.porCobrar} /> : null}
+      {kpis.esVenta && kpis.anticipos > 0 ? <TarjetaResumen titulo="Anticipos" centavos={kpis.anticipos} /> : null}
+      {kpis.esCompra ? <TarjetaResumen titulo="Total comprado" centavos={kpis.comprado} /> : null}
+      {kpis.esCompra ? <TarjetaResumen titulo="Total pagado" centavos={kpis.pagadoProveedor} /> : null}
+      {kpis.esCompra ? <TarjetaResumen titulo="Por pagar" centavos={kpis.porPagar} /> : null}
+    </div>
+  );
+}
+
+function ContenidoResumen({
+  contacto,
+  cuentaCxc,
+  cuentaCxp,
+}: {
+  readonly contacto: DatosFichaContacto["contacto"];
+  readonly cuentaCxc: CuentaFicha | null;
+  readonly cuentaCxp: CuentaFicha | null;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>Datos generales</CardTitle>
+          <CardTitle>Información general</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-6 sm:grid-cols-2">
           <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm">
@@ -626,6 +709,8 @@ export function FichaContacto({
             <dd>{etiquetaTipoContacto(contacto.tipo)}</dd>
             <dt className="text-muted-foreground">RNC / Cédula</dt>
             <dd className="tabular-nums">{contacto.rnc_cedula ?? "—"}</dd>
+          </dl>
+          <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm">
             <dt className="text-muted-foreground">Teléfono</dt>
             <dd className="tabular-nums">{contacto.telefono ?? "—"}</dd>
             <dt className="text-muted-foreground">Correo</dt>
@@ -633,7 +718,14 @@ export function FichaContacto({
             <dt className="text-muted-foreground">Dirección</dt>
             <dd className="whitespace-pre-line">{contacto.direccion ?? "—"}</dd>
           </dl>
-          <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm">
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Contabilidad</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm sm:grid-cols-[auto_1fr_auto_1fr]">
             <dt className="text-muted-foreground">Cuenta por cobrar (CxC)</dt>
             <dd>
               <CuentaEnlace cuenta={cuentaCxc} />
@@ -645,32 +737,136 @@ export function FichaContacto({
           </dl>
         </CardContent>
       </Card>
+    </div>
+  );
+}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <TarjetaResumen titulo="Por cobrar" centavos={porCobrar} />
-        <TarjetaResumen titulo="Anticipos recibidos" centavos={anticipos} />
-        <TarjetaResumen titulo="Por pagar" centavos={porPagar} />
+function BarraFiltros({
+  busqueda,
+  setBusqueda,
+  filtroTipo,
+  setFiltroTipo,
+  tipos,
+}: {
+  readonly busqueda: string;
+  readonly setBusqueda: (valor: string) => void;
+  readonly filtroTipo: string;
+  readonly setFiltroTipo: (valor: string) => void;
+  readonly tipos: readonly TipoFila[];
+}) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="relative w-full sm:max-w-xs">
+        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+        <Input
+          value={busqueda}
+          onChange={(event) => setBusqueda(event.target.value)}
+          placeholder="Buscar por número, NCF o detalle…"
+          aria-label="Buscar transacciones"
+          className="pl-8"
+        />
       </div>
-
-      <Tabs value={pestana} onValueChange={cambiarPestana}>
-        <TabsList className="max-w-full justify-start overflow-x-auto">
-          {visibles.map((item) => (
-            <TabsTrigger key={item.valor} value={item.valor}>
-              {item.etiqueta}
-            </TabsTrigger>
+      <Select value={filtroTipo} onValueChange={(valor) => setFiltroTipo(valor ?? "todos")}>
+        <SelectTrigger className="w-full sm:w-56" aria-label="Filtrar por tipo">
+          <SelectValue placeholder="Todos los tipos" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">Todos los tipos</SelectItem>
+          {tipos.map((tipo) => (
+            <SelectItem key={tipo} value={tipo}>
+              {ETIQUETA_TIPO_FILA[tipo]}
+            </SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+export function FichaContacto({
+  datos,
+  puedeCrear,
+}: {
+  readonly datos: DatosFichaContacto;
+  readonly puedeCrear: boolean;
+}) {
+  const { contacto, cuentaCxc, cuentaCxp, facturas, facturasProveedor, pagosRecibidos } = datos;
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState<string>("todos");
+
+  const esVenta = contacto.tipo !== "proveedor";
+  const esCompra = contacto.tipo !== "cliente";
+
+  const kpis: Kpis = {
+    esVenta,
+    esCompra,
+    facturado: facturas.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.total)), 0),
+    cobrado: facturas.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.pagado)), 0),
+    comprado: facturasProveedor.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.total)), 0),
+    pagadoProveedor: facturasProveedor.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.pagado)), 0),
+    porCobrar: totalPorCobrar(facturas),
+    porPagar: totalPorPagar(facturasProveedor),
+    anticipos: totalAnticipos(pagosRecibidos),
+  };
+
+  const filas = construirFilas(datos);
+  const tiposPresentes = [...new Set(filas.map((f) => f.tipo))];
+  const texto = busqueda.trim().toLowerCase();
+  const filtradas = filas.filter((fila) => {
+    if (filtroTipo !== "todos" && fila.tipo !== filtroTipo) return false;
+    if (texto === "") return true;
+    return (
+      String(fila.numero).includes(texto) ||
+      (fila.ncf ?? "").toLowerCase().includes(texto) ||
+      fila.detalle.toLowerCase().includes(texto)
+    );
+  });
+
+  return (
+    <div className="flex flex-col gap-6" style={{ fontFamily: "var(--font-inter)" }}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-fit"
+        render={<Link href="/dashboard/contactos" prefetch={false} />}
+      >
+        <ArrowLeft data-icon="inline-start" />
+        Contactos
+      </Button>
+
+      <EncabezadoFicha contacto={contacto} puedeCrear={puedeCrear} esVenta={esVenta} esCompra={esCompra} />
+      <TarjetasKpi kpis={kpis} />
+
+      <Tabs defaultValue="resumen">
+        <TabsList className="max-w-full justify-start overflow-x-auto">
+          <TabsTrigger value="resumen">Resumen</TabsTrigger>
+          <TabsTrigger value="transacciones">Transacciones</TabsTrigger>
+          <TabsTrigger value="contactos">Contactos</TabsTrigger>
+          <TabsTrigger value="documentos">Documentos</TabsTrigger>
         </TabsList>
 
-        {visibles.map((item) => (
-          <TabsContent key={item.valor} value={item.valor} className="flex flex-col gap-3">
-            <FiltroNumero
-              valor={filtros[item.valor]}
-              onChange={(texto) => cambiarFiltro(item.valor, texto)}
-              ariaLabel={`Filtrar ${item.etiqueta} por número`}
-            />
-            {tablas[item.valor]()}
-          </TabsContent>
-        ))}
+        <TabsContent value="resumen">
+          <ContenidoResumen contacto={contacto} cuentaCxc={cuentaCxc} cuentaCxp={cuentaCxp} />
+        </TabsContent>
+
+        <TabsContent value="transacciones" className="flex flex-col gap-3">
+          <BarraFiltros
+            busqueda={busqueda}
+            setBusqueda={setBusqueda}
+            filtroTipo={filtroTipo}
+            setFiltroTipo={setFiltroTipo}
+            tipos={tiposPresentes}
+          />
+          <TablaUnificada filas={filtradas} />
+        </TabsContent>
+
+        <TabsContent value="contactos">
+          <PestanaContactos contacto={contacto} />
+        </TabsContent>
+
+        <TabsContent value="documentos">
+          <PestanaDocumentos datos={datos} />
+        </TabsContent>
       </Tabs>
     </div>
   );
