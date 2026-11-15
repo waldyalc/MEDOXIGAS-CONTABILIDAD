@@ -37,7 +37,7 @@ interface PagoProveedorFila {
   fecha: string;
   monto: number | string;
   estado: string;
-  factura_proveedor_id: string;
+  factura_proveedor_id: string | null;
 }
 
 interface AsientoFila {
@@ -106,7 +106,7 @@ function mapearPagosProveedor(
     monto: pago.monto,
     estado: pago.estado,
     factura_id: pago.factura_proveedor_id,
-    factura_numero: numerosCompra.get(pago.factura_proveedor_id) ?? null,
+    factura_numero: pago.factura_proveedor_id === null ? null : (numerosCompra.get(pago.factura_proveedor_id) ?? null),
   }));
 }
 

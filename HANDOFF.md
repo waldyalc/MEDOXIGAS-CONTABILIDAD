@@ -1,5 +1,21 @@
 # Handoff — Medoxigas Contabilidad
 
+## Ficha de contacto: 6 tarjetas de Alegra y pestañas por documento (15 nov 2026)
+
+- **Tarjetas** (siempre las 6, como `docs/alegra/capturas/09-ficha-cliente.png`):
+  Cuentas por cobrar, Anticipos recibidos, Anticipos entregados, Por pagar,
+  Notas crédito por aplicar y Notas débito por aplicar. Se quitaron «Total
+  facturado», «Total cobrado», «Total comprado» y «Total pagado».
+- Notas por aplicar = 0: hoy toda nota de crédito/débito nace ligada a una
+  factura (`factura_id not null`). Si se permiten notas sueltas, calcular aquí.
+- **Pestañas**: Resumen, Transacciones, Facturas de venta, Cotizaciones,
+  Conduces, Notas de crédito y débito, Pagos recibidos (cliente); Facturas de
+  proveedor, Notas crédito de compra, Pagos a proveedor (proveedor); Asientos,
+  Contactos y Documentos. Tablas en `_components/pestanas-documentos.tsx`
+  con búsqueda y paginación de 10.
+- Transacciones: el monto del asiento usa débito o crédito (antes salía 0.00
+  cuando el contacto estaba en el crédito).
+
 ## Rediseño de la ficha de contacto estilo Alegra/Everest (15 nov 2026)
 
 - `ficha-contacto.tsx` reescrito como **un solo panel blanco** con todo dentro:
