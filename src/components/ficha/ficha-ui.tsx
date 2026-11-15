@@ -1,9 +1,9 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { cn } from "cn";
-import { ChevronDown, ListFilter } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ListFilter } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -104,17 +104,20 @@ export function ItemPestana({
   icono,
   etiqueta,
   onClick,
+  dataPestana,
 }: {
   readonly activo: boolean;
   readonly icono: ReactNode;
   readonly etiqueta: string;
   readonly onClick: () => void;
+  readonly dataPestana?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={activo}
+      data-pestana={dataPestana}
       className={cn(
         "text-muted-foreground hover:text-foreground relative inline-flex h-11 shrink-0 items-center gap-1.5 px-3 text-sm whitespace-nowrap font-medium transition-colors",
         activo && "text-primary hover:text-primary",
@@ -129,6 +132,110 @@ export function ItemPestana({
         )}
       />
     </button>
+  );
+}
+
+export interface PestanaFichaItem<T extends string> {
+  readonly valor: T;
+  readonly etiqueta: string;
+  readonly icono: ReactNode;
+}
+
+export function PestanasFicha<T extends string>({
+  items,
+  valor,
+  onCambiar,
+  ariaLabel,
+  className,
+}: {
+  readonly items: readonly PestanaFichaItem<T>[];
+  readonly valor: T;
+  readonly onCambiar: (valor: T) => void;
+  readonly ariaLabel: string;
+  readonly className?: string;
+}) {
+  const carrilRef = useRef<HTMLDivElement>(null);
+  const pistaRef = useRef<HTMLDivElement>(null);
+  const [hayAnteriores, setHayAnteriores] = useState(false);
+  const [haySiguientes, setHaySiguientes] = useState(false);
+
+  useEffect(() => {
+    const carril = carrilRef.current;
+    if (!carril) return;
+
+    const actualizar = () => {
+      setHayAnteriores(carril.scrollLeft > 1);
+      setHaySiguientes(carril.scrollLeft + carril.clientWidth < carril.scrollWidth - 1);
+    };
+
+    actualizar();
+    carril.addEventListener("scroll", actualizar, { passive: true });
+    const observador = new ResizeObserver(actualizar);
+    observador.observe(carril);
+    if (pistaRef.current) observador.observe(pistaRef.current);
+
+    return () => {
+      carril.removeEventListener("scroll", actualizar);
+      observador.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const activa = pistaRef.current?.querySelector<HTMLElement>(`[data-pestana="${valor}"]`);
+    activa?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+  }, [valor]);
+
+  function mover(direccion: -1 | 1) {
+    const carril = carrilRef.current;
+    if (!carril) return;
+    const paso = Math.max(140, carril.clientWidth * 0.6);
+    carril.scrollBy({ left: direccion * paso, behavior: "smooth" });
+  }
+
+  return (
+    <div className={cn("flex min-w-0 items-center gap-1", className)}>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-xs"
+        className="shrink-0"
+        aria-label="Ver pestañas anteriores"
+        disabled={!hayAnteriores}
+        onClick={() => mover(-1)}
+      >
+        <ChevronLeft />
+      </Button>
+      <nav aria-label={ariaLabel} className="min-w-0 flex-1">
+        <div
+          ref={carrilRef}
+          className="flex [scrollbar-width:none] overflow-x-auto overscroll-x-contain scroll-smooth [&::-webkit-scrollbar]:hidden"
+        >
+          <div ref={pistaRef} className="flex w-max items-center gap-1">
+            {items.map((item) => (
+              <ItemPestana
+                key={item.valor}
+                dataPestana={item.valor}
+                activo={valor === item.valor}
+                icono={item.icono}
+                etiqueta={item.etiqueta}
+                onClick={() => onCambiar(item.valor)}
+              />
+            ))}
+          </div>
+        </div>
+      </nav>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-xs"
+        className="shrink-0"
+        aria-label="Ver pestañas siguientes"
+        disabled={!haySiguientes}
+        onClick={() => mover(1)}
+      >
+        <ChevronRight />
+      </Button>
+    </div>
   );
 }
 
