@@ -1,0 +1,1254 @@
+{
+  "generado": "2026-11-14T23:56:49.723Z",
+  "usuarios": [
+    {
+      "usuario": 1,
+      "facturasCreadas": 1,
+      "facturaId": null,
+      "errorFactura": null,
+      "maxMs": 4825,
+      "pantallasSobre5s": 0,
+      "blancos": 0,
+      "erroresConsola": []
+    },
+    {
+      "usuario": 2,
+      "facturasCreadas": 1,
+      "facturaId": null,
+      "errorFactura": null,
+      "maxMs": 4871,
+      "pantallasSobre5s": 0,
+      "blancos": 0,
+      "erroresConsola": []
+    },
+    {
+      "usuario": 3,
+      "facturasCreadas": 1,
+      "facturaId": null,
+      "errorFactura": null,
+      "maxMs": 3700,
+      "pantallasSobre5s": 0,
+      "blancos": 0,
+      "erroresConsola": []
+    },
+    {
+      "usuario": 4,
+      "facturasCreadas": 1,
+      "facturaId": null,
+      "errorFactura": null,
+      "maxMs": 4475,
+      "pantallasSobre5s": 0,
+      "blancos": 0,
+      "erroresConsola": []
+    },
+    {
+      "usuario": 5,
+      "facturasCreadas": 1,
+      "facturaId": null,
+      "errorFactura": null,
+      "maxMs": 4951,
+      "pantallasSobre5s": 0,
+      "blancos": 0,
+      "erroresConsola": []
+    }
+  ],
+  "muestras": [
+    {
+      "usuario": 1,
+      "pantalla": "facturas",
+      "ms": 3461,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "compras",
+      "ms": 2997,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "pagos",
+      "ms": 2645,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "contactos",
+      "ms": 1070,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "productos",
+      "ms": 1251,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "factura-ficha",
+      "ms": 1203,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "facturas",
+      "ms": 2259,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "compras",
+      "ms": 3261,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "pagos",
+      "ms": 3940,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "contactos",
+      "ms": 2730,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "productos",
+      "ms": 1305,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "factura-ficha",
+      "ms": 1340,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "facturas",
+      "ms": 1843,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "compras",
+      "ms": 4825,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "pagos",
+      "ms": 3285,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "contactos",
+      "ms": 1305,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "productos",
+      "ms": 2064,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "factura-ficha",
+      "ms": 1340,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "facturas",
+      "ms": 2411,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "compras",
+      "ms": 3048,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "pagos",
+      "ms": 3359,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "contactos",
+      "ms": 3159,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "productos",
+      "ms": 2115,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "factura-ficha",
+      "ms": 2133,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "facturas",
+      "ms": 2773,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "compras",
+      "ms": 3673,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "pagos",
+      "ms": 2577,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "contactos",
+      "ms": 1201,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "productos",
+      "ms": 1926,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "factura-ficha",
+      "ms": 2020,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "facturas",
+      "ms": 2285,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 1,
+      "pantalla": "compras",
+      "ms": 3335,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "facturas",
+      "ms": 3378,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "compras",
+      "ms": 2993,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "pagos",
+      "ms": 2041,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "contactos",
+      "ms": 1036,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "productos",
+      "ms": 2147,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "factura-ficha",
+      "ms": 1303,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "facturas",
+      "ms": 1426,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "compras",
+      "ms": 4313,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "pagos",
+      "ms": 3582,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "contactos",
+      "ms": 2555,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "productos",
+      "ms": 2171,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "factura-ficha",
+      "ms": 1210,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "facturas",
+      "ms": 1910,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "compras",
+      "ms": 4871,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "pagos",
+      "ms": 3454,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "contactos",
+      "ms": 1078,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "productos",
+      "ms": 1911,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "factura-ficha",
+      "ms": 1054,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "facturas",
+      "ms": 2057,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "compras",
+      "ms": 2416,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "pagos",
+      "ms": 2211,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "contactos",
+      "ms": 2477,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "productos",
+      "ms": 1300,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "factura-ficha",
+      "ms": 1217,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "facturas",
+      "ms": 1608,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "compras",
+      "ms": 2834,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "pagos",
+      "ms": 3064,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "contactos",
+      "ms": 3239,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "productos",
+      "ms": 1361,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "factura-ficha",
+      "ms": 1699,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "facturas",
+      "ms": 1575,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "compras",
+      "ms": 3018,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "pagos",
+      "ms": 3673,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "contactos",
+      "ms": 1341,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "productos",
+      "ms": 1483,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 2,
+      "pantalla": "factura-ficha",
+      "ms": 2043,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "facturas",
+      "ms": 2991,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "compras",
+      "ms": 1497,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "pagos",
+      "ms": 2027,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "contactos",
+      "ms": 1076,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "productos",
+      "ms": 1474,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "factura-ficha",
+      "ms": 1340,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "facturas",
+      "ms": 1402,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "compras",
+      "ms": 2730,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "pagos",
+      "ms": 3068,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "contactos",
+      "ms": 2667,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "productos",
+      "ms": 2244,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "factura-ficha",
+      "ms": 1190,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "facturas",
+      "ms": 1480,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "compras",
+      "ms": 2619,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "pagos",
+      "ms": 2958,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "contactos",
+      "ms": 2813,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "productos",
+      "ms": 1441,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "factura-ficha",
+      "ms": 1293,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "facturas",
+      "ms": 1390,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "compras",
+      "ms": 2691,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "pagos",
+      "ms": 2241,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "contactos",
+      "ms": 1947,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "productos",
+      "ms": 2739,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "factura-ficha",
+      "ms": 2611,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "facturas",
+      "ms": 1548,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "compras",
+      "ms": 2329,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "pagos",
+      "ms": 2164,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "contactos",
+      "ms": 2272,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "productos",
+      "ms": 2968,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "factura-ficha",
+      "ms": 1337,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "facturas",
+      "ms": 1559,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "compras",
+      "ms": 3171,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "pagos",
+      "ms": 3700,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "contactos",
+      "ms": 2728,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "productos",
+      "ms": 1435,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 3,
+      "pantalla": "factura-ficha",
+      "ms": 1447,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "facturas",
+      "ms": 2062,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "compras",
+      "ms": 2829,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "pagos",
+      "ms": 2599,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "contactos",
+      "ms": 1058,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "productos",
+      "ms": 1225,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "factura-ficha",
+      "ms": 1143,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "facturas",
+      "ms": 2010,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "compras",
+      "ms": 3243,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "pagos",
+      "ms": 2969,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "contactos",
+      "ms": 2397,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "productos",
+      "ms": 1540,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "factura-ficha",
+      "ms": 1329,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "facturas",
+      "ms": 2067,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "compras",
+      "ms": 4475,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "pagos",
+      "ms": 4017,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "contactos",
+      "ms": 1109,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "productos",
+      "ms": 1530,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "factura-ficha",
+      "ms": 1335,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "facturas",
+      "ms": 1545,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "compras",
+      "ms": 3477,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "pagos",
+      "ms": 3379,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "contactos",
+      "ms": 1199,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "productos",
+      "ms": 1366,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "factura-ficha",
+      "ms": 2636,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "facturas",
+      "ms": 2009,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "compras",
+      "ms": 3170,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "pagos",
+      "ms": 3339,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "contactos",
+      "ms": 2911,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "productos",
+      "ms": 1533,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "factura-ficha",
+      "ms": 1185,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "facturas",
+      "ms": 2977,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "compras",
+      "ms": 3692,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "pagos",
+      "ms": 2159,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 4,
+      "pantalla": "contactos",
+      "ms": 1425,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "facturas",
+      "ms": 2059,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "compras",
+      "ms": 2869,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "pagos",
+      "ms": 2242,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "contactos",
+      "ms": 1095,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "productos",
+      "ms": 1707,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "factura-ficha",
+      "ms": 1277,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "facturas",
+      "ms": 1383,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "compras",
+      "ms": 4437,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "pagos",
+      "ms": 3757,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "contactos",
+      "ms": 2818,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "productos",
+      "ms": 2255,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "factura-ficha",
+      "ms": 1419,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "facturas",
+      "ms": 2067,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "compras",
+      "ms": 4951,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "pagos",
+      "ms": 4078,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "contactos",
+      "ms": 1190,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "productos",
+      "ms": 1389,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "factura-ficha",
+      "ms": 1230,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "facturas",
+      "ms": 1344,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "compras",
+      "ms": 2919,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "pagos",
+      "ms": 3397,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "contactos",
+      "ms": 2938,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "productos",
+      "ms": 2696,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "factura-ficha",
+      "ms": 1697,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "facturas",
+      "ms": 2816,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "compras",
+      "ms": 3530,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "pagos",
+      "ms": 4392,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "contactos",
+      "ms": 1891,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "productos",
+      "ms": 1347,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "factura-ficha",
+      "ms": 2634,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "facturas",
+      "ms": 3044,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "compras",
+      "ms": 2842,
+      "blanco": false,
+      "error": null
+    },
+    {
+      "usuario": 5,
+      "pantalla": "pagos",
+      "ms": 3251,
+      "blanco": false,
+      "error": null
+    }
+  ]
+}

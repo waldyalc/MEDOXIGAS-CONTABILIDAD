@@ -1,0 +1,148 @@
+npm notice run medoxigas-contabilidad@0.1.0 npx
+npm notice run tsx tests/carga/ui.ts
+fichas: factura=1534817b cliente=de567a6b producto=b5a93d4e compra=f7cef018
+login como zztest1@medoxigas.test
+sesión lista — midiendo pantallas
+inicio #1: 4653ms
+inicio #2: 1481ms
+inicio #3: 1863ms
+inicio #4: 1364ms
+inicio #5: 1309ms
+facturas #1: 1984ms
+facturas #2: 1854ms
+facturas #3: 1783ms
+facturas #4: 1746ms
+facturas #5: 1823ms
+factura-ficha #1: 1583ms
+factura-ficha #2: 1145ms
+factura-ficha #3: 1167ms
+factura-ficha #4: 1253ms
+factura-ficha #5: 1141ms
+compras #1: 1683ms
+compras #2: 1673ms
+compras #3: 2100ms
+compras #4: 1499ms
+compras #5: 2575ms
+compra-ficha #1: 1971ms
+compra-ficha #2: 1538ms
+compra-ficha #3: 1313ms
+compra-ficha #4: 1558ms
+compra-ficha #5: 1441ms
+pagos-recibidos #1: 2679ms
+pagos-recibidos #2: 1951ms
+pagos-recibidos #3: 1903ms
+pagos-recibidos #4: 2071ms
+pagos-recibidos #5: 1815ms
+contactos #1: 1187ms
+contactos #2: 1368ms
+contactos #3: 1416ms
+contactos #4: 1540ms
+contactos #5: 1090ms
+cliente-estado-cuenta #1: 1473ms
+cliente-estado-cuenta #2: 1269ms
+cliente-estado-cuenta #3: 1321ms
+cliente-estado-cuenta #4: 1284ms
+cliente-estado-cuenta #5: 1329ms
+productos #1: 1628ms
+productos #2: 1682ms
+productos #3: 1451ms
+productos #4: 1504ms
+productos #5: 2179ms
+producto-ficha #1: 1967ms
+producto-ficha #2: 2042ms
+producto-ficha #3: 1817ms
+producto-ficha #4: 1797ms
+producto-ficha #5: 1621ms
+catalogo-cuentas #1: 5242ms
+catalogo-cuentas #2: 1659ms
+catalogo-cuentas #3: 1424ms
+catalogo-cuentas #4: 1291ms
+catalogo-cuentas #5: 1497ms
+cxc-corte-2023 #1: 1097ms
+cxc-corte-2023 #2: 904ms
+cxc-corte-2023 #3: 878ms
+cxc-corte-2023 #4: 959ms
+cxc-corte-2023 #5: 1046ms
+607-marzo2023 #1: 4317ms
+607-marzo2023 #2: 2952ms
+607-marzo2023 #3: 2853ms
+607-marzo2023 #4: 2849ms
+607-marzo2023 #5: 2883ms
+607-anio2023 #1: 2713ms
+607-anio2023 #2: 1537ms
+607-anio2023 #3: 1716ms
+607-anio2023 #4: 1793ms
+607-anio2023 #5: 1455ms
+606-marzo2023 #1: 1420ms
+606-marzo2023 #2: 1043ms
+606-marzo2023 #3: 1060ms
+606-marzo2023 #4: 1030ms
+606-marzo2023 #5: 1377ms
+606-anio2023 #1: 1191ms
+606-anio2023 #2: 1120ms
+606-anio2023 #3: 1120ms
+606-anio2023 #4: 1231ms
+606-anio2023 #5: 1218ms
+libro-diario-marzo2023 #1: 16225ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+libro-diario-marzo2023 #2: 16332ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+libro-diario-marzo2023 #3: 16347ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+libro-diario-marzo2023 #4: 16234ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+libro-diario-marzo2023 #5: 16049ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+libro-diario-anio2023 #1: 16167ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+libro-diario-anio2023 #2: 16049ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+libro-diario-anio2023 #3: 16194ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+libro-diario-anio2023 #4: 15993ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+libro-diario-anio2023 #5: 15936ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+balance-comprobacion-marzo2023 #1: 15947ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+balance-comprobacion-marzo2023 #2: 16526ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+balance-comprobacion-marzo2023 #3: 16018ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+balance-comprobacion-marzo2023 #4: 16232ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+balance-comprobacion-marzo2023 #5: 15974ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+balance-comprobacion-anio2023 #1: 16955ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+balance-comprobacion-anio2023 #2: 16443ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+balance-comprobacion-anio2023 #3: 16168ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+balance-comprobacion-anio2023 #4: 16004ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+balance-comprobacion-anio2023 #5: 16019ms ERROR page.waitForFunction: Timeout 15000ms exceeded.
+estado-resultados-marzo2023 #1: 2566ms
+estado-resultados-marzo2023 #2: 1105ms
+estado-resultados-marzo2023 #3: 1080ms
+estado-resultados-marzo2023 #4: 1097ms
+estado-resultados-marzo2023 #5: 1105ms
+estado-resultados-anio2023 #1: 1597ms
+estado-resultados-anio2023 #2: 1524ms
+estado-resultados-anio2023 #3: 1564ms
+estado-resultados-anio2023 #4: 1466ms
+estado-resultados-anio2023 #5: 1496ms
+ventas-generales-marzo2023 #1: 2115ms
+ventas-generales-marzo2023 #2: 1377ms
+ventas-generales-marzo2023 #3: 1270ms
+ventas-generales-marzo2023 #4: 1480ms
+ventas-generales-marzo2023 #5: 1340ms
+ventas-generales-anio2023 #1: 2643ms
+ventas-generales-anio2023 #2: 3240ms
+ventas-generales-anio2023 #3: 2814ms
+ventas-generales-anio2023 #4: 2907ms
+ventas-generales-anio2023 #5: 2692ms
+ventas-cliente-marzo2023 #1: 10626ms
+ventas-cliente-marzo2023 #2: 10687ms
+ventas-cliente-marzo2023 #3: 10253ms
+ventas-cliente-marzo2023 #4: 10106ms
+ventas-cliente-marzo2023 #5: 9980ms
+ventas-cliente-anio2023 #1: 9942ms
+ventas-cliente-anio2023 #2: 10205ms
+ventas-cliente-anio2023 #3: 9832ms
+ventas-cliente-anio2023 #4: 10310ms
+ventas-cliente-anio2023 #5: 10178ms
+valor-inventario-marzo2023 #1: 1864ms
+valor-inventario-marzo2023 #2: 1226ms
+valor-inventario-marzo2023 #3: 1241ms
+valor-inventario-marzo2023 #4: 1277ms
+valor-inventario-marzo2023 #5: 1239ms
+valor-inventario-anio2023 #1: 1148ms
+valor-inventario-anio2023 #2: 1025ms
+valor-inventario-anio2023 #3: 999ms
+valor-inventario-anio2023 #4: 971ms
+valor-inventario-anio2023 #5: 996ms
+midiendo corte de 1,000 filas y totales de marzo 2023
+corte 1,000 — reales marzo: 1700 facturas + 33 NC; 607 registros: 1033; ventas generales: 1700
+fin — docs/pruebas/resultados/tiempos-ui.json

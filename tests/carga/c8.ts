@@ -91,6 +91,8 @@ async function crearFacturaUi(page: Page, cliente: string, producto: string, not
 
   await page.getByRole("button", { name: "Guardar factura" }).click();
   await page.waitForURL(/\/dashboard\/facturacion(\/|$|\?)/, { timeout: 45_000 });
+  const coincidencia = /\/dashboard\/facturacion\/([0-9a-f-]{36})/.exec(page.url());
+  return coincidencia?.[1] ?? null;
 }
 
 async function trabajarUsuario(
@@ -114,14 +116,14 @@ async function trabajarUsuario(
 
   const muestras: MuestraUi[] = [];
   let facturasCreadas = 0;
-  const facturaId: string | null = null;
+  let facturaId: string | null = null;
   let errorFactura: string | null = null;
 
   // una factura por usuario vía UI
   try {
-    await crearFacturaUi(page, datos.cliente, datos.producto, datos.notas);
+    facturaId = await crearFacturaUi(page, datos.cliente, datos.producto, datos.notas);
     facturasCreadas = 1;
-    escribir(`C8 U${usuario}: factura UI creada`);
+    escribir(`C8 U${usuario}: factura UI creada ${facturaId ?? ""}`);
   } catch (error) {
     errorFactura = error instanceof Error ? error.message.slice(0, 200) : String(error).slice(0, 200);
     escribir(`C8 U${usuario}: ERROR creando factura UI — ${errorFactura}`);
@@ -217,8 +219,6 @@ async function main() {
     { nombre: "pagos", url: "/dashboard/pagos-recibidos" },
     { nombre: "contactos", url: "/dashboard/contactos" },
     { nombre: "productos", url: "/dashboard/productos" },
-    { nombre: "607-marzo", url: "/dashboard/reportes/607?desde=2023-03-01&hasta=2023-03-31" },
-    { nombre: "ventas-anio", url: "/dashboard/reportes/ventas-generales?desde=2023-01-01&hasta=2023-12-31" },
     ...(idFactura ? [{ nombre: "factura-ficha", url: `/dashboard/facturacion/${idFactura}` }] : []),
   ];
 

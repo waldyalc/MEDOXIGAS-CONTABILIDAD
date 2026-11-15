@@ -1,5 +1,5 @@
 {
-  "generado": "2026-11-14T23:09:10.393Z",
+  "generado": "2026-11-14T23:56:49.721Z",
   "escenarios": {
     "C1": {
       "esperado": "500 facturas creadas; NCF distintos y consecutivos sin huecos",
@@ -344,6 +344,71 @@
           "maximo": 658,
           "errores": {}
         }
+      },
+      "pasa": true,
+      "ids": [],
+      "errores": {}
+    },
+    "C8": {
+      "esperado": "5 navegadores 3 min: ninguna pantalla >5 s ni en blanco; 1 factura UI por usuario",
+      "real": {
+        "usuarios": [
+          {
+            "usuario": 1,
+            "facturasCreadas": 1,
+            "facturaId": null,
+            "errorFactura": null,
+            "maxMs": 4825,
+            "pantallasSobre5s": 0,
+            "blancos": 0,
+            "erroresConsola": []
+          },
+          {
+            "usuario": 2,
+            "facturasCreadas": 1,
+            "facturaId": null,
+            "errorFactura": null,
+            "maxMs": 4871,
+            "pantallasSobre5s": 0,
+            "blancos": 0,
+            "erroresConsola": []
+          },
+          {
+            "usuario": 3,
+            "facturasCreadas": 1,
+            "facturaId": null,
+            "errorFactura": null,
+            "maxMs": 3700,
+            "pantallasSobre5s": 0,
+            "blancos": 0,
+            "erroresConsola": []
+          },
+          {
+            "usuario": 4,
+            "facturasCreadas": 1,
+            "facturaId": null,
+            "errorFactura": null,
+            "maxMs": 4475,
+            "pantallasSobre5s": 0,
+            "blancos": 0,
+            "erroresConsola": []
+          },
+          {
+            "usuario": 5,
+            "facturasCreadas": 1,
+            "facturaId": null,
+            "errorFactura": null,
+            "maxMs": 4951,
+            "pantallasSobre5s": 0,
+            "blancos": 0,
+            "erroresConsola": []
+          }
+        ],
+        "totalMuestras": 171,
+        "maxMsGlobal": 4951,
+        "muestrasSobre5s": 0,
+        "blancos": 0,
+        "errores": 0
       },
       "pasa": true,
       "ids": [],

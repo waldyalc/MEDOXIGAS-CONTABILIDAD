@@ -29,7 +29,7 @@ function percentil(valores: number[], p: number): number {
   return Math.round(ordenados[indice] ?? 0);
 }
 
-function numeroDeTexto(texto: string | null): number | null {
+function numeroDeTexto(texto: string | null | undefined): number | null {
   if (texto == null) return null;
   const limpio = texto.replace(/[^\d.,-]/g, "");
   if (limpio === "") return null;
@@ -160,14 +160,14 @@ async function corteMil(page: Page, cli: SupabaseClient): Promise<CorteMil> {
     nuestrasFacturasMarzo: sumar(nuestras),
     totalesTodasFacturasMarzo: sumar(sinAnuladas),
     reporte607: {
-      registros: numeroDeTexto(tarjetas607.Registros ?? null),
-      montoFacturado: numeroDeTexto(tarjetas607["Monto facturado"] ?? null),
-      itbisFacturado: numeroDeTexto(tarjetas607["ITBIS facturado"] ?? null),
+      registros: numeroDeTexto(tarjetas607.Registros),
+      montoFacturado: numeroDeTexto(tarjetas607["Monto facturado"]),
+      itbisFacturado: numeroDeTexto(tarjetas607["ITBIS facturado"]),
     },
     ventasGenerales: {
-      totalFilas: coincidencia ? numeroDeTexto(coincidencia[1] ?? null) : null,
-      ventasBrutas: numeroDeTexto(tarjetasVentas["Ventas brutas"] ?? null),
-      impuestos: numeroDeTexto(tarjetasVentas.Impuestos ?? null),
+      totalFilas: coincidencia ? numeroDeTexto(coincidencia[1]) : null,
+      ventasBrutas: numeroDeTexto(tarjetasVentas["Ventas brutas"]),
+      impuestos: numeroDeTexto(tarjetasVentas.Impuestos),
     },
     aviso607,
   };

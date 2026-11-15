@@ -1,0 +1,247 @@
+{
+  "corrida": "despues",
+  "generado_en": "2026-11-14T23:51:51.179Z",
+  "usuario": "ZZTEST_USER_1 (via API de datos; I2 no medible por API)",
+  "fuente": "docs/pruebas/cuadre.sql replicado via PostgREST (tests/carga/cuadre.ts)",
+  "conteos": {
+    "config_contable": 17,
+    "asientos": 39540,
+    "asiento_lineas": 258467,
+    "facturas": 19476,
+    "facturas_proveedor": 5002,
+    "productos": 317,
+    "existencias": 259,
+    "notas_credito_venta": 501,
+    "contactos": 1018
+  },
+  "filas_descargadas": {
+    "config_contable_5_claves": 5,
+    "asientos_con_reverso": 306,
+    "contactos_zztest": 1009,
+    "asiento_lineas": 258467,
+    "facturas": 19476,
+    "facturas_proveedor": 5002,
+    "productos": 317,
+    "existencias": 259,
+    "notas_credito_venta": 501
+  },
+  "avisos": [],
+  "detalle": {
+    "saldo_mayor_centavos": {
+      "cxc": 9558611879,
+      "cxp": -20398811688,
+      "inventario": 57144917022,
+      "itbis_por_pagar": -6789379806,
+      "itbis_adelantado": 14258139740
+    },
+    "componentes_centavos": {
+      "saldo_facturas_no_anuladas": 9558611879,
+      "saldo_compras_no_anuladas": 20398811688,
+      "itbis_facturas_no_anuladas": 6812487954,
+      "itbis_compras_no_anuladas": 14258139740,
+      "itbis_notas_credito_no_anuladas": 23108148,
+      "valor_inventario_productos_1e4": "6843957975500"
+    },
+    "asientos_con_reverso": 306,
+    "contactos_zztest": 1009,
+    "a2_por_estado": {
+      "pagada": 319
+    },
+    "a2_zztest": 319,
+    "a2_con_marca_sinpago": 319,
+    "a2_muestras": [
+      {
+        "id": "0011d926-d109-4cab-baf3-82a8333586aa",
+        "ncf": "B0100003946",
+        "estado": "pagada",
+        "notas": "ZZTEST-L1 SINPAGO F299",
+        "zztest": true,
+        "saldo": -3774.82,
+        "total": 15591.34,
+        "pagado": 15591.34,
+        "credito": 3774.82,
+        "retenido": 0
+      },
+      {
+        "id": "003e660b-29bc-4c42-8801-bc1ddd63b9c8",
+        "ncf": "B0100003397",
+        "estado": "pagada",
+        "notas": "ZZTEST-L1 SINPAGO F10474",
+        "zztest": true,
+        "saldo": -1241.36,
+        "total": 6800.34,
+        "pagado": 6800.34,
+        "credito": 1241.36,
+        "retenido": 0
+      },
+      {
+        "id": "00ab5b13-cb06-4f22-b2cc-dc39a2034f09",
+        "ncf": "B0100004265",
+        "estado": "pagada",
+        "notas": "ZZTEST-L1 SINPAGO F6918",
+        "zztest": true,
+        "saldo": -2059.1,
+        "total": 22529.26,
+        "pagado": 22529.26,
+        "credito": 2059.1,
+        "retenido": 0
+      },
+      {
+        "id": "0601c163-5da6-4251-9b3b-a508091bcb29",
+        "ncf": "B0100003731",
+        "estado": "pagada",
+        "notas": "ZZTEST-L1 SINPAGO F9350",
+        "zztest": true,
+        "saldo": -2570.44,
+        "total": 3089.24,
+        "pagado": 2429.07,
+        "credito": 3089.24,
+        "retenido": 141.37
+      },
+      {
+        "id": "07c2e350-ec62-4f38-8383-a3c5a69a7a4e",
+        "ncf": "B0100005426",
+        "estado": "pagada",
+        "notas": "ZZTEST-L1 SINPAGO F6127",
+        "zztest": true,
+        "saldo": -4200.8,
+        "total": 16803.2,
+        "pagado": 16803.2,
+        "credito": 4200.8,
+        "retenido": 0
+      },
+      {
+        "id": "07ddb01a-63fa-4a7b-9d25-d2b4ec1b2c8b",
+        "ncf": "B0100004561",
+        "estado": "pagada",
+        "notas": "ZZTEST-L1 SINPAGO F9109",
+        "zztest": true,
+        "saldo": -1015.97,
+        "total": 4921.78,
+        "pagado": 4696.54,
+        "credito": 1015.98,
+        "retenido": 225.23
+      },
+      {
+        "id": "07fbe7c7-90c2-47e0-be0d-094f684419b9",
+        "ncf": "B0100005795",
+        "estado": "pagada",
+        "notas": "ZZTEST-L1 SINPAGO F8011",
+        "zztest": true,
+        "saldo": -5489.36,
+        "total": 10417.36,
+        "pagado": 10417.36,
+        "credito": 5489.36,
+        "retenido": 0
+      },
+      {
+        "id": "0a504243-60e5-4c17-a64e-fb5261ed23a1",
+        "ncf": "B0100004379",
+        "estado": "pagada",
+        "notas": "ZZTEST-L1 SINPAGO F8412",
+        "zztest": true,
+        "saldo": -3692.22,
+        "total": 81556.88,
+        "pagado": 81556.88,
+        "credito": 3692.22,
+        "retenido": 0
+      }
+    ],
+    "productos_inventariables": 259,
+    "top_inventario_por_valor": [
+      {
+        "nombre": "ZZTEST-Producto-063",
+        "cantidad": 2479,
+        "costo": 2823.96,
+        "valor": 7000596.84
+      },
+      {
+        "nombre": "ZZTEST-Producto-007",
+        "cantidad": 2409,
+        "costo": 2837.51,
+        "valor": 6835561.59
+      },
+      {
+        "nombre": "ZZTEST-Producto-187",
+        "cantidad": 2247,
+        "costo": 2926.84,
+        "valor": 6576609.48
+      },
+      {
+        "nombre": "ZZTEST-Producto-184",
+        "cantidad": 2238,
+        "costo": 2833.43,
+        "valor": 6341216.34
+      },
+      {
+        "nombre": "ZZTEST-Producto-151",
+        "cantidad": 2094,
+        "costo": 2910.75,
+        "valor": 6095110.5
+      },
+      {
+        "nombre": "ZZTEST-Producto-190",
+        "cantidad": 2171,
+        "costo": 2800,
+        "valor": 6078800
+      },
+      {
+        "nombre": "ZZTEST-Producto-040",
+        "cantidad": 2495,
+        "costo": 2432.18,
+        "valor": 6068289.1
+      },
+      {
+        "nombre": "ZZTEST-Producto-174",
+        "cantidad": 2062,
+        "costo": 2879.01,
+        "valor": 5936518.62
+      },
+      {
+        "nombre": "ZZTEST-Producto-211",
+        "cantidad": 2316,
+        "costo": 2549.58,
+        "valor": 5904827.28
+      },
+      {
+        "nombre": "ZZTEST-Producto-180",
+        "cantidad": 2060,
+        "costo": 2751.1,
+        "valor": 5667266
+      }
+    ],
+    "prefijos_ncf_b": [
+      {
+        "prefijo": "B01",
+        "min": "1",
+        "max": "15235",
+        "distintos": 15235,
+        "huecos": 0
+      },
+      {
+        "prefijo": "B02",
+        "min": "1",
+        "max": "4241",
+        "distintos": 4241,
+        "huecos": 0
+      }
+    ]
+  },
+  "valores": {
+    "A1 asientos descuadrados (absoluto)": 0,
+    "A2 facturas con saldo negativo (absoluto)": 319,
+    "A3 compras con saldo negativo (absoluto)": 0,
+    "A4 facturas pagada con saldo o abierta sin saldo (absoluto)": 0,
+    "A5 facturas anuladas sin asiento de reverso (absoluto)": 0,
+    "A6 productos con existencia por almacén distinta del total (absoluto)": 0,
+    "A7 NCF repetidos en facturas (absoluto)": 0,
+    "D1 huecos en NCF B de facturas (delta)": 0,
+    "D2 CxC mayor menos saldo de facturas (delta)": 0,
+    "D3 CxP mayor más saldo de compras (delta)": 0,
+    "D4 ITBIS por pagar mayor más ITBIS ventas netas (delta)": 0,
+    "D5 ITBIS adelantado mayor menos ITBIS compras (delta)": 0,
+    "D6 inventario mayor menos cantidad x costo (delta, redondeo)": -112946627.33,
+    "I1 facturas ZZTEST": 19468,
+    "I2 tamaño de la base en MB": "no medible por API"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "escenario": "C8",
+  "esperado": "5 navegadores 3 min: ninguna pantalla >5 s ni en blanco; 1 factura UI por usuario",
+  "real": {
+    "usuarios": [
+      {
+        "usuario": 1,
+        "facturasCreadas": 1,
+        "facturaId": "06b48728-12af-4f28-9c87-196f9e9b6f51",
+        "errorFactura": null,
+        "maxMs": 4825,
+        "pantallasSobre5s": 0,
+        "blancos": 0,
+        "erroresConsola": [],
+        "ncf": "B0200004244",
+        "numero": 19630,
+        "contacto": "ZZTEST-C8-U1-Cliente"
+      },
+      {
+        "usuario": 2,
+        "facturasCreadas": 1,
+        "facturaId": "cd541121-0556-45f2-a1af-34f89bec9467",
+        "errorFactura": null,
+        "maxMs": 4871,
+        "pantallasSobre5s": 0,
+        "blancos": 0,
+        "erroresConsola": [],
+        "ncf": "B0200004243",
+        "numero": 19629,
+        "contacto": "ZZTEST-C8-U2-Cliente"
+      },
+      {
+        "usuario": 3,
+        "facturasCreadas": 1,
+        "facturaId": "34d538ec-0ea7-4b80-a6b2-496f1421c849",
+        "errorFactura": null,
+        "maxMs": 3700,
+        "pantallasSobre5s": 0,
+        "blancos": 0,
+        "erroresConsola": [],
+        "ncf": "B0200004242",
+        "numero": 19628,
+        "contacto": "ZZTEST-C8-U3-Cliente"
+      },
+      {
+        "usuario": 4,
+        "facturasCreadas": 1,
+        "facturaId": "ffe82b77-6d09-4463-8229-576a4407a333",
+        "errorFactura": null,
+        "maxMs": 4475,
+        "pantallasSobre5s": 0,
+        "blancos": 0,
+        "erroresConsola": [],
+        "ncf": "B0200004246",
+        "numero": 19632,
+        "contacto": "ZZTEST-C8-U4-Cliente"
+      },
+      {
+        "usuario": 5,
+        "facturasCreadas": 1,
+        "facturaId": "62f2c1b5-984b-4741-bf51-080aacc00e58",
+        "errorFactura": null,
+        "maxMs": 4951,
+        "pantallasSobre5s": 0,
+        "blancos": 0,
+        "erroresConsola": [],
+        "ncf": "B0200004245",
+        "numero": 19631,
+        "contacto": "ZZTEST-C8-U5-Cliente"
+      }
+    ],
+    "totalVisitas": 171,
+    "maxMsGlobal": 4951,
+    "visitasSobre5s": 0,
+    "paginasEnBlanco": 0,
+    "erroresNavegacion": 0,
+    "facturasCreadasPorUi": 5,
+    "erroresConsola": []
+  },
+  "pasa": true,
+  "ids": [
+    "06b48728-12af-4f28-9c87-196f9e9b6f51",
+    "cd541121-0556-45f2-a1af-34f89bec9467",
+    "34d538ec-0ea7-4b80-a6b2-496f1421c849",
+    "ffe82b77-6d09-4463-8229-576a4407a333",
+    "62f2c1b5-984b-4741-bf51-080aacc00e58"
+  ],
+  "errores": {},
+  "notas": "facturaId=null en el JSON del script: waitForURL casa con /dashboard/facturacion/nueva antes de navegar al detalle; ids recuperados de Supabase por contacto ZZTEST-C8-U*-Cliente. El campo notas quedo null en las 5 facturas (fill de Playwright probablemente antes de hidratar React bajo carga). Detalle: c8-muestras.json."
+}
