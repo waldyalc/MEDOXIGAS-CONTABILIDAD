@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -51,7 +51,8 @@ import {
 import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { type Impuesto, impuestoNinguno } from "@/lib/impuestos/tipos";
 import { crearNotaDebitoVenta } from "@/lib/notas-debito/acciones";
-import type { DatosFormularioNotaDebito, TipoNotaDebito } from "@/lib/notas-debito/tipos";
+import { buscarFacturasNotaDebito } from "@/lib/notas-debito/busqueda";
+import type { DatosFormularioNotaDebito, FacturaParaNotaDebito, TipoNotaDebito } from "@/lib/notas-debito/tipos";
 import { TIPOS_NOTA_DEBITO } from "@/lib/notas-debito/tipos";
 
 interface LineaForm {
@@ -68,7 +69,13 @@ interface Props {
   datos: DatosFormularioNotaDebito;
   impuestos: Impuesto[];
   fechaHoy: string;
-  facturaInicial?: string;
+  facturaInicial?: FacturaParaNotaDebito | null;
+}
+
+const ESPERA_BUSQUEDA_MS = 350;
+
+function etiquetaFactura(factura: FacturaParaNotaDebito): string {
+  return `#${factura.numero} · ${factura.ncf ?? "sin NCF"} · ${formatoMoneda(factura.total)}`;
 }
 
 const CELDA_ENCABEZADO =
@@ -82,29 +89,77 @@ function numero(texto: string): number {
   return Number.isFinite(valor) ? valor : 0;
 }
 
-export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: Props) {
+export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial = null }: Props) {
   const router = useRouter();
   const contador = useRef(1);
+  const solicitudFacturas = useRef(0);
   const [pendiente, iniciar] = useTransition();
 
-  const facturaPrevia = datos.facturas.find((factura) => factura.id === facturaInicial);
-  const [clienteId, setClienteId] = useState(facturaPrevia?.contacto_id ?? "");
+  const [clienteId, setClienteId] = useState(facturaInicial?.contacto_id ?? "");
   const [productos, setProductos] = useState<readonly ProductoSeleccionable[]>(datos.productos);
   const [tipo, setTipo] = useState<TipoNotaDebito>("montos");
   const [fecha, setFecha] = useState(fechaHoy);
-  const [facturaId, setFacturaId] = useState(facturaPrevia?.id ?? "");
+  const [facturaId, setFacturaId] = useState(facturaInicial?.id ?? "");
+  const [facturaSeleccionada, setFacturaSeleccionada] = useState<FacturaParaNotaDebito | null>(facturaInicial);
+  const [facturasPagina, setFacturasPagina] = useState<FacturaParaNotaDebito[]>(facturaInicial ? [facturaInicial] : []);
+  const [busquedaFactura, setBusquedaFactura] = useState("");
+  const [busquedaFacturaAplicada, setBusquedaFacturaAplicada] = useState("");
+  const [cargandoFacturas, setCargandoFacturas] = useState(false);
+  const [totalFacturas, setTotalFacturas] = useState(0);
   const [lineas, setLineas] = useState<LineaForm[]>(() => [lineaVacia("l1", impuestoNinguno(impuestos)?.id ?? "")]);
   const [notas, setNotas] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const tiposItems = TIPOS_NOTA_DEBITO.map((opcion) => ({ value: opcion.valor, label: opcion.etiqueta }));
-  const facturasCliente = datos.facturas.filter(
-    (factura) => factura.contacto_id === clienteId && factura.estado !== "anulada",
-  );
-  const facturasItems = facturasCliente.map((factura) => ({
+  const facturasItems = facturasPagina.map((factura) => ({
     value: factura.id,
-    label: `#${factura.numero} · ${factura.ncf ?? "sin NCF"} · ${formatoMoneda(factura.total)}`,
+    label: etiquetaFactura(factura),
   }));
+  const facturaItem = facturaSeleccionada
+    ? { value: facturaSeleccionada.id, label: etiquetaFactura(facturaSeleccionada) }
+    : null;
+
+  useEffect(() => {
+    const temporizador = setTimeout(() => setBusquedaFacturaAplicada(busquedaFactura.trim()), ESPERA_BUSQUEDA_MS);
+    return () => clearTimeout(temporizador);
+  }, [busquedaFactura]);
+
+  useEffect(() => {
+    if (!clienteId) {
+      setFacturasPagina([]);
+      setTotalFacturas(0);
+      setCargandoFacturas(false);
+      return;
+    }
+
+    const numero = solicitudFacturas.current + 1;
+    solicitudFacturas.current = numero;
+    setCargandoFacturas(true);
+
+    buscarFacturasNotaDebito({
+      contactoId: clienteId,
+      q: busquedaFacturaAplicada,
+      incluir: facturaSeleccionada?.id,
+    })
+      .then((resultado) => {
+        if (solicitudFacturas.current !== numero) return;
+
+        const extra = facturaSeleccionada;
+        setFacturasPagina(
+          extra && !resultado.facturas.some((factura) => factura.id === extra.id)
+            ? [extra, ...resultado.facturas]
+            : resultado.facturas,
+        );
+        setTotalFacturas(resultado.total);
+      })
+      .catch((fallo: unknown) => {
+        if (solicitudFacturas.current !== numero) return;
+        setError(fallo instanceof Error ? fallo.message : "No se pudieron cargar las facturas.");
+      })
+      .finally(() => {
+        if (solicitudFacturas.current === numero) setCargandoFacturas(false);
+      });
+  }, [clienteId, busquedaFacturaAplicada, facturaSeleccionada]);
 
   const calculadas = lineas.map((linea) => ({
     clave: linea.clave,
@@ -139,9 +194,21 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
   function seleccionarCliente(contacto: ContactoOpcion | null) {
     const id = contacto?.id ?? "";
     setClienteId(id);
-    if (!datos.facturas.some((factura) => factura.id === facturaId && factura.contacto_id === id)) {
+
+    if (facturaSeleccionada?.contacto_id !== id) {
       setFacturaId("");
+      setFacturaSeleccionada(null);
+      setBusquedaFactura("");
+      setBusquedaFacturaAplicada("");
+      setFacturasPagina([]);
+      setTotalFacturas(0);
     }
+  }
+
+  function seleccionarFactura(item: { value: string; label: string } | null) {
+    const id = item?.value ?? "";
+    setFacturaId(id);
+    setFacturaSeleccionada(facturasPagina.find((factura) => factura.id === id) ?? null);
   }
 
   function agregarLinea() {
@@ -291,7 +358,11 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
             <FormField htmlFor="factura" label="Factura asociada" required>
               <Combobox
                 items={facturasItems}
-                onValueChange={(item: { value: string; label: string } | null) => setFacturaId(item?.value ?? "")}
+                value={facturaItem}
+                onValueChange={seleccionarFactura}
+                itemToStringLabel={(item: { value: string; label: string }) => item.label}
+                isItemEqualToValue={(a: { value: string }, b: { value: string }) => a.value === b.value}
+                filter={null}
               >
                 <ComboboxInput
                   id="factura"
@@ -299,9 +370,11 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
                   placeholder={clienteId ? "Buscar factura…" : "Elige primero el cliente"}
                   disabled={!clienteId}
                   showClear
+                  aria-busy={cargandoFacturas}
+                  onChange={(evento) => setBusquedaFactura(evento.currentTarget.value)}
                 />
                 <ComboboxContent>
-                  <ComboboxEmpty>Sin facturas del cliente</ComboboxEmpty>
+                  <ComboboxEmpty>{cargandoFacturas ? "Buscando…" : "Sin facturas del cliente"}</ComboboxEmpty>
                   <ComboboxList>
                     {(item: { value: string; label: string }) => (
                       <ComboboxItem key={item.value} value={item}>
@@ -309,6 +382,11 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial }: P
                       </ComboboxItem>
                     )}
                   </ComboboxList>
+                  {totalFacturas > 0 ? (
+                    <p className="text-muted-foreground border-t px-2 py-1.5 text-xs">
+                      Mostrando {facturasPagina.length} de {totalFacturas}. Escribe para buscar.
+                    </p>
+                  ) : null}
                 </ComboboxContent>
               </Combobox>
             </FormField>

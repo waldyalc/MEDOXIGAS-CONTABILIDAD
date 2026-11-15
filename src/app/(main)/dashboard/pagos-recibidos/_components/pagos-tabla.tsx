@@ -1,10 +1,6 @@
-import Link from "next/link";
-
-import { Plus } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto, rutaFactura, rutaPagoRecibido } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
@@ -34,46 +30,33 @@ function CeldaFactura({ pago }: { pago: PagoLista }) {
   return "—";
 }
 
-export function PagosTabla({ pagos, puedeEscribir }: { pagos: PagoLista[]; puedeEscribir: boolean }) {
+export function PagosTabla({ pagos, busqueda }: { pagos: PagoLista[]; busqueda?: string }) {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Pagos recibidos</h1>
-          <p className="text-muted-foreground text-sm">Cobros aplicados a facturas de venta.</p>
-        </div>
-        {puedeEscribir ? (
-          <Button render={<Link href="/dashboard/pagos-recibidos/nuevo" />}>
-            <Plus />
-            Nuevo pago
-          </Button>
-        ) : null}
-      </div>
-
-      <div className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
+    <Card>
+      <CardContent className="px-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">#</TableHead>
+              <TableHead className="w-16 pl-(--card-spacing)">#</TableHead>
               <TableHead>Fecha</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Factura</TableHead>
               <TableHead>Método</TableHead>
               <TableHead className="text-right">Monto</TableHead>
-              <TableHead>Estado</TableHead>
+              <TableHead className="pr-(--card-spacing)">Estado</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {pagos.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
-                  No hay pagos registrados todavía.
+                  {busqueda ? "No se encontraron pagos con esa búsqueda." : "No hay pagos registrados todavía."}
                 </TableCell>
               </TableRow>
             ) : (
               pagos.map((pago) => (
                 <TableRow key={pago.id}>
-                  <TableCell className="font-medium">
+                  <TableCell className="pl-(--card-spacing) font-medium">
                     <Enlace href={rutaPagoRecibido(pago.id)}>{pago.numero}</Enlace>
                   </TableCell>
                   <TableCell>{formatoDia(pago.fecha)}</TableCell>
@@ -85,7 +68,7 @@ export function PagosTabla({ pagos, puedeEscribir }: { pagos: PagoLista[]; puede
                   </TableCell>
                   <TableCell>{METODOS[pago.metodo]}</TableCell>
                   <TableCell className="text-right font-medium">{formatoMoneda(pago.monto)}</TableCell>
-                  <TableCell>
+                  <TableCell className="pr-(--card-spacing)">
                     {pago.estado === "anulado" ? (
                       <Badge variant="destructive">Anulado</Badge>
                     ) : (
@@ -97,7 +80,7 @@ export function PagosTabla({ pagos, puedeEscribir }: { pagos: PagoLista[]; puede
             )}
           </TableBody>
         </Table>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

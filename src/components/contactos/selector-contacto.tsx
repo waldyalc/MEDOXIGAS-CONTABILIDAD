@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Plus } from "lucide-react";
 
@@ -13,15 +13,16 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
+import { buscarContactos } from "@/lib/contactos/busqueda";
+import { type ContactoBuscado, TAMANO_CONTACTOS, unirContactos } from "@/lib/contactos/seleccion";
 
 import { type ContactoCreado, DialogoNuevoContacto } from "./dialogo-nuevo-contacto";
 
-export interface ContactoOpcion {
-  id: string;
-  nombre: string;
-  rnc_cedula: string | null;
-  lista_precio_id?: string | null;
-}
+export type ContactoOpcion = ContactoBuscado;
+
+const ESPERA_BUSQUEDA_MS = 350;
+
+const formato = new Intl.NumberFormat("es-DO");
 
 interface Props {
   contactos: readonly ContactoOpcion[];
@@ -48,18 +49,89 @@ export function SelectorContacto({
   showClear = true,
   "aria-label": ariaLabel,
 }: Props) {
-  const [nuevos, setNuevos] = useState<ContactoCreado[]>([]);
+  const [opciones, setOpciones] = useState<ContactoBuscado[]>(() => {
+    const inicial = contactos.find((contacto) => contacto.id === valor);
+    return unirContactos(contactos.slice(0, TAMANO_CONTACTOS), inicial);
+  });
+  const [seleccionado, setSeleccionado] = useState<ContactoOpcion | null>(
+    () => contactos.find((contacto) => contacto.id === valor) ?? null,
+  );
   const [busqueda, setBusqueda] = useState("");
+  const [abierto, setAbierto] = useState(false);
+  const [cargando, setCargando] = useState(false);
+  const [total, setTotal] = useState<number | null>(null);
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
+  const solicitud = useRef(0);
+  const resuelto = useRef<string | null>(null);
 
-  const opciones = useMemo(() => {
-    const mapa = new Map(contactos.map((contacto) => [contacto.id, contacto]));
-    for (const contacto of nuevos) mapa.set(contacto.id, contacto);
-    return [...mapa.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-  }, [contactos, nuevos]);
+  useEffect(() => {
+    if (!valor) {
+      setSeleccionado(null);
+      resuelto.current = null;
+      return;
+    }
 
-  const seleccion = opciones.find((contacto) => contacto.id === valor) ?? null;
+    const conocido = opciones.find((contacto) => contacto.id === valor);
+    if (conocido) {
+      setSeleccionado(conocido);
+      resuelto.current = valor;
+      return;
+    }
+
+    if (resuelto.current === valor) return;
+
+    let activo = true;
+    resuelto.current = valor;
+    buscarContactos({ tipo: tipoInicial, incluir: valor })
+      .then((resultado) => {
+        const encontrado = resultado.contactos.find((contacto) => contacto.id === valor);
+        if (!activo || !encontrado) return;
+        setSeleccionado(encontrado);
+        setOpciones((actuales) => unirContactos(actuales, encontrado));
+      })
+      .catch(() => {
+        // El contacto no se pudo recuperar; el formulario conserva el id.
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, [valor, tipoInicial, opciones]);
+
+  useEffect(() => {
+    if (!abierto) return;
+
+    const consulta = busqueda.trim();
+    const temporizador = setTimeout(() => {
+      const numero = solicitud.current + 1;
+      solicitud.current = numero;
+      setCargando(true);
+
+      buscarContactos({
+        tipo: tipoInicial,
+        q: consulta,
+        pagina: 1,
+        tamano: TAMANO_CONTACTOS,
+        ...(valor ? { incluir: valor } : {}),
+      })
+        .then((resultado) => {
+          if (solicitud.current !== numero) return;
+          setOpciones(unirContactos(resultado.contactos, seleccionado));
+          setTotal(resultado.total);
+        })
+        .catch(() => {
+          if (solicitud.current === numero) setOpciones(seleccionado ? [seleccionado] : []);
+        })
+        .finally(() => {
+          if (solicitud.current === numero) setCargando(false);
+        });
+    }, ESPERA_BUSQUEDA_MS);
+
+    return () => clearTimeout(temporizador);
+  }, [abierto, busqueda, tipoInicial, valor, seleccionado]);
+
   const etiquetaCrear = tipoInicial === "cliente" ? "Crear nuevo cliente" : "Crear nuevo proveedor";
+  const restantes = total != null && total > opciones.length;
 
   function cambiar(contacto: ContactoOpcion | null) {
     setBusqueda("");
@@ -67,7 +139,7 @@ export function SelectorContacto({
   }
 
   function crear(contacto: ContactoCreado) {
-    setNuevos((actuales) => [...actuales.filter((item) => item.id !== contacto.id), contacto]);
+    setOpciones((actuales) => unirContactos(actuales, contacto));
     setDialogoAbierto(false);
     setBusqueda("");
     onCambio(contacto);
@@ -77,10 +149,15 @@ export function SelectorContacto({
     <>
       <Combobox
         items={opciones}
-        value={seleccion}
+        value={seleccionado}
         onValueChange={cambiar}
         itemToStringLabel={(contacto) => contacto.nombre}
         isItemEqualToValue={(a, b) => a.id === b.id}
+        filter={null}
+        onOpenChange={(nuevo) => {
+          setAbierto(nuevo);
+          if (!nuevo) setBusqueda("");
+        }}
       >
         <ComboboxInput
           id={id}
@@ -89,6 +166,7 @@ export function SelectorContacto({
           disabled={disabled}
           showClear={showClear}
           aria-label={ariaLabel}
+          aria-busy={cargando}
           onChange={(evento) => setBusqueda(evento.currentTarget.value)}
         />
         <ComboboxContent>
@@ -104,7 +182,7 @@ export function SelectorContacto({
               {etiquetaCrear}
             </Button>
           </div>
-          <ComboboxEmpty>Sin resultados</ComboboxEmpty>
+          <ComboboxEmpty>{cargando ? "Buscando…" : "Sin resultados"}</ComboboxEmpty>
           <ComboboxList>
             {(contacto: ContactoOpcion) => (
               <ComboboxItem key={contacto.id} value={contacto}>
@@ -117,6 +195,11 @@ export function SelectorContacto({
               </ComboboxItem>
             )}
           </ComboboxList>
+          {restantes ? (
+            <p className="text-muted-foreground border-t px-2 py-1.5 text-xs">
+              Mostrando {formato.format(opciones.length)} de {formato.format(total ?? 0)}. Escribe para buscar.
+            </p>
+          ) : null}
         </ComboboxContent>
       </Combobox>
 

@@ -1,29 +1,62 @@
+import { limpiarBusqueda, numeroDocumento, patronContiene } from "@/lib/listas/busqueda";
+import {
+  type OpcionesLista,
+  type ResultadoPagina,
+  rangoPagina,
+  resumirPagina,
+  TAMANO_PAGINA_DEFECTO,
+} from "@/lib/listas/parametros";
 import { createClient } from "@/lib/supabase/server";
 
 import type { AsientoLista, CentroCostoAsiento, ContactoAsiento, CuentaAsiento, DatosFormularioAsiento } from "./tipos";
 
 const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
+const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
+
 export function normalizarFecha(valor: string | undefined): string | undefined {
   if (valor == null || !FORMATO_FECHA.test(valor)) return undefined;
   return valor;
 }
 
-export async function getAsientosLista(desde?: string, hasta?: string): Promise<AsientoLista[]> {
+export async function getAsientosLista(
+  opciones: OpcionesLista = OPCIONES_LISTA_DEFECTO,
+  desde?: string,
+  hasta?: string,
+): Promise<ResultadoPagina<AsientoLista>> {
   const supabase = await createClient();
-  let consulta = supabase
-    .from("asientos")
-    .select("id, numero, fecha, descripcion, origen_tipo, origen_id, total")
-    .order("numero", { ascending: false })
-    .limit(300);
+  const q = limpiarBusqueda(opciones.q);
+  const numero = numeroDocumento(q);
 
-  if (desde) consulta = consulta.gte("fecha", desde);
-  if (hasta) consulta = consulta.lte("fecha", hasta);
+  const consultar = async (pagina: number) => {
+    const { desde: inicio, hasta: fin } = rangoPagina(pagina, opciones.tamano);
+    let consulta = supabase
+      .from("asientos")
+      .select("id, numero, fecha, descripcion, origen_tipo, origen_id, total", { count: "exact" });
 
-  const { data, error } = await consulta.returns<AsientoLista[]>();
-  if (error) throw new Error(error.message);
+    if (desde) consulta = consulta.gte("fecha", desde);
+    if (hasta) consulta = consulta.lte("fecha", hasta);
+    if (q) {
+      consulta = numero != null ? consulta.eq("numero", numero) : consulta.ilike("descripcion", patronContiene(q));
+    }
 
-  return data;
+    const { data, error, count } = await consulta
+      .order("numero", { ascending: false })
+      .range(inicio, fin)
+      .returns<AsientoLista[]>();
+
+    if (error) throw new Error(error.message);
+    return { filas: data ?? [], total: count ?? 0 };
+  };
+
+  const primera = await consultar(opciones.pagina);
+  const resumen = resumirPagina(opciones.pagina, opciones.tamano, primera.total);
+  const filas =
+    resumen.pagina !== opciones.pagina && primera.filas.length === 0
+      ? (await consultar(resumen.pagina)).filas
+      : primera.filas;
+
+  return { filas, resumen };
 }
 
 export async function getDatosFormularioAsiento(): Promise<DatosFormularioAsiento> {

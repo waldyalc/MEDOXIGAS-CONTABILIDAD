@@ -76,5 +76,4 @@ export interface DatosFormularioNotaDebito {
   empresa: Empresa | null;
   contactos: ContactoResumen[];
   productos: ProductoResumen[];
-  facturas: FacturaParaNotaDebito[];
 }

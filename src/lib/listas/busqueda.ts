@@ -18,6 +18,11 @@ export function patronIlike(valor: string): string {
   return `"%${limpiarBusqueda(valor)}%"`;
 }
 
+/** Patrón para un `.ilike()` directo, sin las comillas que pide un `.or()`. */
+export function patronContiene(valor: string): string {
+  return `%${limpiarBusqueda(valor)}%`;
+}
+
 /** Devuelve el número solo cuando el término es un entero (por ejemplo `#1258`). */
 export function numeroBuscado(valor: string): number | null {
   const limpio = valor.trim().replace(/^#/, "");

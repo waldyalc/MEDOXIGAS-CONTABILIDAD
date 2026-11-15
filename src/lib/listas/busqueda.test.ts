@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { limpiarBusqueda, numeroBuscado, numeroDocumento, patronIlike } from "./busqueda";
+import { limpiarBusqueda, numeroBuscado, numeroDocumento, patronContiene, patronIlike } from "./busqueda";
 
 describe("limpiarBusqueda", () => {
   test("recorta espacios y colapsa los intermedios", () => {
@@ -24,6 +24,13 @@ describe("patronIlike", () => {
     expect(patronIlike(" B01 ")).toBe('"%B01%"');
     expect(patronIlike("Pérez, Juan")).toBe('"%Pérez, Juan%"');
     expect(patronIlike("")).toBe('"%%"');
+  });
+});
+
+describe("patronContiene", () => {
+  test("envuelve el término en comodines sin comillas para un .ilike() directo", () => {
+    expect(patronContiene(" B01 ")).toBe("%B01%");
+    expect(patronContiene('a"b')).toBe("%a b%");
   });
 });
 

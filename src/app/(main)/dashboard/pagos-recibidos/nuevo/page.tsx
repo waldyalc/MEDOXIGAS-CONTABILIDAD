@@ -15,6 +15,8 @@ interface Props {
   searchParams: Promise<{ factura?: string; cliente?: string }>;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function Page({ searchParams }: Props) {
   const perfil = await getPerfil();
   if (perfil?.rol == null) redirect("/unauthorized");
@@ -45,7 +47,8 @@ export default async function Page({ searchParams }: Props) {
 async function PagoContenido({ facturaId, clienteId }: { facturaId?: string; clienteId?: string }) {
   const datos = await getDatosFormularioPago();
   const factura = facturaId ? await getFacturaPago(facturaId, "recibido") : null;
-  const cliente = factura?.contacto_id ?? clienteId ?? "";
+  const candidato = factura?.contacto_id ?? clienteId ?? "";
+  const cliente = UUID.test(candidato) ? candidato : "";
 
   return (
     <PagoForm
@@ -57,7 +60,7 @@ async function PagoContenido({ facturaId, clienteId }: { facturaId?: string; cli
       centrosCosto={datos.centrosCosto}
       retenciones={datos.retenciones}
       siguienteNumero={datos.siguienteNumero}
-      initialContacto={datos.contactos.some((contacto) => contacto.id === cliente) ? cliente : ""}
+      initialContacto={cliente}
       facturaInicial={factura}
       fechaHoy={hoyRD()}
       rutaCancelar="/dashboard/pagos-recibidos"

@@ -28,7 +28,7 @@ function EstadoBadge({ estado }: { estado: EstadoFactura }) {
   return <Badge>{ETIQUETAS[estado]}</Badge>;
 }
 
-export function FacturasTabla({ facturas }: { facturas: FacturaFila[] }) {
+export function FacturasTabla({ facturas, busqueda }: { facturas: FacturaFila[]; busqueda?: string }) {
   return (
     <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
       <Table>
@@ -49,7 +49,7 @@ export function FacturasTabla({ facturas }: { facturas: FacturaFila[] }) {
           {facturas.length === 0 ? (
             <TableRow>
               <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
-                No hay facturas todavía.
+                {busqueda ? "No se encontraron facturas con esa búsqueda." : "No hay facturas todavía."}
               </TableCell>
             </TableRow>
           ) : (

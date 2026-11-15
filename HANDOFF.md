@@ -1,5 +1,17 @@
 # Handoff — Medoxigas Contabilidad
 
+## Fix — Listas restantes y selectores de contactos/facturas en servidor (15 nov 2026)
+
+- Rama `fix/listas-restantes` (desde `prueba` 3e1a9e6, que ya traía la paginación de Compras, Pagos a proveedores, Contactos y Productos). Ahora también paginan en el servidor, con `pagina`/`tamano`/`q`, el total real y navegación hasta la última página: **Facturación**, **Pagos recibidos**, **Notas de crédito**, **Notas de débito** y **Asientos**.
+- Búsqueda en servidor: facturas por número, NCF o cliente (nombre/RNC); pagos por número, cliente o factura (número/NCF), incluidas las aplicaciones de pagos multifactura; notas por número, NCF, factura o cliente; asientos por número o descripción (conservando los filtros Desde/Hasta). Un término numérico de hasta 6 dígitos es número exacto de documento.
+- **F4:** `SelectorContacto` (factura, cotización, conduce, nota de débito, pago recibido, compra, gasto, orden de compra) ya no depende del tope de 1,000: pide al servidor con debounce de 350 ms (25 por página), resuelve el contacto seleccionado aunque no esté en la primera página y conserva «Crear nuevo cliente/proveedor» con el diálogo de siempre. La acción `buscarContactos` filtra por cliente/proveedor/ambos, activo, nombre/RNC/teléfono/correo.
+- **F13:** el selector de factura de «Nueva nota de débito» busca en el servidor por cliente (número/NCF, 25 por página) y ya no se limita a las 500 facturas más nuevas. La nota de crédito no tiene selector: toma la factura por URL.
+- Piezas nuevas: `src/lib/listas/documento.ts` (condiciones `.or()` puras, con Vitest) y `src/lib/listas/coincidencias.ts` (ids de contactos/facturas/pagos); `src/lib/contactos/{busqueda,seleccion}.ts`; `src/lib/notas-debito/busqueda.ts`. Se reutilizaron `parametros.ts`, `buscador-lista`, `paginador-lista` y el patrón de `pagos/busqueda.ts`.
+- Verificado con la base llena (19,481 facturas, 11,251 pagos recibidos, 501 notas de crédito, 39,545 asientos, 1,023 contactos): se encuentran la factura #8, el pago #38, la nota #7, el asiento #19 por «B0200000001», el cliente `ZZTEST-Cliente-0800` (facturas y F13, con la vieja #1912) y el proveedor `ZZTEST-Proveedor-0200` (más allá del 1,000). Todas las listas llegan a su última página (facturas 780, pagos 451, notas 21, asientos 1,582) con el total real.
+- p95 medido en build de producción local (`next start`, sesión ZZTEST): listas y búsquedas entre 273 y 1,205 ms; selectores 221–449 ms. Todo por debajo de 2 s. Sin errores de consola.
+- `pnpm typecheck`, `pnpm test` (704, 10 nuevas), Biome de lo tocado y `pnpm build` en verde. Sin migraciones ni cambios en cálculos, validaciones, reportes o motor contable.
+- Quedó fuera (anotado con `rg`): las listas de cotizaciones, conduces, gastos, órdenes de compra, facturas recurrentes, activos fijos y notas de crédito de compras siguen con tope de 300/500; el selector de contactos del asiento manual (`getDatosFormularioAsiento`, tope 1,000); el selector de clientes de facturas recurrentes; y los reportes/RPC que aún cortan (F5/F6, otra sesión). Sin verificación visual (la hace Coder).
+
 ## Fix — Listas completas: paginación y búsqueda en servidor (15 nov 2026)
 
 - Rama `fix/listas-completas` (desde `origin/prueba`). Compras, Pagos a proveedores, Contactos y Productos ahora paginan en el servidor con `searchParams` (`pagina`, `tamano`, `q`), muestran el total real y navegan hasta la última página. Se acabaron los cortes silenciosos de 300/1,000 filas.

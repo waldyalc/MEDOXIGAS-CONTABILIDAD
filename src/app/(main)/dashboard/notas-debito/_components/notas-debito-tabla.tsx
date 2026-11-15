@@ -1,10 +1,6 @@
-import Link from "next/link";
-
-import { Plus } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto, rutaFactura, rutaNotaDebitoVenta } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
@@ -16,47 +12,34 @@ function EstadoBadge({ estado }: { estado: NotaDebitoLista["estado"] }) {
   return <Badge variant="secondary">Activa</Badge>;
 }
 
-export function NotasDebitoTabla({ notas, puedeEscribir }: { notas: NotaDebitoLista[]; puedeEscribir: boolean }) {
+export function NotasDebitoTabla({ notas, busqueda }: { notas: NotaDebitoLista[]; busqueda?: string }) {
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Notas de débito</h1>
-          <p className="text-muted-foreground text-sm">Cargos sobre facturas de venta (NCF B03).</p>
-        </div>
-        {puedeEscribir ? (
-          <Button render={<Link href="/dashboard/notas-debito/nueva" />}>
-            <Plus data-icon="inline-start" />
-            Nueva nota de débito
-          </Button>
-        ) : null}
-      </div>
-
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
+    <Card>
+      <CardContent className="px-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">#</TableHead>
+              <TableHead className="w-16 pl-(--card-spacing)">#</TableHead>
               <TableHead>NCF</TableHead>
               <TableHead>Factura</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Fecha</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead className="text-right">Total</TableHead>
-              <TableHead>Estado</TableHead>
+              <TableHead className="pr-(--card-spacing)">Estado</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {notas.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-muted-foreground py-10 text-center">
-                  No hay notas de débito todavía.
+                  {busqueda ? "No se encontraron notas con esa búsqueda." : "No hay notas de débito todavía."}
                 </TableCell>
               </TableRow>
             ) : (
               notas.map((nota) => (
                 <TableRow key={nota.id}>
-                  <TableCell className="font-medium">
+                  <TableCell className="pl-(--card-spacing) font-medium">
                     <Enlace href={rutaNotaDebitoVenta(nota.id)}>{nota.numero}</Enlace>
                   </TableCell>
                   <TableCell className="font-mono text-xs">
@@ -74,7 +57,7 @@ export function NotasDebitoTabla({ notas, puedeEscribir }: { notas: NotaDebitoLi
                   <TableCell>{formatoDia(nota.fecha)}</TableCell>
                   <TableCell>{nota.tipo === "texto" ? "Texto" : "Montos"}</TableCell>
                   <TableCell className="text-right font-medium">{formatoMoneda(nota.total)}</TableCell>
-                  <TableCell>
+                  <TableCell className="pr-(--card-spacing)">
                     <EstadoBadge estado={nota.estado} />
                   </TableCell>
                 </TableRow>
@@ -82,7 +65,7 @@ export function NotasDebitoTabla({ notas, puedeEscribir }: { notas: NotaDebitoLi
             )}
           </TableBody>
         </Table>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

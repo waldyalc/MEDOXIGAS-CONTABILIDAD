@@ -6,12 +6,17 @@ import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 
 import { EsqueletoTabla } from "@/components/carga/esqueletos";
+import { BuscadorLista } from "@/components/listas/buscador-lista";
+import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRol } from "@/lib/auth/rol";
 import { getFacturasLista } from "@/lib/facturacion/consultas";
+import { leerOpcionesLista, type OpcionesLista, type ParametrosLista } from "@/lib/listas/parametros";
 
 import { FacturasTabla } from "./_components/facturas-tabla";
+
+const RUTA = "/dashboard/facturacion";
 
 async function AccionNuevaFactura() {
   const rol = await getRol();
@@ -26,16 +31,27 @@ async function AccionNuevaFactura() {
   );
 }
 
-async function TablaFacturas() {
-  const rol = await getRol();
-  if (rol === null) redirect("/unauthorized");
+async function TablaFacturas({
+  opciones,
+  params,
+}: {
+  readonly opciones: OpcionesLista;
+  readonly params: ParametrosLista;
+}) {
+  const { filas: facturas, resumen } = await getFacturasLista(opciones);
 
-  const facturas = await getFacturasLista();
-
-  return <FacturasTabla facturas={facturas} />;
+  return (
+    <div className="flex flex-col gap-3">
+      <FacturasTabla facturas={facturas} busqueda={opciones.q} />
+      <PaginadorLista base={RUTA} params={params} resumen={resumen} />
+    </div>
+  );
 }
 
-export default function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<ParametrosLista> }) {
+  const params = await searchParams;
+  const opciones = leerOpcionesLista(params);
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -48,8 +64,16 @@ export default function Page() {
         </Suspense>
       </div>
 
+      <BuscadorLista
+        base={RUTA}
+        parametros={params}
+        valorInicial={opciones.q}
+        placeholder="Buscar por número, NCF o cliente…"
+        ariaLabel="Buscar facturas"
+      />
+
       <Suspense fallback={<EsqueletoTabla filas={8} columnas={9} />}>
-        <TablaFacturas />
+        <TablaFacturas opciones={opciones} params={params} />
       </Suspense>
     </div>
   );

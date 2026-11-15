@@ -3,6 +3,16 @@ import { cache } from "react";
 import { z } from "zod";
 
 import { getImpuestosActivos } from "@/lib/impuestos/consultas";
+import { limpiarBusqueda, numeroDocumento } from "@/lib/listas/busqueda";
+import { contactosQueCoinciden } from "@/lib/listas/coincidencias";
+import { condicionesDocumento } from "@/lib/listas/documento";
+import {
+  type OpcionesLista,
+  type ResultadoPagina,
+  rangoPagina,
+  resumirPagina,
+  TAMANO_PAGINA_DEFECTO,
+} from "@/lib/listas/parametros";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -119,25 +129,51 @@ export async function getCuentasCajaBanco(): Promise<CuentaCajaBanco[]> {
   return data;
 }
 
-export async function getFacturasLista(): Promise<FacturaFila[]> {
+const CAMPOS_FACTURA_LISTA =
+  "id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, estado, contactos(nombre)";
+
+const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
+
+export async function getFacturasLista(
+  opciones: OpcionesLista = OPCIONES_LISTA_DEFECTO,
+): Promise<ResultadoPagina<FacturaFila>> {
   const supabase = await createClient();
-  // Un solo viaje: el nombre del cliente viene en el join en vez de una
-  // segunda consulta que dependía de los ids de la primera.
-  const { data, error } = await supabase
-    .from("facturas")
-    .select(
-      "id, numero, ncf, tipo_comprobante, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, estado, contactos(nombre)",
-    )
-    .order("numero", { ascending: false })
-    .limit(300)
-    .returns<FacturaListaConContacto[]>();
+  const q = limpiarBusqueda(opciones.q);
+  const numero = numeroDocumento(q);
+  const idsContactos = q && numero == null ? await contactosQueCoinciden(supabase, q, ["cliente", "ambos"]) : [];
+  const filtro = condicionesDocumento({ q, idsContactos });
 
-  if (error) throw new Error(error.message);
+  const consultar = async (pagina: number) => {
+    const { desde, hasta } = rangoPagina(pagina, opciones.tamano);
+    let consulta = supabase.from("facturas").select(CAMPOS_FACTURA_LISTA, { count: "exact" });
 
-  return data.map(({ contactos, ...factura }) => ({
-    ...factura,
-    cliente_nombre: contactos?.nombre ?? "—",
-  }));
+    if (filtro) consulta = consulta.or(filtro);
+
+    // Un solo viaje: el nombre del cliente viene en el join en vez de una
+    // segunda consulta que dependía de los ids de la primera.
+    const { data, error, count } = await consulta
+      .order("numero", { ascending: false })
+      .range(desde, hasta)
+      .returns<FacturaListaConContacto[]>();
+
+    if (error) throw new Error(error.message);
+    return { filas: data ?? [], total: count ?? 0 };
+  };
+
+  const primera = await consultar(opciones.pagina);
+  const resumen = resumirPagina(opciones.pagina, opciones.tamano, primera.total);
+  const filas =
+    resumen.pagina !== opciones.pagina && primera.filas.length === 0
+      ? (await consultar(resumen.pagina)).filas
+      : primera.filas;
+
+  return {
+    filas: filas.map(({ contactos, ...factura }) => ({
+      ...factura,
+      cliente_nombre: contactos?.nombre ?? "—",
+    })),
+    resumen,
+  };
 }
 
 interface AsientoLineaConCuenta {
