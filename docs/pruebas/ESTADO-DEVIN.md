@@ -1,4 +1,17 @@
-# Estado de las pruebas — dónde quedó Devin (parado 14 nov 2026, 7:23 pm)
+# Estado de las pruebas — dónde quedó Devin
+
+> Actualización 14 nov 2026 (noche): ya están hechas la medición UI (:3005),
+> C8, el cuadre por API (`linea-base-despues.md`), `RESULTADOS.md`, la sonda
+> de fallos 2ª pasada (`sonda-fallos.md` F1–F9) y la **3ª pasada** (F10–F18:
+> bancos, conduces, activos, notas de compra, estado de cuenta, numeraciones;
+> script `sonda-fallos-2.ts`, crudo `sonda-fallos-2-raw.json`).
+> **Pendiente:** Waldy corre `cuadre.sql` en el SQL Editor y pega la salida →
+> se interpreta en `resultados/cuadre-interpretacion.md` (ya tiene el marco).
+> Sin push. Lo de abajo es el estado histórico del 14 nov 7:23 pm.
+
+---
+
+## Estado anterior (parado 14 nov 2026, 7:23 pm)
 
 Devin corría escondido por línea de comandos (`devin.exe --model swe-2-flash-max --permission-mode dangerous -p --prompt-file %TEMP%\medox-pruebas\prompt2.md`) desde las 6:38 pm. Waldy pidió pararlo; se paró a mitad de la medición de pantallas. Su registro completo: `%TEMP%\medox-pruebas\sesion2-final.log`.
 

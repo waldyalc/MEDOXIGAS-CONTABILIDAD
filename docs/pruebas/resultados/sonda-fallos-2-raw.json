@@ -1,0 +1,250 @@
+{
+  "conteos-tablas": {
+    "remisiones": 1,
+    "remision_lineas": 1,
+    "cotizaciones": 1,
+    "notas_credito_compra": 0,
+    "notas_debito_venta": 0,
+    "activos_fijos": 0,
+    "activo_depreciaciones": 0,
+    "conciliaciones": 0,
+    "conciliacion_movimientos": 0,
+    "numeraciones": 8,
+    "gastos_menores": 1
+  },
+  "bancos-lineas-por-cuenta": [
+    {
+      "codigo": "1101",
+      "nombre": "Caja general",
+      "lineasReales": 8423,
+      "lineasQueTraeLaApp": 1000,
+      "invisibles": 7423
+    },
+    {
+      "codigo": "1102",
+      "nombre": "Banco principal",
+      "lineasReales": 5830,
+      "lineasQueTraeLaApp": 1000,
+      "invisibles": 4830
+    },
+    {
+      "codigo": "1106",
+      "nombre": "Caja chica",
+      "lineasReales": 1,
+      "lineasQueTraeLaApp": 1,
+      "invisibles": 0
+    },
+    {
+      "codigo": "1109",
+      "nombre": "Banco popular",
+      "lineasReales": 1,
+      "lineasQueTraeLaApp": 1,
+      "invisibles": 0
+    }
+  ],
+  "bancos-segunda-ronda": {
+    "cuentaConMasLineas": {
+      "codigo": "1101",
+      "nombre": "Caja general",
+      "lineasReales": 8423,
+      "lineasQueTraeLaApp": 1000,
+      "invisibles": 7423
+    },
+    "asientosIdsEnIn": 1000,
+    "asientosResultado": "ERR:Bad Request",
+    "contactosIdsEnIn": 0,
+    "contactosResultado": "ok 0"
+  },
+  "bancos-rpc-saldos": {
+    "filas": 4
+  },
+  "limite-url-in": {
+    "100 ids (~3.7 KB de URL)": "ok (0 filas)",
+    "200 ids (~7.4 KB de URL)": "ok (0 filas)",
+    "300 ids (~11.1 KB de URL)": "ok (0 filas)",
+    "400 ids (~14.8 KB de URL)": "ERR:TypeError: fetch failed"
+  },
+  "estado-cuenta-top-facturas": [
+    {
+      "contactoId": "a42152ba-3a27-45c1-9e86-8bae6c250fd0",
+      "facturas": 3932
+    },
+    {
+      "contactoId": "cb3a17a7-0002-46b9-ab9c-e593bf937db6",
+      "facturas": 500
+    },
+    {
+      "contactoId": "c3dfd01b-dccd-413b-8a7a-161bb3fb0702",
+      "facturas": 39
+    },
+    {
+      "contactoId": "4eb06194-ffc3-4c50-a4a6-80aa1f72cb84",
+      "facturas": 37
+    },
+    {
+      "contactoId": "08ffa1f8-18c2-4707-aa65-14b00b01b75d",
+      "facturas": 33
+    }
+  ],
+  "estado-cuenta-campeon": {
+    "contactoId": "a42152ba-3a27-45c1-9e86-8bae6c250fd0",
+    "facturas": 3932,
+    "pagosRecibidos": 0,
+    "asientoLineas": 3932,
+    "compras": 0,
+    "cotizaciones": 0,
+    "remisiones": 0,
+    "notasCreditoVenta": 0,
+    "notasDebitoVenta": 0,
+    "notasCreditoCompra": 0,
+    "pagosProveedor": 0
+  },
+  "estado-cuenta-replica-reporte": {
+    "facturasDevueltas": 1000,
+    "facturasReales": 3932,
+    "pagosIn": "ERR:Bad Request",
+    "aplicacionesIn": "ERR:Bad Request"
+  },
+  "form-nota-debito-facturas": {
+    "facturasElegiblesReales": 19175,
+    "elSelectorCarga": 500,
+    "inalcanzables": 18675
+  },
+  "form-activo-proveedores": {
+    "proveedoresReales": 203,
+    "elSelectorCarga": 203,
+    "inalcanzables": 0
+  },
+  "listas-nuevos-modulos": {
+    "remisiones": {
+      "limite": 300,
+      "reales": 1,
+      "invisibles": 0
+    },
+    "cotizaciones": {
+      "limite": 300,
+      "reales": 1,
+      "invisibles": 0
+    },
+    "notas-credito-compra": {
+      "limite": 300,
+      "reales": 0,
+      "invisibles": 0
+    },
+    "notas-debito-venta": {
+      "limite": 300,
+      "reales": 0,
+      "invisibles": 0
+    },
+    "activos-fijos": {
+      "limite": 500,
+      "reales": 0,
+      "invisibles": 0
+    }
+  },
+  "numeraciones": [
+    {
+      "tipo": "01",
+      "prefijo": "B01",
+      "nombre": "Crédito fiscal",
+      "activa": true,
+      "siguiente": 15236,
+      "hasta": 100000,
+      "vence": null,
+      "ultimoEmitido": 15235,
+      "deriva": 0
+    },
+    {
+      "tipo": "02",
+      "prefijo": "B02",
+      "nombre": "Consumo",
+      "activa": true,
+      "siguiente": 4247,
+      "hasta": 100000,
+      "vence": null,
+      "ultimoEmitido": 4246,
+      "deriva": 0
+    },
+    {
+      "tipo": "03",
+      "prefijo": "B03",
+      "nombre": "Notas de débito",
+      "activa": true,
+      "siguiente": 1,
+      "hasta": 100000,
+      "vence": null,
+      "ultimoEmitido": 0,
+      "deriva": 0
+    },
+    {
+      "tipo": "04",
+      "prefijo": "B04",
+      "nombre": "Notas de crédito",
+      "activa": true,
+      "siguiente": 502,
+      "hasta": 100000,
+      "vence": null,
+      "ultimoEmitido": 501,
+      "deriva": 0
+    },
+    {
+      "tipo": "13",
+      "prefijo": "B13",
+      "nombre": "Gastos menores",
+      "activa": true,
+      "siguiente": 2,
+      "hasta": 100000,
+      "vence": null,
+      "ultimoEmitido": 1,
+      "deriva": 0
+    },
+    {
+      "tipo": "14",
+      "prefijo": "B14",
+      "nombre": "Régimen especial",
+      "activa": true,
+      "siguiente": 1,
+      "hasta": 100000,
+      "vence": null,
+      "ultimoEmitido": 0,
+      "deriva": 0
+    },
+    {
+      "tipo": "15",
+      "prefijo": "B15",
+      "nombre": "Gubernamental",
+      "activa": true,
+      "siguiente": 1,
+      "hasta": 100000,
+      "vence": null,
+      "ultimoEmitido": 0,
+      "deriva": 0
+    },
+    {
+      "tipo": "16",
+      "prefijo": "B16",
+      "nombre": "Exportaciones",
+      "activa": true,
+      "siguiente": 1,
+      "hasta": 100000,
+      "vence": null,
+      "ultimoEmitido": 0,
+      "deriva": 0
+    }
+  ],
+  "rpc-alcanzables": {
+    "actualizar_numeracion": "la numeración es obligatoria",
+    "transferir_entre_cuentas": "selecciona la cuenta de origen y la de destino",
+    "registrar_deposito": "selecciona la cuenta de destino y la contrapartida",
+    "crear_cuenta_banco": "el nombre de la cuenta es obligatorio",
+    "guardar_borrador_conciliacion": "selecciona la cuenta a conciliar",
+    "crear_activo_fijo": "el nombre del activo es obligatorio",
+    "depreciar_activo": "activo fijo no encontrado",
+    "crear_remision": "el contacto es obligatorio",
+    "editar_remision": "el documento es obligatorio",
+    "convertir_a_factura": "tipo de documento inválido",
+    "crear_nota_credito_compra": "la factura de proveedor es obligatoria",
+    "crear_nota_debito_venta": "la factura es obligatoria",
+    "conciliar_cuenta": "selecciona la cuenta a conciliar"
+  }
+}
