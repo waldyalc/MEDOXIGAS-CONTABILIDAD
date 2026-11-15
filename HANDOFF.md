@@ -578,3 +578,15 @@
 - Periodos en `/dashboard/contabilidad/periodos`: cerrar y reabrir meses; el trigger `asientos_periodo_abierto` bloquea crear o anular asientos con fecha en un mes cerrado. El cierre de resultados del año lleva ingresos, costos y gastos a 3202 Utilidad del ejercicio y es idempotente por año.
 - Migraciones aditivas `20261114300000_activos_fijos.sql` y `20261114300100_periodos_cierre.sql` (pendientes de aplicar por Coder). Cuentas nuevas: 12, 1210, 1211, 6109 y 3202. pgTAP: `activos_fijos_test.sql` y `periodos_cierre_test.sql`.
 - Verificado: `pnpm typecheck`, Biome de los archivos nuevos, `pnpm test` (400) y `pnpm build`. pgTAP no se pudo correr aquí (sin Docker/Supabase local).
+## Corrección de carga multiusuario (17 nov 2026)
+
+Tras las pruebas de carga (32k docs) y concurrencia (C1–C8, todas sanas), se corrigieron las lecturas — el motor de escritura no se tocó. Ramas desde `prueba`, una por paquete, listas para revisión de Coder:
+
+- `fix/rpc-desvinculado` — `supabase.rpc(...)` directo (revive libro diario, balance, balanza/auxiliar tercero, movimientos y guardar numeraciones); `.limit(300)` en listas de compras/pagos; candado `rpc-sin-extraer.test.ts`.
+- `fix/paginacion-fiscales` — helper `paginarConsulta` (`src/lib/supabase/paginar.ts`, 5 tests) + 606/607/608/IT-1/IR-17/retenciones/exportador paginados y joins en vez de `.in()` masivo. 607 mar-2023 verificado en vivo: 1,700 filas (antes 1,033 truncadas).
+- `fix/consultas-in` — bancos/conciliaciones/auxiliar/fichas/estado-cuenta/v3/d: `.in()` de miles de ids reemplazados por embeds `!inner` o `consultarEnLotes` (`lotes.ts`, 3 tests); `hasta` se filtra en SQL.
+- `fix/paginacion-reportes` — `reporte_movimientos`, `reporte_libro_diario`, `reporte_saldos_tercero`, `reporte_cxc`, CxC/CxP/compras/transacciones/anual/contactos/cuentas paginados (incluye merge de `fix/rpc-desvinculado`). Nota: en `reporte_movimientos`/`libro_diario` la orden es (fecha/asiento/cuenta) — empate residual si un asiento repite la misma cuenta con mismo monto.
+- `perf/fichas` — `cache()` en `getImpuestosActivos`; empresa/impuestos arrancan en paralelo con la factura; ficha de compra pide cuentas+retenciones en el primer batch; estado de cuenta corre rol+datos en paralelo.
+- `docs/investigacion-carga` — `docs/pruebas/resultados/investigacion-p4.md` + `docs/pruebas/cuadre-inventario.sql` (solo lectura, lo corre Waldy).
+
+Verificado: `pnpm typecheck`, `pnpm check:fix`, `pnpm test` (671) en la punta apilada. Sondas de UI/carga y `cuadre-inventario.sql` quedan por correr. Pendientes de Waldy/Contable: `docs/pruebas/cuadre.sql` (I2), `cuadre-inventario.sql` (D6), decisión RNC único / NC sobre factura pagada / unicidad NCF-B03-B04, y OK para borrar ~19.5k docs ZZTEST.
