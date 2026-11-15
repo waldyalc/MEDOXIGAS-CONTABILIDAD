@@ -1,0 +1,32 @@
+npm notice run medoxigas-contabilidad@0.1.0 npx
+npm notice run tsx tests/carga/sonda-ui.ts
+inicio: 9034ms filas=0 texto=741 busc=0 pag=0 err=false
+facturas: 1992ms filas=300 texto=31932 busc=0 pag=0 err=false
+compras: 5317ms filas=1000 texto=108379 busc=0 pag=0 err=false
+pagos: 1433ms filas=0 texto=91 busc=0 pag=0 err=false
+contactos: 1834ms filas=1000 texto=42804 busc=1 pag=0 err=false
+productos: 2408ms filas=322 texto=21370 busc=1 pag=0 err=false
+gastos: 997ms filas=0 texto=91 busc=0 pag=0 err=false
+cotizaciones: 1072ms filas=1 texto=184 busc=0 pag=0 err=false
+asientos: 1372ms filas=300 texto=17269 busc=0 pag=0 err=false
+catalogo: 947ms filas=0 texto=91 busc=0 pag=0 err=false
+numeraciones: 746ms filas=0 texto=91 busc=0 pag=0 err=false
+empresa: 777ms filas=0 texto=369 busc=0 pag=0 err=false
+rep-607: 4225ms filas=1033 texto=187396 busc=0 pag=0 err=false
+rep-cxc: 1517ms filas=20 texto=2635 busc=0 pag=1 err=false
+rep-cxp: 871ms filas=1 texto=687 busc=0 pag=0 err=false
+rep-libro-diario: 929ms filas=0 texto=0 busc=0 pag=0 err=true
+rep-balance: 1075ms filas=0 texto=0 busc=0 pag=0 err=true
+rep-estado: 3621ms filas=12 texto=1374 busc=1 pag=0 err=false
+rep-ventas: 1296ms filas=10 texto=1831 busc=1 pag=0 err=false
+rep-608: 791ms filas=0 texto=508 busc=0 pag=0 err=false
+rep-it1: 1525ms filas=34 texto=1618 busc=0 pag=0 err=false
+rep-contador: 779ms filas=0 texto=91 busc=0 pag=0 err=false
+nueva-factura: 1518ms filas=0 texto=579 busc=2 pag=0 err=false
+nuevo-pago: 778ms filas=0 texto=91 busc=0 pag=0 err=false
+nueva-compra: 841ms filas=0 texto=337 busc=2 pag=0 err=false
+export-607: sin descarga, portapapeles=0 chars
+
+===ERRORES-CONSOLA===
+rep-libro-diario: 1 → pageerror: Error: Minified React error #441; visit https://react.dev/errors/441 for the full message or use the non-minified dev environment
+rep-balance: 1 → pageerror: Error: Minified React error #441; visit https://react.dev/errors/441 for the full message or use the non-minified dev environment
