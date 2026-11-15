@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { cn } from "cn";
 import {
@@ -24,17 +25,21 @@ import {
   MapPin,
   Phone,
   Plus,
+  ReceiptText,
   Search,
   ShoppingCart,
+  SquarePen,
   Upload,
   User,
   Users,
 } from "lucide-react";
 
+import { FormularioContacto } from "@/components/contactos/formulario-contacto";
 import { Enlace } from "@/components/enlace";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +51,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { etiquetaTipoContacto } from "@/lib/contactos/contactos";
+import { type Contacto, etiquetaTipoContacto } from "@/lib/contactos/contactos";
 import {
   type AsientoFicha,
   aCentavos,
@@ -80,6 +85,7 @@ import {
 } from "@/lib/enlaces";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
+import type { ListaPrecio } from "@/lib/inventario/tipos";
 
 type TipoFila =
   | "factura"
@@ -366,48 +372,36 @@ interface AccionEnlace {
   readonly icono: React.ReactNode;
 }
 
-function accionesFicha(
-  contacto: DatosFichaContacto["contacto"],
-  puedeCrear: boolean,
-  esVenta: boolean,
-  esCompra: boolean,
-): { primaria: AccionEnlace; secundarias: AccionEnlace[] } {
-  const estadoCuenta: AccionEnlace = {
+function accionesFicha(contacto: DatosFichaContacto["contacto"], esVenta: boolean, esCompra: boolean): AccionEnlace[] {
+  const acciones: AccionEnlace[] = [];
+  if (esVenta) {
+    acciones.push({
+      etiqueta: "Nueva factura",
+      href: `/dashboard/facturacion/nueva?cliente=${contacto.id}`,
+      icono: <FilePlus2 />,
+    });
+  }
+  if (esCompra) {
+    acciones.push({ etiqueta: "Nueva compra", href: "/dashboard/compras/nueva", icono: <ShoppingCart /> });
+  }
+  acciones.push({
     etiqueta: "Estado de cuenta",
     href: `${rutaContacto(contacto.id)}/estado-cuenta`,
     icono: <FileText />,
-  };
-  const nuevaCompra: AccionEnlace = {
-    etiqueta: "Nueva compra",
-    href: "/dashboard/compras/nueva",
-    icono: <ShoppingCart />,
-  };
-
-  if (puedeCrear && esVenta) {
-    const secundarias: AccionEnlace[] = [];
-    if (esCompra) secundarias.push(nuevaCompra);
-    secundarias.push(estadoCuenta);
-    return {
-      primaria: {
-        etiqueta: "Nueva factura",
-        href: `/dashboard/facturacion/nueva?cliente=${contacto.id}`,
-        icono: <FilePlus2 />,
-      },
-      secundarias,
-    };
-  }
-  if (puedeCrear && esCompra) return { primaria: nuevaCompra, secundarias: [estadoCuenta] };
-  return { primaria: estadoCuenta, secundarias: [] };
+  });
+  return acciones;
 }
 
 function EncabezadoFicha({
   contacto,
-  primaria,
-  secundarias,
+  acciones,
+  onEditar,
+  estadoCuentaHref,
 }: {
   readonly contacto: DatosFichaContacto["contacto"];
-  readonly primaria: AccionEnlace;
-  readonly secundarias: readonly AccionEnlace[];
+  readonly acciones: readonly AccionEnlace[];
+  readonly onEditar: (() => void) | null;
+  readonly estadoCuentaHref: string;
 }) {
   return (
     <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
@@ -432,17 +426,24 @@ function EncabezadoFicha({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <Button render={<Link href={primaria.href} prefetch={false} />}>
-          {primaria.icono}
-          {primaria.etiqueta}
-        </Button>
-        {secundarias.length > 0 ? (
+        {onEditar ? (
+          <Button onClick={onEditar}>
+            <SquarePen data-icon="inline-start" />
+            Editar perfil
+          </Button>
+        ) : (
+          <Button render={<Link href={estadoCuentaHref} prefetch={false} />}>
+            <FileText data-icon="inline-start" />
+            Estado de cuenta
+          </Button>
+        )}
+        {acciones.length > 0 ? (
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="outline" size="icon" aria-label="Más acciones" />}>
               <EllipsisVertical />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              {secundarias.map((accion) => (
+              {acciones.map((accion) => (
                 <DropdownMenuItem key={accion.etiqueta} render={<Link href={accion.href} prefetch={false} />}>
                   {accion.icono}
                   {accion.etiqueta}
@@ -564,55 +565,68 @@ const CLASE_TONO_STAT: Record<TonoStat, string> = {
   pendiente: "text-red-500",
 };
 
-function StatMonto({ etiqueta, centavos, tono }: StatMontoDef) {
+const CLASE_COLS_KPI: Record<number, string> = {
+  1: "sm:grid-cols-1",
+  2: "sm:grid-cols-2",
+  3: "sm:grid-cols-3",
+  4: "sm:grid-cols-2 lg:grid-cols-4",
+  5: "sm:grid-cols-3 lg:grid-cols-5",
+  6: "sm:grid-cols-3 lg:grid-cols-6",
+  7: "sm:grid-cols-4 lg:grid-cols-7",
+};
+
+function TarjetaKpi({ etiqueta, centavos, tono }: StatMontoDef) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="ring-foreground/10 bg-card flex flex-col gap-0.5 rounded-xl px-4 py-3 ring-1">
       <span className="text-muted-foreground text-xs">{etiqueta}</span>
-      <span className={cn("text-xl font-semibold tabular-nums", CLASE_TONO_STAT[tono])}>
+      <span className={cn("text-lg font-semibold tabular-nums", CLASE_TONO_STAT[tono])}>
         {formatoMonedaCentavos(centavos)}
       </span>
     </div>
   );
 }
 
-function construirStats(
-  datos: DatosFichaContacto,
-  esVenta: boolean,
-  esCompra: boolean,
-): { izquierda: StatMontoDef[]; derecha: StatMontoDef[] } {
-  const izquierda: StatMontoDef[] = [];
-  const derecha: StatMontoDef[] = [];
+function construirKpis(datos: DatosFichaContacto, esVenta: boolean, esCompra: boolean): StatMontoDef[] {
+  const kpis: StatMontoDef[] = [];
 
   if (esVenta) {
-    izquierda.push({
-      etiqueta: "Total facturado",
-      centavos: datos.facturas.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.total)), 0),
-      tono: "normal",
-    });
-    derecha.push(
+    kpis.push(
+      { etiqueta: "Por cobrar", centavos: totalPorCobrar(datos.facturas), tono: "pendiente" },
+      { etiqueta: "Anticipos", centavos: totalAnticipos(datos.pagosRecibidos), tono: "normal" },
+    );
+  }
+  if (esCompra) {
+    kpis.push({ etiqueta: "Por pagar", centavos: totalPorPagar(datos.facturasProveedor), tono: "pendiente" });
+  }
+  if (esVenta) {
+    kpis.push(
+      {
+        etiqueta: "Total facturado",
+        centavos: datos.facturas.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.total)), 0),
+        tono: "normal",
+      },
       {
         etiqueta: "Total cobrado",
         centavos: datos.facturas.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.pagado)), 0),
         tono: "positivo",
       },
-      { etiqueta: "Por cobrar", centavos: totalPorCobrar(datos.facturas), tono: "pendiente" },
     );
-    const anticipos = totalAnticipos(datos.pagosRecibidos);
-    if (anticipos > 0) derecha.push({ etiqueta: "Anticipos", centavos: anticipos, tono: "normal" });
   }
-
   if (esCompra) {
-    const comprado = datos.facturasProveedor.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.total)), 0);
-    const pagado = datos.facturasProveedor.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.pagado)), 0);
-    if (esVenta) derecha.push({ etiqueta: "Total comprado", centavos: comprado, tono: "normal" });
-    else izquierda.push({ etiqueta: "Total comprado", centavos: comprado, tono: "normal" });
-    derecha.push(
-      { etiqueta: "Total pagado", centavos: pagado, tono: "positivo" },
-      { etiqueta: "Por pagar", centavos: totalPorPagar(datos.facturasProveedor), tono: "pendiente" },
+    kpis.push(
+      {
+        etiqueta: "Total comprado",
+        centavos: datos.facturasProveedor.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.total)), 0),
+        tono: "normal",
+      },
+      {
+        etiqueta: "Total pagado",
+        centavos: datos.facturasProveedor.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.pagado)), 0),
+        tono: "positivo",
+      },
     );
   }
-
-  return { izquierda, derecha };
+  return kpis;
 }
 
 function coincidenTexto(fila: FilaUnificada, texto: string): boolean {
@@ -626,16 +640,75 @@ function coincidenTexto(fila: FilaUnificada, texto: string): boolean {
   );
 }
 
-function PestanaTransacciones({
+function TablaMovimientos({ filas, unidad }: { readonly filas: readonly FilaUnificada[]; readonly unidad: string }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className={TH}>Transacción</TableHead>
+          <TableHead className={TH}>Fecha</TableHead>
+          <TableHead className={TH}>Tipo</TableHead>
+          <TableHead className={TH}>Descripción</TableHead>
+          <TableHead className={cn(TH, "text-right")}>Monto</TableHead>
+          <TableHead className={TH}>Estado</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {filas.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
+              No hay {unidad}.
+            </TableCell>
+          </TableRow>
+        ) : (
+          filas.map((fila) => (
+            <TableRow key={fila.clave} className="relative cursor-pointer">
+              <TableCell>
+                <Enlace
+                  className="absolute inset-0"
+                  href={fila.href}
+                  aria-label={`Ver ${fila.detalle} ${fila.prefijo}-${fila.numero}`}
+                />
+                <span className="pointer-events-none relative flex flex-col">
+                  <span className="text-primary font-medium">
+                    {fila.prefijo}-{String(fila.numero).padStart(4, "0")}
+                  </span>
+                  {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
+                </span>
+              </TableCell>
+              <TableCell className="text-muted-foreground">{formatoDia(fila.fecha)}</TableCell>
+              <TableCell>
+                <TipoBadge tipo={fila.tipo} />
+              </TableCell>
+              <TableCell className="whitespace-normal">{fila.detalle}</TableCell>
+              <TableCell className="text-right font-medium tabular-nums">
+                {fila.direccion === "abono" ? (
+                  <span className="text-emerald-600 dark:text-emerald-400">
+                    -{formatoMonedaCentavos(fila.montoCentavos)}
+                  </span>
+                ) : (
+                  formatoMonedaCentavos(fila.montoCentavos)
+                )}
+              </TableCell>
+              <TableCell>
+                <EstadoFilaBadge estado={fila.estado} tipo={fila.tipo} />
+              </TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  );
+}
+
+function PestanaTabla({
   filas,
   filtroTipo,
-  statsIzquierda,
-  statsDerecha,
+  unidad,
 }: {
   readonly filas: readonly FilaUnificada[];
   readonly filtroTipo: string;
-  readonly statsIzquierda: readonly StatMontoDef[];
-  readonly statsDerecha: readonly StatMontoDef[];
+  readonly unidad: string;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const texto = busqueda.trim().toLowerCase();
@@ -648,92 +721,23 @@ function PestanaTransacciones({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap justify-between gap-x-10 gap-y-4">
-        <div className="flex w-full max-w-xs flex-col gap-4">
-          <div className="relative">
-            <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-            <Input
-              value={busqueda}
-              onChange={(event) => setBusqueda(event.target.value)}
-              placeholder="Buscar transacciones…"
-              aria-label="Buscar transacciones"
-              className="pl-8"
-            />
-          </div>
-          {statsIzquierda.map((stat) => (
-            <StatMonto key={stat.etiqueta} {...stat} />
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-x-10 gap-y-4">
-          {statsDerecha.map((stat) => (
-            <StatMonto key={stat.etiqueta} {...stat} />
-          ))}
-        </div>
+      <div className="relative w-full max-w-xs">
+        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+        <Input
+          value={busqueda}
+          onChange={(event) => setBusqueda(event.target.value)}
+          placeholder={`Buscar ${unidad}…`}
+          aria-label={`Buscar ${unidad}`}
+          className="pl-8"
+        />
       </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className={TH}>Transacción</TableHead>
-            <TableHead className={TH}>Fecha</TableHead>
-            <TableHead className={TH}>Tipo</TableHead>
-            <TableHead className={TH}>Descripción</TableHead>
-            <TableHead className={cn(TH, "text-right")}>Monto</TableHead>
-            <TableHead className={TH}>Estado</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {visibles.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
-                No hay transacciones.
-              </TableCell>
-            </TableRow>
-          ) : (
-            visibles.map((fila) => (
-              <TableRow key={fila.clave} className="relative cursor-pointer">
-                <TableCell>
-                  <Enlace
-                    className="absolute inset-0"
-                    href={fila.href}
-                    aria-label={`Ver ${fila.detalle} ${fila.prefijo}-${fila.numero}`}
-                  />
-                  <span className="pointer-events-none relative flex flex-col">
-                    <span className="text-primary font-medium">
-                      {fila.prefijo}-{String(fila.numero).padStart(4, "0")}
-                    </span>
-                    {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
-                  </span>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{formatoDia(fila.fecha)}</TableCell>
-                <TableCell>
-                  <TipoBadge tipo={fila.tipo} />
-                </TableCell>
-                <TableCell className="whitespace-normal">{fila.detalle}</TableCell>
-                <TableCell className="text-right font-medium tabular-nums">
-                  {fila.direccion === "abono" ? (
-                    <span className="text-emerald-600 dark:text-emerald-400">
-                      -{formatoMonedaCentavos(fila.montoCentavos)}
-                    </span>
-                  ) : (
-                    formatoMonedaCentavos(fila.montoCentavos)
-                  )}
-                </TableCell>
-                <TableCell>
-                  <EstadoFilaBadge estado={fila.estado} tipo={fila.tipo} />
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-
+      <TablaMovimientos filas={visibles} unidad={unidad} />
       <PiePagina
         total={filtradas.length}
         porPagina={TX_POR_PAGINA}
         pagina={pagina}
         setPagina={setPagina}
-        unidad="transacciones"
+        unidad={unidad}
       />
     </div>
   );
@@ -1085,27 +1089,38 @@ function PestanaDocumentos({ datos, filtroDoc }: { readonly datos: DatosFichaCon
   );
 }
 
-type PestanaFicha = "resumen" | "transacciones" | "contactos" | "documentos";
+type PestanaFicha = "resumen" | "transacciones" | "facturas" | "contactos" | "documentos";
+
+interface FiltroPestana {
+  readonly valor: string;
+  readonly onCambiar: (valor: string) => void;
+  readonly opciones: readonly OpcionFiltro[];
+}
 
 function AccionPestana({
   pestana,
   puedeCrear,
-  filtroTipo,
-  setFiltroTipo,
-  opcionesTipo,
+  filtroTx,
+  filtroFacturas,
   filtroDoc,
-  setFiltroDoc,
 }: {
   readonly pestana: PestanaFicha;
   readonly puedeCrear: boolean;
-  readonly filtroTipo: string;
-  readonly setFiltroTipo: (valor: string) => void;
-  readonly opcionesTipo: readonly OpcionFiltro[];
-  readonly filtroDoc: string;
-  readonly setFiltroDoc: (valor: string) => void;
+  readonly filtroTx: FiltroPestana;
+  readonly filtroFacturas: FiltroPestana | null;
+  readonly filtroDoc: FiltroPestana;
 }) {
   if (pestana === "transacciones") {
-    return <BotonFiltro valor={filtroTipo} opciones={opcionesTipo} onCambiar={setFiltroTipo} />;
+    return <BotonFiltro valor={filtroTx.valor} opciones={filtroTx.opciones} onCambiar={filtroTx.onCambiar} />;
+  }
+  if (pestana === "facturas") {
+    return filtroFacturas ? (
+      <BotonFiltro
+        valor={filtroFacturas.valor}
+        opciones={filtroFacturas.opciones}
+        onCambiar={filtroFacturas.onCambiar}
+      />
+    ) : null;
   }
   if (pestana === "contactos") {
     return puedeCrear ? (
@@ -1118,7 +1133,7 @@ function AccionPestana({
   if (pestana === "documentos") {
     return (
       <div className="flex items-center gap-2">
-        <BotonFiltro valor={filtroDoc} opciones={OPCIONES_DOC} onCambiar={setFiltroDoc} />
+        <BotonFiltro valor={filtroDoc.valor} opciones={filtroDoc.opciones} onCambiar={filtroDoc.onCambiar} />
         {puedeCrear ? (
           <Button size="sm">
             <Upload data-icon="inline-start" />
@@ -1134,14 +1149,21 @@ function AccionPestana({
 export function FichaContacto({
   datos,
   puedeCrear,
+  contactoEditable,
+  listasPrecios,
 }: {
   readonly datos: DatosFichaContacto;
   readonly puedeCrear: boolean;
+  readonly contactoEditable: Contacto | null;
+  readonly listasPrecios: ListaPrecio[];
 }) {
   const { contacto, cuentaCxc, cuentaCxp } = datos;
+  const router = useRouter();
   const [pestana, setPestana] = useState<PestanaFicha>("resumen");
   const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [filtroFactura, setFiltroFactura] = useState("todos");
   const [filtroDoc, setFiltroDoc] = useState("todos");
+  const [editando, setEditando] = useState(false);
 
   const esVenta = contacto.tipo !== "proveedor";
   const esCompra = contacto.tipo !== "cliente";
@@ -1152,8 +1174,22 @@ export function FichaContacto({
     { valor: "todos", etiqueta: "Todos los tipos" },
     ...tiposPresentes.map((tipo) => ({ valor: tipo, etiqueta: ETIQUETA_TIPO_FILA[tipo] })),
   ];
-  const stats = construirStats(datos, esVenta, esCompra);
-  const { primaria, secundarias } = accionesFicha(contacto, puedeCrear, esVenta, esCompra);
+
+  const filasFacturas = filas.filter((fila) => fila.tipo === "factura" || fila.tipo === "compra");
+  const tiposFacturas = [...new Set(filasFacturas.map((fila) => fila.tipo))];
+  const opcionesFactura: OpcionFiltro[] = [
+    { valor: "todos", etiqueta: "Todos los tipos" },
+    ...tiposFacturas.map((tipo) => ({ valor: tipo, etiqueta: ETIQUETA_TIPO_FILA[tipo] })),
+  ];
+
+  const kpis = construirKpis(datos, esVenta, esCompra);
+  const secundarias = puedeCrear ? accionesFicha(contacto, esVenta, esCompra) : [];
+  const estadoCuentaHref = `${rutaContacto(contacto.id)}/estado-cuenta`;
+
+  function cerrarEdicion() {
+    setEditando(false);
+    router.refresh();
+  }
 
   return (
     <div className="flex flex-col gap-6" style={{ fontFamily: "var(--font-inter)" }}>
@@ -1168,7 +1204,20 @@ export function FichaContacto({
       </Button>
 
       <div className="bg-card ring-foreground/10 rounded-xl ring-1">
-        <EncabezadoFicha contacto={contacto} primaria={primaria} secundarias={secundarias} />
+        <EncabezadoFicha
+          contacto={contacto}
+          acciones={secundarias}
+          onEditar={puedeCrear && contactoEditable ? () => setEditando(true) : null}
+          estadoCuentaHref={estadoCuentaHref}
+        />
+
+        <div className="px-5 pb-5">
+          <div className={cn("grid grid-cols-2 gap-3", CLASE_COLS_KPI[kpis.length] ?? "lg:grid-cols-4")}>
+            {kpis.map((kpi) => (
+              <TarjetaKpi key={kpi.etiqueta} {...kpi} />
+            ))}
+          </div>
+        </div>
 
         <Tabs value={pestana} className="gap-0">
           <div className="border-border flex flex-wrap items-center justify-between gap-2 border-b px-2 sm:px-4">
@@ -1184,6 +1233,12 @@ export function FichaContacto({
                 onClick={() => setPestana("transacciones")}
                 icono={<ArrowLeftRight className="size-4" />}
                 etiqueta="Transacciones"
+              />
+              <ItemPestana
+                activo={pestana === "facturas"}
+                onClick={() => setPestana("facturas")}
+                icono={<ReceiptText className="size-4" />}
+                etiqueta="Facturas"
               />
               <ItemPestana
                 activo={pestana === "contactos"}
@@ -1202,11 +1257,13 @@ export function FichaContacto({
               <AccionPestana
                 pestana={pestana}
                 puedeCrear={puedeCrear}
-                filtroTipo={filtroTipo}
-                setFiltroTipo={setFiltroTipo}
-                opcionesTipo={opcionesTipo}
-                filtroDoc={filtroDoc}
-                setFiltroDoc={setFiltroDoc}
+                filtroTx={{ valor: filtroTipo, onCambiar: setFiltroTipo, opciones: opcionesTipo }}
+                filtroFacturas={
+                  opcionesFactura.length > 2
+                    ? { valor: filtroFactura, onCambiar: setFiltroFactura, opciones: opcionesFactura }
+                    : null
+                }
+                filtroDoc={{ valor: filtroDoc, onCambiar: setFiltroDoc, opciones: OPCIONES_DOC }}
               />
             </div>
           </div>
@@ -1216,12 +1273,11 @@ export function FichaContacto({
           </TabsContent>
 
           <TabsContent value="transacciones" className="p-4 sm:p-5">
-            <PestanaTransacciones
-              filas={filas}
-              filtroTipo={filtroTipo}
-              statsIzquierda={stats.izquierda}
-              statsDerecha={stats.derecha}
-            />
+            <PestanaTabla filas={filas} filtroTipo={filtroTipo} unidad="transacciones" />
+          </TabsContent>
+
+          <TabsContent value="facturas" className="p-4 sm:p-5">
+            <PestanaTabla filas={filasFacturas} filtroTipo={filtroFactura} unidad="facturas" />
           </TabsContent>
 
           <TabsContent value="contactos" className="p-4 sm:p-5">
@@ -1233,6 +1289,22 @@ export function FichaContacto({
           </TabsContent>
         </Tabs>
       </div>
+
+      <Dialog open={editando} onOpenChange={setEditando}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar contacto</DialogTitle>
+          </DialogHeader>
+          {contactoEditable ? (
+            <FormularioContacto
+              key={contactoEditable.id}
+              contacto={contactoEditable}
+              listasPrecios={listasPrecios}
+              onGuardado={cerrarEdicion}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

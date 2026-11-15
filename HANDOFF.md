@@ -1,5 +1,41 @@
 # Handoff — Medoxigas Contabilidad
 
+## Rediseño de la ficha de contacto estilo Alegra/Everest (15 nov 2026)
+
+- `ficha-contacto.tsx` reescrito como **un solo panel blanco** con todo dentro:
+  encabezado + fila de KPIs + barra de pestañas + contenido, con Inter
+  (`var(--font-inter)`). Solo frontend; no se tocó `obtenerFichaContacto` ni
+  `src/lib`.
+- **Encabezado**: caja primaria con `Building2`, nombre + pill verde «Activo»,
+  meta con iconos (RNC, teléfono, correo, dirección). A la derecha: botón
+  primario **«Editar perfil»** (abre diálogo con el formulario de contacto) y
+  menú ⋮ con «Nueva factura» / «Nueva compra» / «Estado de cuenta». El lector
+  ve «Estado de cuenta» como botón primario sin menú.
+- **KPIs fijos** entre el encabezado y las pestañas (siempre visibles): Por
+  cobrar (rojo), Anticipos, Total facturado y Total cobrado (verde) para
+  clientes; Por pagar, Total comprado y Total pagado para proveedores.
+- **Pestañas** (texto + icono, activa en azul con subrayado, sin «Activity»):
+  Resumen → Transacciones → **Facturas** → Contactos → Documentos. La acción
+  de cada pestaña vive a la derecha de la barra (Filtrar, + Agregar contacto,
+  Subir documento).
+- **Transacciones**: UNA tabla unificada con todas las fuentes de `datos`
+  (facturas venta/proveedor, cotizaciones, conduces, notas de crédito/débito,
+  pagos recibidos/proveedor, asientos) con badge de tipo, ID azul enlazable
+  (`FAC-1045`, `PAG-0007`…), buscador, filtro por tipo, montos de pago en
+  verde con `-` y pie «Mostrando X de Y» + Anterior/Siguiente.
+- **Facturas**: misma tabla pero solo con facturas de venta y de proveedor.
+- **Contactos** y **Documentos**: solo diseño con constantes de ejemplo
+  marcadas `// TODO backend` (no hay backend de personas ni adjuntos). Los
+  botones «Agregar contacto» y «Subir documento» son visuales.
+- `FormularioContacto` se extrajo a `src/components/contactos/
+  formulario-contacto.tsx` y lo reusan el listado de contactos y el diálogo
+  «Editar perfil» de la ficha (misma `actualizarContacto`/`crearContacto`, sin
+  tocar actions). `page.tsx` ahora también carga el `Contacto` completo y las
+  listas de precios activas para ese diálogo.
+- Verificado: `pnpm exec tsc --noEmit` y `pnpm exec biome check` en verde.
+  Sin verificación visual (el local pide login; la hace Coder). Commits en
+  `diseno/rediseno`: `0231d7c`, `26c81d6` y el de esta entrada.
+
 ## Fix — Títulos largos del menú ya no se parten en dos líneas (14 nov 2026)
 
 - «Notas de crédito en compras» (Compras) se veía en dos líneas en el menú lateral. Causa: `SidebarMenuButton`/`SidebarMenuSubButton` truncan con `[&>span:last-child]:truncate`, pero `IndicadorEnlace` renderiza un `<span>` después del título, así que el truncate caía sobre el puntito indicador y el título envolvía.
