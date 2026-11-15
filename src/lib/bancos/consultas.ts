@@ -15,6 +15,8 @@ import {
   rutaTransferencia,
 } from "@/lib/enlaces";
 import { obtenerSaldosCajaBanco } from "@/lib/reportes/saldos";
+import { consultarEnLotes } from "@/lib/supabase/lotes";
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import {
@@ -39,15 +41,6 @@ interface CuentaFila {
   descripcion: string | null;
 }
 
-interface LineaFila {
-  id: string;
-  asiento_id: string;
-  contacto_id: string | null;
-  descripcion: string | null;
-  debito: number;
-  credito: number;
-}
-
 interface AsientoFila {
   id: string;
   numero: number;
@@ -59,6 +52,17 @@ interface AsientoFila {
 interface ContactoFila {
   id: string;
   nombre: string;
+}
+
+interface LineaConJoin {
+  id: string;
+  asiento_id: string;
+  contacto_id: string | null;
+  descripcion: string | null;
+  debito: number;
+  credito: number;
+  asientos: AsientoFila;
+  contactos: ContactoFila | null;
 }
 
 interface ConciliacionFila {
@@ -198,42 +202,58 @@ async function numerosDocumento(cliente: Cliente, tipo: string, ids: string[]): 
 
   switch (tipo) {
     case "factura": {
-      const { data } = await cliente.from("facturas").select("id, numero").in("id", ids);
+      const { data } = await consultarEnLotes(ids, (lote) =>
+        cliente.from("facturas").select("id, numero").in("id", lote),
+      );
       filas = data ?? [];
       break;
     }
     case "factura_proveedor": {
-      const { data } = await cliente.from("facturas_proveedor").select("id, numero").in("id", ids);
+      const { data } = await consultarEnLotes(ids, (lote) =>
+        cliente.from("facturas_proveedor").select("id, numero").in("id", lote),
+      );
       filas = data ?? [];
       break;
     }
     case "pago_recibido": {
-      const { data } = await cliente.from("pagos_recibidos").select("id, numero").in("id", ids);
+      const { data } = await consultarEnLotes(ids, (lote) =>
+        cliente.from("pagos_recibidos").select("id, numero").in("id", lote),
+      );
       filas = data ?? [];
       break;
     }
     case "pago_proveedor": {
-      const { data } = await cliente.from("pagos_proveedor").select("id, numero").in("id", ids);
+      const { data } = await consultarEnLotes(ids, (lote) =>
+        cliente.from("pagos_proveedor").select("id, numero").in("id", lote),
+      );
       filas = data ?? [];
       break;
     }
     case "gasto_menor": {
-      const { data } = await cliente.from("gastos_menores").select("id, numero").in("id", ids);
+      const { data } = await consultarEnLotes(ids, (lote) =>
+        cliente.from("gastos_menores").select("id, numero").in("id", lote),
+      );
       filas = data ?? [];
       break;
     }
     case "nota_credito_venta": {
-      const { data } = await cliente.from("notas_credito_venta").select("id, numero").in("id", ids);
+      const { data } = await consultarEnLotes(ids, (lote) =>
+        cliente.from("notas_credito_venta").select("id, numero").in("id", lote),
+      );
       filas = data ?? [];
       break;
     }
     case "nota_credito_compra": {
-      const { data } = await cliente.from("notas_credito_compra").select("id, numero").in("id", ids);
+      const { data } = await consultarEnLotes(ids, (lote) =>
+        cliente.from("notas_credito_compra").select("id, numero").in("id", lote),
+      );
       filas = data ?? [];
       break;
     }
     case "nota_debito": {
-      const { data } = await cliente.from("notas_debito_venta").select("id, numero").in("id", ids);
+      const { data } = await consultarEnLotes(ids, (lote) =>
+        cliente.from("notas_debito_venta").select("id, numero").in("id", lote),
+      );
       filas = data ?? [];
       break;
     }
@@ -277,41 +297,32 @@ async function cargarDocumentos(cliente: Cliente, asientos: AsientoFila[]): Prom
   return documentos;
 }
 
-export async function cargarLineasCuenta(cliente: Cliente, cuentaId: string): Promise<LineaBanco[]> {
-  const { data: lineas, error } = await cliente
-    .from("asiento_lineas")
-    .select("id, asiento_id, contacto_id, descripcion, debito, credito")
-    .eq("cuenta_id", cuentaId)
-    .returns<LineaFila[]>();
+export async function cargarLineasCuenta(cliente: Cliente, cuentaId: string, hasta?: string): Promise<LineaBanco[]> {
+  const consulta = (inicio: number, fin: number) => {
+    const base = cliente
+      .from("asiento_lineas")
+      .select(
+        "id, asiento_id, contacto_id, descripcion, debito, credito, asientos!inner(id, numero, fecha, origen_tipo, origen_id), contactos(id, nombre)",
+      )
+      .eq("cuenta_id", cuentaId)
+      .order("id")
+      .range(inicio, fin);
+    return (hasta == null ? base : base.lte("asientos.fecha", hasta)).returns<LineaConJoin[]>();
+  };
+
+  const { data: lineas, error } = await paginarConsulta(consulta);
 
   if (error) throw new Error(error.message);
-  if (lineas.length === 0) return [];
+  if (lineas == null || lineas.length === 0) return [];
 
-  const asientoIds = [...new Set(lineas.map((linea) => linea.asiento_id))];
-  const contactoIds = [...new Set(lineas.flatMap((linea) => (linea.contacto_id == null ? [] : [linea.contacto_id])))];
-
-  const [asientos, contactos] = await Promise.all([
-    cliente
-      .from("asientos")
-      .select("id, numero, fecha, origen_tipo, origen_id")
-      .in("id", asientoIds)
-      .returns<AsientoFila[]>(),
-    contactoIds.length === 0
-      ? Promise.resolve({ data: [] as ContactoFila[], error: null })
-      : cliente.from("contactos").select("id, nombre").in("id", contactoIds).returns<ContactoFila[]>(),
-  ]);
-
-  if (asientos.error) throw new Error(asientos.error.message);
-  if (contactos.error) throw new Error(contactos.error.message);
-
-  const asientosPorId = new Map((asientos.data ?? []).map((asiento) => [asiento.id, asiento]));
-  const contactosPorId = new Map((contactos.data ?? []).map((contacto) => [contacto.id, contacto]));
-  const documentos = await cargarDocumentos(cliente, asientos.data ?? []);
+  const documentos = await cargarDocumentos(
+    cliente,
+    lineas.map((linea) => linea.asientos),
+  );
 
   return lineas
     .flatMap((linea) => {
-      const asiento = asientosPorId.get(linea.asiento_id);
-      if (asiento == null) return [];
+      const asiento = linea.asientos;
 
       return [
         {
@@ -323,7 +334,7 @@ export async function cargarLineasCuenta(cliente: Cliente, cuentaId: string): Pr
           debito: linea.debito,
           credito: linea.credito,
           documento: documentos.get(asiento.id) ?? { etiqueta: "Documento", href: null },
-          tercero: linea.contacto_id == null ? null : (contactosPorId.get(linea.contacto_id) ?? null),
+          tercero: linea.contactos,
         },
       ];
     })
@@ -378,7 +389,7 @@ export async function getDetalleCuentaBanco(
   if (error) throw new Error(error.message);
   if (!cuenta?.es_caja_banco) return null;
 
-  const [lineas, saldos] = await Promise.all([cargarLineasCuenta(cliente, id), obtenerSaldosCajaBanco()]);
+  const [lineas, saldos] = await Promise.all([cargarLineasCuenta(cliente, id, hasta), obtenerSaldosCajaBanco()]);
   if (saldos.error) throw new Error(saldos.error);
 
   const saldoActual = saldos.filas.find((fila) => fila.cuenta_id === id);

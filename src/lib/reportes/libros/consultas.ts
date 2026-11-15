@@ -1,14 +1,8 @@
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import type { CuentaContable } from "../tipos";
 import type { ContactoOpcion, FilaMovimiento, FilaSaldoCuenta, FilaSaldoTercero, RespuestaReporte } from "./tipos";
-
-interface RpcResultado<T> {
-  data: T[] | null;
-  error: { message: string } | null;
-}
-
-type RpcSuelta = <T>(fn: string, args: Record<string, unknown>) => PromiseLike<RpcResultado<T>>;
 
 export interface FiltrosMovimientos {
   desde: string;
@@ -24,20 +18,26 @@ export interface FiltrosSaldosTercero {
   incluirCero?: boolean;
 }
 
-function lista(valores: readonly string[] | undefined): string[] | null {
-  return valores && valores.length > 0 ? [...valores] : null;
+function lista(valores: readonly string[] | undefined): string[] | undefined {
+  return valores && valores.length > 0 ? [...valores] : undefined;
 }
 
 export async function obtenerMovimientos(filtros: FiltrosMovimientos): Promise<RespuestaReporte<FilaMovimiento>> {
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as RpcSuelta;
-  const { data, error } = await rpc<FilaMovimiento>("reporte_movimientos", {
-    p_desde: filtros.desde,
-    p_hasta: filtros.hasta,
-    p_cuentas: lista(filtros.cuentas),
-    p_contacto: filtros.contacto ?? null,
-    p_origenes: lista(filtros.origenes),
-  });
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .rpc("reporte_movimientos", {
+        p_desde: filtros.desde,
+        p_hasta: filtros.hasta,
+        p_cuentas: lista(filtros.cuentas),
+        p_contacto: filtros.contacto ?? undefined,
+        p_origenes: lista(filtros.origenes),
+      })
+      .order("fecha")
+      .order("asiento_numero")
+      .order("cuenta_codigo")
+      .range(inicio, fin),
+  );
 
   if (error) return { filas: [], error: error.message };
   return { filas: data ?? [], error: null };
@@ -49,14 +49,19 @@ export async function obtenerSaldosTercero(
   filtros: FiltrosSaldosTercero = {},
 ): Promise<RespuestaReporte<FilaSaldoTercero>> {
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as RpcSuelta;
-  const { data, error } = await rpc<FilaSaldoTercero>("reporte_saldos_tercero", {
-    p_desde: desde,
-    p_hasta: hasta,
-    p_cuentas: lista(filtros.cuentas),
-    p_contacto: filtros.contacto ?? null,
-    p_incluir_cero: filtros.incluirCero ?? false,
-  });
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .rpc("reporte_saldos_tercero", {
+        p_desde: desde,
+        p_hasta: hasta,
+        p_cuentas: lista(filtros.cuentas),
+        p_contacto: filtros.contacto ?? undefined,
+        p_incluir_cero: filtros.incluirCero ?? false,
+      })
+      .order("cuenta_codigo")
+      .order("contacto_id")
+      .range(inicio, fin),
+  );
 
   if (error) return { filas: [], error: error.message };
   return { filas: data ?? [], error: null };
@@ -69,8 +74,7 @@ export async function obtenerSaldosCuentas(
   cuentas?: readonly string[],
 ): Promise<RespuestaReporte<FilaSaldoCuenta>> {
   const supabase = await createClient();
-  const rpc = supabase.rpc as unknown as RpcSuelta;
-  const { data, error } = await rpc<FilaSaldoCuenta>("reporte_saldos_cuentas", {
+  const { data, error } = await supabase.rpc("reporte_saldos_cuentas", {
     p_desde: desde,
     p_hasta: hasta,
     p_cierre_anual: cierreAnual,
@@ -83,7 +87,9 @@ export async function obtenerSaldosCuentas(
 
 export async function obtenerContactos(): Promise<RespuestaReporte<ContactoOpcion>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("contactos").select("id, nombre").eq("activo", true).order("nombre");
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase.from("contactos").select("id, nombre").eq("activo", true).order("nombre").order("id").range(inicio, fin),
+  );
 
   if (error) return { filas: [], error: error.message };
   return { filas: (data ?? []) as unknown as ContactoOpcion[], error: null };
@@ -91,10 +97,13 @@ export async function obtenerContactos(): Promise<RespuestaReporte<ContactoOpcio
 
 export async function obtenerCuentas(): Promise<RespuestaReporte<CuentaContable>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("cuentas")
-    .select("id, codigo, nombre, tipo, naturaleza, padre_id, acepta_movimientos, activa")
-    .order("codigo");
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .from("cuentas")
+      .select("id, codigo, nombre, tipo, naturaleza, padre_id, acepta_movimientos, activa")
+      .order("codigo")
+      .range(inicio, fin),
+  );
 
   if (error) return { filas: [], error: error.message };
   return { filas: (data ?? []) as unknown as CuentaContable[], error: null };

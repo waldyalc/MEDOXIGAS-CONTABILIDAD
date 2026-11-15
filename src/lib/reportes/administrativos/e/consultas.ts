@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import { centavos } from "../../dinero";
@@ -174,30 +175,42 @@ function ordenarMovimientos(ordenados: MovimientoOrdenado[]): MovimientoTransacc
 export async function obtenerTransacciones(desde: string, hasta: string): Promise<ResultadoTransacciones> {
   const supabase = await cliente();
   const [pagosRecibidos, pagosProveedor, gastos] = await Promise.all([
-    supabase
-      .from("pagos_recibidos")
-      .select(
-        "id, numero, fecha, monto, estado, contacto_id, cuenta_id, creado_en, cuenta:cuentas(nombre), contacto:contactos(nombre), factura:facturas(ncf)",
-      )
-      .eq("estado", "activo")
-      .gte("fecha", desde)
-      .lte("fecha", hasta),
-    supabase
-      .from("pagos_proveedor")
-      .select(
-        "id, numero, fecha, monto, estado, contacto_id, cuenta_id, creado_en, cuenta:cuentas(nombre), contacto:contactos(nombre), factura:facturas_proveedor(ncf)",
-      )
-      .eq("estado", "activo")
-      .gte("fecha", desde)
-      .lte("fecha", hasta),
-    supabase
-      .from("gastos_menores")
-      .select(
-        "id, numero, ncf, fecha, descripcion, total, estado, contacto_id, cuenta_id, creado_en, cuenta:cuentas!gastos_menores_cuenta_pago_id_fkey(nombre), contacto:contactos(nombre)",
-      )
-      .eq("estado", "activo")
-      .gte("fecha", desde)
-      .lte("fecha", hasta),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("pagos_recibidos")
+        .select(
+          "id, numero, fecha, monto, estado, contacto_id, cuenta_id, creado_en, cuenta:cuentas(nombre), contacto:contactos(nombre), factura:facturas(ncf)",
+        )
+        .eq("estado", "activo")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("id")
+        .range(inicio, fin),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("pagos_proveedor")
+        .select(
+          "id, numero, fecha, monto, estado, contacto_id, cuenta_id, creado_en, cuenta:cuentas(nombre), contacto:contactos(nombre), factura:facturas_proveedor(ncf)",
+        )
+        .eq("estado", "activo")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("id")
+        .range(inicio, fin),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("gastos_menores")
+        .select(
+          "id, numero, ncf, fecha, descripcion, total, estado, contacto_id, cuenta_id, creado_en, cuenta:cuentas!gastos_menores_cuenta_pago_id_fkey(nombre), contacto:contactos(nombre)",
+        )
+        .eq("estado", "activo")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("id")
+        .range(inicio, fin),
+    ),
   ]);
 
   const ordenados: MovimientoOrdenado[] = [
@@ -255,30 +268,46 @@ export async function obtenerDatosReporteAnual(anio: number): Promise<ResultadoA
   const [estado, estadoAnterior, ventas, ventasAnterior, lineas, facturasClientes] = await Promise.all([
     supabase.rpc("reporte_estado_resultados", { p_desde: desde, p_hasta: hasta }),
     supabase.rpc("reporte_estado_resultados", { p_desde: desdeAnterior, p_hasta: hastaAnterior }),
-    supabase
-      .from("facturas")
-      .select("fecha, subtotal")
-      .neq("estado", "anulada")
-      .gte("fecha", desde)
-      .lte("fecha", hasta),
-    supabase
-      .from("facturas")
-      .select("fecha, subtotal")
-      .neq("estado", "anulada")
-      .gte("fecha", desdeAnterior)
-      .lte("fecha", hastaAnterior),
-    supabase
-      .from("factura_lineas")
-      .select("producto_id, descripcion, subtotal, factura:facturas!inner(fecha, estado), producto:productos(nombre)")
-      .neq("factura.estado", "anulada")
-      .gte("factura.fecha", desde)
-      .lte("factura.fecha", hasta),
-    supabase
-      .from("facturas")
-      .select("contacto_id, subtotal, contacto:contactos(nombre)")
-      .neq("estado", "anulada")
-      .gte("fecha", desde)
-      .lte("fecha", hasta),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("facturas")
+        .select("fecha, subtotal")
+        .neq("estado", "anulada")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("numero")
+        .range(inicio, fin),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("facturas")
+        .select("fecha, subtotal")
+        .neq("estado", "anulada")
+        .gte("fecha", desdeAnterior)
+        .lte("fecha", hastaAnterior)
+        .order("numero")
+        .range(inicio, fin),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("factura_lineas")
+        .select("producto_id, descripcion, subtotal, factura:facturas!inner(fecha, estado), producto:productos(nombre)")
+        .neq("factura.estado", "anulada")
+        .gte("factura.fecha", desde)
+        .lte("factura.fecha", hasta)
+        .order("id")
+        .range(inicio, fin),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("facturas")
+        .select("contacto_id, subtotal, contacto:contactos(nombre)")
+        .neq("estado", "anulada")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("numero")
+        .range(inicio, fin),
+    ),
   ]);
 
   const filasEstado = (estado.data ?? []) as unknown as FilaEstadoResultados[];

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { aNumero } from "@/lib/facturacion/formato";
 import type { ExistenciaAlmacen } from "@/lib/inventario/tipos";
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import {
@@ -43,12 +44,22 @@ interface LineaCompraFila {
   costo: number;
 }
 
-interface LineaCotizacionFila {
-  cotizacion_id: string;
+interface LineaVentaJoin extends LineaVentaFila {
+  facturas: DocumentoFila;
 }
 
-interface LineaRemisionFila {
+interface LineaCompraJoin extends LineaCompraFila {
+  facturas_proveedor: DocumentoFila;
+}
+
+interface LineaCotizacionJoin {
+  cotizacion_id: string;
+  cotizaciones: DocumentoComercialFicha;
+}
+
+interface LineaRemisionJoin {
   remision_id: string;
+  remisiones: DocumentoComercialFicha;
 }
 
 interface DocumentoFila {
@@ -91,78 +102,10 @@ async function cargarConfiguracionFicha(): Promise<Map<string, string>> {
   return new Map(data.map((fila) => [fila.clave, fila.cuenta_id]));
 }
 
-async function cargarFacturasVenta(lineas: readonly LineaVentaFila[]): Promise<DocumentoFila[]> {
-  const ids = [...new Set(lineas.map((linea) => linea.factura_id))];
-  if (ids.length === 0) return [];
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("facturas")
-    .select(
-      "id, numero, ncf, contacto_id, fecha, creado_en, vencimiento, total, pagado, credito, estado, contactos(nombre)",
-    )
-    .in("id", ids)
-    .neq("estado", "anulada")
-    .order("fecha", { ascending: false })
-    .order("numero", { ascending: false })
-    .returns<DocumentoFila[]>();
-
-  if (error) throw new Error(error.message);
-  return data;
-}
-
-async function cargarFacturasCompra(lineas: readonly LineaCompraFila[]): Promise<DocumentoFila[]> {
-  const ids = [...new Set(lineas.map((linea) => linea.factura_proveedor_id))];
-  if (ids.length === 0) return [];
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("facturas_proveedor")
-    .select(
-      "id, numero, ncf, contacto_id, fecha, creado_en, vencimiento, total, pagado, credito, estado, contactos(nombre)",
-    )
-    .in("id", ids)
-    .neq("estado", "anulada")
-    .order("fecha", { ascending: false })
-    .order("numero", { ascending: false })
-    .returns<DocumentoFila[]>();
-
-  if (error) throw new Error(error.message);
-  return data;
-}
-
-async function cargarCotizaciones(ids: readonly string[]): Promise<DocumentoComercialFicha[]> {
-  const unicos = [...new Set(ids)];
-  if (unicos.length === 0) return [];
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("cotizaciones")
-    .select("id, numero, fecha, total, estado")
-    .in("id", unicos)
-    .order("fecha", { ascending: false })
-    .order("numero", { ascending: false })
-    .returns<DocumentoComercialFicha[]>();
-
-  if (error) throw new Error(error.message);
-  return data;
-}
-
-async function cargarConduces(ids: readonly string[]): Promise<DocumentoComercialFicha[]> {
-  const unicos = [...new Set(ids)];
-  if (unicos.length === 0) return [];
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("remisiones")
-    .select("id, numero, fecha, total, estado")
-    .in("id", unicos)
-    .order("fecha", { ascending: false })
-    .order("numero", { ascending: false })
-    .returns<DocumentoComercialFicha[]>();
-
-  if (error) throw new Error(error.message);
-  return data;
+function dedupePorId<T extends { id: string; fecha: string; numero: number }>(filas: readonly T[]): T[] {
+  const porId = new Map<string, T>();
+  for (const fila of filas) porId.set(fila.id, fila);
+  return [...porId.values()].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.numero - a.numero);
 }
 
 function agruparCantidades(lineas: readonly { documentoId: string; cantidad: number }[]): Map<string, number[]> {
@@ -266,31 +209,62 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
   if (error) throw new Error(error.message);
   if (!producto) return null;
 
-  const [lineasVenta, lineasCompra, lineasCotizacion, lineasRemision, existenciasRes] = await Promise.all([
-    supabase
-      .from("factura_lineas")
-      .select("factura_id, cantidad, costo_unitario")
-      .eq("producto_id", id)
-      .returns<LineaVentaFila[]>(),
-    supabase
-      .from("facturas_proveedor_lineas")
-      .select("factura_proveedor_id, cantidad, costo")
-      .eq("producto_id", id)
-      .returns<LineaCompraFila[]>(),
-    supabase.from("cotizacion_lineas").select("cotizacion_id").eq("producto_id", id).returns<LineaCotizacionFila[]>(),
-    supabase.from("remision_lineas").select("remision_id").eq("producto_id", id).returns<LineaRemisionFila[]>(),
-    supabase
-      .from("existencias")
-      .select("almacen_id, cantidad, almacenes(nombre, es_principal)")
-      .eq("producto_id", id)
-      .returns<
-        {
-          almacen_id: string;
-          cantidad: number;
-          almacenes: { nombre: string; es_principal: boolean } | null;
-        }[]
-      >(),
-  ]);
+  const CAMPOS_FACTURA =
+    "id, numero, ncf, contacto_id, fecha, creado_en, vencimiento, total, pagado, credito, estado, contactos(nombre)";
+
+  const [lineasVenta, lineasCompra, lineasCotizacion, lineasRemision, existenciasRes, configuracion] =
+    await Promise.all([
+      paginarConsulta((inicio, fin) =>
+        supabase
+          .from("factura_lineas")
+          .select(`factura_id, cantidad, costo_unitario, facturas!inner(${CAMPOS_FACTURA})`)
+          .eq("producto_id", id)
+          .neq("facturas.estado", "anulada")
+          .order("id")
+          .range(inicio, fin)
+          .returns<LineaVentaJoin[]>(),
+      ),
+      paginarConsulta((inicio, fin) =>
+        supabase
+          .from("facturas_proveedor_lineas")
+          .select(`factura_proveedor_id, cantidad, costo, facturas_proveedor!inner(${CAMPOS_FACTURA})`)
+          .eq("producto_id", id)
+          .neq("facturas_proveedor.estado", "anulada")
+          .order("id")
+          .range(inicio, fin)
+          .returns<LineaCompraJoin[]>(),
+      ),
+      paginarConsulta((inicio, fin) =>
+        supabase
+          .from("cotizacion_lineas")
+          .select("cotizacion_id, cotizaciones!inner(id, numero, fecha, total, estado)")
+          .eq("producto_id", id)
+          .order("id")
+          .range(inicio, fin)
+          .returns<LineaCotizacionJoin[]>(),
+      ),
+      paginarConsulta((inicio, fin) =>
+        supabase
+          .from("remision_lineas")
+          .select("remision_id, remisiones!inner(id, numero, fecha, total, estado)")
+          .eq("producto_id", id)
+          .order("id")
+          .range(inicio, fin)
+          .returns<LineaRemisionJoin[]>(),
+      ),
+      supabase
+        .from("existencias")
+        .select("almacen_id, cantidad, almacenes(nombre, es_principal)")
+        .eq("producto_id", id)
+        .returns<
+          {
+            almacen_id: string;
+            cantidad: number;
+            almacenes: { nombre: string; es_principal: boolean } | null;
+          }[]
+        >(),
+      cargarConfiguracionFicha(),
+    ]);
 
   if (lineasVenta.error) throw new Error(lineasVenta.error.message);
   if (lineasCompra.error) throw new Error(lineasCompra.error.message);
@@ -310,7 +284,6 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
         Number(b.es_principal) - Number(a.es_principal) || a.almacen_nombre.localeCompare(b.almacen_nombre, "es"),
     );
 
-  const configuracion = await cargarConfiguracionFicha();
   const cuentaIds = [
     producto.cuenta_ingreso_id,
     producto.cuenta_inventario_id,
@@ -318,19 +291,20 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
     ...configuracion.values(),
   ].filter((valor): valor is string => valor !== null);
 
-  const [facturasVentaDb, facturasCompraDb, cotizacionesDb, conducesDb, cuentas] = await Promise.all([
-    cargarFacturasVenta(lineasVenta.data),
-    cargarFacturasCompra(lineasCompra.data),
-    cargarCotizaciones(lineasCotizacion.data.map((linea) => linea.cotizacion_id)),
-    cargarConduces(lineasRemision.data.map((linea) => linea.remision_id)),
-    cargarCuentas(cuentaIds),
-  ]);
+  const facturasVentaDb = dedupePorId((lineasVenta.data ?? []).map((linea) => linea.facturas));
+  const facturasCompraDb = dedupePorId((lineasCompra.data ?? []).map((linea) => linea.facturas_proveedor));
+  const cotizacionesDb = dedupePorId((lineasCotizacion.data ?? []).map((linea) => linea.cotizaciones));
+  const conducesDb = dedupePorId((lineasRemision.data ?? []).map((linea) => linea.remisiones));
+  const cuentas = await cargarCuentas(cuentaIds);
+
+  const ventasData = lineasVenta.data ?? [];
+  const comprasData = lineasCompra.data ?? [];
 
   const cantidadesVenta = agruparCantidades(
-    lineasVenta.data.map((linea) => ({ documentoId: linea.factura_id, cantidad: linea.cantidad })),
+    ventasData.map((linea) => ({ documentoId: linea.factura_id, cantidad: linea.cantidad })),
   );
   const cantidadesCompra = agruparCantidades(
-    lineasCompra.data.map((linea) => ({
+    comprasData.map((linea) => ({
       documentoId: linea.factura_proveedor_id,
       cantidad: linea.cantidad,
     })),
@@ -356,10 +330,7 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
 
   const movimientos =
     productoFicha.tipo === "producto" && productoFicha.inventariable
-      ? [
-          ...movimientosDeVentas(lineasVenta.data, facturasVentaDb),
-          ...movimientosDeCompras(lineasCompra.data, facturasCompraDb),
-        ]
+      ? [...movimientosDeVentas(ventasData, facturasVentaDb), ...movimientosDeCompras(comprasData, facturasCompraDb)]
       : [];
 
   return {

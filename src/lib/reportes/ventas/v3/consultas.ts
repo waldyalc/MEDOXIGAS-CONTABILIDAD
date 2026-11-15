@@ -1,3 +1,4 @@
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import { centavos } from "../../dinero";
@@ -17,6 +18,17 @@ interface FacturaVentaCruda {
   descuento: number;
   itbis: number;
   total: number;
+  contactos: { nombre: string } | null;
+}
+
+interface FacturaVendedorJoin {
+  id: string;
+  fecha: string;
+  subtotal: number;
+  itbis: number;
+  total: number;
+  vendedor_id: string | null;
+  vendedores: { nombre: string } | null;
 }
 
 interface FacturaEstadoCruda {
@@ -41,20 +53,7 @@ interface AplicacionCruda {
   monto: number;
   retenido: number;
   pagos_recibidos: { fecha: string; estado: string } | null;
-}
-
-interface FacturaVendedorCruda {
-  id: string;
-  fecha: string;
-  subtotal: number;
-  itbis: number;
-  total: number;
-  vendedor_id: string | null;
-}
-
-interface VendedorCrudo {
-  id: string;
-  nombre: string;
+  facturas: { id: string };
 }
 
 export async function obtenerVentasVendedor(
@@ -63,31 +62,24 @@ export async function obtenerVentasVendedor(
   vendedorId?: string | null,
 ): Promise<Respuesta<FilaVentaVendedor>> {
   const supabase = await createClient();
-  let consulta = supabase
-    .from("facturas")
-    .select("id, fecha, subtotal, itbis, total, vendedor_id")
-    .gte("fecha", desde)
-    .lte("fecha", hasta)
-    .neq("estado", "anulada");
+  const { data, error } = await paginarConsulta((inicio, fin) => {
+    let consulta = supabase
+      .from("facturas")
+      .select("id, fecha, subtotal, itbis, total, vendedor_id, vendedores(nombre)")
+      .gte("fecha", desde)
+      .lte("fecha", hasta)
+      .neq("estado", "anulada");
 
-  if (vendedorId) consulta = consulta.eq("vendedor_id", vendedorId);
+    if (vendedorId) consulta = consulta.eq("vendedor_id", vendedorId);
 
-  const { data, error } = await consulta.order("fecha").order("numero").returns<FacturaVendedorCruda[]>();
+    return consulta.order("fecha").order("numero").range(inicio, fin).returns<FacturaVendedorJoin[]>();
+  });
 
   if (error) return { filas: [], error: error.message };
 
-  const ids = [...new Set(data.map((factura) => factura.vendedor_id).filter((id): id is string => id != null))];
-  if (ids.length === 0) return { filas: [], error: null };
-
-  const vendedores = await supabase.from("vendedores").select("id, nombre").in("id", ids).returns<VendedorCrudo[]>();
-
-  if (vendedores.error) return { filas: [], error: vendedores.error.message };
-
-  const nombres = new Map(vendedores.data.map((vendedor) => [vendedor.id, vendedor.nombre]));
-
   return {
-    filas: data.map((factura) => ({
-      vendedor: factura.vendedor_id ? (nombres.get(factura.vendedor_id) ?? null) : null,
+    filas: (data ?? []).map((factura) => ({
+      vendedor: factura.vendedores?.nombre ?? null,
       subtotal: factura.subtotal,
       itbis: factura.itbis,
       total: factura.total,
@@ -98,32 +90,26 @@ export async function obtenerVentasVendedor(
 
 export async function obtenerVentasCliente(desde: string, hasta: string): Promise<Respuesta<FilaVentaCliente>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("facturas")
-    .select("id, numero, contacto_id, fecha, subtotal, descuento, itbis, total")
-    .gte("fecha", desde)
-    .lte("fecha", hasta)
-    .neq("estado", "anulada")
-    .order("fecha")
-    .order("numero")
-    .returns<FacturaVentaCruda[]>();
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .from("facturas")
+      .select("id, numero, contacto_id, fecha, subtotal, descuento, itbis, total, contactos(nombre)")
+      .gte("fecha", desde)
+      .lte("fecha", hasta)
+      .neq("estado", "anulada")
+      .order("fecha")
+      .order("numero")
+      .range(inicio, fin)
+      .returns<FacturaVentaCruda[]>(),
+  );
 
   if (error) return { filas: [], error: error.message };
 
-  const ids = [...new Set(data.map((factura) => factura.contacto_id))];
-  if (ids.length === 0) return { filas: [], error: null };
-
-  const contactos = await supabase.from("contactos").select("id, nombre").in("id", ids).returns<ClienteOpcion[]>();
-
-  if (contactos.error) return { filas: [], error: contactos.error.message };
-
-  const nombres = new Map(contactos.data.map((contacto) => [contacto.id, contacto.nombre]));
-
   return {
-    filas: data.map((factura) => ({
+    filas: (data ?? []).map((factura) => ({
       facturaId: factura.id,
       contactoId: factura.contacto_id,
-      contactoNombre: nombres.get(factura.contacto_id) ?? "—",
+      contactoNombre: factura.contactos?.nombre ?? "—",
       subtotal: factura.subtotal,
       descuento: factura.descuento,
       itbis: factura.itbis,
@@ -152,46 +138,51 @@ export async function obtenerEstadoCuentaCliente(
   corte: string,
 ): Promise<Respuesta<FilaEstadoCuenta> & { clienteNombre: string | null }> {
   const supabase = await createClient();
-  const { data: facturas, error } = await supabase
-    .from("facturas")
-    .select("id, numero, ncf, fecha, vencimiento, total")
-    .eq("contacto_id", contactoId)
-    .lte("fecha", corte)
-    .neq("estado", "anulada")
-    .order("fecha", { ascending: false })
-    .order("numero", { ascending: false })
-    .returns<FacturaEstadoCruda[]>();
+  const [facturasRes, contacto, pagosRes, aplicacionesRes] = await Promise.all([
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("facturas")
+        .select("id, numero, ncf, fecha, vencimiento, total")
+        .eq("contacto_id", contactoId)
+        .lte("fecha", corte)
+        .neq("estado", "anulada")
+        .order("fecha", { ascending: false })
+        .order("numero", { ascending: false })
+        .range(inicio, fin)
+        .returns<FacturaEstadoCruda[]>(),
+    ),
+    supabase.from("contactos").select("id, nombre").eq("id", contactoId).maybeSingle().returns<ClienteOpcion | null>(),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("pagos_recibidos")
+        .select("id, factura_id, monto, retenido")
+        .eq("contacto_id", contactoId)
+        .eq("estado", "activo")
+        .lte("fecha", corte)
+        .order("id")
+        .range(inicio, fin)
+        .returns<PagoCrudo[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("pago_recibido_aplicaciones")
+        .select("pago_id, factura_id, monto, retenido, pagos_recibidos(fecha, estado), facturas!inner(id)")
+        .eq("facturas.contacto_id", contactoId)
+        .lte("facturas.fecha", corte)
+        .neq("facturas.estado", "anulada")
+        .order("pago_id")
+        .order("factura_id")
+        .range(inicio, fin)
+        .returns<AplicacionCruda[]>(),
+    ),
+  ]);
 
+  const { data: facturasData, error } = facturasRes;
   if (error) return { filas: [], error: error.message, clienteNombre: null };
+  const facturas = facturasData ?? [];
 
-  const contacto = await supabase
-    .from("contactos")
-    .select("id, nombre")
-    .eq("id", contactoId)
-    .maybeSingle()
-    .returns<ClienteOpcion | null>();
-
-  const ids = facturas.map((factura) => factura.id);
-  const [pagos, aplicaciones] =
-    ids.length > 0
-      ? await Promise.all([
-          supabase
-            .from("pagos_recibidos")
-            .select("id, factura_id, monto, retenido")
-            .in("factura_id", ids)
-            .eq("estado", "activo")
-            .lte("fecha", corte)
-            .returns<PagoCrudo[]>(),
-          supabase
-            .from("pago_recibido_aplicaciones")
-            .select("pago_id, factura_id, monto, retenido, pagos_recibidos(fecha, estado)")
-            .in("factura_id", ids)
-            .returns<AplicacionCruda[]>(),
-        ])
-      : [
-          { data: [] as PagoCrudo[], error: null },
-          { data: [] as AplicacionCruda[], error: null },
-        ];
+  const pagos = pagosRes;
+  const aplicaciones = aplicacionesRes;
 
   if (pagos.error) return { filas: [], error: pagos.error.message, clienteNombre: contacto.data?.nombre ?? null };
   if (aplicaciones.error) {
@@ -210,7 +201,7 @@ export async function obtenerEstadoCuentaCliente(
     retenidoPorFactura.set(facturaId, (retenidoPorFactura.get(facturaId) ?? 0) + centavos(retenido));
   };
 
-  for (const pago of pagos.data) {
+  for (const pago of pagos.data ?? []) {
     if (pago.factura_id == null || conAplicaciones.has(pago.id)) continue;
     sumar(pago.factura_id, pago.monto, pago.retenido);
   }

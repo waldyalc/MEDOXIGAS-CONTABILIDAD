@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/server";
@@ -14,7 +16,9 @@ export interface ImpuestoConfig extends Impuesto {
   cuenta_nombre: string | null;
 }
 
-export async function getImpuestosActivos(): Promise<Impuesto[]> {
+// cache() dedupe el catálogo dentro de la misma petición (fichas y formularios
+// lo piden varias veces por request).
+export const getImpuestosActivos = cache(async (): Promise<Impuesto[]> => {
   const supabase = (await createClient()) as unknown as SupabaseClient;
   const { data, error } = await supabase
     .from("impuestos")
@@ -25,7 +29,7 @@ export async function getImpuestosActivos(): Promise<Impuesto[]> {
 
   if (error) throw new Error(error.message);
   return (data ?? []) as Impuesto[];
-}
+});
 
 export async function getImpuestosConfig(): Promise<ImpuestoConfig[]> {
   const supabase = (await createClient()) as unknown as SupabaseClient;

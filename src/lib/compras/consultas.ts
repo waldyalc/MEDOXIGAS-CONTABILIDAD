@@ -35,6 +35,7 @@ export async function listarFacturasProveedor(): Promise<FacturaLista[]> {
     )
     .order("fecha", { ascending: false })
     .order("numero", { ascending: false })
+    .limit(300)
     .returns<FacturaLista[]>();
 
   if (error) throw new Error(error.message);
@@ -157,6 +158,7 @@ export async function listarPagosProveedor(): Promise<PagoLista[]> {
     )
     .order("fecha", { ascending: false })
     .order("numero", { ascending: false })
+    .limit(300)
     .returns<PagoLista[]>();
 
   if (error) throw new Error(error.message);

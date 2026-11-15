@@ -2,20 +2,10 @@ import { z } from "zod";
 
 import type { CuentaEditable } from "@/lib/contabilidad/validacion";
 import { valorACentavos } from "@/lib/facturacion/calculo";
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
-type Cliente = Awaited<ReturnType<typeof createClient>>;
-
 export type CuentaCabecera = CuentaEditable;
-
-interface LineaFila {
-  id: string;
-  asiento_id: string;
-  contacto_id: string | null;
-  descripcion: string | null;
-  debito: number;
-  credito: number;
-}
 
 interface AsientoResumen {
   id: string;
@@ -26,6 +16,17 @@ interface AsientoResumen {
 interface ContactoResumen {
   id: string;
   nombre: string;
+}
+
+interface LineaConJoin {
+  id: string;
+  asiento_id: string;
+  contacto_id: string | null;
+  descripcion: string | null;
+  debito: number;
+  credito: number;
+  asientos: AsientoResumen;
+  contactos: ContactoResumen | null;
 }
 
 export interface MovimientoCuenta {
@@ -56,26 +57,8 @@ export function normalizarFecha(valor: string | undefined): string | undefined {
   return valor;
 }
 
-async function cargarAsientos(cliente: Cliente, ids: string[]): Promise<Map<string, AsientoResumen>> {
-  if (ids.length === 0) return new Map();
-
-  const { data, error } = await cliente.from("asientos").select("id, numero, fecha").in("id", ids);
-  if (error) throw new Error(error.message);
-
-  return new Map((data ?? []).map((asiento) => [asiento.id, asiento]));
-}
-
-async function cargarContactos(cliente: Cliente, ids: string[]): Promise<Map<string, ContactoResumen>> {
-  if (ids.length === 0) return new Map();
-
-  const { data, error } = await cliente.from("contactos").select("id, nombre").in("id", ids);
-  if (error) throw new Error(error.message);
-
-  return new Map((data ?? []).map((contacto) => [contacto.id, contacto]));
-}
-
 interface LineaConAsiento {
-  linea: LineaFila;
+  linea: LineaConJoin;
   asiento: AsientoResumen;
 }
 
@@ -93,27 +76,26 @@ export async function obtenerCuentaDetalle(id: string, desde?: string, hasta?: s
   if (error) throw new Error(error.message);
   if (!cuenta) return null;
 
-  const { data: lineas, error: errorLineas } = await cliente
-    .from("asiento_lineas")
-    .select("id, asiento_id, contacto_id, descripcion, debito, credito")
-    .eq("cuenta_id", id)
-    .returns<LineaFila[]>();
+  const { data: lineas, error: errorLineas } = await paginarConsulta((inicio, fin) => {
+    const base = cliente
+      .from("asiento_lineas")
+      .select(
+        "id, asiento_id, contacto_id, descripcion, debito, credito, asientos!inner(id, numero, fecha), contactos(id, nombre)",
+      )
+      .eq("cuenta_id", id)
+      .order("id")
+      .range(inicio, fin);
+    return (hasta == null ? base : base.lte("asientos.fecha", hasta)).returns<LineaConJoin[]>();
+  });
 
   if (errorLineas) throw new Error(errorLineas.message);
 
   const filas = lineas ?? [];
-  const asientoIds = [...new Set(filas.map((linea) => linea.asiento_id))];
-  const contactoIds = [...new Set(filas.flatMap((linea) => (linea.contacto_id == null ? [] : [linea.contacto_id])))];
-
-  const [asientos, contactos] = await Promise.all([
-    cargarAsientos(cliente, asientoIds),
-    cargarContactos(cliente, contactoIds),
-  ]);
 
   const ordenadas = filas
     .flatMap((linea) => {
-      const asiento = asientos.get(linea.asiento_id);
-      return asiento == null ? [] : [{ linea, asiento }];
+      const asiento = linea.asientos;
+      return [{ linea, asiento }];
     })
     .sort(
       (a, b) =>
@@ -122,14 +104,13 @@ export async function obtenerCuentaDetalle(id: string, desde?: string, hasta?: s
         a.linea.id.localeCompare(b.linea.id),
     );
 
-  const resultado = calcularMovimientos(ordenadas, contactos, cuenta.naturaleza === "credito", desde, hasta);
+  const resultado = calcularMovimientos(ordenadas, cuenta.naturaleza === "credito", desde, hasta);
 
   return { cuenta, tieneMovimientos: filas.length > 0, ...resultado };
 }
 
 function calcularMovimientos(
   ordenadas: readonly LineaConAsiento[],
-  contactos: Map<string, ContactoResumen>,
   usaCredito: boolean,
   desde?: string,
   hasta?: string,
@@ -160,7 +141,7 @@ function calcularMovimientos(
       debitoCentavos,
       creditoCentavos,
       saldoCentavos: acumulado,
-      contacto: linea.contacto_id == null ? null : (contactos.get(linea.contacto_id) ?? null),
+      contacto: linea.contactos,
     });
   }
 

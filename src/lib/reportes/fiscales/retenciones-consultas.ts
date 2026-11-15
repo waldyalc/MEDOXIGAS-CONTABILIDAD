@@ -1,4 +1,5 @@
 import { centavos } from "@/lib/reportes/dinero";
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import type { RetencionProveedor } from "./ir17";
@@ -109,17 +110,20 @@ export async function obtenerRetencionesProveedores(
   hasta: string,
 ): Promise<RespuestaRetencionesProveedor> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("pagos_proveedor")
-    .select(
-      "numero, fecha, contacto_id, contactos(nombre, rnc_cedula), facturas_proveedor(numero, ncf), pago_proveedor_retenciones(id, base, monto, retenciones(nombre, tipo)), pago_proveedor_aplicaciones(id, facturas_proveedor(numero, ncf), pago_proveedor_aplicacion_retenciones(id, base, monto, retenciones(nombre, tipo)))",
-    )
-    .eq("estado", "activo")
-    .gte("fecha", desde)
-    .lte("fecha", hasta)
-    .order("fecha")
-    .order("numero")
-    .returns<PagoDb[]>();
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .from("pagos_proveedor")
+      .select(
+        "numero, fecha, contacto_id, contactos(nombre, rnc_cedula), facturas_proveedor(numero, ncf), pago_proveedor_retenciones(id, base, monto, retenciones(nombre, tipo)), pago_proveedor_aplicaciones(id, facturas_proveedor(numero, ncf), pago_proveedor_aplicacion_retenciones(id, base, monto, retenciones(nombre, tipo)))",
+      )
+      .eq("estado", "activo")
+      .gte("fecha", desde)
+      .lte("fecha", hasta)
+      .order("fecha")
+      .order("numero")
+      .range(inicio, fin)
+      .returns<PagoDb[]>(),
+  );
 
   if (error) return { filas: [], error: error.message };
 
