@@ -2,6 +2,7 @@ import { rutaCompra, rutaFactura, rutaGasto, rutaNotaCreditoVenta } from "@/lib/
 import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { etiquetaImpuesto, type Impuesto } from "@/lib/impuestos/tipos";
 import { centavos } from "@/lib/reportes/dinero";
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import { formasPagoVenta } from "./comun";
@@ -97,17 +98,23 @@ interface NotaDb {
   nota_credito_venta_lineas: LineaVentaDb[] | null;
 }
 
-interface PagoDb {
+interface PagoVenta {
   id: string;
   factura_id: string | null;
   metodo: string;
   monto: number | string;
 }
 
+interface PagoDb extends PagoVenta {
+  facturas: { numero: number } | { numero: number }[] | null;
+}
+
 interface AplicacionDb {
+  id: string;
   pago_id: string;
   factura_id: string;
   monto: number | string;
+  facturas: { numero: number } | { numero: number }[] | null;
   pagos_recibidos: { metodo: string; estado: string } | null;
 }
 
@@ -225,47 +232,61 @@ export interface DatosVentas {
 export async function obtenerVentas(desde: string, hasta: string): Promise<RespuestaFiscal<DatosVentas>> {
   const supabase = await createClient();
   const [{ data, error }, catalogo] = await Promise.all([
-    supabase
-      .from("facturas")
-      .select(
-        "id, numero, ncf, fecha, subtotal, itbis, otros_impuestos, propina, total, pagado, credito, estado, tipo_comprobante, contacto_id, contactos(nombre, rnc_cedula), factura_lineas(subtotal, itbis, itbis_tasa, impuesto_id)",
-      )
-      .neq("estado", "anulada")
-      .gte("fecha", desde)
-      .lte("fecha", hasta)
-      .order("fecha")
-      .order("numero")
-      .returns<FacturaDb[]>(),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("facturas")
+        .select(
+          "id, numero, ncf, fecha, subtotal, itbis, otros_impuestos, propina, total, pagado, credito, estado, tipo_comprobante, contacto_id, contactos(nombre, rnc_cedula), factura_lineas(subtotal, itbis, itbis_tasa, impuesto_id)",
+        )
+        .neq("estado", "anulada")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("fecha")
+        .order("numero")
+        .range(inicio, fin)
+        .returns<FacturaDb[]>(),
+    ),
     getCatalogoImpuestos(),
   ]);
 
   if (error) return { datos: { documentos: [], detalles: [] }, error: error.message };
 
   const facturas = data ?? [];
-  const ids = facturas.map((factura) => factura.id);
   const [pagosRes, aplicacionesRes] =
-    ids.length === 0
+    facturas.length === 0
       ? [{ data: [] as PagoDb[] }, { data: [] as AplicacionDb[] }]
       : await Promise.all([
-          supabase
-            .from("pagos_recibidos")
-            .select("id, factura_id, metodo, monto")
-            .in("factura_id", ids)
-            .eq("estado", "activo")
-            .returns<PagoDb[]>(),
-          supabase
-            .from("pago_recibido_aplicaciones")
-            .select("pago_id, factura_id, monto, pagos_recibidos(metodo, estado)")
-            .in("factura_id", ids)
-            .returns<AplicacionDb[]>(),
+          paginarConsulta((inicio, fin) =>
+            supabase
+              .from("pagos_recibidos")
+              .select("id, factura_id, metodo, monto, facturas!inner(numero)")
+              .eq("estado", "activo")
+              .gte("facturas.fecha", desde)
+              .lte("facturas.fecha", hasta)
+              .neq("facturas.estado", "anulada")
+              .order("numero")
+              .range(inicio, fin)
+              .returns<PagoDb[]>(),
+          ),
+          paginarConsulta((inicio, fin) =>
+            supabase
+              .from("pago_recibido_aplicaciones")
+              .select("id, pago_id, factura_id, monto, pagos_recibidos(metodo, estado), facturas!inner(numero)")
+              .gte("facturas.fecha", desde)
+              .lte("facturas.fecha", hasta)
+              .neq("facturas.estado", "anulada")
+              .order("id")
+              .range(inicio, fin)
+              .returns<AplicacionDb[]>(),
+          ),
         ]);
 
   const aplicaciones = (aplicacionesRes.data ?? []).filter(
     (aplicacion) => aplicacion.pagos_recibidos?.estado === "activo",
   );
   const conAplicaciones = new Set(aplicaciones.map((aplicacion) => aplicacion.pago_id));
-  const pagosPorFactura = new Map<string, PagoDb[]>();
-  const agregarPago = (pago: PagoDb) => {
+  const pagosPorFactura = new Map<string, PagoVenta[]>();
+  const agregarPago = (pago: PagoVenta) => {
     if (pago.factura_id == null) return;
     const lista = pagosPorFactura.get(pago.factura_id) ?? [];
     lista.push(pago);
@@ -449,28 +470,34 @@ function convertirGasto(
 export async function obtenerCompras(desde: string, hasta: string): Promise<RespuestaFiscal<DatosCompras>> {
   const supabase = await createClient();
   const [compras, gastos, catalogo] = await Promise.all([
-    supabase
-      .from("facturas_proveedor")
-      .select(
-        "id, numero, ncf, fecha, subtotal, itbis, otros_impuestos, propina, total, estado, contacto_id, contactos(nombre, rnc_cedula), facturas_proveedor_lineas(subtotal, itbis, itbis_tasa, impuesto_id, producto_id, productos(tipo))",
-      )
-      .neq("estado", "anulada")
-      .gte("fecha", desde)
-      .lte("fecha", hasta)
-      .order("fecha")
-      .order("numero")
-      .returns<FacturaCompraDb[]>(),
-    supabase
-      .from("gastos_menores")
-      .select(
-        "id, numero, ncf, fecha, subtotal, itbis, otros_impuestos, propina, itbis_tasa, impuesto_id, total, estado, contacto_id, descripcion, contactos(nombre, rnc_cedula)",
-      )
-      .neq("estado", "anulada")
-      .gte("fecha", desde)
-      .lte("fecha", hasta)
-      .order("fecha")
-      .order("numero")
-      .returns<GastoDb[]>(),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("facturas_proveedor")
+        .select(
+          "id, numero, ncf, fecha, subtotal, itbis, otros_impuestos, propina, total, estado, contacto_id, contactos(nombre, rnc_cedula), facturas_proveedor_lineas(subtotal, itbis, itbis_tasa, impuesto_id, producto_id, productos(tipo))",
+        )
+        .neq("estado", "anulada")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("fecha")
+        .order("numero")
+        .range(inicio, fin)
+        .returns<FacturaCompraDb[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("gastos_menores")
+        .select(
+          "id, numero, ncf, fecha, subtotal, itbis, otros_impuestos, propina, itbis_tasa, impuesto_id, total, estado, contacto_id, descripcion, contactos(nombre, rnc_cedula)",
+        )
+        .neq("estado", "anulada")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("fecha")
+        .order("numero")
+        .range(inicio, fin)
+        .returns<GastoDb[]>(),
+    ),
     getCatalogoImpuestos(),
   ]);
 
@@ -498,17 +525,20 @@ export async function obtenerCompras(desde: string, hasta: string): Promise<Resp
 export async function obtenerDevolucionesVentas(desde: string, hasta: string): Promise<RespuestaFiscal<DatosVentas>> {
   const supabase = await createClient();
   const [{ data, error }, catalogo] = await Promise.all([
-    supabase
-      .from("notas_credito_venta")
-      .select(
-        "id, numero, ncf, fecha, subtotal, itbis, otros_impuestos, propina, total, estado, contacto_id, contactos(nombre, rnc_cedula), facturas(ncf), nota_credito_venta_lineas(subtotal, itbis, itbis_tasa, impuesto_id)",
-      )
-      .eq("estado", "activa")
-      .gte("fecha", desde)
-      .lte("fecha", hasta)
-      .order("fecha")
-      .order("numero")
-      .returns<NotaDb[]>(),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("notas_credito_venta")
+        .select(
+          "id, numero, ncf, fecha, subtotal, itbis, otros_impuestos, propina, total, estado, contacto_id, contactos(nombre, rnc_cedula), facturas(ncf), nota_credito_venta_lineas(subtotal, itbis, itbis_tasa, impuesto_id)",
+        )
+        .eq("estado", "activa")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("fecha")
+        .order("numero")
+        .range(inicio, fin)
+        .returns<NotaDb[]>(),
+    ),
     getCatalogoImpuestos(),
   ]);
 
@@ -559,27 +589,42 @@ export async function obtenerDevolucionesCompras(): Promise<RespuestaFiscal<Dato
 export async function obtenerAnulados(desde: string, hasta: string): Promise<RespuestaFiscal<DocumentoFiscal[]>> {
   const supabase = await createClient();
   const [facturas, gastos, notas] = await Promise.all([
-    supabase
-      .from("facturas")
-      .select("id, numero, ncf, fecha, total, contacto_id, contactos(nombre, rnc_cedula)")
-      .eq("estado", "anulada")
-      .gte("fecha", desde)
-      .lte("fecha", hasta)
-      .returns<AnuladoDb[]>(),
-    supabase
-      .from("gastos_menores")
-      .select("id, numero, ncf, fecha, total, contacto_id, contactos(nombre, rnc_cedula)")
-      .eq("estado", "anulada")
-      .gte("fecha", desde)
-      .lte("fecha", hasta)
-      .returns<AnuladoDb[]>(),
-    supabase
-      .from("notas_credito_venta")
-      .select("id, numero, ncf, fecha, total, contacto_id, contactos(nombre, rnc_cedula)")
-      .eq("estado", "anulada")
-      .gte("fecha", desde)
-      .lte("fecha", hasta)
-      .returns<AnuladoDb[]>(),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("facturas")
+        .select("id, numero, ncf, fecha, total, contacto_id, contactos(nombre, rnc_cedula)")
+        .eq("estado", "anulada")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("fecha")
+        .order("numero")
+        .range(inicio, fin)
+        .returns<AnuladoDb[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("gastos_menores")
+        .select("id, numero, ncf, fecha, total, contacto_id, contactos(nombre, rnc_cedula)")
+        .eq("estado", "anulada")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("fecha")
+        .order("numero")
+        .range(inicio, fin)
+        .returns<AnuladoDb[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("notas_credito_venta")
+        .select("id, numero, ncf, fecha, total, contacto_id, contactos(nombre, rnc_cedula)")
+        .eq("estado", "anulada")
+        .gte("fecha", desde)
+        .lte("fecha", hasta)
+        .order("fecha")
+        .order("numero")
+        .range(inicio, fin)
+        .returns<AnuladoDb[]>(),
+    ),
   ]);
 
   const error = facturas.error?.message ?? gastos.error?.message ?? notas.error?.message ?? null;
