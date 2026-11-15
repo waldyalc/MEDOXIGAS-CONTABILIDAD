@@ -98,6 +98,7 @@ Próximos: datos de la empresa (RNC, dirección, logo), numeraciones B14/B15/B16
 Candados que ya existen:
 
 - `src/lib/selects-nativos.test.ts` — prohíbe `<select>` y `NativeSelect` fuera de `components/ui`.
+- `src/lib/rpc-sin-extraer.test.ts` — prohíbe guardar `supabase.rpc` en una variable o convertirlo con `as` (desvincula `this` y crashea la pantalla); llamar siempre `supabase.rpc("nombre", args)` directo.
 
 ## Antes de decir "listo"
 
