@@ -9,12 +9,14 @@ import { cn } from "cn";
 import {
   ArrowLeft,
   ArrowLeftRight,
+  BookOpen,
   Building2,
   Download,
   EllipsisVertical,
   Eye,
   File,
   FileBarChart,
+  FileMinus,
   FilePlus2,
   FileText,
   Hash,
@@ -27,9 +29,11 @@ import {
   Search,
   ShoppingCart,
   SquarePen,
+  Truck,
   Upload,
   User,
   Users,
+  Wallet,
 } from "lucide-react";
 
 import { FormularioContacto } from "@/components/contactos/formulario-contacto";
@@ -69,9 +73,6 @@ import {
   type DatosFichaContacto,
   type DocumentoComercialFicha,
   type DocumentoFicha,
-  etiquetaEstadoComercial,
-  etiquetaEstadoDocumento,
-  etiquetaEstadoPago,
   type NotaFicha,
   type PagoFicha,
   type TipoNotaFicha,
@@ -96,6 +97,16 @@ import {
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import type { ListaPrecio } from "@/lib/inventario/tipos";
+
+import {
+  type ClaseEstado,
+  EstadoBadge,
+  PestanaAsientos,
+  PestanaComerciales,
+  PestanaFacturas,
+  PestanaNotas,
+  PestanaPagos,
+} from "./pestanas-documentos";
 
 type TipoFila =
   | "factura"
@@ -249,7 +260,7 @@ function asientosAFilas(asientos: readonly AsientoFicha[]): FilaUnificada[] {
     tipo: "asiento",
     prefijo: "ASI",
     detalle: fila.descripcion,
-    montoCentavos: fila.debitoCentavos,
+    montoCentavos: Math.max(fila.debitoCentavos, fila.creditoCentavos),
     estado: "activo",
     href: rutaAsiento(fila.id),
     direccion: "cargo",
@@ -279,19 +290,16 @@ function TipoBadge({ tipo }: { readonly tipo: TipoFila }) {
   );
 }
 
-function EstadoFilaBadge({ estado, tipo }: { readonly estado: string; readonly tipo: TipoFila }) {
-  let etiqueta: string;
-  if (tipo === "factura" || tipo === "compra")
-    etiqueta = etiquetaEstadoDocumento(estado, tipo === "factura" ? "venta" : "compra");
-  else if (tipo === "cotizacion" || tipo === "conduce") etiqueta = etiquetaEstadoComercial(estado);
-  else etiqueta = etiquetaEstadoPago(estado);
-
-  if (estado === "anulada" || estado === "anulado") return <Badge variant="destructive">{etiqueta}</Badge>;
-  if (estado === "pagada" || estado === "convertida") {
-    return <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">{etiqueta}</Badge>;
-  }
-  return <Badge variant="secondary">{etiqueta}</Badge>;
-}
+const CLASE_ESTADO_FILA: Record<TipoFila, ClaseEstado> = {
+  factura: "venta",
+  compra: "compra",
+  cotizacion: "comercial",
+  conduce: "comercial",
+  nota: "pago",
+  "pago-recibido": "pago",
+  "pago-proveedor": "pago",
+  asiento: "pago",
+};
 
 interface AccionEnlace {
   readonly etiqueta: string;
@@ -436,46 +444,17 @@ function ContenidoResumen({
   );
 }
 
-function construirKpis(datos: DatosFichaContacto, esVenta: boolean, esCompra: boolean): KpiFicha[] {
-  const kpis: { etiqueta: string; centavos: number; tono: TonoKpi }[] = [];
-
-  if (esVenta) {
-    kpis.push(
-      { etiqueta: "Por cobrar", centavos: totalPorCobrar(datos.facturas), tono: "pendiente" },
-      { etiqueta: "Anticipos", centavos: totalAnticipos(datos.pagosRecibidos), tono: "normal" },
-    );
-  }
-  if (esCompra) {
-    kpis.push({ etiqueta: "Por pagar", centavos: totalPorPagar(datos.facturasProveedor), tono: "pendiente" });
-  }
-  if (esVenta) {
-    kpis.push(
-      {
-        etiqueta: "Total facturado",
-        centavos: datos.facturas.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.total)), 0),
-        tono: "normal",
-      },
-      {
-        etiqueta: "Total cobrado",
-        centavos: datos.facturas.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.pagado)), 0),
-        tono: "positivo",
-      },
-    );
-  }
-  if (esCompra) {
-    kpis.push(
-      {
-        etiqueta: "Total comprado",
-        centavos: datos.facturasProveedor.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.total)), 0),
-        tono: "normal",
-      },
-      {
-        etiqueta: "Total pagado",
-        centavos: datos.facturasProveedor.reduce((t, f) => (f.estado === "anulada" ? t : t + aCentavos(f.pagado)), 0),
-        tono: "positivo",
-      },
-    );
-  }
+function construirKpis(datos: DatosFichaContacto): KpiFicha[] {
+  // Las notas de crédito y débito siempre se aplican a una factura al crearse.
+  const notasPorAplicar = 0;
+  const kpis: { etiqueta: string; centavos: number; tono: TonoKpi }[] = [
+    { etiqueta: "Cuentas por cobrar", centavos: totalPorCobrar(datos.facturas), tono: "pendiente" },
+    { etiqueta: "Anticipos recibidos", centavos: totalAnticipos(datos.pagosRecibidos), tono: "normal" },
+    { etiqueta: "Anticipos entregados", centavos: totalAnticipos(datos.pagosProveedor), tono: "normal" },
+    { etiqueta: "Por pagar", centavos: totalPorPagar(datos.facturasProveedor), tono: "pendiente" },
+    { etiqueta: "Notas crédito por aplicar", centavos: notasPorAplicar, tono: "normal" },
+    { etiqueta: "Notas débito por aplicar", centavos: notasPorAplicar, tono: "normal" },
+  ];
   return kpis.map(({ centavos, ...kpi }) => ({ ...kpi, valor: formatoMonedaCentavos(centavos) }));
 }
 
@@ -541,7 +520,7 @@ function TablaMovimientos({ filas, unidad }: { readonly filas: readonly FilaUnif
                 )}
               </TableCell>
               <TableCell>
-                <EstadoFilaBadge estado={fila.estado} tipo={fila.tipo} />
+                <EstadoBadge estado={fila.estado} clase={CLASE_ESTADO_FILA[fila.tipo]} />
               </TableCell>
             </TableRow>
           ))
@@ -939,7 +918,50 @@ function PestanaDocumentos({ datos, filtroDoc }: { readonly datos: DatosFichaCon
   );
 }
 
-type PestanaFicha = "resumen" | "transacciones" | "facturas" | "contactos" | "documentos";
+type PestanaFicha =
+  | "resumen"
+  | "transacciones"
+  | "facturas"
+  | "cotizaciones"
+  | "conduces"
+  | "notas"
+  | "pagos"
+  | "asientos"
+  | "compras"
+  | "notas-compra"
+  | "pagos-proveedor"
+  | "contactos"
+  | "documentos";
+
+interface ItemMenuFicha {
+  readonly valor: PestanaFicha;
+  readonly etiqueta: string;
+  readonly icono: React.ReactNode;
+}
+
+function pestanasFicha(esVenta: boolean, esCompra: boolean): ItemMenuFicha[] {
+  const venta: ItemMenuFicha[] = [
+    { valor: "facturas", etiqueta: "Facturas de venta", icono: <ReceiptText className="size-4" /> },
+    { valor: "cotizaciones", etiqueta: "Cotizaciones", icono: <FileText className="size-4" /> },
+    { valor: "conduces", etiqueta: "Conduces", icono: <Truck className="size-4" /> },
+    { valor: "notas", etiqueta: "Notas de crédito y débito", icono: <FileMinus className="size-4" /> },
+    { valor: "pagos", etiqueta: "Pagos recibidos", icono: <Wallet className="size-4" /> },
+  ];
+  const compra: ItemMenuFicha[] = [
+    { valor: "compras", etiqueta: "Facturas de proveedor", icono: <ShoppingCart className="size-4" /> },
+    { valor: "notas-compra", etiqueta: "Notas crédito de compra", icono: <FileMinus className="size-4" /> },
+    { valor: "pagos-proveedor", etiqueta: "Pagos a proveedor", icono: <Wallet className="size-4" /> },
+  ];
+  return [
+    { valor: "resumen", etiqueta: "Resumen", icono: <LayoutGrid className="size-4" /> },
+    { valor: "transacciones", etiqueta: "Transacciones", icono: <ArrowLeftRight className="size-4" /> },
+    ...(esVenta ? venta : []),
+    ...(esCompra ? compra : []),
+    { valor: "asientos", etiqueta: "Asientos", icono: <BookOpen className="size-4" /> },
+    { valor: "contactos", etiqueta: "Contactos", icono: <Users className="size-4" /> },
+    { valor: "documentos", etiqueta: "Documentos", icono: <File className="size-4" /> },
+  ];
+}
 
 interface FiltroPestana {
   readonly valor: string;
@@ -951,26 +973,15 @@ function AccionPestana({
   pestana,
   puedeCrear,
   filtroTx,
-  filtroFacturas,
   filtroDoc,
 }: {
   readonly pestana: PestanaFicha;
   readonly puedeCrear: boolean;
   readonly filtroTx: FiltroPestana;
-  readonly filtroFacturas: FiltroPestana | null;
   readonly filtroDoc: FiltroPestana;
 }) {
   if (pestana === "transacciones") {
     return <BotonFiltro valor={filtroTx.valor} opciones={filtroTx.opciones} onCambiar={filtroTx.onCambiar} />;
-  }
-  if (pestana === "facturas") {
-    return filtroFacturas ? (
-      <BotonFiltro
-        valor={filtroFacturas.valor}
-        opciones={filtroFacturas.opciones}
-        onCambiar={filtroFacturas.onCambiar}
-      />
-    ) : null;
   }
   if (pestana === "contactos") {
     return puedeCrear ? (
@@ -1011,7 +1022,6 @@ export function FichaContacto({
   const router = useRouter();
   const [pestana, setPestana] = useState<PestanaFicha>("resumen");
   const [filtroTipo, setFiltroTipo] = useState("todos");
-  const [filtroFactura, setFiltroFactura] = useState("todos");
   const [filtroDoc, setFiltroDoc] = useState("todos");
   const [editando, setEditando] = useState(false);
 
@@ -1025,14 +1035,7 @@ export function FichaContacto({
     ...tiposPresentes.map((tipo) => ({ valor: tipo, etiqueta: ETIQUETA_TIPO_FILA[tipo] })),
   ];
 
-  const filasFacturas = filas.filter((fila) => fila.tipo === "factura" || fila.tipo === "compra");
-  const tiposFacturas = [...new Set(filasFacturas.map((fila) => fila.tipo))];
-  const opcionesFactura: OpcionFiltro[] = [
-    { valor: "todos", etiqueta: "Todos los tipos" },
-    ...tiposFacturas.map((tipo) => ({ valor: tipo, etiqueta: ETIQUETA_TIPO_FILA[tipo] })),
-  ];
-
-  const kpis = construirKpis(datos, esVenta, esCompra);
+  const kpis = construirKpis(datos);
   const secundarias = puedeCrear ? accionesFicha(contacto, esVenta, esCompra) : [];
   const estadoCuentaHref = `${rutaContacto(contacto.id)}/estado-cuenta`;
 
@@ -1068,48 +1071,22 @@ export function FichaContacto({
 
         <Tabs value={pestana} className="gap-0">
           <div className="border-border flex flex-wrap items-center justify-between gap-2 border-b px-2 sm:px-4">
-            <nav className="flex items-center gap-1" aria-label="Secciones de la ficha">
-              <ItemPestana
-                activo={pestana === "resumen"}
-                onClick={() => setPestana("resumen")}
-                icono={<LayoutGrid className="size-4" />}
-                etiqueta="Resumen"
-              />
-              <ItemPestana
-                activo={pestana === "transacciones"}
-                onClick={() => setPestana("transacciones")}
-                icono={<ArrowLeftRight className="size-4" />}
-                etiqueta="Transacciones"
-              />
-              <ItemPestana
-                activo={pestana === "facturas"}
-                onClick={() => setPestana("facturas")}
-                icono={<ReceiptText className="size-4" />}
-                etiqueta="Facturas"
-              />
-              <ItemPestana
-                activo={pestana === "contactos"}
-                onClick={() => setPestana("contactos")}
-                icono={<Users className="size-4" />}
-                etiqueta="Contactos"
-              />
-              <ItemPestana
-                activo={pestana === "documentos"}
-                onClick={() => setPestana("documentos")}
-                icono={<FileText className="size-4" />}
-                etiqueta="Documentos"
-              />
+            <nav className="flex flex-wrap items-center gap-1" aria-label="Secciones de la ficha">
+              {pestanasFicha(esVenta, esCompra).map((item) => (
+                <ItemPestana
+                  key={item.valor}
+                  activo={pestana === item.valor}
+                  onClick={() => setPestana(item.valor)}
+                  icono={item.icono}
+                  etiqueta={item.etiqueta}
+                />
+              ))}
             </nav>
             <div className="flex items-center gap-2 py-1.5">
               <AccionPestana
                 pestana={pestana}
                 puedeCrear={puedeCrear}
                 filtroTx={{ valor: filtroTipo, onCambiar: setFiltroTipo, opciones: opcionesTipo }}
-                filtroFacturas={
-                  opcionesFactura.length > 2
-                    ? { valor: filtroFactura, onCambiar: setFiltroFactura, opciones: opcionesFactura }
-                    : null
-                }
                 filtroDoc={{ valor: filtroDoc, onCambiar: setFiltroDoc, opciones: OPCIONES_DOC }}
               />
             </div>
@@ -1124,7 +1101,49 @@ export function FichaContacto({
           </TabsContent>
 
           <TabsContent value="facturas" className="p-4 sm:p-5">
-            <PestanaTabla filas={filasFacturas} filtroTipo={filtroFactura} unidad="facturas" />
+            <PestanaFacturas facturas={datos.facturas} esVenta ruta={rutaFactura} />
+          </TabsContent>
+
+          <TabsContent value="cotizaciones" className="p-4 sm:p-5">
+            <PestanaComerciales filas={datos.cotizaciones} prefijo="COT" unidad="cotizaciones" ruta={rutaCotizacion} />
+          </TabsContent>
+
+          <TabsContent value="conduces" className="p-4 sm:p-5">
+            <PestanaComerciales filas={datos.conduces} prefijo="CON" unidad="conduces" ruta={rutaConduce} />
+          </TabsContent>
+
+          <TabsContent value="notas" className="p-4 sm:p-5">
+            <PestanaNotas
+              notas={datos.notasVenta}
+              unidad="notas de crédito y débito"
+              prefijo={(nota) => PREFIJO_NOTA[nota.tipo]}
+              ruta={rutaNota}
+            />
+          </TabsContent>
+
+          <TabsContent value="pagos" className="p-4 sm:p-5">
+            <PestanaPagos pagos={datos.pagosRecibidos} unidad="pagos recibidos" ruta={rutaPagoRecibido} />
+          </TabsContent>
+
+          <TabsContent value="compras" className="p-4 sm:p-5">
+            <PestanaFacturas facturas={datos.facturasProveedor} esVenta={false} ruta={rutaCompra} />
+          </TabsContent>
+
+          <TabsContent value="notas-compra" className="p-4 sm:p-5">
+            <PestanaNotas
+              notas={datos.notasCompra}
+              unidad="notas crédito de compra"
+              prefijo={(nota) => PREFIJO_NOTA[nota.tipo]}
+              ruta={rutaNota}
+            />
+          </TabsContent>
+
+          <TabsContent value="pagos-proveedor" className="p-4 sm:p-5">
+            <PestanaPagos pagos={datos.pagosProveedor} unidad="pagos a proveedor" ruta={rutaPagoProveedor} />
+          </TabsContent>
+
+          <TabsContent value="asientos" className="p-4 sm:p-5">
+            <PestanaAsientos asientos={datos.asientos} ruta={rutaAsiento} />
           </TabsContent>
 
           <TabsContent value="contactos" className="p-4 sm:p-5">
