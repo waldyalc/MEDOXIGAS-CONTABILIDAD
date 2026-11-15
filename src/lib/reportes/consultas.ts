@@ -1,3 +1,4 @@
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import { centavos } from "./dinero";
@@ -18,7 +19,13 @@ export interface RespuestaReporte<T> {
 
 export async function obtenerLibroDiario(desde: string, hasta: string): Promise<RespuestaReporte<FilaLibroDiario>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("reporte_libro_diario", { p_desde: desde, p_hasta: hasta });
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .rpc("reporte_libro_diario", { p_desde: desde, p_hasta: hasta })
+      .order("asiento_numero")
+      .order("cuenta_codigo")
+      .range(inicio, fin),
+  );
 
   if (error) return { filas: [], error: error.message };
   return { filas: (data ?? []) as unknown as FilaLibroDiario[], error: null };
@@ -53,7 +60,9 @@ export async function obtenerEstadoResultados(
 }
 export async function obtenerCxc(fecha: string): Promise<RespuestaReporte<FilaCxc>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("reporte_cxc", { p_fecha: fecha });
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase.rpc("reporte_cxc", { p_fecha: fecha }).order("numero").order("factura_id").range(inicio, fin),
+  );
 
   if (error) return { filas: [], error: error.message };
   return { filas: (data ?? []) as unknown as FilaCxc[], error: null };

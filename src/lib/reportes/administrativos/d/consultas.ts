@@ -91,14 +91,17 @@ function convertirCartera(
 
 export async function obtenerCarteraCxc(hasta: string): Promise<RespuestaReporte<FilaCartera>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("facturas")
-    .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, contactos(nombre)")
-    .neq("estado", "anulada")
-    .lte("fecha", hasta)
-    .order("fecha", { ascending: false })
-    .order("numero", { ascending: false })
-    .returns<FilaCxcDb[]>();
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .from("facturas")
+      .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, contactos(nombre)")
+      .neq("estado", "anulada")
+      .lte("fecha", hasta)
+      .order("fecha", { ascending: false })
+      .order("numero", { ascending: false })
+      .range(inicio, fin)
+      .returns<FilaCxcDb[]>(),
+  );
 
   if (error) return { filas: [], error: error.message };
 
@@ -113,15 +116,18 @@ export async function obtenerCarteraCxc(hasta: string): Promise<RespuestaReporte
 
 export async function obtenerCarteraCxp(desde: string, hasta: string): Promise<RespuestaReporte<FilaCartera>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("facturas_proveedor")
-    .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, contactos(nombre)")
-    .neq("estado", "anulada")
-    .gte("fecha", desde)
-    .lte("fecha", hasta)
-    .order("fecha", { ascending: false })
-    .order("numero", { ascending: false })
-    .returns<FilaCxpDb[]>();
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .from("facturas_proveedor")
+      .select("id, numero, ncf, contacto_id, fecha, vencimiento, total, pagado, credito, retenido, contactos(nombre)")
+      .neq("estado", "anulada")
+      .gte("fecha", desde)
+      .lte("fecha", hasta)
+      .order("fecha", { ascending: false })
+      .order("numero", { ascending: false })
+      .range(inicio, fin)
+      .returns<FilaCxpDb[]>(),
+  );
 
   if (error) return { filas: [], error: error.message };
 
@@ -136,15 +142,18 @@ export async function obtenerCarteraCxp(desde: string, hasta: string): Promise<R
 
 export async function obtenerCompras(desde: string, hasta: string): Promise<RespuestaReporte<FilaCompra>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("facturas_proveedor")
-    .select("id, numero, ncf, contacto_id, fecha, subtotal, total, contactos(nombre)")
-    .neq("estado", "anulada")
-    .gte("fecha", desde)
-    .lte("fecha", hasta)
-    .order("fecha", { ascending: false })
-    .order("numero", { ascending: false })
-    .returns<FilaCompraDb[]>();
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .from("facturas_proveedor")
+      .select("id, numero, ncf, contacto_id, fecha, subtotal, total, contactos(nombre)")
+      .neq("estado", "anulada")
+      .gte("fecha", desde)
+      .lte("fecha", hasta)
+      .order("fecha", { ascending: false })
+      .order("numero", { ascending: false })
+      .range(inicio, fin)
+      .returns<FilaCompraDb[]>(),
+  );
 
   if (error) return { filas: [], error: error.message };
 
@@ -212,12 +221,16 @@ async function movimientosCompra(despuesDe: string): Promise<Map<string, number>
 /** Existencia a la fecha de corte: si es hoy usa `productos.cantidad`; si no, reconstruye. */
 export async function obtenerInventario(hasta: string, hoy: string): Promise<RespuestaReporte<FilaInventario>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("productos")
-    .select("id, nombre, referencia, descripcion, cantidad, costo, activo")
-    .eq("inventariable", true)
-    .order("nombre")
-    .returns<ProductoDb[]>();
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .from("productos")
+      .select("id, nombre, referencia, descripcion, cantidad, costo, activo")
+      .eq("inventariable", true)
+      .order("nombre")
+      .order("id")
+      .range(inicio, fin)
+      .returns<ProductoDb[]>(),
+  );
 
   if (error) return { filas: [], error: error.message };
 
