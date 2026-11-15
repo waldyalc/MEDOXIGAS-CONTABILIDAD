@@ -116,7 +116,7 @@ export function ItemPestana({
       onClick={onClick}
       aria-pressed={activo}
       className={cn(
-        "text-muted-foreground hover:text-foreground relative inline-flex h-11 items-center gap-1.5 px-3 text-sm font-medium transition-colors",
+        "text-muted-foreground hover:text-foreground relative inline-flex h-11 shrink-0 items-center gap-1.5 px-3 text-sm whitespace-nowrap font-medium transition-colors",
         activo && "text-primary hover:text-primary",
       )}
     >
