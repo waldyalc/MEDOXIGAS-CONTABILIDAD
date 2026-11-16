@@ -1,5 +1,6 @@
 # Handoff — Medoxigas Contabilidad
 
+
 ## Fix — Numeraciones vigilan las notas B03/B04 (F16) (17 nov 2026)
 
 - Rama `fix/numeraciones-notas-rnc` (desde `origin/prueba`). F15 ya estaba corregido; esto cierra **F16**: `actualizar_numeracion` solo miraba `facturas` y `gastos_menores`, así que una serie B03/B04 podía moverse a un rango con NCF ya emitidos en notas.
@@ -10,6 +11,16 @@
 - ZZTEST: `docs/pruebas/limpieza-zztest.sql` (solo lectura) cuenta documentos por tabla y deja el borrado **comentado**; no se borró nada. Incluye el estado de **junio 2020**, que sigue **abierto** tras el test C6, y qué hace falta para cerrarlo (revisión de Contable + OK de Waldy + `cerrar_periodo`).
 - Verificado: `pnpm typecheck`, `pnpm check` (solo avisos preexistentes de Biome), `pnpm test` (716) y `pnpm build` en verde. Sin cambios en `types.ts` (la firma no cambia), sin datos tocados y sin migración aplicada.
 - Pendiente de decisión: unique/trigger entre tablas para NCF, regla de RNC único, borrado de ~19.5k ZZTEST y cierre de junio 2020.
+
+## Verificación del P0 de carga y cortes restantes (17 nov 2026)
+
+- Rama `verify/p0-prueba` desde `origin/prueba` (cdfea68…b1f3f27, sin tocar `test/pruebas-carga`). Se revisó que lo ya fusionado (RPC directa, paginación fiscal, joins/lotes, libros/CxC/CxP y listas) siga en pie.
+- Verificado en verde: `pnpm typecheck`, `pnpm check` (solo los 23 avisos preexistentes), `pnpm test` **731** (90 archivos; 15 nuevos del candado de paginación) y `pnpm build` (103 rutas).
+- Hallazgos corregidos: los selectores de producto de facturación, compras, órdenes de compra, inventario, notas de débito/recurrentes leían el catálogo sin paginar (corte en 1,000) y precios con `.in()` de todos los ids (>350 revienta la URL); ahora `getProductosActivos` pagina y pide precios en lotes de 200. También paginan el selector de proveedores de pagos recurrentes y el de clientes de estado de cuenta. `ventas-producto`/`rentabilidad-producto` cortaban en `MAXIMO_LINEAS = 20,000` líneas; ahora leen hasta que un lote salga corto.
+- Candado nuevo `src/lib/paginacion.test.ts`: falla si esos reportes/bancos/fichas/selectores dejan de usar `paginarConsulta`/`consultarEnLotes`, si vuelve un `.limit(300/500/1000)` o si reaparece el tope de 20,000 líneas.
+- Revisado sin cambios: 606/607/608/IT-1/IR-17/retenciones, libro diario, balance, CxC/CxP, anual, bancos (líneas + numerosDocumento por lotes), fichas y estado de cuenta ya paginan; `rpc as unknown`/`RpcSuelta` no quedan. `docs/pruebas/resultados/RESULTADOS.md` y `sonda-fallos.md` solo existen en `test/pruebas-carga` (no en `prueba`); se leyeron de esa rama.
+- Pendiente de Waldy/Contable (sin cambios): `cuadre.sql`/`cuadre-inventario.sql`, decisión RNC único / NC sobre factura pagada / unicidad NCF B03-B04 y OK para borrar los ~19.5k documentos ZZTEST. No se tocó la base, no hubo migraciones ni service_role; pgTAP y navegador autenticado no se pudieron correr aquí (sin Docker ni credenciales).
+
 
 ## Fix — Últimas listas y selectores de contactos en servidor (15 nov 2026)
 
