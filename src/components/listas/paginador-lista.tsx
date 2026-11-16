@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { cn } from "cn";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,10 @@ interface Props {
   base: string;
   params: ParametrosLista;
   resumen: ResumenPagina;
+  className?: string;
 }
 
-export function PaginadorLista({ base, params, resumen }: Props) {
+export function PaginadorLista({ base, params, resumen, className }: Props) {
   if (resumen.total === 0) return null;
 
   const { pagina, totalPaginas, inicio, fin, total } = resumen;
@@ -23,7 +25,7 @@ export function PaginadorLista({ base, params, resumen }: Props) {
   const ultima = pagina < totalPaginas ? urlLista(base, params, { pagina: String(totalPaginas) }) : null;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+    <div className={cn("flex flex-wrap items-center justify-between gap-3 text-sm", className)}>
       <p className="text-muted-foreground">
         Mostrando {formato.format(inicio)}–{formato.format(fin)} de {formato.format(total)}
       </p>

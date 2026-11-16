@@ -41,10 +41,10 @@ async function TablaFacturas({
   const { filas: facturas, resumen } = await getFacturasLista(opciones);
 
   return (
-    <div className="flex flex-col gap-3">
+    <>
       <FacturasTabla facturas={facturas} busqueda={opciones.q} />
-      <PaginadorLista base={RUTA} params={params} resumen={resumen} />
-    </div>
+      <PaginadorLista base={RUTA} params={params} resumen={resumen} className="border-t px-4 py-2" />
+    </>
   );
 }
 
@@ -56,25 +56,30 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Facturación</h1>
-          <p className="text-muted-foreground text-sm">Facturas de venta con comprobante fiscal (NCF).</p>
+          <h1 className="text-3xl tracking-tight">Facturas de venta</h1>
+          <p className="text-muted-foreground text-sm">Con comprobante fiscal (NCF).</p>
         </div>
         <Suspense fallback={<Skeleton className="h-9 w-36" />}>
           <AccionNuevaFactura />
         </Suspense>
       </div>
 
-      <BuscadorLista
-        base={RUTA}
-        parametros={params}
-        valorInicial={opciones.q}
-        placeholder="Buscar por número, NCF o cliente…"
-        ariaLabel="Buscar facturas"
-      />
+      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
+        <div className="flex h-12 items-center gap-2 border-b px-3">
+          <BuscadorLista
+            base={RUTA}
+            parametros={params}
+            valorInicial={opciones.q}
+            placeholder="Buscar por número, NCF o cliente…"
+            ariaLabel="Buscar facturas"
+            className="sm:max-w-[267px] [&_input]:h-8"
+          />
+        </div>
 
-      <Suspense fallback={<EsqueletoTabla filas={8} columnas={9} />}>
-        <TablaFacturas opciones={opciones} params={params} />
-      </Suspense>
+        <Suspense fallback={<EsqueletoTabla filas={8} columnas={9} className="rounded-none ring-0" />}>
+          <TablaFacturas opciones={opciones} params={params} />
+        </Suspense>
+      </div>
     </div>
   );
 }
