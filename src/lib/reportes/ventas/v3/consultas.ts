@@ -121,16 +121,20 @@ export async function obtenerVentasCliente(desde: string, hasta: string): Promis
 
 export async function listarClientes(): Promise<Respuesta<ClienteOpcion>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("contactos")
-    .select("id, nombre")
-    .eq("activo", true)
-    .in("tipo", ["cliente", "ambos"])
-    .order("nombre")
-    .returns<ClienteOpcion[]>();
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .from("contactos")
+      .select("id, nombre")
+      .eq("activo", true)
+      .in("tipo", ["cliente", "ambos"])
+      .order("nombre")
+      .order("id")
+      .range(inicio, fin)
+      .returns<ClienteOpcion[]>(),
+  );
 
   if (error) return { filas: [], error: error.message };
-  return { filas: data, error: null };
+  return { filas: data ?? [], error: null };
 }
 
 export async function obtenerEstadoCuentaCliente(

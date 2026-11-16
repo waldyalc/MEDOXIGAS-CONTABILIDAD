@@ -13,6 +13,8 @@ import {
   resumirPagina,
   TAMANO_PAGINA_DEFECTO,
 } from "@/lib/listas/parametros";
+import { consultarEnLotes } from "@/lib/supabase/lotes";
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -71,28 +73,34 @@ export async function getContactosClientes(): Promise<ContactoResumen[]> {
 
 export async function getProductosActivos(): Promise<ProductoResumen[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("productos")
-    .select("id, nombre, referencia, precio, itbis_tasa, impuesto_id")
-    .eq("activo", true)
-    .order("nombre")
-    .returns<Omit<ProductoResumen, "precios">[]>();
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .from("productos")
+      .select("id, nombre, referencia, precio, itbis_tasa, impuesto_id")
+      .eq("activo", true)
+      .order("nombre")
+      .order("id")
+      .range(inicio, fin)
+      .returns<Omit<ProductoResumen, "precios">[]>(),
+  );
 
   if (error) throw new Error(error.message);
-  if (data.length === 0) return [];
+  if (data == null || data.length === 0) return [];
 
-  const preciosRes = await supabase
-    .from("producto_precios")
-    .select("producto_id, lista_id, precio")
-    .in(
-      "producto_id",
-      data.map((producto) => producto.id),
-    );
+  const preciosRes = await consultarEnLotes(
+    data.map((producto) => producto.id),
+    (lote) =>
+      supabase
+        .from("producto_precios")
+        .select("producto_id, lista_id, precio")
+        .in("producto_id", lote)
+        .returns<{ producto_id: string; lista_id: string; precio: number }[]>(),
+  );
 
   if (preciosRes.error) throw new Error(preciosRes.error.message);
 
   const preciosPorProducto = new Map<string, { lista_id: string; precio: number }[]>();
-  for (const fila of preciosRes.data as { producto_id: string; lista_id: string; precio: number }[]) {
+  for (const fila of preciosRes.data ?? []) {
     const actuales = preciosPorProducto.get(fila.producto_id) ?? [];
     actuales.push({ lista_id: fila.lista_id, precio: fila.precio });
     preciosPorProducto.set(fila.producto_id, actuales);
