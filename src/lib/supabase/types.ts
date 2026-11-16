@@ -3832,6 +3832,15 @@ export type Database = {
         }
         Returns: string
       }
+      catalogo_saldos: {
+        Args: {
+          p_hasta?: string
+        }
+        Returns: {
+          cuenta_codigo: string
+          saldo: number
+        }[]
+      }
       cerrar_periodo: {
         Args: {
           p_periodo: string
