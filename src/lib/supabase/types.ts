@@ -3370,6 +3370,13 @@ export type Database = {
         Args: { p_id: string }
         Returns: string
       }
+      catalogo_saldos: {
+        Args: { p_hasta?: string }
+        Returns: {
+          cuenta_codigo: string
+          saldo: number
+        }[]
+      }
       cerrar_periodo: { Args: { p_periodo: string }; Returns: string }
       cerrar_resultados_anio: { Args: { p_anio: number }; Returns: string }
       conciliar_cuenta: { Args: { p: Json }; Returns: string }

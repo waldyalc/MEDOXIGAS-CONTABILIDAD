@@ -29,6 +29,11 @@ export interface FilaBalanceComprobacion {
   saldo: number | string | null;
 }
 
+export interface FilaSaldoCuenta {
+  cuenta_codigo: string;
+  saldo: number | string | null;
+}
+
 export interface FilaEstadoResultados {
   tipo: string;
   cuenta_codigo: string;

@@ -634,3 +634,19 @@ Tras las pruebas de carga (32k docs) y concurrencia (C1–C8, todas sanas), se c
 - `docs/investigacion-carga` — `docs/pruebas/resultados/investigacion-p4.md` + `docs/pruebas/cuadre-inventario.sql` (solo lectura, lo corre Waldy).
 
 Verificado: `pnpm typecheck`, `pnpm check:fix`, `pnpm test` (671) en la punta apilada. Sondas de UI/carga y `cuadre-inventario.sql` quedan por correr. Pendientes de Waldy/Contable: `docs/pruebas/cuadre.sql` (I2), `cuadre-inventario.sql` (D6), decisión RNC único / NC sobre factura pagada / unicidad NCF-B03-B04, y OK para borrar ~19.5k docs ZZTEST.
+
+## Rendimiento de Inicio y catálogo de cuentas (17 nov 2026)
+
+Medido en build de producción con ~32k documentos y ~258k líneas de asiento: Inicio p95 4.7 s (una corrida de 9.0 s) y catálogo 5.2 s. Las listas y reportes ya se habían arreglado; esto había quedado fuera.
+
+- **Diagnóstico (leyendo el código, sin acceso a la base):** el Inicio no agrega sobre el mayor dentro de `dashboard_resumen` — esa RPC solo mira facturas, compras, notas y líneas de factura del periodo. El trabajo de base más caro de las dos pantallas es el mayor completo de `asiento_lineas` recalculado en cada visita, y ninguna de las dos lo necesita:
+  - Inicio y `/dashboard/reportes` (`AvisoSaldoNegativo` → `obtenerSaldosCajaBanco`): `saldos_caja_banco` unía **todas** las líneas de las cuentas de caja/banco con `asientos` para filtrar por fecha (`20261113180100_saldos_caja_banco.sql:24-31`).
+  - Catálogo (`obtenerCatalogoContable`, `src/lib/reportes/consultas.ts`): pedía `reporte_balance_comprobacion('1900-01-01', hoy)` solo para pintar el saldo de cada cuenta. Es un reporte completo (asientos + líneas + cuentas, agrupado) usado como consulta de tarjetas.
+- **Cambio:** migración aditiva `20261117100000_perf_inicio_catalogo.sql` (no aplicada al remoto; la aplica Coder):
+  - Índice de cobertura `asiento_lineas_cuenta_importes_idx (cuenta_id) include (debito, credito)`.
+  - `saldos_caja_banco`: misma firma y mismo resultado; suma el total por cuenta y le resta solo las líneas de asientos posteriores al corte (normalmente ninguna), sin unir cada línea con su asiento.
+  - Nueva `catalogo_saldos(p_hasta)`: saldo por código con la misma fórmula (débito − crédito o crédito − débito según naturaleza) y el mismo corte que el balance desde 1900. El catálogo ya no pide el balance de comprobación.
+- **TS:** `obtenerCatalogoContable` llama `catalogo_saldos`; `indexarSaldosPorCodigo` (puro, en `src/lib/contabilidad/catalogo.ts`) arma el mapa por código y tiene 3 tests Vitest. `types.ts` actualizado a mano solo con la firma nueva (la migración no está aplicada).
+- **pgTAP:** `supabase/tests/perf_inicio_catalogo_test.sql` (9 asserts) compara `catalogo_saldos` contra `reporte_balance_comprobacion` cuenta por cuenta y en total, y `saldos_caja_banco` contra la suma de líneas con corte, incluido un gasto en fecha posterior al corte.
+- **Verificado:** `pnpm typecheck`, Biome de los archivos tocados, `pnpm exec vitest run src/lib/contabilidad/catalogo.test.ts` (12) y `pnpm build` en verde. No se pudo medir antes/después: este worktree no tiene `.env.local`, Docker ni Supabase CLI, y no se escribe en la base remota.
+- **Pendiente:** aplicar la migración y volver a medir en `prueba`; si el p95 sigue alto, el siguiente paso es `EXPLAIN (ANALYZE, BUFFERS)` de las dos funciones contra la base real (solo lectura). `20261115900000_indices_rendimiento.sql` sigue sin aplicar; estas consultas no dependen de él (los índices base existen), pero conviene aplicarlo. `dashboard_resumen` no se tocó: su lógica, orden y cálculos quedan igual.

@@ -1,7 +1,7 @@
+import { indexarSaldosPorCodigo } from "@/lib/contabilidad/catalogo";
 import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
-import { centavos } from "./dinero";
 import { hoyRd } from "./fechas";
 import type {
   CuentaContable,
@@ -10,6 +10,7 @@ import type {
   FilaCxc,
   FilaEstadoResultados,
   FilaLibroDiario,
+  FilaSaldoCuenta,
 } from "./tipos";
 
 export interface RespuestaReporte<T> {
@@ -77,7 +78,7 @@ export interface RespuestaCatalogo {
 
 export async function obtenerCatalogoContable(): Promise<RespuestaCatalogo> {
   const supabase = await createClient();
-  const [cuentas, configuracion, balance] = await Promise.all([
+  const [cuentas, configuracion, saldosCuentas] = await Promise.all([
     supabase
       .from("cuentas")
       .select(
@@ -85,24 +86,19 @@ export async function obtenerCatalogoContable(): Promise<RespuestaCatalogo> {
       )
       .order("codigo"),
     supabase.from("config_contable").select("clave, cuenta_id"),
-    supabase.rpc("reporte_balance_comprobacion", { p_desde: "1900-01-01", p_hasta: hoyRd() }),
+    supabase.rpc("catalogo_saldos", { p_hasta: hoyRd() }),
   ]);
 
   if (cuentas.error) {
     return { cuentas: [], configuracion: [], saldos: {}, error: cuentas.error.message };
   }
 
-  const filasBalance = balance.error ? [] : ((balance.data ?? []) as unknown as FilaBalanceComprobacion[]);
-  const saldos: Record<string, number> = {};
-
-  for (const fila of filasBalance) {
-    saldos[fila.cuenta_codigo] = centavos(fila.saldo);
-  }
+  const filasSaldos = saldosCuentas.error ? [] : ((saldosCuentas.data ?? []) as unknown as FilaSaldoCuenta[]);
 
   return {
     cuentas: (cuentas.data ?? []) as unknown as CuentaContable[],
     configuracion: (configuracion.data ?? []) as unknown as FilaConfigContable[],
-    saldos,
+    saldos: indexarSaldosPorCodigo(filasSaldos),
     error: null,
   };
 }

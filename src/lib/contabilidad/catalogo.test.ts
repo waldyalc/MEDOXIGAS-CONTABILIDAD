@@ -9,6 +9,7 @@ import {
   expandidosIniciales,
   expandirTodo,
   filtrarArbol,
+  indexarSaldosPorCodigo,
   normalizarTexto,
 } from "./catalogo";
 
@@ -50,6 +51,28 @@ describe("construirArbolCatalogo", () => {
     expect(arbol[0]?.hijos[0]?.saldo).toBe(350000);
     expect(arbol[0]?.saldo).toBe(350000);
     expect(arbol[1]?.saldo).toBe(70000);
+  });
+});
+
+describe("indexarSaldosPorCodigo", () => {
+  test("convierte los montos a centavos y los indexa por código de cuenta", () => {
+    const saldos = indexarSaldosPorCodigo([
+      { cuenta_codigo: "1101", saldo: "1234.56" },
+      { cuenta_codigo: "2101", saldo: -789.5 },
+    ]);
+
+    expect(saldos).toEqual({ "1101": 123456, "2101": -78950 });
+  });
+
+  test("trata un saldo nulo como cero", () => {
+    expect(indexarSaldosPorCodigo([{ cuenta_codigo: "4101", saldo: null }])).toEqual({ "4101": 0 });
+  });
+
+  test("una cuenta sin movimiento queda fuera del mapa y el árbol la muestra en cero", () => {
+    const saldos = indexarSaldosPorCodigo([{ cuenta_codigo: "1101", saldo: 100 }]);
+
+    expect(saldos["1102"]).toBeUndefined();
+    expect(construirArbolCatalogo(CUENTAS, saldos)[0]?.hijos[0]?.hijos[1]?.saldo).toBe(0);
   });
 });
 

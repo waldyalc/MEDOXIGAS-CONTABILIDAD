@@ -1,5 +1,6 @@
 import { construirArbolCuentas, type NodoCuenta } from "@/lib/reportes/contabilidad";
-import type { CuentaContable } from "@/lib/reportes/tipos";
+import { centavos } from "@/lib/reportes/dinero";
+import type { CuentaContable, FilaSaldoCuenta } from "@/lib/reportes/tipos";
 
 export const CONFIGURACION_CONTABLE = [
   { clave: "caja", etiqueta: "Caja" },
@@ -39,6 +40,17 @@ export function construirArbolCatalogo(
   saldos: Record<string, number>,
 ): NodoCuenta[] {
   return construirArbolCuentas(cuentas, saldos);
+}
+
+/** Saldos de `catalogo_saldos` indexados por código de cuenta, en centavos. */
+export function indexarSaldosPorCodigo(filas: readonly FilaSaldoCuenta[]): Record<string, number> {
+  const saldos: Record<string, number> = {};
+
+  for (const fila of filas) {
+    saldos[fila.cuenta_codigo] = centavos(fila.saldo);
+  }
+
+  return saldos;
 }
 
 export function normalizarTexto(valor: string): string {
