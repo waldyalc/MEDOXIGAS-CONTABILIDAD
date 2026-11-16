@@ -137,7 +137,7 @@ export function TablaVentas({ ruta, desde, hasta, filtros, pagina, porAlmacen = 
         </p>
         <div className="flex items-center gap-2">
           {pagina.pagina > 1 ? (
-            <Button variant="outline" size="sm" render={<Link href={hrefAnterior} />}>
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={hrefAnterior} />}>
               <ChevronLeft />
               Anterior
             </Button>
@@ -146,7 +146,7 @@ export function TablaVentas({ ruta, desde, hasta, filtros, pagina, porAlmacen = 
             Página {pagina.pagina} de {pagina.totalPaginas}
           </span>
           {pagina.pagina < pagina.totalPaginas ? (
-            <Button variant="outline" size="sm" render={<Link href={hrefSiguiente} />}>
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={hrefSiguiente} />}>
               Siguiente
               <ChevronRight />
             </Button>
