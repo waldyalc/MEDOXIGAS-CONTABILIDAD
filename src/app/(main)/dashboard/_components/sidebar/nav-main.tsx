@@ -76,10 +76,10 @@ interface NavCollapsibleItemProps {
 }
 
 const estiloItem =
-  "relative h-11 gap-3 rounded-none px-5 font-[family-name:var(--font-inter)] text-[15px] font-normal tracking-[-0.01em] text-[#334155] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-[#30aba9] before:opacity-0 before:content-[''] hover:bg-[#f5f6f8] hover:text-[#0f172a] data-active:bg-[#f2f5f8] data-active:font-medium data-active:text-[#0f172a] data-active:before:opacity-100 data-active:hover:bg-[#f2f5f8] dark:text-sidebar-foreground/85 dark:before:bg-[#5ec9c0] dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-[#94a3b8] [&_svg]:stroke-[1.6] data-active:[&_svg]:text-[#0f172a] dark:[&_svg]:text-sidebar-foreground/50 dark:data-active:[&_svg]:text-sidebar-foreground";
+  "relative h-10 gap-3.5 rounded-md px-3 font-[family-name:var(--font-inter)] text-[15px] font-normal tracking-[-0.01em] text-[#334155] before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[#30aba9] before:opacity-0 before:content-[''] hover:bg-[#f5f6f8] hover:text-[#0f172a] data-active:bg-[#f2f5f8] data-active:font-medium data-active:text-[#0f172a] data-active:before:opacity-100 data-active:hover:bg-[#f2f5f8] dark:text-sidebar-foreground/85 dark:before:bg-[#5ec9c0] dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-[#94a3b8] [&_svg]:stroke-[1.6] data-active:[&_svg]:text-[#0f172a] dark:[&_svg]:text-sidebar-foreground/50 dark:data-active:[&_svg]:text-sidebar-foreground";
 
 const estiloSubItem =
-  "relative h-10 translate-x-0 gap-2 rounded-none pr-5 pl-[52px] font-[family-name:var(--font-inter)] text-[14px] font-normal tracking-[-0.01em] text-[#334155] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-[#30aba9] before:opacity-0 before:content-[''] hover:bg-[#f5f6f8] hover:text-[#0f172a] data-active:bg-[#f2f5f8] data-active:font-medium data-active:text-[#0f172a] data-active:before:opacity-100 data-active:hover:bg-[#f2f5f8] dark:text-sidebar-foreground/85 dark:before:bg-[#5ec9c0] dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] [&_svg]:size-4 [&_svg]:shrink-0";
+  "relative h-9 gap-2.5 rounded-md pr-3 pl-[52px] font-[family-name:var(--font-inter)] text-[14px] font-normal tracking-[-0.01em] text-[#334155] before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[#30aba9] before:opacity-0 before:content-[''] hover:bg-[#f5f6f8] hover:text-[#0f172a] data-active:bg-[#f2f5f8] data-active:font-medium data-active:text-[#0f172a] data-active:before:opacity-100 data-active:hover:bg-[#f2f5f8] dark:text-sidebar-foreground/85 dark:before:bg-[#5ec9c0] dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] [&_svg]:size-4 [&_svg]:shrink-0";
 
 function IndicadorEnlace() {
   const { pending } = useLinkStatus();
@@ -139,7 +139,7 @@ export function NavMain({ items }: NavMainProps) {
       {items.map((group) => (
         <SidebarGroup key={group.id} className="p-0 group-data-[collapsible=icon]:p-2">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0">
+            <SidebarMenu className="gap-[4px] px-2.5">
               {group.items.map((item) => (
                 <NavItem
                   key={item.id}
@@ -320,7 +320,7 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive, onNa
       <NavItemBadge badge={item.badge} />
 
       <CollapsibleContent>
-        <SidebarMenuSub className="mx-0 translate-x-0 gap-0 border-0 px-0 py-0">
+        <SidebarMenuSub className="mx-0 translate-x-0 gap-0 border-0 px-2.5 py-0">
           {item.subItems.map((subItem) => {
             const SubIcon = subItem.icon;
 

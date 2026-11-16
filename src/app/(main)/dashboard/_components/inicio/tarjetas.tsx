@@ -26,23 +26,25 @@ export function TarjetaCartera({ titulo, href, datos, className }: TarjetaCarter
   return (
     <Card
       className={cn(
-        "relative h-full justify-between gap-4 rounded-[12px] py-5 sm:col-span-2 lg:col-span-1 lg:row-span-2",
+        "relative h-full gap-0 rounded-[10px] py-5 ring-[#e2e8f0] dark:ring-border sm:col-span-2 lg:col-span-1 lg:row-span-2",
         "has-[a:focus-visible]:ring-ring has-[a:focus-visible]:ring-2",
         className,
       )}
     >
       <CardHeader className="gap-1.5 px-5">
-        <CardTitle className="text-[15px] font-medium text-slate-700 dark:text-slate-300">
+        <CardTitle className="text-[15px] font-medium text-[#3c4257] dark:text-slate-300">
           <Link
             href={href}
-            className="hover:text-primary underline underline-offset-[3px] after:absolute after:inset-0 focus-visible:outline-none"
+            className="hover:text-primary underline decoration-[#b8c2cf] underline-offset-[3px] after:absolute after:inset-0 focus-visible:outline-none dark:decoration-slate-600"
           >
             {titulo}
           </Link>
         </CardTitle>
-        <p className="text-2xl font-semibold tracking-tight tabular-nums">{formatearRd(centavos(datos.total))}</p>
+        <p className="text-2xl leading-8 font-semibold tracking-tight text-slate-900 tabular-nums dark:text-foreground">
+          {formatearRd(centavos(datos.total))}
+        </p>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3.5 px-5">
+      <CardContent className="mt-5 flex flex-col gap-3.5 px-5">
         <BarraCartera datos={datos} />
         <div className="grid grid-cols-2 gap-4">
           <DetalleCartera etiqueta="Vigentes" grupo={datos.vigentes} tono="vigente" />
@@ -117,23 +119,25 @@ export function TarjetaMetrica({ titulo, href, valor, detalle, className }: Tarj
   return (
     <Card
       className={cn(
-        "relative h-full justify-center gap-2.5 rounded-[12px] py-4",
+        "relative h-full gap-0 justify-start rounded-[10px] py-5 ring-[#e2e8f0] dark:ring-border",
         "has-[a:focus-visible]:ring-ring has-[a:focus-visible]:ring-2",
         className,
       )}
     >
-      <CardTitle className="px-4 text-sm font-medium text-slate-700 dark:text-slate-300">
-        <Link
-          href={href}
-          className="hover:text-primary underline underline-offset-[3px] after:absolute after:inset-0 focus-visible:outline-none"
-        >
-          {titulo}
-        </Link>
-      </CardTitle>
-      <div className="flex flex-col gap-0.5 px-4">
-        <p className="text-xl font-semibold tracking-tight tabular-nums">{valor}</p>
+      <CardHeader className="gap-1 px-5">
+        <CardTitle className="text-[15px] font-medium text-[#3c4257] dark:text-slate-300">
+          <Link
+            href={href}
+            className="hover:text-primary underline decoration-[#b8c2cf] underline-offset-[3px] after:absolute after:inset-0 focus-visible:outline-none dark:decoration-slate-600"
+          >
+            {titulo}
+          </Link>
+        </CardTitle>
         {detalle ? <p className="text-muted-foreground text-xs">{detalle}</p> : null}
-      </div>
+        <p className="mt-2 text-xl leading-8 font-semibold tracking-tight text-slate-900 tabular-nums dark:text-foreground">
+          {valor}
+        </p>
+      </CardHeader>
     </Card>
   );
 }

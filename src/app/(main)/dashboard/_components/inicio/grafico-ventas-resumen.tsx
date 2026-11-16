@@ -169,6 +169,7 @@ interface Props {
 export function GraficoVentasResumen({ resumen, href }: Props) {
   const { ventas, es_diario, desde, hasta } = resumen;
   const variacion = ventas.variacion;
+  const hayDatos = ventas.serie.some((punto) => Number(punto.actual) > 0 || Number(punto.anterior) > 0);
   let Icono: typeof TrendingUp | null = null;
   let colorVariacion = "text-muted-foreground";
 
@@ -186,12 +187,15 @@ export function GraficoVentasResumen({ resumen, href }: Props) {
     variacion == null ? "—" : `${Math.abs(variacion).toLocaleString("es-DO", { maximumFractionDigits: 1 })}%`;
 
   return (
-    <Card className="rounded-[12px]">
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
+    <Card className="gap-4 rounded-[10px] py-5 ring-[#e2e8f0] dark:ring-border">
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4 px-5">
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-1.5">
-            <CardTitle className="text-[15px] font-medium text-slate-700 dark:text-slate-300">
-              <Link href={href} className="hover:text-primary underline underline-offset-[3px]">
+            <CardTitle className="text-[15px] font-medium text-[#3c4257] dark:text-slate-300">
+              <Link
+                href={href}
+                className="hover:text-primary underline decoration-[#b8c2cf] underline-offset-[3px] dark:decoration-slate-600"
+              >
                 Total de ventas
               </Link>
             </CardTitle>
@@ -218,25 +222,37 @@ export function GraficoVentasResumen({ resumen, href }: Props) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-2xl font-semibold tracking-tight tabular-nums">{formatearRd(centavos(ventas.total))}</p>
-          <span className={`flex items-center gap-0.5 text-xs font-medium ${colorVariacion}`}>
-            {Icono ? <Icono className="size-3.5" aria-hidden="true" /> : null}
-            {textoVariacion}
-            <span className="sr-only">contra el año anterior</span>
-          </span>
+          <p className="text-2xl leading-8 font-semibold tracking-tight text-slate-900 tabular-nums dark:text-foreground">
+            {formatearRd(centavos(ventas.total))}
+          </p>
+          {variacion == null ? null : (
+            <span className={`flex items-center gap-0.5 text-xs font-medium ${colorVariacion}`}>
+              {Icono ? <Icono className="size-3.5" aria-hidden="true" /> : null}
+              {textoVariacion}
+              <span className="sr-only">contra el año anterior</span>
+            </span>
+          )}
         </div>
       </CardHeader>
-      <CardContent className="px-2 pb-4 sm:px-4">
-        <Grafico datos={ventas.serie} esDiario={es_diario} />
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-4">
-          <ItemLeyenda color={AZUL} texto={`${fechaLarga(desde)} - ${fechaLarga(hasta)}`} />
-          {es_diario ? (
-            <ItemLeyenda
-              color={VERDE}
-              texto={`${fechaLarga(restarUnAnio(desde))} - ${fechaLarga(restarUnAnio(hasta))}`}
-            />
-          ) : null}
-        </div>
+      <CardContent className="px-5 pb-0">
+        {hayDatos ? (
+          <>
+            <Grafico datos={ventas.serie} esDiario={es_diario} />
+            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-4">
+              <ItemLeyenda color={AZUL} texto={`${fechaLarga(desde)} - ${fechaLarga(hasta)}`} />
+              {es_diario ? (
+                <ItemLeyenda
+                  color={VERDE}
+                  texto={`${fechaLarga(restarUnAnio(desde))} - ${fechaLarga(restarUnAnio(hasta))}`}
+                />
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <div className="text-muted-foreground flex h-[292px] items-center justify-center text-sm">
+            Sin ventas registradas en el periodo.
+          </div>
+        )}
       </CardContent>
     </Card>
   );

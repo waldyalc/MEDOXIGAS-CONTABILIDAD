@@ -33,7 +33,7 @@ export function AppSidebar({ rol, className, ...props }: React.ComponentProps<ty
       collapsible={collapsible}
       className={cn("dark:border-sidebar-border border-[#e2e8f0]", className)}
     >
-      <SidebarHeader className="h-16 shrink-0 flex-row items-center justify-between gap-0 border-b border-[#eceff3] px-4 py-0 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 dark:border-white/10">
+      <SidebarHeader className="h-[70px] shrink-0 flex-row items-center justify-between gap-0 border-b border-[#e2e8f0] py-0 pr-3 pl-[21px] group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 dark:border-white/10">
         <Link
           href="/dashboard"
           aria-label="Medoxigas Contabilidad"
@@ -45,14 +45,13 @@ export function AppSidebar({ rol, className, ...props }: React.ComponentProps<ty
             width={500}
             height={260}
             sizes="120px"
-            quality={100}
             priority
-            className="h-12 w-auto object-contain object-left dark:brightness-0 dark:invert"
+            className="h-10 w-auto object-contain object-left dark:brightness-0 dark:invert"
           />
         </Link>
-        <SidebarTrigger className="dark:text-sidebar-foreground/60 dark:hover:text-sidebar-foreground size-9 shrink-0 text-[#94a3b8] hover:bg-[#f2f5f8] hover:text-[#334155] dark:hover:bg-white/10 [&_svg]:size-6! [&_svg]:stroke-[1.6]" />
+        <SidebarTrigger className="dark:text-sidebar-foreground/60 dark:hover:text-sidebar-foreground size-8 shrink-0 text-[#94a3b8] hover:bg-[#f2f5f8] hover:text-[#334155] dark:hover:bg-white/10 [&_svg]:size-[22px]! [&_svg]:stroke-[1.6]" />
       </SidebarHeader>
-      <SidebarContent className="pt-3 group-data-[collapsible=icon]:pt-2">
+      <SidebarContent className="pt-[10px] group-data-[collapsible=icon]:pt-2">
         <NavMain items={grupos} />
       </SidebarContent>
     </Sidebar>
