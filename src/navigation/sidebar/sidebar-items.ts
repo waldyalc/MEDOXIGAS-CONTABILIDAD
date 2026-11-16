@@ -1,12 +1,12 @@
 import {
-  CircleArrowOutDownLeft,
-  CircleArrowOutUpRight,
+  HandCoins,
   House,
   Landmark,
   type LucideIcon,
   NotebookText,
   Package,
   Settings,
+  ShoppingCart,
   Tag,
   TrendingUp,
   Users,
@@ -72,7 +72,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "ingresos",
         title: "Ingresos",
-        icon: CircleArrowOutUpRight,
+        icon: HandCoins,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -115,7 +115,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "compras",
         title: "Compras",
-        icon: CircleArrowOutDownLeft,
+        icon: ShoppingCart,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
