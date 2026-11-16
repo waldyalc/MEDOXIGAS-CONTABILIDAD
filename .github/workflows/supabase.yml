@@ -52,3 +52,11 @@ jobs:
           node scripts/extract-db-schema.mjs src/lib/supabase/types.ts > /tmp/schema.repo.txt
           node scripts/extract-db-schema.mjs /tmp/database.local.ts > /tmp/schema.local.txt
           diff /tmp/schema.repo.txt /tmp/schema.local.txt
+
+      - name: Subir tipos generados (temporal)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-local
+          path: /tmp/database.local.ts
+          if-no-files-found: ignore
