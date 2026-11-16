@@ -33,6 +33,7 @@ interface NavItemBase {
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;
+  separadorDespues?: boolean;
   roles: Rol[];
 }
 
@@ -65,6 +66,7 @@ export const sidebarItems: NavGroup[] = [
         title: "Inicio",
         url: "/dashboard",
         icon: House,
+        separadorDespues: true,
         roles: TODOS_LOS_ROLES,
       },
       {
