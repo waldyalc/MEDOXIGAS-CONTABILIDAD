@@ -76,10 +76,10 @@ interface NavCollapsibleItemProps {
 }
 
 const estiloItem =
-  "relative h-10 gap-3.5 rounded-md px-3 font-[family-name:var(--font-inter)] text-[15px] font-normal tracking-[-0.01em] text-[#334155] before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[#30aba9] before:opacity-0 before:content-[''] hover:bg-[#f5f6f8] hover:text-[#0f172a] data-active:bg-[#f2f5f8] data-active:font-medium data-active:text-[#0f172a] data-active:before:opacity-100 data-active:hover:bg-[#f2f5f8] dark:text-sidebar-foreground/85 dark:before:bg-[#5ec9c0] dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-[#94a3b8] [&_svg]:stroke-[1.6] data-active:[&_svg]:text-[#0f172a] dark:[&_svg]:text-sidebar-foreground/50 dark:data-active:[&_svg]:text-sidebar-foreground";
+  "relative h-10 gap-3 rounded-md px-4 font-[family-name:var(--font-inter)] text-[15px] font-normal tracking-[-0.01em] text-[#2f3441] before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[#30aba9] before:opacity-0 before:content-[''] hover:bg-[#f5f6f8] hover:text-[#0f172a] data-active:bg-[#f2f5f8] data-active:font-medium data-active:text-[#0f172a] data-active:before:opacity-100 data-active:hover:bg-[#f2f5f8] dark:text-sidebar-foreground/85 dark:before:bg-[#5ec9c0] dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] [&_svg]:size-[22px] [&_svg]:shrink-0 [&_svg]:text-[#64748b] [&_svg]:stroke-[1.6] data-active:[&_svg]:text-[#0f172a] dark:[&_svg]:text-sidebar-foreground/50 dark:data-active:[&_svg]:text-sidebar-foreground";
 
 const estiloSubItem =
-  "relative h-9 gap-2.5 rounded-md pr-3 pl-[52px] font-[family-name:var(--font-inter)] text-[14px] font-normal tracking-[-0.01em] text-[#334155] before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[#30aba9] before:opacity-0 before:content-[''] hover:bg-[#f5f6f8] hover:text-[#0f172a] data-active:bg-[#f2f5f8] data-active:font-medium data-active:text-[#0f172a] data-active:before:opacity-100 data-active:hover:bg-[#f2f5f8] dark:text-sidebar-foreground/85 dark:before:bg-[#5ec9c0] dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] [&_svg]:size-4 [&_svg]:shrink-0";
+  "relative h-9 gap-2.5 rounded-md pr-4 pl-[52px] font-[family-name:var(--font-inter)] text-[14px] font-normal tracking-[-0.01em] text-[#2f3441] before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[#30aba9] before:opacity-0 before:content-[''] hover:bg-[#f5f6f8] hover:text-[#0f172a] data-active:bg-[#f2f5f8] data-active:font-medium data-active:text-[#0f172a] data-active:before:opacity-100 data-active:hover:bg-[#f2f5f8] dark:text-sidebar-foreground/85 dark:before:bg-[#5ec9c0] dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] [&_svg]:size-4 [&_svg]:shrink-0";
 
 function IndicadorEnlace() {
   const { pending } = useLinkStatus();
@@ -315,7 +315,7 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive, onNa
       >
         {Icon && <Icon />}
         <span className="truncate">{item.title}</span>
-        <ChevronDown className="ml-auto size-4! shrink-0 transition-transform duration-200 group-data-panel-open/menu-button:rotate-180" />
+        <ChevronDown className="ml-auto size-[18px]! shrink-0 text-[#94a3b8] transition-transform duration-200 group-data-panel-open/menu-button:rotate-180 dark:text-sidebar-foreground/50" />
       </CollapsibleTrigger>
       <NavItemBadge badge={item.badge} />
 

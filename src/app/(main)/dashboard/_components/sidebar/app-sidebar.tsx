@@ -46,7 +46,7 @@ export function AppSidebar({ rol, className, ...props }: React.ComponentProps<ty
             height={260}
             sizes="120px"
             priority
-            className="h-10 w-auto object-contain object-left dark:brightness-0 dark:invert"
+            className="h-[46px] w-auto object-contain object-left dark:brightness-0 dark:invert"
           />
         </Link>
         <SidebarTrigger className="dark:text-sidebar-foreground/60 dark:hover:text-sidebar-foreground size-8 shrink-0 text-[#94a3b8] hover:bg-[#f2f5f8] hover:text-[#334155] dark:hover:bg-white/10 [&_svg]:size-[22px]! [&_svg]:stroke-[1.6]" />
