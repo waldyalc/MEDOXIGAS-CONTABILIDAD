@@ -3516,6 +3516,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      _anular_documento_base: {
+        Args: {
+          p_tipo: string
+          p_id: string
+        }
+        Returns: string
+      }
       _conciliacion_lineas: {
         Args: {
           p_lineas: Json

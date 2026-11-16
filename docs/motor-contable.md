@@ -106,9 +106,14 @@ caja/banco que paga, o la cuenta de gasto de una línea de compra sin producto. 
   semilla son 01/B01, 02/B02 y 13/B13, todas con `hasta = 100000`. El NCF es
   prefijo + 8 dígitos.
 
-Límites conocidos: anular una factura de proveedor devuelve la cantidad pero no
-recalcula el costo promedio; la anulación se fecha con `current_date`, no con la
-fecha del documento.
+Límites conocidos: la anulación se fecha con `current_date`, no con la fecha
+del documento. Anular una compra o un ajuste de **entrada** devuelve la cantidad
+y revierte el costo promedio con la fórmula inversa (compras desde
+`20261113270000`; ajustes de entrada desde `20261117200000`). Si entre el
+movimiento y la anulación hubo ventas u otras compras, la reversión es
+aproximada por el redondeo del promedio móvil. Un ajuste de salida no cambia el
+costo promedio, pero su asiento usa el costo manual de la línea; si difiere del
+promedio, el mayor y `cantidad × costo` se separan.
 
 ## Cómo se prueba
 
