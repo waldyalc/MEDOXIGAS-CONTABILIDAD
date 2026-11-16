@@ -43,10 +43,10 @@ import {
   CLASE_PANEL_FICHA,
   GrillaKpis,
   ItemDato,
-  ItemPestana,
   type KpiFicha,
   MetaItem,
   type OpcionFiltro,
+  PestanasFicha,
   PiePagina,
   TH,
   type TonoKpi,
@@ -1070,19 +1070,15 @@ export function FichaContacto({
         </div>
 
         <Tabs value={pestana} className="gap-0">
-          <div className="border-border flex flex-wrap items-center justify-between gap-2 border-b px-2 sm:px-4">
-            <nav className="flex flex-wrap items-center gap-1" aria-label="Secciones de la ficha">
-              {pestanasFicha(esVenta, esCompra).map((item) => (
-                <ItemPestana
-                  key={item.valor}
-                  activo={pestana === item.valor}
-                  onClick={() => setPestana(item.valor)}
-                  icono={item.icono}
-                  etiqueta={item.etiqueta}
-                />
-              ))}
-            </nav>
-            <div className="flex items-center gap-2 py-1.5">
+          <div className="border-border flex flex-col gap-2 border-b px-2 pb-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4">
+            <PestanasFicha
+              ariaLabel="Secciones de la ficha"
+              items={pestanasFicha(esVenta, esCompra)}
+              valor={pestana}
+              onCambiar={setPestana}
+              className="sm:flex-1"
+            />
+            <div className="flex items-center gap-2 pb-1.5 sm:py-1.5">
               <AccionPestana
                 pestana={pestana}
                 puedeCrear={puedeCrear}

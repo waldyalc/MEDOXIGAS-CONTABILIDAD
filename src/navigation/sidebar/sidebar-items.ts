@@ -1,15 +1,15 @@
 import {
-  BookOpen,
-  Boxes,
-  ChartColumn,
-  Contact,
+  CircleArrowOutDownLeft,
+  CircleArrowOutUpRight,
   House,
   Landmark,
   type LucideIcon,
+  NotebookText,
   Package,
-  ReceiptText,
   Settings,
-  ShoppingCart,
+  Tag,
+  TrendingUp,
+  Users,
 } from "lucide-react";
 
 import type { Rol } from "@/lib/auth/rol";
@@ -70,7 +70,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "ingresos",
         title: "Ingresos",
-        icon: ReceiptText,
+        icon: CircleArrowOutUpRight,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -113,7 +113,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "compras",
         title: "Compras",
-        icon: ShoppingCart,
+        icon: CircleArrowOutDownLeft,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -152,20 +152,20 @@ export const sidebarItems: NavGroup[] = [
         id: "contactos",
         title: "Contactos",
         url: "/dashboard/contactos",
-        icon: Contact,
+        icon: Users,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "productos",
         title: "Productos",
         url: "/dashboard/productos",
-        icon: Package,
+        icon: Tag,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "inventario",
         title: "Inventario",
-        icon: Boxes,
+        icon: Package,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -198,7 +198,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "contabilidad",
         title: "Contabilidad",
-        icon: BookOpen,
+        icon: NotebookText,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -250,7 +250,7 @@ export const sidebarItems: NavGroup[] = [
         id: "reportes",
         title: "Reportes",
         url: "/dashboard/reportes",
-        icon: ChartColumn,
+        icon: TrendingUp,
         roles: TODOS_LOS_ROLES,
       },
       {
