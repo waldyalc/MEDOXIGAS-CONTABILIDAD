@@ -1,6 +1,13 @@
 import { describe, expect, test } from "vitest";
 
-import { limpiarBusqueda, numeroBuscado, numeroDocumento, patronContiene, patronIlike } from "./busqueda";
+import {
+  condicionesTexto,
+  limpiarBusqueda,
+  numeroBuscado,
+  numeroDocumento,
+  patronContiene,
+  patronIlike,
+} from "./busqueda";
 
 describe("limpiarBusqueda", () => {
   test("recorta espacios y colapsa los intermedios", () => {
@@ -31,6 +38,23 @@ describe("patronContiene", () => {
   test("envuelve el término en comodines sin comillas para un .ilike() directo", () => {
     expect(patronContiene(" B01 ")).toBe("%B01%");
     expect(patronContiene('a"b')).toBe("%a b%");
+  });
+});
+
+describe("condicionesTexto", () => {
+  test("busca el mismo término en varias columnas de texto", () => {
+    expect(condicionesTexto("Laptop", ["nombre", "referencia"])).toBe(
+      'nombre.ilike."%Laptop%",referencia.ilike."%Laptop%"',
+    );
+  });
+
+  test("sin término o sin columnas no filtra nada", () => {
+    expect(condicionesTexto("   ", ["nombre"])).toBeNull();
+    expect(condicionesTexto("Laptop", [])).toBeNull();
+  });
+
+  test("limpia comillas y barras del término", () => {
+    expect(condicionesTexto('a"b\\c', ["nombre"])).toBe('nombre.ilike."%a b c%"');
   });
 });
 

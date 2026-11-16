@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
+import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
 import {
   FORM_BUTTON,
   FORM_INPUT,
@@ -88,10 +89,7 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
     value: cuenta.id,
     label: `${cuenta.codigo} · ${cuenta.nombre}`,
   }));
-  const contactosItems: ItemCombobox[] = contactos.map((contacto) => ({
-    value: contacto.id,
-    label: contacto.nombre,
-  }));
+  const contactosOpciones: ContactoOpcion[] = contactos.map((contacto) => ({ ...contacto, rnc_cedula: null }));
   const centrosItems = [
     { value: SIN_CENTRO, label: "Sin centro" },
     ...centrosCosto.map((centro) => ({ value: centro.id, label: `${centro.codigo} · ${centro.nombre}` })),
@@ -265,29 +263,17 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
                   <Label className="text-muted-foreground text-xs md:hidden" htmlFor={`tercero-${linea.clave}`}>
                     Tercero
                   </Label>
-                  <Combobox
-                    items={contactosItems}
-                    onValueChange={(item: ItemCombobox | null) =>
-                      actualizarLinea(linea.clave, { contactoId: item?.value ?? "" })
+                  <SelectorContacto
+                    id={`tercero-${linea.clave}`}
+                    contactos={contactosOpciones}
+                    valor={linea.contactoId}
+                    onCambio={(contacto: ContactoOpcion | null) =>
+                      actualizarLinea(linea.clave, { contactoId: contacto?.id ?? "" })
                     }
-                  >
-                    <ComboboxInput
-                      id={`tercero-${linea.clave}`}
-                      className={FORM_SELECT}
-                      placeholder="Opcional"
-                      showClear
-                    />
-                    <ComboboxContent>
-                      <ComboboxEmpty>Sin contactos</ComboboxEmpty>
-                      <ComboboxList>
-                        {(item: ItemCombobox) => (
-                          <ComboboxItem key={item.value} value={item}>
-                            {item.label}
-                          </ComboboxItem>
-                        )}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
+                    tipoInicial="todos"
+                    className={FORM_SELECT}
+                    placeholder="Opcional"
+                  />
                 </div>
 
                 <div className="col-span-2 flex flex-col gap-1.5 md:col-span-1">

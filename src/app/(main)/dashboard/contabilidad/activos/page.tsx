@@ -1,8 +1,13 @@
+import { Suspense } from "react";
+
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Plus, Truck } from "lucide-react";
 
+import { EsqueletoTabla } from "@/components/carga/esqueletos";
+import { BuscadorLista } from "@/components/listas/buscador-lista";
+import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -11,32 +16,22 @@ import { getActivosLista } from "@/lib/activos-fijos/consultas";
 import { ETIQUETAS_TIPO_ACTIVO, type TipoActivo } from "@/lib/activos-fijos/tipos";
 import { getPerfil } from "@/lib/auth/rol";
 import { formatoDia } from "@/lib/formato";
+import { leerOpcionesLista, type OpcionesLista, type ParametrosLista } from "@/lib/listas/parametros";
 import { centavos, formatearRd } from "@/lib/reportes/dinero";
 
-export default async function Page() {
-  const perfil = await getPerfil();
-  if (perfil?.rol == null) redirect("/unauthorized");
+const RUTA = "/dashboard/contabilidad/activos";
 
-  const activos = await getActivosLista();
-  const puedeEscribir = perfil.rol !== "lector";
+async function TablaActivos({
+  opciones,
+  params,
+}: {
+  readonly opciones: OpcionesLista;
+  readonly params: ParametrosLista;
+}) {
+  const { filas: activos, resumen } = await getActivosLista(opciones);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Activos fijos</h1>
-          <p className="text-muted-foreground text-sm">
-            Bienes de la empresa, su valor actual y la depreciación mes a mes.
-          </p>
-        </div>
-        {puedeEscribir ? (
-          <Button render={<Link href="/dashboard/contabilidad/activos/nuevo" />}>
-            <Plus />
-            Nuevo activo
-          </Button>
-        ) : null}
-      </div>
-
+    <div className="flex flex-col gap-3">
       <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
         <Table>
           <TableHeader>
@@ -58,9 +53,11 @@ export default async function Page() {
                       <EmptyMedia variant="icon">
                         <Truck />
                       </EmptyMedia>
-                      <EmptyTitle>Sin activos fijos</EmptyTitle>
+                      <EmptyTitle>{opciones.q ? "Sin resultados" : "Sin activos fijos"}</EmptyTitle>
                       <EmptyDescription>
-                        Registra un vehículo, equipo o inmueble para empezar a depreciarlo.
+                        {opciones.q
+                          ? "No se encontraron activos con esa búsqueda."
+                          : "Registra un vehículo, equipo o inmueble para empezar a depreciarlo."}
                       </EmptyDescription>
                     </EmptyHeader>
                   </Empty>
@@ -104,6 +101,46 @@ export default async function Page() {
           </TableBody>
         </Table>
       </div>
+
+      <PaginadorLista base={RUTA} params={params} resumen={resumen} />
+    </div>
+  );
+}
+
+export default async function Page({ searchParams }: { searchParams: Promise<ParametrosLista> }) {
+  const params = await searchParams;
+  const opciones = leerOpcionesLista(params);
+  const perfil = await getPerfil();
+  if (perfil?.rol == null) redirect("/unauthorized");
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl tracking-tight">Activos fijos</h1>
+          <p className="text-muted-foreground text-sm">
+            Bienes de la empresa, su valor actual y la depreciación mes a mes.
+          </p>
+        </div>
+        {perfil.rol !== "lector" ? (
+          <Button render={<Link href="/dashboard/contabilidad/activos/nuevo" />}>
+            <Plus />
+            Nuevo activo
+          </Button>
+        ) : null}
+      </div>
+
+      <BuscadorLista
+        base={RUTA}
+        parametros={params}
+        valorInicial={opciones.q}
+        placeholder="Buscar por nombre o referencia…"
+        ariaLabel="Buscar activos fijos"
+      />
+
+      <Suspense fallback={<EsqueletoTabla filas={8} columnas={6} />}>
+        <TablaActivos opciones={opciones} params={params} />
+      </Suspense>
     </div>
   );
 }

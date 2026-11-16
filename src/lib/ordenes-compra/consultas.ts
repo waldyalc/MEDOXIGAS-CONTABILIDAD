@@ -2,6 +2,16 @@ import { z } from "zod";
 
 import type { ContactoOpcion, CuentaOpcion, ProductoOpcion } from "@/lib/compras/tipos";
 import { getImpuestosActivos } from "@/lib/impuestos/consultas";
+import { limpiarBusqueda, numeroDocumento } from "@/lib/listas/busqueda";
+import { contactosQueCoinciden } from "@/lib/listas/coincidencias";
+import { condicionesDocumento } from "@/lib/listas/documento";
+import {
+  type OpcionesLista,
+  type ResultadoPagina,
+  rangoPagina,
+  resumirPagina,
+  TAMANO_PAGINA_DEFECTO,
+} from "@/lib/listas/parametros";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -13,45 +23,62 @@ import type {
   OrdenParaFactura,
 } from "./tipos";
 
-export async function listarOrdenesCompra(): Promise<OrdenCompraLista[]> {
+const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
+
+const CAMPOS_ORDEN =
+  "id, numero, contacto_id, fecha, fecha_entrega, total, estado, factura_proveedor_id, contactos(nombre)";
+
+interface OrdenListaConContacto {
+  id: string;
+  numero: number;
+  contacto_id: string;
+  fecha: string;
+  fecha_entrega: string;
+  total: number;
+  estado: EstadoOrdenCompra;
+  factura_proveedor_id: string | null;
+  contactos: { nombre: string } | null;
+}
+
+export async function listarOrdenesCompra(
+  opciones: OpcionesLista = OPCIONES_LISTA_DEFECTO,
+): Promise<ResultadoPagina<OrdenCompraLista>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("ordenes_compra")
-    .select("id, numero, contacto_id, fecha, fecha_entrega, total, estado, factura_proveedor_id")
-    .order("fecha", { ascending: false })
-    .order("numero", { ascending: false })
-    .limit(300)
-    .returns<
-      {
-        id: string;
-        numero: number;
-        contacto_id: string;
-        fecha: string;
-        fecha_entrega: string;
-        total: number;
-        estado: EstadoOrdenCompra;
-        factura_proveedor_id: string | null;
-      }[]
-    >();
+  const q = limpiarBusqueda(opciones.q);
+  const numero = numeroDocumento(q);
+  const idsContactos = q && numero == null ? await contactosQueCoinciden(supabase, q, ["proveedor", "ambos"]) : [];
+  const filtro = condicionesDocumento({ q, idsContactos, campos: { texto: "" } });
 
-  if (error) throw new Error(error.message);
-  if (data.length === 0) return [];
+  const consultar = async (pagina: number) => {
+    const { desde, hasta } = rangoPagina(pagina, opciones.tamano);
+    let consulta = supabase.from("ordenes_compra").select(CAMPOS_ORDEN, { count: "exact" });
 
-  const contactoIds = [...new Set(data.map((orden) => orden.contacto_id))];
-  const { data: contactos, error: errorContactos } = await supabase
-    .from("contactos")
-    .select("id, nombre")
-    .in("id", contactoIds)
-    .returns<{ id: string; nombre: string }[]>();
+    if (filtro) consulta = consulta.or(filtro);
 
-  if (errorContactos) throw new Error(errorContactos.message);
+    const { data, error, count } = await consulta
+      .order("fecha", { ascending: false })
+      .order("numero", { ascending: false })
+      .range(desde, hasta)
+      .returns<OrdenListaConContacto[]>();
 
-  const nombres = new Map(contactos.map((contacto) => [contacto.id, contacto.nombre]));
+    if (error) throw new Error(error.message);
+    return { filas: data ?? [], total: count ?? 0 };
+  };
 
-  return data.map((orden) => ({
-    ...orden,
-    contacto_nombre: nombres.get(orden.contacto_id) ?? "—",
-  }));
+  const primera = await consultar(opciones.pagina);
+  const resumen = resumirPagina(opciones.pagina, opciones.tamano, primera.total);
+  const filas =
+    resumen.pagina !== opciones.pagina && primera.filas.length === 0
+      ? (await consultar(resumen.pagina)).filas
+      : primera.filas;
+
+  return {
+    filas: filas.map(({ contactos, ...orden }) => ({
+      ...orden,
+      contacto_nombre: contactos?.nombre ?? "—",
+    })),
+    resumen,
+  };
 }
 
 export async function obtenerOrdenCompra(id: string): Promise<OrdenCompraVista | null> {

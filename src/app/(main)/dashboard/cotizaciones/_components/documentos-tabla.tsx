@@ -1,17 +1,12 @@
-import Link from "next/link";
-
-import { Plus } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { DocumentoFila, EstadoDocumento, TipoDocumento } from "@/lib/cotizaciones/tipos";
 import { rutaConduce, rutaContacto, rutaCotizacion } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
-const TEXTOS: Record<
+export const TEXTOS_DOCUMENTO: Record<
   TipoDocumento,
   { titulo: string; descripcion: string; nueva: string; rutaNueva: string; rutaBase: string; vacio: string }
 > = {
@@ -56,67 +51,52 @@ function EstadoBadge({ estado }: { estado: EstadoDocumento }) {
 interface Props {
   tipo: TipoDocumento;
   documentos: DocumentoFila[];
-  puedeEscribir: boolean;
+  busqueda?: string;
 }
 
-export function DocumentosTabla({ tipo, documentos, puedeEscribir }: Props) {
-  const textos = TEXTOS[tipo];
+export function DocumentosTabla({ tipo, documentos, busqueda }: Props) {
+  const textos = TEXTOS_DOCUMENTO[tipo];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">{textos.titulo}</h1>
-          <p className="text-muted-foreground text-sm">{textos.descripcion}</p>
-        </div>
-        {puedeEscribir ? (
-          <Button render={<Link href={textos.rutaNueva} />}>
-            <Plus />
-            {textos.nueva}
-          </Button>
-        ) : null}
-      </div>
-
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-        <Table>
-          <TableHeader>
+    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-24">Número</TableHead>
+            <TableHead>Cliente</TableHead>
+            <TableHead>Creación</TableHead>
+            <TableHead>Estado</TableHead>
+            <TableHead className="text-right">Total</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {documentos.length === 0 ? (
             <TableRow>
-              <TableHead className="w-24">Número</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Creación</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Total</TableHead>
+              <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
+                {busqueda ? "No se encontraron documentos con esa búsqueda." : textos.vacio}
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {documentos.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
-                  {textos.vacio}
+          ) : (
+            documentos.map((documento) => (
+              <TableRow key={documento.id}>
+                <TableCell className="font-medium">
+                  <Enlace href={tipo === "cotizacion" ? rutaCotizacion(documento.id) : rutaConduce(documento.id)}>
+                    {documento.numero}
+                  </Enlace>
                 </TableCell>
+                <TableCell>
+                  <Enlace href={rutaContacto(documento.contacto_id)}>{documento.cliente_nombre}</Enlace>
+                </TableCell>
+                <TableCell>{formatoDia(documento.fecha)}</TableCell>
+                <TableCell>
+                  <EstadoBadge estado={documento.estado} />
+                </TableCell>
+                <TableCell className="text-right font-medium">{formatoMoneda(documento.total)}</TableCell>
               </TableRow>
-            ) : (
-              documentos.map((documento) => (
-                <TableRow key={documento.id}>
-                  <TableCell className="font-medium">
-                    <Enlace href={tipo === "cotizacion" ? rutaCotizacion(documento.id) : rutaConduce(documento.id)}>
-                      {documento.numero}
-                    </Enlace>
-                  </TableCell>
-                  <TableCell>
-                    <Enlace href={rutaContacto(documento.contacto_id)}>{documento.cliente_nombre}</Enlace>
-                  </TableCell>
-                  <TableCell>{formatoDia(documento.fecha)}</TableCell>
-                  <TableCell>
-                    <EstadoBadge estado={documento.estado} />
-                  </TableCell>
-                  <TableCell className="text-right font-medium">{formatoMoneda(documento.total)}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }

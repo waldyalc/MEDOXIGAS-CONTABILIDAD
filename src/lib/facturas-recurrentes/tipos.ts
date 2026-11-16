@@ -1,4 +1,5 @@
-import type { ContactoResumen, Empresa, ProductoResumen, TipoComprobante } from "@/lib/facturacion/tipos";
+import type { ContactoBuscado } from "@/lib/contactos/seleccion";
+import type { Empresa, ProductoResumen, TipoComprobante } from "@/lib/facturacion/tipos";
 
 export interface FacturaRecurrenteLista {
   id: string;
@@ -54,6 +55,6 @@ export interface FacturaRecurrenteVista {
 
 export interface DatosFormularioRecurrente {
   empresa: Empresa | null;
-  contactos: ContactoResumen[];
+  contactos: ContactoBuscado[];
   productos: ProductoResumen[];
 }

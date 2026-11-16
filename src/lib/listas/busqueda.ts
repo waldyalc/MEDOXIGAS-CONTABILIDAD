@@ -23,6 +23,18 @@ export function patronContiene(valor: string): string {
   return `%${limpiarBusqueda(valor)}%`;
 }
 
+/**
+ * Condiciones para un `.or()` de PostgREST que busca el mismo término en varias
+ * columnas de texto. Devuelve `null` si no hay columnas o el término está vacío.
+ */
+export function condicionesTexto(valor: string, campos: readonly string[]): string | null {
+  const termino = limpiarBusqueda(valor);
+  if (!termino || campos.length === 0) return null;
+
+  const patron = patronIlike(termino);
+  return campos.map((campo) => `${campo}.ilike.${patron}`).join(",");
+}
+
 /** Devuelve el número solo cuando el término es un entero (por ejemplo `#1258`). */
 export function numeroBuscado(valor: string): number | null {
   const limpio = valor.trim().replace(/^#/, "");

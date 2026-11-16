@@ -1,8 +1,8 @@
-import type { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { numeroDocumento, patronIlike } from "./busqueda";
 
-type Cliente = Awaited<ReturnType<typeof createClient>>;
+type Cliente = SupabaseClient;
 
 export const LIMITE_IDS_BUSQUEDA = 200;
 

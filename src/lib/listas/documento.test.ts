@@ -27,8 +27,8 @@ describe("condicionesDocumento", () => {
     expect(condicionesDocumento({ q: 'a"b\\c' })).toBe('ncf.ilike."%a b c%"');
   });
 
-  test("pagos no tiene columna de texto: solo filtra por los ids resueltos", () => {
-    expect(condicionesDocumento({ q: "Pérez", campos: { texto: "" } })).toBeNull();
+  test("pagos no tiene columna de texto: sin coincidencias no muestra todo", () => {
+    expect(condicionesDocumento({ q: "Pérez", campos: { texto: "" } })).toBe("numero.eq.-1");
     expect(
       condicionesDocumento({
         q: "Pérez",
@@ -47,5 +47,15 @@ describe("condicionesDocumento", () => {
         campos: { texto: "ncf", factura: "factura_proveedor_id" },
       }),
     ).toBe('ncf.ilike."%ZZTEST%",factura_proveedor_id.in.(factura-1)');
+  });
+
+  test("busca el término de texto en varias columnas", () => {
+    expect(condicionesDocumento({ q: "papel", campos: { texto: ["ncf", "descripcion"] } })).toBe(
+      'ncf.ilike."%papel%",descripcion.ilike."%papel%"',
+    );
+  });
+
+  test("un número no busca en las columnas de texto", () => {
+    expect(condicionesDocumento({ q: "42", campos: { texto: ["ncf", "descripcion"] } })).toBe("numero.eq.42");
   });
 });

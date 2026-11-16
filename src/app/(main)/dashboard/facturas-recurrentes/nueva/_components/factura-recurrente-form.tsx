@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 
 import { ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
 
+import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
 import {
   FORM_BUTTON,
@@ -99,7 +100,6 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
   const [pie, setPie] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const clientesItems = datos.contactos.map((contacto) => ({ value: contacto.id, label: contacto.nombre }));
   const productosItems = datos.productos.map((producto) => ({ value: producto.id, label: producto.nombre }));
   const comprobantesItems = OPCIONES_TIPO_COMPROBANTE.map((opcion) => ({
     value: opcion.valor,
@@ -234,22 +234,15 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
           <FormSectionTitle className="mb-4">Información de la recurrencia</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
             <FormField htmlFor="cliente" label="Cliente" required>
-              <Combobox
-                items={clientesItems}
-                onValueChange={(item: { value: string; label: string } | null) => setClienteId(item?.value ?? "")}
-              >
-                <ComboboxInput id="cliente" className={FORM_COMBO} placeholder="Buscar cliente…" showClear />
-                <ComboboxContent>
-                  <ComboboxEmpty>Sin resultados</ComboboxEmpty>
-                  <ComboboxList>
-                    {(item: { value: string; label: string }) => (
-                      <ComboboxItem key={item.value} value={item}>
-                        {item.label}
-                      </ComboboxItem>
-                    )}
-                  </ComboboxList>
-                </ComboboxContent>
-              </Combobox>
+              <SelectorContacto
+                id="cliente"
+                contactos={datos.contactos}
+                valor={clienteId}
+                onCambio={(contacto: ContactoOpcion | null) => setClienteId(contacto?.id ?? "")}
+                tipoInicial="cliente"
+                className={FORM_COMBO}
+                placeholder="Buscar cliente…"
+              />
             </FormField>
 
             <FormField htmlFor="tipo-comprobante" label="Tipo de comprobante" required>

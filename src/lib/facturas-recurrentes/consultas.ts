@@ -1,7 +1,18 @@
 import { z } from "zod";
 
-import { getContactosClientes, getEmpresa, getProductosActivos } from "@/lib/facturacion/consultas";
+import type { ContactoBuscado } from "@/lib/contactos/seleccion";
+import { getEmpresa, getProductosActivos } from "@/lib/facturacion/consultas";
 import type { TipoComprobante } from "@/lib/facturacion/tipos";
+import { limpiarBusqueda, numeroDocumento } from "@/lib/listas/busqueda";
+import { contactosQueCoinciden } from "@/lib/listas/coincidencias";
+import { condicionesDocumento } from "@/lib/listas/documento";
+import {
+  type OpcionesLista,
+  type ResultadoPagina,
+  rangoPagina,
+  resumirPagina,
+  TAMANO_PAGINA_DEFECTO,
+} from "@/lib/listas/parametros";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -11,6 +22,8 @@ import type {
   FacturaRecurrenteVista,
   GeneracionRecurrente,
 } from "./tipos";
+
+const CONTACTOS_INICIALES = 25;
 
 interface RecurrenteFila {
   id: string;
@@ -23,50 +36,78 @@ interface RecurrenteFila {
   plazo_dias: number;
 }
 
-export async function getFacturasRecurrentesLista(): Promise<FacturaRecurrenteLista[]> {
+interface RecurrenteListaConContacto extends RecurrenteFila {
+  contactos: { nombre: string } | null;
+}
+
+const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
+
+export async function getFacturasRecurrentesLista(
+  opciones: OpcionesLista = OPCIONES_LISTA_DEFECTO,
+): Promise<ResultadoPagina<FacturaRecurrenteLista>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("facturas_recurrentes")
-    .select("id, numero, contacto_id, tipo_comprobante, fecha_inicio, vigencia_hasta, frecuencia_meses, plazo_dias")
-    .order("numero", { ascending: false })
-    .limit(300)
-    .returns<RecurrenteFila[]>();
+  const q = limpiarBusqueda(opciones.q);
+  const numero = numeroDocumento(q);
+  const idsContactos = q && numero == null ? await contactosQueCoinciden(supabase, q, ["cliente", "ambos"]) : [];
+  const filtro = condicionesDocumento({ q, idsContactos, campos: { texto: "" } });
+
+  const consultar = async (pagina: number) => {
+    const { desde, hasta } = rangoPagina(pagina, opciones.tamano);
+    let consulta = supabase
+      .from("facturas_recurrentes")
+      .select(
+        "id, numero, contacto_id, tipo_comprobante, fecha_inicio, vigencia_hasta, frecuencia_meses, plazo_dias, contactos(nombre)",
+        { count: "exact" },
+      );
+
+    if (filtro) consulta = consulta.or(filtro);
+
+    const { data, error, count } = await consulta
+      .order("numero", { ascending: false })
+      .range(desde, hasta)
+      .returns<RecurrenteListaConContacto[]>();
+
+    if (error) throw new Error(error.message);
+    return { filas: data ?? [], total: count ?? 0 };
+  };
+
+  const primera = await consultar(opciones.pagina);
+  const resumen = resumirPagina(opciones.pagina, opciones.tamano, primera.total);
+  const data =
+    resumen.pagina !== opciones.pagina && primera.filas.length === 0
+      ? (await consultar(resumen.pagina)).filas
+      : primera.filas;
+
+  if (data.length === 0) return { filas: [], resumen };
+
+  const recurrenteIds = data.map((fila) => fila.id);
+  const { data: generaciones, error } = await supabase
+    .from("factura_recurrente_generaciones")
+    .select("recurrente_id, periodo")
+    .in("recurrente_id", recurrenteIds)
+    .order("periodo", { ascending: false })
+    .returns<{ recurrente_id: string; periodo: string }[]>();
 
   if (error) throw new Error(error.message);
-  if (data.length === 0) return [];
 
-  const contactoIds = [...new Set(data.map((fila) => fila.contacto_id))];
-  const recurrenteIds = data.map((fila) => fila.id);
-
-  const [contactos, generaciones] = await Promise.all([
-    supabase.from("contactos").select("id, nombre").in("id", contactoIds).returns<{ id: string; nombre: string }[]>(),
-    supabase
-      .from("factura_recurrente_generaciones")
-      .select("recurrente_id, periodo")
-      .in("recurrente_id", recurrenteIds)
-      .order("periodo", { ascending: false })
-      .returns<{ recurrente_id: string; periodo: string }[]>(),
-  ]);
-
-  if (contactos.error) throw new Error(contactos.error.message);
-  if (generaciones.error) throw new Error(generaciones.error.message);
-
-  const nombres = new Map(contactos.data.map((contacto) => [contacto.id, contacto.nombre]));
   const conteo = new Map<string, number>();
   const ultimo = new Map<string, string>();
 
-  for (const generacion of generaciones.data) {
+  for (const generacion of generaciones) {
     conteo.set(generacion.recurrente_id, (conteo.get(generacion.recurrente_id) ?? 0) + 1);
     const actual = ultimo.get(generacion.recurrente_id);
     if (!actual || generacion.periodo > actual) ultimo.set(generacion.recurrente_id, generacion.periodo);
   }
 
-  return data.map((fila) => ({
-    ...fila,
-    cliente_nombre: nombres.get(fila.contacto_id) ?? "—",
-    generaciones: conteo.get(fila.id) ?? 0,
-    ultimo_periodo: ultimo.get(fila.id) ?? null,
-  }));
+  return {
+    filas: data.map(({ contactos, ...fila }) => ({
+      ...fila,
+      cliente_nombre: contactos?.nombre ?? "—",
+      generaciones: conteo.get(fila.id) ?? 0,
+      ultimo_periodo: ultimo.get(fila.id) ?? null,
+    })),
+    resumen,
+  };
 }
 
 export async function getFacturaRecurrenteVista(id: string): Promise<FacturaRecurrenteVista | null> {
@@ -145,10 +186,21 @@ export async function getFacturaRecurrenteVista(id: string): Promise<FacturaRecu
 }
 
 export async function getDatosFormularioRecurrente(): Promise<DatosFormularioRecurrente> {
+  const supabase = await createClient();
   const [empresa, contactos, productos] = await Promise.all([
     getEmpresa(),
-    getContactosClientes(),
+    supabase
+      .from("contactos")
+      .select("id, nombre, rnc_cedula, lista_precio_id")
+      .eq("activo", true)
+      .in("tipo", ["cliente", "ambos"])
+      .order("nombre")
+      .limit(CONTACTOS_INICIALES)
+      .returns<ContactoBuscado[]>(),
     getProductosActivos(),
   ]);
-  return { empresa, contactos, productos };
+
+  if (contactos.error) throw new Error(contactos.error.message);
+
+  return { empresa, contactos: contactos.data, productos };
 }

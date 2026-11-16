@@ -14,7 +14,12 @@ import {
   ComboboxList,
 } from "@/components/ui/combobox";
 import { buscarContactos } from "@/lib/contactos/busqueda";
-import { type ContactoBuscado, TAMANO_CONTACTOS, unirContactos } from "@/lib/contactos/seleccion";
+import {
+  type ContactoBuscado,
+  TAMANO_CONTACTOS,
+  type TipoBusquedaContacto,
+  unirContactos,
+} from "@/lib/contactos/seleccion";
 
 import { type ContactoCreado, DialogoNuevoContacto } from "./dialogo-nuevo-contacto";
 
@@ -28,7 +33,7 @@ interface Props {
   contactos: readonly ContactoOpcion[];
   valor: string;
   onCambio: (contacto: ContactoOpcion | null) => void;
-  tipoInicial: "cliente" | "proveedor";
+  tipoInicial: TipoBusquedaContacto;
   id?: string;
   className?: string;
   placeholder?: string;
@@ -131,7 +136,10 @@ export function SelectorContacto({
   }, [abierto, busqueda, tipoInicial, valor, seleccionado]);
 
   const etiquetaCrear = tipoInicial === "cliente" ? "Crear nuevo cliente" : "Crear nuevo proveedor";
+  const permiteCrear = tipoInicial !== "todos";
   const restantes = total != null && total > opciones.length;
+
+  const placeholderFinal = placeholder ?? (tipoInicial === "todos" ? "Buscar contacto…" : `Buscar ${tipoInicial}…`);
 
   function cambiar(contacto: ContactoOpcion | null) {
     setBusqueda("");
@@ -162,7 +170,7 @@ export function SelectorContacto({
         <ComboboxInput
           id={id}
           className={className ?? "w-full"}
-          placeholder={placeholder ?? (tipoInicial === "cliente" ? "Buscar cliente…" : "Buscar proveedor…")}
+          placeholder={placeholderFinal}
           disabled={disabled}
           showClear={showClear}
           aria-label={ariaLabel}
@@ -170,18 +178,20 @@ export function SelectorContacto({
           onChange={(evento) => setBusqueda(evento.currentTarget.value)}
         />
         <ComboboxContent>
-          <div className="border-b p-1">
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-primary h-8 w-full justify-start gap-1.5 px-1.5 text-sm font-medium"
-              onMouseDown={(evento) => evento.preventDefault()}
-              onClick={() => setDialogoAbierto(true)}
-            >
-              <Plus className="size-4" />
-              {etiquetaCrear}
-            </Button>
-          </div>
+          {permiteCrear ? (
+            <div className="border-b p-1">
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-primary h-8 w-full justify-start gap-1.5 px-1.5 text-sm font-medium"
+                onMouseDown={(evento) => evento.preventDefault()}
+                onClick={() => setDialogoAbierto(true)}
+              >
+                <Plus className="size-4" />
+                {etiquetaCrear}
+              </Button>
+            </div>
+          ) : null}
           <ComboboxEmpty>{cargando ? "Buscando…" : "Sin resultados"}</ComboboxEmpty>
           <ComboboxList>
             {(contacto: ContactoOpcion) => (
@@ -203,13 +213,15 @@ export function SelectorContacto({
         </ComboboxContent>
       </Combobox>
 
-      <DialogoNuevoContacto
-        abierto={dialogoAbierto}
-        onOpenChange={setDialogoAbierto}
-        tipoInicial={tipoInicial}
-        nombreInicial={busqueda}
-        onCreado={crear}
-      />
+      {tipoInicial !== "todos" ? (
+        <DialogoNuevoContacto
+          abierto={dialogoAbierto}
+          onOpenChange={setDialogoAbierto}
+          tipoInicial={tipoInicial}
+          nombreInicial={busqueda}
+          onCreado={crear}
+        />
+      ) : null}
     </>
   );
 }

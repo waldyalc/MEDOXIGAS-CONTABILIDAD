@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+import { limpiarBusqueda, numeroDocumento } from "@/lib/listas/busqueda";
+import { contactosQueCoinciden } from "@/lib/listas/coincidencias";
+import { condicionesDocumento } from "@/lib/listas/documento";
+import {
+  type OpcionesLista,
+  type ResultadoPagina,
+  rangoPagina,
+  resumirPagina,
+  TAMANO_PAGINA_DEFECTO,
+} from "@/lib/listas/parametros";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -31,56 +41,81 @@ function redondear(valor: number) {
   return Math.round(valor * 100) / 100;
 }
 
-export async function getNotasCreditoCompraLista(): Promise<NotaCreditoCompraLista[]> {
+const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
+
+const CAMPOS_NOTA = "id, numero, ncf, fecha, total, estado, factura_proveedor_id, contacto_id, contactos(nombre)";
+
+interface NotaListaConContacto {
+  id: string;
+  numero: number;
+  ncf: string | null;
+  fecha: string;
+  total: number;
+  estado: EstadoNotaCreditoCompra;
+  factura_proveedor_id: string;
+  contacto_id: string;
+  contactos: { nombre: string } | null;
+}
+
+export async function getNotasCreditoCompraLista(
+  opciones: OpcionesLista = OPCIONES_LISTA_DEFECTO,
+): Promise<ResultadoPagina<NotaCreditoCompraLista>> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("notas_credito_compra")
-    .select("id, numero, ncf, fecha, total, estado, factura_proveedor_id, contacto_id")
-    .order("numero", { ascending: false })
-    .limit(300)
-    .returns<
-      {
-        id: string;
-        numero: number;
-        ncf: string;
-        fecha: string;
-        total: number;
-        estado: EstadoNotaCreditoCompra;
-        factura_proveedor_id: string;
-        contacto_id: string;
-      }[]
-    >();
+  const q = limpiarBusqueda(opciones.q);
+  const numero = numeroDocumento(q);
+  const idsContactos = q && numero == null ? await contactosQueCoinciden(supabase, q, ["proveedor", "ambos"]) : [];
+  const filtro = condicionesDocumento({ q, idsContactos });
+
+  const consultar = async (pagina: number) => {
+    const { desde, hasta } = rangoPagina(pagina, opciones.tamano);
+    let consulta = supabase.from("notas_credito_compra").select(CAMPOS_NOTA, { count: "exact" });
+
+    if (filtro) consulta = consulta.or(filtro);
+
+    const { data, error, count } = await consulta
+      .order("numero", { ascending: false })
+      .range(desde, hasta)
+      .returns<NotaListaConContacto[]>();
+
+    if (error) throw new Error(error.message);
+    return { filas: data ?? [], total: count ?? 0 };
+  };
+
+  const primera = await consultar(opciones.pagina);
+  const resumen = resumirPagina(opciones.pagina, opciones.tamano, primera.total);
+  const notas =
+    resumen.pagina !== opciones.pagina && primera.filas.length === 0
+      ? (await consultar(resumen.pagina)).filas
+      : primera.filas;
+
+  if (notas.length === 0) return { filas: [], resumen };
+
+  const facturaIds = [...new Set(notas.map((nota) => nota.factura_proveedor_id))];
+  const { data: facturas, error } =
+    facturaIds.length > 0
+      ? await supabase
+          .from("facturas_proveedor")
+          .select("id, numero, ncf")
+          .in("id", facturaIds)
+          .returns<{ id: string; numero: number; ncf: string | null }[]>()
+      : { data: [], error: null };
 
   if (error) throw new Error(error.message);
-  if (data.length === 0) return [];
 
-  const contactoIds = [...new Set(data.map((nota) => nota.contacto_id))];
-  const facturaIds = [...new Set(data.map((nota) => nota.factura_proveedor_id))];
+  const facturasPorId = new Map(facturas.map((factura) => [factura.id, factura]));
 
-  const [contactos, facturas] = await Promise.all([
-    supabase.from("contactos").select("id, nombre").in("id", contactoIds).returns<{ id: string; nombre: string }[]>(),
-    supabase
-      .from("facturas_proveedor")
-      .select("id, numero, ncf")
-      .in("id", facturaIds)
-      .returns<{ id: string; numero: number; ncf: string | null }[]>(),
-  ]);
-
-  if (contactos.error) throw new Error(contactos.error.message);
-  if (facturas.error) throw new Error(facturas.error.message);
-
-  const nombres = new Map(contactos.data.map((contacto) => [contacto.id, contacto.nombre]));
-  const facturasPorId = new Map(facturas.data.map((factura) => [factura.id, factura]));
-
-  return data.map((nota) => {
-    const factura = facturasPorId.get(nota.factura_proveedor_id);
-    return {
-      ...nota,
-      proveedor_nombre: nombres.get(nota.contacto_id) ?? "—",
-      factura_numero: factura?.numero ?? 0,
-      factura_ncf: factura?.ncf ?? null,
-    };
-  });
+  return {
+    filas: notas.map(({ contactos, ...nota }) => {
+      const factura = facturasPorId.get(nota.factura_proveedor_id);
+      return {
+        ...nota,
+        proveedor_nombre: contactos?.nombre ?? "—",
+        factura_numero: factura?.numero ?? 0,
+        factura_ncf: factura?.ncf ?? null,
+      };
+    }),
+    resumen,
+  };
 }
 
 export async function getNotaCreditoCompraVista(id: string): Promise<NotaCreditoCompraVista | null> {

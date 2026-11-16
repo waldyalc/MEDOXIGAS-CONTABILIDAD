@@ -1,3 +1,4 @@
+import { TAMANO_CONTACTOS } from "@/lib/contactos/seleccion";
 import { limpiarBusqueda, numeroDocumento, patronContiene } from "@/lib/listas/busqueda";
 import {
   type OpcionesLista,
@@ -69,7 +70,13 @@ export async function getDatosFormularioAsiento(): Promise<DatosFormularioAsient
       .eq("acepta_movimientos", true)
       .order("codigo")
       .returns<CuentaAsiento[]>(),
-    supabase.from("contactos").select("id, nombre").eq("activo", true).order("nombre").returns<ContactoAsiento[]>(),
+    supabase
+      .from("contactos")
+      .select("id, nombre")
+      .eq("activo", true)
+      .order("nombre")
+      .limit(TAMANO_CONTACTOS)
+      .returns<ContactoAsiento[]>(),
     supabase
       .from("centros_costo")
       .select("id, codigo, nombre")

@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+import { condicionesTexto, limpiarBusqueda } from "@/lib/listas/busqueda";
+import {
+  type OpcionesLista,
+  type ResultadoPagina,
+  rangoPagina,
+  resumirPagina,
+  TAMANO_PAGINA_DEFECTO,
+} from "@/lib/listas/parametros";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -36,31 +44,65 @@ interface CuentaResumen {
   nombre: string;
 }
 
-export async function getActivosLista(): Promise<ActivoLista[]> {
+const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
+
+export async function getActivosLista(
+  opciones: OpcionesLista = OPCIONES_LISTA_DEFECTO,
+): Promise<ResultadoPagina<ActivoLista>> {
   const supabase = await createClient();
+  const q = limpiarBusqueda(opciones.q);
+  const filtro = condicionesTexto(q, ["nombre", "referencia"]);
 
-  const [activos, depreciaciones] = await Promise.all([
-    supabase
+  const consultar = async (pagina: number) => {
+    const { desde, hasta } = rangoPagina(pagina, opciones.tamano);
+    let consulta = supabase
       .from("activos_fijos")
-      .select("id, nombre, referencia, tipo_activo, fecha_adquisicion, monto_total, valor_residual, vida_util_meses")
-      .order("creado_en", { ascending: false })
-      .limit(500)
-      .returns<Omit<ActivoLista, "depreciado">[]>(),
-    supabase.from("activo_depreciaciones").select("activo_id, monto").returns<{ activo_id: string; monto: number }[]>(),
-  ]);
+      .select("id, nombre, referencia, tipo_activo, fecha_adquisicion, monto_total, valor_residual, vida_util_meses", {
+        count: "exact",
+      });
 
-  if (activos.error) throw new Error(activos.error.message);
-  if (depreciaciones.error) throw new Error(depreciaciones.error.message);
+    if (filtro) consulta = consulta.or(filtro);
+
+    const { data, error, count } = await consulta
+      .order("creado_en", { ascending: false })
+      .range(desde, hasta)
+      .returns<Omit<ActivoLista, "depreciado">[]>();
+
+    if (error) throw new Error(error.message);
+    return { filas: data ?? [], total: count ?? 0 };
+  };
+
+  const primera = await consultar(opciones.pagina);
+  const resumen = resumirPagina(opciones.pagina, opciones.tamano, primera.total);
+  const activos =
+    resumen.pagina !== opciones.pagina && primera.filas.length === 0
+      ? (await consultar(resumen.pagina)).filas
+      : primera.filas;
+
+  const ids = activos.map((activo) => activo.id);
+  const { data: depreciaciones, error } =
+    ids.length > 0
+      ? await supabase
+          .from("activo_depreciaciones")
+          .select("activo_id, monto")
+          .in("activo_id", ids)
+          .returns<{ activo_id: string; monto: number }[]>()
+      : { data: [], error: null };
+
+  if (error) throw new Error(error.message);
 
   const acumulado = new Map<string, number>();
-  for (const fila of depreciaciones.data) {
+  for (const fila of depreciaciones) {
     acumulado.set(fila.activo_id, (acumulado.get(fila.activo_id) ?? 0) + fila.monto);
   }
 
-  return activos.data.map((activo) => ({
-    ...activo,
-    depreciado: acumulado.get(activo.id) ?? 0,
-  }));
+  return {
+    filas: activos.map((activo) => ({
+      ...activo,
+      depreciado: acumulado.get(activo.id) ?? 0,
+    })),
+    resumen,
+  };
 }
 
 async function cargarCuentas(ids: string[]): Promise<Map<string, CuentaResumen>> {

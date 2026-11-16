@@ -3,6 +3,16 @@ import { z } from "zod";
 
 import { getEmpresa } from "@/lib/facturacion/consultas";
 import { getImpuestosActivos } from "@/lib/impuestos/consultas";
+import { limpiarBusqueda, numeroDocumento } from "@/lib/listas/busqueda";
+import { contactosQueCoinciden } from "@/lib/listas/coincidencias";
+import { condicionesDocumento } from "@/lib/listas/documento";
+import {
+  type OpcionesLista,
+  type ResultadoPagina,
+  rangoPagina,
+  resumirPagina,
+  TAMANO_PAGINA_DEFECTO,
+} from "@/lib/listas/parametros";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -35,7 +45,7 @@ const TABLAS: Record<TipoDocumento, Tablas> = {
   },
 };
 
-const COLUMNAS_RESUMEN = "id, numero, contacto_id, fecha, vencimiento, total, estado, factura_id";
+const COLUMNAS_RESUMEN = "id, numero, contacto_id, fecha, vencimiento, total, estado, factura_id, contactos(nombre)";
 const COLUMNAS_DETALLE =
   "id, numero, contacto_id, vendedor_id, centro_costo_id, fecha, vencimiento, subtotal, itbis, otros_impuestos, propina, total, estado, factura_id, notas, terminos";
 const COLUMNAS_DETALLE_POR_TIPO: Record<TipoDocumento, string> = {
@@ -49,35 +59,51 @@ async function cliente(): Promise<SupabaseClient> {
   return (await createClient()) as unknown as SupabaseClient;
 }
 
-export async function getDocumentosLista(tipo: TipoDocumento): Promise<DocumentoFila[]> {
+const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
+
+interface DocumentoListaConContacto extends DocumentoResumen {
+  contactos: { nombre: string } | null;
+}
+
+export async function getDocumentosLista(
+  tipo: TipoDocumento,
+  opciones: OpcionesLista = OPCIONES_LISTA_DEFECTO,
+): Promise<ResultadoPagina<DocumentoFila>> {
   const supabase = await cliente();
-  const { data, error } = await supabase
-    .from(TABLAS[tipo].documento)
-    .select(COLUMNAS_RESUMEN)
-    .order("numero", { ascending: false })
-    .limit(300);
+  const q = limpiarBusqueda(opciones.q);
+  const numero = numeroDocumento(q);
+  const idsContactos = q && numero == null ? await contactosQueCoinciden(supabase, q, ["cliente", "ambos"]) : [];
+  const filtro = condicionesDocumento({ q, idsContactos, campos: { texto: "" } });
 
-  if (error) throw new Error(error.message);
+  const consultar = async (pagina: number) => {
+    const { desde, hasta } = rangoPagina(pagina, opciones.tamano);
+    let consulta = supabase.from(TABLAS[tipo].documento).select(COLUMNAS_RESUMEN, { count: "exact" });
 
-  const documentos = (data ?? []) as unknown as DocumentoResumen[];
-  const ids = [...new Set(documentos.map((documento) => documento.contacto_id))];
-  if (ids.length === 0) return [];
+    if (filtro) consulta = consulta.or(filtro);
 
-  const contactos = await supabase.from("contactos").select("id, nombre").in("id", ids);
+    const { data, error, count } = await consulta
+      .order("numero", { ascending: false })
+      .range(desde, hasta)
+      .returns<DocumentoListaConContacto[]>();
 
-  if (contactos.error) throw new Error(contactos.error.message);
+    if (error) throw new Error(error.message);
+    return { filas: data ?? [], total: count ?? 0 };
+  };
 
-  const nombres = new Map(
-    ((contactos.data ?? []) as unknown as { id: string; nombre: string }[]).map((contacto) => [
-      contacto.id,
-      contacto.nombre,
-    ]),
-  );
+  const primera = await consultar(opciones.pagina);
+  const resumen = resumirPagina(opciones.pagina, opciones.tamano, primera.total);
+  const filas =
+    resumen.pagina !== opciones.pagina && primera.filas.length === 0
+      ? (await consultar(resumen.pagina)).filas
+      : primera.filas;
 
-  return documentos.map((documento) => ({
-    ...documento,
-    cliente_nombre: nombres.get(documento.contacto_id) ?? "—",
-  }));
+  return {
+    filas: filas.map(({ contactos, ...documento }) => ({
+      ...documento,
+      cliente_nombre: contactos?.nombre ?? "—",
+    })),
+    resumen,
+  };
 }
 
 async function getDocumentoRelacionado(

@@ -4,14 +4,14 @@ import { limpiarBusqueda, patronIlike } from "@/lib/listas/busqueda";
 import { rangoPagina, resumirPagina } from "@/lib/listas/parametros";
 import { createClient } from "@/lib/supabase/server";
 
-import { type ContactoBuscado, TAMANO_CONTACTOS, unirContactos } from "./seleccion";
+import { type ContactoBuscado, TAMANO_CONTACTOS, tiposContacto, unirContactos } from "./seleccion";
 
 const CAMPOS = "id, nombre, rnc_cedula, lista_precio_id";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface EntradaBusquedaContactos {
-  tipo?: "cliente" | "proveedor";
+  tipo?: "cliente" | "proveedor" | "todos";
   q?: string;
   pagina?: number;
   tamano?: number;
@@ -26,7 +26,8 @@ export interface ResultadoBusquedaContactos {
 }
 
 export async function buscarContactos(entrada: EntradaBusquedaContactos): Promise<ResultadoBusquedaContactos> {
-  const tipo = entrada.tipo === "proveedor" ? "proveedor" : "cliente";
+  const tipo = entrada.tipo === "proveedor" || entrada.tipo === "todos" ? entrada.tipo : "cliente";
+  const tipoFiltro = tiposContacto(tipo);
   const tamano = Math.min(Math.max(Math.trunc(entrada.tamano ?? TAMANO_CONTACTOS), 1), 50);
   const paginaPedida =
     typeof entrada.pagina === "number" && Number.isInteger(entrada.pagina) && entrada.pagina > 0 ? entrada.pagina : 1;
@@ -36,11 +37,9 @@ export async function buscarContactos(entrada: EntradaBusquedaContactos): Promis
 
   const consultar = async (pagina: number) => {
     const { desde, hasta } = rangoPagina(pagina, tamano);
-    let consulta = supabase
-      .from("contactos")
-      .select(CAMPOS, { count: "exact" })
-      .eq("activo", true)
-      .in("tipo", [tipo, "ambos"]);
+    let consulta = supabase.from("contactos").select(CAMPOS, { count: "exact" }).eq("activo", true);
+
+    if (tipoFiltro) consulta = consulta.in("tipo", [...tipoFiltro]);
 
     if (q) {
       const patron = patronIlike(q);
