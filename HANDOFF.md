@@ -77,6 +77,74 @@
 - **Candados nuevos:** `tests/e2e/numeraciones.spec.ts` (2 pruebas; se salta sin `E2E_EMAIL`/`E2E_PASSWORD`, como el humo) y `src/lib/numeraciones/acciones.test.ts` (4 pruebas: RPC directa con payload validado, error de validación en español, error de RPC y permiso de lector). El candado estático `rpc-sin-extraer.test.ts` ya cubría este archivo.
 - `pnpm typecheck`, `pnpm test`, Biome sobre lo tocado y `pnpm build` en verde. Sin migraciones, sin push ni merge.
 
+## Unificación del rediseño en `diseno/rediseno` (16 nov 2026)
+
+- Se auditaron todas las ramas de diseño (t3/\*, diseno/\*, feat/\*-alegra):
+  el menú lateral Alegra, el data grid con KPIs, la ficha de contacto (6
+  tarjetas + pestañas), la ficha de producto, el hub de reportes y el inicio
+  con tarjetas KPI ya estaban fusionados en `diseno/rediseno` por las
+  sesiones t3 (commits `df6cd2c`…`9c2734e`).
+- Faltaban solo las guías de estilo medidas en vivo; se trajeron con
+  cherry-pick: `css-tablas/` (bffb88e + 302e3e7), `css-menu/` (1e3ab05) y
+  `css-inicio/` (395f94d, incluye la sección en `ALEGRA.md`).
+- Omitido a propósito: `feat/sidebar-alegra-style`, `feat/facturas-tabla-alegra`
+  e `feat/inicio-diseno-alegra` (versiones viejas ya superadas por rediseno),
+  `diseno/ficha-tarjetas-pestanas` (parche ya aplicado como `df6cd2c`) y las
+  ramas `feat/`, `fix/`, `perf/` de contabilidad (backend: no se mezclan aquí).
+- Verificado: `pnpm exec tsc --noEmit` y `pnpm exec biome check` en verde.
+
+## Ficha de contacto: 6 tarjetas de Alegra y pestañas por documento (15 nov 2026)
+
+- **Tarjetas** (siempre las 6, como `docs/alegra/capturas/09-ficha-cliente.png`):
+  Cuentas por cobrar, Anticipos recibidos, Anticipos entregados, Por pagar,
+  Notas crédito por aplicar y Notas débito por aplicar. Se quitaron «Total
+  facturado», «Total cobrado», «Total comprado» y «Total pagado».
+- Notas por aplicar = 0: hoy toda nota de crédito/débito nace ligada a una
+  factura (`factura_id not null`). Si se permiten notas sueltas, calcular aquí.
+- **Pestañas**: Resumen, Transacciones, Facturas de venta, Cotizaciones,
+  Conduces, Notas de crédito y débito, Pagos recibidos (cliente); Facturas de
+  proveedor, Notas crédito de compra, Pagos a proveedor (proveedor); Asientos,
+  Contactos y Documentos. Tablas en `_components/pestanas-documentos.tsx`
+  con búsqueda y paginación de 10.
+- Transacciones: el monto del asiento usa débito o crédito (antes salía 0.00
+  cuando el contacto estaba en el crédito).
+
+## Rediseño de la ficha de contacto estilo Alegra/Everest (15 nov 2026)
+
+- `ficha-contacto.tsx` reescrito como **un solo panel blanco** con todo dentro:
+  encabezado + fila de KPIs + barra de pestañas + contenido, con Inter
+  (`var(--font-inter)`). Solo frontend; no se tocó `obtenerFichaContacto` ni
+  `src/lib`.
+- **Encabezado**: caja primaria con `Building2`, nombre + pill verde «Activo»,
+  meta con iconos (RNC, teléfono, correo, dirección). A la derecha: botón
+  primario **«Editar perfil»** (abre diálogo con el formulario de contacto) y
+  menú ⋮ con «Nueva factura» / «Nueva compra» / «Estado de cuenta». El lector
+  ve «Estado de cuenta» como botón primario sin menú.
+- **KPIs fijos** entre el encabezado y las pestañas (siempre visibles): Por
+  cobrar (rojo), Anticipos, Total facturado y Total cobrado (verde) para
+  clientes; Por pagar, Total comprado y Total pagado para proveedores.
+- **Pestañas** (texto + icono, activa en azul con subrayado, sin «Activity»):
+  Resumen → Transacciones → **Facturas** → Contactos → Documentos. La acción
+  de cada pestaña vive a la derecha de la barra (Filtrar, + Agregar contacto,
+  Subir documento).
+- **Transacciones**: UNA tabla unificada con todas las fuentes de `datos`
+  (facturas venta/proveedor, cotizaciones, conduces, notas de crédito/débito,
+  pagos recibidos/proveedor, asientos) con badge de tipo, ID azul enlazable
+  (`FAC-1045`, `PAG-0007`…), buscador, filtro por tipo, montos de pago en
+  verde con `-` y pie «Mostrando X de Y» + Anterior/Siguiente.
+- **Facturas**: misma tabla pero solo con facturas de venta y de proveedor.
+- **Contactos** y **Documentos**: solo diseño con constantes de ejemplo
+  marcadas `// TODO backend` (no hay backend de personas ni adjuntos). Los
+  botones «Agregar contacto» y «Subir documento» son visuales.
+- `FormularioContacto` se extrajo a `src/components/contactos/
+  formulario-contacto.tsx` y lo reusan el listado de contactos y el diálogo
+  «Editar perfil» de la ficha (misma `actualizarContacto`/`crearContacto`, sin
+  tocar actions). `page.tsx` ahora también carga el `Contacto` completo y las
+  listas de precios activas para ese diálogo.
+- Verificado: `pnpm exec tsc --noEmit` y `pnpm exec biome check` en verde.
+  Sin verificación visual (el local pide login; la hace Coder). Commits en
+  `diseno/rediseno`: `0231d7c`, `26c81d6` y el de esta entrada.
+
 ## Fix — Títulos largos del menú ya no se parten en dos líneas (14 nov 2026)
 
 - «Notas de crédito en compras» (Compras) se veía en dos líneas en el menú lateral. Causa: `SidebarMenuButton`/`SidebarMenuSubButton` truncan con `[&>span:last-child]:truncate`, pero `IndicadorEnlace` renderiza un `<span>` después del título, así que el truncate caía sobre el puntito indicador y el título envolvía.

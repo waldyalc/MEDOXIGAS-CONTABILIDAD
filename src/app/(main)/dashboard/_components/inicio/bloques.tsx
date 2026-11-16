@@ -18,7 +18,11 @@ export async function BloqueCartera({ desde, hasta }: Props) {
   const { resumen, error } = await obtenerResumenNegocio(desde, hasta);
 
   if (!resumen) {
-    return <AlertaError mensaje={error ?? "No se pudo cargar el resumen del negocio."} />;
+    return (
+      <div className="sm:col-span-2 lg:col-span-4">
+        <AlertaError mensaje={error ?? "No se pudo cargar el resumen del negocio."} />
+      </div>
+    );
   }
 
   const hrefCxc = urlReporte("/dashboard/reportes/cxc", {
@@ -40,23 +44,28 @@ export async function BloqueMetricas({ desde, hasta }: Props) {
   const { resumen, error } = await obtenerResumenNegocio(desde, hasta);
 
   if (!resumen) {
-    return <AlertaError mensaje={error ?? "No se pudo cargar el resumen del negocio."} />;
+    return (
+      <div className="sm:col-span-2 lg:col-span-4">
+        <AlertaError mensaje={error ?? "No se pudo cargar el resumen del negocio."} />
+      </div>
+    );
   }
 
   return (
     <>
       <TarjetaMetrica
         titulo="Impuestos en venta"
+        href={urlReporte("/dashboard/reportes/impuestos-detallados", { desde, hasta })}
         valor={formatearRd(centavos(resumen.impuestos_venta))}
-        detalle="ITBIS de las ventas"
       />
       <TarjetaMetrica
         titulo="Productos vendidos"
+        href={urlReporte("/dashboard/reportes/ventas-producto", { desde, hasta })}
         valor={formatearConteo(resumen.productos_vendidos)}
-        detalle="Unidades vendidas"
       />
       <TarjetaMetrica
         titulo="Devoluciones de clientes"
+        href={urlReporte("/dashboard/reportes/ventas-generales", { desde, hasta })}
         valor={formatearRd(centavos(resumen.devoluciones_clientes))}
         detalle="Incluye impuestos"
       />
@@ -64,7 +73,6 @@ export async function BloqueMetricas({ desde, hasta }: Props) {
         titulo="Clientes con ventas"
         href={urlReporte("/dashboard/reportes/ventas-cliente", { desde, hasta })}
         valor={formatearConteo(resumen.clientes_con_ventas)}
-        detalle="Con facturas en el periodo"
       />
     </>
   );

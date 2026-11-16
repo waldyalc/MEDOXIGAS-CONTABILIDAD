@@ -3,10 +3,13 @@ import Link from "next/link";
 import { cn } from "cn";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { CarteraResumen } from "@/lib/inicio/consultas";
+import type { CarteraResumen, GrupoCartera } from "@/lib/inicio/consultas";
 import { centavos, formatearRd } from "@/lib/reportes/dinero";
 
 const CONTEO = new Intl.NumberFormat("es-DO", { maximumFractionDigits: 2 });
+
+const VERDE = "#22c55e";
+const ROJO = "#ef4444";
 
 export function formatearConteo(valor: number): string {
   return CONTEO.format(valor);
@@ -16,92 +19,124 @@ interface TarjetaCarteraProps {
   titulo: string;
   href: string;
   datos: CarteraResumen;
+  className?: string;
 }
 
-export function TarjetaCartera({ titulo, href, datos }: TarjetaCarteraProps) {
+export function TarjetaCartera({ titulo, href, datos, className }: TarjetaCarteraProps) {
   return (
-    <Card>
-      <CardHeader className="gap-1">
-        <CardTitle>
-          <Link href={href} className="hover:text-primary underline-offset-4 hover:underline">
+    <Card
+      className={cn(
+        "relative gap-0 rounded-[10px] py-5 ring-[#e2e8f0] dark:ring-border sm:col-span-2 lg:col-span-1 lg:row-span-2 lg:self-start",
+        "has-[a:focus-visible]:ring-ring has-[a:focus-visible]:ring-2",
+        className,
+      )}
+    >
+      <CardHeader className="gap-1.5 px-5">
+        <CardTitle className="text-[15px] font-medium text-[#3c4257] dark:text-slate-300">
+          <Link
+            href={href}
+            className="hover:text-primary underline decoration-[#b8c2cf] underline-offset-[3px] after:absolute after:inset-0 focus-visible:outline-none dark:decoration-slate-600"
+          >
             {titulo}
           </Link>
         </CardTitle>
-        <p className="text-2xl font-semibold tabular-nums">{formatearRd(centavos(datos.total))}</p>
+        <p className="text-2xl leading-8 font-semibold tracking-tight text-slate-900 tabular-nums dark:text-foreground">
+          {formatearRd(centavos(datos.total))}
+        </p>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <FilaCartera
-          etiqueta="Vigentes"
-          monto={datos.vigentes.monto}
-          documentos={datos.vigentes.documentos}
-          total={datos.total}
-          tono="vigente"
-        />
-        <FilaCartera
-          etiqueta="Vencidas"
-          monto={datos.vencidas.monto}
-          documentos={datos.vencidas.documentos}
-          total={datos.total}
-          tono="vencida"
-        />
+      <CardContent className="mt-5 flex flex-col gap-3.5 px-5">
+        <BarraCartera datos={datos} />
+        <div className="grid grid-cols-2 gap-4">
+          <DetalleCartera etiqueta="Vigentes" grupo={datos.vigentes} tono="vigente" />
+          <DetalleCartera etiqueta="Vencidas" grupo={datos.vencidas} tono="vencida" />
+        </div>
       </CardContent>
     </Card>
   );
 }
 
-interface FilaCarteraProps {
+function BarraCartera({ datos }: { datos: CarteraResumen }) {
+  const segmentos = [
+    { monto: datos.vigentes.monto, color: VERDE },
+    { monto: datos.vencidas.monto, color: ROJO },
+  ].filter((segmento) => segmento.monto > 0 && datos.total > 0);
+
+  return (
+    <div className="bg-muted flex h-2 w-full items-stretch gap-[2px] overflow-hidden rounded-full" aria-hidden="true">
+      {segmentos.map((segmento) => (
+        <div
+          key={segmento.color}
+          className="h-full"
+          style={{
+            backgroundColor: segmento.color,
+            width: `${Math.min(100, Math.max(0, (segmento.monto / datos.total) * 100))}%`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+interface DetalleCarteraProps {
   etiqueta: string;
-  monto: number;
-  documentos: number;
-  total: number;
+  grupo: GrupoCartera;
   tono: "vigente" | "vencida";
 }
 
-function FilaCartera({ etiqueta, monto, documentos, total, tono }: FilaCarteraProps) {
-  const proporcion = total > 0 ? Math.min(100, Math.max(0, (monto / total) * 100)) : 0;
-  const colorPunto = tono === "vigente" ? "bg-emerald-500 dark:bg-emerald-400" : "bg-red-500 dark:bg-red-400";
+function DetalleCartera({ etiqueta, grupo, tono }: DetalleCarteraProps) {
+  const documentos = `${formatearConteo(grupo.documentos)} ${grupo.documentos === 1 ? "documento" : "documentos"}`;
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-sm font-medium">
-          <span className={cn("size-2 rounded-full", colorPunto)} aria-hidden="true" />
-          {etiqueta}
-        </span>
-        <span className="text-sm font-medium tabular-nums">{formatearRd(centavos(monto))}</span>
-      </div>
-      <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-        <div className={cn("h-full rounded-full", colorPunto)} style={{ width: `${proporcion}%` }} />
-      </div>
-      <p className="text-muted-foreground text-xs">
-        {documentos} {documentos === 1 ? "documento" : "documentos"}
-      </p>
+    <div
+      className={cn(
+        "flex flex-col gap-1 border-l-[3px] pl-3",
+        tono === "vigente" ? "border-[#22c55e]" : "border-[#ef4444]",
+      )}
+    >
+      <span className="text-[13px] text-slate-600 dark:text-slate-300">{etiqueta}</span>
+      <span
+        className={cn(
+          "text-sm font-medium tabular-nums",
+          tono === "vencida" && grupo.monto > 0 && "text-red-600 dark:text-red-400",
+        )}
+      >
+        {formatearRd(centavos(grupo.monto))}
+      </span>
+      <span className="text-muted-foreground text-xs whitespace-nowrap">{documentos}</span>
     </div>
   );
 }
 
 interface TarjetaMetricaProps {
   titulo: string;
-  href?: string;
+  href: string;
   valor: string;
   detalle?: string;
+  className?: string;
 }
 
-export function TarjetaMetrica({ titulo, href, valor, detalle }: TarjetaMetricaProps) {
+export function TarjetaMetrica({ titulo, href, valor, detalle, className }: TarjetaMetricaProps) {
   return (
-    <Card size="sm" className="h-full justify-center">
-      <CardHeader className="gap-0.5">
-        <CardTitle className="text-sm">
-          {href ? (
-            <Link href={href} className="hover:text-primary underline-offset-4 hover:underline">
-              {titulo}
-            </Link>
-          ) : (
-            titulo
-          )}
+    <Card
+      className={cn(
+        "relative h-full gap-0 justify-start rounded-[10px] py-5 ring-[#e2e8f0] dark:ring-border",
+        "has-[a:focus-visible]:ring-ring has-[a:focus-visible]:ring-2",
+        className,
+      )}
+    >
+      <CardHeader className="gap-1 px-5">
+        <CardTitle className="text-[15px] font-medium text-[#3c4257] dark:text-slate-300">
+          <Link
+            href={href}
+            className="hover:text-primary underline decoration-[#b8c2cf] underline-offset-[3px] after:absolute after:inset-0 focus-visible:outline-none dark:decoration-slate-600"
+          >
+            {titulo}
+          </Link>
         </CardTitle>
-        <p className="text-xl font-semibold tabular-nums">{valor}</p>
         {detalle ? <p className="text-muted-foreground text-xs">{detalle}</p> : null}
+        <p className="mt-2 text-xl leading-8 font-semibold tracking-tight text-slate-900 tabular-nums dark:text-foreground">
+          {valor}
+        </p>
       </CardHeader>
     </Card>
   );

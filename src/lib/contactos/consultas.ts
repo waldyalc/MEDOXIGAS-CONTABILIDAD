@@ -15,6 +15,19 @@ const CAMPOS =
 
 const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
 
+export async function obtenerContacto(id: string): Promise<Contacto | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contactos")
+    .select(CAMPOS)
+    .eq("id", id)
+    .maybeSingle()
+    .returns<Contacto | null>();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function listarContactos(
   opciones: OpcionesLista = OPCIONES_LISTA_DEFECTO,
   pestana: PestanaContactos = "todos",
