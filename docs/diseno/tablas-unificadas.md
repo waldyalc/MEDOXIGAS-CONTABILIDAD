@@ -10,6 +10,8 @@ Alcance de esta auditoría: solo frontend (`src/app`, `src/components`, `docs`).
 - Nada que necesite un dato que la consulta no trae: se marca `// TODO backend` y se avisa a Waldy (regla de `docs/diseno/README.md`).
 - La captura manda sobre la guía cuando choquen: la Facturas actual **no** lleva checkbox, acciones por fila ni «Filtrar», y así se queda por ahora.
 
+> **Nota de espaciado (16 nov 2026, pedido de Waldy):** la captura de Alegra se veía más aireada que la primera implementación. El patrón vigente sube toolbar y pie a **56 px** (`h-14`, `px-4`), cabecera a **48 px** (`h-12`) y filas a **56 px** (`h-14`), con padding horizontal de **20 px** (`px-5`) y **24 px** en la primera/última celda (`pl-6`/`pr-6`). La densidad compacta queda en **44 px** (`h-11`) con **16 px** (`px-4`) y el vacío en `py-16`. La tarjeta se centra en un `ContenedorLista` de `max-w-[1289px]` (`mx-auto`). Donde §2 o §3.3 digan 40/48 px o padding 16, manda esta nota.
+
 ## 1. Inventario
 
 **Cómo leerlo.** `B` buscador, `F` filtros, `P` paginación, `S` selección múltiple, `A` acciones por fila, `V` estado vacío. `(s)` = servidor (URL/consulta), `(l)` = local (estado del cliente). `Patrón`: ✅ ya se ve como Facturas, ◐ a medias (card o tabla sí, pills/paginación no), ✗ no se parece. Prioridad: **P0** producto/cliente/facturas, **P1** pagos y notas + documentos, **P2** resto de listas y configuración, **P3** detalle/líneas (solo fase 6), **Excl.** no se migra.

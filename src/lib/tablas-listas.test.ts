@@ -44,17 +44,33 @@ describe("tablas de listas unificadas", () => {
   it("tabla-lista conserva las clases canónicas de la guía", () => {
     const contenido = readFileSync(COMPONENTE, "utf8");
     const clases = [
-      ["h-12", "las filas de 48 px"],
-      ["bg-slate-200/20", "la cabecera de 40 px con fondo slate-200/20"],
+      ["h-14", "las filas de 56 px"],
+      ["h-12", "la cabecera de 48 px"],
+      ["bg-slate-200/20", "la cabecera con fondo slate-200/20"],
       ["text-[11px]", "la pill de 11 px"],
     ] as const;
 
     for (const [clase, pieza] of clases) {
       expect(
         contenido.includes(clase),
-        `tabla-lista.tsx perdió ${pieza}. Restaura la clase "${clase}" según docs/alegra/css-tablas/GUIA-TABLAS.md; no cambies la guía para que pase el test.`,
+        `tabla-lista.tsx perdió ${pieza}. Restaura la clase "${clase}" según docs/diseno/tablas-unificadas.md (nota de espaciado 48/56); no cambies la guía para que pase el test.`,
       ).toBe(true);
     }
+  });
+
+  it("las listas migradas usan el contenedor centrado", () => {
+    const contenido = readFileSync(COMPONENTE, "utf8");
+
+    expect(
+      contenido.includes("max-w-[1289px]") && contenido.includes("mx-auto"),
+      "tabla-lista.tsx debe exportar ContenedorLista con mx-auto y max-w-[1289px] para que la tarjeta no se estire en pantallas anchas.",
+    ).toBe(true);
+
+    const pagina = leer("app/(main)/dashboard/facturacion/page.tsx");
+    expect(
+      /import\s*\{[^}]*\bContenedorLista\b[^}]*\}\s*from\s*"@\/components\/listas\/tabla-lista"/.test(pagina),
+      "facturacion/page.tsx debe envolver el encabezado y la tarjeta con ContenedorLista (no repitas mx-auto max-w-[1289px] a mano).",
+    ).toBe(true);
   });
 
   it("tabla-lista se puede usar desde componentes de servidor", () => {

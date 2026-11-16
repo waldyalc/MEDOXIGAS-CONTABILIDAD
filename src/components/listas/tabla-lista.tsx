@@ -59,7 +59,12 @@ export function TarjetaLista({
 }
 
 export function BarraLista({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("border-border flex h-12 items-center gap-2 border-b px-3", className)}>{children}</div>;
+  return <div className={cn("border-border flex h-14 items-center gap-2 border-b px-4", className)}>{children}</div>;
+}
+
+/** Centra la lista y evita que la tarjeta se estire en pantallas anchas (≈1289 px). */
+export function ContenedorLista({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("mx-auto flex w-full max-w-[1289px] flex-col gap-4", className)}>{children}</div>;
 }
 
 function ContenidoVacio({ titulo, descripcion, icono, accion, filtrada }: VacioLista) {
@@ -75,10 +80,16 @@ function ContenidoVacio({ titulo, descripcion, icono, accion, filtrada }: VacioL
 
 export function EstadoVacioLista(props: VacioLista) {
   return (
-    <div className="bg-card border-border rounded-2xl border px-6 py-12">
+    <div className="bg-card border-border rounded-2xl border px-6 py-16">
       <ContenidoVacio {...props} />
     </div>
   );
+}
+
+/** Aire del patrón: 20 px por celda y 24 px en los bordes de la fila. */
+function clasesEspaciado(compacta: boolean, esPrimera: boolean, esUltima: boolean): string {
+  if (compacta) return "px-4";
+  return cn("px-5", esPrimera && "pl-6", esUltima && "pr-6");
 }
 
 function FilaLista<T>({
@@ -94,29 +105,39 @@ function FilaLista<T>({
   acciones?: (fila: T) => ReactNode;
   compacta: boolean;
 }) {
+  const totalCeldas = columnas.length + (seleccion ? 1 : 0) + (acciones ? 1 : 0);
+
   return (
     <TableRow
       className={cn(
-        compacta ? "h-10" : "h-12",
+        compacta ? "h-11" : "h-14",
         "border-border border-b hover:bg-slate-200/45 dark:hover:bg-slate-800/40",
       )}
     >
-      {seleccion ? <TableCell className={compacta ? "px-3" : "px-4"}>{seleccion.celda(fila)}</TableCell> : null}
-      {columnas.map((columna) => (
-        <TableCell
-          key={columna.clave}
-          className={cn(
-            compacta ? "px-3 text-[13px]" : "px-4 text-sm",
-            "whitespace-nowrap text-slate-700 dark:text-slate-300",
-            ALINEACION[columna.alineacion ?? "izquierda"],
-            columna.className,
-          )}
-        >
-          {columna.celda(fila)}
-        </TableCell>
-      ))}
+      {seleccion ? (
+        <TableCell className={clasesEspaciado(compacta, true, totalCeldas === 1)}>{seleccion.celda(fila)}</TableCell>
+      ) : null}
+      {columnas.map((columna, indice) => {
+        const posicion = indice + (seleccion ? 1 : 0);
+        return (
+          <TableCell
+            key={columna.clave}
+            className={cn(
+              compacta ? "text-[13px]" : "text-sm",
+              clasesEspaciado(compacta, posicion === 0, posicion === totalCeldas - 1),
+              "whitespace-nowrap text-slate-700 dark:text-slate-300",
+              ALINEACION[columna.alineacion ?? "izquierda"],
+              columna.className,
+            )}
+          >
+            {columna.celda(fila)}
+          </TableCell>
+        );
+      })}
       {acciones ? (
-        <TableCell className={cn(compacta ? "px-3" : "px-4", "text-center")}>{acciones(fila)}</TableCell>
+        <TableCell className={cn(clasesEspaciado(compacta, totalCeldas === 1, true), "text-center")}>
+          {acciones(fila)}
+        </TableCell>
       ) : null}
     </TableRow>
   );
@@ -152,23 +173,31 @@ export function TablaLista<T>({
   return (
     <Table className={cn("text-sm text-slate-700 dark:text-slate-300", className)}>
       <TableHeader>
-        <TableRow className="border-border h-10 border-b bg-slate-200/20 hover:bg-slate-200/20 dark:bg-slate-800/40 dark:hover:bg-slate-800/40">
-          {seleccion ? <TableHead className="w-12 px-4">{seleccion.cabecera}</TableHead> : null}
-          {columnas.map((columna) => (
-            <TableHead
-              key={columna.clave}
-              scope="col"
-              className={cn(
-                "px-4 text-xs font-medium text-slate-700 dark:text-slate-300",
-                ALINEACION[columna.alineacion ?? "izquierda"],
-                columna.className,
-              )}
-            >
-              {columna.encabezado}
+        <TableRow className="border-border h-12 border-b bg-slate-200/20 hover:bg-slate-200/20 dark:bg-slate-800/40 dark:hover:bg-slate-800/40">
+          {seleccion ? (
+            <TableHead className={cn("w-12", clasesEspaciado(false, true, colSpan === 1))}>
+              {seleccion.cabecera}
             </TableHead>
-          ))}
+          ) : null}
+          {columnas.map((columna, indice) => {
+            const posicion = indice + (seleccion ? 1 : 0);
+            return (
+              <TableHead
+                key={columna.clave}
+                scope="col"
+                className={cn(
+                  "text-xs font-medium text-slate-700 dark:text-slate-300",
+                  clasesEspaciado(false, posicion === 0, posicion === colSpan - 1),
+                  ALINEACION[columna.alineacion ?? "izquierda"],
+                  columna.className,
+                )}
+              >
+                {columna.encabezado}
+              </TableHead>
+            );
+          })}
           {acciones ? (
-            <TableHead className="w-[88px] px-4 text-center">
+            <TableHead className={cn("w-[88px] text-center", clasesEspaciado(false, colSpan === 1, true))}>
               <span className="sr-only">Acciones</span>
             </TableHead>
           ) : null}
@@ -177,7 +206,7 @@ export function TablaLista<T>({
       <TableBody>
         {filas.length === 0 ? (
           <TableRow className="hover:bg-transparent">
-            <TableCell colSpan={colSpan} className="py-12">
+            <TableCell colSpan={colSpan} className="px-6 py-16">
               <ContenidoVacio {...vacio} />
             </TableCell>
           </TableRow>

@@ -31,7 +31,7 @@ test.describe("tablas unificadas", () => {
     await expect(tarjeta.getByRole("button", { name: "Filtrar" })).toHaveCount(0);
   });
 
-  test("Facturas: cabecera de 40 px y filas de 48 px", async ({ page }) => {
+  test("Facturas: cabecera de 48 px y filas de 56 px", async ({ page }) => {
     await page.goto("/dashboard/facturacion");
     const tarjeta = page.locator('[data-lista="facturas"]');
     const cabecera = tarjeta.locator("thead tr");
@@ -39,8 +39,8 @@ test.describe("tablas unificadas", () => {
     await expect(cabecera).toBeVisible();
     const cajaCabecera = await cabecera.boundingBox();
     const altoCabecera = cajaCabecera?.height ?? 0;
-    expect(altoCabecera).toBeGreaterThanOrEqual(39);
-    expect(altoCabecera).toBeLessThanOrEqual(41);
+    expect(altoCabecera).toBeGreaterThanOrEqual(47);
+    expect(altoCabecera).toBeLessThanOrEqual(49);
 
     const filas = tarjeta.locator("tbody tr").filter({ has: page.locator("td a") });
     test.skip((await filas.count()) === 0, "la cuenta de prueba no tiene facturas para medir la fila");
@@ -48,8 +48,36 @@ test.describe("tablas unificadas", () => {
     await expect(filas.first()).toBeVisible();
     const cajaFila = await filas.first().boundingBox();
     const altoFila = cajaFila?.height ?? 0;
-    expect(altoFila).toBeGreaterThanOrEqual(47);
-    expect(altoFila).toBeLessThanOrEqual(49);
+    expect(altoFila).toBeGreaterThanOrEqual(55);
+    expect(altoFila).toBeLessThanOrEqual(57);
+  });
+
+  test("Facturas: la tarjeta se centra y no pasa de 1289 px a 1920", async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.goto("/dashboard/facturacion");
+    const tarjeta = page.locator('[data-lista="facturas"]');
+    await expect(tarjeta).toBeVisible();
+
+    const medidas = await tarjeta.evaluate((nodo) => {
+      const contenedor = nodo.parentElement;
+      const area = contenedor?.parentElement;
+      if (!contenedor || !area) return null;
+
+      const tarjetaRect = nodo.getBoundingClientRect();
+      const contenedorRect = contenedor.getBoundingClientRect();
+      const areaRect = area.getBoundingClientRect();
+      const estilo = getComputedStyle(area);
+      return {
+        ancho: tarjetaRect.width,
+        izquierda: contenedorRect.left - areaRect.left - Number.parseFloat(estilo.paddingLeft),
+        derecha: areaRect.right - contenedorRect.right - Number.parseFloat(estilo.paddingRight),
+      };
+    });
+
+    expect(medidas).not.toBeNull();
+    expect(medidas?.ancho ?? 0).toBeGreaterThan(0);
+    expect(medidas?.ancho ?? 0).toBeLessThanOrEqual(1290);
+    expect(Math.abs((medidas?.izquierda ?? 0) - (medidas?.derecha ?? 0))).toBeLessThanOrEqual(2);
   });
 
   test("Facturas: la búsqueda sin resultados muestra el vacío y conserva el pie", async ({ page }) => {
