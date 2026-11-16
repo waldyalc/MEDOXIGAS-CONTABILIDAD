@@ -74,12 +74,18 @@ export async function obtenerSaldosCuentas(
   cuentas?: readonly string[],
 ): Promise<RespuestaReporte<FilaSaldoCuenta>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("reporte_saldos_cuentas", {
-    p_desde: desde,
-    p_hasta: hasta,
-    p_cierre_anual: cierreAnual,
-    p_cuentas: lista(cuentas),
-  });
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .rpc("reporte_saldos_cuentas", {
+        p_desde: desde,
+        p_hasta: hasta,
+        p_cierre_anual: cierreAnual,
+        p_cuentas: lista(cuentas),
+      })
+      .order("cuenta_codigo")
+      .order("cuenta_id")
+      .range(inicio, fin),
+  );
 
   if (error) return { filas: [], error: error.message };
   return { filas: data ?? [], error: null };

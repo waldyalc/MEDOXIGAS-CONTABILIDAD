@@ -1,26 +1,14 @@
 # Handoff — Medoxigas Contabilidad
 
+## Fix — Reportes de libros: RPC directo y paginación completa (16 nov 2026)
 
-## Fix — Costeo al anular ajustes de inventario y diagnóstico D6 (17 nov 2026)
-
-- Rama `fix/inventario-costo-anulacion` (desde `origin/prueba`). Diagnóstico completo en `docs/pruebas/resultados/diagnostico-anulaciones-costo.md`.
-- **Bug real corregido:** `anular_documento` para `ajuste_inventario` devolvía la cantidad pero no deshacía el costo promedio de las entradas (la creación sí pondera). Migración aditiva `20261117200000_anular_ajuste_costo.sql` (**NO aplicada**): renombra la anulación vigente a `_anular_documento_base`, crea un wrapper con la misma firma y solo cambia la rama del ajuste; el resto de documentos delega intacto. Entradas usan la fórmula inversa `(Q*C − q*c)/(Q−q)`; salidas no tocan el costo, como la creación.
-- **El bug de compras ya estaba corregido en el código** desde `20261113270000_anular_compra_costo.sql` y sigue en la definición vigente (`20261116200000`), con pgTAP propio (`anular_compra_costo_test.sql`, 18 asserts). La nota de `docs/motor-contable.md` que decía lo contrario era vieja y se actualizó. Si D6 muestra compras anuladas sin revertir costo, es dato histórico anterior al fix o migración sin aplicar, no código actual.
-- **D6 no se cierra solo con esto.** Hallazgos de solo lectura: (1) `asiento_lineas.producto_id` nunca se llena (`_crear_asiento` no lo inserta), así que el mayor no se puede atribuir por producto y la consulta 2 de `cuadre-inventario.sql` no sirve; (2) `crear_producto`/`actualizar_producto` mueven stock y costo sin asiento (inventario inicial y revalúos sin contrapartida), probable fuente principal del signo de D6; (3) un ajuste de salida valora el asiento al costo manual de la línea sin cambiar el promedio. Las tres requieren decisión de Contable.
-- `docs/pruebas/verificacion-anulaciones-costo.sql`: consultas de **solo lectura** para contar/valorar compras y ajustes de entrada anulados, comprobar si `producto_id` está poblado y medir la brecha global. Waldy debe correrlo; no se inventó ningún resultado.
-- pgTAP nuevo `supabase/tests/anular_ajuste_costo_test.sql` (16 asserts, datos propios: entradas encadenadas, anulación inversa, salida, estado, asiento de reversión y doble anulación). **No se pudo correr aquí** (sin Docker/Supabase CLI); lo corre CI o `supabase test db` local.
-- Verificado: `pnpm typecheck`, `pnpm check` (solo avisos preexistentes), `pnpm test` (716) y `pnpm build` en verde. Sin cambios de datos, sin tocar `types.ts` (la firma de `anular_documento` no cambia) y sin aplicar la migración al remoto.
-- Queda para Contable/Waldy: correr el SQL de verificación; decidir asiento de apertura/revalúo para stock inicial y costos editados; decidir si se reconstruye el costo histórico de anulaciones viejas; y, si se quiere cuadre por producto, instrumentar `asiento_lineas.producto_id` en una tarea aparte.
-
-## Verificación del P0 de carga y cortes restantes (17 nov 2026)
-
-- Rama `verify/p0-prueba` desde `origin/prueba` (cdfea68…b1f3f27, sin tocar `test/pruebas-carga`). Se revisó que lo ya fusionado (RPC directa, paginación fiscal, joins/lotes, libros/CxC/CxP y listas) siga en pie.
-- Verificado en verde: `pnpm typecheck`, `pnpm check` (solo los 23 avisos preexistentes), `pnpm test` **731** (90 archivos; 15 nuevos del candado de paginación) y `pnpm build` (103 rutas).
-- Hallazgos corregidos: los selectores de producto de facturación, compras, órdenes de compra, inventario, notas de débito/recurrentes leían el catálogo sin paginar (corte en 1,000) y precios con `.in()` de todos los ids (>350 revienta la URL); ahora `getProductosActivos` pagina y pide precios en lotes de 200. También paginan el selector de proveedores de pagos recurrentes y el de clientes de estado de cuenta. `ventas-producto`/`rentabilidad-producto` cortaban en `MAXIMO_LINEAS = 20,000` líneas; ahora leen hasta que un lote salga corto.
-- Candado nuevo `src/lib/paginacion.test.ts`: falla si esos reportes/bancos/fichas/selectores dejan de usar `paginarConsulta`/`consultarEnLotes`, si vuelve un `.limit(300/500/1000)` o si reaparece el tope de 20,000 líneas.
-- Revisado sin cambios: 606/607/608/IT-1/IR-17/retenciones, libro diario, balance, CxC/CxP, anual, bancos (líneas + numerosDocumento por lotes), fichas y estado de cuenta ya paginan; `rpc as unknown`/`RpcSuelta` no quedan. `docs/pruebas/resultados/RESULTADOS.md` y `sonda-fallos.md` solo existen en `test/pruebas-carga` (no en `prueba`); se leyeron de esa rama.
-- Pendiente de Waldy/Contable (sin cambios): `cuadre.sql`/`cuadre-inventario.sql`, decisión RNC único / NC sobre factura pagada / unicidad NCF B03-B04 y OK para borrar los ~19.5k documentos ZZTEST. No se tocó la base, no hubo migraciones ni service_role; pgTAP y navegador autenticado no se pudieron correr aquí (sin Docker ni credenciales).
-
+- Rama `fix/reportes-libros-rpc` (desde `origin/prueba` b1f3f27). El `TypeError (reading 'rest')` de los 6 reportes de libros y de Guardar numeraciones **ya estaba corregido en `prueba`** (`cdfea68`, llamar `supabase.rpc` directo) y los libros pesados ya paginaban (`8cc75cf`). Esta rama no reintroduce el patrón; cierra el hueco que quedaba y lo blinda.
+- `src/lib/rpc-sin-extraer.test.ts`: además de `const rpc = supabase.rpc`, ahora detecta `RpcSuelta`, el cast `.rpc as`, la asignación y la desestructuración `{ rpc } = …`. El propio test comprueba que reconoce el código histórico (`as unknown as RpcSuelta`) y que no marca llamadas directas; el mensaje explica el `this` perdido y cómo arreglarlo.
+- `src/lib/reportes/libros/consultas.ts`: `obtenerSaldosCuentas` (balance de comprobación y agrupado) era la única RPC de libros sin paginar; ahora usa `paginarConsulta` con `range` de 1,000 y orden determinístico `cuenta_codigo, cuenta_id`. Movimientos y saldos por tercero ya lo hacían. Sin cambios de firmas, cálculos ni diseño.
+- Regresión nueva `src/lib/reportes/libros/consultas.test.ts` (2 pruebas): simula 2,500 movimientos en 3 lotes y comprueba que `calcularAgrupado` suma los 2,500 (débito 2,500,000 centavos y 2,500 detalles); simula 1,250 cuentas en 2 lotes. No toca Postgres; la verificación con datos reales queda para Coder.
+- Verificado: `pnpm typecheck`; `pnpm check` exit 0 (23 warnings y 4 infos preexistentes, ninguno en lo tocado); `pnpm test` **719** (3 nuevas); `pnpm build` en verde. No se pudo abrir las rutas autenticadas (sin credenciales y sin tocar `.env*`); no se usó la base remota. Sin migraciones ni cambios en el motor contable.
+- Guardar numeraciones ya estaba arreglado y con sus tests (`acciones.test.ts`, `tests/e2e/numeraciones.spec.ts`); no requirió cambios.
+- Fuera: los pgTAP/verificación visual y el período real de más de 1,000 líneas (lo verifica Coder con la base).
 
 ## Fix — Numeraciones vigilan las notas B03/B04 (F16) (17 nov 2026)
 
