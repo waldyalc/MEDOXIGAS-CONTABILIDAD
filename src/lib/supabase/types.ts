@@ -705,8 +705,10 @@ export type Database = {
           descripcion: string
           descuento_pct: number
           id: string
+          impuesto_id: string | null
           itbis: number
           itbis_tasa: number
+          orden: number
           precio: number
           producto_id: string | null
           subtotal: number
@@ -718,8 +720,10 @@ export type Database = {
           descripcion?: string
           descuento_pct?: number
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
+          orden?: number
           precio?: number
           producto_id?: string | null
           subtotal?: number
@@ -731,8 +735,10 @@ export type Database = {
           descripcion?: string
           descuento_pct?: number
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
+          orden?: number
           precio?: number
           producto_id?: string | null
           subtotal?: number
@@ -744,6 +750,13 @@ export type Database = {
             columns: ["cotizacion_id"]
             isOneToOne: false
             referencedRelation: "cotizaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizacion_lineas_impuesto_id_fkey"
+            columns: ["impuesto_id"]
+            isOneToOne: false
+            referencedRelation: "impuestos"
             referencedColumns: ["id"]
           },
           {
@@ -769,6 +782,8 @@ export type Database = {
           itbis: number
           notas: string | null
           numero: number
+          otros_impuestos: number
+          propina: number
           remision_id: string | null
           subtotal: number
           terminos: string | null
@@ -789,6 +804,8 @@ export type Database = {
           itbis?: number
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
+          propina?: number
           remision_id?: string | null
           subtotal?: number
           terminos?: string | null
@@ -809,6 +826,8 @@ export type Database = {
           itbis?: number
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
+          propina?: number
           remision_id?: string | null
           subtotal?: number
           terminos?: string | null
@@ -978,8 +997,10 @@ export type Database = {
           descuento_pct: number
           factura_id: string
           id: string
+          impuesto_id: string | null
           itbis: number
           itbis_tasa: number
+          orden: number
           precio: number
           producto_id: string | null
           subtotal: number
@@ -992,8 +1013,10 @@ export type Database = {
           descuento_pct?: number
           factura_id: string
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
+          orden?: number
           precio?: number
           producto_id?: string | null
           subtotal?: number
@@ -1006,8 +1029,10 @@ export type Database = {
           descuento_pct?: number
           factura_id?: string
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
+          orden?: number
           precio?: number
           producto_id?: string | null
           subtotal?: number
@@ -1019,6 +1044,13 @@ export type Database = {
             columns: ["factura_id"]
             isOneToOne: false
             referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factura_lineas_impuesto_id_fkey"
+            columns: ["impuesto_id"]
+            isOneToOne: false
+            referencedRelation: "impuestos"
             referencedColumns: ["id"]
           },
           {
@@ -1078,6 +1110,7 @@ export type Database = {
           descripcion: string
           descuento_pct: number
           id: string
+          impuesto_id: string | null
           itbis_tasa: number
           precio: number
           producto_id: string | null
@@ -1088,6 +1121,7 @@ export type Database = {
           descripcion?: string
           descuento_pct?: number
           id?: string
+          impuesto_id?: string | null
           itbis_tasa?: number
           precio?: number
           producto_id?: string | null
@@ -1098,12 +1132,20 @@ export type Database = {
           descripcion?: string
           descuento_pct?: number
           id?: string
+          impuesto_id?: string | null
           itbis_tasa?: number
           precio?: number
           producto_id?: string | null
           recurrente_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "factura_recurrente_lineas_impuesto_id_fkey"
+            columns: ["impuesto_id"]
+            isOneToOne: false
+            referencedRelation: "impuestos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "factura_recurrente_lineas_producto_id_fkey"
             columns: ["producto_id"]
@@ -1137,8 +1179,10 @@ export type Database = {
           ncf: string
           notas: string | null
           numero: number
+          otros_impuestos: number
           pagado: number
           pie: string | null
+          propina: number
           retenido: number
           subtotal: number
           terminos: string | null
@@ -1163,8 +1207,10 @@ export type Database = {
           ncf: string
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
           pagado?: number
           pie?: string | null
+          propina?: number
           retenido?: number
           subtotal?: number
           terminos?: string | null
@@ -1189,8 +1235,10 @@ export type Database = {
           ncf?: string
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
           pagado?: number
           pie?: string | null
+          propina?: number
           retenido?: number
           subtotal?: number
           terminos?: string | null
@@ -1253,7 +1301,9 @@ export type Database = {
           ncf: string | null
           notas: string | null
           numero: number
+          otros_impuestos: number
           pagado: number
+          propina: number
           retenido: number
           subtotal: number
           total: number
@@ -1274,7 +1324,9 @@ export type Database = {
           ncf?: string | null
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
           pagado?: number
+          propina?: number
           retenido?: number
           subtotal?: number
           total?: number
@@ -1295,7 +1347,9 @@ export type Database = {
           ncf?: string | null
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
           pagado?: number
+          propina?: number
           retenido?: number
           subtotal?: number
           total?: number
@@ -1340,8 +1394,10 @@ export type Database = {
           descripcion: string
           factura_proveedor_id: string
           id: string
+          impuesto_id: string | null
           itbis: number
           itbis_tasa: number
+          orden: number
           producto_id: string | null
           subtotal: number
           total: number
@@ -1353,8 +1409,10 @@ export type Database = {
           descripcion?: string
           factura_proveedor_id: string
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
+          orden?: number
           producto_id?: string | null
           subtotal?: number
           total?: number
@@ -1366,8 +1424,10 @@ export type Database = {
           descripcion?: string
           factura_proveedor_id?: string
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
+          orden?: number
           producto_id?: string | null
           subtotal?: number
           total?: number
@@ -1385,6 +1445,13 @@ export type Database = {
             columns: ["factura_proveedor_id"]
             isOneToOne: false
             referencedRelation: "facturas_proveedor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_proveedor_lineas_impuesto_id_fkey"
+            columns: ["impuesto_id"]
+            isOneToOne: false
+            referencedRelation: "impuestos"
             referencedColumns: ["id"]
           },
           {
@@ -1464,12 +1531,15 @@ export type Database = {
           estado: string
           fecha: string
           id: string
+          impuesto_id: string | null
           itbis: number
           itbis_tasa: number
           ncf: string | null
           numero: number
+          otros_impuestos: number
           pago_recurrente_id: string | null
           periodo: string | null
+          propina: number
           subtotal: number
           total: number
         }
@@ -1484,12 +1554,15 @@ export type Database = {
           estado?: string
           fecha?: string
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
           ncf?: string | null
           numero?: number
+          otros_impuestos?: number
           pago_recurrente_id?: string | null
           periodo?: string | null
+          propina?: number
           subtotal?: number
           total?: number
         }
@@ -1504,12 +1577,15 @@ export type Database = {
           estado?: string
           fecha?: string
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
           ncf?: string | null
           numero?: number
+          otros_impuestos?: number
           pago_recurrente_id?: string | null
           periodo?: string | null
+          propina?: number
           subtotal?: number
           total?: number
         }
@@ -1543,10 +1619,61 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "gastos_menores_impuesto_id_fkey"
+            columns: ["impuesto_id"]
+            isOneToOne: false
+            referencedRelation: "impuestos"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "gastos_menores_pago_recurrente_id_fkey"
             columns: ["pago_recurrente_id"]
             isOneToOne: false
             referencedRelation: "pagos_recurrentes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      impuestos: {
+        Row: {
+          activo: boolean
+          codigo: string
+          creado_en: string
+          cuenta_id: string | null
+          id: string
+          nombre: string
+          orden: number
+          tarifa: number
+          tipo: string
+        }
+        Insert: {
+          activo?: boolean
+          codigo: string
+          creado_en?: string
+          cuenta_id?: string | null
+          id?: string
+          nombre: string
+          orden?: number
+          tarifa?: number
+          tipo: string
+        }
+        Update: {
+          activo?: boolean
+          codigo?: string
+          creado_en?: string
+          cuenta_id?: string | null
+          id?: string
+          nombre?: string
+          orden?: number
+          tarifa?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impuestos_cuenta_id_fkey"
+            columns: ["cuenta_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
             referencedColumns: ["id"]
           },
         ]
@@ -1613,9 +1740,11 @@ export type Database = {
           descripcion: string
           factura_proveedor_linea_id: string
           id: string
+          impuesto_id: string | null
           itbis: number
           itbis_tasa: number
           nota_id: string
+          orden: number
           producto_id: string | null
           subtotal: number
           total: number
@@ -1627,9 +1756,11 @@ export type Database = {
           descripcion?: string
           factura_proveedor_linea_id: string
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
           nota_id: string
+          orden?: number
           producto_id?: string | null
           subtotal?: number
           total?: number
@@ -1641,9 +1772,11 @@ export type Database = {
           descripcion?: string
           factura_proveedor_linea_id?: string
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
           nota_id?: string
+          orden?: number
           producto_id?: string | null
           subtotal?: number
           total?: number
@@ -1661,6 +1794,13 @@ export type Database = {
             columns: ["factura_proveedor_linea_id"]
             isOneToOne: false
             referencedRelation: "facturas_proveedor_lineas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nota_credito_compra_lineas_impuesto_id_fkey"
+            columns: ["impuesto_id"]
+            isOneToOne: false
+            referencedRelation: "impuestos"
             referencedColumns: ["id"]
           },
           {
@@ -1687,9 +1827,11 @@ export type Database = {
           descuento_pct: number
           factura_linea_id: string
           id: string
+          impuesto_id: string | null
           itbis: number
           itbis_tasa: number
           nota_id: string
+          orden: number
           precio: number
           producto_id: string | null
           subtotal: number
@@ -1702,9 +1844,11 @@ export type Database = {
           descuento_pct?: number
           factura_linea_id: string
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
           nota_id: string
+          orden?: number
           precio?: number
           producto_id?: string | null
           subtotal?: number
@@ -1717,9 +1861,11 @@ export type Database = {
           descuento_pct?: number
           factura_linea_id?: string
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
           nota_id?: string
+          orden?: number
           precio?: number
           producto_id?: string | null
           subtotal?: number
@@ -1731,6 +1877,13 @@ export type Database = {
             columns: ["factura_linea_id"]
             isOneToOne: false
             referencedRelation: "factura_lineas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nota_credito_venta_lineas_impuesto_id_fkey"
+            columns: ["impuesto_id"]
+            isOneToOne: false
+            referencedRelation: "impuestos"
             referencedColumns: ["id"]
           },
           {
@@ -1755,9 +1908,11 @@ export type Database = {
           descripcion: string
           descuento_pct: number
           id: string
+          impuesto_id: string | null
           itbis: number
           itbis_tasa: number
           nota_id: string
+          orden: number
           precio: number
           producto_id: string | null
           subtotal: number
@@ -1768,9 +1923,11 @@ export type Database = {
           descripcion?: string
           descuento_pct?: number
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
           nota_id: string
+          orden?: number
           precio?: number
           producto_id?: string | null
           subtotal?: number
@@ -1781,15 +1938,24 @@ export type Database = {
           descripcion?: string
           descuento_pct?: number
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
           nota_id?: string
+          orden?: number
           precio?: number
           producto_id?: string | null
           subtotal?: number
           total?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "nota_debito_venta_lineas_impuesto_id_fkey"
+            columns: ["impuesto_id"]
+            isOneToOne: false
+            referencedRelation: "impuestos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "nota_debito_venta_lineas_nota_id_fkey"
             columns: ["nota_id"]
@@ -1822,6 +1988,8 @@ export type Database = {
           ncf: string | null
           notas: string | null
           numero: number
+          otros_impuestos: number
+          propina: number
           subtotal: number
           total: number
         }
@@ -1840,6 +2008,8 @@ export type Database = {
           ncf?: string | null
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
+          propina?: number
           subtotal?: number
           total?: number
         }
@@ -1858,6 +2028,8 @@ export type Database = {
           ncf?: string | null
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
+          propina?: number
           subtotal?: number
           total?: number
         }
@@ -1908,6 +2080,8 @@ export type Database = {
           ncf: string
           notas: string | null
           numero: number
+          otros_impuestos: number
+          propina: number
           subtotal: number
           total: number
         }
@@ -1926,6 +2100,8 @@ export type Database = {
           ncf: string
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
+          propina?: number
           subtotal?: number
           total?: number
         }
@@ -1944,6 +2120,8 @@ export type Database = {
           ncf?: string
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
+          propina?: number
           subtotal?: number
           total?: number
         }
@@ -1993,6 +2171,8 @@ export type Database = {
           ncf: string
           notas: string | null
           numero: number
+          otros_impuestos: number
+          propina: number
           subtotal: number
           tipo: string
           total: number
@@ -2011,6 +2191,8 @@ export type Database = {
           ncf: string
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
+          propina?: number
           subtotal?: number
           tipo: string
           total?: number
@@ -2029,6 +2211,8 @@ export type Database = {
           ncf?: string
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
+          propina?: number
           subtotal?: number
           tipo?: string
           total?: number
@@ -2097,8 +2281,10 @@ export type Database = {
           cuenta_id: string | null
           descripcion: string
           id: string
+          impuesto_id: string | null
           itbis: number
           itbis_tasa: number
+          orden: number
           orden_id: string
           producto_id: string | null
           subtotal: number
@@ -2110,8 +2296,10 @@ export type Database = {
           cuenta_id?: string | null
           descripcion?: string
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
+          orden?: number
           orden_id: string
           producto_id?: string | null
           subtotal?: number
@@ -2123,8 +2311,10 @@ export type Database = {
           cuenta_id?: string | null
           descripcion?: string
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
+          orden?: number
           orden_id?: string
           producto_id?: string | null
           subtotal?: number
@@ -2136,6 +2326,13 @@ export type Database = {
             columns: ["cuenta_id"]
             isOneToOne: false
             referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orden_compra_lineas_impuesto_id_fkey"
+            columns: ["impuesto_id"]
+            isOneToOne: false
+            referencedRelation: "impuestos"
             referencedColumns: ["id"]
           },
           {
@@ -2167,6 +2364,8 @@ export type Database = {
           itbis: number
           notas: string | null
           numero: number
+          otros_impuestos: number
+          propina: number
           subtotal: number
           terminos: string | null
           total: number
@@ -2183,6 +2382,8 @@ export type Database = {
           itbis?: number
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
+          propina?: number
           subtotal?: number
           terminos?: string | null
           total?: number
@@ -2199,6 +2400,8 @@ export type Database = {
           itbis?: number
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
+          propina?: number
           subtotal?: number
           terminos?: string | null
           total?: number
@@ -2301,6 +2504,48 @@ export type Database = {
           },
         ]
       }
+      pago_proveedor_retenciones: {
+        Row: {
+          base: number
+          id: string
+          monto: number
+          pago_id: string
+          porcentaje: number
+          retencion_id: string
+        }
+        Insert: {
+          base?: number
+          id?: string
+          monto: number
+          pago_id: string
+          porcentaje?: number
+          retencion_id: string
+        }
+        Update: {
+          base?: number
+          id?: string
+          monto?: number
+          pago_id?: string
+          porcentaje?: number
+          retencion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pago_proveedor_retenciones_pago_id_fkey"
+            columns: ["pago_id"]
+            isOneToOne: false
+            referencedRelation: "pagos_proveedor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pago_proveedor_retenciones_retencion_id_fkey"
+            columns: ["retencion_id"]
+            isOneToOne: false
+            referencedRelation: "retenciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pago_recibido_aplicacion_retenciones: {
         Row: {
           aplicacion_id: string
@@ -2378,48 +2623,6 @@ export type Database = {
             columns: ["pago_id"]
             isOneToOne: false
             referencedRelation: "pagos_recibidos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pago_proveedor_retenciones: {
-        Row: {
-          base: number
-          id: string
-          monto: number
-          pago_id: string
-          porcentaje: number
-          retencion_id: string
-        }
-        Insert: {
-          base?: number
-          id?: string
-          monto: number
-          pago_id: string
-          porcentaje?: number
-          retencion_id: string
-        }
-        Update: {
-          base?: number
-          id?: string
-          monto?: number
-          pago_id?: string
-          porcentaje?: number
-          retencion_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pago_proveedor_retenciones_pago_id_fkey"
-            columns: ["pago_id"]
-            isOneToOne: false
-            referencedRelation: "pagos_proveedor"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pago_proveedor_retenciones_retencion_id_fkey"
-            columns: ["retencion_id"]
-            isOneToOne: false
-            referencedRelation: "retenciones"
             referencedColumns: ["id"]
           },
         ]
@@ -2637,6 +2840,7 @@ export type Database = {
           fecha_inicio: string
           frecuencia_meses: number
           id: string
+          impuesto_id: string | null
           itbis_tasa: number
           nombre: string
           notas: string | null
@@ -2653,6 +2857,7 @@ export type Database = {
           fecha_inicio?: string
           frecuencia_meses: number
           id?: string
+          impuesto_id?: string | null
           itbis_tasa?: number
           nombre: string
           notas?: string | null
@@ -2669,6 +2874,7 @@ export type Database = {
           fecha_inicio?: string
           frecuencia_meses?: number
           id?: string
+          impuesto_id?: string | null
           itbis_tasa?: number
           nombre?: string
           notas?: string | null
@@ -2695,6 +2901,13 @@ export type Database = {
             columns: ["cuenta_pago_id"]
             isOneToOne: false
             referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_recurrentes_impuesto_id_fkey"
+            columns: ["impuesto_id"]
+            isOneToOne: false
+            referencedRelation: "impuestos"
             referencedColumns: ["id"]
           },
         ]
@@ -2813,6 +3026,7 @@ export type Database = {
           cuenta_inventario_id: string | null
           descripcion: string | null
           id: string
+          impuesto_id: string | null
           inventariable: boolean
           itbis_tasa: number
           nombre: string
@@ -2831,6 +3045,7 @@ export type Database = {
           cuenta_inventario_id?: string | null
           descripcion?: string | null
           id?: string
+          impuesto_id?: string | null
           inventariable?: boolean
           itbis_tasa?: number
           nombre: string
@@ -2849,6 +3064,7 @@ export type Database = {
           cuenta_inventario_id?: string | null
           descripcion?: string | null
           id?: string
+          impuesto_id?: string | null
           inventariable?: boolean
           itbis_tasa?: number
           nombre?: string
@@ -2885,6 +3101,13 @@ export type Database = {
             referencedRelation: "cuentas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "productos_impuesto_id_fkey"
+            columns: ["impuesto_id"]
+            isOneToOne: false
+            referencedRelation: "impuestos"
+            referencedColumns: ["id"]
+          },
         ]
       }
       remision_lineas: {
@@ -2893,8 +3116,10 @@ export type Database = {
           descripcion: string
           descuento_pct: number
           id: string
+          impuesto_id: string | null
           itbis: number
           itbis_tasa: number
+          orden: number
           precio: number
           producto_id: string | null
           remision_id: string
@@ -2906,8 +3131,10 @@ export type Database = {
           descripcion?: string
           descuento_pct?: number
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
+          orden?: number
           precio?: number
           producto_id?: string | null
           remision_id: string
@@ -2919,8 +3146,10 @@ export type Database = {
           descripcion?: string
           descuento_pct?: number
           id?: string
+          impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
+          orden?: number
           precio?: number
           producto_id?: string | null
           remision_id?: string
@@ -2928,6 +3157,13 @@ export type Database = {
           total?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "remision_lineas_impuesto_id_fkey"
+            columns: ["impuesto_id"]
+            isOneToOne: false
+            referencedRelation: "impuestos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "remision_lineas_producto_id_fkey"
             columns: ["producto_id"]
@@ -2958,6 +3194,8 @@ export type Database = {
           itbis: number
           notas: string | null
           numero: number
+          otros_impuestos: number
+          propina: number
           subtotal: number
           terminos: string | null
           total: number
@@ -2977,6 +3215,8 @@ export type Database = {
           itbis?: number
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
+          propina?: number
           subtotal?: number
           terminos?: string | null
           total?: number
@@ -2996,6 +3236,8 @@ export type Database = {
           itbis?: number
           notas?: string | null
           numero?: number
+          otros_impuestos?: number
+          propina?: number
           subtotal?: number
           terminos?: string | null
           total?: number
@@ -3263,352 +3505,822 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      _almacen_principal: { Args: never; Returns: string }
-      _conciliacion_lineas: { Args: { p_lineas: Json }; Returns: string[] }
+      _actualizar_producto_sin_impuestos: {
+        Args: {
+          p_id: string
+          p: Json
+        }
+        Returns: string
+      }
+      _almacen_principal: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      _conciliacion_lineas: {
+        Args: {
+          p_lineas: Json
+        }
+        Returns: string[]
+      }
       _crear_asiento: {
         Args: {
-          p_descripcion: string
           p_fecha: string
-          p_lineas: Json
-          p_origen_id: string
+          p_descripcion: string
           p_origen_tipo: string
+          p_origen_id: string
+          p_lineas: Json
         }
         Returns: string
       }
       _crear_documento_no_contable: {
-        Args: { p: Json; p_tipo: string }
+        Args: {
+          p_tipo: string
+          p: Json
+        }
+        Returns: string
+      }
+      _crear_documento_no_contable_sin_impuestos: {
+        Args: {
+          p_tipo: string
+          p: Json
+        }
+        Returns: string
+      }
+      _crear_factura_proveedor_sin_impuestos: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      _crear_factura_sin_impuestos: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      _crear_gasto_menor_sin_impuestos: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      _crear_nota_credito_compra_sin_impuestos: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      _crear_nota_credito_venta_sin_impuestos: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      _crear_nota_debito_venta_sin_impuestos: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      _crear_orden_compra_sin_impuestos: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      _crear_producto_sin_impuestos: {
+        Args: {
+          p: Json
+        }
         Returns: string
       }
       _cuenta_conciliacion: {
         Args: {
-          p_codigo: string
           p_cuenta_id: string
-          p_naturaleza: string
           p_nombre: string
-          p_padre_codigo: string
+          p_codigo: string
           p_tipo: string
+          p_naturaleza: string
+          p_padre_codigo: string
         }
         Returns: string
       }
-      _cuenta_config: { Args: { p_clave: string }; Returns: string }
+      _cuenta_config: {
+        Args: {
+          p_clave: string
+        }
+        Returns: string
+      }
       _editar_documento_no_contable: {
-        Args: { p: Json; p_tipo: string }
+        Args: {
+          p_tipo: string
+          p: Json
+        }
+        Returns: string
+      }
+      _editar_documento_no_contable_sin_impuestos: {
+        Args: {
+          p_tipo: string
+          p: Json
+        }
         Returns: string
       }
       _guardar_conciliacion_cabecera: {
         Args: {
           p_conciliacion_id: string
-          p_cuenta_entradas: string
-          p_cuenta_gastos: string
           p_cuenta_id: string
-          p_cuenta_impuestos: string
           p_desde: string
-          p_entradas: number
-          p_gastos: number
           p_hasta: string
-          p_impuestos: number
           p_saldo: number
+          p_gastos: number
+          p_impuestos: number
+          p_entradas: number
+          p_cuenta_gastos: string
+          p_cuenta_impuestos: string
+          p_cuenta_entradas: string
         }
         Returns: string
       }
-      _mover_existencia: {
+      _impuesto_id_por_tasa: {
         Args: {
-          p_almacen_id: string
-          p_cantidad: number
-          p_producto_id: string
+          p_tasa: number
+        }
+        Returns: string
+      }
+      _impuestos_actualizar_totales: {
+        Args: {
+          p_tabla_documento: string
+          p_documento_id: string
+          p_tabla_lineas: string
+          p_clave: string
         }
         Returns: undefined
       }
-      _sumar_existencia: {
+      _impuestos_dividir_asiento: {
         Args: {
+          p_asiento_id: string
+          p_cuenta_impuesto: string
+          p_tabla_lineas: string
+          p_clave: string
+          p_documento_id: string
+          p_lado: string
+          p_etiqueta: string
+        }
+        Returns: undefined
+      }
+      _impuestos_preparar: {
+        Args: {
+          p_lineas: Json
+        }
+        Returns: Json
+      }
+      _impuestos_preparar_fuente: {
+        Args: {
+          p_lineas: Json
+          p_tabla: string
+          p_clave: string
+        }
+        Returns: Json
+      }
+      _impuestos_sincronizar: {
+        Args: {
+          p_tabla: string
+          p_clave: string
+          p_documento_id: string
+        }
+        Returns: undefined
+      }
+      _mover_existencia: {
+        Args: {
+          p_producto_id: string
           p_almacen_id: string
           p_cantidad: number
+        }
+        Returns: undefined
+      }
+      _resolver_impuesto: {
+        Args: {
+          p_impuesto_id: string
+          p_tasa: number
+        }
+        Returns: {
+          activo: boolean
+          codigo: string
+          creado_en: string
+          cuenta_id: string | null
+          id: string
+          nombre: string
+          orden: number
+          tarifa: number
+          tipo: string
+        }
+      }
+      _sumar_existencia: {
+        Args: {
           p_producto_id: string
+          p_almacen_id: string
+          p_cantidad: number
         }
         Returns: undefined
       }
       _validar_movimientos_conciliacion: {
         Args: {
-          p_conciliacion_id: string
           p_cuenta_id: string
           p_desde: string
           p_hasta: string
           p_lineas: string[]
+          p_conciliacion_id: string
         }
         Returns: undefined
       }
-      _validar_pago_recurrente: { Args: { p: Json }; Returns: Json }
-      actualizar_almacen: { Args: { p: Json; p_id: string }; Returns: string }
+      _validar_pago_recurrente: {
+        Args: {
+          p: Json
+        }
+        Returns: Json
+      }
+      actualizar_almacen: {
+        Args: {
+          p_id: string
+          p: Json
+        }
+        Returns: string
+      }
       actualizar_categoria_producto: {
-        Args: { p: Json; p_id: string }
+        Args: {
+          p_id: string
+          p: Json
+        }
         Returns: string
       }
       actualizar_centro_costo: {
-        Args: { p: Json; p_id: string }
+        Args: {
+          p_id: string
+          p: Json
+        }
         Returns: string
       }
-      actualizar_contacto: { Args: { p: Json; p_id: string }; Returns: string }
-      actualizar_cuenta: { Args: { p: Json }; Returns: string }
-      actualizar_empresa: { Args: { p: Json }; Returns: undefined }
+      actualizar_contacto: {
+        Args: {
+          p_id: string
+          p: Json
+        }
+        Returns: string
+      }
+      actualizar_cuenta: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      actualizar_empresa: {
+        Args: {
+          p: Json
+        }
+        Returns: undefined
+      }
       actualizar_lista_precio: {
-        Args: { p: Json; p_id: string }
+        Args: {
+          p_id: string
+          p: Json
+        }
         Returns: string
       }
-      actualizar_numeracion: { Args: { p: Json }; Returns: string }
+      actualizar_numeracion: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
       actualizar_pago_recurrente: {
-        Args: { p: Json; p_id: string }
+        Args: {
+          p_id: string
+          p: Json
+        }
         Returns: string
       }
-      actualizar_producto: { Args: { p: Json; p_id: string }; Returns: string }
-      actualizar_retencion: { Args: { p: Json }; Returns: undefined }
-      actualizar_vendedor: { Args: { p: Json; p_id: string }; Returns: string }
+      actualizar_producto: {
+        Args: {
+          p_id: string
+          p: Json
+        }
+        Returns: string
+      }
+      actualizar_retencion: {
+        Args: {
+          p: Json
+        }
+        Returns: undefined
+      }
+      actualizar_vendedor: {
+        Args: {
+          p_id: string
+          p: Json
+        }
+        Returns: string
+      }
       anular_documento: {
-        Args: { p_id: string; p_tipo: string }
+        Args: {
+          p_tipo: string
+          p_id: string
+        }
         Returns: string
       }
       anular_transferencia_inventario: {
-        Args: { p_id: string }
+        Args: {
+          p_id: string
+        }
         Returns: string
       }
       catalogo_saldos: {
-        Args: { p_hasta?: string }
+        Args: {
+          p_hasta?: string
+        }
         Returns: {
           cuenta_codigo: string
           saldo: number
         }[]
       }
-      cerrar_periodo: { Args: { p_periodo: string }; Returns: string }
-      cerrar_resultados_anio: { Args: { p_anio: number }; Returns: string }
-      conciliar_cuenta: { Args: { p: Json }; Returns: string }
-      convertir_a_factura: { Args: { p: Json }; Returns: string }
-      crear_activo_fijo: { Args: { p: Json }; Returns: string }
-      crear_ajuste_inventario: { Args: { p: Json }; Returns: string }
-      crear_almacen: { Args: { p: Json }; Returns: string }
-      crear_asiento_manual: { Args: { p: Json }; Returns: string }
-      crear_categoria_producto: { Args: { p: Json }; Returns: string }
-      crear_centro_costo: { Args: { p: Json }; Returns: string }
-      crear_contacto: { Args: { p: Json }; Returns: string }
-      crear_cotizacion: { Args: { p: Json }; Returns: string }
-      crear_cuenta: { Args: { p: Json }; Returns: string }
-      crear_cuenta_banco: { Args: { p: Json }; Returns: string }
-      crear_factura: { Args: { p: Json }; Returns: string }
-      crear_factura_proveedor: { Args: { p: Json }; Returns: string }
-      crear_factura_recurrente: { Args: { p: Json }; Returns: string }
-      crear_gasto_menor: { Args: { p: Json }; Returns: string }
-      crear_lista_precio: { Args: { p: Json }; Returns: string }
-      crear_nota_credito_compra: { Args: { p: Json }; Returns: string }
-      crear_nota_credito_venta: { Args: { p: Json }; Returns: string }
-      crear_nota_debito_venta: { Args: { p: Json }; Returns: string }
-      crear_orden_compra: { Args: { p: Json }; Returns: string }
-      crear_pago_recurrente: { Args: { p: Json }; Returns: string }
-      crear_producto: { Args: { p: Json }; Returns: string }
-      crear_remision: { Args: { p: Json }; Returns: string }
-      crear_remision_desde_cotizacion: { Args: { p: Json }; Returns: string }
-      crear_retencion: { Args: { p: Json }; Returns: string }
-      crear_termino_pago: { Args: { p: Json }; Returns: string }
-      crear_transferencia_inventario: { Args: { p: Json }; Returns: string }
-      crear_vendedor: { Args: { p: Json }; Returns: string }
+      cerrar_periodo: {
+        Args: {
+          p_periodo: string
+        }
+        Returns: string
+      }
+      cerrar_resultados_anio: {
+        Args: {
+          p_anio: number
+        }
+        Returns: string
+      }
+      conciliar_cuenta: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      convertir_a_factura: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_activo_fijo: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_ajuste_inventario: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_almacen: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_asiento_manual: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_categoria_producto: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_centro_costo: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_contacto: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_cotizacion: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_cuenta: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_cuenta_banco: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_factura: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_factura_proveedor: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_factura_recurrente: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_gasto_menor: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_lista_precio: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_nota_credito_compra: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_nota_credito_venta: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_nota_debito_venta: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_orden_compra: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_pago_recurrente: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_producto: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_remision: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_remision_desde_cotizacion: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_retencion: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_termino_pago: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_transferencia_inventario: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      crear_vendedor: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
       dashboard_resumen: {
-        Args: { p_desde: string; p_hasta: string }
+        Args: {
+          p_desde: string
+          p_hasta: string
+        }
         Returns: Json
       }
       depreciar_activo: {
-        Args: { p_activo_id: string; p_periodo?: string }
+        Args: {
+          p_activo_id: string
+          p_periodo?: string
+        }
         Returns: string
       }
-      editar_cotizacion: { Args: { p: Json }; Returns: string }
-      editar_remision: { Args: { p: Json }; Returns: string }
+      editar_cotizacion: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      editar_remision: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
       generar_factura_recurrente: {
-        Args: { p_fecha?: string; p_recurrente_id: string }
+        Args: {
+          p_recurrente_id: string
+          p_fecha?: string
+        }
         Returns: string
       }
-      generar_pago_recurrente: { Args: { p_id: string }; Returns: string }
-      guardar_borrador_conciliacion: { Args: { p: Json }; Returns: string }
-      guardar_plantilla_impresion: { Args: { p: Json }; Returns: string }
-      guardar_tasa_cambio: { Args: { p: Json }; Returns: string }
+      generar_pago_recurrente: {
+        Args: {
+          p_id: string
+        }
+        Returns: string
+      }
+      guardar_borrador_conciliacion: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      guardar_plantilla_impresion: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      guardar_tasa_cambio: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
       listar_perfiles: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
-          correo: string
-          creado_en: string
-          nombre: string
-          rol: string
           user_id: string
+          nombre: string
+          correo: string
+          rol: string
+          creado_en: string
         }[]
       }
       listar_retenciones: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
-          activa: boolean
-          cuenta_anticipo_codigo: string
-          cuenta_anticipo_id: string
-          cuenta_anticipo_nombre: string
-          cuenta_codigo: string
-          cuenta_id: string
-          cuenta_nombre: string
           id: string
           nombre: string
-          porcentaje: number
           tipo: string
+          porcentaje: number
+          cuenta_id: string
+          cuenta_codigo: string
+          cuenta_nombre: string
+          cuenta_anticipo_id: string
+          cuenta_anticipo_codigo: string
+          cuenta_anticipo_nombre: string
+          activa: boolean
         }[]
       }
       listar_terminos_pago: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: {
-          activo: boolean
-          dias: number
           id: string
           nombre: string
+          dias: number
+          activo: boolean
         }[]
       }
-      reabrir_periodo: { Args: { p_periodo: string }; Returns: string }
-      registrar_deposito: { Args: { p: Json }; Returns: string }
-      registrar_pago_proveedor: { Args: { p: Json }; Returns: string }
-      registrar_pago_proveedor_multi: {
-        Args: { p_aplicaciones: Json; p_encabezado: Json }
+      reabrir_periodo: {
+        Args: {
+          p_periodo: string
+        }
         Returns: string
       }
-      registrar_pago_recibido: { Args: { p: Json }; Returns: string }
+      registrar_deposito: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      registrar_pago_proveedor: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
+      registrar_pago_proveedor_multi: {
+        Args: {
+          p_encabezado: Json
+          p_aplicaciones: Json
+        }
+        Returns: string
+      }
+      registrar_pago_recibido: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
       registrar_pago_recibido_multi: {
-        Args: { p_aplicaciones: Json; p_encabezado: Json }
+        Args: {
+          p_encabezado: Json
+          p_aplicaciones: Json
+        }
         Returns: string
       }
       reporte_balance_comprobacion: {
-        Args: { p_desde: string; p_hasta: string }
+        Args: {
+          p_desde: string
+          p_hasta: string
+        }
         Returns: {
-          creditos: number
           cuenta_codigo: string
           cuenta_nombre: string
-          debitos: number
-          saldo: number
           tipo: string
+          debitos: number
+          creditos: number
+          saldo: number
         }[]
       }
       reporte_cxc: {
-        Args: { p_fecha: string }
+        Args: {
+          p_fecha: string
+        }
         Returns: {
           contacto_id: string
           contacto_nombre: string
-          dias_vencida: number
           factura_id: string
-          fecha: string
-          ncf: string
           numero: number
+          ncf: string
+          fecha: string
+          vencimiento: string
+          total: number
           pagado: number
           saldo: number
-          total: number
-          vencimiento: string
+          dias_vencida: number
         }[]
       }
       reporte_estado_resultados: {
-        Args: { p_desde: string; p_hasta: string }
+        Args: {
+          p_desde: string
+          p_hasta: string
+        }
         Returns: {
+          tipo: string
           cuenta_codigo: string
           cuenta_nombre: string
           monto: number
-          tipo: string
         }[]
       }
       reporte_estado_resultados_centro: {
-        Args: { p_centro_costo?: string; p_desde: string; p_hasta: string }
+        Args: {
+          p_desde: string
+          p_hasta: string
+          p_centro_costo?: string
+        }
         Returns: {
+          tipo: string
           cuenta_codigo: string
           cuenta_nombre: string
           monto: number
-          tipo: string
         }[]
       }
       reporte_libro_diario: {
-        Args: { p_desde: string; p_hasta: string }
+        Args: {
+          p_desde: string
+          p_hasta: string
+        }
         Returns: {
-          asiento_descripcion: string
           asiento_numero: number
-          credito: number
+          fecha: string
+          asiento_descripcion: string
+          origen_tipo: string
           cuenta_codigo: string
           cuenta_nombre: string
           debito: number
-          fecha: string
-          origen_tipo: string
+          credito: number
         }[]
       }
       reporte_movimientos: {
         Args: {
-          p_contacto?: string
-          p_cuentas?: string[]
           p_desde: string
           p_hasta: string
+          p_cuentas?: string[]
+          p_contacto?: string
           p_origenes?: string[]
         }
         Returns: {
           asiento_id: string
           asiento_numero: number
-          contacto_id: string
-          credito: number
-          cuenta_codigo: string
-          cuenta_id: string
-          cuenta_naturaleza: string
-          cuenta_nombre: string
-          debito: number
-          documento: string
-          estado: string
           fecha: string
+          estado: string
           origen_tipo: string
+          documento: string
+          contacto_id: string
           tercero: string
+          cuenta_id: string
+          cuenta_codigo: string
+          cuenta_nombre: string
+          cuenta_naturaleza: string
+          debito: number
+          credito: number
         }[]
       }
       reporte_saldos_cuentas: {
         Args: {
-          p_cierre_anual?: boolean
-          p_cuentas?: string[]
           p_desde: string
           p_hasta: string
+          p_cierre_anual?: boolean
+          p_cuentas?: string[]
         }
         Returns: {
-          creditos: number
-          cuenta_codigo: string
           cuenta_id: string
-          cuenta_naturaleza: string
+          cuenta_codigo: string
           cuenta_nombre: string
           cuenta_tipo: string
-          debitos: number
+          cuenta_naturaleza: string
           padre_id: string
           saldo_inicial: number
+          debitos: number
+          creditos: number
         }[]
       }
       reporte_saldos_tercero: {
         Args: {
-          p_contacto?: string
-          p_cuentas?: string[]
           p_desde: string
           p_hasta: string
+          p_cuentas?: string[]
+          p_contacto?: string
           p_incluir_cero?: boolean
         }
         Returns: {
-          contacto_id: string
-          creditos: number
-          cuenta_codigo: string
           cuenta_id: string
-          cuenta_naturaleza: string
+          cuenta_codigo: string
           cuenta_nombre: string
           cuenta_tipo: string
-          debitos: number
-          saldo_inicial: number
+          cuenta_naturaleza: string
+          contacto_id: string
           tercero: string
+          saldo_inicial: number
+          debitos: number
+          creditos: number
         }[]
       }
-      rol_actual: { Args: never; Returns: string }
+      rol_actual: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       saldos_caja_banco: {
-        Args: { p_fecha?: string }
+        Args: {
+          p_fecha?: string
+        }
         Returns: {
-          codigo: string
           cuenta_id: string
+          codigo: string
           nombre: string
           saldo: number
         }[]
       }
-      transferir_entre_cuentas: { Args: { p: Json }; Returns: string }
+      transferir_entre_cuentas: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
       vincular_orden_compra: {
-        Args: { p_factura_proveedor_id: string; p_orden_id: string }
+        Args: {
+          p_orden_id: string
+          p_factura_proveedor_id: string
+        }
         Returns: string
       }
     }

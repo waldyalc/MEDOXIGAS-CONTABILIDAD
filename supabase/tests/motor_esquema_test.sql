@@ -54,7 +54,7 @@ select is((select count(*)::int from public.cuentas where codigo in ('1101','110
 
 select is((select es_caja_banco from public.cuentas where codigo = '1106'), true, '1106 Caja chica marcada es_caja_banco');
 
-select is((select count(*)::int from public.config_contable), 12, 'config_contable tiene 12 claves');
+select is((select count(*)::int from public.config_contable), 17, 'config_contable tiene 17 claves');
 
 select is(
   (select count(*)::int
@@ -64,9 +64,11 @@ select is(
      ('caja','1101'), ('banco','1102'), ('cxc','1103'), ('inventario','1104'),
      ('itbis_adelantado','1105'), ('cxp','2101'), ('itbis_por_pagar','2102'),
      ('ventas','4101'), ('ventas_servicios','4102'), ('costo_ventas','5101'),
-     ('gastos_generales','6101'), ('caja_chica','1106')
+     ('gastos_generales','6101'), ('caja_chica','1106'), ('ajuste_inventario','5102'),
+     ('retencion_itbis_por_cobrar','1107'), ('retencion_isr_por_cobrar','1108'),
+     ('retencion_itbis_por_pagar','2103'), ('retencion_isr_por_pagar','2104')
    )),
-  12,
+  17,
   'config_contable mapea a las cuentas correctas'
 );
 
