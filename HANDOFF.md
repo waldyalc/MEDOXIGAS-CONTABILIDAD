@@ -1,5 +1,15 @@
 # Handoff — Medoxigas Contabilidad
 
+## Fix — Reportes de libros: RPC directo y paginación completa (16 nov 2026)
+
+- Rama `fix/reportes-libros-rpc` (desde `origin/prueba` b1f3f27). El `TypeError (reading 'rest')` de los 6 reportes de libros y de Guardar numeraciones **ya estaba corregido en `prueba`** (`cdfea68`, llamar `supabase.rpc` directo) y los libros pesados ya paginaban (`8cc75cf`). Esta rama no reintroduce el patrón; cierra el hueco que quedaba y lo blinda.
+- `src/lib/rpc-sin-extraer.test.ts`: además de `const rpc = supabase.rpc`, ahora detecta `RpcSuelta`, el cast `.rpc as`, la asignación y la desestructuración `{ rpc } = …`. El propio test comprueba que reconoce el código histórico (`as unknown as RpcSuelta`) y que no marca llamadas directas; el mensaje explica el `this` perdido y cómo arreglarlo.
+- `src/lib/reportes/libros/consultas.ts`: `obtenerSaldosCuentas` (balance de comprobación y agrupado) era la única RPC de libros sin paginar; ahora usa `paginarConsulta` con `range` de 1,000 y orden determinístico `cuenta_codigo, cuenta_id`. Movimientos y saldos por tercero ya lo hacían. Sin cambios de firmas, cálculos ni diseño.
+- Regresión nueva `src/lib/reportes/libros/consultas.test.ts` (2 pruebas): simula 2,500 movimientos en 3 lotes y comprueba que `calcularAgrupado` suma los 2,500 (débito 2,500,000 centavos y 2,500 detalles); simula 1,250 cuentas en 2 lotes. No toca Postgres; la verificación con datos reales queda para Coder.
+- Verificado: `pnpm typecheck`; `pnpm check` exit 0 (23 warnings y 4 infos preexistentes, ninguno en lo tocado); `pnpm test` **719** (3 nuevas); `pnpm build` en verde. No se pudo abrir las rutas autenticadas (sin credenciales y sin tocar `.env*`); no se usó la base remota. Sin migraciones ni cambios en el motor contable.
+- Guardar numeraciones ya estaba arreglado y con sus tests (`acciones.test.ts`, `tests/e2e/numeraciones.spec.ts`); no requirió cambios.
+- Fuera: los pgTAP/verificación visual y el período real de más de 1,000 líneas (lo verifica Coder con la base).
+
 ## Fix — Últimas listas y selectores de contactos en servidor (15 nov 2026)
 
 - Rama `fix/listas-finales` (desde `prueba` 18a0f01). Ahora paginan en el servidor, con `pagina`/`tamano`/`q`, el total real y navegación hasta la última página: **Cotizaciones**, **Conduces**, **Gastos menores**, **Órdenes de compra**, **Facturas recurrentes**, **Activos fijos** y **Notas de crédito de compras**. Se reutilizaron `leerOpcionesLista`, `rangoPagina`, `resumirPagina`, `BuscadorLista`, `PaginadorLista`, `contactosQueCoinciden` y `condicionesDocumento`; no hay patrón nuevo.
