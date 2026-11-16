@@ -26,7 +26,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
       defaultOpen={defaultOpen}
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 68)",
+          "--sidebar-width": "calc(var(--spacing) * 60)",
         } as React.CSSProperties
       }
     >
