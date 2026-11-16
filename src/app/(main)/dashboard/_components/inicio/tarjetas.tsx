@@ -26,7 +26,7 @@ export function TarjetaCartera({ titulo, href, datos, className }: TarjetaCarter
   return (
     <Card
       className={cn(
-        "relative h-full gap-0 rounded-[10px] py-5 ring-[#e2e8f0] dark:ring-border sm:col-span-2 lg:col-span-1 lg:row-span-2",
+        "relative gap-0 rounded-[10px] py-5 ring-[#e2e8f0] dark:ring-border sm:col-span-2 lg:col-span-1 lg:row-span-2 lg:self-start",
         "has-[a:focus-visible]:ring-ring has-[a:focus-visible]:ring-2",
         className,
       )}
@@ -102,7 +102,7 @@ function DetalleCartera({ etiqueta, grupo, tono }: DetalleCarteraProps) {
       >
         {formatearRd(centavos(grupo.monto))}
       </span>
-      <span className="text-muted-foreground text-xs">{documentos}</span>
+      <span className="text-muted-foreground text-xs whitespace-nowrap">{documentos}</span>
     </div>
   );
 }

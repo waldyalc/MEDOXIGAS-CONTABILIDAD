@@ -17,7 +17,7 @@ export function EsqueletoCartera() {
       {[0, 1].map((indice) => (
         <Card
           key={indice}
-          className="h-full gap-0 rounded-[10px] py-5 ring-[#e2e8f0] sm:col-span-2 lg:col-span-1 lg:row-span-2 dark:ring-border"
+          className="justify-between gap-0 rounded-[10px] py-5 ring-[#e2e8f0] sm:col-span-2 lg:col-span-1 lg:row-span-2 lg:self-start dark:ring-border"
         >
           <CardHeader className="gap-1.5 px-5">
             <Skeleton className="h-4 w-40" />
