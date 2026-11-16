@@ -1,5 +1,7 @@
+import { cn } from "cn";
+import { FileText } from "lucide-react";
+
 import { Enlace } from "@/components/enlace";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto, rutaFactura } from "@/lib/enlaces";
 import { etiquetaTipoComprobante } from "@/lib/facturacion/comprobantes";
@@ -9,78 +11,98 @@ import type { EstadoFactura } from "@/lib/facturacion/tipos";
 import { formatoDia } from "@/lib/formato";
 
 const ETIQUETAS: Record<EstadoFactura, string> = {
-  abierta: "Abierta",
-  pagada: "Pagada",
+  abierta: "Por cobrar",
+  pagada: "Cobrada",
   anulada: "Anulada",
 };
 
-function EstadoBadge({ estado }: { estado: EstadoFactura }) {
-  if (estado === "anulada") return <Badge variant="destructive">{ETIQUETAS[estado]}</Badge>;
-  if (estado === "pagada")
-    return (
-      <Badge
-        variant="outline"
-        className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
-      >
-        {ETIQUETAS[estado]}
-      </Badge>
-    );
-  return <Badge>{ETIQUETAS[estado]}</Badge>;
+const ESTILOS_ESTADO: Record<EstadoFactura, string> = {
+  abierta: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
+  pagada: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
+  anulada: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
+};
+
+function EstadoPill({ estado }: { estado: EstadoFactura }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-md px-[9px] pb-1 pt-1.5 text-[11px] leading-[1.3]",
+        ESTILOS_ESTADO[estado],
+      )}
+    >
+      {ETIQUETAS[estado]}
+    </span>
+  );
 }
 
 export function FacturasTabla({ facturas, busqueda }: { facturas: FacturaFila[]; busqueda?: string }) {
+  const hoy = new Date().toISOString().slice(0, 10);
+
   return (
-    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16">#</TableHead>
-            <TableHead>NCF</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Cliente</TableHead>
-            <TableHead>Fecha</TableHead>
-            <TableHead>Vencimiento</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-            <TableHead className="text-right">Por cobrar</TableHead>
-            <TableHead>Estado</TableHead>
+    <Table className="text-slate-700 dark:text-slate-300">
+      <TableHeader>
+        <TableRow className="bg-slate-200/20 hover:bg-slate-200/20 dark:bg-slate-800/40 dark:hover:bg-slate-800/40">
+          <TableHead className="w-16 px-4 text-xs text-slate-700 dark:text-slate-300">#</TableHead>
+          <TableHead className="px-4 text-xs text-slate-700 dark:text-slate-300">NCF</TableHead>
+          <TableHead className="px-4 text-xs text-slate-700 dark:text-slate-300">Tipo</TableHead>
+          <TableHead className="px-4 text-xs text-slate-700 dark:text-slate-300">Cliente</TableHead>
+          <TableHead className="px-4 text-xs text-slate-700 dark:text-slate-300">Fecha</TableHead>
+          <TableHead className="px-4 text-xs text-slate-700 dark:text-slate-300">Vencimiento</TableHead>
+          <TableHead className="px-4 text-right text-xs text-slate-700 dark:text-slate-300">Total</TableHead>
+          <TableHead className="px-4 text-right text-xs text-slate-700 dark:text-slate-300">Por cobrar</TableHead>
+          <TableHead className="px-4 text-xs text-slate-700 dark:text-slate-300">Estado</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {facturas.length === 0 ? (
+          <TableRow className="hover:bg-transparent">
+            <TableCell colSpan={9} className="py-12">
+              <div className="flex flex-col items-center gap-1.5 text-center">
+                <FileText className="size-10 text-slate-300 dark:text-slate-600" />
+                <p className="font-medium text-slate-700 dark:text-slate-300">
+                  {busqueda ? "Sin resultados" : "Aún no hay facturas"}
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  {busqueda ? "No se encontraron facturas con esa búsqueda." : "Todavía no tienes facturas de venta."}
+                </p>
+              </div>
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {facturas.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
-                {busqueda ? "No se encontraron facturas con esa búsqueda." : "No hay facturas todavía."}
-              </TableCell>
-            </TableRow>
-          ) : (
-            facturas.map((factura) => (
-              <TableRow key={factura.id}>
-                <TableCell className="font-medium">
+        ) : (
+          facturas.map((factura) => {
+            const vencida = factura.estado === "abierta" && factura.vencimiento < hoy;
+            return (
+              <TableRow key={factura.id} className="h-12 hover:bg-slate-200/45 dark:hover:bg-slate-800/40">
+                <TableCell className="px-4">
                   <Enlace href={rutaFactura(factura.id)}>{factura.numero}</Enlace>
                 </TableCell>
-                <TableCell className="font-mono text-xs">
+                <TableCell className="px-4 font-mono text-xs">
                   {factura.ncf ? <Enlace href={rutaFactura(factura.id)}>{factura.ncf}</Enlace> : "—"}
                 </TableCell>
-                <TableCell className="whitespace-nowrap">{etiquetaTipoComprobante(factura.tipo_comprobante)}</TableCell>
-                <TableCell>
+                <TableCell className="px-4 whitespace-nowrap">
+                  {etiquetaTipoComprobante(factura.tipo_comprobante)}
+                </TableCell>
+                <TableCell className="px-4">
                   <Enlace href={rutaContacto(factura.contacto_id)}>{factura.cliente_nombre}</Enlace>
                 </TableCell>
-                <TableCell>{formatoDia(factura.fecha)}</TableCell>
-                <TableCell>{formatoDia(factura.vencimiento)}</TableCell>
-                <TableCell className="text-right font-medium">{formatoMoneda(factura.total)}</TableCell>
-                <TableCell className="text-right">
+                <TableCell className="px-4">{formatoDia(factura.fecha)}</TableCell>
+                <TableCell className={cn("px-4", vencida && "font-medium text-red-600 dark:text-red-400")}>
+                  {formatoDia(factura.vencimiento)}
+                </TableCell>
+                <TableCell className="px-4 text-right">{formatoMoneda(factura.total)}</TableCell>
+                <TableCell className="px-4 text-right">
                   {factura.estado === "anulada"
                     ? "—"
                     : formatoMoneda(saldoDeFactura(factura.total, factura.pagado, factura.credito, factura.retenido))}
                 </TableCell>
-                <TableCell>
-                  <EstadoBadge estado={factura.estado} />
+                <TableCell className="px-4">
+                  <EstadoPill estado={factura.estado} />
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+            );
+          })
+        )}
+      </TableBody>
+    </Table>
   );
 }
