@@ -1,5 +1,3 @@
-import { Suspense } from "react";
-
 import {
   CATEGORIAS_REPORTES,
   type CategoriaReporte,
@@ -7,7 +5,6 @@ import {
   type ReporteCatalogo,
 } from "@/lib/reportes/catalogo-reportes";
 
-import { AvisoSaldoNegativo } from "./_components/aviso-saldo-negativo";
 import { ReportesExplorador } from "./_components/reportes-explorador";
 
 const ENLACES_FISCALES: Record<string, string> = {
@@ -52,10 +49,6 @@ export default async function Page({ searchParams }: Props) {
           Consulta, descarga y comparte la información contable, administrativa y fiscal de tu empresa.
         </p>
       </div>
-
-      <Suspense fallback={null}>
-        <AvisoSaldoNegativo />
-      </Suspense>
 
       <ReportesExplorador categoria={categoria} reportes={conEnlaces(REPORTES)} />
     </div>

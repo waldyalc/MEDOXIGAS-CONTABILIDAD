@@ -9,7 +9,6 @@ import { hoyRd } from "@/lib/reportes/fechas";
 import { BloqueCartera, BloqueGrafico, BloqueMetricas } from "./_components/inicio/bloques";
 import { EsqueletoCartera, EsqueletoGraficoInicio, EsqueletoMetricas } from "./_components/inicio/esqueletos";
 import { SelectorPeriodo } from "./_components/inicio/selector-periodo";
-import { AvisoSaldoNegativo } from "./reportes/_components/aviso-saldo-negativo";
 
 interface Props {
   searchParams: Promise<{ periodo?: string | string[] }>;
@@ -31,10 +30,6 @@ export default async function Page({ searchParams }: Props) {
         <h1 className="text-3xl tracking-tight">Resumen del negocio</h1>
         <SelectorPeriodo periodo={periodo} opciones={opciones} />
       </div>
-
-      <Suspense fallback={null}>
-        <AvisoSaldoNegativo />
-      </Suspense>
 
       <div className="grid gap-4 lg:grid-cols-5">
         <div className="flex flex-col gap-4 lg:col-span-3">
