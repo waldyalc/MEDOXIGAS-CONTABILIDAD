@@ -41,16 +41,13 @@ export function SelectorPeriodo({ periodo, opciones }: Props) {
         render={
           <Button
             variant="outline"
-            className="h-auto min-w-56 justify-between gap-3 px-3 py-2 text-left"
+            className="h-10 min-w-40 justify-between gap-3 px-3 text-sm font-medium"
             disabled={pendiente}
             aria-label="Cambiar periodo"
           />
         }
       >
-        <span className="flex flex-col items-start gap-0.5">
-          <span className="text-sm font-medium">{actual.etiqueta}</span>
-          <span className="text-muted-foreground text-xs font-normal">{actual.rango}</span>
-        </span>
+        <span>{actual.etiqueta}</span>
         <ChevronDown className="text-muted-foreground size-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">

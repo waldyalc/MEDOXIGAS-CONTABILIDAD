@@ -2,43 +2,51 @@
 
 import Link from "next/link";
 
-import { Maximize2, TrendingDown, TrendingUp } from "lucide-react";
+import { Info, TrendingDown, TrendingUp } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { formatoDia, formatoPct } from "@/lib/formato";
+import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatoDia } from "@/lib/formato";
 import type { PuntoSerieVentas, ResumenNegocio } from "@/lib/inicio/consultas";
 import { centavos, formatearRd } from "@/lib/reportes/dinero";
 
+const AZUL = "#3b5bdb";
+const VERDE = "#2fd0a0";
+
 const CONFIG: ChartConfig = {
-  actual: { label: "Este periodo", color: "var(--chart-1)" },
-  anterior: { label: "Año anterior", color: "var(--chart-4)" },
+  actual: { label: "Periodo actual", color: AZUL },
+  anterior: { label: "Año anterior", color: VERDE },
 };
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
-function etiquetaEje(iso: string, diario: boolean): string {
-  const [anio, mes, dia] = iso.split("-");
-  const nombreMes = MESES[Number(mes) - 1] ?? "";
+function partesFecha(iso: string): { anio: number; mes: number; dia: number } {
+  return {
+    anio: Number(iso.slice(0, 4)),
+    mes: Number(iso.slice(5, 7)),
+    dia: Number(iso.slice(8, 10)),
+  };
+}
 
-  return diario ? `${Number(dia)} ${nombreMes}` : `${nombreMes} ${anio}`;
+function fechaLarga(iso: string): string {
+  const { anio, mes, dia } = partesFecha(iso);
+  return `${dia} ${MESES[mes - 1] ?? ""} de ${anio}`;
+}
+
+function restarUnAnio(iso: string): string {
+  const { anio, mes, dia } = partesFecha(iso);
+  const ultimoDia = new Date(Date.UTC(anio - 1, mes, 0)).getUTCDate();
+  return `${anio - 1}-${String(mes).padStart(2, "0")}-${String(Math.min(dia, ultimoDia)).padStart(2, "0")}`;
+}
+
+function etiquetaEje(iso: string, diario: boolean): string {
+  const { anio, mes, dia } = partesFecha(iso);
+  const nombreMes = MESES[mes - 1] ?? "";
+
+  return diario ? `${dia} ${nombreMes}` : `${nombreMes} ${anio}`;
 }
 
 function etiquetaTooltip(iso: string, diario: boolean): string {
@@ -46,15 +54,18 @@ function etiquetaTooltip(iso: string, diario: boolean): string {
 }
 
 function formatoEje(valor: number): string {
+  if (valor === 0) return "RD$0";
+
   if (Math.abs(valor) >= 1000) {
-    return `RD$ ${(valor / 1000).toLocaleString("es-DO", { maximumFractionDigits: 1 })}k`;
+    const miles = valor / 1000;
+    return `RD$${miles.toLocaleString("es-DO", { maximumFractionDigits: 1 })} K`;
   }
 
-  return `RD$ ${valor.toLocaleString("es-DO", { maximumFractionDigits: 0 })}`;
+  return `RD$${valor.toLocaleString("es-DO", { maximumFractionDigits: 0 })}`;
 }
 
 function formatearTooltip(valor: unknown, nombre: unknown) {
-  const etiqueta = nombre === "anterior" ? "Año anterior" : "Este periodo";
+  const etiqueta = nombre === "anterior" ? "Año anterior" : "Periodo actual";
 
   return (
     <span className="flex w-full items-center justify-between gap-4">
@@ -67,29 +78,31 @@ function formatearTooltip(valor: unknown, nombre: unknown) {
 interface GraficoProps {
   datos: readonly PuntoSerieVentas[];
   esDiario: boolean;
-  alto: string;
 }
 
-function Grafico({ datos, esDiario, alto }: GraficoProps) {
+function Grafico({ datos, esDiario }: GraficoProps) {
   const comunes = (
     <>
-      <CartesianGrid vertical={false} />
+      <CartesianGrid vertical={false} stroke="var(--border)" />
       <XAxis
         dataKey="etiqueta"
         tickLine={false}
         axisLine={false}
-        tickMargin={8}
-        minTickGap={16}
+        tickMargin={10}
+        minTickGap={8}
+        tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
         tickFormatter={(valor: string) => etiquetaEje(valor, esDiario)}
       />
       <YAxis
         tickLine={false}
         axisLine={false}
         tickMargin={8}
-        width={84}
+        width={82}
+        tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
         tickFormatter={(valor: number) => formatoEje(valor)}
       />
       <ChartTooltip
+        cursor={false}
         content={
           <ChartTooltipContent
             indicator="line"
@@ -102,9 +115,9 @@ function Grafico({ datos, esDiario, alto }: GraficoProps) {
   );
 
   return (
-    <ChartContainer config={CONFIG} className={`aspect-auto ${alto} w-full`}>
+    <ChartContainer config={CONFIG} className="aspect-auto h-[260px] w-full">
       {esDiario ? (
-        <LineChart data={datos as PuntoSerieVentas[]} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <LineChart data={datos as PuntoSerieVentas[]} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
           {comunes}
           <Line
             dataKey="actual"
@@ -119,19 +132,32 @@ function Grafico({ datos, esDiario, alto }: GraficoProps) {
             type="monotone"
             stroke="var(--color-anterior)"
             strokeWidth={2}
-            strokeDasharray="5 5"
+            strokeDasharray="4 3"
             dot={false}
             activeDot={{ r: 4 }}
           />
-          <ChartLegend content={<ChartLegendContent />} />
         </LineChart>
       ) : (
-        <BarChart data={datos as PuntoSerieVentas[]} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <BarChart data={datos as PuntoSerieVentas[]} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
           {comunes}
           <Bar dataKey="actual" fill="var(--color-actual)" maxBarSize={56} radius={[4, 4, 0, 0]} />
         </BarChart>
       )}
     </ChartContainer>
+  );
+}
+
+interface ItemLeyendaProps {
+  color: string;
+  texto: string;
+}
+
+function ItemLeyenda({ color, texto }: ItemLeyendaProps) {
+  return (
+    <span className="text-muted-foreground flex items-center gap-2 text-xs">
+      <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+      {texto}
+    </span>
   );
 }
 
@@ -141,7 +167,7 @@ interface Props {
 }
 
 export function GraficoVentasResumen({ resumen, href }: Props) {
-  const { ventas, es_diario } = resumen;
+  const { ventas, es_diario, desde, hasta } = resumen;
   const variacion = ventas.variacion;
   let Icono: typeof TrendingUp | null = null;
   let colorVariacion = "text-muted-foreground";
@@ -156,57 +182,61 @@ export function GraficoVentasResumen({ resumen, href }: Props) {
     }
   }
 
-  const textoVariacion = variacion == null ? "—" : `${variacion > 0 ? "+" : ""}${formatoPct(variacion)}`;
+  const textoVariacion =
+    variacion == null ? "—" : `${Math.abs(variacion).toLocaleString("es-DO", { maximumFractionDigits: 1 })}%`;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <CardTitle>
-            <Link href={href} className="hover:text-primary underline-offset-4 hover:underline">
-              Total de ventas
-            </Link>
-          </CardTitle>
-          <p className="text-muted-foreground text-sm">
-            La gráfica muestra el valor de tus ventas con impuestos incluidos.
+    <Card className="rounded-[12px]">
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-1.5">
+            <CardTitle className="text-[15px] font-medium text-slate-700 dark:text-slate-300">
+              <Link href={href} className="hover:text-primary underline underline-offset-[3px]">
+                Total de ventas
+              </Link>
+            </CardTitle>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className="text-muted-foreground"
+                    aria-label="Más información sobre la gráfica de ventas"
+                  />
+                }
+              >
+                <Info aria-hidden="true" />
+              </TooltipTrigger>
+              <TooltipContent>
+                Ventas registradas en el periodo seleccionado, con sus impuestos incluidos.
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <p className="text-muted-foreground text-[13px]">
+            Comportamiento de tus ventas durante el periodo elegido, impuestos incluidos.
           </p>
         </div>
-        <div className="flex items-start gap-2">
-          <div className="text-right">
-            <p className="text-2xl font-semibold tabular-nums">{formatearRd(centavos(ventas.total))}</p>
-            <p className={`flex items-center justify-end gap-1 text-xs font-medium ${colorVariacion}`}>
-              {Icono ? <Icono className="size-3.5" aria-hidden="true" /> : null}
-              {textoVariacion}
-              <span className="text-muted-foreground font-normal">vs. año anterior</span>
-            </p>
-          </div>
-          <Dialog>
-            <DialogTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="text-muted-foreground"
-                  aria-label="Expandir gráfica"
-                />
-              }
-            >
-              <Maximize2 />
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-5xl">
-              <DialogHeader>
-                <DialogTitle>Total de ventas</DialogTitle>
-                <DialogDescription>
-                  La gráfica muestra el valor de tus ventas con impuestos incluidos.
-                </DialogDescription>
-              </DialogHeader>
-              <Grafico datos={ventas.serie} esDiario={es_diario} alto="h-[60vh]" />
-            </DialogContent>
-          </Dialog>
+        <div className="flex items-center gap-2">
+          <p className="text-2xl font-semibold tracking-tight tabular-nums">{formatearRd(centavos(ventas.total))}</p>
+          <span className={`flex items-center gap-0.5 text-xs font-medium ${colorVariacion}`}>
+            {Icono ? <Icono className="size-3.5" aria-hidden="true" /> : null}
+            {textoVariacion}
+            <span className="sr-only">contra el año anterior</span>
+          </span>
         </div>
       </CardHeader>
-      <CardContent className="px-2 pb-4">
-        <Grafico datos={ventas.serie} esDiario={es_diario} alto="h-64" />
+      <CardContent className="px-2 pb-4 sm:px-4">
+        <Grafico datos={ventas.serie} esDiario={es_diario} />
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-4">
+          <ItemLeyenda color={AZUL} texto={`${fechaLarga(desde)} - ${fechaLarga(hasta)}`} />
+          {es_diario ? (
+            <ItemLeyenda
+              color={VERDE}
+              texto={`${fechaLarga(restarUnAnio(desde))} - ${fechaLarga(restarUnAnio(hasta))}`}
+            />
+          ) : null}
+        </div>
       </CardContent>
     </Card>
   );
