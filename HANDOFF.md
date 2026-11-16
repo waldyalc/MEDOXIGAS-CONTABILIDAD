@@ -1,5 +1,17 @@
 # Handoff — Medoxigas Contabilidad
 
+
+## Fix — Numeraciones vigilan las notas B03/B04 (F16) (17 nov 2026)
+
+- Rama `fix/numeraciones-notas-rnc` (desde `origin/prueba`). F15 ya estaba corregido; esto cierra **F16**: `actualizar_numeracion` solo miraba `facturas` y `gastos_menores`, así que una serie B03/B04 podía moverse a un rango con NCF ya emitidos en notas.
+- Migración **aditiva** `20261117300000_numeraciones_notas.sql` (NO aplicada al remoto; la revisa Coder): redefine `actualizar_numeracion` con la misma firma y el mismo mensaje de error. Ahora el último NCF es el máximo de: facturas (por `tipo_comprobante`), gastos menores, `notas_debito_venta` (03/B03), `notas_credito_venta` (04/B04) y, solo para la serie 03, las filas viejas con B03 de `notas_credito_compra`. Los B04/E34 de proveedor de las notas de crédito de compra **no** entran en la serie B04 propia (si no, un NCF del proveedor bloquearía la numeración). B01/B02/B13/B14/B15/B16 conservan su comportamiento.
+- **No se agregó un `unique` nuevo.** Cada tabla ya tiene `unique(ncf)` por separado; falta unicidad *entre* tablas, que un índice `(tipo_comprobante, ncf)` no puede dar (las notas no tienen `tipo_comprobante` y un índice global chocaría con NCF de proveedores). La evidencia y la decisión quedan en `docs/pruebas/ncf-unicidad.sql`; si Contable quiere una segunda capa, sería un trigger entre tablas, no un índice.
+- pgTAP `supabase/tests/numeraciones_notas_test.sql` (16 asserts, datos propios): B04/B03 viejos y nuevos no bajan por debajo del último NCF, un valor válido pasa, un B03 viejo de compras bloquea la serie 03, un B04 de proveedor no bloquea la 04, y B02/B13 siguen validando como antes. **No se pudo correr aquí** (sin Docker/Supabase CLI); lo corre el integrador.
+- RNC: `docs/pruebas/rnc-duplicados.sql` (solo lectura) cuenta duplicados excluyendo ZZTEST, lista ejemplos y deja la decisión con Contable (sucursales legítimas, normalización, activos, qué hacer con los 198). **No se agregó unicidad**.
+- ZZTEST: `docs/pruebas/limpieza-zztest.sql` (solo lectura) cuenta documentos por tabla y deja el borrado **comentado**; no se borró nada. Incluye el estado de **junio 2020**, que sigue **abierto** tras el test C6, y qué hace falta para cerrarlo (revisión de Contable + OK de Waldy + `cerrar_periodo`).
+- Verificado: `pnpm typecheck`, `pnpm check` (solo avisos preexistentes de Biome), `pnpm test` (716) y `pnpm build` en verde. Sin cambios en `types.ts` (la firma no cambia), sin datos tocados y sin migración aplicada.
+- Pendiente de decisión: unique/trigger entre tablas para NCF, regla de RNC único, borrado de ~19.5k ZZTEST y cierre de junio 2020.
+
 ## Verificación del P0 de carga y cortes restantes (17 nov 2026)
 
 - Rama `verify/p0-prueba` desde `origin/prueba` (cdfea68…b1f3f27, sin tocar `test/pruebas-carga`). Se revisó que lo ya fusionado (RPC directa, paginación fiscal, joins/lotes, libros/CxC/CxP y listas) siga en pie.
@@ -8,6 +20,7 @@
 - Candado nuevo `src/lib/paginacion.test.ts`: falla si esos reportes/bancos/fichas/selectores dejan de usar `paginarConsulta`/`consultarEnLotes`, si vuelve un `.limit(300/500/1000)` o si reaparece el tope de 20,000 líneas.
 - Revisado sin cambios: 606/607/608/IT-1/IR-17/retenciones, libro diario, balance, CxC/CxP, anual, bancos (líneas + numerosDocumento por lotes), fichas y estado de cuenta ya paginan; `rpc as unknown`/`RpcSuelta` no quedan. `docs/pruebas/resultados/RESULTADOS.md` y `sonda-fallos.md` solo existen en `test/pruebas-carga` (no en `prueba`); se leyeron de esa rama.
 - Pendiente de Waldy/Contable (sin cambios): `cuadre.sql`/`cuadre-inventario.sql`, decisión RNC único / NC sobre factura pagada / unicidad NCF B03-B04 y OK para borrar los ~19.5k documentos ZZTEST. No se tocó la base, no hubo migraciones ni service_role; pgTAP y navegador autenticado no se pudieron correr aquí (sin Docker ni credenciales).
+
 
 ## Fix — Últimas listas y selectores de contactos en servidor (15 nov 2026)
 
