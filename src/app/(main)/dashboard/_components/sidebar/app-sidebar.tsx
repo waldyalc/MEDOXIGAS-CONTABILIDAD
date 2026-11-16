@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 
 import { useShallow } from "zustand/react/shallow";
@@ -37,13 +38,14 @@ export function AppSidebar({ rol, ...props }: React.ComponentProps<typeof Sideba
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/dashboard" />} tooltip={APP_CONFIG.name}>
-              <div
-                aria-hidden="true"
-                className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold"
-              >
-                MC
-              </div>
-              <span className="text-sm leading-tight font-semibold">{APP_CONFIG.name}</span>
+              <Image
+                src="/marca/logo-medoxigas-menu.png"
+                alt={APP_CONFIG.name}
+                width={500}
+                height={180}
+                className="h-10 w-auto max-w-[150px] object-contain object-left group-data-[collapsible=icon]:size-6 group-data-[collapsible=icon]:object-cover"
+              />
+              <span className="sr-only">{APP_CONFIG.name}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
