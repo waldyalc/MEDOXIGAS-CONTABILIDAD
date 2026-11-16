@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import type { LineaVenta } from "./tipos";
 
 const TAMANO_PAGINA = 1000;
-const MAXIMO_LINEAS = 20000;
 
 interface FilaLineaConsulta {
   producto_id: string | null;
@@ -43,7 +42,7 @@ export async function obtenerLineasVenta(desde: string, hasta: string): Promise<
   const supabase = await createClient();
   const lineas: LineaVenta[] = [];
 
-  for (let inicio = 0; inicio < MAXIMO_LINEAS; inicio += TAMANO_PAGINA) {
+  for (let inicio = 0; ; inicio += TAMANO_PAGINA) {
     const { data, error } = await supabase
       .from("factura_lineas")
       .select(

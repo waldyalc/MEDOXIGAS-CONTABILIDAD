@@ -1,5 +1,6 @@
 # Handoff — Medoxigas Contabilidad
 
+
 ## Fix — Costeo al anular ajustes de inventario y diagnóstico D6 (17 nov 2026)
 
 - Rama `fix/inventario-costo-anulacion` (desde `origin/prueba`). Diagnóstico completo en `docs/pruebas/resultados/diagnostico-anulaciones-costo.md`.
@@ -10,6 +11,16 @@
 - pgTAP nuevo `supabase/tests/anular_ajuste_costo_test.sql` (16 asserts, datos propios: entradas encadenadas, anulación inversa, salida, estado, asiento de reversión y doble anulación). **No se pudo correr aquí** (sin Docker/Supabase CLI); lo corre CI o `supabase test db` local.
 - Verificado: `pnpm typecheck`, `pnpm check` (solo avisos preexistentes), `pnpm test` (716) y `pnpm build` en verde. Sin cambios de datos, sin tocar `types.ts` (la firma de `anular_documento` no cambia) y sin aplicar la migración al remoto.
 - Queda para Contable/Waldy: correr el SQL de verificación; decidir asiento de apertura/revalúo para stock inicial y costos editados; decidir si se reconstruye el costo histórico de anulaciones viejas; y, si se quiere cuadre por producto, instrumentar `asiento_lineas.producto_id` en una tarea aparte.
+
+## Verificación del P0 de carga y cortes restantes (17 nov 2026)
+
+- Rama `verify/p0-prueba` desde `origin/prueba` (cdfea68…b1f3f27, sin tocar `test/pruebas-carga`). Se revisó que lo ya fusionado (RPC directa, paginación fiscal, joins/lotes, libros/CxC/CxP y listas) siga en pie.
+- Verificado en verde: `pnpm typecheck`, `pnpm check` (solo los 23 avisos preexistentes), `pnpm test` **731** (90 archivos; 15 nuevos del candado de paginación) y `pnpm build` (103 rutas).
+- Hallazgos corregidos: los selectores de producto de facturación, compras, órdenes de compra, inventario, notas de débito/recurrentes leían el catálogo sin paginar (corte en 1,000) y precios con `.in()` de todos los ids (>350 revienta la URL); ahora `getProductosActivos` pagina y pide precios en lotes de 200. También paginan el selector de proveedores de pagos recurrentes y el de clientes de estado de cuenta. `ventas-producto`/`rentabilidad-producto` cortaban en `MAXIMO_LINEAS = 20,000` líneas; ahora leen hasta que un lote salga corto.
+- Candado nuevo `src/lib/paginacion.test.ts`: falla si esos reportes/bancos/fichas/selectores dejan de usar `paginarConsulta`/`consultarEnLotes`, si vuelve un `.limit(300/500/1000)` o si reaparece el tope de 20,000 líneas.
+- Revisado sin cambios: 606/607/608/IT-1/IR-17/retenciones, libro diario, balance, CxC/CxP, anual, bancos (líneas + numerosDocumento por lotes), fichas y estado de cuenta ya paginan; `rpc as unknown`/`RpcSuelta` no quedan. `docs/pruebas/resultados/RESULTADOS.md` y `sonda-fallos.md` solo existen en `test/pruebas-carga` (no en `prueba`); se leyeron de esa rama.
+- Pendiente de Waldy/Contable (sin cambios): `cuadre.sql`/`cuadre-inventario.sql`, decisión RNC único / NC sobre factura pagada / unicidad NCF B03-B04 y OK para borrar los ~19.5k documentos ZZTEST. No se tocó la base, no hubo migraciones ni service_role; pgTAP y navegador autenticado no se pudieron correr aquí (sin Docker ni credenciales).
+
 
 ## Fix — Últimas listas y selectores de contactos en servidor (15 nov 2026)
 

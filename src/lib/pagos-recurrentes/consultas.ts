@@ -1,4 +1,5 @@
 import type { ContactoOpcion, CuentaOpcion } from "@/lib/compras/tipos";
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import type { GastoGenerado, OpcionesPagoRecurrente, PagoRecurrenteLista, PagoRecurrenteVista } from "./tipos";
@@ -127,13 +128,17 @@ export async function cargarOpcionesPagoRecurrente(): Promise<OpcionesPagoRecurr
       .eq("activa", true)
       .order("codigo")
       .returns<CuentaOpcion[]>(),
-    supabase
-      .from("contactos")
-      .select("id, nombre, rnc_cedula")
-      .eq("activo", true)
-      .in("tipo", ["proveedor", "ambos"])
-      .order("nombre")
-      .returns<ContactoOpcion[]>(),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("contactos")
+        .select("id, nombre, rnc_cedula")
+        .eq("activo", true)
+        .in("tipo", ["proveedor", "ambos"])
+        .order("nombre")
+        .order("id")
+        .range(inicio, fin)
+        .returns<ContactoOpcion[]>(),
+    ),
   ]);
 
   if (cuentasGasto.error) throw new Error(cuentasGasto.error.message);

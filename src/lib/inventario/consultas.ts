@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -111,14 +112,20 @@ export async function listarCategorias(): Promise<CategoriaProducto[]> {
 
 export async function listarProductosInventariables(): Promise<ProductoInventario[]> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("productos")
-    .select("id, nombre, referencia, cantidad, costo")
-    .eq("activo", true)
-    .eq("inventariable", true)
-    .order("nombre");
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .from("productos")
+      .select("id, nombre, referencia, cantidad, costo")
+      .eq("activo", true)
+      .eq("inventariable", true)
+      .order("nombre")
+      .order("id")
+      .range(inicio, fin)
+      .returns<ProductoInventario[]>(),
+  );
 
-  return (data ?? []) as ProductoInventario[];
+  if (error) throw new Error(error.message);
+  return data ?? [];
 }
 
 export async function listarAjustes(): Promise<AjusteLista[]> {

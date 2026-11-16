@@ -12,6 +12,7 @@ import {
   resumirPagina,
   TAMANO_PAGINA_DEFECTO,
 } from "@/lib/listas/parametros";
+import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
 import type {
@@ -133,12 +134,16 @@ export async function cargarOpcionesOrden(): Promise<OpcionesOrden> {
       .eq("activo", true)
       .order("nombre")
       .returns<ContactoOpcion[]>(),
-    supabase
-      .from("productos")
-      .select("id, nombre, referencia, costo, precio, itbis_tasa, impuesto_id, inventariable, tipo")
-      .eq("activo", true)
-      .order("nombre")
-      .returns<ProductoOpcion[]>(),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("productos")
+        .select("id, nombre, referencia, costo, precio, itbis_tasa, impuesto_id, inventariable, tipo")
+        .eq("activo", true)
+        .order("nombre")
+        .order("id")
+        .range(inicio, fin)
+        .returns<ProductoOpcion[]>(),
+    ),
     supabase
       .from("cuentas")
       .select("id, codigo, nombre, tipo, es_caja_banco")
