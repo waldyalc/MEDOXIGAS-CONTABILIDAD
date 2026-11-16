@@ -26,7 +26,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
       defaultOpen={defaultOpen}
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 68)",
+          "--sidebar-width": "calc(var(--spacing) * 80)",
         } as React.CSSProperties
       }
     >
@@ -50,7 +50,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
         >
           <div className="flex w-full items-center justify-between px-4 lg:px-6">
             <div className="flex items-center gap-1 lg:gap-2">
-              <SidebarTrigger className="-ml-1" />
+              <SidebarTrigger className="-ml-1 md:hidden" />
             </div>
             <div className="flex items-center gap-2">
               <ThemeSwitcher />
