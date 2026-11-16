@@ -76,6 +76,12 @@ interface NavCollapsibleItemProps {
   readonly onNavigate: (url: string) => void;
 }
 
+const estiloItem =
+  "relative h-[38px] gap-2.5 rounded-md px-2.5 font-[family-name:var(--font-inter)] text-[14px] font-medium tracking-[-0.01em] before:absolute before:top-1/2 before:left-0 before:h-5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary before:opacity-0 before:content-[''] hover:bg-sidebar-accent/40 hover:text-sidebar-foreground data-active:before:opacity-100 [&_svg]:size-[18px] [&_svg]:opacity-70 [&_svg]:stroke-[1.6] data-active:[&_svg]:opacity-100";
+
+const estiloSubItem =
+  "relative h-8 gap-2 rounded-md pr-2 pl-9 font-[family-name:var(--font-inter)] text-[13px]! font-normal tracking-[-0.01em] before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary before:opacity-0 before:content-[''] hover:bg-sidebar-accent/40 data-active:before:opacity-100 data-active:font-medium [&_svg]:size-4 [&_svg]:opacity-70 [&_svg]:stroke-[1.6] data-active:[&_svg]:opacity-100";
+
 function IndicadorEnlace() {
   const { pending } = useLinkStatus();
 
@@ -133,13 +139,13 @@ export function NavMain({ items }: NavMainProps) {
     <>
       {items.map((group) => (
         <SidebarGroup key={group.id}>
-          {group.label && (
-            <SidebarGroupLabel className="group-data-[collapsible=icon]:pointer-events-none">
+          {items.length > 1 && group.label && (
+            <SidebarGroupLabel className="text-muted-foreground h-6 px-2.5 text-[11px] font-medium group-data-[collapsible=icon]:pointer-events-none">
               {group.label}
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-0.5">
               {group.items.map((item) => (
                 <NavItem
                   key={item.id}
@@ -207,7 +213,7 @@ function NavLinkItem({ item, isActive, showIconFallback, onNavigate }: NavLinkIt
   return (
     <SidebarMenuItem>
       {item.disabled ? (
-        <SidebarMenuButton disabled tooltip={item.title}>
+        <SidebarMenuButton disabled tooltip={item.title} className={estiloItem}>
           {contenido}
         </SidebarMenuButton>
       ) : (
@@ -222,6 +228,7 @@ function NavLinkItem({ item, isActive, showIconFallback, onNavigate }: NavLinkIt
           }
           tooltip={item.title}
           isActive={isActive}
+          className={estiloItem}
         >
           {contenido}
         </SidebarMenuButton>
@@ -252,7 +259,14 @@ function NavDropdownItem({ item, isActive, isSubItemActive, onNavigate }: NavDro
     <SidebarMenuItem>
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<SidebarMenuButton tooltip={item.title} isActive={isActive} disabled={item.disabled} />}
+          render={
+            <SidebarMenuButton
+              tooltip={item.title}
+              isActive={isActive}
+              disabled={item.disabled}
+              className={estiloItem}
+            />
+          }
         >
           {Icon ? <Icon /> : <CollapsedIconFallback title={item.title} />}
           <span className="truncate">{item.title}</span>
@@ -301,16 +315,18 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive, onNa
       className="group/collapsible"
     >
       <CollapsibleTrigger
-        render={<SidebarMenuButton tooltip={item.title} isActive={isActive} disabled={item.disabled} />}
+        render={
+          <SidebarMenuButton tooltip={item.title} isActive={isActive} disabled={item.disabled} className={estiloItem} />
+        }
       >
         {Icon && <Icon />}
         <span className="truncate">{item.title}</span>
-        <ChevronRight className="ml-auto transition-transform duration-200 group-data-panel-open/menu-button:rotate-90" />
+        <ChevronRight className="ml-auto size-4! opacity-60 transition-transform duration-200 group-data-panel-open/menu-button:rotate-90" />
       </CollapsibleTrigger>
       <NavItemBadge badge={item.badge} />
 
       <CollapsibleContent>
-        <SidebarMenuSub>
+        <SidebarMenuSub className="mx-0 gap-0.5 border-0 px-0 py-0.5">
           {item.subItems.map((subItem) => {
             const SubIcon = subItem.icon;
 
@@ -327,10 +343,10 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive, onNa
                   }
                   aria-disabled={subItem.disabled}
                   isActive={isSubItemActive(subItem.url)}
+                  className={estiloSubItem}
                 >
                   {SubIcon && <SubIcon />}
                   <span className="truncate">{subItem.title}</span>
-                  <IndicadorEnlace />
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             );
