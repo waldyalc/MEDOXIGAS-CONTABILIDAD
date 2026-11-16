@@ -1,5 +1,14 @@
 # Handoff — Medoxigas Contabilidad
 
+## Verificación del P0 de carga y cortes restantes (17 nov 2026)
+
+- Rama `verify/p0-prueba` desde `origin/prueba` (cdfea68…b1f3f27, sin tocar `test/pruebas-carga`). Se revisó que lo ya fusionado (RPC directa, paginación fiscal, joins/lotes, libros/CxC/CxP y listas) siga en pie.
+- Verificado en verde: `pnpm typecheck`, `pnpm check` (solo los 23 avisos preexistentes), `pnpm test` **731** (90 archivos; 15 nuevos del candado de paginación) y `pnpm build` (103 rutas).
+- Hallazgos corregidos: los selectores de producto de facturación, compras, órdenes de compra, inventario, notas de débito/recurrentes leían el catálogo sin paginar (corte en 1,000) y precios con `.in()` de todos los ids (>350 revienta la URL); ahora `getProductosActivos` pagina y pide precios en lotes de 200. También paginan el selector de proveedores de pagos recurrentes y el de clientes de estado de cuenta. `ventas-producto`/`rentabilidad-producto` cortaban en `MAXIMO_LINEAS = 20,000` líneas; ahora leen hasta que un lote salga corto.
+- Candado nuevo `src/lib/paginacion.test.ts`: falla si esos reportes/bancos/fichas/selectores dejan de usar `paginarConsulta`/`consultarEnLotes`, si vuelve un `.limit(300/500/1000)` o si reaparece el tope de 20,000 líneas.
+- Revisado sin cambios: 606/607/608/IT-1/IR-17/retenciones, libro diario, balance, CxC/CxP, anual, bancos (líneas + numerosDocumento por lotes), fichas y estado de cuenta ya paginan; `rpc as unknown`/`RpcSuelta` no quedan. `docs/pruebas/resultados/RESULTADOS.md` y `sonda-fallos.md` solo existen en `test/pruebas-carga` (no en `prueba`); se leyeron de esa rama.
+- Pendiente de Waldy/Contable (sin cambios): `cuadre.sql`/`cuadre-inventario.sql`, decisión RNC único / NC sobre factura pagada / unicidad NCF B03-B04 y OK para borrar los ~19.5k documentos ZZTEST. No se tocó la base, no hubo migraciones ni service_role; pgTAP y navegador autenticado no se pudieron correr aquí (sin Docker ni credenciales).
+
 ## Fix — Últimas listas y selectores de contactos en servidor (15 nov 2026)
 
 - Rama `fix/listas-finales` (desde `prueba` 18a0f01). Ahora paginan en el servidor, con `pagina`/`tamano`/`q`, el total real y navegación hasta la última página: **Cotizaciones**, **Conduces**, **Gastos menores**, **Órdenes de compra**, **Facturas recurrentes**, **Activos fijos** y **Notas de crédito de compras**. Se reutilizaron `leerOpcionesLista`, `rangoPagina`, `resumirPagina`, `BuscadorLista`, `PaginadorLista`, `contactosQueCoinciden` y `condicionesDocumento`; no hay patrón nuevo.
