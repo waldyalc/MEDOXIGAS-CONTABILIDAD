@@ -1,5 +1,21 @@
 # Handoff — Medoxigas Contabilidad
 
+## Unificación del rediseño en `diseno/rediseno` (16 nov 2026)
+
+- Se auditaron todas las ramas de diseño (t3/\*, diseno/\*, feat/\*-alegra):
+  el menú lateral Alegra, el data grid con KPIs, la ficha de contacto (6
+  tarjetas + pestañas), la ficha de producto, el hub de reportes y el inicio
+  con tarjetas KPI ya estaban fusionados en `diseno/rediseno` por las
+  sesiones t3 (commits `df6cd2c`…`9c2734e`).
+- Faltaban solo las guías de estilo medidas en vivo; se trajeron con
+  cherry-pick: `css-tablas/` (bffb88e + 302e3e7), `css-menu/` (1e3ab05) y
+  `css-inicio/` (395f94d, incluye la sección en `ALEGRA.md`).
+- Omitido a propósito: `feat/sidebar-alegra-style`, `feat/facturas-tabla-alegra`
+  e `feat/inicio-diseno-alegra` (versiones viejas ya superadas por rediseno),
+  `diseno/ficha-tarjetas-pestanas` (parche ya aplicado como `df6cd2c`) y las
+  ramas `feat/`, `fix/`, `perf/` de contabilidad (backend: no se mezclan aquí).
+- Verificado: `pnpm exec tsc --noEmit` y `pnpm exec biome check` en verde.
+
 ## Ficha de contacto: 6 tarjetas de Alegra y pestañas por documento (15 nov 2026)
 
 - **Tarjetas** (siempre las 6, como `docs/alegra/capturas/09-ficha-cliente.png`):
