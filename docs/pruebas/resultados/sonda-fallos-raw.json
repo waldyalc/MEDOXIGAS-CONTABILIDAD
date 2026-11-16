@@ -1,0 +1,133 @@
+{
+  "facturas-lista": {
+    "filasQueTraeLaPantalla": 300,
+    "filasReales": 19481,
+    "invisibles": 19181
+  },
+  "compras-lista": {
+    "filasQueTraeLaPantalla": 1000,
+    "filasReales": 5002,
+    "invisibles": 4002
+  },
+  "pagos-recibidos-lista": {
+    "filasQueTraeLaPantalla": 300,
+    "filasReales": 11251,
+    "invisibles": 10951
+  },
+  "pagos-proveedor-lista": {
+    "filasQueTraeLaPantalla": 300,
+    "filasReales": 3002,
+    "invisibles": 2702
+  },
+  "notas-credito-lista": {
+    "filasQueTraeLaPantalla": 300,
+    "filasReales": 501,
+    "invisibles": 201
+  },
+  "contactos-lista": {
+    "filasQueTraeLaPantalla": 1000,
+    "filasReales": 1023,
+    "invisibles": 23
+  },
+  "productos-lista": {
+    "filasQueTraeLaPantalla": 322,
+    "filasReales": 322,
+    "invisibles": 0
+  },
+  "asientos-lista": {
+    "filasQueTraeLaPantalla": 300,
+    "filasReales": 39545,
+    "invisibles": 39245
+  },
+  "gastos-menores-lista": {
+    "filasQueTraeLaPantalla": 1,
+    "filasReales": 1,
+    "invisibles": 0
+  },
+  "cotizaciones-lista": {
+    "filasQueTraeLaPantalla": 1,
+    "filasReales": 1,
+    "invisibles": 0
+  },
+  "ordenes-compra-lista": {
+    "filasQueTraeLaPantalla": 0,
+    "filasReales": 0,
+    "invisibles": 0
+  },
+  "contactos-combobox": {
+    "cargados": 1000,
+    "reales": 1023,
+    "faltantes": 23,
+    "ultimos5Visibles": [
+      "ZZTEST-Proveedor-0173",
+      "ZZTEST-Proveedor-0174",
+      "ZZTEST-Proveedor-0175",
+      "ZZTEST-Proveedor-0176",
+      "ZZTEST-Proveedor-0177"
+    ]
+  },
+  "contactos-invisibles": [
+    "ZZTEST-Proveedor-0178",
+    "ZZTEST-Proveedor-0179",
+    "ZZTEST-Proveedor-0180",
+    "ZZTEST-Proveedor-0181",
+    "ZZTEST-Proveedor-0182",
+    "ZZTEST-Proveedor-0183",
+    "ZZTEST-Proveedor-0184",
+    "ZZTEST-Proveedor-0185",
+    "ZZTEST-Proveedor-0186",
+    "ZZTEST-Proveedor-0187",
+    "ZZTEST-Proveedor-0188",
+    "ZZTEST-Proveedor-0189",
+    "ZZTEST-Proveedor-0190",
+    "ZZTEST-Proveedor-0191",
+    "ZZTEST-Proveedor-0192",
+    "ZZTEST-Proveedor-0193",
+    "ZZTEST-Proveedor-0194",
+    "ZZTEST-Proveedor-0195",
+    "ZZTEST-Proveedor-0196",
+    "ZZTEST-Proveedor-0197",
+    "ZZTEST-Proveedor-0198",
+    "ZZTEST-Proveedor-0199",
+    "ZZTEST-Proveedor-0200"
+  ],
+  "formulario-pago-facturas-abiertas": {
+    "abiertasReales": 9317,
+    "elSelectorMuestra": 300
+  },
+  "reporte_cxc-rpc": {
+    "filasDevueltas": 1000,
+    "real": {
+      "facturas": 9758,
+      "saldo": 95582283.79
+    }
+  },
+  "facturas-pagado-inconsistente": {
+    "total": 0
+  },
+  "compras-pagado-inconsistente": {
+    "total": 0
+  },
+  "productos-stock-negativo": {
+    "total": 2,
+    "ejemplos": ["Cemento compra 2758: -1", "ZZTEST-C4-Producto: -2"]
+  },
+  "facturas-sin-asiento": {
+    "total": 0
+  },
+  "rnc-duplicados": {
+    "total": 198,
+    "ejemplos": [
+      ["900000002", 2],
+      ["900000003", 2],
+      ["900000001", 2],
+      ["900000004", 2],
+      ["900000005", 2],
+      ["900000007", 2],
+      ["900000006", 2],
+      ["900000009", 2],
+      ["900000011", 2],
+      ["900000010", 2]
+    ]
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "resumen": {
+    "crear_contacto": {
+      "intentos": 2,
+      "ok": 2,
+      "fallos": 0,
+      "p50": 163,
+      "p95": 433,
+      "maximo": 433,
+      "errores": {}
+    },
+    "crear_producto": {
+      "intentos": 2,
+      "ok": 2,
+      "fallos": 0,
+      "p50": 115,
+      "p95": 265,
+      "maximo": 265,
+      "errores": {}
+    },
+    "crear_factura_proveedor": {
+      "intentos": 1,
+      "ok": 1,
+      "fallos": 0,
+      "p50": 338,
+      "p95": 338,
+      "maximo": 338,
+      "errores": {}
+    },
+    "crear_factura": {
+      "intentos": 3,
+      "ok": 3,
+      "fallos": 0,
+      "p50": 167,
+      "p95": 185,
+      "maximo": 185,
+      "errores": {}
+    },
+    "registrar_pago_recibido": {
+      "intentos": 1,
+      "ok": 1,
+      "fallos": 0,
+      "p50": 131,
+      "p95": 131,
+      "maximo": 131,
+      "errores": {}
+    },
+    "registrar_pago_recibido_multi": {
+      "intentos": 1,
+      "ok": 1,
+      "fallos": 0,
+      "p50": 167,
+      "p95": 167,
+      "maximo": 167,
+      "errores": {}
+    },
+    "registrar_pago_proveedor": {
+      "intentos": 1,
+      "ok": 1,
+      "fallos": 0,
+      "p50": 125,
+      "p95": 125,
+      "maximo": 125,
+      "errores": {}
+    },
+    "crear_nota_credito_venta": {
+      "intentos": 1,
+      "ok": 1,
+      "fallos": 0,
+      "p50": 166,
+      "p95": 166,
+      "maximo": 166,
+      "errores": {}
+    },
+    "anular_documento": {
+      "intentos": 1,
+      "ok": 0,
+      "fallos": 1,
+      "p50": 168,
+      "p95": 168,
+      "maximo": 168,
+      "errores": {
+        "no se puede anular una factura con pagos activos": 1
+      }
+    }
+  }
+}

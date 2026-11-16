@@ -1,0 +1,43 @@
+{
+  "nota": "Salida de tests/carga/sonda-fallos.ts — solo lectura sobre la base real (14 nov 2026)",
+  "facturas-lista": { "filasQueTraeLaPantalla": 300, "filasReales": 19481, "invisibles": 19181 },
+  "compras-lista": { "filasQueTraeLaPantalla": 1000, "filasReales": 5002, "invisibles": 4002 },
+  "pagos-recibidos-lista": { "filasQueTraeLaPantalla": 300, "filasReales": 11251, "invisibles": 10951 },
+  "pagos-proveedor-lista": { "filasQueTraeLaPantalla": 300, "filasReales": 3002, "invisibles": 2702 },
+  "notas-credito-lista": { "filasQueTraeLaPantalla": 300, "filasReales": 501, "invisibles": 201 },
+  "contactos-lista": { "filasQueTraeLaPantalla": 1000, "filasReales": 1023, "invisibles": 23 },
+  "productos-lista": { "filasQueTraeLaPantalla": 322, "filasReales": 322, "invisibles": 0 },
+  "asientos-lista": { "filasQueTraeLaPantalla": 300, "filasReales": 39540, "invisibles": 39240 },
+  "contactos-combobox": {
+    "cargados": 1000,
+    "reales": 1023,
+    "faltantes": 23,
+    "ultimos5Visibles": [
+      "ZZTEST-Proveedor-0173",
+      "ZZTEST-Proveedor-0174",
+      "ZZTEST-Proveedor-0175",
+      "ZZTEST-Proveedor-0176",
+      "ZZTEST-Proveedor-0177"
+    ]
+  },
+  "contactos-invisibles": "ZZTEST-Proveedor-0178 … ZZTEST-Proveedor-0200 (23 en total)",
+  "formulario-pago-facturas-abiertas": {
+    "abiertasReales": 9317,
+    "elSelectorMuestra": 300,
+    "porcentajeAlcanzable": "3.2%"
+  },
+  "reporte_cxc-rpc": {
+    "filasDevueltas": 1000,
+    "facturasConSaldoReales_hasta_2023-12-31": 7002,
+    "saldoRealTotal": 121191930.16,
+    "causa": "cap de 1000 filas de PostgREST tambien aplica a funciones RPC"
+  },
+  "rnc-duplicados": { "total": 198, "causa": "generador de pruebas + sin constraint unico en rnc_cedula" },
+  "productos-stock-negativo": {
+    "total": 2,
+    "ejemplos": ["Cemento compra 2758: -1 (preexistente, no ZZTEST)", "ZZTEST-C4-Producto: -2 (esperado por C4)"]
+  },
+  "facturas-pagado-inconsistente": { "total": 0 },
+  "compras-pagado-inconsistente": { "total": 0 },
+  "facturas-sin-asiento": { "total": 0 }
+}

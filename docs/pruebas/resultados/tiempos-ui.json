@@ -1,0 +1,1077 @@
+{
+  "generado": "2026-11-14T23:49:03.886Z",
+  "base": "http://localhost:3005",
+  "repeticiones": 5,
+  "tiempos": {
+    "inicio": {
+      "p50": 1481,
+      "p95": 4653,
+      "maximo": 4653,
+      "intentos": 5,
+      "errores": 0
+    },
+    "facturas": {
+      "p50": 1823,
+      "p95": 1984,
+      "maximo": 1984,
+      "intentos": 5,
+      "errores": 0
+    },
+    "factura-ficha": {
+      "p50": 1167,
+      "p95": 1583,
+      "maximo": 1583,
+      "intentos": 5,
+      "errores": 0
+    },
+    "compras": {
+      "p50": 1683,
+      "p95": 2575,
+      "maximo": 2575,
+      "intentos": 5,
+      "errores": 0
+    },
+    "compra-ficha": {
+      "p50": 1538,
+      "p95": 1971,
+      "maximo": 1971,
+      "intentos": 5,
+      "errores": 0
+    },
+    "pagos-recibidos": {
+      "p50": 1951,
+      "p95": 2679,
+      "maximo": 2679,
+      "intentos": 5,
+      "errores": 0
+    },
+    "contactos": {
+      "p50": 1368,
+      "p95": 1540,
+      "maximo": 1540,
+      "intentos": 5,
+      "errores": 0
+    },
+    "cliente-estado-cuenta": {
+      "p50": 1321,
+      "p95": 1473,
+      "maximo": 1473,
+      "intentos": 5,
+      "errores": 0
+    },
+    "productos": {
+      "p50": 1628,
+      "p95": 2179,
+      "maximo": 2179,
+      "intentos": 5,
+      "errores": 0
+    },
+    "producto-ficha": {
+      "p50": 1817,
+      "p95": 2042,
+      "maximo": 2042,
+      "intentos": 5,
+      "errores": 0
+    },
+    "catalogo-cuentas": {
+      "p50": 1497,
+      "p95": 5242,
+      "maximo": 5242,
+      "intentos": 5,
+      "errores": 0
+    },
+    "cxc-corte-2023": {
+      "p50": 959,
+      "p95": 1097,
+      "maximo": 1097,
+      "intentos": 5,
+      "errores": 0
+    },
+    "607-marzo2023": {
+      "p50": 2883,
+      "p95": 4317,
+      "maximo": 4317,
+      "intentos": 5,
+      "errores": 0
+    },
+    "607-anio2023": {
+      "p50": 1716,
+      "p95": 2713,
+      "maximo": 2713,
+      "intentos": 5,
+      "errores": 0
+    },
+    "606-marzo2023": {
+      "p50": 1060,
+      "p95": 1420,
+      "maximo": 1420,
+      "intentos": 5,
+      "errores": 0
+    },
+    "606-anio2023": {
+      "p50": 1191,
+      "p95": 1231,
+      "maximo": 1231,
+      "intentos": 5,
+      "errores": 0
+    },
+    "libro-diario-marzo2023": {
+      "p50": 16234,
+      "p95": 16347,
+      "maximo": 16347,
+      "intentos": 5,
+      "errores": 5
+    },
+    "libro-diario-anio2023": {
+      "p50": 16049,
+      "p95": 16194,
+      "maximo": 16194,
+      "intentos": 5,
+      "errores": 5
+    },
+    "balance-comprobacion-marzo2023": {
+      "p50": 16018,
+      "p95": 16526,
+      "maximo": 16526,
+      "intentos": 5,
+      "errores": 5
+    },
+    "balance-comprobacion-anio2023": {
+      "p50": 16168,
+      "p95": 16955,
+      "maximo": 16955,
+      "intentos": 5,
+      "errores": 5
+    },
+    "estado-resultados-marzo2023": {
+      "p50": 1105,
+      "p95": 2566,
+      "maximo": 2566,
+      "intentos": 5,
+      "errores": 0
+    },
+    "estado-resultados-anio2023": {
+      "p50": 1524,
+      "p95": 1597,
+      "maximo": 1597,
+      "intentos": 5,
+      "errores": 0
+    },
+    "ventas-generales-marzo2023": {
+      "p50": 1377,
+      "p95": 2115,
+      "maximo": 2115,
+      "intentos": 5,
+      "errores": 0
+    },
+    "ventas-generales-anio2023": {
+      "p50": 2814,
+      "p95": 3240,
+      "maximo": 3240,
+      "intentos": 5,
+      "errores": 0
+    },
+    "ventas-cliente-marzo2023": {
+      "p50": 10253,
+      "p95": 10687,
+      "maximo": 10687,
+      "intentos": 5,
+      "errores": 0
+    },
+    "ventas-cliente-anio2023": {
+      "p50": 10178,
+      "p95": 10310,
+      "maximo": 10310,
+      "intentos": 5,
+      "errores": 0
+    },
+    "valor-inventario-marzo2023": {
+      "p50": 1241,
+      "p95": 1864,
+      "maximo": 1864,
+      "intentos": 5,
+      "errores": 0
+    },
+    "valor-inventario-anio2023": {
+      "p50": 999,
+      "p95": 1148,
+      "maximo": 1148,
+      "intentos": 5,
+      "errores": 0
+    }
+  },
+  "muestras": [
+    {
+      "nombre": "inicio",
+      "url": "/dashboard",
+      "ms": 4653,
+      "error": null
+    },
+    {
+      "nombre": "inicio",
+      "url": "/dashboard",
+      "ms": 1481,
+      "error": null
+    },
+    {
+      "nombre": "inicio",
+      "url": "/dashboard",
+      "ms": 1863,
+      "error": null
+    },
+    {
+      "nombre": "inicio",
+      "url": "/dashboard",
+      "ms": 1364,
+      "error": null
+    },
+    {
+      "nombre": "inicio",
+      "url": "/dashboard",
+      "ms": 1309,
+      "error": null
+    },
+    {
+      "nombre": "facturas",
+      "url": "/dashboard/facturacion",
+      "ms": 1984,
+      "error": null
+    },
+    {
+      "nombre": "facturas",
+      "url": "/dashboard/facturacion",
+      "ms": 1854,
+      "error": null
+    },
+    {
+      "nombre": "facturas",
+      "url": "/dashboard/facturacion",
+      "ms": 1783,
+      "error": null
+    },
+    {
+      "nombre": "facturas",
+      "url": "/dashboard/facturacion",
+      "ms": 1746,
+      "error": null
+    },
+    {
+      "nombre": "facturas",
+      "url": "/dashboard/facturacion",
+      "ms": 1823,
+      "error": null
+    },
+    {
+      "nombre": "factura-ficha",
+      "url": "/dashboard/facturacion/1534817b-78b6-4a10-ad87-edc0dfac8df6",
+      "ms": 1583,
+      "error": null
+    },
+    {
+      "nombre": "factura-ficha",
+      "url": "/dashboard/facturacion/1534817b-78b6-4a10-ad87-edc0dfac8df6",
+      "ms": 1145,
+      "error": null
+    },
+    {
+      "nombre": "factura-ficha",
+      "url": "/dashboard/facturacion/1534817b-78b6-4a10-ad87-edc0dfac8df6",
+      "ms": 1167,
+      "error": null
+    },
+    {
+      "nombre": "factura-ficha",
+      "url": "/dashboard/facturacion/1534817b-78b6-4a10-ad87-edc0dfac8df6",
+      "ms": 1253,
+      "error": null
+    },
+    {
+      "nombre": "factura-ficha",
+      "url": "/dashboard/facturacion/1534817b-78b6-4a10-ad87-edc0dfac8df6",
+      "ms": 1141,
+      "error": null
+    },
+    {
+      "nombre": "compras",
+      "url": "/dashboard/compras",
+      "ms": 1683,
+      "error": null
+    },
+    {
+      "nombre": "compras",
+      "url": "/dashboard/compras",
+      "ms": 1673,
+      "error": null
+    },
+    {
+      "nombre": "compras",
+      "url": "/dashboard/compras",
+      "ms": 2100,
+      "error": null
+    },
+    {
+      "nombre": "compras",
+      "url": "/dashboard/compras",
+      "ms": 1499,
+      "error": null
+    },
+    {
+      "nombre": "compras",
+      "url": "/dashboard/compras",
+      "ms": 2575,
+      "error": null
+    },
+    {
+      "nombre": "compra-ficha",
+      "url": "/dashboard/compras/f7cef018-2182-4805-b143-7c23d07ce1b7",
+      "ms": 1971,
+      "error": null
+    },
+    {
+      "nombre": "compra-ficha",
+      "url": "/dashboard/compras/f7cef018-2182-4805-b143-7c23d07ce1b7",
+      "ms": 1538,
+      "error": null
+    },
+    {
+      "nombre": "compra-ficha",
+      "url": "/dashboard/compras/f7cef018-2182-4805-b143-7c23d07ce1b7",
+      "ms": 1313,
+      "error": null
+    },
+    {
+      "nombre": "compra-ficha",
+      "url": "/dashboard/compras/f7cef018-2182-4805-b143-7c23d07ce1b7",
+      "ms": 1558,
+      "error": null
+    },
+    {
+      "nombre": "compra-ficha",
+      "url": "/dashboard/compras/f7cef018-2182-4805-b143-7c23d07ce1b7",
+      "ms": 1441,
+      "error": null
+    },
+    {
+      "nombre": "pagos-recibidos",
+      "url": "/dashboard/pagos-recibidos",
+      "ms": 2679,
+      "error": null
+    },
+    {
+      "nombre": "pagos-recibidos",
+      "url": "/dashboard/pagos-recibidos",
+      "ms": 1951,
+      "error": null
+    },
+    {
+      "nombre": "pagos-recibidos",
+      "url": "/dashboard/pagos-recibidos",
+      "ms": 1903,
+      "error": null
+    },
+    {
+      "nombre": "pagos-recibidos",
+      "url": "/dashboard/pagos-recibidos",
+      "ms": 2071,
+      "error": null
+    },
+    {
+      "nombre": "pagos-recibidos",
+      "url": "/dashboard/pagos-recibidos",
+      "ms": 1815,
+      "error": null
+    },
+    {
+      "nombre": "contactos",
+      "url": "/dashboard/contactos",
+      "ms": 1187,
+      "error": null
+    },
+    {
+      "nombre": "contactos",
+      "url": "/dashboard/contactos",
+      "ms": 1368,
+      "error": null
+    },
+    {
+      "nombre": "contactos",
+      "url": "/dashboard/contactos",
+      "ms": 1416,
+      "error": null
+    },
+    {
+      "nombre": "contactos",
+      "url": "/dashboard/contactos",
+      "ms": 1540,
+      "error": null
+    },
+    {
+      "nombre": "contactos",
+      "url": "/dashboard/contactos",
+      "ms": 1090,
+      "error": null
+    },
+    {
+      "nombre": "cliente-estado-cuenta",
+      "url": "/dashboard/contactos/de567a6b-3436-4257-adf9-cf1c2e676086/estado-cuenta",
+      "ms": 1473,
+      "error": null
+    },
+    {
+      "nombre": "cliente-estado-cuenta",
+      "url": "/dashboard/contactos/de567a6b-3436-4257-adf9-cf1c2e676086/estado-cuenta",
+      "ms": 1269,
+      "error": null
+    },
+    {
+      "nombre": "cliente-estado-cuenta",
+      "url": "/dashboard/contactos/de567a6b-3436-4257-adf9-cf1c2e676086/estado-cuenta",
+      "ms": 1321,
+      "error": null
+    },
+    {
+      "nombre": "cliente-estado-cuenta",
+      "url": "/dashboard/contactos/de567a6b-3436-4257-adf9-cf1c2e676086/estado-cuenta",
+      "ms": 1284,
+      "error": null
+    },
+    {
+      "nombre": "cliente-estado-cuenta",
+      "url": "/dashboard/contactos/de567a6b-3436-4257-adf9-cf1c2e676086/estado-cuenta",
+      "ms": 1329,
+      "error": null
+    },
+    {
+      "nombre": "productos",
+      "url": "/dashboard/productos",
+      "ms": 1628,
+      "error": null
+    },
+    {
+      "nombre": "productos",
+      "url": "/dashboard/productos",
+      "ms": 1682,
+      "error": null
+    },
+    {
+      "nombre": "productos",
+      "url": "/dashboard/productos",
+      "ms": 1451,
+      "error": null
+    },
+    {
+      "nombre": "productos",
+      "url": "/dashboard/productos",
+      "ms": 1504,
+      "error": null
+    },
+    {
+      "nombre": "productos",
+      "url": "/dashboard/productos",
+      "ms": 2179,
+      "error": null
+    },
+    {
+      "nombre": "producto-ficha",
+      "url": "/dashboard/productos/b5a93d4e-0127-4cbd-8e72-65659de33d69",
+      "ms": 1967,
+      "error": null
+    },
+    {
+      "nombre": "producto-ficha",
+      "url": "/dashboard/productos/b5a93d4e-0127-4cbd-8e72-65659de33d69",
+      "ms": 2042,
+      "error": null
+    },
+    {
+      "nombre": "producto-ficha",
+      "url": "/dashboard/productos/b5a93d4e-0127-4cbd-8e72-65659de33d69",
+      "ms": 1817,
+      "error": null
+    },
+    {
+      "nombre": "producto-ficha",
+      "url": "/dashboard/productos/b5a93d4e-0127-4cbd-8e72-65659de33d69",
+      "ms": 1797,
+      "error": null
+    },
+    {
+      "nombre": "producto-ficha",
+      "url": "/dashboard/productos/b5a93d4e-0127-4cbd-8e72-65659de33d69",
+      "ms": 1621,
+      "error": null
+    },
+    {
+      "nombre": "catalogo-cuentas",
+      "url": "/dashboard/contabilidad",
+      "ms": 5242,
+      "error": null
+    },
+    {
+      "nombre": "catalogo-cuentas",
+      "url": "/dashboard/contabilidad",
+      "ms": 1659,
+      "error": null
+    },
+    {
+      "nombre": "catalogo-cuentas",
+      "url": "/dashboard/contabilidad",
+      "ms": 1424,
+      "error": null
+    },
+    {
+      "nombre": "catalogo-cuentas",
+      "url": "/dashboard/contabilidad",
+      "ms": 1291,
+      "error": null
+    },
+    {
+      "nombre": "catalogo-cuentas",
+      "url": "/dashboard/contabilidad",
+      "ms": 1497,
+      "error": null
+    },
+    {
+      "nombre": "cxc-corte-2023",
+      "url": "/dashboard/reportes/cxc?desde=2020-01-01&hasta=2023-12-31",
+      "ms": 1097,
+      "error": null
+    },
+    {
+      "nombre": "cxc-corte-2023",
+      "url": "/dashboard/reportes/cxc?desde=2020-01-01&hasta=2023-12-31",
+      "ms": 904,
+      "error": null
+    },
+    {
+      "nombre": "cxc-corte-2023",
+      "url": "/dashboard/reportes/cxc?desde=2020-01-01&hasta=2023-12-31",
+      "ms": 878,
+      "error": null
+    },
+    {
+      "nombre": "cxc-corte-2023",
+      "url": "/dashboard/reportes/cxc?desde=2020-01-01&hasta=2023-12-31",
+      "ms": 959,
+      "error": null
+    },
+    {
+      "nombre": "cxc-corte-2023",
+      "url": "/dashboard/reportes/cxc?desde=2020-01-01&hasta=2023-12-31",
+      "ms": 1046,
+      "error": null
+    },
+    {
+      "nombre": "607-marzo2023",
+      "url": "/dashboard/reportes/607?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 4317,
+      "error": null
+    },
+    {
+      "nombre": "607-marzo2023",
+      "url": "/dashboard/reportes/607?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 2952,
+      "error": null
+    },
+    {
+      "nombre": "607-marzo2023",
+      "url": "/dashboard/reportes/607?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 2853,
+      "error": null
+    },
+    {
+      "nombre": "607-marzo2023",
+      "url": "/dashboard/reportes/607?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 2849,
+      "error": null
+    },
+    {
+      "nombre": "607-marzo2023",
+      "url": "/dashboard/reportes/607?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 2883,
+      "error": null
+    },
+    {
+      "nombre": "607-anio2023",
+      "url": "/dashboard/reportes/607?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 2713,
+      "error": null
+    },
+    {
+      "nombre": "607-anio2023",
+      "url": "/dashboard/reportes/607?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1537,
+      "error": null
+    },
+    {
+      "nombre": "607-anio2023",
+      "url": "/dashboard/reportes/607?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1716,
+      "error": null
+    },
+    {
+      "nombre": "607-anio2023",
+      "url": "/dashboard/reportes/607?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1793,
+      "error": null
+    },
+    {
+      "nombre": "607-anio2023",
+      "url": "/dashboard/reportes/607?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1455,
+      "error": null
+    },
+    {
+      "nombre": "606-marzo2023",
+      "url": "/dashboard/reportes/606?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1420,
+      "error": null
+    },
+    {
+      "nombre": "606-marzo2023",
+      "url": "/dashboard/reportes/606?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1043,
+      "error": null
+    },
+    {
+      "nombre": "606-marzo2023",
+      "url": "/dashboard/reportes/606?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1060,
+      "error": null
+    },
+    {
+      "nombre": "606-marzo2023",
+      "url": "/dashboard/reportes/606?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1030,
+      "error": null
+    },
+    {
+      "nombre": "606-marzo2023",
+      "url": "/dashboard/reportes/606?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1377,
+      "error": null
+    },
+    {
+      "nombre": "606-anio2023",
+      "url": "/dashboard/reportes/606?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1191,
+      "error": null
+    },
+    {
+      "nombre": "606-anio2023",
+      "url": "/dashboard/reportes/606?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1120,
+      "error": null
+    },
+    {
+      "nombre": "606-anio2023",
+      "url": "/dashboard/reportes/606?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1120,
+      "error": null
+    },
+    {
+      "nombre": "606-anio2023",
+      "url": "/dashboard/reportes/606?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1231,
+      "error": null
+    },
+    {
+      "nombre": "606-anio2023",
+      "url": "/dashboard/reportes/606?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1218,
+      "error": null
+    },
+    {
+      "nombre": "libro-diario-marzo2023",
+      "url": "/dashboard/reportes/libro-diario?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 16225,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "libro-diario-marzo2023",
+      "url": "/dashboard/reportes/libro-diario?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 16332,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "libro-diario-marzo2023",
+      "url": "/dashboard/reportes/libro-diario?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 16347,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "libro-diario-marzo2023",
+      "url": "/dashboard/reportes/libro-diario?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 16234,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "libro-diario-marzo2023",
+      "url": "/dashboard/reportes/libro-diario?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 16049,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "libro-diario-anio2023",
+      "url": "/dashboard/reportes/libro-diario?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 16167,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "libro-diario-anio2023",
+      "url": "/dashboard/reportes/libro-diario?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 16049,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "libro-diario-anio2023",
+      "url": "/dashboard/reportes/libro-diario?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 16194,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "libro-diario-anio2023",
+      "url": "/dashboard/reportes/libro-diario?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 15993,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "libro-diario-anio2023",
+      "url": "/dashboard/reportes/libro-diario?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 15936,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "balance-comprobacion-marzo2023",
+      "url": "/dashboard/reportes/balance-comprobacion?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 15947,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "balance-comprobacion-marzo2023",
+      "url": "/dashboard/reportes/balance-comprobacion?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 16526,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "balance-comprobacion-marzo2023",
+      "url": "/dashboard/reportes/balance-comprobacion?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 16018,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "balance-comprobacion-marzo2023",
+      "url": "/dashboard/reportes/balance-comprobacion?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 16232,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "balance-comprobacion-marzo2023",
+      "url": "/dashboard/reportes/balance-comprobacion?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 15974,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "balance-comprobacion-anio2023",
+      "url": "/dashboard/reportes/balance-comprobacion?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 16955,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "balance-comprobacion-anio2023",
+      "url": "/dashboard/reportes/balance-comprobacion?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 16443,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "balance-comprobacion-anio2023",
+      "url": "/dashboard/reportes/balance-comprobacion?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 16168,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "balance-comprobacion-anio2023",
+      "url": "/dashboard/reportes/balance-comprobacion?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 16004,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "balance-comprobacion-anio2023",
+      "url": "/dashboard/reportes/balance-comprobacion?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 16019,
+      "error": "page.waitForFunction: Timeout 15000ms exceeded."
+    },
+    {
+      "nombre": "estado-resultados-marzo2023",
+      "url": "/dashboard/reportes/estado-resultados?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 2566,
+      "error": null
+    },
+    {
+      "nombre": "estado-resultados-marzo2023",
+      "url": "/dashboard/reportes/estado-resultados?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1105,
+      "error": null
+    },
+    {
+      "nombre": "estado-resultados-marzo2023",
+      "url": "/dashboard/reportes/estado-resultados?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1080,
+      "error": null
+    },
+    {
+      "nombre": "estado-resultados-marzo2023",
+      "url": "/dashboard/reportes/estado-resultados?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1097,
+      "error": null
+    },
+    {
+      "nombre": "estado-resultados-marzo2023",
+      "url": "/dashboard/reportes/estado-resultados?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1105,
+      "error": null
+    },
+    {
+      "nombre": "estado-resultados-anio2023",
+      "url": "/dashboard/reportes/estado-resultados?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1597,
+      "error": null
+    },
+    {
+      "nombre": "estado-resultados-anio2023",
+      "url": "/dashboard/reportes/estado-resultados?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1524,
+      "error": null
+    },
+    {
+      "nombre": "estado-resultados-anio2023",
+      "url": "/dashboard/reportes/estado-resultados?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1564,
+      "error": null
+    },
+    {
+      "nombre": "estado-resultados-anio2023",
+      "url": "/dashboard/reportes/estado-resultados?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1466,
+      "error": null
+    },
+    {
+      "nombre": "estado-resultados-anio2023",
+      "url": "/dashboard/reportes/estado-resultados?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1496,
+      "error": null
+    },
+    {
+      "nombre": "ventas-generales-marzo2023",
+      "url": "/dashboard/reportes/ventas-generales?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 2115,
+      "error": null
+    },
+    {
+      "nombre": "ventas-generales-marzo2023",
+      "url": "/dashboard/reportes/ventas-generales?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1377,
+      "error": null
+    },
+    {
+      "nombre": "ventas-generales-marzo2023",
+      "url": "/dashboard/reportes/ventas-generales?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1270,
+      "error": null
+    },
+    {
+      "nombre": "ventas-generales-marzo2023",
+      "url": "/dashboard/reportes/ventas-generales?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1480,
+      "error": null
+    },
+    {
+      "nombre": "ventas-generales-marzo2023",
+      "url": "/dashboard/reportes/ventas-generales?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1340,
+      "error": null
+    },
+    {
+      "nombre": "ventas-generales-anio2023",
+      "url": "/dashboard/reportes/ventas-generales?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 2643,
+      "error": null
+    },
+    {
+      "nombre": "ventas-generales-anio2023",
+      "url": "/dashboard/reportes/ventas-generales?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 3240,
+      "error": null
+    },
+    {
+      "nombre": "ventas-generales-anio2023",
+      "url": "/dashboard/reportes/ventas-generales?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 2814,
+      "error": null
+    },
+    {
+      "nombre": "ventas-generales-anio2023",
+      "url": "/dashboard/reportes/ventas-generales?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 2907,
+      "error": null
+    },
+    {
+      "nombre": "ventas-generales-anio2023",
+      "url": "/dashboard/reportes/ventas-generales?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 2692,
+      "error": null
+    },
+    {
+      "nombre": "ventas-cliente-marzo2023",
+      "url": "/dashboard/reportes/ventas-cliente?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 10626,
+      "error": null
+    },
+    {
+      "nombre": "ventas-cliente-marzo2023",
+      "url": "/dashboard/reportes/ventas-cliente?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 10687,
+      "error": null
+    },
+    {
+      "nombre": "ventas-cliente-marzo2023",
+      "url": "/dashboard/reportes/ventas-cliente?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 10253,
+      "error": null
+    },
+    {
+      "nombre": "ventas-cliente-marzo2023",
+      "url": "/dashboard/reportes/ventas-cliente?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 10106,
+      "error": null
+    },
+    {
+      "nombre": "ventas-cliente-marzo2023",
+      "url": "/dashboard/reportes/ventas-cliente?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 9980,
+      "error": null
+    },
+    {
+      "nombre": "ventas-cliente-anio2023",
+      "url": "/dashboard/reportes/ventas-cliente?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 9942,
+      "error": null
+    },
+    {
+      "nombre": "ventas-cliente-anio2023",
+      "url": "/dashboard/reportes/ventas-cliente?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 10205,
+      "error": null
+    },
+    {
+      "nombre": "ventas-cliente-anio2023",
+      "url": "/dashboard/reportes/ventas-cliente?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 9832,
+      "error": null
+    },
+    {
+      "nombre": "ventas-cliente-anio2023",
+      "url": "/dashboard/reportes/ventas-cliente?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 10310,
+      "error": null
+    },
+    {
+      "nombre": "ventas-cliente-anio2023",
+      "url": "/dashboard/reportes/ventas-cliente?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 10178,
+      "error": null
+    },
+    {
+      "nombre": "valor-inventario-marzo2023",
+      "url": "/dashboard/reportes/valor-inventario?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1864,
+      "error": null
+    },
+    {
+      "nombre": "valor-inventario-marzo2023",
+      "url": "/dashboard/reportes/valor-inventario?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1226,
+      "error": null
+    },
+    {
+      "nombre": "valor-inventario-marzo2023",
+      "url": "/dashboard/reportes/valor-inventario?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1241,
+      "error": null
+    },
+    {
+      "nombre": "valor-inventario-marzo2023",
+      "url": "/dashboard/reportes/valor-inventario?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1277,
+      "error": null
+    },
+    {
+      "nombre": "valor-inventario-marzo2023",
+      "url": "/dashboard/reportes/valor-inventario?desde=2023-03-01&hasta=2023-03-31",
+      "ms": 1239,
+      "error": null
+    },
+    {
+      "nombre": "valor-inventario-anio2023",
+      "url": "/dashboard/reportes/valor-inventario?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1148,
+      "error": null
+    },
+    {
+      "nombre": "valor-inventario-anio2023",
+      "url": "/dashboard/reportes/valor-inventario?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 1025,
+      "error": null
+    },
+    {
+      "nombre": "valor-inventario-anio2023",
+      "url": "/dashboard/reportes/valor-inventario?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 999,
+      "error": null
+    },
+    {
+      "nombre": "valor-inventario-anio2023",
+      "url": "/dashboard/reportes/valor-inventario?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 971,
+      "error": null
+    },
+    {
+      "nombre": "valor-inventario-anio2023",
+      "url": "/dashboard/reportes/valor-inventario?desde=2023-01-01&hasta=2023-12-31",
+      "ms": 996,
+      "error": null
+    }
+  ],
+  "erroresConsola": [
+    "pageerror: Error: Minified React error #441; visit https://react.dev/errors/441 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "corte1000": {
+    "facturasMarzo2023Totales": 1700,
+    "facturasMarzo2023SinAnuladas": 1700,
+    "notasCreditoMarzo2023": 33,
+    "filasEsperadas607": 1733,
+    "nuestrasFacturasMarzo": {
+      "facturas": 1700,
+      "total": 52658002.76,
+      "subtotal": 44819402,
+      "itbis": 7838600.76
+    },
+    "totalesTodasFacturasMarzo": {
+      "facturas": 1700,
+      "total": 52658002.76,
+      "subtotal": 44819402,
+      "itbis": 7838600.76
+    },
+    "reporte607": {
+      "registros": 1033,
+      "montoFacturado": 25994096,
+      "itbisFacturado": 4542564.78
+    },
+    "ventasGenerales": {
+      "totalFilas": 1700,
+      "ventasBrutas": 44819402,
+      "impuestos": 7838600.76
+    },
+    "aviso607": null
+  }
+}

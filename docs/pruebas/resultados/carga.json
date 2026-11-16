@@ -1,0 +1,124 @@
+{
+  "marcador": "ZZTEST-L1",
+  "duracionSegundos": 850,
+  "detenidoPorCuota": false,
+  "resumen": {
+    "crear_contacto": {
+      "intentos": 1000,
+      "ok": 1000,
+      "fallos": 0,
+      "p50": 98,
+      "p95": 145,
+      "maximo": 2719,
+      "errores": {}
+    },
+    "crear_producto": {
+      "intentos": 300,
+      "ok": 300,
+      "fallos": 0,
+      "p50": 96,
+      "p95": 117,
+      "maximo": 221,
+      "errores": {}
+    },
+    "crear_factura_proveedor": {
+      "intentos": 5000,
+      "ok": 5000,
+      "fallos": 0,
+      "p50": 112,
+      "p95": 172,
+      "maximo": 1436,
+      "errores": {}
+    },
+    "registrar_pago_proveedor": {
+      "intentos": 1678,
+      "ok": 1678,
+      "fallos": 0,
+      "p50": 102,
+      "p95": 124,
+      "maximo": 747,
+      "errores": {}
+    },
+    "registrar_pago_proveedor_multi": {
+      "intentos": 1322,
+      "ok": 1322,
+      "fallos": 0,
+      "p50": 104,
+      "p95": 132,
+      "maximo": 655,
+      "errores": {}
+    },
+    "crear_factura": {
+      "intentos": 10768,
+      "ok": 10768,
+      "fallos": 0,
+      "p50": 120,
+      "p95": 175,
+      "maximo": 1254,
+      "errores": {}
+    },
+    "crear_factura_contado": {
+      "intentos": 4232,
+      "ok": 4232,
+      "fallos": 0,
+      "p50": 122,
+      "p95": 180,
+      "maximo": 987,
+      "errores": {}
+    },
+    "registrar_pago_recibido": {
+      "intentos": 5393,
+      "ok": 5389,
+      "fallos": 4,
+      "p50": 113,
+      "p95": 247,
+      "maximo": 5314,
+      "errores": {
+        "la retención ITBIS 30 % no genera monto sobre esta factura": 4
+      }
+    },
+    "registrar_pago_recibido_multi": {
+      "intentos": 1607,
+      "ok": 1605,
+      "fallos": 2,
+      "p50": 118,
+      "p95": 303,
+      "maximo": 5317,
+      "errores": {
+        "la retención ITBIS 30 % no genera monto sobre la factura 2369": 1,
+        "la retención ITBIS 30 % no genera monto sobre la factura 9472": 1
+      }
+    },
+    "crear_nota_credito_venta": {
+      "intentos": 500,
+      "ok": 500,
+      "fallos": 0,
+      "p50": 127,
+      "p95": 233,
+      "maximo": 1625,
+      "errores": {}
+    },
+    "anular_documento": {
+      "intentos": 300,
+      "ok": 300,
+      "fallos": 0,
+      "p50": 114,
+      "p95": 179,
+      "maximo": 906,
+      "errores": {}
+    }
+  },
+  "cuadreMarzo2023": {
+    "facturasMarzo2023Reales": 1700,
+    "filasLecturaSinPaginar": 1000,
+    "filasConMarcadorZZTEST": 1000,
+    "sumaTotalesMisFacturasMarzo": 52658002.76,
+    "sumaItbisMisFacturasMarzo": 7838600.76,
+    "sumaSubtotalMisFacturasMarzo": 44819402,
+    "sumaTotalesLecturaSimpleMarzo": 30830613.16,
+    "notasCreditoMarzo": {
+      "cantidad": 33,
+      "total": 92212.28
+    }
+  }
+}

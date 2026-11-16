@@ -1,0 +1,8 @@
+npm notice run medoxigas-contabilidad@0.1.0 npx
+npm notice run tsx tests/carga/c8.ts
+C8 U1: factura UI creada 
+C8 U2: factura UI creada 
+C8 U3: factura UI creada 
+C8 U4: factura UI creada 
+C8 U5: factura UI creada 
+C8: PASA — 171 visitas, max 4951ms

@@ -1,0 +1,41 @@
+npm notice run medoxigas-contabilidad@0.1.0 npx
+npm notice run tsx tests/carga/carga.ts
+carga ZZTEST-L1 — inicio 2026-11-14T22:51:00.277Z
+sesiones abiertas: 5
+cuentas ok, retención ITBIS 30%, meses cerrados: 0
+contactos ZZTEST existentes: 0
+contactos por crear: 1000
+contactos: 500/1000
+contactos: 1000/1000
+contactos listos: 800 clientes, 200 proveedores
+productos ZZTEST existentes: 0
+productos por crear: 300
+productos listos: 300
+compras ZZTEST: 0 existentes, 5000 por crear
+compras: 500/5000
+compras: 1000/5000
+compras: 1500/5000
+compras: 2000/5000
+compras: 2500/5000
+compras: 3000/5000
+compras: 3500/5000
+compras: 4000/5000
+compras: 4500/5000
+compras: 5000/5000
+pagos a proveedores ZZTEST: 0 existentes, 3000 por crear
+pagos a proveedores planificados: 3000
+pagos-proveedor: 500/3000
+pagos-proveedor: 1000/3000
+pagos-proveedor: 1500/3000
+pagos-proveedor: 2000/3000
+pagos-proveedor: 2500/3000
+pagos-proveedor: 3000/3000
+facturas ZZTEST: 0 existentes, 15000 por crear
+facturas: 500/15000
+facturas: 1000/15000
+facturas: 1500/15000
+facturas: 2000/15000
+facturas: 2500/15000
+facturas: 3000/15000
+facturas: 3500/15000
+facturas: 4000/15000

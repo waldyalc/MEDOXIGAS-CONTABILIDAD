@@ -1,0 +1,18 @@
+npm notice run medoxigas-contabilidad@0.1.0 npx
+npm notice run tsx tests/carga/concurrencia.ts
+sesiones abiertas: 5
+== C1 ==
+C1: PASA — {"creadas":500,"ncfDistintos":500,"ncfMin":100010771,"ncfMax":100011270,"ncfConsecutivos":true} (20s)
+== C2 ==
+C2: PASA — {"totalFactura":10000,"exitosos":3,"fallidos":2,"errores":["el monto más las retenciones excede el saldo pendiente de la factura","el monto más las retenciones excede el saldo pendiente de la factura"],"pagadoFinal":9000,"estadoFinal":"abierta"} (1s)
+== C3 ==
+C3: PASA — {"exitosos":4,"fallidos":1,"errores":["la factura 15626 ya está pagada"],"facturaA":{"total":6000,"pagado":6000},"facturaB":{"total":8000,"pagado":6000},"sobrepago":false} (1s)
+== C4 ==
+C4: PASA — {"ventasCreadas":5,"productosCantidad":-2,"existenciasCantidad":-2,"existenciasIgualProductos":true} (1s)
+== C5 ==
+C5: PASA — {"intentos":20,"unSoloGanador":20,"ambos":0,"ninguno":0,"detalle":[{"iteracion":0,"facturaId":"c22f0dc1-e18c-43cb-8fe0-ab01db971272","anulacion":"no se puede anular una factura con pagos activos","pago":"ok","estadoFinal":"pagada","pagadoFinal":500,"resultado":"pago"},{"iteracion":1,"facturaId":"7f1 (7s)
+== C6 ==
+C6: PASA — {"cierre":"ok","creadasDuranteLaCarrera":5,"fallidasDuranteLaCarrera":35,"erroresMuestra":["el periodo 2020-06 está cerrado; no se pueden crear ni anular asientos con esa fecha"],"sondas":["el periodo 2020-06 está cerrado; no se pueden crear ni anular asientos con esa fecha","el periodo 2020-06 está (2s)
+== C7 ==
+C7: PASA — {"facturasCreadas":3932,"duracionSegundos":120} (120s)
+fin — docs/pruebas/resultados/concurrencia.json
