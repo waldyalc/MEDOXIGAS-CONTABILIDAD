@@ -748,3 +748,12 @@ Medido en build de producción con ~32k documentos y ~258k líneas de asiento: I
 - `paginador-lista.tsx`: nuevo prop opcional `className` (compatible con las ~15 listas que lo usan).
 - Sin migración ni datos. Queda por revisar de Coder: extender el patrón al resto de listas.
 - Verificado: `pnpm typecheck`, `pnpm check`, `pnpm test` (731), `pnpm build`; capturas claro/oscuro/móvil vía preview temporal en `/login` (borrada antes del commit, como siempre).
+
+## Fase 1 — Tablas unificadas: componente compartido y Facturas (16 nov 2026)
+
+- Rama `diseno/tablas-unificadas`, solo frontend. Nuevo `src/components/listas/tabla-lista.tsx` **sin `"use client"`**: `TarjetaLista`, `BarraLista`, `TablaLista<T>`, `PillEstado` y `EstadoVacioLista` con la API de `docs/diseno/tablas-unificadas.md` §3.2. Tabla real (`thead`/`tbody`, `scope="col"`), `colSpan` calculado, `TableFooter` opcional (`pie`), densidad 48/40, cabecera 40 px `bg-slate-200/20`, filas 48 px con hover `slate-200/45`, montos a la derecha y pills de 11 px sin borde; `dark:` en cabecera, hover y pills.
+- `facturacion/page.tsx` + `facturas-tabla.tsx`: una sola tarjeta `data-lista="facturas"` (radio 16, borde, sin sombra) con el buscador **fuera** del Suspense; la tarjeta envuelve tabla y paginación. Vacío «Sin resultados / La búsqueda no arrojó facturas» con el pie visible y «¡Aún no tienes facturas!» + CTA «Nueva factura» solo si el rol puede crear. Sin columnas, datos, consultas ni botón «Filtrar» nuevos.
+- `paginador-lista.tsx` (URL) gana props opcionales `etiqueta`, `tamano`, `opciones`, `visible`, `mostrarEnVacio` y `botonesExtremos`; mantiene default 25 y la misma apariencia en las otras 16 listas. `paginador-local.tsx` nuevo para fichas (página base 0 como `usePagina`, ‹ › + «Página n de N»).
+- Candados: `src/lib/tablas-listas.test.ts` (`LISTAS_MIGRADAS` importa `TablaLista`, prohíbe `EstadoPill`/`EstadoBadge` local, exige `h-12`, `bg-slate-200/20` y `text-[11px]`, y que el componente no sea cliente) y `tests/e2e/tablas.spec.ts` (toolbar+tabla+pie en la tarjeta, sin «Filtrar», 40/48 px, vacío con pie).
+- **Desviación:** el selector ofrece 25/50/100, no 10, porque `src/lib/listas/parametros.ts` (`TAMANOS_PAGINA`) aún no acepta 10 y esta fase no toca `src/lib`. Al agregarlo, `PaginadorLista` lo toma solo.
+- Verificado: `pnpm typecheck`, Biome de los archivos tocados, `pnpm exec vitest run src/lib/tablas-listas.test.ts` (4), `pnpm test` (741) y `pnpm build` en verde. Sin push ni merge; capturas pendientes de Coder.
