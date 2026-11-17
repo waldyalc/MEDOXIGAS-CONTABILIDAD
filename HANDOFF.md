@@ -1,5 +1,13 @@
 # Handoff — Medoxigas Contabilidad
 
+## Diseño — Numeraciones con la tabla unificada (17 nov 2026)
+
+- Rama `diseno/numeraciones-orq` (desde `prueba` 0524709). La página `/dashboard/contabilidad/numeraciones` usa el patrón de Facturas: `ContenedorLista`, `TarjetaLista`, `BarraLista`, `TablaLista`, `PillEstado` y `PaginadorLocal` (25 por página, sin tocar consultas ni URL).
+- Se agregó el filtro visible «Tipo de documento» y la columna del mismo nombre. Las opciones salen de las numeraciones existentes (sin inventar tipos): `01 Crédito fiscal`, `02 Consumo`, `03 Nota de débito`, `04 Nota de crédito`, `13 Gastos menores`, `14 Régimen especial`, `15 Gubernamental` y `16 Exportaciones`. El filtro es local; también se corrigieron las etiquetas 03/04/13 que antes salían como código pelado.
+- Se conserva el diálogo de edición (mismos campos y server action). **No se agregó «Nueva numeración»**: el sistema no tiene RPC ni server action para crear; queda fuera y no se inventó backend. Tampoco se agregaron «Preferida», «Electrónica» ni borrado, porque no existen en `numeraciones`.
+- Candado: `numeraciones-cliente.tsx` agregado a `LISTAS_MIGRADAS` en `src/lib/tablas-listas.test.ts`.
+- Verificado: `pnpm typecheck`, Biome de lo tocado y `pnpm test` (742) en verde. Sin build, dev server ni capturas; sin push ni merge.
+
 ## Fix — Reportes de libros: RPC directo y paginación completa (16 nov 2026)
 
 - Rama `fix/reportes-libros-rpc` (desde `origin/prueba` b1f3f27). El `TypeError (reading 'rest')` de los 6 reportes de libros y de Guardar numeraciones **ya estaba corregido en `prueba`** (`cdfea68`, llamar `supabase.rpc` directo) y los libros pesados ya paginaban (`8cc75cf`). Esta rama no reintroduce el patrón; cierra el hueco que quedaba y lo blinda.
