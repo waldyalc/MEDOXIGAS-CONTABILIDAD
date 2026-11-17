@@ -17,6 +17,8 @@ interface DatePickerProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }
 
 function aFecha(valor: string): Date | undefined {
@@ -38,7 +40,15 @@ function CalendarioDia({ className, ...props }: ComponentProps<typeof CalendarDa
   );
 }
 
-export function DatePicker({ id, value, onChange, placeholder = "Seleccionar fecha", className }: DatePickerProps) {
+export function DatePicker({
+  id,
+  value,
+  onChange,
+  placeholder = "Seleccionar fecha",
+  className,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
+}: DatePickerProps) {
   const [abierto, setAbierto] = useState(false);
   const fecha = aFecha(value);
 
@@ -56,6 +66,8 @@ export function DatePicker({ id, value, onChange, placeholder = "Seleccionar fec
             id={id}
             type="button"
             variant="outline"
+            aria-invalid={ariaInvalid}
+            aria-describedby={ariaDescribedBy}
             className={cn(
               "h-10 w-full justify-start gap-2 rounded-[10px] border-slate-300 bg-white px-2 text-base font-normal text-slate-700 hover:border-slate-400 hover:bg-white focus-visible:border-primary focus-visible:ring-0 aria-expanded:border-primary aria-expanded:bg-white aria-expanded:text-slate-700 aria-expanded:ring-0 dark:bg-white dark:hover:bg-white",
               className,

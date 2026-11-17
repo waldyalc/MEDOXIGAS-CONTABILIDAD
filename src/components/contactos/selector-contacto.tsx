@@ -40,6 +40,8 @@ interface Props {
   disabled?: boolean;
   showClear?: boolean;
   "aria-label"?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }
 
 export function SelectorContacto({
@@ -53,6 +55,8 @@ export function SelectorContacto({
   disabled = false,
   showClear = true,
   "aria-label": ariaLabel,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: Props) {
   const [opciones, setOpciones] = useState<ContactoBuscado[]>(() => {
     const inicial = contactos.find((contacto) => contacto.id === valor);
@@ -174,6 +178,8 @@ export function SelectorContacto({
           disabled={disabled}
           showClear={showClear}
           aria-label={ariaLabel}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
           aria-busy={cargando}
           onChange={(evento) => setBusqueda(evento.currentTarget.value)}
         />

@@ -28,6 +28,8 @@ interface Props {
   disabled?: boolean;
   showClear?: boolean;
   "aria-label"?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 }
 
 export function SelectorProducto({
@@ -40,6 +42,8 @@ export function SelectorProducto({
   disabled = false,
   showClear = false,
   "aria-label": ariaLabel,
+  "aria-invalid": ariaInvalid,
+  "aria-describedby": ariaDescribedBy,
 }: Props) {
   const [nuevos, setNuevos] = useState<ProductoSeleccionable[]>([]);
   const [busqueda, setBusqueda] = useState("");
@@ -81,6 +85,8 @@ export function SelectorProducto({
           disabled={disabled}
           showClear={showClear}
           aria-label={ariaLabel}
+          aria-invalid={ariaInvalid}
+          aria-describedby={ariaDescribedBy}
           onChange={(evento) => setBusqueda(evento.currentTarget.value)}
         />
         <ComboboxContent>
