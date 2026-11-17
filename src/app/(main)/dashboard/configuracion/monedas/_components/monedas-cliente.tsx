@@ -8,6 +8,7 @@ import { Loader2, Pencil, Plus } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
 import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { hoyRD } from "@/lib/facturacion/formato";
+import { requerido } from "@/lib/formularios/validacion";
 import { guardarTasaCambio } from "@/lib/monedas/acciones";
 import type { MonedaConTasa, TasaCambio } from "@/lib/monedas/tipos";
 
@@ -43,6 +45,7 @@ export function MonedasCliente({
   const [tasa, setTasa] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
 
   const editables = monedas.filter((moneda) => !moneda.es_base && moneda.activo);
   const opciones = editables.map((moneda) => ({
@@ -56,6 +59,7 @@ export function MonedasCliente({
     setFecha(hoyRD());
     setTasa("");
     setError(null);
+    validacion.limpiarTodo();
     setAbierto(true);
   }
 
@@ -64,11 +68,27 @@ export function MonedasCliente({
     setFecha(item.fecha);
     setTasa(String(item.tasa));
     setError(null);
+    validacion.limpiarTodo();
     setAbierto(true);
   }
 
   function enviar() {
     setError(null);
+
+    if (
+      !validacion.validar([
+        requerido("tasa-moneda", monedaCodigo, "La moneda es requerida."),
+        requerido("tasa-fecha", fecha, "La fecha es requerida."),
+        requerido("tasa-valor", tasa, "La tasa es requerida."),
+        {
+          campo: "tasa-valor",
+          invalido: !Number.isNaN(Number(tasa)) && tasa.trim() !== "" && Number(tasa) <= 0,
+          mensaje: "La tasa debe ser mayor que cero.",
+        },
+      ])
+    ) {
+      return;
+    }
 
     iniciar(async () => {
       const resultado = await guardarTasaCambio({ moneda_codigo: monedaCodigo, fecha, tasa });
@@ -197,11 +217,14 @@ export function MonedasCliente({
             <DialogTitle>Registrar tasa de cambio</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
-            <FormField htmlFor="tasa-moneda" label="Moneda" required>
+            <FormField htmlFor="tasa-moneda" label="Moneda" required error={validacion.errorDe("tasa-moneda")}>
               <Select
                 items={opciones}
                 value={monedaCodigo}
-                onValueChange={(valor: string | null) => setMonedaCodigo(valor ?? "")}
+                onValueChange={(valor: string | null) => {
+                  setMonedaCodigo(valor ?? "");
+                  validacion.limpiar("tasa-moneda");
+                }}
               >
                 <SelectTrigger id="tasa-moneda" className={FORM_SELECT}>
                   <SelectValue />
@@ -215,15 +238,25 @@ export function MonedasCliente({
                 </SelectContent>
               </Select>
             </FormField>
-            <FormField htmlFor="tasa-fecha" label="Fecha" required>
-              <DatePicker id="tasa-fecha" value={fecha} onChange={setFecha} />
+            <FormField htmlFor="tasa-fecha" label="Fecha" required error={validacion.errorDe("tasa-fecha")}>
+              <DatePicker
+                id="tasa-fecha"
+                value={fecha}
+                onChange={(valor) => {
+                  setFecha(valor);
+                  validacion.limpiar("tasa-fecha");
+                }}
+              />
             </FormField>
-            <FormField htmlFor="tasa-valor" label="Tasa en DOP" required>
+            <FormField htmlFor="tasa-valor" label="Tasa en DOP" required error={validacion.errorDe("tasa-valor")}>
               <Input
                 id="tasa-valor"
                 inputMode="decimal"
                 value={tasa}
-                onChange={(evento) => setTasa(evento.target.value)}
+                onChange={(evento) => {
+                  setTasa(evento.target.value);
+                  validacion.limpiar("tasa-valor");
+                }}
                 placeholder="Ej. 58.50"
                 disabled={pendiente}
                 className={FORM_INPUT}
@@ -244,12 +277,7 @@ export function MonedasCliente({
               >
                 Cancelar
               </DialogClose>
-              <Button
-                type="button"
-                onClick={enviar}
-                disabled={pendiente || !monedaCodigo}
-                className="h-11 rounded-[12px] px-6"
-              >
+              <Button type="button" onClick={enviar} disabled={pendiente} className="h-11 rounded-[12px] px-6">
                 {pendiente ? <Loader2 className="animate-spin" /> : null}
                 Guardar
               </Button>

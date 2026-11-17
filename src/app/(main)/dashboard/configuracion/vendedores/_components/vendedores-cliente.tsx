@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Pencil, Plus } from "lucide-react";
 
 import { FORM_INPUT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { requerido } from "@/lib/formularios/validacion";
 import { actualizarVendedor, crearVendedor } from "@/lib/vendedores/acciones";
 import type { Vendedor } from "@/lib/vendedores/tipos";
 
@@ -35,6 +37,7 @@ export function VendedoresCliente({
   const [activo, setActivo] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
 
   function abrirNuevo() {
     setEditando(null);
@@ -43,6 +46,7 @@ export function VendedoresCliente({
     setObservacion("");
     setActivo(true);
     setError(null);
+    validacion.limpiarTodo();
     setAbierto(true);
   }
 
@@ -53,6 +57,7 @@ export function VendedoresCliente({
     setObservacion(vendedor.observacion ?? "");
     setActivo(vendedor.activo);
     setError(null);
+    validacion.limpiarTodo();
     setAbierto(true);
   }
 
@@ -61,12 +66,15 @@ export function VendedoresCliente({
     if (!abrir) {
       setEditando(null);
       setError(null);
+      validacion.limpiarTodo();
     }
   }
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setError(null);
+
+    if (!validacion.validar([requerido("vendedor-nombre", nombre, "El nombre es requerido.")])) return;
 
     const entrada = {
       nombre: nombre.trim(),
@@ -161,12 +169,15 @@ export function VendedoresCliente({
           <DialogHeader>
             <DialogTitle>{editando ? "Editar vendedor" : "Nuevo vendedor"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={enviar} className="flex flex-col gap-4">
-            <FormField htmlFor="vendedor-nombre" label="Nombre" required>
+          <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
+            <FormField htmlFor="vendedor-nombre" label="Nombre" required error={validacion.errorDe("vendedor-nombre")}>
               <Input
                 id="vendedor-nombre"
                 value={nombre}
-                onChange={(evento) => setNombre(evento.target.value)}
+                onChange={(evento) => {
+                  setNombre(evento.target.value);
+                  validacion.limpiar("vendedor-nombre");
+                }}
                 maxLength={120}
                 required
                 disabled={pendiente}

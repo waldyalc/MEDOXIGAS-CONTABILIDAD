@@ -15,12 +15,14 @@ import {
   FormField,
   FormSectionTitle,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { guardarEmpresa } from "@/lib/configuracion/acciones";
 import { extensionLogo, LIMITE_LOGO_BYTES, validarLogo } from "@/lib/configuracion/validacion";
 import type { Empresa } from "@/lib/facturacion/tipos";
+import { requerido } from "@/lib/formularios/validacion";
 import { createClient } from "@/lib/supabase/client";
 
 function mensajeSubidaLogo(mensaje: string) {
@@ -101,6 +103,7 @@ export function EmpresaForm({
   const [error, setError] = useState<string | null>(null);
   const [guardado, setGuardado] = useState(false);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
 
   useEffect(() => {
     return () => {
@@ -136,6 +139,8 @@ export function EmpresaForm({
     setError(null);
     setGuardado(false);
 
+    if (!validacion.validar([requerido("nombre", datos.get("nombre"), "El nombre es requerido.")])) return;
+
     iniciar(async () => {
       const resolucion = await resolverLogo(datos.get("logo"), empresa?.logo_url ?? null);
       if (!resolucion.ok) {
@@ -163,7 +168,7 @@ export function EmpresaForm({
   const logo = vistaPrevia ?? empresa?.logo_url?.trim() ?? "";
 
   return (
-    <form onSubmit={enviar} className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
+    <form noValidate onSubmit={enviar} className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
       <FormCard>
         <section>
           <FormSectionTitle descripcion="Así aparecen el nombre y los datos en facturas, cotizaciones y conduces.">
@@ -171,7 +176,7 @@ export function EmpresaForm({
           </FormSectionTitle>
           <div className="mt-4 flex flex-col gap-4">
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-              <FormField htmlFor="nombre" label="Nombre" required>
+              <FormField htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
                 <Input
                   id="nombre"
                   name="nombre"
@@ -179,6 +184,7 @@ export function EmpresaForm({
                   maxLength={200}
                   defaultValue={empresa?.nombre ?? ""}
                   disabled={!puedeEditar}
+                  onChange={() => validacion.limpiar("nombre")}
                   className={FORM_INPUT}
                 />
               </FormField>

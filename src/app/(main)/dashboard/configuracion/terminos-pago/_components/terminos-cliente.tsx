@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
 
 import { FORM_INPUT, FormField } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,15 +16,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { crearTerminoPago } from "@/lib/configuracion/acciones";
 import type { TerminoPago } from "@/lib/configuracion/tipos";
 import { formatoEntero } from "@/lib/formato";
+import { requerido } from "@/lib/formularios/validacion";
 
 function FormularioTermino({ onGuardado }: { readonly onGuardado: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     const datos = new FormData(evento.currentTarget);
     setError(null);
+
+    if (
+      !validacion.validar([
+        requerido("nombre", datos.get("nombre"), "El nombre es requerido."),
+        requerido("dias", datos.get("dias"), "Los días son requeridos."),
+      ])
+    ) {
+      return;
+    }
 
     iniciar(async () => {
       const resultado = await crearTerminoPago({
@@ -41,13 +53,21 @@ function FormularioTermino({ onGuardado }: { readonly onGuardado: () => void }) 
   }
 
   return (
-    <form onSubmit={enviar} className="flex flex-col gap-4">
+    <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
       <div className="flex flex-col gap-4">
-        <FormField htmlFor="nombre" label="Nombre" required>
-          <Input id="nombre" name="nombre" required maxLength={80} placeholder="Ej. 45 días" className={FORM_INPUT} />
+        <FormField htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
+          <Input
+            id="nombre"
+            name="nombre"
+            required
+            maxLength={80}
+            placeholder="Ej. 45 días"
+            onChange={() => validacion.limpiar("nombre")}
+            className={FORM_INPUT}
+          />
         </FormField>
 
-        <FormField htmlFor="dias" label="Días" required>
+        <FormField htmlFor="dias" label="Días" required error={validacion.errorDe("dias")}>
           <Input
             id="dias"
             name="dias"
@@ -57,6 +77,7 @@ function FormularioTermino({ onGuardado }: { readonly onGuardado: () => void }) 
             step={1}
             required
             placeholder="0"
+            onChange={() => validacion.limpiar("dias")}
             className={FORM_INPUT}
           />
         </FormField>

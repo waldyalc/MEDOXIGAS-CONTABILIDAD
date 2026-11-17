@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Pencil, Plus } from "lucide-react";
 
 import { FORM_INPUT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { actualizarCentroCosto, crearCentroCosto } from "@/lib/centros-costo/acciones";
 import type { CentroCosto } from "@/lib/centros-costo/tipos";
+import { requerido } from "@/lib/formularios/validacion";
 
 export function CentrosCostoCliente({
   centros,
@@ -35,6 +37,7 @@ export function CentrosCostoCliente({
   const [activo, setActivo] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
 
   function abrirNuevo() {
     setEditando(null);
@@ -43,6 +46,7 @@ export function CentrosCostoCliente({
     setDescripcion("");
     setActivo(true);
     setError(null);
+    validacion.limpiarTodo();
     setAbierto(true);
   }
 
@@ -53,6 +57,7 @@ export function CentrosCostoCliente({
     setDescripcion(centro.descripcion ?? "");
     setActivo(centro.activo);
     setError(null);
+    validacion.limpiarTodo();
     setAbierto(true);
   }
 
@@ -61,12 +66,22 @@ export function CentrosCostoCliente({
     if (!abrir) {
       setEditando(null);
       setError(null);
+      validacion.limpiarTodo();
     }
   }
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setError(null);
+
+    if (
+      !validacion.validar([
+        requerido("centro-codigo", codigo, "El código es requerido."),
+        requerido("centro-nombre", nombre, "El nombre es requerido."),
+      ])
+    ) {
+      return;
+    }
 
     const entrada = {
       codigo: codigo.trim(),
@@ -163,12 +178,15 @@ export function CentrosCostoCliente({
           <DialogHeader>
             <DialogTitle>{editando ? "Editar centro de costo" : "Nuevo centro de costo"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={enviar} className="flex flex-col gap-4">
-            <FormField htmlFor="centro-codigo" label="Código" required>
+          <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
+            <FormField htmlFor="centro-codigo" label="Código" required error={validacion.errorDe("centro-codigo")}>
               <Input
                 id="centro-codigo"
                 value={codigo}
-                onChange={(evento) => setCodigo(evento.target.value)}
+                onChange={(evento) => {
+                  setCodigo(evento.target.value);
+                  validacion.limpiar("centro-codigo");
+                }}
                 maxLength={30}
                 placeholder="Ej. CC-01"
                 required
@@ -176,11 +194,14 @@ export function CentrosCostoCliente({
                 className={FORM_INPUT}
               />
             </FormField>
-            <FormField htmlFor="centro-nombre" label="Nombre" required>
+            <FormField htmlFor="centro-nombre" label="Nombre" required error={validacion.errorDe("centro-nombre")}>
               <Input
                 id="centro-nombre"
                 value={nombre}
-                onChange={(evento) => setNombre(evento.target.value)}
+                onChange={(evento) => {
+                  setNombre(evento.target.value);
+                  validacion.limpiar("centro-nombre");
+                }}
                 maxLength={120}
                 required
                 disabled={pendiente}

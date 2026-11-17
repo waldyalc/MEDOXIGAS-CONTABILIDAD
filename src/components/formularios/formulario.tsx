@@ -53,19 +53,41 @@ interface FormFieldProps {
   htmlFor?: string;
   label: ReactNode;
   required?: boolean;
+  /** Mensaje de error del campo; pinta la etiqueta y el control en rojo. */
+  error?: string;
   children: ReactNode;
   className?: string;
 }
 
 /** Campo con etiqueta de 14 px, peso 500 y asterisco en el color primario. */
-export function FormField({ htmlFor, label, required = false, children, className }: FormFieldProps) {
+export function FormField({ htmlFor, label, required = false, error, children, className }: FormFieldProps) {
   return (
-    <div className={cn("flex min-w-0 flex-col gap-1", className)}>
-      <Label htmlFor={htmlFor} className="flex items-center gap-1 text-sm leading-5 font-medium text-slate-700">
+    <div
+      className={cn(
+        "flex min-w-0 flex-col gap-1",
+        error &&
+          "[&_input]:border-destructive [&_textarea]:border-destructive [&_[data-slot=select-trigger]]:border-destructive [&_[data-slot=input-group]]:border-destructive",
+        className,
+      )}
+    >
+      <Label
+        htmlFor={htmlFor}
+        className={cn(
+          "flex items-center gap-1 text-sm leading-5 font-medium text-slate-700",
+          error && "text-destructive",
+        )}
+      >
         {label}
-        {required ? <span className="text-primary text-xs font-normal">*</span> : null}
+        {required ? (
+          <span className={cn("text-xs font-normal", error ? "text-destructive" : "text-primary")}>*</span>
+        ) : null}
       </Label>
       {children}
+      {error ? (
+        <p role="alert" className="text-destructive text-xs leading-4">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
