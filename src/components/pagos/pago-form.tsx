@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, Loader2, Pencil, Plus, Search, Trash2, X } f
 
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_COMBO,
   FORM_INPUT_GROUP,
@@ -16,11 +17,11 @@ import {
   FORM_TEXTAREA,
   FormCard,
   FormDivider,
-  FormField,
   FormGrid,
   FormSectionTitle,
   FormTotal,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +42,7 @@ import type { RetencionOpcion } from "@/lib/configuracion/tipos";
 import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import type { Empresa } from "@/lib/facturacion/tipos";
 import { formatoDia } from "@/lib/formato";
+import { type ReglaCampo, requerido } from "@/lib/formularios/validacion";
 import { buscarFacturasPago } from "@/lib/pagos/busqueda";
 import {
   type FacturaPago,
@@ -174,6 +176,7 @@ export function PagoForm({
   const [otros, setOtros] = useState<LineaOtroPago[]>([lineaOtroVacia("otro-1", cuentasMovimiento[0]?.id ?? "")]);
   const [notas, setNotas] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const validacion = useValidacionFormulario();
 
   const esRecibido = tipo === "recibido";
   const documento = esRecibido ? "cliente" : "proveedor";
@@ -254,6 +257,11 @@ export function PagoForm({
         if (solicitud.current === numeroSolicitud) setCargandoFacturas(false);
       });
   }, [tipo, contactoId, busquedaAplicada, pagina, facturaInicial]);
+
+  function montoNoValido(valor: string | undefined): boolean {
+    const limpio = (valor ?? "").trim().replace(/\s/g, "").replace(/,/g, "");
+    return limpio !== "" && !/^\d{1,15}(\.\d{1,2})?$/.test(limpio);
+  }
 
   function centavosMonto(valor: string | undefined): number {
     const limpio = (valor ?? "").trim().replace(/\s/g, "").replace(/,/g, "");
@@ -348,6 +356,66 @@ export function PagoForm({
     return `El ${documento} no tiene facturas pendientes.`;
   }
 
+  function reglasFacturas(
+    filas: { factura: FacturaPago; monto: string; retenciones: readonly string[] }[],
+    visibles: readonly FacturaPago[],
+  ): ReglaCampo[] {
+    const reglas: ReglaCampo[] = [];
+    const primeraFactura = visibles[0];
+    const conMonto = filas.filter((fila) => centavosMonto(fila.monto) > 0);
+
+    reglas.push({
+      campo: primeraFactura ? `pago-monto-${primeraFactura.id}` : "contacto",
+      invalido: conMonto.length === 0,
+      mensaje: esRecibido
+        ? "Agrega el monto recibido a al menos una factura."
+        : "Agrega el monto pagado a al menos una factura.",
+    });
+
+    for (const fila of filas) {
+      const disponible = Math.round(saldoPendiente(fila.factura) * 100);
+      const retenido = Math.round(retenidoDeFactura(fila.retenciones, retenciones, fila.factura) * 100);
+      reglas.push({
+        campo: `pago-monto-${fila.factura.id}`,
+        invalido: montoNoValido(fila.monto),
+        mensaje: "El monto no es válido.",
+      });
+      reglas.push({
+        campo: `pago-monto-${fila.factura.id}`,
+        invalido: !montoNoValido(fila.monto) && centavosMonto(fila.monto) + retenido > disponible,
+        mensaje: "El monto más las retenciones supera lo pendiente.",
+      });
+    }
+
+    return reglas;
+  }
+
+  function reglasOtros(): ReglaCampo[] {
+    const reglas: ReglaCampo[] = [];
+    const primeraLinea = otros[0];
+
+    reglas.push({
+      campo: primeraLinea ? `otro-monto-${primeraLinea.clave}` : "contacto",
+      invalido: totalOtros <= 0,
+      mensaje: esRecibido ? "Agrega al menos un ingreso." : "Agrega al menos un egreso.",
+    });
+
+    for (const linea of otros) {
+      reglas.push({
+        campo: `otro-monto-${linea.clave}`,
+        invalido: montoNoValido(linea.monto),
+        mensaje: "El monto no es válido.",
+      });
+      reglas.push({
+        campo: `otro-cuenta-${linea.clave}`,
+        invalido: centavosMonto(linea.monto) > 0 && !linea.cuentaId,
+        mensaje: esRecibido ? "Selecciona la cuenta del ingreso." : "Selecciona la cuenta del egreso.",
+      });
+    }
+
+    return reglas;
+  }
+
   function guardar() {
     setError(null);
 
@@ -355,6 +423,15 @@ export function PagoForm({
       const factura = facturasPorId[facturaId];
       return factura ? [{ factura, monto, retenciones: retencionesFactura[facturaId] ?? [] }] : [];
     });
+    const reglas = [
+      requerido("contacto", contactoId, `El ${documento} es requerido.`),
+      requerido("cuenta", cuentaId, "La cuenta de caja o banco es requerida."),
+      requerido("fecha", fecha, "La fecha del pago es requerida."),
+      ...(pestana === "facturas" ? reglasFacturas(filas, visibles) : reglasOtros()),
+    ];
+
+    if (!validacion.validar(reglas)) return;
+
     const mensaje = validarPago({
       tipo,
       contactoId,
@@ -442,6 +519,7 @@ export function PagoForm({
 
   return (
     <form
+      noValidate
       className="mx-auto flex w-full max-w-[1040px] flex-col gap-6 [font-family:var(--font-inter)]"
       onSubmit={(evento) => {
         evento.preventDefault();
@@ -476,23 +554,34 @@ export function PagoForm({
         <FormDivider />
 
         <FormGrid>
-          <FormField htmlFor="contacto" label={esRecibido ? "Cliente" : "Proveedor"}>
+          <CampoFormulario
+            htmlFor="contacto"
+            label={esRecibido ? "Cliente" : "Proveedor"}
+            required
+            error={validacion.errorDe("contacto")}
+          >
             <SelectorContacto
               id="contacto"
               contactos={contactos}
               valor={contactoId}
-              onCambio={cambiarContacto}
+              onCambio={(contacto) => {
+                cambiarContacto(contacto);
+                validacion.limpiar("contacto");
+              }}
               tipoInicial={esRecibido ? "cliente" : "proveedor"}
               className={FORM_COMBO}
               placeholder={esRecibido ? "Buscar cliente…" : "Buscar proveedor…"}
             />
-          </FormField>
+          </CampoFormulario>
 
-          <FormField htmlFor="cuenta" label="Cuenta bancaria" required>
+          <CampoFormulario htmlFor="cuenta" label="Cuenta bancaria" required error={validacion.errorDe("cuenta")}>
             <Select
               items={cuentasItems}
               value={cuentaId || null}
-              onValueChange={(valor: string | null) => setCuentaId(valor ?? "")}
+              onValueChange={(valor: string | null) => {
+                setCuentaId(valor ?? "");
+                validacion.limpiar("cuenta");
+              }}
             >
               <SelectTrigger id="cuenta" className={FORM_SELECT}>
                 <SelectValue placeholder="Seleccionar" />
@@ -505,13 +594,20 @@ export function PagoForm({
                 ))}
               </SelectContent>
             </Select>
-          </FormField>
+          </CampoFormulario>
 
-          <FormField htmlFor="fecha" label="Fecha de pago" required>
-            <DatePicker id="fecha" value={fecha} onChange={setFecha} />
-          </FormField>
+          <CampoFormulario htmlFor="fecha" label="Fecha de pago" required error={validacion.errorDe("fecha")}>
+            <DatePicker
+              id="fecha"
+              value={fecha}
+              onChange={(valor) => {
+                setFecha(valor);
+                validacion.limpiar("fecha");
+              }}
+            />
+          </CampoFormulario>
 
-          <FormField htmlFor="metodo" label="Forma de pago" required>
+          <CampoFormulario htmlFor="metodo" label="Forma de pago" required>
             <Select
               items={[...METODOS]}
               value={metodo}
@@ -530,9 +626,9 @@ export function PagoForm({
                 ))}
               </SelectContent>
             </Select>
-          </FormField>
+          </CampoFormulario>
 
-          <FormField htmlFor="centro-costo" label="Centro de costo">
+          <CampoFormulario htmlFor="centro-costo" label="Centro de costo">
             <Select
               items={centrosItems}
               value={centroCostoId || SIN_CENTRO}
@@ -551,7 +647,7 @@ export function PagoForm({
                 ))}
               </SelectContent>
             </Select>
-          </FormField>
+          </CampoFormulario>
         </FormGrid>
 
         <section>
@@ -674,14 +770,24 @@ export function PagoForm({
                                   RD$
                                 </InputGroupAddon>
                                 <InputGroupInput
+                                  id={`pago-monto-${factura.id}`}
                                   inputMode="decimal"
                                   value={montos[factura.id] ?? ""}
                                   placeholder="0.00"
-                                  onChange={(evento) => cambiarMonto(factura.id, evento.target.value)}
+                                  onChange={(evento) => {
+                                    cambiarMonto(factura.id, evento.target.value);
+                                    validacion.limpiar(`pago-monto-${factura.id}`);
+                                  }}
                                   aria-label={`Monto de la factura ${factura.numero}`}
+                                  aria-invalid={Boolean(validacion.errorDe(`pago-monto-${factura.id}`))}
                                   className="h-full min-w-0 pl-1 text-right text-sm text-slate-700 md:text-sm"
                                 />
                               </InputGroup>
+                              {validacion.errorDe(`pago-monto-${factura.id}`) ? (
+                                <p role="alert" className="text-destructive mt-1 text-xs">
+                                  {validacion.errorDe(`pago-monto-${factura.id}`)}
+                                </p>
+                              ) : null}
                             </TableCell>
                           </TableRow>
                         );
@@ -763,6 +869,11 @@ export function PagoForm({
                               ))}
                             </SelectContent>
                           </Select>
+                          {validacion.errorDe(`otro-cuenta-${linea.clave}`) ? (
+                            <p role="alert" className="text-destructive mt-1 text-xs">
+                              {validacion.errorDe(`otro-cuenta-${linea.clave}`)}
+                            </p>
+                          ) : null}
                         </TableCell>
                         <TableCell className="px-2 py-2">
                           <Input
@@ -779,14 +890,24 @@ export function PagoForm({
                               RD$
                             </InputGroupAddon>
                             <InputGroupInput
+                              id={`otro-monto-${linea.clave}`}
                               inputMode="decimal"
                               value={linea.monto}
                               placeholder="0.00"
-                              onChange={(evento) => actualizarOtro(linea.clave, { monto: evento.target.value })}
+                              onChange={(evento) => {
+                                actualizarOtro(linea.clave, { monto: evento.target.value });
+                                validacion.limpiar(`otro-monto-${linea.clave}`);
+                              }}
                               aria-label={`Monto de la línea ${indice + 1}`}
+                              aria-invalid={Boolean(validacion.errorDe(`otro-monto-${linea.clave}`))}
                               className="h-full min-w-0 pl-1 text-right text-sm text-slate-700 md:text-sm"
                             />
                           </InputGroup>
+                          {validacion.errorDe(`otro-monto-${linea.clave}`) ? (
+                            <p role="alert" className="text-destructive mt-1 text-xs">
+                              {validacion.errorDe(`otro-monto-${linea.clave}`)}
+                            </p>
+                          ) : null}
                         </TableCell>
                         <TableCell className="px-2 py-2">
                           <Select
@@ -865,7 +986,7 @@ export function PagoForm({
           </div>
         </FormTotal>
 
-        <FormField htmlFor="notas" label="Observaciones">
+        <CampoFormulario htmlFor="notas" label="Observaciones">
           <Textarea
             id="notas"
             value={notas}
@@ -873,7 +994,7 @@ export function PagoForm({
             onChange={(evento) => setNotas(evento.target.value)}
             className={FORM_TEXTAREA}
           />
-        </FormField>
+        </CampoFormulario>
       </FormCard>
 
       <div className="flex flex-wrap justify-end gap-2">
@@ -918,7 +1039,12 @@ export function PagoForm({
                   const monto = retenidoDeFactura([retencionId], retenciones, facturaDialogo);
                   return (
                     <div key={retencionId} className="flex items-end gap-2">
-                      <FormField htmlFor={`retencion-${indice}`} label="Tipo de retención" required className="flex-1">
+                      <CampoFormulario
+                        htmlFor={`retencion-${indice}`}
+                        label="Tipo de retención"
+                        required
+                        className="flex-1"
+                      >
                         <Select
                           items={opcionesRetencion}
                           value={retencionId}
@@ -937,9 +1063,9 @@ export function PagoForm({
                             ))}
                           </SelectContent>
                         </Select>
-                      </FormField>
+                      </CampoFormulario>
 
-                      <FormField
+                      <CampoFormulario
                         htmlFor={`retencion-valor-${indice}`}
                         label="Valor retenido"
                         required
@@ -956,7 +1082,7 @@ export function PagoForm({
                             className="h-full min-w-0 pl-1 text-right text-sm text-slate-700 md:text-sm"
                           />
                         </InputGroup>
-                      </FormField>
+                      </CampoFormulario>
 
                       <Button
                         type="button"

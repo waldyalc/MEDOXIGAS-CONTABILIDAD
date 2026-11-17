@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, X } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_INPUT,
@@ -16,10 +17,10 @@ import {
   FORM_TEXTAREA,
   FormActions,
   FormCard,
-  FormField,
   FormSectionTitle,
   FormTotal,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ import { hoyEnRd } from "@/lib/compras/fechas";
 import { formatoMoneda } from "@/lib/compras/formato";
 import { elegirCuentaPagoPorDefecto } from "@/lib/compras/seleccion";
 import { rutaPagoRecurrente } from "@/lib/enlaces";
+import { requerido } from "@/lib/formularios/validacion";
 import { crearPagoRecurrente } from "@/lib/pagos-recurrentes/acciones";
 import type { OpcionesPagoRecurrente } from "@/lib/pagos-recurrentes/tipos";
 import { esquemaPagoRecurrente } from "@/lib/pagos-recurrentes/validacion";
@@ -59,6 +61,7 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
   const [notas, setNotas] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
 
   const opcionesContactos: OpcionCombobox[] = contactos.map((contacto) => ({
     value: contacto.id,
@@ -82,6 +85,29 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
     evento.preventDefault();
     setError(null);
 
+    if (
+      !validacion.validar([
+        requerido("nombre", nombre, "El nombre es requerido."),
+        requerido("cuenta-gasto", cuentaGastoId, "La cuenta de gasto es requerida."),
+        requerido("cuenta-pago", cuentaPagoId, "La cuenta de pago es requerida."),
+        requerido("subtotal", subtotal, "El monto es requerido."),
+        {
+          campo: "subtotal",
+          invalido: !Number.isFinite(aNumero(subtotal)) || aNumero(subtotal) <= 0,
+          mensaje: "El monto debe ser mayor que cero.",
+        },
+        requerido("fecha-inicio", fechaInicio, "La fecha de inicio es requerida."),
+        requerido("frecuencia", frecuencia, "La frecuencia es requerida."),
+        {
+          campo: "frecuencia",
+          invalido: !Number.isFinite(Number(frecuencia)) || Number(frecuencia) <= 0,
+          mensaje: "La frecuencia debe ser mayor que cero.",
+        },
+      ])
+    ) {
+      return;
+    }
+
     const entrada = {
       nombre,
       contacto_id: contactoId,
@@ -96,9 +122,9 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
       activo: true,
     };
 
-    const validacion = esquemaPagoRecurrente.safeParse(entrada);
-    if (!validacion.success) {
-      setError(validacion.error.issues[0]?.message ?? "Revisa los datos.");
+    const resultadoValidacion = esquemaPagoRecurrente.safeParse(entrada);
+    if (!resultadoValidacion.success) {
+      setError(resultadoValidacion.error.issues[0]?.message ?? "Revisa los datos.");
       return;
     }
 
@@ -114,7 +140,7 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
   }
 
   return (
-    <form onSubmit={enviar} className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
+    <form noValidate onSubmit={enviar} className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-2">
           <Button
@@ -140,23 +166,40 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
         <section>
           <FormSectionTitle className="mb-4">Datos del pago</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="nombre" label="Nombre" required className="sm:col-span-2">
+            <CampoFormulario
+              htmlFor="nombre"
+              label="Nombre"
+              required
+              error={validacion.errorDe("nombre")}
+              className="sm:col-span-2"
+            >
               <Input
                 id="nombre"
                 value={nombre}
-                onChange={(evento) => setNombre(evento.target.value)}
+                onChange={(evento) => {
+                  setNombre(evento.target.value);
+                  validacion.limpiar("nombre");
+                }}
                 placeholder="Alquiler del local, luz, internet…"
                 maxLength={120}
                 required
                 className={FORM_INPUT}
               />
-            </FormField>
-            <FormField htmlFor="cuenta-gasto" label="Cuenta de gasto" required>
+            </CampoFormulario>
+            <CampoFormulario
+              htmlFor="cuenta-gasto"
+              label="Cuenta de gasto"
+              required
+              error={validacion.errorDe("cuenta-gasto")}
+            >
               <Select
                 value={cuentaGastoId}
                 items={opcionesCuentasGasto}
                 onValueChange={(valor: string | null) => {
-                  if (valor) setCuentaGastoId(valor);
+                  if (valor) {
+                    setCuentaGastoId(valor);
+                    validacion.limpiar("cuenta-gasto");
+                  }
                 }}
               >
                 <SelectTrigger id="cuenta-gasto" className={FORM_SELECT}>
@@ -170,13 +213,21 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
-            <FormField htmlFor="cuenta-pago" label="Cuenta de pago" required>
+            </CampoFormulario>
+            <CampoFormulario
+              htmlFor="cuenta-pago"
+              label="Cuenta de pago"
+              required
+              error={validacion.errorDe("cuenta-pago")}
+            >
               <Select
                 value={cuentaPagoId}
                 items={opcionesCuentasPago}
                 onValueChange={(valor: string | null) => {
-                  if (valor) setCuentaPagoId(valor);
+                  if (valor) {
+                    setCuentaPagoId(valor);
+                    validacion.limpiar("cuenta-pago");
+                  }
                 }}
               >
                 <SelectTrigger id="cuenta-pago" className={FORM_SELECT}>
@@ -190,8 +241,8 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
-            <FormField htmlFor="subtotal" label="Monto" required>
+            </CampoFormulario>
+            <CampoFormulario htmlFor="subtotal" label="Monto" required error={validacion.errorDe("subtotal")}>
               <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
@@ -201,12 +252,15 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
                   inputMode="decimal"
                   value={subtotal}
                   placeholder="0.00"
-                  onChange={(evento) => setSubtotal(evento.target.value)}
+                  onChange={(evento) => {
+                    setSubtotal(evento.target.value);
+                    validacion.limpiar("subtotal");
+                  }}
                   required
                 />
               </InputGroup>
-            </FormField>
-            <FormField htmlFor="itbis" label="ITBIS">
+            </CampoFormulario>
+            <CampoFormulario htmlFor="itbis" label="ITBIS">
               <Select
                 value={itbisTasa}
                 items={OPCIONES_ITBIS}
@@ -225,21 +279,41 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
-            <FormField htmlFor="fecha-inicio" label="Fecha de inicio" required>
-              <DatePicker id="fecha-inicio" value={fechaInicio} onChange={setFechaInicio} />
-            </FormField>
-            <FormField htmlFor="frecuencia" label="Frecuencia (meses)" required>
+            </CampoFormulario>
+            <CampoFormulario
+              htmlFor="fecha-inicio"
+              label="Fecha de inicio"
+              required
+              error={validacion.errorDe("fecha-inicio")}
+            >
+              <DatePicker
+                id="fecha-inicio"
+                value={fechaInicio}
+                onChange={(valor) => {
+                  setFechaInicio(valor);
+                  validacion.limpiar("fecha-inicio");
+                }}
+              />
+            </CampoFormulario>
+            <CampoFormulario
+              htmlFor="frecuencia"
+              label="Frecuencia (meses)"
+              required
+              error={validacion.errorDe("frecuencia")}
+            >
               <Input
                 id="frecuencia"
                 inputMode="numeric"
                 value={frecuencia}
-                onChange={(evento) => setFrecuencia(evento.target.value)}
+                onChange={(evento) => {
+                  setFrecuencia(evento.target.value);
+                  validacion.limpiar("frecuencia");
+                }}
                 required
                 className={FORM_INPUT}
               />
-            </FormField>
-            <FormField htmlFor="vigencia" label="Vigencia hasta (opcional)">
+            </CampoFormulario>
+            <CampoFormulario htmlFor="vigencia" label="Vigencia hasta (opcional)">
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <DatePicker
@@ -261,8 +335,8 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
                   </Button>
                 ) : null}
               </div>
-            </FormField>
-            <FormField htmlFor="contacto" label="Contacto (opcional)" className="sm:col-span-2">
+            </CampoFormulario>
+            <CampoFormulario htmlFor="contacto" label="Contacto (opcional)" className="sm:col-span-2">
               <ComboboxCampo
                 id="contacto"
                 opciones={opcionesContactos}
@@ -271,12 +345,12 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
                 placeholder="Buscar proveedor…"
                 vacio="No hay proveedores registrados."
               />
-            </FormField>
+            </CampoFormulario>
             <Accordion className="sm:col-span-2">
               <AccordionItem value="mas" className="border-0">
                 <AccordionTrigger>Más opciones</AccordionTrigger>
                 <AccordionContent>
-                  <FormField htmlFor="notas" label="Observaciones">
+                  <CampoFormulario htmlFor="notas" label="Observaciones">
                     <Textarea
                       id="notas"
                       value={notas}
@@ -285,7 +359,7 @@ export function FormularioPagoRecurrente({ cuentasGasto, cuentasCajaBanco, conta
                       maxLength={500}
                       className={FORM_TEXTAREA}
                     />
-                  </FormField>
+                  </CampoFormulario>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

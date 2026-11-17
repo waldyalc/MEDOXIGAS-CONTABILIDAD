@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Loader2 } from "lucide-react";
 
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_COMBO,
@@ -15,10 +16,10 @@ import {
   FORM_SELECT,
   FormActions,
   FormCard,
-  FormField,
   FormSectionTitle,
   FormTotal,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import { toast } from "@/components/ui/toast";
 import { calcularLinea, centavosAValor, parsearCentavos } from "@/lib/facturacion/calculo";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import type { ContactoResumen } from "@/lib/facturacion/tipos";
+import { requerido } from "@/lib/formularios/validacion";
 import { crearGastoMenor } from "@/lib/gastos/acciones";
 import { etiquetaCuenta } from "@/lib/gastos/seleccion";
 import type { CuentaCajaBanco, CuentaGasto } from "@/lib/gastos/tipos";
@@ -77,6 +79,7 @@ export function GastoForm({
   const [cuentaPagoId, setCuentaPagoId] = useState(cuentaPagoPorDefecto);
   const [proveedorId, setProveedorId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const validacion = useValidacionFormulario();
 
   const cuentasItems: OpcionCuenta[] = cuentas.map((cuenta) => ({
     value: cuenta.id,
@@ -98,16 +101,16 @@ export function GastoForm({
   function guardar() {
     setError(null);
 
-    if (!descripcion.trim()) {
-      setError("Escribe la descripción del gasto.");
-      return;
-    }
-    if (subtotalCentavos <= 0) {
-      setError("El monto debe ser mayor que cero.");
-      return;
-    }
-    if (!cuentaId) {
-      setError("Selecciona la cuenta de gasto.");
+    if (
+      !validacion.validar([
+        requerido("descripcion", descripcion, "La descripción es requerida."),
+        requerido("monto", monto, "El monto es requerido."),
+        { campo: "monto", invalido: parsearCentavos(monto) === null, mensaje: "El monto no es válido." },
+        { campo: "monto", invalido: subtotalCentavos <= 0, mensaje: "El monto debe ser mayor que cero." },
+        requerido("fecha", fecha, "La fecha es requerida."),
+        requerido("cuenta", cuentaId, "La cuenta de gasto es requerida."),
+      ])
+    ) {
       return;
     }
 
@@ -138,6 +141,7 @@ export function GastoForm({
 
   return (
     <form
+      noValidate
       className="mx-auto flex w-full max-w-[1040px] flex-col gap-6"
       onSubmit={(evento) => {
         evento.preventDefault();
@@ -148,46 +152,70 @@ export function GastoForm({
         <section>
           <FormSectionTitle className="mb-4">Datos del gasto</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
-            <FormField htmlFor="descripcion" label="Descripción" required className="md:col-span-2">
+            <CampoFormulario
+              htmlFor="descripcion"
+              label="Descripción"
+              required
+              error={validacion.errorDe("descripcion")}
+              className="md:col-span-2"
+            >
               <Input
                 id="descripcion"
                 required
                 placeholder="Ej. Compra de útiles de oficina"
                 value={descripcion}
-                onChange={(evento) => setDescripcion(evento.target.value)}
+                onChange={(evento) => {
+                  setDescripcion(evento.target.value);
+                  validacion.limpiar("descripcion");
+                }}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="monto" label="Monto" required>
+            <CampoFormulario htmlFor="monto" label="Monto" required error={validacion.errorDe("monto")}>
               <Input
                 id="monto"
                 inputMode="decimal"
                 required
                 placeholder="0.00"
                 value={monto}
-                onChange={(evento) => setMonto(evento.target.value)}
+                onChange={(evento) => {
+                  setMonto(evento.target.value);
+                  validacion.limpiar("monto");
+                }}
                 className={FORM_INPUT}
               />
               <p className="text-muted-foreground text-xs">Monto sin ITBIS.</p>
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="fecha" label="Fecha" required>
+            <CampoFormulario htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
               <Input
                 id="fecha"
                 type="date"
                 required
                 value={fecha}
-                onChange={(evento) => setFecha(evento.target.value)}
+                onChange={(evento) => {
+                  setFecha(evento.target.value);
+                  validacion.limpiar("fecha");
+                }}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="cuenta" label="Cuenta de gasto" required className="md:col-span-2">
+            <CampoFormulario
+              htmlFor="cuenta"
+              label="Cuenta de gasto"
+              required
+              error={validacion.errorDe("cuenta")}
+              className="md:col-span-2"
+            >
               <Combobox
                 items={cuentasItems}
                 value={cuentaSeleccionada}
-                onValueChange={(item) => setCuentaId(item?.value ?? "")}
+                onValueChange={(item) => {
+                  setCuentaId(item?.value ?? "");
+                  validacion.limpiar("cuenta");
+                }}
                 itemToStringLabel={(item) => item.label}
                 isItemEqualToValue={(a, b) => a.value === b.value}
               >
@@ -203,7 +231,7 @@ export function GastoForm({
                   </ComboboxList>
                 </ComboboxContent>
               </Combobox>
-            </FormField>
+            </CampoFormulario>
 
             <p className="text-muted-foreground text-xs md:col-span-2">El comprobante B13 se asigna al guardar.</p>
 
@@ -215,7 +243,7 @@ export function GastoForm({
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="grid gap-x-8 gap-y-4 pt-2 md:grid-cols-2">
-                    <FormField htmlFor="cuenta-pago" label="Pagado desde">
+                    <CampoFormulario htmlFor="cuenta-pago" label="Pagado desde">
                       <Combobox
                         items={cuentasPagoItems}
                         value={cuentaPagoSeleccionada}
@@ -240,8 +268,8 @@ export function GastoForm({
                           </ComboboxList>
                         </ComboboxContent>
                       </Combobox>
-                    </FormField>
-                    <FormField htmlFor="itbis" label="Impuesto">
+                    </CampoFormulario>
+                    <CampoFormulario htmlFor="itbis" label="Impuesto">
                       <SelectorImpuesto
                         id="itbis"
                         className={FORM_SELECT}
@@ -253,8 +281,8 @@ export function GastoForm({
                           setItbisTasa(String(impuesto?.tarifa ?? 0));
                         }}
                       />
-                    </FormField>
-                    <FormField htmlFor="proveedor" label="Proveedor" className="md:col-span-2">
+                    </CampoFormulario>
+                    <CampoFormulario htmlFor="proveedor" label="Proveedor" className="md:col-span-2">
                       <SelectorContacto
                         id="proveedor"
                         contactos={proveedores}
@@ -264,7 +292,7 @@ export function GastoForm({
                         placeholder="Buscar proveedor…"
                         className={FORM_COMBO}
                       />
-                    </FormField>
+                    </CampoFormulario>
                   </div>
                 </CollapsibleContent>
               </Collapsible>

@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus, Tags } from "lucide-react";
 
-import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_INPUT, FORM_SELECT } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import {
   type ColumnaLista,
   ContenedorLista,
@@ -21,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { requerido } from "@/lib/formularios/validacion";
 import { actualizarListaPrecio, crearListaPrecio } from "@/lib/inventario/acciones";
 import { etiquetaTipoLista } from "@/lib/inventario/precios";
 import type { ListaPrecio, TipoListaPrecio } from "@/lib/inventario/tipos";
@@ -65,6 +68,7 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
   const [activo, setActivo] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
 
   const esPrincipal = editando?.es_principal ?? false;
 
@@ -75,6 +79,7 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
     setPrincipal(false);
     setActivo(true);
     setError(null);
+    validacion.limpiarTodo();
     setAbierto(true);
   }
 
@@ -85,6 +90,7 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
     setPrincipal(lista.es_principal);
     setActivo(lista.activo);
     setError(null);
+    validacion.limpiarTodo();
     setAbierto(true);
   }
 
@@ -93,12 +99,15 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
     if (!abrir) {
       setEditando(null);
       setError(null);
+      validacion.limpiarTodo();
     }
   }
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setError(null);
+
+    if (!validacion.validar([requerido("lista-nombre", nombre, "El nombre es requerido.")])) return;
 
     const entrada = {
       nombre: nombre.trim(),
@@ -177,19 +186,22 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
           <DialogHeader>
             <DialogTitle>{editando ? "Editar lista de precios" : "Nueva lista de precios"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={enviar} className="flex flex-col gap-4">
-            <FormField htmlFor="lista-nombre" label="Nombre" required>
+          <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
+            <CampoFormulario htmlFor="lista-nombre" label="Nombre" required error={validacion.errorDe("lista-nombre")}>
               <Input
                 id="lista-nombre"
                 value={nombre}
-                onChange={(evento) => setNombre(evento.target.value)}
+                onChange={(evento) => {
+                  setNombre(evento.target.value);
+                  validacion.limpiar("lista-nombre");
+                }}
                 maxLength={120}
                 required
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
-            <FormField htmlFor="lista-tipo" label="Tipo" required>
+            </CampoFormulario>
+            <CampoFormulario htmlFor="lista-tipo" label="Tipo" required>
               <Select
                 value={tipo}
                 onValueChange={(valor: string | null) => setTipo(valor === "porcentaje" ? "porcentaje" : "fijo")}
@@ -206,7 +218,7 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
+            </CampoFormulario>
             <div className="flex items-center justify-between gap-3">
               <div className="flex flex-col">
                 <Label htmlFor="lista-principal">Principal</Label>

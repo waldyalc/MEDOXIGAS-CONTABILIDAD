@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_INPUT,
@@ -17,10 +18,10 @@ import {
   FormActions,
   FormCard,
   FormDivider,
-  FormField,
   FormSectionTitle,
   FormTotal,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { centavosAValor, parsearCantidad, parsearCentavos } from "@/lib/facturacion/calculo";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
+import { requerido } from "@/lib/formularios/validacion";
 import { crearAjusteInventario } from "@/lib/inventario/acciones";
 import { calcularTotalAjusteCentavos, totalLineaAjusteCentavos } from "@/lib/inventario/calculo";
 import type { Almacen, ProductoInventario } from "@/lib/inventario/tipos";
@@ -71,6 +73,7 @@ export function AjusteForm({
     { clave: 0, productoId: "", tipo: "entrada", cantidad: "1", costo: "" },
   ]);
   const [error, setError] = useState<string | null>(null);
+  const validacion = useValidacionFormulario();
 
   const productosItems = productos.map((producto) => ({
     value: producto.id,
@@ -108,6 +111,7 @@ export function AjusteForm({
       productoId,
       ...(producto ? { costo: String(producto.costo) } : {}),
     });
+    validacion.limpiar(`ajuste-producto-${clave}`);
   }
 
   function guardar() {
@@ -118,6 +122,31 @@ export function AjusteForm({
       cantidad: parsearCantidad(linea.cantidad),
       costoCentavos: parsearCentavos(linea.costo),
     }));
+
+    const reglas = [
+      requerido("almacen", almacenId, "El almacén es requerido."),
+      requerido("fecha", fecha, "La fecha es requerida."),
+      ...lineas.flatMap((linea) => {
+        const cantidad = parsearCantidad(linea.cantidad);
+        const costo = parsearCentavos(linea.costo);
+        return [
+          requerido(`ajuste-producto-${linea.clave}`, linea.productoId, "Seleccione un producto."),
+          {
+            campo: `ajuste-cantidad-${linea.clave}`,
+            invalido: !Number.isFinite(cantidad) || cantidad <= 0,
+            mensaje: "La cantidad debe ser mayor que cero.",
+          },
+          {
+            campo: `ajuste-costo-${linea.clave}`,
+            invalido: costo === null || costo <= 0,
+            mensaje: "El costo debe ser mayor que cero.",
+          },
+        ];
+      }),
+    ];
+
+    if (!validacion.validar(reglas)) return;
+
     const errorValidacion = validarAjuste({ almacen_id: almacenId, lineas: validables });
     if (errorValidacion) {
       setError(errorValidacion);
@@ -148,6 +177,7 @@ export function AjusteForm({
 
   return (
     <form
+      noValidate
       onSubmit={(evento) => {
         evento.preventDefault();
         guardar();
@@ -158,11 +188,14 @@ export function AjusteForm({
         <section>
           <FormSectionTitle className="mb-4">Datos del ajuste</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="almacen" label="Almacén" required>
+            <CampoFormulario htmlFor="almacen" label="Almacén" required error={validacion.errorDe("almacen")}>
               <Select
                 items={almacenesItems}
                 value={almacenId}
-                onValueChange={(valor: string | null) => setAlmacenId(valor ?? "")}
+                onValueChange={(valor: string | null) => {
+                  setAlmacenId(valor ?? "");
+                  validacion.limpiar("almacen");
+                }}
               >
                 <SelectTrigger id="almacen" className={FORM_SELECT}>
                   <SelectValue />
@@ -175,13 +208,20 @@ export function AjusteForm({
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="fecha" label="Fecha" required>
-              <DatePicker id="fecha" value={fecha} onChange={setFecha} />
-            </FormField>
+            <CampoFormulario htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
+              <DatePicker
+                id="fecha"
+                value={fecha}
+                onChange={(valor) => {
+                  setFecha(valor);
+                  validacion.limpiar("fecha");
+                }}
+              />
+            </CampoFormulario>
 
-            <FormField htmlFor="observaciones" label="Observaciones" className="sm:col-span-2">
+            <CampoFormulario htmlFor="observaciones" label="Observaciones" className="sm:col-span-2">
               <Textarea
                 id="observaciones"
                 placeholder="Ej. Conteo físico de fin de mes"
@@ -190,7 +230,7 @@ export function AjusteForm({
                 maxLength={2000}
                 className={FORM_TEXTAREA}
               />
-            </FormField>
+            </CampoFormulario>
           </div>
         </section>
 
@@ -234,8 +274,10 @@ export function AjusteForm({
                           onValueChange={(valor: string | null) => seleccionarProducto(linea.clave, valor ?? "")}
                         >
                           <SelectTrigger
+                            id={`ajuste-producto-${linea.clave}`}
                             className={FORM_SELECT}
                             aria-label={`Producto de la línea ${indice + 1}`}
+                            aria-invalid={Boolean(validacion.errorDe(`ajuste-producto-${linea.clave}`))}
                             disabled={pendiente}
                           >
                             <SelectValue placeholder="Selecciona un producto…" />
@@ -248,6 +290,11 @@ export function AjusteForm({
                             ))}
                           </SelectContent>
                         </Select>
+                        {validacion.errorDe(`ajuste-producto-${linea.clave}`) ? (
+                          <p role="alert" className="text-destructive mt-1 text-xs">
+                            {validacion.errorDe(`ajuste-producto-${linea.clave}`)}
+                          </p>
+                        ) : null}
                       </TableCell>
                       <TableCell>
                         <Select
@@ -275,13 +322,23 @@ export function AjusteForm({
                       </TableCell>
                       <TableCell>
                         <Input
+                          id={`ajuste-cantidad-${linea.clave}`}
                           inputMode="decimal"
                           value={linea.cantidad}
-                          onChange={(evento) => actualizarLinea(linea.clave, { cantidad: evento.target.value })}
+                          onChange={(evento) => {
+                            actualizarLinea(linea.clave, { cantidad: evento.target.value });
+                            validacion.limpiar(`ajuste-cantidad-${linea.clave}`);
+                          }}
                           aria-label={`Cantidad de la línea ${indice + 1}`}
+                          aria-invalid={Boolean(validacion.errorDe(`ajuste-cantidad-${linea.clave}`))}
                           disabled={pendiente}
                           className={FORM_INPUT}
                         />
+                        {validacion.errorDe(`ajuste-cantidad-${linea.clave}`) ? (
+                          <p role="alert" className="text-destructive mt-1 text-xs">
+                            {validacion.errorDe(`ajuste-cantidad-${linea.clave}`)}
+                          </p>
+                        ) : null}
                       </TableCell>
                       <TableCell>
                         <InputGroup className={FORM_INPUT_GROUP}>
@@ -289,13 +346,23 @@ export function AjusteForm({
                             RD$
                           </InputGroupAddon>
                           <InputGroupInput
+                            id={`ajuste-costo-${linea.clave}`}
                             inputMode="decimal"
                             value={linea.costo}
-                            onChange={(evento) => actualizarLinea(linea.clave, { costo: evento.target.value })}
+                            onChange={(evento) => {
+                              actualizarLinea(linea.clave, { costo: evento.target.value });
+                              validacion.limpiar(`ajuste-costo-${linea.clave}`);
+                            }}
                             aria-label={`Costo unitario de la línea ${indice + 1}`}
+                            aria-invalid={Boolean(validacion.errorDe(`ajuste-costo-${linea.clave}`))}
                             disabled={pendiente}
                           />
                         </InputGroup>
+                        {validacion.errorDe(`ajuste-costo-${linea.clave}`) ? (
+                          <p role="alert" className="text-destructive mt-1 text-xs">
+                            {validacion.errorDe(`ajuste-costo-${linea.clave}`)}
+                          </p>
+                        ) : null}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{formatoMonedaCentavos(totalLinea)}</TableCell>
                       <TableCell className="text-right">
