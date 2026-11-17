@@ -18,6 +18,10 @@ import {
   tipoContactoDesde,
 } from "@/lib/contactos/contacto-rapido";
 import { normalizarNombre } from "@/lib/contactos/contactos";
+import { completarConDatosDgii } from "@/lib/dgii/completar";
+import type { DatosContribuyenteDgii } from "@/lib/dgii/consulta";
+
+import { BotonAutocompletarDgii, MensajeDgii, useConsultaDgii } from "./consulta-dgii";
 
 export interface ContactoCreado {
   id: string;
@@ -51,6 +55,13 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
   const estabaAbierto = useRef(false);
+  const { cargando, mensaje, consultar, limpiar } = useConsultaDgii();
+  const autoRellenado = useRef({ nombre: "" });
+  const valores = useRef({ nombre: "" });
+
+  useEffect(() => {
+    valores.current = { nombre };
+  }, [nombre]);
 
   useEffect(() => {
     if (abierto && !estabaAbierto.current) {
@@ -64,9 +75,31 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
       setCorreo("");
       setTelefono("");
       setError(null);
+      autoRellenado.current = { nombre: "" };
+      limpiar();
+    } else if (!abierto && estabaAbierto.current) {
+      limpiar();
     }
     estabaAbierto.current = abierto;
-  }, [abierto, nombreInicial, tipoInicial]);
+  }, [abierto, nombreInicial, tipoInicial, limpiar]);
+
+  function completarConDgii(datos: DatosContribuyenteDgii): string {
+    const { campos, mensaje: texto } = completarConDatosDgii(datos, valores.current, autoRellenado.current);
+    if (campos.nombre !== undefined) setNombre(campos.nombre);
+    Object.assign(valores.current, campos);
+    Object.assign(autoRellenado.current, campos);
+    return texto;
+  }
+
+  function consultarEnDgii(automatica: boolean) {
+    if (tipoIdentificacion === "pasaporte") return;
+
+    const digitos = normalizarIdentificacion(tipoIdentificacion, numero);
+    const esperado = tipoIdentificacion === "rnc" ? 9 : 11;
+    if (automatica && digitos.length !== esperado) return;
+
+    void consultar(digitos, tipoIdentificacion, completarConDgii);
+  }
 
   function alternarCliente() {
     if (esCliente && !esProveedor) return;
@@ -165,7 +198,10 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
                 items={OPCIONES_IDENTIFICACION}
                 value={tipoIdentificacion}
                 onValueChange={(valor: string | null) => {
-                  if (valor === "rnc" || valor === "cedula" || valor === "pasaporte") setTipoIdentificacion(valor);
+                  if (valor === "rnc" || valor === "cedula" || valor === "pasaporte") {
+                    setTipoIdentificacion(valor);
+                    limpiar();
+                  }
                 }}
               >
                 <SelectTrigger id="contacto-tipo-identificacion" className={FORM_SELECT}>
@@ -186,9 +222,21 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
                 id="contacto-numero"
                 inputMode={tipoIdentificacion === "pasaporte" ? "text" : "numeric"}
                 value={numero}
-                onChange={(evento) => setNumero(evento.target.value)}
+                onChange={(evento) => {
+                  setNumero(evento.target.value);
+                  limpiar();
+                }}
+                onBlur={() => consultarEnDgii(true)}
                 className={FORM_INPUT}
               />
+              <div className="mt-1">
+                <BotonAutocompletarDgii
+                  onClick={() => consultarEnDgii(false)}
+                  cargando={cargando}
+                  disabled={tipoIdentificacion === "pasaporte"}
+                />
+              </div>
+              <MensajeDgii mensaje={mensaje} />
             </FormField>
 
             <FormField htmlFor="contacto-nombre" label="Nombre o Razón social" required className="sm:col-span-2">
