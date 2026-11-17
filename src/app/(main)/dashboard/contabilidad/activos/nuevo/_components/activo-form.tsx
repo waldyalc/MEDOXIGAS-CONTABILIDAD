@@ -18,6 +18,7 @@ import {
   FormField,
   FormSectionTitle,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -44,6 +45,7 @@ import {
 import { vidaUtilEnMeses } from "@/lib/activos-fijos/validacion";
 import { centavosAValor, parsearCantidad, parsearCentavos } from "@/lib/facturacion/calculo";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
+import { requerido } from "@/lib/formularios/validacion";
 
 interface Opcion {
   value: string;
@@ -67,6 +69,7 @@ function CampoCuenta({
   onChange,
   pendiente,
   requerido = false,
+  error,
 }: {
   id: string;
   etiqueta: string;
@@ -75,11 +78,12 @@ function CampoCuenta({
   onChange: (valor: string) => void;
   pendiente: boolean;
   requerido?: boolean;
+  error?: string;
 }) {
   const seleccionada = opciones.find((opcion) => opcion.value === valor) ?? null;
 
   return (
-    <FormField htmlFor={id} label={etiqueta} required={requerido}>
+    <FormField htmlFor={id} label={etiqueta} required={requerido} error={error}>
       <Combobox
         items={opciones}
         value={seleccionada}
@@ -129,6 +133,7 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
   const [cuentaGastoId, setCuentaGastoId] = useState(datos.porDefecto.gasto);
   const [contabilizar, setContabilizar] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const validacion = useValidacionFormulario();
 
   const costoCentavos = parsearCentavos(costo) ?? 0;
   const cantidadNumero = parsearCantidad(cantidad);
@@ -174,6 +179,30 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
     evento.preventDefault();
     setError(null);
 
+    if (
+      !validacion.validar([
+        requerido("nombre", nombre, "El nombre es requerido."),
+        requerido("fecha-adquisicion", fechaAdquisicion, "La fecha de adquisición es requerida."),
+        requerido("costo", costo, "El costo es requerido."),
+        { campo: "costo", invalido: costoCentavos <= 0, mensaje: "El costo debe ser mayor que cero." },
+        requerido("cantidad", cantidad, "La cantidad es requerida."),
+        { campo: "cantidad", invalido: cantidadNumero <= 0, mensaje: "La cantidad debe ser mayor que cero." },
+        requerido("fecha-inicio", fechaInicio, "La fecha de inicio es requerida."),
+        requerido("vida-util", vidaUtil, "La vida útil es requerida."),
+        { campo: "vida-util", invalido: meses < 1, mensaje: "La vida útil debe equivaler al menos a un mes." },
+        {
+          campo: "residual",
+          invalido: residual.trim() !== "" && residualCentavos >= montoCentavos,
+          mensaje: "El valor residual debe ser menor que el monto total.",
+        },
+        requerido("cuenta-activo", cuentaActivoId, "La cuenta del activo es requerida."),
+        requerido("cuenta-depreciacion", cuentaDepreciacionId, "La cuenta de depreciación es requerida."),
+        requerido("cuenta-gasto", cuentaGastoId, "La cuenta del gasto es requerida."),
+      ])
+    ) {
+      return;
+    }
+
     const mensaje = validarFormulario();
     if (mensaje) {
       setError(mensaje);
@@ -210,18 +239,27 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
   }
 
   return (
-    <form onSubmit={guardar} className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
+    <form noValidate onSubmit={guardar} className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
       <FormCard>
         <section>
           <FormSectionTitle className="mb-4">Datos del activo</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="nombre" label="Nombre" required className="sm:col-span-2">
+            <FormField
+              htmlFor="nombre"
+              label="Nombre"
+              required
+              error={validacion.errorDe("nombre")}
+              className="sm:col-span-2"
+            >
               <Input
                 id="nombre"
                 required
                 placeholder="Ej. Camioneta de reparto"
                 value={nombre}
-                onChange={(evento) => setNombre(evento.target.value)}
+                onChange={(evento) => {
+                  setNombre(evento.target.value);
+                  validacion.limpiar("nombre");
+                }}
                 maxLength={200}
                 disabled={pendiente}
                 className={FORM_INPUT}
@@ -247,30 +285,48 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
               </Select>
             </FormField>
 
-            <FormField htmlFor="fecha-adquisicion" label="Fecha de adquisición" required>
-              <DatePicker id="fecha-adquisicion" value={fechaAdquisicion} onChange={setFechaAdquisicion} />
+            <FormField
+              htmlFor="fecha-adquisicion"
+              label="Fecha de adquisición"
+              required
+              error={validacion.errorDe("fecha-adquisicion")}
+            >
+              <DatePicker
+                id="fecha-adquisicion"
+                value={fechaAdquisicion}
+                onChange={(valor) => {
+                  setFechaAdquisicion(valor);
+                  validacion.limpiar("fecha-adquisicion");
+                }}
+              />
             </FormField>
 
-            <FormField htmlFor="costo" label="Costo de adquisición" required>
+            <FormField htmlFor="costo" label="Costo de adquisición" required error={validacion.errorDe("costo")}>
               <Input
                 id="costo"
                 inputMode="decimal"
                 required
                 placeholder="0.00"
                 value={costo}
-                onChange={(evento) => setCosto(evento.target.value)}
+                onChange={(evento) => {
+                  setCosto(evento.target.value);
+                  validacion.limpiar("costo");
+                }}
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
             </FormField>
 
-            <FormField htmlFor="cantidad" label="Cantidad" required>
+            <FormField htmlFor="cantidad" label="Cantidad" required error={validacion.errorDe("cantidad")}>
               <Input
                 id="cantidad"
                 inputMode="decimal"
                 required
                 value={cantidad}
-                onChange={(evento) => setCantidad(evento.target.value)}
+                onChange={(evento) => {
+                  setCantidad(evento.target.value);
+                  validacion.limpiar("cantidad");
+                }}
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
@@ -284,18 +340,33 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
               </div>
             </div>
 
-            <FormField htmlFor="fecha-inicio" label="Inicio de depreciación" required>
-              <DatePicker id="fecha-inicio" value={fechaInicio} onChange={setFechaInicio} />
+            <FormField
+              htmlFor="fecha-inicio"
+              label="Inicio de depreciación"
+              required
+              error={validacion.errorDe("fecha-inicio")}
+            >
+              <DatePicker
+                id="fecha-inicio"
+                value={fechaInicio}
+                onChange={(valor) => {
+                  setFechaInicio(valor);
+                  validacion.limpiar("fecha-inicio");
+                }}
+              />
             </FormField>
 
-            <FormField htmlFor="vida-util" label="Vida útil" required>
+            <FormField htmlFor="vida-util" label="Vida útil" required error={validacion.errorDe("vida-util")}>
               <div className="flex items-center gap-2">
                 <Input
                   id="vida-util"
                   inputMode="decimal"
                   required
                   value={vidaUtil}
-                  onChange={(evento) => setVidaUtil(evento.target.value)}
+                  onChange={(evento) => {
+                    setVidaUtil(evento.target.value);
+                    validacion.limpiar("vida-util");
+                  }}
                   disabled={pendiente}
                   className={`${FORM_INPUT} w-24`}
                 />
@@ -372,13 +443,16 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                       </Combobox>
                     </FormField>
 
-                    <FormField htmlFor="residual" label="Valor residual">
+                    <FormField htmlFor="residual" label="Valor residual" error={validacion.errorDe("residual")}>
                       <Input
                         id="residual"
                         inputMode="decimal"
                         placeholder="0.00"
                         value={residual}
-                        onChange={(evento) => setResidual(evento.target.value)}
+                        onChange={(evento) => {
+                          setResidual(evento.target.value);
+                          validacion.limpiar("residual");
+                        }}
                         disabled={pendiente}
                         className={FORM_INPUT}
                       />
@@ -401,7 +475,11 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                       requerido
                       opciones={opcionesCuenta(datos.cuentasActivo)}
                       valor={cuentaActivoId}
-                      onChange={setCuentaActivoId}
+                      onChange={(valor) => {
+                        setCuentaActivoId(valor);
+                        validacion.limpiar("cuenta-activo");
+                      }}
+                      error={validacion.errorDe("cuenta-activo")}
                       pendiente={pendiente}
                     />
                     <CampoCuenta
@@ -410,7 +488,11 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                       requerido
                       opciones={opcionesCuenta(datos.cuentasDepreciacion)}
                       valor={cuentaDepreciacionId}
-                      onChange={setCuentaDepreciacionId}
+                      onChange={(valor) => {
+                        setCuentaDepreciacionId(valor);
+                        validacion.limpiar("cuenta-depreciacion");
+                      }}
+                      error={validacion.errorDe("cuenta-depreciacion")}
                       pendiente={pendiente}
                     />
                     <CampoCuenta
@@ -419,7 +501,11 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                       requerido
                       opciones={opcionesCuenta(datos.cuentasGasto)}
                       valor={cuentaGastoId}
-                      onChange={setCuentaGastoId}
+                      onChange={(valor) => {
+                        setCuentaGastoId(valor);
+                        validacion.limpiar("cuenta-gasto");
+                      }}
+                      error={validacion.errorDe("cuenta-gasto")}
                       pendiente={pendiente}
                     />
                   </div>

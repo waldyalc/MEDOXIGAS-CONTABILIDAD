@@ -19,6 +19,7 @@ import {
   FormSectionTitle,
   FormTotal,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,7 @@ import type { CentroCostoAsiento, ContactoAsiento, CuentaAsiento } from "@/lib/a
 import { rutaAsiento } from "@/lib/enlaces";
 import { centavosAValor, parsearCentavos } from "@/lib/facturacion/calculo";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
+import { requerido } from "@/lib/formularios/validacion";
 
 const SIN_CENTRO = "__ninguno";
 
@@ -84,6 +86,7 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
   const [descripcion, setDescripcion] = useState("");
   const [lineas, setLineas] = useState<LineaForm[]>([lineaVacia("l1"), lineaVacia("l2")]);
   const [error, setError] = useState<string | null>(null);
+  const validacion = useValidacionFormulario();
 
   const cuentasItems: ItemCombobox[] = cuentas.map((cuenta) => ({
     value: cuenta.id,
@@ -115,10 +118,62 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
   function guardar() {
     setError(null);
 
-    if (!descripcion.trim()) {
-      setError("La descripción es obligatoria.");
-      return;
-    }
+    const reglas = [
+      requerido("fecha", fecha, "La fecha es requerida."),
+      requerido("descripcion", descripcion, "La descripción es requerida."),
+      ...lineas.flatMap((linea) => {
+        const debito = linea.debito.trim();
+        const credito = linea.credito.trim();
+        const reglasLinea = [requerido(`cuenta-${linea.clave}`, linea.cuentaId, "Seleccione una cuenta.")];
+
+        if (debito !== "" && parsearCentavos(debito) == null) {
+          reglasLinea.push({
+            campo: `debito-${linea.clave}`,
+            invalido: true,
+            mensaje: "Use un número con hasta dos decimales.",
+          });
+        }
+        if (credito !== "" && parsearCentavos(credito) == null) {
+          reglasLinea.push({
+            campo: `credito-${linea.clave}`,
+            invalido: true,
+            mensaje: "Use un número con hasta dos decimales.",
+          });
+        }
+        if (debito === "" && credito === "") {
+          reglasLinea.push({
+            campo: `debito-${linea.clave}`,
+            invalido: true,
+            mensaje: "Escriba el débito o el crédito.",
+          });
+        }
+        if (debito !== "" && credito !== "") {
+          reglasLinea.push({
+            campo: `credito-${linea.clave}`,
+            invalido: true,
+            mensaje: "Cada línea lleva débito o crédito, no ambos.",
+          });
+        }
+        if (debito !== "" && credito === "" && montoCentavos(debito) <= 0) {
+          reglasLinea.push({
+            campo: `debito-${linea.clave}`,
+            invalido: true,
+            mensaje: "El monto debe ser mayor que cero.",
+          });
+        }
+        if (credito !== "" && debito === "" && montoCentavos(credito) <= 0) {
+          reglasLinea.push({
+            campo: `credito-${linea.clave}`,
+            invalido: true,
+            mensaje: "El monto debe ser mayor que cero.",
+          });
+        }
+        return reglasLinea;
+      }),
+    ];
+
+    if (!validacion.validar(reglas)) return;
+
     if (lineas.length < 2) {
       setError("Un asiento requiere al menos dos líneas.");
       return;
@@ -176,6 +231,7 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
 
   return (
     <form
+      noValidate
       className="mx-auto flex w-full max-w-[1040px] flex-col gap-6"
       onSubmit={(evento) => {
         evento.preventDefault();
@@ -186,24 +242,36 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
         <section>
           <FormSectionTitle className="mb-4">Datos del asiento</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-3">
-            <FormField htmlFor="fecha" label="Fecha" required>
+            <FormField htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
               <Input
                 id="fecha"
                 type="date"
                 required
                 value={fecha}
-                onChange={(evento) => setFecha(evento.target.value)}
+                onChange={(evento) => {
+                  setFecha(evento.target.value);
+                  validacion.limpiar("fecha");
+                }}
                 className={FORM_INPUT}
               />
             </FormField>
-            <FormField htmlFor="descripcion" label="Descripción" required className="md:col-span-2">
+            <FormField
+              htmlFor="descripcion"
+              label="Descripción"
+              required
+              error={validacion.errorDe("descripcion")}
+              className="md:col-span-2"
+            >
               <Input
                 id="descripcion"
                 required
                 maxLength={500}
                 value={descripcion}
                 placeholder="Concepto del asiento"
-                onChange={(evento) => setDescripcion(evento.target.value)}
+                onChange={(evento) => {
+                  setDescripcion(evento.target.value);
+                  validacion.limpiar("descripcion");
+                }}
                 className={FORM_INPUT}
               />
             </FormField>
@@ -241,11 +309,17 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
                   </Label>
                   <Combobox
                     items={cuentasItems}
-                    onValueChange={(item: ItemCombobox | null) =>
-                      actualizarLinea(linea.clave, { cuentaId: item?.value ?? "" })
-                    }
+                    onValueChange={(item: ItemCombobox | null) => {
+                      actualizarLinea(linea.clave, { cuentaId: item?.value ?? "" });
+                      validacion.limpiar(`cuenta-${linea.clave}`);
+                    }}
                   >
-                    <ComboboxInput id={`cuenta-${linea.clave}`} className={FORM_SELECT} placeholder="Buscar cuenta…" />
+                    <ComboboxInput
+                      id={`cuenta-${linea.clave}`}
+                      className={FORM_SELECT}
+                      placeholder="Buscar cuenta…"
+                      aria-invalid={Boolean(validacion.errorDe(`cuenta-${linea.clave}`))}
+                    />
                     <ComboboxContent>
                       <ComboboxEmpty>Sin cuentas</ComboboxEmpty>
                       <ComboboxList>
@@ -257,6 +331,11 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
                       </ComboboxList>
                     </ComboboxContent>
                   </Combobox>
+                  {validacion.errorDe(`cuenta-${linea.clave}`) ? (
+                    <p role="alert" className="text-destructive text-xs">
+                      Seleccione una cuenta.
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="col-span-2 flex flex-col gap-1.5 md:col-span-1">
@@ -311,8 +390,17 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
                     className={`${FORM_INPUT} text-right`}
                     inputMode="decimal"
                     value={linea.debito}
-                    onChange={(evento) => actualizarLinea(linea.clave, { debito: evento.target.value })}
+                    onChange={(evento) => {
+                      actualizarLinea(linea.clave, { debito: evento.target.value });
+                      validacion.limpiar(`debito-${linea.clave}`);
+                    }}
+                    aria-invalid={Boolean(validacion.errorDe(`debito-${linea.clave}`))}
                   />
+                  {validacion.errorDe(`debito-${linea.clave}`) ? (
+                    <p role="alert" className="text-destructive text-xs">
+                      {validacion.errorDe(`debito-${linea.clave}`)}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -324,8 +412,17 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
                     className={`${FORM_INPUT} text-right`}
                     inputMode="decimal"
                     value={linea.credito}
-                    onChange={(evento) => actualizarLinea(linea.clave, { credito: evento.target.value })}
+                    onChange={(evento) => {
+                      actualizarLinea(linea.clave, { credito: evento.target.value });
+                      validacion.limpiar(`credito-${linea.clave}`);
+                    }}
+                    aria-invalid={Boolean(validacion.errorDe(`credito-${linea.clave}`))}
                   />
+                  {validacion.errorDe(`credito-${linea.clave}`) ? (
+                    <p role="alert" className="text-destructive text-xs">
+                      {validacion.errorDe(`credito-${linea.clave}`)}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="col-span-2 flex justify-end md:col-span-1">

@@ -16,6 +16,7 @@ import {
   FORM_TEXTAREA,
   FormField,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,7 @@ import { validarCuentaBanco, validarDeposito, validarTransferencia } from "@/lib
 import { rutaBanco, rutaConciliacion, rutaCuenta, rutaTransferencia } from "@/lib/enlaces";
 import { centavosAValor, parsearCentavos } from "@/lib/facturacion/calculo";
 import { formatoDia } from "@/lib/formato";
+import { requerido } from "@/lib/formularios/validacion";
 import { centavos, formatearRd } from "@/lib/reportes/dinero";
 
 interface Props {
@@ -74,6 +76,7 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
   const [descripcion, setDescripcion] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
 
   function reiniciar() {
     setNombre("");
@@ -83,6 +86,7 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
     setFecha(fechaHoy);
     setDescripcion("");
     setError(null);
+    validacion.limpiarTodo();
   }
 
   function cambiarAbierto(abrir: boolean) {
@@ -95,19 +99,31 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
     setError(null);
 
     const saldoCentavos = parsearCentavos(saldo);
-    if (saldoCentavos === null) {
-      setError("Escribe un saldo inicial válido.");
+    if (
+      !validacion.validar([
+        requerido("cuenta-nombre", nombre, "El nombre de la cuenta es requerido."),
+        requerido("cuenta-saldo", saldo, "El saldo inicial es requerido."),
+        {
+          campo: "cuenta-saldo",
+          invalido: saldoCentavos === null,
+          mensaje: "Escribe un saldo inicial válido.",
+        },
+        requerido("cuenta-fecha", fecha, "La fecha es requerida."),
+      ])
+    ) {
       return;
     }
 
-    const validacion = validarCuentaBanco({
+    if (saldoCentavos === null) return;
+
+    const problema = validarCuentaBanco({
       nombre,
       tipo_banco: tipo,
       saldoCentavos,
       fecha_saldo_inicial: fecha,
     });
-    if (validacion) {
-      setError(validacion);
+    if (problema) {
+      setError(problema);
       return;
     }
 
@@ -142,13 +158,21 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
           <DialogTitle>Agregar cuenta de banco o caja</DialogTitle>
           <DialogDescription>Crea la cuenta contable con su saldo inicial.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={enviar} className="flex flex-col gap-4">
-          <FormField htmlFor="cuenta-nombre" label="Nombre de la cuenta" required>
+        <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
+          <FormField
+            htmlFor="cuenta-nombre"
+            label="Nombre de la cuenta"
+            required
+            error={validacion.errorDe("cuenta-nombre")}
+          >
             <Input
               id="cuenta-nombre"
               placeholder="Ej. Banco Popular"
               value={nombre}
-              onChange={(evento) => setNombre(evento.target.value)}
+              onChange={(evento) => {
+                setNombre(evento.target.value);
+                validacion.limpiar("cuenta-nombre");
+              }}
               maxLength={150}
               required
               disabled={pendiente}
@@ -187,7 +211,7 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
             </FormField>
           </div>
           <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="cuenta-saldo" label="Saldo inicial" required>
+            <FormField htmlFor="cuenta-saldo" label="Saldo inicial" required error={validacion.errorDe("cuenta-saldo")}>
               <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
@@ -197,14 +221,29 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
                   inputMode="decimal"
                   placeholder="0.00"
                   value={saldo}
-                  onChange={(evento) => setSaldo(evento.target.value)}
+                  onChange={(evento) => {
+                    setSaldo(evento.target.value);
+                    validacion.limpiar("cuenta-saldo");
+                  }}
                   required
                   disabled={pendiente}
                 />
               </InputGroup>
             </FormField>
-            <FormField htmlFor="cuenta-fecha" label="Fecha de saldo inicial" required>
-              <DatePicker id="cuenta-fecha" value={fecha} onChange={setFecha} />
+            <FormField
+              htmlFor="cuenta-fecha"
+              label="Fecha de saldo inicial"
+              required
+              error={validacion.errorDe("cuenta-fecha")}
+            >
+              <DatePicker
+                id="cuenta-fecha"
+                value={fecha}
+                onChange={(valor) => {
+                  setFecha(valor);
+                  validacion.limpiar("cuenta-fecha");
+                }}
+              />
             </FormField>
           </div>
           <FormField htmlFor="cuenta-descripcion" label="Descripción">
@@ -251,6 +290,7 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
   const [observaciones, setObservaciones] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
   const sinCuentas = cuentas.length < 2;
   const cuentasItems = opciones(cuentas);
 
@@ -261,6 +301,7 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
     setFecha(fechaHoy);
     setObservaciones("");
     setError(null);
+    validacion.limpiarTodo();
   }
 
   function cambiarAbierto(abrir: boolean) {
@@ -273,18 +314,37 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
     setError(null);
 
     const montoCentavos = parsearCentavos(monto);
-    if (montoCentavos === null) {
-      setError("Escribe un monto válido.");
+    if (
+      !validacion.validar([
+        requerido("transferencia-origen", origen, "La cuenta de origen es requerida."),
+        requerido("transferencia-destino", destino, "La cuenta de destino es requerida."),
+        {
+          campo: "transferencia-destino",
+          invalido: origen !== "" && origen === destino,
+          mensaje: "La cuenta de destino debe ser distinta a la de origen.",
+        },
+        requerido("transferencia-monto", monto, "El monto es requerido."),
+        { campo: "transferencia-monto", invalido: montoCentavos === null, mensaje: "Escribe un monto válido." },
+        {
+          campo: "transferencia-monto",
+          invalido: montoCentavos !== null && montoCentavos <= 0,
+          mensaje: "El monto debe ser mayor que cero.",
+        },
+        requerido("transferencia-fecha", fecha, "La fecha es requerida."),
+      ])
+    ) {
       return;
     }
 
-    const validacion = validarTransferencia({
+    if (montoCentavos === null) return;
+
+    const problema = validarTransferencia({
       cuenta_origen_id: origen,
       cuenta_destino_id: destino,
       montoCentavos,
     });
-    if (validacion) {
-      setError(validacion);
+    if (problema) {
+      setError(problema);
       return;
     }
 
@@ -322,12 +382,20 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
           <DialogTitle>Transferir entre cuentas</DialogTitle>
           <DialogDescription>Mueve dinero de una cuenta de caja o banco a otra.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={enviar} className="flex flex-col gap-4">
-          <FormField htmlFor="transferencia-origen" label="Desde" required>
+        <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
+          <FormField
+            htmlFor="transferencia-origen"
+            label="Desde"
+            required
+            error={validacion.errorDe("transferencia-origen")}
+          >
             <Select
               items={cuentasItems}
               value={origen}
-              onValueChange={(valor: string | null) => setOrigen(valor ?? "")}
+              onValueChange={(valor: string | null) => {
+                setOrigen(valor ?? "");
+                validacion.limpiar("transferencia-origen");
+              }}
             >
               <SelectTrigger id="transferencia-origen" className={FORM_SELECT} disabled={pendiente}>
                 <SelectValue />
@@ -341,11 +409,19 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
               </SelectContent>
             </Select>
           </FormField>
-          <FormField htmlFor="transferencia-destino" label="Hacia" required>
+          <FormField
+            htmlFor="transferencia-destino"
+            label="Hacia"
+            required
+            error={validacion.errorDe("transferencia-destino")}
+          >
             <Select
               items={cuentasItems}
               value={destino}
-              onValueChange={(valor: string | null) => setDestino(valor ?? "")}
+              onValueChange={(valor: string | null) => {
+                setDestino(valor ?? "");
+                validacion.limpiar("transferencia-destino");
+              }}
             >
               <SelectTrigger id="transferencia-destino" className={FORM_SELECT} disabled={pendiente}>
                 <SelectValue />
@@ -360,7 +436,12 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
             </Select>
           </FormField>
           <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="transferencia-monto" label="Monto" required>
+            <FormField
+              htmlFor="transferencia-monto"
+              label="Monto"
+              required
+              error={validacion.errorDe("transferencia-monto")}
+            >
               <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
@@ -370,14 +451,29 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
                   inputMode="decimal"
                   placeholder="0.00"
                   value={monto}
-                  onChange={(evento) => setMonto(evento.target.value)}
+                  onChange={(evento) => {
+                    setMonto(evento.target.value);
+                    validacion.limpiar("deposito-monto");
+                  }}
                   required
                   disabled={pendiente}
                 />
               </InputGroup>
             </FormField>
-            <FormField htmlFor="transferencia-fecha" label="Fecha" required>
-              <DatePicker id="transferencia-fecha" value={fecha} onChange={setFecha} />
+            <FormField
+              htmlFor="transferencia-fecha"
+              label="Fecha"
+              required
+              error={validacion.errorDe("transferencia-fecha")}
+            >
+              <DatePicker
+                id="transferencia-fecha"
+                value={fecha}
+                onChange={(valor) => {
+                  setFecha(valor);
+                  validacion.limpiar("transferencia-fecha");
+                }}
+              />
             </FormField>
           </div>
           <Collapsible>
@@ -442,6 +538,7 @@ function DialogoDeposito({
   const [notas, setNotas] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
   const sinCuentas = cuentasDestino.length === 0 || cuentasContrapartida.length < 2;
   const destinos = opciones(cuentasDestino);
   const contrapartidas = opciones(cuentasContrapartida);
@@ -453,6 +550,7 @@ function DialogoDeposito({
     setFecha(fechaHoy);
     setNotas("");
     setError(null);
+    validacion.limpiarTodo();
   }
 
   function cambiarAbierto(abrir: boolean) {
@@ -465,18 +563,32 @@ function DialogoDeposito({
     setError(null);
 
     const montoCentavos = parsearCentavos(monto);
-    if (montoCentavos === null) {
-      setError("Escribe un monto válido.");
+    if (
+      !validacion.validar([
+        requerido("deposito-destino", destino, "La cuenta destino es requerida."),
+        requerido("deposito-contrapartida", contrapartida, "La contrapartida es requerida."),
+        requerido("deposito-monto", monto, "El monto es requerido."),
+        { campo: "deposito-monto", invalido: montoCentavos === null, mensaje: "Escribe un monto válido." },
+        {
+          campo: "deposito-monto",
+          invalido: montoCentavos !== null && montoCentavos <= 0,
+          mensaje: "El monto debe ser mayor que cero.",
+        },
+        requerido("deposito-fecha", fecha, "La fecha es requerida."),
+      ])
+    ) {
       return;
     }
 
-    const validacion = validarDeposito({
+    if (montoCentavos === null) return;
+
+    const problema = validarDeposito({
       cuenta_destino_id: destino,
       cuenta_contrapartida_id: contrapartida,
       montoCentavos,
     });
-    if (validacion) {
-      setError(validacion);
+    if (problema) {
+      setError(problema);
       return;
     }
 
@@ -514,9 +626,21 @@ function DialogoDeposito({
           <DialogTitle>Registrar depósito</DialogTitle>
           <DialogDescription>Registra un ingreso o aporte a una cuenta de caja o banco.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={enviar} className="flex flex-col gap-4">
-          <FormField htmlFor="deposito-destino" label="Cuenta destino" required>
-            <Select items={destinos} value={destino} onValueChange={(valor: string | null) => setDestino(valor ?? "")}>
+        <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
+          <FormField
+            htmlFor="deposito-destino"
+            label="Cuenta destino"
+            required
+            error={validacion.errorDe("deposito-destino")}
+          >
+            <Select
+              items={destinos}
+              value={destino}
+              onValueChange={(valor: string | null) => {
+                setDestino(valor ?? "");
+                validacion.limpiar("deposito-destino");
+              }}
+            >
               <SelectTrigger id="deposito-destino" className={FORM_SELECT} disabled={pendiente}>
                 <SelectValue />
               </SelectTrigger>
@@ -529,11 +653,19 @@ function DialogoDeposito({
               </SelectContent>
             </Select>
           </FormField>
-          <FormField htmlFor="deposito-contrapartida" label="Contrapartida" required>
+          <FormField
+            htmlFor="deposito-contrapartida"
+            label="Contrapartida"
+            required
+            error={validacion.errorDe("deposito-contrapartida")}
+          >
             <Select
               items={contrapartidas}
               value={contrapartida}
-              onValueChange={(valor: string | null) => setContrapartida(valor ?? "")}
+              onValueChange={(valor: string | null) => {
+                setContrapartida(valor ?? "");
+                validacion.limpiar("deposito-contrapartida");
+              }}
             >
               <SelectTrigger id="deposito-contrapartida" className={FORM_SELECT} disabled={pendiente}>
                 <SelectValue />
@@ -548,7 +680,7 @@ function DialogoDeposito({
             </Select>
           </FormField>
           <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="deposito-monto" label="Monto" required>
+            <FormField htmlFor="deposito-monto" label="Monto" required error={validacion.errorDe("deposito-monto")}>
               <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
@@ -558,14 +690,24 @@ function DialogoDeposito({
                   inputMode="decimal"
                   placeholder="0.00"
                   value={monto}
-                  onChange={(evento) => setMonto(evento.target.value)}
+                  onChange={(evento) => {
+                    setMonto(evento.target.value);
+                    validacion.limpiar("deposito-monto");
+                  }}
                   required
                   disabled={pendiente}
                 />
               </InputGroup>
             </FormField>
-            <FormField htmlFor="deposito-fecha" label="Fecha" required>
-              <DatePicker id="deposito-fecha" value={fecha} onChange={setFecha} />
+            <FormField htmlFor="deposito-fecha" label="Fecha" required error={validacion.errorDe("deposito-fecha")}>
+              <DatePicker
+                id="deposito-fecha"
+                value={fecha}
+                onChange={(valor) => {
+                  setFecha(valor);
+                  validacion.limpiar("deposito-fecha");
+                }}
+              />
             </FormField>
           </div>
           <Collapsible>

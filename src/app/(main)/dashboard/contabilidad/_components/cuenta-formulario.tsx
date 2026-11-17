@@ -5,6 +5,7 @@ import { type FormEvent, type ReactElement, useState, useTransition } from "reac
 import { ChevronDown, Pencil, Plus } from "lucide-react";
 
 import { FORM_COMBO, FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -37,6 +38,7 @@ import {
   NATURALEZAS_CUENTA,
   TIPOS_CUENTA,
 } from "@/lib/contabilidad/validacion";
+import { requerido } from "@/lib/formularios/validacion";
 
 const OPCIONES_TIPO = TIPOS_CUENTA.map((valor) => ({ value: valor, label: etiquetaTipoCuenta(valor) }));
 const OPCIONES_NATURALEZA = NATURALEZAS_CUENTA.map((valor) => ({
@@ -69,6 +71,7 @@ function FormularioCuenta({
   const [activa, setActiva] = useState(cuenta?.activa ?? true);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, startTransition] = useTransition();
+  const validacion = useValidacionFormulario();
 
   const padresItems = cuentas
     .filter((opcion) => opcion.tipo === tipo && opcion.id !== cuenta?.id)
@@ -86,6 +89,15 @@ function FormularioCuenta({
     const formData = new FormData(event.currentTarget);
     setError(null);
 
+    if (
+      !validacion.validar([
+        requerido("codigo", formData.get("codigo"), "El código es requerido."),
+        requerido("nombre", formData.get("nombre"), "El nombre es requerido."),
+      ])
+    ) {
+      return;
+    }
+
     startTransition(async () => {
       const resultado = cuenta ? await actualizarCuenta(cuenta.id, formData) : await crearCuenta(formData);
 
@@ -99,7 +111,7 @@ function FormularioCuenta({
   }
 
   return (
-    <form onSubmit={enviar} className="flex flex-col gap-4">
+    <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
       <input type="hidden" name="acepta_movimientos" value={String(aceptaMovimientos)} />
       <input type="hidden" name="es_caja_banco" value={String(esCajaBanco)} />
       <input type="hidden" name="activa" value={String(activa)} />
@@ -112,7 +124,7 @@ function FormularioCuenta({
         ) : null}
 
         <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-          <FormField htmlFor="codigo" label="Código" required>
+          <FormField htmlFor="codigo" label="Código" required error={validacion.errorDe("codigo")}>
             <Input
               id="codigo"
               name="codigo"
@@ -120,17 +132,19 @@ function FormularioCuenta({
               maxLength={20}
               readOnly={bloquearCodigoTipoNaturaleza}
               defaultValue={cuenta?.codigo ?? ""}
+              onChange={() => validacion.limpiar("codigo")}
               className={FORM_INPUT}
             />
           </FormField>
 
-          <FormField htmlFor="nombre" label="Nombre" required>
+          <FormField htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
             <Input
               id="nombre"
               name="nombre"
               required
               maxLength={200}
               defaultValue={cuenta?.nombre ?? ""}
+              onChange={() => validacion.limpiar("nombre")}
               className={FORM_INPUT}
             />
           </FormField>
