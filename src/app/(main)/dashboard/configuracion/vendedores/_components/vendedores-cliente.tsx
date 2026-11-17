@@ -4,20 +4,46 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Pencil, Plus } from "lucide-react";
+import { Loader2, Pencil, Plus, Users } from "lucide-react";
 
 import { FORM_INPUT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
+import { type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { actualizarVendedor, crearVendedor } from "@/lib/vendedores/acciones";
 import type { Vendedor } from "@/lib/vendedores/tipos";
+
+const columnasVendedores: readonly ColumnaLista<Vendedor>[] = [
+  {
+    clave: "nombre",
+    encabezado: "Nombre",
+    celda: (vendedor) => <span className="font-medium">{vendedor.nombre}</span>,
+  },
+  {
+    clave: "identificacion",
+    encabezado: "Identificación",
+    celda: (vendedor) => <span className="text-muted-foreground">{vendedor.identificacion?.trim() || "—"}</span>,
+  },
+  {
+    clave: "observacion",
+    encabezado: "Observación",
+    celda: (vendedor) => (
+      <span className="text-muted-foreground max-w-[420px] truncate">{vendedor.observacion?.trim() || "—"}</span>
+    ),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (vendedor) => (
+      <PillEstado tono={vendedor.activo ? "exito" : "neutro"}>{vendedor.activo ? "Activo" : "Inactivo"}</PillEstado>
+    ),
+  },
+];
 
 export function VendedoresCliente({
   vendedores,
@@ -101,60 +127,39 @@ export function VendedoresCliente({
         ) : null}
       </div>
 
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Identificación</TableHead>
-              <TableHead>Observación</TableHead>
-              <TableHead>Estado</TableHead>
-              {puedeEditar ? (
-                <TableHead className="w-10">
-                  <span className="sr-only">Acciones</span>
-                </TableHead>
-              ) : null}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {vendedores.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={puedeEditar ? 5 : 4} className="text-muted-foreground py-10 text-center">
-                  Todavía no hay vendedores.
-                </TableCell>
-              </TableRow>
-            ) : (
-              vendedores.map((vendedor) => (
-                <TableRow key={vendedor.id}>
-                  <TableCell className="font-medium">{vendedor.nombre}</TableCell>
-                  <TableCell className="text-muted-foreground">{vendedor.identificacion?.trim() || "—"}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-[420px] truncate">
-                    {vendedor.observacion?.trim() || "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={vendedor.activo ? "secondary" : "destructive"}>
-                      {vendedor.activo ? "Activo" : "Inactivo"}
-                    </Badge>
-                  </TableCell>
-                  {puedeEditar ? (
-                    <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Editar ${vendedor.nombre}`}
-                        onClick={() => abrirEditar(vendedor)}
-                      >
-                        <Pencil />
-                      </Button>
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <TarjetaLista data-lista="configuracion-vendedores">
+        <TablaLista
+          columnas={columnasVendedores}
+          filas={vendedores}
+          claveFila={(vendedor) => vendedor.id}
+          acciones={
+            puedeEditar
+              ? (vendedor) => (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Editar ${vendedor.nombre}`}
+                    onClick={() => abrirEditar(vendedor)}
+                  >
+                    <Pencil />
+                  </Button>
+                )
+              : undefined
+          }
+          vacio={{
+            titulo: "¡Aún no tienes vendedores!",
+            descripcion: "Crea el primer vendedor para asignarlo a tus documentos de venta.",
+            icono: <Users className="size-10" />,
+            accion: puedeEditar ? (
+              <Button type="button" onClick={abrirNuevo}>
+                <Plus />
+                Nuevo vendedor
+              </Button>
+            ) : undefined,
+          }}
+        />
+      </TarjetaLista>
 
       <Dialog open={abierto} onOpenChange={cambiarAbierto}>
         <DialogContent className="sm:max-w-md">

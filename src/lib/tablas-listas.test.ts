@@ -23,6 +23,18 @@ const LISTAS_MIGRADAS = [
   "app/(main)/dashboard/pagos-recurrentes/page.tsx",
   "app/(main)/dashboard/notas-credito/_components/notas-credito-tabla.tsx",
   "app/(main)/dashboard/notas-debito/_components/notas-debito-tabla.tsx",
+  "app/(main)/dashboard/configuracion/usuarios/page.tsx",
+  "app/(main)/dashboard/configuracion/impuestos/page.tsx",
+  "app/(main)/dashboard/configuracion/vendedores/_components/vendedores-cliente.tsx",
+  "app/(main)/dashboard/configuracion/centros-costo/_components/centros-costo-cliente.tsx",
+  "app/(main)/dashboard/configuracion/monedas/_components/monedas-cliente.tsx",
+  "app/(main)/dashboard/configuracion/retenciones/_components/retenciones-cliente.tsx",
+  "app/(main)/dashboard/configuracion/terminos-pago/_components/terminos-cliente.tsx",
+  "app/(main)/dashboard/contabilidad/page.tsx",
+  "app/(main)/dashboard/contabilidad/_components/catalogo-cuentas.tsx",
+  "app/(main)/dashboard/contabilidad/asientos/page.tsx",
+  "app/(main)/dashboard/contabilidad/activos/page.tsx",
+  "app/(main)/dashboard/contabilidad/periodos/_components/panel-periodos.tsx",
 ] as const;
 
 function leer(ruta: string): string {

@@ -1,9 +1,16 @@
 import { redirect } from "next/navigation";
 
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Percent } from "lucide-react";
+
+import {
+  type ColumnaLista,
+  ContenedorLista,
+  PillEstado,
+  TablaLista,
+  TarjetaLista,
+} from "@/components/listas/tabla-lista";
 import { getRol } from "@/lib/auth/rol";
-import { getImpuestosConfig } from "@/lib/impuestos/consultas";
+import { getImpuestosConfig, type ImpuestoConfig } from "@/lib/impuestos/consultas";
 import type { TipoImpuesto } from "@/lib/impuestos/tipos";
 
 import { EncabezadoConfiguracion } from "../_components/encabezado";
@@ -16,6 +23,41 @@ const GRUPOS: Record<TipoImpuesto, string> = {
   exento: "Exento (E)",
 };
 
+const columnas: readonly ColumnaLista<ImpuestoConfig>[] = [
+  {
+    clave: "grupo",
+    encabezado: "Grupo",
+    celda: (impuesto) => <span className="text-muted-foreground">{GRUPOS[impuesto.tipo]}</span>,
+  },
+  {
+    clave: "impuesto",
+    encabezado: "Impuesto",
+    celda: (impuesto) => <span className="font-medium">{impuesto.nombre}</span>,
+  },
+  {
+    clave: "tasa",
+    encabezado: "Tasa",
+    alineacion: "derecha",
+    celda: (impuesto) => `${impuesto.tarifa.toFixed(2)} %`,
+  },
+  {
+    clave: "cuenta",
+    encabezado: "Cuenta por pagar",
+    celda: (impuesto) => (
+      <span className="text-muted-foreground">
+        {impuesto.cuenta_codigo ? `${impuesto.cuenta_codigo} — ${impuesto.cuenta_nombre ?? ""}` : "Sin cuenta"}
+      </span>
+    ),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (impuesto) => (
+      <PillEstado tono={impuesto.activo ? "exito" : "neutro"}>{impuesto.activo ? "Activo" : "Inactivo"}</PillEstado>
+    ),
+  },
+];
+
 export default async function Page() {
   const rol = await getRol();
   if (rol == null) redirect("/unauthorized");
@@ -23,42 +65,24 @@ export default async function Page() {
   const impuestos = await getImpuestosConfig();
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <EncabezadoConfiguracion
         titulo="Impuestos"
         descripcion="Catálogo de impuestos que se usan en productos, compras y facturas."
       />
 
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Grupo</TableHead>
-              <TableHead>Impuesto</TableHead>
-              <TableHead className="text-right">Tasa</TableHead>
-              <TableHead>Cuenta por pagar</TableHead>
-              <TableHead>Estado</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {impuestos.map((impuesto) => (
-              <TableRow key={impuesto.id}>
-                <TableCell className="text-muted-foreground">{GRUPOS[impuesto.tipo]}</TableCell>
-                <TableCell className="font-medium">{impuesto.nombre}</TableCell>
-                <TableCell className="text-right tabular-nums">{impuesto.tarifa.toFixed(2)} %</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {impuesto.cuenta_codigo
-                    ? `${impuesto.cuenta_codigo} — ${impuesto.cuenta_nombre ?? ""}`
-                    : "Sin cuenta"}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">{impuesto.activo ? "Activo" : "Inactivo"}</Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+      <TarjetaLista data-lista="configuracion-impuestos">
+        <TablaLista
+          columnas={columnas}
+          filas={impuestos}
+          claveFila={(impuesto) => impuesto.id}
+          vacio={{
+            titulo: "Sin impuestos",
+            descripcion: "No hay impuestos en el catálogo.",
+            icono: <Percent className="size-10" />,
+          }}
+        />
+      </TarjetaLista>
+    </ContenedorLista>
   );
 }

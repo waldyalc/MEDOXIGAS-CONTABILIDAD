@@ -4,10 +4,10 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Pencil, Plus } from "lucide-react";
+import { Loader2, Pencil, Percent, Plus } from "lucide-react";
 
 import { FORM_INPUT, FORM_INPUT_GROUP, FORM_SELECT, FormField } from "@/components/formularios/formulario";
-import { Badge } from "@/components/ui/badge";
+import { type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FieldLabel } from "@/components/ui/field";
@@ -15,11 +15,56 @@ import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { actualizarRetencion, crearRetencion } from "@/lib/configuracion/acciones";
 import type { CuentaRetencion, RetencionConfig } from "@/lib/configuracion/tipos";
 import { formatoPct } from "@/lib/formato";
 import type { TipoRetencion } from "@/lib/retenciones/calculo";
+
+const columnas: readonly ColumnaLista<RetencionConfig>[] = [
+  {
+    clave: "nombre",
+    encabezado: "Nombre",
+    celda: (retencion) => <span className="font-medium">{retencion.nombre}</span>,
+  },
+  {
+    clave: "tipo",
+    encabezado: "Tipo",
+    celda: (retencion) => (retencion.tipo === "itbis" ? "ITBIS" : "ISR"),
+  },
+  {
+    clave: "porcentaje",
+    encabezado: "Porcentaje",
+    alineacion: "derecha",
+    celda: (retencion) => formatoPct(retencion.porcentaje),
+  },
+  {
+    clave: "cuenta",
+    encabezado: "Cuenta (retenemos)",
+    celda: (retencion) => (
+      <span className="text-muted-foreground">
+        {retencion.cuenta_codigo} · {retencion.cuenta_nombre}
+      </span>
+    ),
+  },
+  {
+    clave: "cuentaAnticipo",
+    encabezado: "Cuenta anticipo",
+    celda: (retencion) => (
+      <span className="text-muted-foreground">
+        {retencion.cuenta_anticipo_codigo
+          ? `${retencion.cuenta_anticipo_codigo} · ${retencion.cuenta_anticipo_nombre}`
+          : "Configuración contable"}
+      </span>
+    ),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (retencion) => (
+      <PillEstado tono={retencion.activa ? "exito" : "neutro"}>{retencion.activa ? "Activa" : "Inactiva"}</PillEstado>
+    ),
+  },
+];
 
 const TIPOS = [
   { value: "itbis", label: "ITBIS" },
@@ -243,66 +288,39 @@ export function RetencionesCliente({
         ) : null}
       </div>
 
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead className="text-right">Porcentaje</TableHead>
-              <TableHead>Cuenta (retenemos)</TableHead>
-              <TableHead>Cuenta anticipo</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {retenciones.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-muted-foreground h-24 text-center whitespace-normal">
-                  No hay retenciones configuradas.
-                </TableCell>
-              </TableRow>
-            ) : (
-              retenciones.map((retencion) => (
-                <TableRow key={retencion.id}>
-                  <TableCell className="font-medium">{retencion.nombre}</TableCell>
-                  <TableCell>{retencion.tipo === "itbis" ? "ITBIS" : "ISR"}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoPct(retencion.porcentaje)}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {retencion.cuenta_codigo} · {retencion.cuenta_nombre}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {retencion.cuenta_anticipo_codigo
-                      ? `${retencion.cuenta_anticipo_codigo} · ${retencion.cuenta_anticipo_nombre}`
-                      : "Configuración contable"}
-                  </TableCell>
-                  <TableCell>
-                    {retencion.activa ? (
-                      <Badge
-                        variant="outline"
-                        className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
-                      >
-                        Activa
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">Inactiva</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {puedeEscribir ? (
-                      <Button type="button" variant="ghost" size="sm" onClick={() => abrirEdicion(retencion)}>
-                        <Pencil />
-                        Editar
-                      </Button>
-                    ) : null}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <TarjetaLista data-lista="configuracion-retenciones">
+        <TablaLista
+          columnas={columnas}
+          filas={retenciones}
+          claveFila={(retencion) => retencion.id}
+          acciones={
+            puedeEscribir
+              ? (retencion) => (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Editar ${retencion.nombre}`}
+                    onClick={() => abrirEdicion(retencion)}
+                  >
+                    <Pencil />
+                  </Button>
+                )
+              : undefined
+          }
+          vacio={{
+            titulo: "¡Aún no tienes retenciones!",
+            descripcion: "Configura la primera retención de ITBIS o ISR.",
+            icono: <Percent className="size-10" />,
+            accion: puedeEscribir ? (
+              <Button type="button" onClick={abrirNueva}>
+                <Plus />
+                Nueva retención
+              </Button>
+            ) : undefined,
+          }}
+        />
+      </TarjetaLista>
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent className="sm:max-w-lg">

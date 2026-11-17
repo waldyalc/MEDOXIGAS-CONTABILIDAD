@@ -5,14 +5,14 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 
 import { cn } from "cn";
-import { BookOpen, ChevronRight, Info, Pencil, Plus, Search } from "lucide-react";
+import { BookOpen, ChevronRight, Pencil, Plus, Search } from "lucide-react";
 
+import { BarraLista, type ColumnaLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsLg } from "@/hooks/use-lg";
 import {
@@ -105,16 +105,6 @@ function DetalleCuenta({ nodo, uso }: { nodo: NodoCuenta; uso: string | null }) 
 
 const PANEL_VACIO = "Selecciona una cuenta para ver su código, tipo, naturaleza, uso y saldo.";
 
-interface FilaArbolProps {
-  fila: FilaCatalogo;
-  uso: string | null;
-  seleccionada: boolean;
-  cuentas: readonly CuentaOpcion[];
-  puedeEditar: boolean;
-  onSeleccionar: (id: string) => void;
-  onAlternar: (id: string) => void;
-}
-
 interface AccionesCuentaProps {
   cuenta: CuentaContable;
   cuentas: readonly CuentaOpcion[];
@@ -162,91 +152,141 @@ function AccionesCuenta({ cuenta, cuentas, puedeEditar }: AccionesCuentaProps) {
   );
 }
 
-function FilaArbol({ fila, uso, seleccionada, cuentas, puedeEditar, onSeleccionar, onAlternar }: FilaArbolProps) {
+function columnasCatalogo({
+  uso,
+  seleccionadaId,
+  onSeleccionar,
+  onAlternar,
+}: {
+  readonly uso: (cuenta: CuentaContable) => string | null;
+  readonly seleccionadaId: string | null;
+  readonly onSeleccionar: (id: string) => void;
+  readonly onAlternar: (id: string) => void;
+}): readonly ColumnaLista<FilaCatalogo>[] {
+  return [
+    {
+      clave: "nombre",
+      encabezado: "Nombre de la cuenta",
+      className: "whitespace-normal",
+      celda: (fila) => (
+        <ContenidoNombreCuenta
+          fila={fila}
+          seleccionada={fila.nodo.cuenta.id === seleccionadaId}
+          onSeleccionar={onSeleccionar}
+          onAlternar={onAlternar}
+        />
+      ),
+    },
+    {
+      clave: "codigo",
+      encabezado: "Código",
+      className: "w-20",
+      celda: (fila) => <span className="text-muted-foreground tabular-nums">{fila.nodo.cuenta.codigo}</span>,
+    },
+    {
+      clave: "uso",
+      encabezado: "Uso de cuenta",
+      className: "hidden w-44 md:table-cell",
+      celda: (fila) => (
+        <span className="text-muted-foreground block max-w-44 truncate">{uso(fila.nodo.cuenta) ?? "—"}</span>
+      ),
+    },
+    {
+      clave: "descripcion",
+      encabezado: "Descripción",
+      className: "hidden max-w-72 xl:table-cell",
+      celda: (fila) => <DescripcionCuenta descripcion={fila.nodo.cuenta.descripcion} />,
+    },
+    {
+      clave: "saldo",
+      encabezado: "Saldo",
+      alineacion: "derecha",
+      celda: (fila) => (
+        <span className={cn(fila.nodo.saldo < 0 && "text-destructive")}>{formatearRd(fila.nodo.saldo)}</span>
+      ),
+    },
+  ];
+}
+
+function DescripcionCuenta({ descripcion }: { readonly descripcion: string | null | undefined }) {
+  const texto = descripcion?.trim() ?? "";
+  if (texto === "") return <span className="text-muted-foreground">—</span>;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger render={<span className="block max-w-72 cursor-default truncate" />}>{texto}</TooltipTrigger>
+      <TooltipContent className="max-w-sm whitespace-normal">{texto}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ContenidoNombreCuenta({
+  fila,
+  seleccionada,
+  onSeleccionar,
+  onAlternar,
+}: {
+  readonly fila: FilaCatalogo;
+  readonly seleccionada: boolean;
+  readonly onSeleccionar: (id: string) => void;
+  readonly onAlternar: (id: string) => void;
+}) {
   const cuenta = fila.nodo.cuenta;
   const tieneHijos = fila.nodo.hijos.length > 0;
-  const descripcion = cuenta.descripcion?.trim() ?? "";
   const guias = Array.from({ length: fila.nivel }, (_, indice) => indice * INDENTACION + INDENTACION / 2);
 
   return (
-    <TableRow
-      data-state={seleccionada ? "selected" : undefined}
-      className={cn("group cursor-pointer", fila.esRaiz && fila.indiceRaiz > 0 && "border-t")}
-      onClick={() => onSeleccionar(cuenta.id)}
-    >
-      <TableCell className="whitespace-normal">
-        <div className="relative flex items-center gap-1.5" style={{ paddingLeft: `${fila.nivel * INDENTACION}px` }}>
-          {guias.map((izquierda) => (
-            <span
-              key={`guia-${cuenta.id}-${izquierda}`}
-              aria-hidden="true"
-              className="bg-border/70 pointer-events-none absolute -top-2 -bottom-2 w-px"
-              style={{ left: `${izquierda}px` }}
-            />
-          ))}
+    <div className="relative flex items-center gap-1.5" style={{ paddingLeft: `${fila.nivel * INDENTACION}px` }}>
+      {guias.map((izquierda) => (
+        <span
+          key={`guia-${cuenta.id}-${izquierda}`}
+          aria-hidden="true"
+          className="bg-border/70 pointer-events-none absolute -top-2 -bottom-2 w-px"
+          style={{ left: `${izquierda}px` }}
+        />
+      ))}
 
-          {tieneHijos ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              className="shrink-0"
-              aria-label={fila.abierta ? `Contraer ${cuenta.nombre}` : `Expandir ${cuenta.nombre}`}
-              aria-expanded={fila.abierta}
-              onClick={(event) => {
-                event.stopPropagation();
-                onAlternar(cuenta.id);
-              }}
-            >
-              <ChevronRight className={cn("transition-transform", fila.abierta && "rotate-90")} />
-            </Button>
-          ) : (
-            <span aria-hidden="true" className="size-6 shrink-0" />
-          )}
+      {tieneHijos ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          className="shrink-0"
+          aria-label={fila.abierta ? `Contraer ${cuenta.nombre}` : `Expandir ${cuenta.nombre}`}
+          aria-expanded={fila.abierta}
+          onClick={() => onAlternar(cuenta.id)}
+        >
+          <ChevronRight className={cn("transition-transform", fila.abierta && "rotate-90")} />
+        </Button>
+      ) : (
+        <span aria-hidden="true" className="size-6 shrink-0" />
+      )}
 
-          <span className={cn("min-w-0 truncate", !cuenta.acepta_movimientos && "font-medium")}>{cuenta.nombre}</span>
-
-          {fila.esRaiz ? (
-            <Badge className={cn("shrink-0", COLOR_TIPO[cuenta.tipo] ?? "bg-muted text-muted-foreground")}>
-              {etiquetaTipoCuenta(cuenta.tipo)}
-            </Badge>
-          ) : null}
-
-          {cuenta.activa ? null : (
-            <Badge variant="outline" className="text-muted-foreground shrink-0">
-              Inactiva
-            </Badge>
-          )}
-        </div>
-      </TableCell>
-
-      <TableCell className="text-muted-foreground tabular-nums">{cuenta.codigo}</TableCell>
-
-      <TableCell className="text-muted-foreground hidden md:table-cell">
-        <span className="block max-w-44 truncate">{uso ?? "—"}</span>
-      </TableCell>
-
-      <TableCell className="hidden max-w-72 xl:table-cell">
-        {descripcion === "" ? (
-          <span className="text-muted-foreground">—</span>
-        ) : (
-          <Tooltip>
-            <TooltipTrigger render={<span className="block max-w-72 cursor-default truncate" />}>
-              {descripcion}
-            </TooltipTrigger>
-            <TooltipContent className="max-w-sm whitespace-normal">{descripcion}</TooltipContent>
-          </Tooltip>
+      <button
+        type="button"
+        onClick={() => onSeleccionar(cuenta.id)}
+        aria-pressed={seleccionada}
+        className={cn(
+          "min-w-0 truncate text-left hover:underline",
+          !cuenta.acepta_movimientos && "font-medium",
+          seleccionada && "text-primary",
         )}
-      </TableCell>
+      >
+        {cuenta.nombre}
+      </button>
 
-      <TableCell className={cn("text-right tabular-nums", fila.nodo.saldo < 0 && "text-destructive")}>
-        {formatearRd(fila.nodo.saldo)}
-      </TableCell>
+      {fila.esRaiz ? (
+        <Badge className={cn("shrink-0", COLOR_TIPO[cuenta.tipo] ?? "bg-muted text-muted-foreground")}>
+          {etiquetaTipoCuenta(cuenta.tipo)}
+        </Badge>
+      ) : null}
 
-      <TableCell className="w-24 text-right" onClick={(event) => event.stopPropagation()}>
-        <AccionesCuenta cuenta={cuenta} cuentas={cuentas} puedeEditar={puedeEditar} />
-      </TableCell>
-    </TableRow>
+      {cuenta.activa ? null : (
+        <Badge variant="outline" className="text-muted-foreground shrink-0">
+          Inactiva
+        </Badge>
+      )}
+    </div>
   );
 }
 
@@ -309,93 +349,48 @@ export function CatalogoCuentas({ cuentas, saldos, configuracion, puedeEditar }:
 
   return (
     <div className={cn("grid items-start gap-6", seleccionada != null && "lg:grid-cols-[minmax(0,1fr)_18rem]")}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Catálogo de cuentas</CardTitle>
-          <CardAction className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={expandir}>
-              Expandir todo
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={contraer}>
-              Contraer todo
-            </Button>
-          </CardAction>
-        </CardHeader>
-
-        <CardContent className="flex flex-col gap-4">
-          <div className="relative w-full sm:max-w-xs">
+      <TarjetaLista data-lista="contabilidad-catalogo">
+        <BarraLista>
+          <div className="relative w-full sm:max-w-[267px]">
             <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
             <Input
               value={busqueda}
               onChange={(event) => buscar(event.target.value)}
               placeholder="Buscar por nombre o código…"
               aria-label="Buscar cuentas"
-              className="pl-8"
+              className="h-8 pl-8"
             />
           </div>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={expandir}>
+              Expandir todo
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={contraer}>
+              Contraer todo
+            </Button>
+          </div>
+        </BarraLista>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre de la cuenta</TableHead>
-                <TableHead className="w-20">Código</TableHead>
-                <TableHead className="hidden w-44 md:table-cell">
-                  <span className="inline-flex items-center gap-1">
-                    Uso de cuenta
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <button
-                            type="button"
-                            aria-label="Qué es el uso de cuenta"
-                            className="text-muted-foreground hover:text-foreground inline-flex transition-colors"
-                          >
-                            <Info className="size-3.5" />
-                          </button>
-                        }
-                      />
-                      <TooltipContent className="max-w-64 whitespace-normal">
-                        Cuenta especial que usa el motor contable: caja, banco, cuentas por cobrar o pagar, inventario,
-                        impuestos, ventas, costos o gastos generales.
-                      </TooltipContent>
-                    </Tooltip>
-                  </span>
-                </TableHead>
-                <TableHead className="hidden xl:table-cell">Descripción</TableHead>
-                <TableHead className="text-right">Saldo</TableHead>
-                <TableHead className="w-24">
-                  <span className="sr-only">Acciones</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {filas.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
-                    {busqueda.trim() === ""
-                      ? "No hay cuentas contables registradas."
-                      : "Ninguna cuenta coincide con la búsqueda."}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filas.map((fila) => (
-                  <FilaArbol
-                    key={fila.nodo.cuenta.id}
-                    fila={fila}
-                    uso={uso(fila.nodo.cuenta)}
-                    seleccionada={fila.nodo.cuenta.id === seleccionadaId}
-                    cuentas={cuentas}
-                    puedeEditar={puedeEditar}
-                    onSeleccionar={seleccionar}
-                    onAlternar={(id) => setExpandidos((actual) => alternarExpandido(actual, id))}
-                  />
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        <TablaLista
+          columnas={columnasCatalogo({
+            uso,
+            seleccionadaId,
+            onSeleccionar: seleccionar,
+            onAlternar: (id) => setExpandidos((actual) => alternarExpandido(actual, id)),
+          })}
+          filas={filas}
+          claveFila={(fila) => fila.nodo.cuenta.id}
+          acciones={(fila) => <AccionesCuenta cuenta={fila.nodo.cuenta} cuentas={cuentas} puedeEditar={puedeEditar} />}
+          vacio={{
+            filtrada: busqueda.trim() !== "",
+            titulo: busqueda.trim() === "" ? "Sin cuentas" : "Sin resultados",
+            descripcion:
+              busqueda.trim() === ""
+                ? "No hay cuentas contables registradas."
+                : "Ninguna cuenta coincide con la búsqueda.",
+          }}
+        />
+      </TarjetaLista>
 
       {seleccionada == null ? null : (
         <aside className="hidden lg:block">
