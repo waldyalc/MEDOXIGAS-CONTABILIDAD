@@ -32,7 +32,7 @@ export function CampoFormulario({
       className={cn(
         "flex min-w-0 flex-col gap-1",
         error &&
-          "[&_input]:border-destructive [&_textarea]:border-destructive [&_[data-slot=select-trigger]]:border-destructive [&_[data-slot=input-group]]:border-destructive",
+          "[&_input]:border-destructive [&_textarea]:border-destructive [&_[data-slot=select-trigger]]:border-destructive [&_[data-slot=input-group]]:border-destructive [&_button[aria-expanded]]:border-destructive",
         className,
       )}
     >
