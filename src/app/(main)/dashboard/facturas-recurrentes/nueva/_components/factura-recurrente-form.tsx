@@ -10,6 +10,7 @@ import { ChevronDown, Loader2, Plus, Trash2, X } from "lucide-react";
 
 import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_COMBO,
@@ -20,10 +21,10 @@ import {
   FormActions,
   FormCard,
   FormDivider,
-  FormField,
   FormSectionTitle,
   FormTotal,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -51,6 +52,7 @@ import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import type { TipoComprobante } from "@/lib/facturacion/tipos";
 import { crearFacturaRecurrente } from "@/lib/facturas-recurrentes/acciones";
 import type { DatosFormularioRecurrente } from "@/lib/facturas-recurrentes/tipos";
+import { requerido } from "@/lib/formularios/validacion";
 
 interface LineaForm {
   clave: string;
@@ -99,6 +101,7 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
   const [terminos, setTerminos] = useState("");
   const [pie, setPie] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const validacion = useValidacionFormulario();
 
   const productosItems = datos.productos.map((producto) => ({ value: producto.id, label: producto.nombre }));
   const comprobantesItems = OPCIONES_TIPO_COMPROBANTE.map((opcion) => ({
@@ -141,14 +144,45 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
   function guardar() {
     setError(null);
 
-    if (!clienteId) {
-      setError("Selecciona el cliente.");
+    if (
+      !validacion.validar([
+        requerido("cliente", clienteId, "El cliente es requerido."),
+        requerido("tipo-comprobante", tipo, "El tipo de comprobante es requerido."),
+        requerido("fecha-inicio", fechaInicio, "La fecha de inicio es requerida."),
+        requerido("frecuencia", frecuencia, "La frecuencia es requerida."),
+        {
+          campo: "frecuencia",
+          invalido: !Number.isFinite(Number(frecuencia)) || Number(frecuencia) <= 0,
+          mensaje: "La frecuencia debe ser mayor que cero.",
+        },
+        requerido("plazo", plazo, "El plazo es requerido."),
+        {
+          campo: "plazo",
+          invalido: !Number.isFinite(Number(plazo)) || Number(plazo) < 0,
+          mensaje: "El plazo no puede ser negativo.",
+        },
+        ...lineas.flatMap((linea) => {
+          const cantidad = parsearCantidad(linea.cantidad);
+          const precio = parsearCentavos(linea.precio);
+          return [
+            requerido(`producto-${linea.clave}`, linea.productoId, "Seleccione un producto."),
+            {
+              campo: `cantidad-${linea.clave}`,
+              invalido: !Number.isFinite(cantidad) || cantidad <= 0,
+              mensaje: "La cantidad debe ser mayor que cero.",
+            },
+            {
+              campo: `precio-${linea.clave}`,
+              invalido: precio === null || precio < 0,
+              mensaje: "El precio no es válido.",
+            },
+          ];
+        }),
+      ])
+    ) {
       return;
     }
-    if (lineas.some((linea) => !linea.productoId)) {
-      setError("Selecciona el producto en todas las líneas.");
-      return;
-    }
+
     if (totales.totalCentavos <= 0) {
       setError("El total de la factura recurrente debe ser mayor que cero.");
       return;
@@ -191,6 +225,7 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
 
   return (
     <form
+      noValidate
       className="mx-auto flex w-full max-w-[1040px] flex-col gap-6 [font-family:var(--font-inter)]"
       onSubmit={(evento) => {
         evento.preventDefault();
@@ -233,19 +268,27 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
         <section>
           <FormSectionTitle className="mb-4">Información de la recurrencia</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
-            <FormField htmlFor="cliente" label="Cliente" required>
+            <CampoFormulario htmlFor="cliente" label="Cliente" required error={validacion.errorDe("cliente")}>
               <SelectorContacto
                 id="cliente"
                 contactos={datos.contactos}
                 valor={clienteId}
-                onCambio={(contacto: ContactoOpcion | null) => setClienteId(contacto?.id ?? "")}
+                onCambio={(contacto: ContactoOpcion | null) => {
+                  setClienteId(contacto?.id ?? "");
+                  validacion.limpiar("cliente");
+                }}
                 tipoInicial="cliente"
                 className={FORM_COMBO}
                 placeholder="Buscar cliente…"
               />
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="tipo-comprobante" label="Tipo de comprobante" required>
+            <CampoFormulario
+              htmlFor="tipo-comprobante"
+              label="Tipo de comprobante"
+              required
+              error={validacion.errorDe("tipo-comprobante")}
+            >
               <Select
                 items={comprobantesItems}
                 value={tipo}
@@ -264,13 +307,25 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="fecha-inicio" label="Fecha de inicio" required>
-              <DatePicker id="fecha-inicio" value={fechaInicio} onChange={setFechaInicio} />
-            </FormField>
+            <CampoFormulario
+              htmlFor="fecha-inicio"
+              label="Fecha de inicio"
+              required
+              error={validacion.errorDe("fecha-inicio")}
+            >
+              <DatePicker
+                id="fecha-inicio"
+                value={fechaInicio}
+                onChange={(valor) => {
+                  setFechaInicio(valor);
+                  validacion.limpiar("fecha-inicio");
+                }}
+              />
+            </CampoFormulario>
 
-            <FormField htmlFor="vigencia" label="Vigencia hasta">
+            <CampoFormulario htmlFor="vigencia" label="Vigencia hasta">
               <div className="flex items-center gap-1">
                 <div className="min-w-0 flex-1">
                   <DatePicker
@@ -292,27 +347,38 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                   </Button>
                 ) : null}
               </div>
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="frecuencia" label="Frecuencia (meses)" required>
+            <CampoFormulario
+              htmlFor="frecuencia"
+              label="Frecuencia (meses)"
+              required
+              error={validacion.errorDe("frecuencia")}
+            >
               <Input
                 id="frecuencia"
                 inputMode="numeric"
                 value={frecuencia}
-                onChange={(evento) => setFrecuencia(evento.target.value)}
+                onChange={(evento) => {
+                  setFrecuencia(evento.target.value);
+                  validacion.limpiar("frecuencia");
+                }}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="plazo" label="Plazo de pago (días)" required>
+            <CampoFormulario htmlFor="plazo" label="Plazo de pago (días)" required error={validacion.errorDe("plazo")}>
               <Input
                 id="plazo"
                 inputMode="numeric"
                 value={plazo}
-                onChange={(evento) => setPlazo(evento.target.value)}
+                onChange={(evento) => {
+                  setPlazo(evento.target.value);
+                  validacion.limpiar("plazo");
+                }}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
           </div>
         </section>
 
@@ -359,16 +425,30 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                           </ComboboxList>
                         </ComboboxContent>
                       </Combobox>
+                      {validacion.errorDe(`producto-${linea.clave}`) ? (
+                        <p role="alert" className="text-destructive mt-1 text-xs">
+                          {validacion.errorDe(`producto-${linea.clave}`)}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="min-w-0 py-2 pr-1">
                       <Input
                         id={`cantidad-${linea.clave}`}
                         inputMode="decimal"
                         value={linea.cantidad}
-                        onChange={(evento) => actualizarLinea(linea.clave, { cantidad: evento.target.value })}
+                        onChange={(evento) => {
+                          actualizarLinea(linea.clave, { cantidad: evento.target.value });
+                          validacion.limpiar(`cantidad-${linea.clave}`);
+                        }}
                         aria-label={`Cantidad de la línea ${indice + 1}`}
+                        aria-invalid={Boolean(validacion.errorDe(`cantidad-${linea.clave}`))}
                         className={FORM_INPUT}
                       />
+                      {validacion.errorDe(`cantidad-${linea.clave}`) ? (
+                        <p role="alert" className="text-destructive mt-1 text-xs">
+                          {validacion.errorDe(`cantidad-${linea.clave}`)}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="min-w-0 py-2 pr-1">
                       <InputGroup className={FORM_INPUT_GROUP}>
@@ -379,11 +459,20 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                           id={`precio-${linea.clave}`}
                           inputMode="decimal"
                           value={linea.precio}
-                          onChange={(evento) => actualizarLinea(linea.clave, { precio: evento.target.value })}
+                          onChange={(evento) => {
+                            actualizarLinea(linea.clave, { precio: evento.target.value });
+                            validacion.limpiar(`precio-${linea.clave}`);
+                          }}
                           aria-label={`Precio de la línea ${indice + 1}`}
+                          aria-invalid={Boolean(validacion.errorDe(`precio-${linea.clave}`))}
                           className="h-full min-w-0 pl-1 text-sm text-slate-700 md:text-sm"
                         />
                       </InputGroup>
+                      {validacion.errorDe(`precio-${linea.clave}`) ? (
+                        <p role="alert" className="text-destructive mt-1 text-xs">
+                          {validacion.errorDe(`precio-${linea.clave}`)}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="min-w-0 py-2 pr-1">
                       <InputGroup className={FORM_INPUT_GROUP}>
@@ -488,7 +577,7 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="grid gap-x-8 gap-y-4 pt-2 md:grid-cols-3">
-                <FormField htmlFor="notas" label="Observaciones">
+                <CampoFormulario htmlFor="notas" label="Observaciones">
                   <Textarea
                     id="notas"
                     value={notas}
@@ -496,8 +585,8 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                     onChange={(evento) => setNotas(evento.target.value)}
                     className={FORM_TEXTAREA}
                   />
-                </FormField>
-                <FormField htmlFor="terminos" label="Términos y condiciones">
+                </CampoFormulario>
+                <CampoFormulario htmlFor="terminos" label="Términos y condiciones">
                   <Textarea
                     id="terminos"
                     value={terminos}
@@ -505,8 +594,8 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                     onChange={(evento) => setTerminos(evento.target.value)}
                     className={FORM_TEXTAREA}
                   />
-                </FormField>
-                <FormField htmlFor="pie" label="Pie de factura">
+                </CampoFormulario>
+                <CampoFormulario htmlFor="pie" label="Pie de factura">
                   <Textarea
                     id="pie"
                     value={pie}
@@ -514,7 +603,7 @@ export function FacturaRecurrenteForm({ datos, fechaHoy }: Props) {
                     onChange={(evento) => setPie(evento.target.value)}
                     className={FORM_TEXTAREA}
                   />
-                </FormField>
+                </CampoFormulario>
               </div>
             </CollapsibleContent>
           </Collapsible>

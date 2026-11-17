@@ -10,6 +10,7 @@ import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_COMBO,
@@ -20,10 +21,10 @@ import {
   FormActions,
   FormCard,
   FormDivider,
-  FormField,
   FormSectionTitle,
   FormTotal,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { type ProductoSeleccionable, SelectorProducto } from "@/components/productos/selector-producto";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -49,6 +50,7 @@ import {
   parsearCentavos,
 } from "@/lib/facturacion/calculo";
 import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
+import { requerido } from "@/lib/formularios/validacion";
 import { type Impuesto, impuestoNinguno } from "@/lib/impuestos/tipos";
 import { crearNotaDebitoVenta } from "@/lib/notas-debito/acciones";
 import { buscarFacturasNotaDebito } from "@/lib/notas-debito/busqueda";
@@ -109,6 +111,7 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial = nu
   const [lineas, setLineas] = useState<LineaForm[]>(() => [lineaVacia("l1", impuestoNinguno(impuestos)?.id ?? "")]);
   const [notas, setNotas] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const validacion = useValidacionFormulario();
 
   const tiposItems = TIPOS_NOTA_DEBITO.map((opcion) => ({ value: opcion.valor, label: opcion.etiqueta }));
   const facturasItems = facturasPagina.map((factura) => ({
@@ -223,18 +226,33 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial = nu
   function guardar() {
     setError(null);
 
-    if (!clienteId) {
-      setError("Selecciona el cliente.");
+    if (
+      !validacion.validar([
+        requerido("cliente", clienteId, "El cliente es requerido."),
+        requerido("fecha", fecha, "La fecha es requerida."),
+        requerido("factura", facturaId, "La factura asociada es requerida."),
+        ...lineas.flatMap((linea) => {
+          const cantidad = parsearCantidad(linea.cantidad);
+          const precio = parsearCentavos(linea.precio);
+          return [
+            requerido(`producto-${linea.clave}`, linea.productoId, "Seleccione un producto."),
+            {
+              campo: `cantidad-${linea.clave}`,
+              invalido: !Number.isFinite(cantidad) || cantidad <= 0,
+              mensaje: "La cantidad debe ser mayor que cero.",
+            },
+            {
+              campo: `precio-${linea.clave}`,
+              invalido: precio === null || precio < 0,
+              mensaje: "El precio no es válido.",
+            },
+          ];
+        }),
+      ])
+    ) {
       return;
     }
-    if (!facturaId) {
-      setError("Selecciona la factura asociada.");
-      return;
-    }
-    if (lineas.some((linea) => !linea.productoId)) {
-      setError("Selecciona el producto en todas las líneas.");
-      return;
-    }
+
     if (totales.totalCentavos <= 0) {
       setError("El total de la nota de débito debe ser mayor que cero.");
       return;
@@ -273,6 +291,7 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial = nu
 
   return (
     <form
+      noValidate
       className="mx-auto flex w-full max-w-[1040px] flex-col gap-6 [font-family:var(--font-inter)]"
       onSubmit={(evento) => {
         evento.preventDefault();
@@ -318,19 +337,22 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial = nu
         <section>
           <FormSectionTitle className="mb-4">Información de la nota</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
-            <FormField htmlFor="cliente" label="Cliente" required>
+            <CampoFormulario htmlFor="cliente" label="Cliente" required error={validacion.errorDe("cliente")}>
               <SelectorContacto
                 id="cliente"
                 contactos={datos.contactos}
                 valor={clienteId}
-                onCambio={seleccionarCliente}
+                onCambio={(contacto) => {
+                  seleccionarCliente(contacto);
+                  validacion.limpiar("cliente");
+                }}
                 tipoInicial="cliente"
                 className={FORM_COMBO}
                 placeholder="Buscar cliente…"
               />
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="tipo" label="Tipo de nota de débito" required>
+            <CampoFormulario htmlFor="tipo" label="Tipo de nota de débito" required>
               <Select
                 items={tiposItems}
                 value={tipo}
@@ -349,17 +371,27 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial = nu
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="fecha" label="Fecha de creación" required>
-              <DatePicker id="fecha" value={fecha} onChange={setFecha} />
-            </FormField>
+            <CampoFormulario htmlFor="fecha" label="Fecha de creación" required error={validacion.errorDe("fecha")}>
+              <DatePicker
+                id="fecha"
+                value={fecha}
+                onChange={(valor) => {
+                  setFecha(valor);
+                  validacion.limpiar("fecha");
+                }}
+              />
+            </CampoFormulario>
 
-            <FormField htmlFor="factura" label="Factura asociada" required>
+            <CampoFormulario htmlFor="factura" label="Factura asociada" required error={validacion.errorDe("factura")}>
               <Combobox
                 items={facturasItems}
                 value={facturaItem}
-                onValueChange={seleccionarFactura}
+                onValueChange={(item) => {
+                  seleccionarFactura(item);
+                  validacion.limpiar("factura");
+                }}
                 itemToStringLabel={(item: { value: string; label: string }) => item.label}
                 isItemEqualToValue={(a: { value: string }, b: { value: string }) => a.value === b.value}
                 filter={null}
@@ -389,7 +421,7 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial = nu
                   ) : null}
                 </ComboboxContent>
               </Combobox>
-            </FormField>
+            </CampoFormulario>
           </div>
         </section>
 
@@ -417,20 +449,37 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial = nu
                         id={`producto-${linea.clave}`}
                         productos={productos}
                         valor={linea.productoId}
-                        onCambio={(producto) => seleccionarProducto(linea.clave, producto)}
-                        className={`${FORM_COMBO} border [&>input]:text-sm`}
+                        onCambio={(producto) => {
+                          seleccionarProducto(linea.clave, producto);
+                          validacion.limpiar(`producto-${linea.clave}`);
+                        }}
+                        className={`${FORM_COMBO} border [&>input]:text-sm ${validacion.errorDe(`producto-${linea.clave}`) ? "border-destructive" : ""}`}
                         aria-label={`Producto de la línea ${indice + 1}`}
                       />
+                      {validacion.errorDe(`producto-${linea.clave}`) ? (
+                        <p role="alert" className="text-destructive mt-1 text-xs">
+                          {validacion.errorDe(`producto-${linea.clave}`)}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="min-w-0 py-2 pr-1">
                       <Input
                         id={`cantidad-${linea.clave}`}
                         inputMode="decimal"
                         value={linea.cantidad}
-                        onChange={(evento) => actualizarLinea(linea.clave, { cantidad: evento.target.value })}
+                        onChange={(evento) => {
+                          actualizarLinea(linea.clave, { cantidad: evento.target.value });
+                          validacion.limpiar(`cantidad-${linea.clave}`);
+                        }}
                         aria-label={`Cantidad de la línea ${indice + 1}`}
+                        aria-invalid={Boolean(validacion.errorDe(`cantidad-${linea.clave}`))}
                         className={FORM_INPUT}
                       />
+                      {validacion.errorDe(`cantidad-${linea.clave}`) ? (
+                        <p role="alert" className="text-destructive mt-1 text-xs">
+                          {validacion.errorDe(`cantidad-${linea.clave}`)}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="min-w-0 py-2 pr-1">
                       <InputGroup className={FORM_INPUT_GROUP}>
@@ -441,11 +490,20 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial = nu
                           id={`precio-${linea.clave}`}
                           inputMode="decimal"
                           value={linea.precio}
-                          onChange={(evento) => actualizarLinea(linea.clave, { precio: evento.target.value })}
+                          onChange={(evento) => {
+                            actualizarLinea(linea.clave, { precio: evento.target.value });
+                            validacion.limpiar(`precio-${linea.clave}`);
+                          }}
                           aria-label={`Precio de la línea ${indice + 1}`}
+                          aria-invalid={Boolean(validacion.errorDe(`precio-${linea.clave}`))}
                           className="h-full min-w-0 pl-1 text-sm text-slate-700 md:text-sm"
                         />
                       </InputGroup>
+                      {validacion.errorDe(`precio-${linea.clave}`) ? (
+                        <p role="alert" className="text-destructive mt-1 text-xs">
+                          {validacion.errorDe(`precio-${linea.clave}`)}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="min-w-0 py-2 pr-1">
                       <InputGroup className={FORM_INPUT_GROUP}>
@@ -542,7 +600,7 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial = nu
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="grid gap-x-8 gap-y-4 pt-2 md:grid-cols-3">
-                <FormField htmlFor="notas" label="Notas">
+                <CampoFormulario htmlFor="notas" label="Notas">
                   <Textarea
                     id="notas"
                     value={notas}
@@ -550,7 +608,7 @@ export function NotaDebitoForm({ datos, impuestos, fechaHoy, facturaInicial = nu
                     onChange={(evento) => setNotas(evento.target.value)}
                     className={FORM_TEXTAREA}
                   />
-                </FormField>
+                </CampoFormulario>
               </div>
             </CollapsibleContent>
           </Collapsible>
