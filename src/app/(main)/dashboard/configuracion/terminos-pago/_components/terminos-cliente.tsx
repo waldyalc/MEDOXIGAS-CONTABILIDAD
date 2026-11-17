@@ -4,20 +4,40 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Plus } from "lucide-react";
+import { CalendarDays, Loader2, Plus } from "lucide-react";
 
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FORM_INPUT } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
-import { Badge } from "@/components/ui/badge";
+import { type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { crearTerminoPago } from "@/lib/configuracion/acciones";
 import type { TerminoPago } from "@/lib/configuracion/tipos";
 import { formatoEntero } from "@/lib/formato";
 import { requerido } from "@/lib/formularios/validacion";
+
+const columnas: readonly ColumnaLista<TerminoPago>[] = [
+  {
+    clave: "nombre",
+    encabezado: "Nombre",
+    celda: (termino) => <span className="font-medium">{termino.nombre}</span>,
+  },
+  {
+    clave: "dias",
+    encabezado: "Días",
+    alineacion: "derecha",
+    celda: (termino) => formatoEntero(termino.dias),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (termino) => (
+      <PillEstado tono={termino.activo ? "exito" : "neutro"}>{termino.activo ? "Activo" : "Inactivo"}</PillEstado>
+    ),
+  },
+];
 
 function FormularioTermino({ onGuardado }: { readonly onGuardado: () => void }) {
   const [error, setError] = useState<string | null>(null);
@@ -130,45 +150,24 @@ export function TerminosCliente({
         ) : null}
       </div>
 
-      <div className="rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead className="text-right">Días</TableHead>
-              <TableHead>Estado</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {terminos.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={3} className="text-muted-foreground h-24 text-center whitespace-normal">
-                  No hay términos de pago registrados.
-                </TableCell>
-              </TableRow>
-            ) : (
-              terminos.map((termino) => (
-                <TableRow key={termino.id}>
-                  <TableCell className="font-medium">{termino.nombre}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoEntero(termino.dias)}</TableCell>
-                  <TableCell>
-                    {termino.activo ? (
-                      <Badge
-                        variant="outline"
-                        className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
-                      >
-                        Activo
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">Inactivo</Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <TarjetaLista data-lista="configuracion-terminos-pago">
+        <TablaLista
+          columnas={columnas}
+          filas={terminos}
+          claveFila={(termino) => termino.id}
+          vacio={{
+            titulo: "¡Aún no tienes términos de pago!",
+            descripcion: "Crea el primero para elegir plazos en las facturas de venta.",
+            icono: <CalendarDays className="size-10" />,
+            accion: puedeCrear ? (
+              <Button type="button" onClick={() => setAbierto(true)}>
+                <Plus />
+                Nuevo término
+              </Button>
+            ) : undefined,
+          }}
+        />
+      </TarjetaLista>
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent className="sm:max-w-md">

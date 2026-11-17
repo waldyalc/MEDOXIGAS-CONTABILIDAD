@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState, useTransition } from "react";
+import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
 
 import { ChevronDown } from "lucide-react";
 
@@ -13,7 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { actualizarContacto, crearContacto } from "@/lib/contactos/actions";
 import { type Contacto, SIN_LISTA_PRECIO, TIPOS_CONTACTO } from "@/lib/contactos/contactos";
+import { completarConDatosDgii } from "@/lib/dgii/completar";
+import type { DatosContribuyenteDgii } from "@/lib/dgii/consulta";
 import type { ListaPrecio } from "@/lib/inventario/tipos";
+
+import { BotonAutocompletarDgii, MensajeDgii, tipoDocumentoDesde, useConsultaDgii } from "./consulta-dgii";
 
 const OPCIONES_TIPO = TIPOS_CONTACTO.map((tipo) => ({ value: tipo.valor, label: tipo.etiqueta }));
 const SIN_LISTA = SIN_LISTA_PRECIO;
@@ -34,6 +38,15 @@ export function FormularioContacto({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pendiente, startTransition] = useTransition();
+  const [nombre, setNombre] = useState(contacto?.nombre ?? "");
+  const [rncCedula, setRncCedula] = useState(contacto?.rnc_cedula ?? "");
+  const { cargando, mensaje, consultar, limpiar } = useConsultaDgii();
+  const autoRellenado = useRef({ nombre: "" });
+  const valores = useRef({ nombre: "" });
+
+  useEffect(() => {
+    valores.current = { nombre };
+  }, [nombre]);
 
   const opcionesLista = [
     { value: SIN_LISTA, label: "Sin lista (precio del producto)" },
@@ -42,6 +55,24 @@ export function FormularioContacto({
       label: `${lista.nombre}${lista.es_principal ? " (principal)" : ""}`,
     })),
   ];
+
+  function completarConDgii(datos: DatosContribuyenteDgii): string {
+    const { campos, mensaje: texto } = completarConDatosDgii(datos, valores.current, autoRellenado.current);
+    if (campos.nombre !== undefined) setNombre(campos.nombre);
+    Object.assign(valores.current, campos);
+    Object.assign(autoRellenado.current, campos);
+    return texto;
+  }
+
+  function consultarEnDgii(automatica: boolean) {
+    if (contacto?.tipo_identificacion === "pasaporte") return;
+
+    const digitos = rncCedula.replace(/\D/g, "");
+    const tipo = tipoDocumentoDesde(digitos);
+    if (automatica && tipo === null) return;
+
+    void consultar(digitos, tipo ?? (digitos.length > 9 ? "cedula" : "rnc"), completarConDgii);
+  }
 
   function enviar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -70,7 +101,8 @@ export function FormularioContacto({
             name="nombre"
             required
             maxLength={200}
-            defaultValue={contacto?.nombre ?? ""}
+            value={nombre}
+            onChange={(event) => setNombre(event.target.value)}
             className={FORM_INPUT}
           />
         </FormField>
@@ -105,9 +137,22 @@ export function FormularioContacto({
                 name="rnc_cedula"
                 inputMode="numeric"
                 placeholder="131123456"
-                defaultValue={contacto?.rnc_cedula ?? ""}
+                value={rncCedula}
+                onChange={(event) => {
+                  setRncCedula(event.target.value);
+                  limpiar();
+                }}
+                onBlur={() => consultarEnDgii(true)}
                 className={FORM_INPUT}
               />
+              <div className="mt-1">
+                <BotonAutocompletarDgii
+                  onClick={() => consultarEnDgii(false)}
+                  cargando={cargando}
+                  disabled={contacto?.tipo_identificacion === "pasaporte"}
+                />
+              </div>
+              <MensajeDgii mensaje={mensaje} />
             </FormField>
             <FormField htmlFor="telefono" label="Teléfono">
               <Input

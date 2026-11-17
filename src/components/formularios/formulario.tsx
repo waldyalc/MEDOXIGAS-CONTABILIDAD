@@ -53,12 +53,13 @@ interface FormFieldProps {
   htmlFor?: string;
   label: ReactNode;
   required?: boolean;
+  error?: string;
   children: ReactNode;
   className?: string;
 }
 
-/** Campo con etiqueta de 14 px, peso 500 y asterisco en el color primario. */
-export function FormField({ htmlFor, label, required = false, children, className }: FormFieldProps) {
+/** Campo con etiqueta de 14 px, peso 500, asterisco en el color primario y error inline. */
+export function FormField({ htmlFor, label, required = false, error, children, className }: FormFieldProps) {
   return (
     <div className={cn("flex min-w-0 flex-col gap-1", className)}>
       <Label htmlFor={htmlFor} className="flex items-center gap-1 text-sm leading-5 font-medium text-slate-700">
@@ -66,6 +67,11 @@ export function FormField({ htmlFor, label, required = false, children, classNam
         {required ? <span className="text-primary text-xs font-normal">*</span> : null}
       </Label>
       {children}
+      {error ? (
+        <p id={htmlFor ? `${htmlFor}-error` : undefined} role="alert" className="text-destructive text-xs leading-4">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

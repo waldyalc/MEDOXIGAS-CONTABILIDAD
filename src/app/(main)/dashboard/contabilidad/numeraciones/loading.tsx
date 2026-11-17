@@ -1,5 +1,13 @@
 import { EsqueletoLista } from "@/components/carga/esqueletos";
 
 export default function Loading() {
-  return <EsqueletoLista titulo="Numeraciones" descripcion="Comprobantes fiscales y su secuencia." columnas={6} />;
+  return (
+    <EsqueletoLista
+      titulo="Numeraciones"
+      descripcion="Secuencias del NCF por tipo de comprobante."
+      grande
+      acciones={0}
+      columnas={8}
+    />
+  );
 }

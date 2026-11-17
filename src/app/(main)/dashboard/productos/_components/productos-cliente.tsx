@@ -4,7 +4,7 @@ import { type FormEvent, useEffect, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { ChevronDown, Pencil, Plus, Upload } from "lucide-react";
+import { ChevronDown, Package, Pencil, Plus, Upload } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
@@ -12,8 +12,15 @@ import { FORM_INPUT, FORM_SELECT, FORM_TEXTAREA } from "@/components/formularios
 import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
+import {
+  BarraLista,
+  type ColumnaLista,
+  ContenedorLista,
+  PillEstado,
+  TablaLista,
+  TarjetaLista,
+} from "@/components/listas/tabla-lista";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -22,14 +29,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { rutaProducto } from "@/lib/enlaces";
 import { requerido } from "@/lib/formularios/validacion";
 import { type Impuesto, impuestoNinguno, impuestoPorTasa } from "@/lib/impuestos/tipos";
 import { etiquetaTipoLista } from "@/lib/inventario/precios";
 import type { CategoriaProducto, ListaPrecio } from "@/lib/inventario/tipos";
-import type { OpcionesLista, ParametrosLista, ResumenPagina } from "@/lib/listas/parametros";
+import { type OpcionesLista, type ParametrosLista, type ResumenPagina, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import { actualizarProducto, crearProducto } from "@/lib/productos/actions";
 import {
   etiquetaTasaItbis,
@@ -52,60 +58,54 @@ function muestraInventario(producto: Producto) {
   return producto.tipo === "producto" && producto.inventariable;
 }
 
-function FilaProducto({
-  producto,
-  puedeEditar,
-  seleccionado,
-  onAlternar,
-  onEditar,
-}: {
-  readonly producto: Producto;
-  readonly puedeEditar: boolean;
-  readonly seleccionado: boolean;
-  readonly onAlternar: (id: string, marcado: boolean) => void;
-  readonly onEditar: (producto: Producto) => void;
-}) {
-  return (
-    <TableRow data-state={seleccionado ? "selected" : undefined}>
-      {puedeEditar ? (
-        <TableCell>
-          <Checkbox
-            checked={seleccionado}
-            onCheckedChange={(valor) => onAlternar(producto.id, valor === true)}
-            aria-label={`Seleccionar ${producto.nombre}`}
-          />
-        </TableCell>
-      ) : null}
-      <TableCell className="font-medium">
-        <Enlace href={rutaProducto(producto.id)}>{producto.nombre}</Enlace>
-      </TableCell>
-      <TableCell className="text-muted-foreground">{producto.referencia?.trim() || "—"}</TableCell>
-      <TableCell className="text-right tabular-nums">{formatoMoneda(producto.precio)}</TableCell>
-      <TableCell className="text-right">{etiquetaTasaItbis(producto.itbis_tasa)}</TableCell>
-      <TableCell className="text-right tabular-nums">
-        {muestraInventario(producto) ? formatoCantidad(producto.cantidad) : "—"}
-      </TableCell>
-      <TableCell className="text-right tabular-nums">
-        {muestraInventario(producto) ? formatoMoneda(producto.costo) : "—"}
-      </TableCell>
-      <TableCell>
-        <Badge variant={producto.activo ? "outline" : "secondary"}>{producto.activo ? "Activo" : "Inactivo"}</Badge>
-      </TableCell>
-      {puedeEditar ? (
-        <TableCell className="text-right">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Editar ${producto.nombre}`}
-            onClick={() => onEditar(producto)}
-          >
-            <Pencil />
-          </Button>
-        </TableCell>
-      ) : null}
-    </TableRow>
-  );
+function columnasProductos(): readonly ColumnaLista<Producto>[] {
+  return [
+    {
+      clave: "nombre",
+      encabezado: "Nombre",
+      celda: (producto) => (
+        <Enlace href={rutaProducto(producto.id)} className="font-medium">
+          {producto.nombre}
+        </Enlace>
+      ),
+    },
+    {
+      clave: "referencia",
+      encabezado: "Referencia",
+      celda: (producto) => <span className="text-muted-foreground">{producto.referencia?.trim() || "—"}</span>,
+    },
+    {
+      clave: "precio",
+      encabezado: "Precio",
+      alineacion: "derecha",
+      celda: (producto) => formatoMoneda(producto.precio),
+    },
+    {
+      clave: "itbis",
+      encabezado: "ITBIS",
+      alineacion: "derecha",
+      celda: (producto) => etiquetaTasaItbis(producto.itbis_tasa),
+    },
+    {
+      clave: "existencia",
+      encabezado: "Existencia",
+      alineacion: "derecha",
+      celda: (producto) => (muestraInventario(producto) ? formatoCantidad(producto.cantidad) : "—"),
+    },
+    {
+      clave: "costo",
+      encabezado: "Costo",
+      alineacion: "derecha",
+      celda: (producto) => (muestraInventario(producto) ? formatoMoneda(producto.costo) : "—"),
+    },
+    {
+      clave: "estado",
+      encabezado: "Estado",
+      celda: (producto) => (
+        <PillEstado tono={producto.activo ? "exito" : "neutro"}>{producto.activo ? "Activo" : "Inactivo"}</PillEstado>
+      ),
+    },
+  ];
 }
 
 function CamposInventario({
@@ -496,7 +496,7 @@ export function ProductosCliente({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl tracking-tight">Productos</h1>
@@ -516,86 +516,97 @@ export function ProductosCliente({
         ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <BuscadorLista
-          base="/dashboard/productos"
-          parametros={params}
-          valorInicial={opciones.q}
-          placeholder="Buscar por nombre o referencia…"
-          ariaLabel="Buscar productos"
-          className="max-w-sm flex-1"
-        />
-        {puedeEditar ? (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={seleccionados.size === 0}
-            onClick={() => setEdicionMasivaAbierta(true)}
-          >
-            <Pencil />
-            Editar seleccionados{seleccionados.size > 0 ? ` (${seleccionados.size})` : ""}
-          </Button>
-        ) : null}
-      </div>
+      <TarjetaLista data-lista="productos">
+        <BarraLista>
+          <BuscadorLista
+            base="/dashboard/productos"
+            parametros={params}
+            valorInicial={opciones.q}
+            placeholder="Buscar por nombre o referencia…"
+            ariaLabel="Buscar productos"
+            className="sm:max-w-[267px] [&_input]:h-8"
+          />
+          {puedeEditar ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="ml-auto"
+              disabled={seleccionados.size === 0}
+              onClick={() => setEdicionMasivaAbierta(true)}
+            >
+              <Pencil />
+              Editar seleccionados{seleccionados.size > 0 ? ` (${seleccionados.size})` : ""}
+            </Button>
+          ) : null}
+        </BarraLista>
 
-      <div className="flex flex-col gap-3">
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {puedeEditar ? (
-                  <TableHead className="w-8">
+        <TablaLista
+          columnas={columnasProductos()}
+          filas={productos}
+          claveFila={(producto) => producto.id}
+          seleccion={
+            puedeEditar
+              ? {
+                  cabecera: (
                     <Checkbox
                       checked={todosVisiblesSeleccionados}
                       onCheckedChange={(valor) => alternarTodosVisibles(valor === true)}
                       aria-label="Seleccionar todos los productos visibles"
                     />
-                  </TableHead>
-                ) : null}
-                <TableHead>Nombre</TableHead>
-                <TableHead>Referencia</TableHead>
-                <TableHead className="text-right">Precio</TableHead>
-                <TableHead className="text-right">ITBIS</TableHead>
-                <TableHead className="text-right">Existencia</TableHead>
-                <TableHead className="text-right">Costo</TableHead>
-                <TableHead>Estado</TableHead>
-                {puedeEditar ? (
-                  <TableHead className="w-10">
-                    <span className="sr-only">Acciones</span>
-                  </TableHead>
-                ) : null}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {productos.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={puedeEditar ? 9 : 7}
-                    className="text-muted-foreground h-24 text-center whitespace-normal"
+                  ),
+                  celda: (producto) => (
+                    <Checkbox
+                      checked={seleccionados.has(producto.id)}
+                      onCheckedChange={(valor) => alternarSeleccion(producto.id, valor === true)}
+                      aria-label={`Seleccionar ${producto.nombre}`}
+                    />
+                  ),
+                }
+              : undefined
+          }
+          acciones={
+            puedeEditar
+              ? (producto) => (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Editar ${producto.nombre}`}
+                    onClick={() => abrirEditar(producto)}
                   >
-                    {opciones.q
-                      ? "No se encontraron productos con esa búsqueda."
-                      : "Todavía no hay productos registrados."}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                productos.map((producto) => (
-                  <FilaProducto
-                    key={producto.id}
-                    producto={producto}
-                    puedeEditar={puedeEditar}
-                    seleccionado={seleccionados.has(producto.id)}
-                    onAlternar={alternarSeleccion}
-                    onEditar={abrirEditar}
-                  />
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                    <Pencil />
+                  </Button>
+                )
+              : undefined
+          }
+          vacio={{
+            filtrada: Boolean(opciones.q),
+            titulo: opciones.q ? "Sin resultados" : "¡Aún no tienes productos!",
+            descripcion: opciones.q
+              ? "La búsqueda no arrojó productos."
+              : "Crea tu primer producto o servicio para empezar.",
+            icono: <Package className="size-10" />,
+            accion: puedeEditar ? (
+              <Button type="button" onClick={abrirNuevo}>
+                <Plus />
+                Nuevo producto
+              </Button>
+            ) : undefined,
+          }}
+        />
 
-        <PaginadorLista base="/dashboard/productos" params={params} resumen={resumen} />
-      </div>
+        <PaginadorLista
+          base="/dashboard/productos"
+          params={params}
+          resumen={resumen}
+          etiqueta="Ítems por página"
+          tamano={opciones.tamano}
+          opciones={TAMANOS_PAGINA}
+          mostrarEnVacio
+          botonesExtremos={false}
+          className="border-border h-14 border-t px-4 text-slate-700 dark:text-slate-300"
+        />
+      </TarjetaLista>
 
       <Dialog open={dialogoAbierto} onOpenChange={cambiarDialogo}>
         <DialogContent className="sm:max-w-md">
@@ -626,6 +637,6 @@ export function ProductosCliente({
         onCambiarAbierto={setEdicionMasivaAbierta}
         onTerminado={terminarEdicionMasiva}
       />
-    </div>
+    </ContenedorLista>
   );
 }

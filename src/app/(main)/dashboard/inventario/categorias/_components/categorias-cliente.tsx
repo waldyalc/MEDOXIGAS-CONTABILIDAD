@@ -4,23 +4,50 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Pencil, Plus } from "lucide-react";
+import { Loader2, Pencil, Plus, Tag } from "lucide-react";
 
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FORM_INPUT, FORM_TEXTAREA } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import {
+  type ColumnaLista,
+  ContenedorLista,
+  PillEstado,
+  TablaLista,
+  TarjetaLista,
+} from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { requerido } from "@/lib/formularios/validacion";
 import { actualizarCategoria, crearCategoria } from "@/lib/inventario/acciones";
 import type { CategoriaProducto } from "@/lib/inventario/tipos";
+
+const columnas: readonly ColumnaLista<CategoriaProducto>[] = [
+  {
+    clave: "nombre",
+    encabezado: "Nombre",
+    celda: (categoria) => <span className="font-medium">{categoria.nombre}</span>,
+  },
+  {
+    clave: "descripcion",
+    encabezado: "Descripción",
+    celda: (categoria) => (
+      <span className="text-muted-foreground max-w-[420px] truncate">{categoria.descripcion?.trim() || "—"}</span>
+    ),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (categoria) => (
+      <PillEstado tono={categoria.activo ? "exito" : "neutro"}>{categoria.activo ? "Activa" : "Inactiva"}</PillEstado>
+    ),
+  },
+];
 
 export function CategoriasCliente({
   categorias,
@@ -95,7 +122,7 @@ export function CategoriasCliente({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <ContenedorLista>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl tracking-tight">Categorías</h1>
@@ -109,58 +136,39 @@ export function CategoriasCliente({
         ) : null}
       </div>
 
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Descripción</TableHead>
-              <TableHead>Estado</TableHead>
-              {puedeEditar ? (
-                <TableHead className="w-10">
-                  <span className="sr-only">Acciones</span>
-                </TableHead>
-              ) : null}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categorias.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={puedeEditar ? 4 : 3} className="text-muted-foreground py-10 text-center">
-                  Todavía no hay categorías.
-                </TableCell>
-              </TableRow>
-            ) : (
-              categorias.map((categoria) => (
-                <TableRow key={categoria.id}>
-                  <TableCell className="font-medium">{categoria.nombre}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-[420px] truncate">
-                    {categoria.descripcion?.trim() || "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={categoria.activo ? "secondary" : "destructive"}>
-                      {categoria.activo ? "Activa" : "Inactiva"}
-                    </Badge>
-                  </TableCell>
-                  {puedeEditar ? (
-                    <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Editar ${categoria.nombre}`}
-                        onClick={() => abrirEditar(categoria)}
-                      >
-                        <Pencil />
-                      </Button>
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <TarjetaLista data-lista="inventario-categorias">
+        <TablaLista
+          columnas={columnas}
+          filas={categorias}
+          claveFila={(categoria) => categoria.id}
+          acciones={
+            puedeEditar
+              ? (categoria) => (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Editar ${categoria.nombre}`}
+                    onClick={() => abrirEditar(categoria)}
+                  >
+                    <Pencil />
+                  </Button>
+                )
+              : undefined
+          }
+          vacio={{
+            titulo: "¡Aún no tienes categorías!",
+            descripcion: "Crea la primera para agrupar tus productos.",
+            icono: <Tag className="size-10" />,
+            accion: puedeEditar ? (
+              <Button type="button" onClick={abrirNueva}>
+                <Plus />
+                Nueva categoría
+              </Button>
+            ) : undefined,
+          }}
+        />
+      </TarjetaLista>
 
       <Dialog open={abierto} onOpenChange={cambiarAbierto}>
         <DialogContent className="sm:max-w-md">
@@ -224,6 +232,6 @@ export function CategoriasCliente({
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </ContenedorLista>
   );
 }

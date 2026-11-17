@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { ContenedorLista } from "@/components/listas/tabla-lista";
 import { getPerfil } from "@/lib/auth/rol";
 import { getDatosBancos } from "@/lib/bancos/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
@@ -13,7 +14,7 @@ export default async function Page() {
   const datos = await getDatosBancos();
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl tracking-tight">Bancos y caja</h1>
         <p className="text-muted-foreground text-sm">
@@ -28,6 +29,6 @@ export default async function Page() {
         puedeEscribir={perfil.rol !== "lector"}
         fechaHoy={hoyRD()}
       />
-    </div>
+    </ContenedorLista>
   );
 }

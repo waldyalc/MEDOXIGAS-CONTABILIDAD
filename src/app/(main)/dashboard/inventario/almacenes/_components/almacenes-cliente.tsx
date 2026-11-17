@@ -4,22 +4,47 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Pencil, Plus } from "lucide-react";
+import { Loader2, Pencil, Plus, Warehouse } from "lucide-react";
 
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FORM_INPUT } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import {
+  type ColumnaLista,
+  ContenedorLista,
+  PillEstado,
+  TablaLista,
+  TarjetaLista,
+} from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requerido } from "@/lib/formularios/validacion";
 import { actualizarAlmacen, crearAlmacen } from "@/lib/inventario/acciones";
 import type { Almacen } from "@/lib/inventario/tipos";
+
+const columnas: readonly ColumnaLista<Almacen>[] = [
+  {
+    clave: "nombre",
+    encabezado: "Nombre",
+    celda: (almacen) => <span className="font-medium">{almacen.nombre}</span>,
+  },
+  {
+    clave: "principal",
+    encabezado: "Principal",
+    celda: (almacen) => (almacen.es_principal ? <PillEstado tono="info">Principal</PillEstado> : "—"),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (almacen) => (
+      <PillEstado tono={almacen.activo ? "exito" : "neutro"}>{almacen.activo ? "Activo" : "Inactivo"}</PillEstado>
+    ),
+  },
+];
 
 export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almacen[]; puedeEditar: boolean }) {
   const router = useRouter();
@@ -86,7 +111,7 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <ContenedorLista>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl tracking-tight">Almacenes</h1>
@@ -102,56 +127,39 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
         ) : null}
       </div>
 
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Principal</TableHead>
-              <TableHead>Estado</TableHead>
-              {puedeEditar ? (
-                <TableHead className="w-10">
-                  <span className="sr-only">Acciones</span>
-                </TableHead>
-              ) : null}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {almacenes.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={puedeEditar ? 4 : 3} className="text-muted-foreground py-10 text-center">
-                  No hay almacenes configurados.
-                </TableCell>
-              </TableRow>
-            ) : (
-              almacenes.map((almacen) => (
-                <TableRow key={almacen.id}>
-                  <TableCell className="font-medium">{almacen.nombre}</TableCell>
-                  <TableCell>{almacen.es_principal ? <Badge variant="default">Principal</Badge> : "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant={almacen.activo ? "secondary" : "destructive"}>
-                      {almacen.activo ? "Activo" : "Inactivo"}
-                    </Badge>
-                  </TableCell>
-                  {puedeEditar ? (
-                    <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Editar ${almacen.nombre}`}
-                        onClick={() => abrirEditar(almacen)}
-                      >
-                        <Pencil />
-                      </Button>
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <TarjetaLista data-lista="inventario-almacenes">
+        <TablaLista
+          columnas={columnas}
+          filas={almacenes}
+          claveFila={(almacen) => almacen.id}
+          acciones={
+            puedeEditar
+              ? (almacen) => (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Editar ${almacen.nombre}`}
+                    onClick={() => abrirEditar(almacen)}
+                  >
+                    <Pencil />
+                  </Button>
+                )
+              : undefined
+          }
+          vacio={{
+            titulo: "¡Aún no tienes almacenes!",
+            descripcion: "Crea el primer almacén para controlar tu inventario.",
+            icono: <Warehouse className="size-10" />,
+            accion: puedeEditar ? (
+              <Button type="button" onClick={abrirNuevo}>
+                <Plus />
+                Nuevo almacén
+              </Button>
+            ) : undefined,
+          }}
+        />
+      </TarjetaLista>
 
       <Dialog open={abierto} onOpenChange={cambiarAbierto}>
         <DialogContent className="sm:max-w-md">
@@ -215,6 +223,6 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </ContenedorLista>
   );
 }

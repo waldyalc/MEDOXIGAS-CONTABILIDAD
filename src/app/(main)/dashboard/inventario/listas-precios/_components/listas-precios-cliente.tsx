@@ -4,20 +4,25 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Pencil, Plus } from "lucide-react";
+import { Loader2, Pencil, Plus, Tags } from "lucide-react";
 
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FORM_INPUT, FORM_SELECT } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import {
+  type ColumnaLista,
+  ContenedorLista,
+  PillEstado,
+  TablaLista,
+  TarjetaLista,
+} from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requerido } from "@/lib/formularios/validacion";
 import { actualizarListaPrecio, crearListaPrecio } from "@/lib/inventario/acciones";
 import { etiquetaTipoLista } from "@/lib/inventario/precios";
@@ -26,6 +31,31 @@ import type { ListaPrecio, TipoListaPrecio } from "@/lib/inventario/tipos";
 const OPCIONES_TIPO: { value: TipoListaPrecio; label: string }[] = [
   { value: "fijo", label: "Valor fijo" },
   { value: "porcentaje", label: "Porcentaje sobre el precio" },
+];
+
+const columnas: readonly ColumnaLista<ListaPrecio>[] = [
+  {
+    clave: "nombre",
+    encabezado: "Nombre",
+    celda: (lista) => <span className="font-medium">{lista.nombre}</span>,
+  },
+  {
+    clave: "principal",
+    encabezado: "Principal",
+    celda: (lista) => (lista.es_principal ? <PillEstado tono="info">Principal</PillEstado> : "—"),
+  },
+  {
+    clave: "tipo",
+    encabezado: "Tipo",
+    celda: (lista) => etiquetaTipoLista(lista.tipo),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (lista) => (
+      <PillEstado tono={lista.activo ? "exito" : "neutro"}>{lista.activo ? "Activa" : "Inactiva"}</PillEstado>
+    ),
+  },
 ];
 
 export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPrecio[]; puedeEditar: boolean }) {
@@ -101,7 +131,7 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <ContenedorLista>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl tracking-tight">Listas de precios</h1>
@@ -117,58 +147,39 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
         ) : null}
       </div>
 
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Principal</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Estado</TableHead>
-              {puedeEditar ? (
-                <TableHead className="w-10">
-                  <span className="sr-only">Acciones</span>
-                </TableHead>
-              ) : null}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {listas.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={puedeEditar ? 5 : 4} className="text-muted-foreground py-10 text-center">
-                  No hay listas de precios configuradas.
-                </TableCell>
-              </TableRow>
-            ) : (
-              listas.map((lista) => (
-                <TableRow key={lista.id}>
-                  <TableCell className="font-medium">{lista.nombre}</TableCell>
-                  <TableCell>{lista.es_principal ? <Badge variant="default">Principal</Badge> : "—"}</TableCell>
-                  <TableCell>{etiquetaTipoLista(lista.tipo)}</TableCell>
-                  <TableCell>
-                    <Badge variant={lista.activo ? "secondary" : "destructive"}>
-                      {lista.activo ? "Activa" : "Inactiva"}
-                    </Badge>
-                  </TableCell>
-                  {puedeEditar ? (
-                    <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Editar ${lista.nombre}`}
-                        onClick={() => abrirEditar(lista)}
-                      >
-                        <Pencil />
-                      </Button>
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <TarjetaLista data-lista="inventario-listas-precios">
+        <TablaLista
+          columnas={columnas}
+          filas={listas}
+          claveFila={(lista) => lista.id}
+          acciones={
+            puedeEditar
+              ? (lista) => (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Editar ${lista.nombre}`}
+                    onClick={() => abrirEditar(lista)}
+                  >
+                    <Pencil />
+                  </Button>
+                )
+              : undefined
+          }
+          vacio={{
+            titulo: "¡Aún no tienes listas de precios!",
+            descripcion: "Crea la primera para vender con precios distintos.",
+            icono: <Tags className="size-10" />,
+            accion: puedeEditar ? (
+              <Button type="button" onClick={abrirNueva}>
+                <Plus />
+                Nueva lista
+              </Button>
+            ) : undefined,
+          }}
+        />
+      </TarjetaLista>
 
       <Dialog open={abierto} onOpenChange={cambiarAbierto}>
         <DialogContent className="sm:max-w-md">
@@ -249,6 +260,6 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </ContenedorLista>
   );
 }

@@ -5,8 +5,9 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { BookOpen, CircleCheck, Loader2, Lock, LockOpen } from "lucide-react";
+import { BookOpen, CircleCheck, Loader2 } from "lucide-react";
 
+import { type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -19,10 +20,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaAsiento } from "@/lib/enlaces";
 import { formatoFechaHora } from "@/lib/formato";
 import { cerrarPeriodo, cerrarResultadosAnio, reabrirPeriodo } from "@/lib/periodos/acciones";
@@ -34,7 +33,7 @@ interface Props {
   puedeEscribir: boolean;
 }
 
-function FilaMes({
+function AccionMes({
   mes,
   puedeEscribir,
   pendiente,
@@ -51,50 +50,26 @@ function FilaMes({
 }) {
   const cerrado = mes.estado === "cerrado";
 
+  if (cerrado) {
+    return (
+      <Button variant="outline" size="sm" disabled={!puedeEscribir || pendiente} onClick={onReabrir}>
+        {procesando === mes.periodo ? <Loader2 className="animate-spin" /> : null}
+        Reabrir
+      </Button>
+    );
+  }
+
   return (
-    <TableRow>
-      <TableCell className="pl-(--card-spacing) font-medium">
-        {mes.etiqueta}
-        {mes.esActual ? (
-          <Badge variant="outline" className="ml-2">
-            Mes actual
-          </Badge>
-        ) : null}
-      </TableCell>
-      <TableCell>
-        {cerrado ? (
-          <Badge variant="secondary" className="gap-1">
-            <Lock className="size-3" />
-            Cerrado
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="gap-1">
-            <LockOpen className="size-3" />
-            Abierto
-          </Badge>
-        )}
-      </TableCell>
-      <TableCell className="text-muted-foreground">{mes.cerradoEn ? formatoFechaHora(mes.cerradoEn) : "—"}</TableCell>
-      <TableCell className="pr-(--card-spacing) text-right">
-        {cerrado ? (
-          <Button variant="outline" size="sm" disabled={!puedeEscribir || pendiente} onClick={onReabrir}>
-            {procesando === mes.periodo ? <Loader2 className="animate-spin" /> : null}
-            Reabrir
-          </Button>
-        ) : (
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={!puedeEscribir || pendiente || mes.esFuturo}
-            onClick={onCerrar}
-            title={mes.esFuturo ? "No se puede cerrar un mes futuro" : undefined}
-          >
-            {procesando === mes.periodo ? <Loader2 className="animate-spin" /> : null}
-            Cerrar mes
-          </Button>
-        )}
-      </TableCell>
-    </TableRow>
+    <Button
+      variant="secondary"
+      size="sm"
+      disabled={!puedeEscribir || pendiente || mes.esFuturo}
+      onClick={onCerrar}
+      title={mes.esFuturo ? "No se puede cerrar un mes futuro" : undefined}
+    >
+      {procesando === mes.periodo ? <Loader2 className="animate-spin" /> : null}
+      Cerrar mes
+    </Button>
   );
 }
 
@@ -125,6 +100,35 @@ export function PanelPeriodos({ datos, puedeEscribir }: Props) {
 
   const unAnio = datos.anio > datos.anioActual;
 
+  const columnas: readonly ColumnaLista<MesPeriodo>[] = [
+    {
+      clave: "mes",
+      encabezado: "Mes",
+      celda: (mes) => (
+        <span className="inline-flex items-center gap-2 font-medium">
+          {mes.etiqueta}
+          {mes.esActual ? <PillEstado tono="info">Mes actual</PillEstado> : null}
+        </span>
+      ),
+    },
+    {
+      clave: "estado",
+      encabezado: "Estado",
+      celda: (mes) => (
+        <PillEstado tono={mes.estado === "cerrado" ? "neutro" : "exito"}>
+          {mes.estado === "cerrado" ? "Cerrado" : "Abierto"}
+        </PillEstado>
+      ),
+    },
+    {
+      clave: "cerradoEn",
+      encabezado: "Cerrado",
+      celda: (mes) => (
+        <span className="text-muted-foreground">{mes.cerradoEn ? formatoFechaHora(mes.cerradoEn) : "—"}</span>
+      ),
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
       {error ? (
@@ -133,36 +137,30 @@ export function PanelPeriodos({ datos, puedeEscribir }: Props) {
         </Alert>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Meses de {datos.anio}</CardTitle>
-        </CardHeader>
-        <CardContent className="px-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-(--card-spacing)">Mes</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Cerrado</TableHead>
-                <TableHead className="pr-(--card-spacing) text-right">Acción</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {datos.meses.map((mes) => (
-                <FilaMes
-                  key={mes.periodo}
-                  mes={mes}
-                  puedeEscribir={puedeEscribir}
-                  pendiente={pendiente}
-                  procesando={procesando}
-                  onCerrar={() => ejecutar(mes.periodo, () => cerrarPeriodo(mes.periodo))}
-                  onReabrir={() => ejecutar(mes.periodo, () => reabrirPeriodo(mes.periodo))}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold">Meses de {datos.anio}</h2>
+        <TarjetaLista data-lista="contabilidad-periodos">
+          <TablaLista
+            columnas={columnas}
+            filas={datos.meses}
+            claveFila={(mes) => mes.periodo}
+            acciones={(mes) => (
+              <AccionMes
+                mes={mes}
+                puedeEscribir={puedeEscribir}
+                pendiente={pendiente}
+                procesando={procesando}
+                onCerrar={() => ejecutar(mes.periodo, () => cerrarPeriodo(mes.periodo))}
+                onReabrir={() => ejecutar(mes.periodo, () => reabrirPeriodo(mes.periodo))}
+              />
+            )}
+            vacio={{
+              titulo: "Sin meses",
+              descripcion: "No hay meses para este año.",
+            }}
+          />
+        </TarjetaLista>
+      </div>
 
       <Card>
         <CardHeader>

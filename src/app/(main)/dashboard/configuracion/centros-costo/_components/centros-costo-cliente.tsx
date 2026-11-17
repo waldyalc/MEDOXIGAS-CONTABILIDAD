@@ -4,23 +4,49 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Pencil, Plus } from "lucide-react";
+import { Loader2, Pencil, Plus, Tags } from "lucide-react";
 
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FORM_INPUT, FORM_TEXTAREA } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { actualizarCentroCosto, crearCentroCosto } from "@/lib/centros-costo/acciones";
 import type { CentroCosto } from "@/lib/centros-costo/tipos";
 import { requerido } from "@/lib/formularios/validacion";
+
+const columnasCentros: readonly ColumnaLista<CentroCosto>[] = [
+  {
+    clave: "codigo",
+    encabezado: "Código",
+    celda: (centro) => <span className="font-mono text-sm">{centro.codigo}</span>,
+  },
+  {
+    clave: "nombre",
+    encabezado: "Nombre",
+    celda: (centro) => <span className="font-medium">{centro.nombre}</span>,
+  },
+  {
+    clave: "descripcion",
+    encabezado: "Descripción",
+    celda: (centro) => (
+      <span className="text-muted-foreground max-w-[420px] truncate">{centro.descripcion?.trim() || "—"}</span>
+    ),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (centro) => (
+      <PillEstado tono={centro.activo ? "exito" : "neutro"}>{centro.activo ? "Activo" : "Inactivo"}</PillEstado>
+    ),
+  },
+];
 
 export function CentrosCostoCliente({
   centros,
@@ -119,60 +145,39 @@ export function CentrosCostoCliente({
         ) : null}
       </div>
 
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Código</TableHead>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Descripción</TableHead>
-              <TableHead>Estado</TableHead>
-              {puedeEditar ? (
-                <TableHead className="w-10">
-                  <span className="sr-only">Acciones</span>
-                </TableHead>
-              ) : null}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {centros.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={puedeEditar ? 5 : 4} className="text-muted-foreground py-10 text-center">
-                  Todavía no hay centros de costo.
-                </TableCell>
-              </TableRow>
-            ) : (
-              centros.map((centro) => (
-                <TableRow key={centro.id}>
-                  <TableCell className="font-mono text-sm">{centro.codigo}</TableCell>
-                  <TableCell className="font-medium">{centro.nombre}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-[420px] truncate">
-                    {centro.descripcion?.trim() || "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={centro.activo ? "secondary" : "destructive"}>
-                      {centro.activo ? "Activo" : "Inactivo"}
-                    </Badge>
-                  </TableCell>
-                  {puedeEditar ? (
-                    <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Editar ${centro.nombre}`}
-                        onClick={() => abrirEditar(centro)}
-                      >
-                        <Pencil />
-                      </Button>
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <TarjetaLista data-lista="configuracion-centros-costo">
+        <TablaLista
+          columnas={columnasCentros}
+          filas={centros}
+          claveFila={(centro) => centro.id}
+          acciones={
+            puedeEditar
+              ? (centro) => (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Editar ${centro.nombre}`}
+                    onClick={() => abrirEditar(centro)}
+                  >
+                    <Pencil />
+                  </Button>
+                )
+              : undefined
+          }
+          vacio={{
+            titulo: "¡Aún no tienes centros de costo!",
+            descripcion: "Crea el primero para clasificar facturas, compras y asientos.",
+            icono: <Tags className="size-10" />,
+            accion: puedeEditar ? (
+              <Button type="button" onClick={abrirNuevo}>
+                <Plus />
+                Nuevo centro
+              </Button>
+            ) : undefined,
+          }}
+        />
+      </TarjetaLista>
 
       <Dialog open={abierto} onOpenChange={cambiarAbierto}>
         <DialogContent className="sm:max-w-md">

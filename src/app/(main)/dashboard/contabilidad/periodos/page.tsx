@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { ContenedorLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { hoyRD } from "@/lib/facturacion/formato";
@@ -23,7 +24,7 @@ export default async function Page({ searchParams }: Props) {
   const datos = await getDatosPeriodos(Number.isInteger(solicitado) ? solicitado : datosAnioActual());
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl tracking-tight">Periodos contables</h1>
@@ -50,7 +51,7 @@ export default async function Page({ searchParams }: Props) {
       </div>
 
       <PanelPeriodos datos={datos} puedeEscribir={perfil.rol !== "lector"} />
-    </div>
+    </ContenedorLista>
   );
 }
 

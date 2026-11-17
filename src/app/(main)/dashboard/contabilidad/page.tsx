@@ -1,17 +1,49 @@
 import { BookOpen, TriangleAlert } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { type ColumnaLista, ContenedorLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
 import { CONFIGURACION_CONTABLE } from "@/lib/contabilidad/catalogo";
 import { rutaCuenta } from "@/lib/enlaces";
 import { obtenerCatalogoContable } from "@/lib/reportes/consultas";
+import type { CuentaContable } from "@/lib/reportes/tipos";
 
 import { CatalogoCuentas } from "./_components/catalogo-cuentas";
 import { NuevaCuenta } from "./_components/cuenta-formulario";
+
+interface FilaConfiguracion {
+  clave: string;
+  etiqueta: string;
+  cuenta: CuentaContable | undefined;
+}
+
+const columnasConfiguracion: readonly ColumnaLista<FilaConfiguracion>[] = [
+  {
+    clave: "concepto",
+    encabezado: "Concepto",
+    celda: (fila) => fila.etiqueta,
+  },
+  {
+    clave: "clave",
+    encabezado: "Clave",
+    celda: (fila) => <span className="text-muted-foreground">{fila.clave}</span>,
+  },
+  {
+    clave: "cuenta",
+    encabezado: "Cuenta contable",
+    celda: (fila) =>
+      fila.cuenta == null ? (
+        "—"
+      ) : (
+        <Enlace href={rutaCuenta(fila.cuenta.id)}>
+          <span className="text-muted-foreground">{fila.cuenta.codigo}</span> {fila.cuenta.nombre}
+        </Enlace>
+      ),
+  },
+];
 
 export default async function Page() {
   const [{ cuentas, configuracion, saldos, error }, rol] = await Promise.all([obtenerCatalogoContable(), getRol()]);
@@ -19,8 +51,17 @@ export default async function Page() {
   const configuracionPorClave = new Map(configuracion.map((fila) => [fila.clave, fila]));
   const puedeEditar = rol === "admin" || rol === "contador";
 
+  const filasConfiguracion: FilaConfiguracion[] = CONFIGURACION_CONTABLE.map((config) => {
+    const fila = configuracionPorClave.get(config.clave);
+    return {
+      clave: config.clave,
+      etiqueta: config.etiqueta,
+      cuenta: fila == null ? undefined : cuentasPorId.get(fila.cuenta_id),
+    };
+  });
+
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl tracking-tight">Contabilidad</h1>
@@ -57,44 +98,20 @@ export default async function Page() {
         <CatalogoCuentas cuentas={cuentas} saldos={saldos} configuracion={configuracion} puedeEditar={puedeEditar} />
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Configuración contable</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Concepto</TableHead>
-                <TableHead>Clave</TableHead>
-                <TableHead>Cuenta contable</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {CONFIGURACION_CONTABLE.map((config) => {
-                const fila = configuracionPorClave.get(config.clave);
-                const cuenta = fila == null ? undefined : cuentasPorId.get(fila.cuenta_id);
-
-                return (
-                  <TableRow key={config.clave}>
-                    <TableCell>{config.etiqueta}</TableCell>
-                    <TableCell className="text-muted-foreground">{config.clave}</TableCell>
-                    <TableCell>
-                      {cuenta == null ? (
-                        "—"
-                      ) : (
-                        <Enlace href={rutaCuenta(cuenta.id)}>
-                          <span className="text-muted-foreground">{cuenta.codigo}</span> {cuenta.nombre}
-                        </Enlace>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold">Configuración contable</h2>
+        <TarjetaLista data-lista="contabilidad-configuracion">
+          <TablaLista
+            columnas={columnasConfiguracion}
+            filas={filasConfiguracion}
+            claveFila={(fila) => fila.clave}
+            vacio={{
+              titulo: "Sin configuración contable",
+              descripcion: "No hay conceptos configurados.",
+            }}
+          />
+        </TarjetaLista>
+      </section>
+    </ContenedorLista>
   );
 }

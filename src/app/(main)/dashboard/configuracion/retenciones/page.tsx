@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { ContenedorLista } from "@/components/listas/tabla-lista";
 import { getRol } from "@/lib/auth/rol";
 import { getCuentasRetencion, getRetencionesConfig } from "@/lib/configuracion/consultas";
 
@@ -11,7 +12,7 @@ export default async function Page() {
   if (rol == null) redirect("/unauthorized");
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <EncabezadoConfiguracion
         titulo="Retenciones"
         descripcion="Retenciones de ITBIS e ISR que se pueden aplicar en pagos recibidos y pagos a proveedores."
@@ -21,6 +22,6 @@ export default async function Page() {
         cuentas={cuentas}
         puedeEscribir={rol === "admin" || rol === "contador"}
       />
-    </div>
+    </ContenedorLista>
   );
 }

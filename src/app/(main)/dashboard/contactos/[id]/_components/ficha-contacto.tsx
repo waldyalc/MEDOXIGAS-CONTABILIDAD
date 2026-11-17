@@ -47,13 +47,12 @@ import {
   MetaItem,
   type OpcionFiltro,
   PestanasFicha,
-  PiePagina,
-  TH,
   type TonoKpi,
   usePagina,
 } from "@/components/ficha/ficha-ui";
+import { PaginadorLocal } from "@/components/listas/paginador-local";
+import { BarraLista, type ColumnaLista, PillEstado, TablaLista, type TonoPill } from "@/components/listas/tabla-lista";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -63,7 +62,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { type Contacto, etiquetaTipoContacto } from "@/lib/contactos/contactos";
 import {
@@ -100,12 +98,12 @@ import type { ListaPrecio } from "@/lib/inventario/tipos";
 
 import {
   type ClaseEstado,
-  EstadoBadge,
   PestanaAsientos,
   PestanaComerciales,
   PestanaFacturas,
   PestanaNotas,
   PestanaPagos,
+  PillEstadoDocumento,
 } from "./pestanas-documentos";
 
 type TipoFila =
@@ -129,15 +127,15 @@ const ETIQUETA_TIPO_FILA: Record<TipoFila, string> = {
   asiento: "Asiento",
 };
 
-const CLASE_TIPO_FILA: Record<TipoFila, string> = {
-  factura: "bg-primary/10 text-primary",
-  compra: "bg-primary/10 text-primary",
-  cotizacion: "bg-secondary text-secondary-foreground",
-  conduce: "bg-secondary text-secondary-foreground",
-  nota: "bg-secondary text-secondary-foreground",
-  "pago-recibido": "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  "pago-proveedor": "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  asiento: "bg-secondary text-secondary-foreground",
+const TONO_TIPO_FILA: Record<TipoFila, TonoPill> = {
+  factura: "info",
+  compra: "info",
+  cotizacion: "neutro",
+  conduce: "neutro",
+  nota: "neutro",
+  "pago-recibido": "exito",
+  "pago-proveedor": "exito",
+  asiento: "neutro",
 };
 
 const PREFIJO_NOTA: Record<TipoNotaFicha, string> = {
@@ -282,12 +280,8 @@ function construirFilas(datos: DatosFichaContacto): FilaUnificada[] {
   return filas.sort((a, b) => b.fecha.localeCompare(a.fecha) || b.numero - a.numero);
 }
 
-function TipoBadge({ tipo }: { readonly tipo: TipoFila }) {
-  return (
-    <Badge variant="outline" className={cn("border-transparent", CLASE_TIPO_FILA[tipo])}>
-      {ETIQUETA_TIPO_FILA[tipo]}
-    </Badge>
-  );
+function TipoPill({ tipo }: { readonly tipo: TipoFila }) {
+  return <PillEstado tono={TONO_TIPO_FILA[tipo]}>{ETIQUETA_TIPO_FILA[tipo]}</PillEstado>;
 }
 
 const CLASE_ESTADO_FILA: Record<TipoFila, ClaseEstado> = {
@@ -472,7 +466,7 @@ function coincidenTexto(fila: FilaUnificada, texto: string): boolean {
 function IdentificadorMovimiento({ fila, numero }: { readonly fila: FilaUnificada; readonly numero: string }) {
   if (fila.tipo === "factura") {
     return fila.ncf ? (
-      <span className="text-primary font-medium">{fila.ncf}</span>
+      <span className="font-medium">{fila.ncf}</span>
     ) : (
       <span className="text-muted-foreground">—</span>
     );
@@ -480,70 +474,75 @@ function IdentificadorMovimiento({ fila, numero }: { readonly fila: FilaUnificad
 
   return (
     <>
-      <span className="text-primary font-medium">{numero}</span>
+      <span className="font-medium">{numero}</span>
       {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
     </>
   );
 }
 
-function FilaMovimiento({ fila }: { readonly fila: FilaUnificada }) {
-  const esFacturaVenta = fila.tipo === "factura";
-  const numero = `${fila.prefijo}-${String(fila.numero).padStart(4, "0")}`;
-  let ariaLabel = `Ver ${fila.detalle} ${numero}`;
-  if (esFacturaVenta) ariaLabel = fila.ncf ? `Ver factura ${fila.ncf}` : "Ver factura de venta";
-
-  return (
-    <TableRow className="relative cursor-pointer">
-      <TableCell>
-        <Enlace className="absolute inset-0" href={fila.href} aria-label={ariaLabel} />
-        <span className="pointer-events-none relative flex flex-col">
-          <IdentificadorMovimiento fila={fila} numero={numero} />
-        </span>
-      </TableCell>
-      <TableCell className="text-muted-foreground">{formatoDia(fila.fecha)}</TableCell>
-      <TableCell>
-        <TipoBadge tipo={fila.tipo} />
-      </TableCell>
-      <TableCell className="whitespace-normal">{fila.detalle}</TableCell>
-      <TableCell className="text-right font-medium tabular-nums">
-        {fila.direccion === "abono" ? (
-          <span className="text-emerald-600 dark:text-emerald-400">-{formatoMonedaCentavos(fila.montoCentavos)}</span>
-        ) : (
-          formatoMonedaCentavos(fila.montoCentavos)
-        )}
-      </TableCell>
-      <TableCell>
-        <EstadoBadge estado={fila.estado} clase={CLASE_ESTADO_FILA[fila.tipo]} />
-      </TableCell>
-    </TableRow>
-  );
+function ariaMovimiento(fila: FilaUnificada, numero: string): string {
+  if (fila.tipo === "factura") return fila.ncf ? `Ver factura ${fila.ncf}` : "Ver factura de venta";
+  return `Ver ${fila.detalle} ${numero}`;
 }
+
+const columnasMovimientos: readonly ColumnaLista<FilaUnificada>[] = [
+  {
+    clave: "transaccion",
+    encabezado: "Transacción",
+    celda: (fila) => {
+      const numero = `${fila.prefijo}-${String(fila.numero).padStart(4, "0")}`;
+      return (
+        <Enlace href={fila.href} aria-label={ariaMovimiento(fila, numero)} className="flex flex-col">
+          <IdentificadorMovimiento fila={fila} numero={numero} />
+        </Enlace>
+      );
+    },
+  },
+  {
+    clave: "fecha",
+    encabezado: "Fecha",
+    celda: (fila) => <span className="text-muted-foreground">{formatoDia(fila.fecha)}</span>,
+  },
+  {
+    clave: "tipo",
+    encabezado: "Tipo",
+    celda: (fila) => <TipoPill tipo={fila.tipo} />,
+  },
+  {
+    clave: "descripcion",
+    encabezado: "Descripción",
+    celda: (fila) => <span className="whitespace-normal">{fila.detalle}</span>,
+  },
+  {
+    clave: "monto",
+    encabezado: "Monto",
+    alineacion: "derecha",
+    celda: (fila) =>
+      fila.direccion === "abono" ? (
+        <span className="text-emerald-600 dark:text-emerald-400">-{formatoMonedaCentavos(fila.montoCentavos)}</span>
+      ) : (
+        <span className="font-medium">{formatoMonedaCentavos(fila.montoCentavos)}</span>
+      ),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (fila) => <PillEstadoDocumento estado={fila.estado} clase={CLASE_ESTADO_FILA[fila.tipo]} />,
+  },
+];
 
 function TablaMovimientos({ filas, unidad }: { readonly filas: readonly FilaUnificada[]; readonly unidad: string }) {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className={TH}>Transacción</TableHead>
-          <TableHead className={TH}>Fecha</TableHead>
-          <TableHead className={TH}>Tipo</TableHead>
-          <TableHead className={TH}>Descripción</TableHead>
-          <TableHead className={cn(TH, "text-right")}>Monto</TableHead>
-          <TableHead className={TH}>Estado</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {filas.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
-              No hay {unidad}.
-            </TableCell>
-          </TableRow>
-        ) : (
-          filas.map((fila) => <FilaMovimiento key={fila.clave} fila={fila} />)
-        )}
-      </TableBody>
-    </Table>
+    <TablaLista
+      columnas={columnasMovimientos}
+      filas={filas}
+      claveFila={(fila) => fila.clave}
+      vacio={{
+        filtrada: true,
+        titulo: "Sin movimientos",
+        descripcion: `No hay ${unidad}.`,
+      }}
+    />
   );
 }
 
@@ -567,23 +566,25 @@ function PestanaTabla({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="relative w-full max-w-xs">
-        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-        <Input
-          value={busqueda}
-          onChange={(event) => setBusqueda(event.target.value)}
-          placeholder={`Buscar ${unidad}…`}
-          aria-label={`Buscar ${unidad}`}
-          className="pl-8"
-        />
-      </div>
+      <BarraLista className="border-0 px-0">
+        <div className="relative w-full max-w-xs">
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+          <Input
+            value={busqueda}
+            onChange={(event) => setBusqueda(event.target.value)}
+            placeholder={`Buscar ${unidad}…`}
+            aria-label={`Buscar ${unidad}`}
+            className="h-8 pl-8"
+          />
+        </div>
+      </BarraLista>
       <TablaMovimientos filas={visibles} unidad={unidad} />
-      <PiePagina
+      <PaginadorLocal
         total={filtradas.length}
         porPagina={TX_POR_PAGINA}
         pagina={pagina}
         setPagina={setPagina}
-        unidad={unidad}
+        etiqueta={unidad}
       />
     </div>
   );
@@ -668,7 +669,7 @@ function TarjetaPersona({ persona }: { readonly persona: PersonaContacto }) {
         <div className="flex min-w-0 flex-col">
           <p className="flex items-center gap-2 font-medium">
             <span className="truncate">{persona.nombre}</span>
-            {persona.principal ? <Badge className="bg-primary/10 text-primary">Principal</Badge> : null}
+            {persona.principal ? <PillEstado tono="info">Principal</PillEstado> : null}
           </p>
           <p className="text-muted-foreground text-sm">{persona.puesto}</p>
           <p className="text-muted-foreground text-sm">{persona.departamento}</p>
@@ -687,6 +688,42 @@ function TarjetaPersona({ persona }: { readonly persona: PersonaContacto }) {
     </div>
   );
 }
+
+const columnasPersonas: readonly ColumnaLista<PersonaContacto>[] = [
+  {
+    clave: "nombre",
+    encabezado: "Nombre",
+    celda: (persona) => (
+      <span className="flex items-center gap-2.5">
+        <AvatarPersona className="size-7" />
+        <span className="flex flex-col">
+          <span className="font-medium">{persona.nombre}</span>
+          {persona.principal ? <span className="text-muted-foreground text-xs">Contacto principal</span> : null}
+        </span>
+      </span>
+    ),
+  },
+  {
+    clave: "rol",
+    encabezado: "Rol",
+    celda: (persona) => persona.puesto,
+  },
+  {
+    clave: "departamento",
+    encabezado: "Departamento",
+    celda: (persona) => <span className="text-muted-foreground">{persona.departamento}</span>,
+  },
+  {
+    clave: "correo",
+    encabezado: "Correo",
+    celda: (persona) => <span className="text-primary">{persona.correo}</span>,
+  },
+  {
+    clave: "telefono",
+    encabezado: "Teléfono",
+    celda: (persona) => <span className="text-muted-foreground tabular-nums">{persona.telefono}</span>,
+  },
+];
 
 function PestanaContactos({ contacto }: { readonly contacto: DatosFichaContacto["contacto"] }) {
   // TODO backend: cuando exista la tabla de personas, reemplazar PERSONAS_EJEMPLO por los datos reales.
@@ -718,44 +755,21 @@ function PestanaContactos({ contacto }: { readonly contacto: DatosFichaContacto[
 
       <div className="flex flex-col gap-3">
         <h3 className="text-sm font-semibold">Todos los contactos</h3>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className={TH}>Nombre</TableHead>
-              <TableHead className={TH}>Rol</TableHead>
-              <TableHead className={TH}>Departamento</TableHead>
-              <TableHead className={TH}>Correo</TableHead>
-              <TableHead className={TH}>Teléfono</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {visibles.map((persona) => (
-              <TableRow key={`fila-${persona.nombre}-${persona.correo}`}>
-                <TableCell>
-                  <span className="flex items-center gap-2.5">
-                    <AvatarPersona className="size-7" />
-                    <span className="flex flex-col">
-                      <span className="font-medium">{persona.nombre}</span>
-                      {persona.principal ? (
-                        <span className="text-muted-foreground text-xs">Contacto principal</span>
-                      ) : null}
-                    </span>
-                  </span>
-                </TableCell>
-                <TableCell>{persona.puesto}</TableCell>
-                <TableCell className="text-muted-foreground">{persona.departamento}</TableCell>
-                <TableCell className="text-primary">{persona.correo}</TableCell>
-                <TableCell className="text-muted-foreground tabular-nums">{persona.telefono}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <PiePagina
+        <TablaLista
+          columnas={columnasPersonas}
+          filas={visibles}
+          claveFila={(persona) => `${persona.nombre}-${persona.correo}`}
+          vacio={{
+            titulo: "Sin contactos",
+            descripcion: "Todavía no hay personas de contacto.",
+          }}
+        />
+        <PaginadorLocal
           total={personas.length}
           porPagina={PERSONAS_POR_PAGINA}
           pagina={pagina}
           setPagina={setPagina}
-          unidad="contactos"
+          etiqueta="contactos"
         />
       </div>
     </div>
@@ -845,6 +859,34 @@ function TarjetaConteoDoc({
   );
 }
 
+const columnasAdjuntos: readonly ColumnaLista<AdjuntoEjemplo>[] = [
+  {
+    clave: "nombre",
+    encabezado: "Nombre",
+    celda: (adjunto) => <span className="font-medium">{adjunto.nombre}</span>,
+  },
+  {
+    clave: "tipo",
+    encabezado: "Tipo",
+    celda: (adjunto) => <PillEstado tono="neutro">{adjunto.tipo}</PillEstado>,
+  },
+  {
+    clave: "tamano",
+    encabezado: "Tamaño",
+    celda: (adjunto) => <span className="text-muted-foreground">{adjunto.tamano}</span>,
+  },
+  {
+    clave: "subidoPor",
+    encabezado: "Subido por",
+    celda: (adjunto) => adjunto.subidoPor,
+  },
+  {
+    clave: "fecha",
+    encabezado: "Fecha",
+    celda: (adjunto) => <span className="text-muted-foreground">{formatoDia(adjunto.fecha)}</span>,
+  },
+];
+
 function PestanaDocumentos({ datos, filtroDoc }: { readonly datos: DatosFichaContacto; readonly filtroDoc: string }) {
   const adjuntos = ADJUNTOS_EJEMPLO.filter((adjunto) => filtroDoc === "todos" || adjunto.tipo === filtroDoc);
   const { pagina, setPagina } = usePagina(adjuntos.length, DOCS_POR_PAGINA);
@@ -880,56 +922,33 @@ function PestanaDocumentos({ datos, filtroDoc }: { readonly datos: DatosFichaCon
         />
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className={TH}>Nombre</TableHead>
-            <TableHead className={TH}>Tipo</TableHead>
-            <TableHead className={TH}>Tamaño</TableHead>
-            <TableHead className={TH}>Subido por</TableHead>
-            <TableHead className={TH}>Fecha</TableHead>
-            <TableHead className={cn(TH, "text-right")}>Acciones</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {visibles.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
-                No hay archivos adjuntos.
-              </TableCell>
-            </TableRow>
-          ) : (
-            visibles.map((adjunto) => (
-              <TableRow key={adjunto.nombre}>
-                <TableCell className="font-medium">{adjunto.nombre}</TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{adjunto.tipo}</Badge>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{adjunto.tamano}</TableCell>
-                <TableCell>{adjunto.subidoPor}</TableCell>
-                <TableCell className="text-muted-foreground">{formatoDia(adjunto.fecha)}</TableCell>
-                <TableCell>
-                  <span className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon-sm" aria-label={`Ver ${adjunto.nombre}`}>
-                      <Eye />
-                    </Button>
-                    <Button variant="ghost" size="icon-sm" aria-label={`Descargar ${adjunto.nombre}`}>
-                      <Download />
-                    </Button>
-                  </span>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <TablaLista
+        columnas={columnasAdjuntos}
+        filas={visibles}
+        claveFila={(adjunto) => adjunto.nombre}
+        acciones={(adjunto) => (
+          <span className="flex justify-center gap-1">
+            <Button variant="ghost" size="icon-sm" aria-label={`Ver ${adjunto.nombre}`}>
+              <Eye />
+            </Button>
+            <Button variant="ghost" size="icon-sm" aria-label={`Descargar ${adjunto.nombre}`}>
+              <Download />
+            </Button>
+          </span>
+        )}
+        vacio={{
+          filtrada: filtroDoc !== "todos",
+          titulo: "Sin archivos adjuntos",
+          descripcion: "No hay archivos adjuntos.",
+        }}
+      />
 
-      <PiePagina
+      <PaginadorLocal
         total={adjuntos.length}
         porPagina={DOCS_POR_PAGINA}
         pagina={pagina}
         setPagina={setPagina}
-        unidad="documentos"
+        etiqueta="documentos"
       />
     </div>
   );
