@@ -1,30 +1,43 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   construirFormularioDgii,
   extraerCamposOcultos,
   normalizarDocumentoDgii,
   parsearRespuestaDgii,
+  type ResultadoConsultaDgii,
+  type TipoDocumentoDgii,
   validarDocumentoDgii,
 } from "./consulta";
 
 /** Tabla real devuelta por la DGII para el RNC 130893489 (consulta del 17/11/2026). */
-const RESPUESTA_MEDOXIGAS = `
+const RESULTADO_MEDOXIGAS = `
 <div class="table-responsive">
   <div>
     <table class="table table-striped detailview" cellspacing="0" align="Center" rules="all" border="1" id="cphMain_dvDatosContribuyentes" style="border-collapse:collapse;">
-      <tr><td style="font-weight:bold;">C&#233;dula/RNC</td><td>130-89348-9</td></tr>
-      <tr><td style="font-weight:bold;">Nombre/Raz&#243;n Social</td><td>MEDOXIGAS ALC SRL</td></tr>
-      <tr><td style="font-weight:bold;">Nombre Comercial</td><td>&nbsp;</td></tr>
-      <tr><td style="font-weight:bold;">Categor&#237;a</td><td> </td></tr>
-      <tr><td style="font-weight:bold;">R&#233;gimen de pagos</td><td>NORMAL</td></tr>
-      <tr><td style="font-weight:bold;">Estado</td><td>ACTIVO</td></tr>
-      <tr><td style="font-weight:bold;">Actividad Economica</td><td>VENTA AL POR MAYOR DE GASES INDUSTRIALES, METANOL</td></tr>
-      <tr><td style="font-weight:bold;">Administracion Local</td><td>ADM LOCAL VILLA MELLA</td></tr>
-      <tr><td style="font-weight:bold;">Facturador Electr&#243;nico</td><td>SI</td></tr>
+      <tr><td><b>C&#233;dula/RNC</b></td><td>130-89348-9</td></tr>
+      <tr><td><b>Nombre/Raz&#243;n Social</b></td><td>MEDOXIGAS ALC SRL</td></tr>
+      <tr><td><b>Nombre Comercial</b></td><td>&nbsp;</td></tr>
+      <tr><td><b>Categor&#237;a</b></td><td>  </td></tr>
+      <tr><td><b>R&#233;gimen de pagos</b></td><td>NORMAL</td></tr>
+      <tr><td><b>Estado</b></td><td>ACTIVO</td></tr>
+      <tr><td><b>Actividad Economica</b></td><td>VENTA AL POR MAYOR DE GASES INDUSTRIALES, METANOL</td></tr>
+      <tr><td><b>Administracion Local</b></td><td>ADM LOCAL VILLA MELLA</td></tr>
+      <tr><td><b>Facturador Electr&#243;nico</b></td><td>SI</td></tr>
     </table>
   </div>
 </div>`;
+
+/** Tabla real devuelta por la DGII para el RNC 131488791 (consulta del 17/11/2026). */
+const RESULTADO_OXYMAT = `
+<table class="table table-striped detailview" cellspacing="0" align="Center" rules="all" border="1" id="cphMain_dvDatosContribuyentes">
+  <tr><td><b>C&#233;dula/RNC</b></td><td>131-48879-1</td></tr>
+  <tr><td><b>Nombre/Raz&#243;n Social</b></td><td>OXYMAT SRL</td></tr>
+  <tr><td><b>Nombre Comercial</b></td><td>OXYMAT</td></tr>
+  <tr><td><b>Categor&#237;a</b></td><td>  </td></tr>
+  <tr><td><b>R&#233;gimen de pagos</b></td><td>NORMAL</td></tr>
+  <tr><td><b>Estado</b></td><td>ACTIVO</td></tr>
+</table>`;
 
 /** Tabla con ubicación: la DGII todavía no la devuelve, pero el parser debe leerla si aparece. */
 const RESPUESTA_CON_UBICACION = `
@@ -35,6 +48,33 @@ const RESPUESTA_CON_UBICACION = `
   <tr><td>Direcci&#243;n</td><td>Av. 27 de Febrero #123</td></tr>
   <tr><td>Estado</td><td>ACTIVO</td></tr>
 </table>`;
+
+/**
+ * Respuesta real del portal cuando falla: la tabla de resultados viene vacía y
+ * la DGII avisa que su búsqueda no funcionó. No dice que el RNC no exista.
+ */
+const TABLA_VACIA_CON_ERROR = `
+<h5 class="feedback">
+  <span id="cphMain_lblInformacion" class="label text-info label-warning">17/11/2026 11:47 : Ocurrió un error al intentar realizar la búsqueda. Capture esta pantalla y remítala a la Oficina Virtual.</span>
+</h5>
+<div id="cphMain_divBusqueda" name="divBusqueda" class="row consult-search__results" style="display:None;">
+  <table class="table table-striped detailview" cellspacing="0" align="Center" rules="all" border="1" id="cphMain_dvDatosContribuyentes">
+
+  </table>
+</div>`;
+
+/** Tabla vacía sin ningún aviso: tampoco es prueba de que el RNC no exista. */
+const TABLA_VACIA = `
+<table class="table table-striped detailview" cellspacing="0" align="Center" rules="all" border="1" id="cphMain_dvDatosContribuyentes">
+
+</table>`;
+
+/** Aviso real de la DGII para un RNC que no está inscrito (RNC 131488792). */
+const AVISO_NO_INSCRITO = `
+<h5 class="feedback">
+  <span id="cphMain_lblInformacion" class="label text-info label-warning">El RNC/C&#233;dula consultado no se encuentra inscrito como Contribuyente.</span>
+</h5>
+${TABLA_VACIA}`;
 
 const FORMULARIO_DGII = `
 <form method="post" action="./rnc.aspx" id="frmMain">
@@ -57,6 +97,10 @@ describe("validación del RNC y la cédula", () => {
     expect(validarDocumentoDgii("rnc", "13089348")).toEqual({ ok: false, error: "documento_invalido" });
     expect(validarDocumentoDgii("cedula", "130893489")).toEqual({ ok: false, error: "documento_invalido" });
     expect(validarDocumentoDgii("rnc", "")).toEqual({ ok: false, error: "documento_invalido" });
+  });
+
+  test("un RNC con guiones se consulta sin guiones", () => {
+    expect(validarDocumentoDgii("rnc", "131-48879-1")).toEqual({ ok: true, numero: "131488791" });
   });
 });
 
@@ -89,12 +133,24 @@ describe("formulario ASP.NET de la DGII", () => {
 
 describe("parser de la respuesta de la DGII", () => {
   test("lee el nombre real de MEDOXIGAS y decodifica las entidades", () => {
-    const resultado = parsearRespuestaDgii(RESPUESTA_MEDOXIGAS);
-    expect(resultado).toEqual({
+    expect(parsearRespuestaDgii(RESULTADO_MEDOXIGAS)).toEqual({
       estado: "encontrado",
       datos: {
         nombre: "MEDOXIGAS ALC SRL",
         nombreComercial: null,
+        municipioProvincia: null,
+        direccion: null,
+        estado: "ACTIVO",
+      },
+    });
+  });
+
+  test("lee el nombre y el nombre comercial reales de OXYMAT", () => {
+    expect(parsearRespuestaDgii(RESULTADO_OXYMAT)).toEqual({
+      estado: "encontrado",
+      datos: {
+        nombre: "OXYMAT SRL",
+        nombreComercial: "OXYMAT",
         municipioProvincia: null,
         direccion: null,
         estado: "ACTIVO",
@@ -122,20 +178,167 @@ describe("parser de la respuesta de la DGII", () => {
     expect(resultado.datos.nombre).toBe("Colmado La Esquina");
   });
 
-  test("un RNC no inscrito se reporta como no encontrado", () => {
-    expect(
-      parsearRespuestaDgii(
-        '<span id="cphMain_lblMensaje">El RNC/Cédula consultado no se encuentra inscrito como Contribuyente.</span>',
-      ),
-    ).toEqual({ estado: "no_encontrado" });
-    expect(parsearRespuestaDgii('<table id="cphMain_dvDatosContribuyentes"> </table>')).toEqual({
-      estado: "no_encontrado",
+  test("los datos ganan aunque la página traiga el texto de no inscrito escondido", () => {
+    const pagina = `${RESULTADO_OXYMAT}<span id="cphMain_lblInformacion">El RNC consultado no se encuentra inscrito</span>`;
+    expect(parsearRespuestaDgii(pagina)).toEqual({
+      estado: "encontrado",
+      datos: {
+        nombre: "OXYMAT SRL",
+        nombreComercial: "OXYMAT",
+        municipioProvincia: null,
+        direccion: null,
+        estado: "ACTIVO",
+      },
     });
+  });
+
+  test("solo el aviso explícito de la DGII es un no encontrado", () => {
+    expect(parsearRespuestaDgii(AVISO_NO_INSCRITO)).toEqual({ estado: "no_encontrado" });
+  });
+
+  test("una tabla vacía no es un no encontrado", () => {
+    expect(parsearRespuestaDgii(TABLA_VACIA)).toEqual({ estado: "tabla_vacia" });
+  });
+
+  test("el error del portal no es un no encontrado y conserva el aviso", () => {
+    const resultado = parsearRespuestaDgii(TABLA_VACIA_CON_ERROR);
+    expect(resultado.estado).toBe("portal_error");
+    if (resultado.estado !== "portal_error") return;
+    expect(resultado.mensaje).toContain("Ocurrió un error al intentar realizar la búsqueda");
   });
 
   test("una página sin la tabla de resultados no se confunde con un contribuyente", () => {
     expect(parsearRespuestaDgii("<html><body>Acceso Denegado - Error 403</body></html>")).toEqual({
       estado: "sin_respuesta",
     });
+  });
+});
+
+/** Respuesta del portal: la página del formulario, el HTML de la consulta o un status HTTP. */
+type RespuestaPortal = string | { html: string; status: number };
+
+/**
+ * Simula el portal de la DGII: cada POST consume la siguiente respuesta de la
+ * lista (la última se repite) y cada GET devuelve el formulario con su cookie.
+ */
+function simularPortal(respuestas: RespuestaPortal[], formulario: RespuestaPortal = FORMULARIO_DGII) {
+  const llamadas: ("GET" | "POST")[] = [];
+  let posts = 0;
+
+  const falso = async (_entrada: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const metodo = (init?.method ?? "GET").toUpperCase() === "POST" ? "POST" : "GET";
+    llamadas.push(metodo);
+    if (metodo === "GET") {
+      const { html, status } = typeof formulario === "string" ? { html: formulario, status: 200 } : formulario;
+      return new Response(html, {
+        status,
+        headers: { "content-type": "text/html", "set-cookie": "sesion=dgii; path=/" },
+      });
+    }
+
+    posts += 1;
+    const elegida = respuestas[Math.min(posts - 1, respuestas.length - 1)] ?? "";
+    const { html, status } = typeof elegida === "string" ? { html: elegida, status: 200 } : elegida;
+    return new Response(html, { status, headers: { "content-type": "text/html" } });
+  };
+
+  vi.stubGlobal("fetch", falso);
+  return { llamadas, posts: () => posts };
+}
+
+/** Importa el módulo con la caché y el bloqueo de 403 en blanco (cada caso es independiente). */
+async function moduloNuevo() {
+  vi.resetModules();
+  return await import("./consulta");
+}
+
+const OXYMAT: ResultadoConsultaDgii = {
+  ok: true,
+  datos: {
+    nombre: "OXYMAT SRL",
+    nombreComercial: "OXYMAT",
+    municipioProvincia: null,
+    direccion: null,
+    estado: "ACTIVO",
+  },
+};
+
+async function consultar(tipo: TipoDocumentoDgii, numero: string): Promise<ResultadoConsultaDgii> {
+  const { consultarDgii } = await moduloNuevo();
+  return await consultarDgii(tipo, numero);
+}
+
+describe("consulta completa a la DGII", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  test("una tabla vacía se reintenta con sesión nueva y devuelve el contribuyente", async () => {
+    const portal = simularPortal([TABLA_VACIA_CON_ERROR, RESULTADO_OXYMAT]);
+
+    await expect(consultar("rnc", "131488791")).resolves.toEqual(OXYMAT);
+    expect(portal.llamadas).toEqual(["GET", "POST", "GET", "POST"]);
+  });
+
+  test("un no inscrito aislado no se da por bueno: se confirma en otra sesión", async () => {
+    const portal = simularPortal([AVISO_NO_INSCRITO, RESULTADO_OXYMAT]);
+
+    await expect(consultar("rnc", "131488791")).resolves.toEqual(OXYMAT);
+    expect(portal.posts()).toBe(2);
+  });
+
+  test("dos no inscritos seguidos sí son un no encontrado y se cachean", async () => {
+    const portal = simularPortal([AVISO_NO_INSCRITO]);
+    const { consultarDgii } = await moduloNuevo();
+
+    await expect(consultarDgii("rnc", "131488792")).resolves.toEqual({ ok: false, error: "no_encontrado" });
+    expect(portal.posts()).toBe(2);
+
+    // Cacheado: la segunda búsqueda no vuelve a salir a la red.
+    await expect(consultarDgii("rnc", "131488792")).resolves.toEqual({ ok: false, error: "no_encontrado" });
+    expect(portal.posts()).toBe(2);
+  });
+
+  test("un fallo del portal no se reporta como no encontrado ni se cachea", async () => {
+    const portal = simularPortal([TABLA_VACIA_CON_ERROR]);
+    const { consultarDgii } = await moduloNuevo();
+
+    await expect(consultarDgii("rnc", "131488791")).resolves.toEqual({ ok: false, error: "sin_datos" });
+    expect(portal.posts()).toBe(3);
+
+    // Sin caché: el siguiente intento vuelve a consultar el portal.
+    await expect(consultarDgii("rnc", "131488791")).resolves.toEqual({ ok: false, error: "sin_datos" });
+    expect(portal.posts()).toBe(6);
+  });
+
+  test("un acierto se cachea y no se repite", async () => {
+    const portal = simularPortal([RESULTADO_OXYMAT]);
+    const { consultarDgii } = await moduloNuevo();
+
+    await expect(consultarDgii("rnc", "131488791")).resolves.toEqual(OXYMAT);
+    await expect(consultarDgii("rnc", "131488791")).resolves.toEqual(OXYMAT);
+    expect(portal.posts()).toBe(1);
+  });
+
+  test("un 403 bloquea las consultas por unos minutos", async () => {
+    const portal = simularPortal([RESULTADO_OXYMAT], { html: "<html>Acceso denegado</html>", status: 403 });
+    const { consultarDgii } = await moduloNuevo();
+
+    await expect(consultarDgii("rnc", "131488791")).resolves.toEqual({ ok: false, error: "bloqueado" });
+    const llamadasTrasElBloqueo = portal.llamadas.length;
+
+    await expect(consultarDgii("rnc", "130893489")).resolves.toEqual({ ok: false, error: "bloqueado" });
+    expect(portal.llamadas).toHaveLength(llamadasTrasElBloqueo);
+  });
+
+  test("un error de red se reporta como red y no se cachea", async () => {
+    vi.stubGlobal("fetch", async () => {
+      throw new Error("sin conexión");
+    });
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    await expect(consultar("rnc", "131488791")).resolves.toEqual({ ok: false, error: "red" });
   });
 });

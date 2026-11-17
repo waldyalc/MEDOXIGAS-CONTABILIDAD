@@ -14,6 +14,15 @@ const MENSAJE_NO_ENCONTRADO: Record<TipoDocumentoDgii, string> = {
   cedula: "No se encontró esa cédula en la DGII.",
 };
 
+const MENSAJE_SIN_DATOS: Record<TipoDocumentoDgii, string> = {
+  rnc: "La DGII no devolvió los datos de ese RNC: su portal falló en la consulta. Espera un momento y vuelve a intentar, o escríbelo a mano.",
+  cedula:
+    "La DGII no devolvió los datos de esa cédula: su portal falló en la consulta. Espera un momento y vuelve a intentar, o escríbela a mano.",
+};
+
+const MENSAJE_BLOQUEADO =
+  "La DGII está bloqueando las consultas en este momento. Escribe el nombre a mano y vuelve a intentar en unos minutos.";
+
 function esTipoValido(tipo: string): tipo is TipoDocumentoDgii {
   return tipo === "rnc" || tipo === "cedula";
 }
@@ -38,8 +47,11 @@ export async function buscarContribuyenteDgii(numero: string, tipo: string): Pro
 
   if (resultado.error === "documento_invalido") return { ok: false, error: MENSAJE_INVALIDO[tipo] };
   if (resultado.error === "no_encontrado") return { ok: false, error: MENSAJE_NO_ENCONTRADO[tipo] };
+  // La DGII falló: nunca se dice que el RNC no existe.
+  if (resultado.error === "sin_datos") return { ok: false, error: MENSAJE_SIN_DATOS[tipo] };
   if (resultado.error === "sin_respuesta") {
     return { ok: false, error: "La DGII no respondió a tiempo. Intenta de nuevo o escríbelo a mano." };
   }
+  if (resultado.error === "bloqueado") return { ok: false, error: MENSAJE_BLOQUEADO };
   return { ok: false, error: "No se pudo consultar la DGII. Intenta de nuevo o escríbelo a mano." };
 }
