@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { getCentrosCostoActivos } from "@/lib/centros-costo/consultas";
 import { crearCotizacion } from "@/lib/cotizaciones/acciones";
-import { getDocumentoVista } from "@/lib/cotizaciones/consultas";
+import { getDocumentoVista, getProximoNumero } from "@/lib/cotizaciones/consultas";
 import { getContactosClientes, getEmpresa, getProductosActivos } from "@/lib/facturacion/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
 import { getImpuestosActivos } from "@/lib/impuestos/consultas";
@@ -45,16 +45,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
 }
 
 async function CotizacionContenido({ clonar }: { clonar?: string }) {
-  const [empresa, contactos, productos, vendedores, centrosCosto, plantilla, vista, impuestos] = await Promise.all([
-    getEmpresa(),
-    getContactosClientes(),
-    getProductosActivos(),
-    getVendedoresActivos(),
-    getCentrosCostoActivos(),
-    getPlantillaImpresion("cotizacion"),
-    clonar ? getDocumentoVista("cotizacion", clonar) : Promise.resolve(null),
-    getImpuestosActivos(),
-  ]);
+  const [empresa, contactos, productos, vendedores, centrosCosto, plantilla, vista, impuestos, vistaNumero] =
+    await Promise.all([
+      getEmpresa(),
+      getContactosClientes(),
+      getProductosActivos(),
+      getVendedoresActivos(),
+      getCentrosCostoActivos(),
+      getPlantillaImpresion("cotizacion"),
+      clonar ? getDocumentoVista("cotizacion", clonar) : Promise.resolve(null),
+      getImpuestosActivos(),
+      getProximoNumero("cotizacion"),
+    ]);
 
   const hoy = hoyRD();
   const contactosFormulario = vista ? conContactoActual(contactos, vista.contacto) : contactos;
@@ -73,6 +75,7 @@ async function CotizacionContenido({ clonar }: { clonar?: string }) {
       fechaHoy={hoy}
       titulo="Información de la cotización"
       etiquetaNumero="Cotización No."
+      vistaNumero={vistaNumero}
       conTerminos
       textoGuardar="Guardar cotización"
       rutaCancelar="/dashboard/cotizaciones"

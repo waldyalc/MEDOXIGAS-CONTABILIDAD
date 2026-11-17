@@ -1,5 +1,14 @@
 # Handoff — Medoxigas Contabilidad
 
+## Número de cotización y conduce antes de guardar (17 nov 2026)
+
+- Rama `feat/documentos-numero-preview-orq` (desde `prueba` 9ad5813). En el formulario compartido de documentos de venta, **Nueva cotización** y **Nuevo conduce** muestran el próximo número en la misma caja compacta de 215 × 56 px del NCF, read-only y sin engranaje. El número ya no dice «Se asigna al guardar». Factura, cotización y conduce comparten el cambio.
+- **De dónde sale:** `previsualizarNumero` (`src/lib/cotizaciones/numero.ts`) replica la regla de `_crear_documento_no_contable` (`20261113230000_cotizaciones_remisiones.sql`): `cotizaciones.numero` y `remisiones.numero` son `int` con `default nextval('…_numero_seq')`. La secuencia no es legible por `authenticated`, así que `getProximoNumero(tipo)` lee `max(numero)` y suma uno. No escribe, no llama a `nextval` y no consume la secuencia. Si la consulta falla, la caja muestra `—` y el motivo. Si otro usuario guarda antes, el número definitivo es el que asigna la secuencia al guardar (misma salvedad que la preview del NCF).
+- Aplica en `cotizaciones/nueva`, `conduces/nueva` y también al clonar o partir de una cotización; las pantallas de edición siguen mostrando el número real (`numeroActual`).
+- **NCF automático:** la caja de 215 × 56 px de factura perdió el borde (`border`, `border-slate-300` y `border-destructive`); conserva el texto NCF + número y el engranaje fuera. El borde condicional del NCF manual queda para el otro agente, como pedía el brief.
+- Candado nuevo `src/lib/cotizaciones/numero.test.ts` (4 pruebas): empieza en 1 sin documentos, último + 1, no consume ni modifica y avisa al llegar al máximo de `int`.
+- Verificado: `pnpm typecheck`, Biome de los 6 archivos tocados, `pnpm test` (**792**, 4 nuevas) y `pnpm check` (exit 0; solo avisos e infos preexistentes). Sin build ni dev server, sin migraciones, sin tocar `components/ui`, sin push ni merge.
+
 ## Validación visual de formularios: campo rojo, mensaje y toast (17 nov 2026)
 
 - Rama `feat/validacion-formularios-orq` (desde `prueba` 38d7473). Antes de guardar, cada formulario revisa sus campos obligatorios: pinta la etiqueta y el control en rojo, muestra el mensaje debajo («El cliente es requerido.»), lanza el toast «Revise los campos obligatorios / Asegúrese de completar todos los campos marcados en rojo.» y enfoca/desplaza al primer campo inválido. Los formularios usan `noValidate` para que el navegador no bloquee el submit con su globo nativo.
