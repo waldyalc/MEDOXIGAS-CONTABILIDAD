@@ -37,22 +37,9 @@ export function FacturasTabla({
 
   const columnas: readonly ColumnaLista<FacturaFila>[] = [
     {
-      clave: "numero",
-      encabezado: "#",
-      className: "w-16",
-      celda: (factura) => <Enlace href={rutaFactura(factura.id)}>{factura.numero}</Enlace>,
-    },
-    {
       clave: "ncf",
-      encabezado: "NCF",
-      celda: (factura) =>
-        factura.ncf ? (
-          <Enlace href={rutaFactura(factura.id)}>
-            <span className="font-mono text-xs">{factura.ncf}</span>
-          </Enlace>
-        ) : (
-          "—"
-        ),
+      encabezado: "Número de factura",
+      celda: (factura) => (factura.ncf ? <Enlace href={rutaFactura(factura.id)}>{factura.ncf}</Enlace> : "—"),
     },
     {
       clave: "tipo",

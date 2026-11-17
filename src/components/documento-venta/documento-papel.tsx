@@ -190,7 +190,7 @@ function EncabezadoFactura({ datos }: { datos: DatosPapel }) {
 
       <div className="shrink-0 text-right">
         <p className="font-semibold">{datos.titulo}</p>
-        <p className="my-[2pt] text-[14pt] leading-[16pt] font-semibold">NCF {datos.ncf ?? "—"}</p>
+        <p className="my-[2pt] text-[14pt] leading-[16pt] font-semibold">No. NCF {datos.ncf ?? "—"}</p>
         {datos.ncfVence?.trim() ? (
           <p>
             <span className="font-semibold">Vencimiento NCF:</span> {formatoDia(datos.ncfVence)}

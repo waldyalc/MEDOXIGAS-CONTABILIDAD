@@ -469,6 +469,56 @@ function coincidenTexto(fila: FilaUnificada, texto: string): boolean {
   );
 }
 
+function IdentificadorMovimiento({ fila, numero }: { readonly fila: FilaUnificada; readonly numero: string }) {
+  if (fila.tipo === "factura") {
+    return fila.ncf ? (
+      <span className="text-primary font-medium">{fila.ncf}</span>
+    ) : (
+      <span className="text-muted-foreground">—</span>
+    );
+  }
+
+  return (
+    <>
+      <span className="text-primary font-medium">{numero}</span>
+      {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
+    </>
+  );
+}
+
+function FilaMovimiento({ fila }: { readonly fila: FilaUnificada }) {
+  const esFacturaVenta = fila.tipo === "factura";
+  const numero = `${fila.prefijo}-${String(fila.numero).padStart(4, "0")}`;
+  let ariaLabel = `Ver ${fila.detalle} ${numero}`;
+  if (esFacturaVenta) ariaLabel = fila.ncf ? `Ver factura ${fila.ncf}` : "Ver factura de venta";
+
+  return (
+    <TableRow className="relative cursor-pointer">
+      <TableCell>
+        <Enlace className="absolute inset-0" href={fila.href} aria-label={ariaLabel} />
+        <span className="pointer-events-none relative flex flex-col">
+          <IdentificadorMovimiento fila={fila} numero={numero} />
+        </span>
+      </TableCell>
+      <TableCell className="text-muted-foreground">{formatoDia(fila.fecha)}</TableCell>
+      <TableCell>
+        <TipoBadge tipo={fila.tipo} />
+      </TableCell>
+      <TableCell className="whitespace-normal">{fila.detalle}</TableCell>
+      <TableCell className="text-right font-medium tabular-nums">
+        {fila.direccion === "abono" ? (
+          <span className="text-emerald-600 dark:text-emerald-400">-{formatoMonedaCentavos(fila.montoCentavos)}</span>
+        ) : (
+          formatoMonedaCentavos(fila.montoCentavos)
+        )}
+      </TableCell>
+      <TableCell>
+        <EstadoBadge estado={fila.estado} clase={CLASE_ESTADO_FILA[fila.tipo]} />
+      </TableCell>
+    </TableRow>
+  );
+}
+
 function TablaMovimientos({ filas, unidad }: { readonly filas: readonly FilaUnificada[]; readonly unidad: string }) {
   return (
     <Table>
@@ -490,40 +540,7 @@ function TablaMovimientos({ filas, unidad }: { readonly filas: readonly FilaUnif
             </TableCell>
           </TableRow>
         ) : (
-          filas.map((fila) => (
-            <TableRow key={fila.clave} className="relative cursor-pointer">
-              <TableCell>
-                <Enlace
-                  className="absolute inset-0"
-                  href={fila.href}
-                  aria-label={`Ver ${fila.detalle} ${fila.prefijo}-${fila.numero}`}
-                />
-                <span className="pointer-events-none relative flex flex-col">
-                  <span className="text-primary font-medium">
-                    {fila.prefijo}-{String(fila.numero).padStart(4, "0")}
-                  </span>
-                  {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
-                </span>
-              </TableCell>
-              <TableCell className="text-muted-foreground">{formatoDia(fila.fecha)}</TableCell>
-              <TableCell>
-                <TipoBadge tipo={fila.tipo} />
-              </TableCell>
-              <TableCell className="whitespace-normal">{fila.detalle}</TableCell>
-              <TableCell className="text-right font-medium tabular-nums">
-                {fila.direccion === "abono" ? (
-                  <span className="text-emerald-600 dark:text-emerald-400">
-                    -{formatoMonedaCentavos(fila.montoCentavos)}
-                  </span>
-                ) : (
-                  formatoMonedaCentavos(fila.montoCentavos)
-                )}
-              </TableCell>
-              <TableCell>
-                <EstadoBadge estado={fila.estado} clase={CLASE_ESTADO_FILA[fila.tipo]} />
-              </TableCell>
-            </TableRow>
-          ))
+          filas.map((fila) => <FilaMovimiento key={fila.clave} fila={fila} />)
         )}
       </TableBody>
     </Table>

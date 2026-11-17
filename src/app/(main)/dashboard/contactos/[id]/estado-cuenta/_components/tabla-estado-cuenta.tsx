@@ -39,9 +39,8 @@ export function TablaEstadoCuenta({
           filas.map((fila) => (
             <TableRow key={fila.id}>
               <TableCell className="font-medium">
-                <Enlace href={rutaFactura(fila.id)} className="flex flex-col">
-                  <span>#{fila.numero}</span>
-                  <span className="text-muted-foreground font-mono text-xs">{fila.ncf ?? "—"}</span>
+                <Enlace href={rutaFactura(fila.id)} aria-label={fila.ncf ? `Ver factura ${fila.ncf}` : "Ver factura"}>
+                  {fila.ncf ?? "—"}
                 </Enlace>
               </TableCell>
               <TableCell>{formatoDia(fila.fecha)}</TableCell>

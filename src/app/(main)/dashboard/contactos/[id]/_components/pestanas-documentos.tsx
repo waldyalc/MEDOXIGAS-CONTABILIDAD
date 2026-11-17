@@ -54,23 +54,54 @@ interface Fila {
   readonly ncf?: string | null;
 }
 
+function IdentificadorFicha({
+  fila,
+  numero,
+  ncfPrincipal,
+}: {
+  readonly fila: Fila;
+  readonly numero: string;
+  readonly ncfPrincipal: boolean;
+}) {
+  if (ncfPrincipal) {
+    return fila.ncf ? (
+      <span className="text-primary font-medium">{fila.ncf}</span>
+    ) : (
+      <span className="text-muted-foreground">—</span>
+    );
+  }
+
+  return (
+    <>
+      <span className="text-primary font-medium">{numero}</span>
+      {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
+    </>
+  );
+}
+
+function etiquetaEnlace(numero: string, ncfPrincipal: boolean, ncf?: string | null): string {
+  if (!ncfPrincipal) return `Ver ${numero}`;
+  return ncf ? `Ver factura ${ncf}` : "Ver factura de venta";
+}
+
 function NumeroEnlace({
   href,
   prefijo,
   fila,
+  ncfPrincipal = false,
 }: {
   readonly href: string;
   readonly prefijo: string;
   readonly fila: Fila;
+  readonly ncfPrincipal?: boolean;
 }) {
+  const numero = `${prefijo}-${String(fila.numero).padStart(4, "0")}`;
+
   return (
     <>
-      <Enlace className="absolute inset-0" href={href} aria-label={`Ver ${prefijo}-${fila.numero}`} />
+      <Enlace className="absolute inset-0" href={href} aria-label={etiquetaEnlace(numero, ncfPrincipal, fila.ncf)} />
       <span className="pointer-events-none relative flex flex-col">
-        <span className="text-primary font-medium">
-          {prefijo}-{String(fila.numero).padStart(4, "0")}
-        </span>
-        {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
+        <IdentificadorFicha fila={fila} numero={numero} ncfPrincipal={ncfPrincipal} />
       </span>
     </>
   );
@@ -90,12 +121,14 @@ function TablaFicha<T extends Fila>({
   unidad,
   prefijo,
   ruta,
+  ncfPrincipal = false,
 }: {
   readonly filas: readonly T[];
   readonly columnas: readonly Columna<T>[];
   readonly unidad: string;
   readonly prefijo: (fila: T) => string;
   readonly ruta: (fila: T) => string;
+  readonly ncfPrincipal?: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const texto = busqueda.trim().toLowerCase();
@@ -143,7 +176,7 @@ function TablaFicha<T extends Fila>({
             visibles.map((fila) => (
               <TableRow key={fila.id} className="relative cursor-pointer">
                 <TableCell>
-                  <NumeroEnlace href={ruta(fila)} prefijo={prefijo(fila)} fila={fila} />
+                  <NumeroEnlace href={ruta(fila)} prefijo={prefijo(fila)} fila={fila} ncfPrincipal={ncfPrincipal} />
                 </TableCell>
                 {columnas.map((columna) => (
                   <TableCell key={columna.titulo} className={cn(columna.derecha && "text-right")}>
@@ -194,6 +227,7 @@ export function PestanaFacturas({
       unidad={esVenta ? "facturas de venta" : "facturas de proveedor"}
       prefijo={() => (esVenta ? "FAC" : "COM")}
       ruta={(f) => ruta(f.id)}
+      ncfPrincipal={esVenta}
     />
   );
 }
