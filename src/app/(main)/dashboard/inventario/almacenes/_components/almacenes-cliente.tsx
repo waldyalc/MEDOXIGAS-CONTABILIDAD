@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Pencil, Plus } from "lucide-react";
 
 import { FORM_INPUT, FormField } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { requerido } from "@/lib/formularios/validacion";
 import { actualizarAlmacen, crearAlmacen } from "@/lib/inventario/acciones";
 import type { Almacen } from "@/lib/inventario/tipos";
 
@@ -26,6 +28,7 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
   const [activo, setActivo] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
 
   const esPrincipal = editando?.es_principal ?? false;
 
@@ -34,6 +37,7 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
     setNombre("");
     setActivo(true);
     setError(null);
+    validacion.limpiarTodo();
     setAbierto(true);
   }
 
@@ -42,6 +46,7 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
     setNombre(almacen.nombre);
     setActivo(almacen.activo);
     setError(null);
+    validacion.limpiarTodo();
     setAbierto(true);
   }
 
@@ -50,12 +55,15 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
     if (!abrir) {
       setEditando(null);
       setError(null);
+      validacion.limpiarTodo();
     }
   }
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setError(null);
+
+    if (!validacion.validar([requerido("almacen-nombre", nombre, "El nombre es requerido.")])) return;
 
     const entrada = {
       nombre: nombre.trim(),
@@ -149,12 +157,15 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
           <DialogHeader>
             <DialogTitle>{editando ? "Editar almacén" : "Nuevo almacén"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={enviar} className="flex flex-col gap-4">
-            <FormField htmlFor="almacen-nombre" label="Nombre" required>
+          <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
+            <FormField htmlFor="almacen-nombre" label="Nombre" required error={validacion.errorDe("almacen-nombre")}>
               <Input
                 id="almacen-nombre"
                 value={nombre}
-                onChange={(evento) => setNombre(evento.target.value)}
+                onChange={(evento) => {
+                  setNombre(evento.target.value);
+                  validacion.limpiar("almacen-nombre");
+                }}
                 maxLength={120}
                 required
                 disabled={pendiente}

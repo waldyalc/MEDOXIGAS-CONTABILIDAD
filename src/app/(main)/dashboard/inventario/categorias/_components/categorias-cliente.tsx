@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Pencil, Plus } from "lucide-react";
 
 import { FORM_INPUT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { requerido } from "@/lib/formularios/validacion";
 import { actualizarCategoria, crearCategoria } from "@/lib/inventario/acciones";
 import type { CategoriaProducto } from "@/lib/inventario/tipos";
 
@@ -34,6 +36,7 @@ export function CategoriasCliente({
   const [activo, setActivo] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
 
   function abrirNueva() {
     setEditando(null);
@@ -41,6 +44,7 @@ export function CategoriasCliente({
     setDescripcion("");
     setActivo(true);
     setError(null);
+    validacion.limpiarTodo();
     setAbierto(true);
   }
 
@@ -50,6 +54,7 @@ export function CategoriasCliente({
     setDescripcion(categoria.descripcion ?? "");
     setActivo(categoria.activo);
     setError(null);
+    validacion.limpiarTodo();
     setAbierto(true);
   }
 
@@ -58,12 +63,15 @@ export function CategoriasCliente({
     if (!abrir) {
       setEditando(null);
       setError(null);
+      validacion.limpiarTodo();
     }
   }
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setError(null);
+
+    if (!validacion.validar([requerido("categoria-nombre", nombre, "El nombre es requerido.")])) return;
 
     const entrada = {
       nombre: nombre.trim(),
@@ -158,12 +166,20 @@ export function CategoriasCliente({
           <DialogHeader>
             <DialogTitle>{editando ? "Editar categoría" : "Nueva categoría"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={enviar} className="flex flex-col gap-4">
-            <FormField htmlFor="categoria-nombre" label="Nombre" required>
+          <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
+            <FormField
+              htmlFor="categoria-nombre"
+              label="Nombre"
+              required
+              error={validacion.errorDe("categoria-nombre")}
+            >
               <Input
                 id="categoria-nombre"
                 value={nombre}
-                onChange={(evento) => setNombre(evento.target.value)}
+                onChange={(evento) => {
+                  setNombre(evento.target.value);
+                  validacion.limpiar("categoria-nombre");
+                }}
                 maxLength={120}
                 required
                 disabled={pendiente}

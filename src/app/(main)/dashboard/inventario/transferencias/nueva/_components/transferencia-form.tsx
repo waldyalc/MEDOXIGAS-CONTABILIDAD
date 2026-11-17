@@ -19,6 +19,7 @@ import {
   FormField,
   FormSectionTitle,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { parsearCantidad } from "@/lib/facturacion/calculo";
+import { requerido } from "@/lib/formularios/validacion";
 import { crearTransferencia } from "@/lib/inventario/acciones";
 import type { Almacen, ProductoInventario } from "@/lib/inventario/tipos";
 import { transferenciaSchema } from "@/lib/inventario/validacion";
@@ -60,6 +62,7 @@ export function TransferenciaForm({
   const [observaciones, setObservaciones] = useState("");
   const [lineas, setLineas] = useState<LineaFormulario[]>([{ clave: 0, productoId: "", cantidad: "1" }]);
   const [error, setError] = useState<string | null>(null);
+  const validacion = useValidacionFormulario();
 
   const almacenesItems = almacenes.map((almacen) => ({
     value: almacen.id,
@@ -98,14 +101,38 @@ export function TransferenciaForm({
       })),
     };
 
-    const validacion = transferenciaSchema.safeParse(entrada);
-    if (!validacion.success) {
-      setError(validacion.error.issues[0]?.message ?? "Revisa los datos de la transferencia.");
+    const reglas = [
+      requerido("origen", origenId, "El almacén de origen es requerido."),
+      requerido("destino", destinoId, "El almacén de destino es requerido."),
+      requerido("fecha", fecha, "La fecha es requerida."),
+      ...lineas.flatMap((linea) => {
+        const cantidad = parsearCantidad(linea.cantidad);
+        return [
+          requerido(`transferencia-producto-${linea.clave}`, linea.productoId, "Seleccione un producto."),
+          {
+            campo: `transferencia-cantidad-${linea.clave}`,
+            invalido: !Number.isFinite(cantidad) || cantidad <= 0,
+            mensaje: "La cantidad debe ser mayor que cero.",
+          },
+        ];
+      }),
+      {
+        campo: "destino",
+        invalido: origenId !== "" && origenId === destinoId,
+        mensaje: "El almacén de destino debe ser distinto al de origen.",
+      },
+    ];
+
+    if (!validacion.validar(reglas)) return;
+
+    const resultadoValidacion = transferenciaSchema.safeParse(entrada);
+    if (!resultadoValidacion.success) {
+      setError(resultadoValidacion.error.issues[0]?.message ?? "Revisa los datos de la transferencia.");
       return;
     }
 
     iniciar(async () => {
-      const resultado = await crearTransferencia(validacion.data);
+      const resultado = await crearTransferencia(resultadoValidacion.data);
 
       if (!resultado.ok) {
         setError(resultado.error);
@@ -118,6 +145,7 @@ export function TransferenciaForm({
 
   return (
     <form
+      noValidate
       onSubmit={(evento) => {
         evento.preventDefault();
         guardar();
@@ -128,11 +156,14 @@ export function TransferenciaForm({
         <section>
           <FormSectionTitle className="mb-4">Datos de la transferencia</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="origen" label="Almacén de origen" required>
+            <FormField htmlFor="origen" label="Almacén de origen" required error={validacion.errorDe("origen")}>
               <Select
                 items={almacenesItems}
                 value={origenId}
-                onValueChange={(valor: string | null) => setOrigenId(valor ?? "")}
+                onValueChange={(valor: string | null) => {
+                  setOrigenId(valor ?? "");
+                  validacion.limpiar("origen");
+                }}
               >
                 <SelectTrigger id="origen" className={FORM_SELECT}>
                   <SelectValue />
@@ -146,11 +177,14 @@ export function TransferenciaForm({
                 </SelectContent>
               </Select>
             </FormField>
-            <FormField htmlFor="destino" label="Almacén de destino" required>
+            <FormField htmlFor="destino" label="Almacén de destino" required error={validacion.errorDe("destino")}>
               <Select
                 items={almacenesItems}
                 value={destinoId}
-                onValueChange={(valor: string | null) => setDestinoId(valor ?? "")}
+                onValueChange={(valor: string | null) => {
+                  setDestinoId(valor ?? "");
+                  validacion.limpiar("destino");
+                }}
               >
                 <SelectTrigger id="destino" className={FORM_SELECT}>
                   <SelectValue />
@@ -164,8 +198,15 @@ export function TransferenciaForm({
                 </SelectContent>
               </Select>
             </FormField>
-            <FormField htmlFor="fecha" label="Fecha" required>
-              <DatePicker id="fecha" value={fecha} onChange={setFecha} />
+            <FormField htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
+              <DatePicker
+                id="fecha"
+                value={fecha}
+                onChange={(valor) => {
+                  setFecha(valor);
+                  validacion.limpiar("fecha");
+                }}
+              />
             </FormField>
             <FormField htmlFor="observaciones" label="Observaciones">
               <Textarea
@@ -213,8 +254,10 @@ export function TransferenciaForm({
                         }
                       >
                         <SelectTrigger
+                          id={`transferencia-producto-${linea.clave}`}
                           className={FORM_SELECT}
                           aria-label={`Producto de la línea ${indice + 1}`}
+                          aria-invalid={Boolean(validacion.errorDe(`transferencia-producto-${linea.clave}`))}
                           disabled={pendiente}
                         >
                           <SelectValue placeholder="Selecciona un producto…" />
@@ -227,16 +270,31 @@ export function TransferenciaForm({
                           ))}
                         </SelectContent>
                       </Select>
+                      {validacion.errorDe(`transferencia-producto-${linea.clave}`) ? (
+                        <p role="alert" className="text-destructive mt-1 text-xs">
+                          {validacion.errorDe(`transferencia-producto-${linea.clave}`)}
+                        </p>
+                      ) : null}
                     </TableCell>
                     <TableCell>
                       <Input
+                        id={`transferencia-cantidad-${linea.clave}`}
                         inputMode="decimal"
                         className={`${FORM_INPUT} text-right`}
                         value={linea.cantidad}
-                        onChange={(evento) => actualizarLinea(linea.clave, { cantidad: evento.target.value })}
+                        onChange={(evento) => {
+                          actualizarLinea(linea.clave, { cantidad: evento.target.value });
+                          validacion.limpiar(`transferencia-cantidad-${linea.clave}`);
+                        }}
                         aria-label={`Cantidad de la línea ${indice + 1}`}
+                        aria-invalid={Boolean(validacion.errorDe(`transferencia-cantidad-${linea.clave}`))}
                         disabled={pendiente}
                       />
+                      {validacion.errorDe(`transferencia-cantidad-${linea.clave}`) ? (
+                        <p role="alert" className="text-destructive mt-1 text-xs">
+                          {validacion.errorDe(`transferencia-cantidad-${linea.clave}`)}
+                        </p>
+                      ) : null}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
