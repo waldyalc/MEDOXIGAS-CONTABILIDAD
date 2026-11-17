@@ -27,6 +27,10 @@ function producto(parcial: Partial<Producto> & Pick<Producto, "id" | "nombre">):
     categoria_id: null,
     precios: [],
     activo: true,
+    unidad_medida: "Unidad",
+    almacen_id: null,
+    vende_negativo: false,
+    imagen_path: null,
     ...parcial,
   };
 }

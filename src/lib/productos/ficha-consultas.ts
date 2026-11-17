@@ -15,7 +15,9 @@ import {
   resolverCuentasFicha,
   sumarCantidades,
 } from "./ficha";
+import { urlFirmadaImagenProducto } from "./imagen";
 import { construirKardex, type MovimientoKardex } from "./kardex";
+import type { ProductoTipo } from "./productos";
 
 interface ProductoFila {
   id: string;
@@ -29,6 +31,10 @@ interface ProductoFila {
   itbis_tasa: number;
   costo: number;
   cantidad: number;
+  unidad_medida: string;
+  almacen_id: string | null;
+  vende_negativo: boolean;
+  imagen_path: string | null;
   cuenta_ingreso_id: string | null;
   cuenta_inventario_id: string | null;
   cuenta_costo_id: string | null;
@@ -115,6 +121,12 @@ async function cargarConfiguracionFicha(): Promise<Map<string, string>> {
 
   if (error) throw new Error(error.message);
   return new Map(data.map((fila) => [fila.clave, fila.cuenta_id]));
+}
+
+function tipoProducto(tipo: string): ProductoTipo {
+  if (tipo === "servicio") return "servicio";
+  if (tipo === "combo") return "combo";
+  return "producto";
 }
 
 function dedupePorId<T extends { id: string; fecha: string; numero: number }>(filas: readonly T[]): T[] {
@@ -215,7 +227,7 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
   const { data: producto, error } = await supabase
     .from("productos")
     .select(
-      "id, nombre, referencia, descripcion, tipo, activo, inventariable, precio, itbis_tasa, costo, cantidad, cuenta_ingreso_id, cuenta_inventario_id, cuenta_costo_id, categorias_productos(nombre)",
+      "id, nombre, referencia, descripcion, tipo, activo, inventariable, precio, itbis_tasa, costo, cantidad, unidad_medida, almacen_id, vende_negativo, imagen_path, cuenta_ingreso_id, cuenta_inventario_id, cuenta_costo_id, categorias_productos(nombre)",
     )
     .eq("id", id)
     .maybeSingle()
@@ -277,12 +289,15 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
     ),
     supabase
       .from("existencias")
-      .select("almacen_id, cantidad, almacenes(nombre, es_principal)")
+      .select("almacen_id, cantidad, cantidad_inicial, minimo, maximo, almacenes(nombre, es_principal)")
       .eq("producto_id", id)
       .returns<
         {
           almacen_id: string;
           cantidad: number;
+          cantidad_inicial: number;
+          minimo: number;
+          maximo: number | null;
           almacenes: { nombre: string; es_principal: boolean } | null;
         }[]
       >(),
@@ -320,6 +335,9 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
       almacen_nombre: fila.almacenes?.nombre ?? "—",
       es_principal: fila.almacenes?.es_principal ?? false,
       cantidad: aNumero(fila.cantidad),
+      cantidad_inicial: aNumero(fila.cantidad_inicial),
+      minimo: aNumero(fila.minimo),
+      maximo: fila.maximo === null ? null : aNumero(fila.maximo),
     }))
     .sort(
       (a, b) =>
@@ -357,7 +375,7 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
     nombre: producto.nombre,
     referencia: producto.referencia,
     descripcion: producto.descripcion,
-    tipo: producto.tipo === "servicio" ? "servicio" : "producto",
+    tipo: tipoProducto(producto.tipo),
     categoriaNombre: producto.categorias_productos?.nombre ?? null,
     activo: producto.activo,
     inventariable: producto.inventariable,
@@ -365,6 +383,11 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
     itbis_tasa: aNumero(producto.itbis_tasa),
     costo: aNumero(producto.costo),
     cantidad: aNumero(producto.cantidad),
+    unidadMedida: producto.unidad_medida,
+    almacenId: producto.almacen_id,
+    vendeNegativo: producto.vende_negativo,
+    imagenPath: producto.imagen_path,
+    imagenUrl: await urlFirmadaImagenProducto(supabase, producto.imagen_path),
     precios,
     cuentaIngresoId: producto.cuenta_ingreso_id,
     cuentaInventarioId: producto.cuenta_inventario_id,

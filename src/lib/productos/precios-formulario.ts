@@ -10,6 +10,12 @@ export type PreciosFormulario = {
   presente: boolean;
 };
 
+export type ExistenciaFormulario = {
+  almacen_id: string;
+  minimo: number;
+  maximo: number | null;
+};
+
 export type DatosPayloadProducto = {
   nombre: string;
   tipo: ProductoTipo;
@@ -26,6 +32,13 @@ export type DatosPayloadProducto = {
   cuenta_ingreso_id?: string | null;
   cuenta_inventario_id?: string | null;
   cuenta_costo_id?: string | null;
+  unidad_medida?: string;
+  almacen_id?: string | null;
+  vende_negativo?: boolean;
+  imagen_path?: string | null;
+  minimo?: number | null;
+  maximo?: number | null;
+  existencias?: ExistenciaFormulario[];
 };
 
 export type PayloadProducto = DatosPayloadProducto & {
