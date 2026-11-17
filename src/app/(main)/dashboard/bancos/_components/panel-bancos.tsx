@@ -16,8 +16,8 @@ import {
   FORM_TEXTAREA,
   FormField,
 } from "@/components/formularios/formulario";
+import { type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -33,7 +33,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import { crearCuentaBanco, registrarDeposito, transferirEntreCuentas } from "@/lib/bancos/acciones";
@@ -616,11 +615,9 @@ function ConciliacionCelda({ cuenta, puedeEscribir }: { cuenta: CuentaBanco; pue
   if (cuenta.conciliacion) {
     return (
       <Link href={rutaConciliacion(cuenta.conciliacion.id)} title={formatoDia(cuenta.conciliacion.fechaHasta)}>
-        {cuenta.conciliacion.estado === "conciliada" ? (
-          <Badge variant="secondary">Conciliada</Badge>
-        ) : (
-          <Badge variant="outline">Borrador</Badge>
-        )}
+        <PillEstado tono={cuenta.conciliacion.estado === "conciliada" ? "exito" : "pendiente"}>
+          {cuenta.conciliacion.estado === "conciliada" ? "Conciliada" : "Borrador"}
+        </PillEstado>
       </Link>
     );
   }
@@ -638,6 +635,54 @@ function ConciliacionCelda({ cuenta, puedeEscribir }: { cuenta: CuentaBanco; pue
 }
 
 export function PanelBancos({ cuentas, cuentasCajaBanco, cuentasMovimiento, puedeEscribir, fechaHoy }: Props) {
+  const columnas: readonly ColumnaLista<CuentaBanco>[] = [
+    {
+      clave: "nombre",
+      encabezado: "Nombre",
+      celda: (cuenta) => (
+        <span className="inline-flex items-baseline gap-2">
+          <Link className="font-medium hover:underline" href={rutaBanco(cuenta.id)}>
+            {cuenta.nombre}
+          </Link>
+          <Link
+            className="text-muted-foreground text-xs underline-offset-4 hover:underline"
+            href={rutaCuenta(cuenta.id)}
+          >
+            {cuenta.codigo}
+          </Link>
+        </span>
+      ),
+    },
+    {
+      clave: "tipo",
+      encabezado: "Tipo",
+      celda: (cuenta) => <PillEstado tono="neutro">{tipoCuenta(cuenta.nombre, cuenta.tipoBanco)}</PillEstado>,
+    },
+    {
+      clave: "numero",
+      encabezado: "Número",
+      celda: (cuenta) => <span className="tabular-nums">{cuenta.numeroCuenta ?? "—"}</span>,
+    },
+    {
+      clave: "saldo",
+      encabezado: "Saldo",
+      alineacion: "derecha",
+      celda: (cuenta) => {
+        const saldoCentavos = centavos(cuenta.saldo);
+        return (
+          <span className={saldoCentavos < 0 ? "text-destructive font-medium" : "font-medium"}>
+            {formatearRd(saldoCentavos)}
+          </span>
+        );
+      },
+    },
+    {
+      clave: "conciliacion",
+      encabezado: "Conciliación",
+      celda: (cuenta) => <ConciliacionCelda cuenta={cuenta} puedeEscribir={puedeEscribir} />,
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
       {puedeEscribir ? (
@@ -652,60 +697,17 @@ export function PanelBancos({ cuentas, cuentasCajaBanco, cuentasMovimiento, pued
         </div>
       ) : null}
 
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Número</TableHead>
-              <TableHead className="text-right">Saldo</TableHead>
-              <TableHead>Conciliación</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {cuentas.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
-                  No hay cuentas de caja o banco configuradas.
-                </TableCell>
-              </TableRow>
-            ) : (
-              cuentas.map((cuenta) => {
-                const saldoCentavos = centavos(cuenta.saldo);
-
-                return (
-                  <TableRow key={cuenta.id}>
-                    <TableCell className="font-medium">
-                      <Link className="hover:underline" href={rutaBanco(cuenta.id)}>
-                        {cuenta.nombre}
-                      </Link>
-                      <Link
-                        className="text-muted-foreground ml-2 text-xs underline-offset-4 hover:underline"
-                        href={rutaCuenta(cuenta.id)}
-                      >
-                        {cuenta.codigo}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{tipoCuenta(cuenta.nombre, cuenta.tipoBanco)}</Badge>
-                    </TableCell>
-                    <TableCell className="tabular-nums">{cuenta.numeroCuenta ?? "—"}</TableCell>
-                    <TableCell
-                      className={`text-right font-medium tabular-nums ${saldoCentavos < 0 ? "text-destructive" : ""}`}
-                    >
-                      {formatearRd(saldoCentavos)}
-                    </TableCell>
-                    <TableCell>
-                      <ConciliacionCelda cuenta={cuenta} puedeEscribir={puedeEscribir} />
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <TarjetaLista data-lista="bancos">
+        <TablaLista
+          columnas={columnas}
+          filas={cuentas}
+          claveFila={(cuenta) => cuenta.id}
+          vacio={{
+            titulo: "¡Aún no tienes cuentas de caja o banco!",
+            descripcion: "Crea la primera cuenta para llevar sus saldos y conciliaciones.",
+          }}
+        />
+      </TarjetaLista>
     </div>
   );
 }

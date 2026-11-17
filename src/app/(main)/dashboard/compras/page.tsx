@@ -3,27 +3,95 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Plus } from "lucide-react";
+import { Plus, ShoppingCart } from "lucide-react";
 
 import { EsqueletoTabla } from "@/components/carga/esqueletos";
 import { Enlace } from "@/components/enlace";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
+import {
+  BarraLista,
+  type ColumnaLista,
+  ContenedorLista,
+  TablaLista,
+  TarjetaLista,
+} from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
 import { aNumero } from "@/lib/compras/calculo";
 import { listarFacturasProveedor } from "@/lib/compras/consultas";
 import { formatoMoneda } from "@/lib/compras/formato";
+import type { FacturaLista } from "@/lib/compras/tipos";
 import { rutaCompra, rutaContacto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
-import { leerOpcionesLista, type OpcionesLista, type ParametrosLista } from "@/lib/listas/parametros";
+import { leerOpcionesLista, type OpcionesLista, type ParametrosLista, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 
 import { EstadoBadge } from "./_components/estado-badge";
 
 const RUTA = "/dashboard/compras";
+
+const columnas: readonly ColumnaLista<FacturaLista>[] = [
+  {
+    clave: "numero",
+    encabezado: "Número",
+    celda: (factura) => <Enlace href={rutaCompra(factura.id)}>#{factura.numero}</Enlace>,
+  },
+  {
+    clave: "ncf",
+    encabezado: "No. / NCF",
+    celda: (factura) =>
+      factura.ncf ? (
+        <Enlace href={rutaCompra(factura.id)}>
+          <span className="font-mono text-xs">{factura.ncf}</span>
+        </Enlace>
+      ) : (
+        "—"
+      ),
+  },
+  {
+    clave: "proveedor",
+    encabezado: "Proveedor",
+    celda: (factura) =>
+      factura.contactos ? <Enlace href={rutaContacto(factura.contacto_id)}>{factura.contactos.nombre}</Enlace> : "—",
+  },
+  {
+    clave: "fecha",
+    encabezado: "Fecha",
+    celda: (factura) => formatoDia(factura.fecha),
+  },
+  {
+    clave: "vencimiento",
+    encabezado: "Vencimiento",
+    celda: (factura) => formatoDia(factura.vencimiento),
+  },
+  {
+    clave: "total",
+    encabezado: "Total",
+    alineacion: "derecha",
+    celda: (factura) => formatoMoneda(aNumero(factura.total)),
+  },
+  {
+    clave: "pagado",
+    encabezado: "Pagado",
+    alineacion: "derecha",
+    celda: (factura) => formatoMoneda(aNumero(factura.pagado)),
+  },
+  {
+    clave: "porPagar",
+    encabezado: "Por pagar",
+    alineacion: "derecha",
+    celda: (factura) =>
+      formatoMoneda(
+        aNumero(factura.total) - aNumero(factura.pagado) - aNumero(factura.credito) - aNumero(factura.retenido),
+      ),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (factura) => <EstadoBadge estado={factura.estado} />,
+  },
+];
 
 async function AccionesCompra() {
   const rol = await getRol();
@@ -57,75 +125,32 @@ async function TablaCompras({
   const { filas: facturas, resumen } = await listarFacturasProveedor(opciones);
 
   return (
-    <div className="flex flex-col gap-3">
-      <Card>
-        <CardContent className="px-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-(--card-spacing)">Número</TableHead>
-                <TableHead>No. / NCF</TableHead>
-                <TableHead>Proveedor</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Vencimiento</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Pagado</TableHead>
-                <TableHead className="text-right">Por pagar</TableHead>
-                <TableHead className="pr-(--card-spacing)">Estado</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {facturas.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-muted-foreground py-10 text-center">
-                    {opciones.q
-                      ? "No se encontraron compras con esa búsqueda."
-                      : "No hay facturas de proveedor registradas."}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                facturas.map((factura) => {
-                  const total = aNumero(factura.total);
-                  const pagado = aNumero(factura.pagado);
-                  const credito = aNumero(factura.credito);
-                  const retenido = aNumero(factura.retenido);
-
-                  return (
-                    <TableRow key={factura.id}>
-                      <TableCell className="pl-(--card-spacing) font-medium">
-                        <Enlace href={rutaCompra(factura.id)}>#{factura.numero}</Enlace>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {factura.ncf ? <Enlace href={rutaCompra(factura.id)}>{factura.ncf}</Enlace> : "—"}
-                      </TableCell>
-                      <TableCell>
-                        {factura.contactos ? (
-                          <Enlace href={rutaContacto(factura.contacto_id)}>{factura.contactos.nombre}</Enlace>
-                        ) : (
-                          "—"
-                        )}
-                      </TableCell>
-                      <TableCell>{formatoDia(factura.fecha)}</TableCell>
-                      <TableCell>{formatoDia(factura.vencimiento)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatoMoneda(total)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatoMoneda(pagado)}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatoMoneda(total - pagado - credito - retenido)}
-                      </TableCell>
-                      <TableCell className="pr-(--card-spacing)">
-                        <EstadoBadge estado={factura.estado} />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <PaginadorLista base={RUTA} params={params} resumen={resumen} />
-    </div>
+    <>
+      <TablaLista
+        columnas={columnas}
+        filas={facturas}
+        claveFila={(factura) => factura.id}
+        vacio={{
+          filtrada: Boolean(opciones.q),
+          titulo: opciones.q ? "Sin resultados" : "¡Aún no tienes compras!",
+          descripcion: opciones.q
+            ? "La búsqueda no arrojó compras."
+            : "Registra tu primera factura de proveedor para empezar.",
+          icono: <ShoppingCart className="size-10" />,
+        }}
+      />
+      <PaginadorLista
+        base={RUTA}
+        params={params}
+        resumen={resumen}
+        etiqueta="Ítems por página"
+        tamano={opciones.tamano}
+        opciones={TAMANOS_PAGINA}
+        mostrarEnVacio
+        botonesExtremos={false}
+        className="border-border h-14 border-t px-4 text-slate-700 dark:text-slate-300"
+      />
+    </>
   );
 }
 
@@ -134,7 +159,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const opciones = leerOpcionesLista(params);
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Compras</h1>
@@ -153,17 +178,22 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         </Suspense>
       </div>
 
-      <BuscadorLista
-        base={RUTA}
-        parametros={params}
-        valorInicial={opciones.q}
-        placeholder="Buscar por número, NCF o proveedor…"
-        ariaLabel="Buscar compras"
-      />
+      <TarjetaLista data-lista="compras">
+        <BarraLista>
+          <BuscadorLista
+            base={RUTA}
+            parametros={params}
+            valorInicial={opciones.q}
+            placeholder="Buscar por número, NCF o proveedor…"
+            ariaLabel="Buscar compras"
+            className="sm:max-w-[267px] [&_input]:h-8"
+          />
+        </BarraLista>
 
-      <Suspense fallback={<EsqueletoTabla filas={8} columnas={9} />}>
-        <TablaCompras opciones={opciones} params={params} />
-      </Suspense>
-    </div>
+        <Suspense fallback={<EsqueletoTabla filas={8} columnas={9} className="rounded-none bg-transparent ring-0" />}>
+          <TablaCompras opciones={opciones} params={params} />
+        </Suspense>
+      </TarjetaLista>
+    </ContenedorLista>
   );
 }

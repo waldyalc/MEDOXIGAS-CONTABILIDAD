@@ -1,8 +1,18 @@
-import { Badge } from "@/components/ui/badge";
+import { PillEstado, type TonoPill } from "@/components/listas/tabla-lista";
 import type { EstadoOrdenCompra } from "@/lib/ordenes-compra/tipos";
 
+const TONOS: Record<EstadoOrdenCompra, TonoPill> = {
+  abierta: "pendiente",
+  convertida: "exito",
+  anulada: "peligro",
+};
+
+const ETIQUETAS: Record<EstadoOrdenCompra, string> = {
+  abierta: "Abierta",
+  convertida: "Convertida",
+  anulada: "Anulada",
+};
+
 export function EstadoOrdenBadge({ estado }: { estado: EstadoOrdenCompra }) {
-  if (estado === "anulada") return <Badge variant="destructive">Anulada</Badge>;
-  if (estado === "convertida") return <Badge>Convertida</Badge>;
-  return <Badge variant="secondary">Abierta</Badge>;
+  return <PillEstado tono={TONOS[estado]}>{ETIQUETAS[estado]}</PillEstado>;
 }

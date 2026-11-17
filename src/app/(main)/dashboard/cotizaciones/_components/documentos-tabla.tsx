@@ -1,6 +1,9 @@
+import type { ReactNode } from "react";
+
+import { FileText } from "lucide-react";
+
 import { Enlace } from "@/components/enlace";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { type ColumnaLista, PillEstado, TablaLista, type TonoPill } from "@/components/listas/tabla-lista";
 import type { DocumentoFila, EstadoDocumento, TipoDocumento } from "@/lib/cotizaciones/tipos";
 import { rutaConduce, rutaContacto, rutaCotizacion } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
@@ -34,69 +37,69 @@ const ESTADOS: Record<EstadoDocumento, string> = {
   anulada: "Anulada",
 };
 
-function EstadoBadge({ estado }: { estado: EstadoDocumento }) {
-  if (estado === "anulada") return <Badge variant="destructive">{ESTADOS[estado]}</Badge>;
-  if (estado === "convertida")
-    return (
-      <Badge
-        variant="outline"
-        className="border-emerald-600/40 bg-emerald-600/10 text-emerald-700 dark:text-emerald-400"
-      >
-        {ESTADOS[estado]}
-      </Badge>
-    );
-  return <Badge>{ESTADOS[estado]}</Badge>;
-}
+const TONOS: Record<EstadoDocumento, TonoPill> = {
+  abierta: "pendiente",
+  convertida: "exito",
+  anulada: "peligro",
+};
 
 interface Props {
   tipo: TipoDocumento;
   documentos: DocumentoFila[];
   busqueda?: string;
+  /** CTA del vacío; la página solo la pasa si el rol puede crear. */
+  accion?: ReactNode;
 }
 
-export function DocumentosTabla({ tipo, documentos, busqueda }: Props) {
+export function DocumentosTabla({ tipo, documentos, busqueda, accion }: Props) {
   const textos = TEXTOS_DOCUMENTO[tipo];
 
+  const columnas: readonly ColumnaLista<DocumentoFila>[] = [
+    {
+      clave: "numero",
+      encabezado: "Número",
+      className: "w-24",
+      celda: (documento) => (
+        <Enlace href={tipo === "cotizacion" ? rutaCotizacion(documento.id) : rutaConduce(documento.id)}>
+          {documento.numero}
+        </Enlace>
+      ),
+    },
+    {
+      clave: "cliente",
+      encabezado: "Cliente",
+      celda: (documento) => <Enlace href={rutaContacto(documento.contacto_id)}>{documento.cliente_nombre}</Enlace>,
+    },
+    {
+      clave: "creacion",
+      encabezado: "Creación",
+      celda: (documento) => formatoDia(documento.fecha),
+    },
+    {
+      clave: "estado",
+      encabezado: "Estado",
+      celda: (documento) => <PillEstado tono={TONOS[documento.estado]}>{ESTADOS[documento.estado]}</PillEstado>,
+    },
+    {
+      clave: "total",
+      encabezado: "Total",
+      alineacion: "derecha",
+      celda: (documento) => <span className="font-medium">{formatoMoneda(documento.total)}</span>,
+    },
+  ];
+
   return (
-    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-24">Número</TableHead>
-            <TableHead>Cliente</TableHead>
-            <TableHead>Creación</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {documentos.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
-                {busqueda ? "No se encontraron documentos con esa búsqueda." : textos.vacio}
-              </TableCell>
-            </TableRow>
-          ) : (
-            documentos.map((documento) => (
-              <TableRow key={documento.id}>
-                <TableCell className="font-medium">
-                  <Enlace href={tipo === "cotizacion" ? rutaCotizacion(documento.id) : rutaConduce(documento.id)}>
-                    {documento.numero}
-                  </Enlace>
-                </TableCell>
-                <TableCell>
-                  <Enlace href={rutaContacto(documento.contacto_id)}>{documento.cliente_nombre}</Enlace>
-                </TableCell>
-                <TableCell>{formatoDia(documento.fecha)}</TableCell>
-                <TableCell>
-                  <EstadoBadge estado={documento.estado} />
-                </TableCell>
-                <TableCell className="text-right font-medium">{formatoMoneda(documento.total)}</TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <TablaLista
+      columnas={columnas}
+      filas={documentos}
+      claveFila={(documento) => documento.id}
+      vacio={{
+        filtrada: Boolean(busqueda),
+        titulo: busqueda ? "Sin resultados" : "Aún no hay documentos",
+        descripcion: busqueda ? "La búsqueda no arrojó documentos." : textos.vacio,
+        icono: <FileText className="size-10" />,
+        accion,
+      }}
+    />
   );
 }

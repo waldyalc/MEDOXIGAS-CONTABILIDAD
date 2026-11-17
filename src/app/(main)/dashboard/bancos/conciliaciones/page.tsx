@@ -1,17 +1,76 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Scale } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
-import { Badge } from "@/components/ui/badge";
+import {
+  type ColumnaLista,
+  ContenedorLista,
+  PillEstado,
+  TablaLista,
+  TarjetaLista,
+} from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
-import { getListaConciliaciones } from "@/lib/bancos/conciliaciones";
+import { type ConciliacionLista, getListaConciliaciones } from "@/lib/bancos/conciliaciones";
 import { rutaAsiento, rutaBanco, rutaConciliacion } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
+
+const columnas: readonly ColumnaLista<ConciliacionLista>[] = [
+  {
+    clave: "cuenta",
+    encabezado: "Cuenta",
+    celda: (conciliacion) => (
+      <span className="inline-flex items-baseline gap-2">
+        <Enlace href={rutaConciliacion(conciliacion.id)} className="font-medium">
+          {conciliacion.cuentaNombre}
+        </Enlace>
+        <Enlace
+          href={rutaBanco(conciliacion.cuentaId)}
+          className="text-muted-foreground text-xs no-underline hover:underline"
+        >
+          Ver cuenta
+        </Enlace>
+      </span>
+    ),
+  },
+  {
+    clave: "periodo",
+    encabezado: "Período",
+    celda: (conciliacion) => (
+      <span className="tabular-nums">
+        {formatoDia(conciliacion.fechaDesde)} — {formatoDia(conciliacion.fechaHasta)}
+      </span>
+    ),
+  },
+  {
+    clave: "saldo",
+    encabezado: "Saldo del extracto",
+    alineacion: "derecha",
+    celda: (conciliacion) => (conciliacion.saldoCentavos === null ? "—" : formatearRd(conciliacion.saldoCentavos)),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (conciliacion) => (
+      <PillEstado tono={conciliacion.estado === "conciliada" ? "exito" : "pendiente"}>
+        {conciliacion.estado === "conciliada" ? "Conciliada" : "Borrador"}
+      </PillEstado>
+    ),
+  },
+  {
+    clave: "asiento",
+    encabezado: "Asiento",
+    celda: (conciliacion) =>
+      conciliacion.asientoId ? (
+        <Enlace href={rutaAsiento(conciliacion.asientoId)}>Ver asiento</Enlace>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      ),
+  },
+];
 
 export default async function Page() {
   const rol = await getRol();
@@ -21,7 +80,7 @@ export default async function Page() {
   const puedeEscribir = rol !== "lector";
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <div className="flex flex-col gap-2">
         <Button variant="ghost" size="sm" className="w-fit" render={<Link href="/dashboard/bancos" prefetch={false} />}>
           <ArrowLeft data-icon="inline-start" />
@@ -36,69 +95,30 @@ export default async function Page() {
           </div>
           {puedeEscribir ? (
             <Button render={<Link href="/dashboard/bancos/conciliaciones/nueva" prefetch={false} />}>
-              <Plus />
+              <Scale />
               Nueva conciliación
             </Button>
           ) : null}
         </div>
       </div>
 
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Cuenta</TableHead>
-              <TableHead>Período</TableHead>
-              <TableHead className="text-right">Saldo del extracto</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Asiento</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {conciliaciones.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-muted-foreground py-10 text-center">
-                  Todavía no hay conciliaciones.
-                </TableCell>
-              </TableRow>
-            ) : (
-              conciliaciones.map((conciliacion) => (
-                <TableRow key={conciliacion.id}>
-                  <TableCell className="font-medium">
-                    <Enlace href={rutaConciliacion(conciliacion.id)}>{conciliacion.cuentaNombre}</Enlace>
-                    <Enlace
-                      href={rutaBanco(conciliacion.cuentaId)}
-                      className="text-muted-foreground ml-2 text-xs no-underline hover:underline"
-                    >
-                      Ver cuenta
-                    </Enlace>
-                  </TableCell>
-                  <TableCell className="tabular-nums">
-                    {formatoDia(conciliacion.fechaDesde)} — {formatoDia(conciliacion.fechaHasta)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {conciliacion.saldoCentavos === null ? "—" : formatearRd(conciliacion.saldoCentavos)}
-                  </TableCell>
-                  <TableCell>
-                    {conciliacion.estado === "conciliada" ? (
-                      <Badge variant="secondary">Conciliada</Badge>
-                    ) : (
-                      <Badge variant="outline">Borrador</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {conciliacion.asientoId ? (
-                      <Enlace href={rutaAsiento(conciliacion.asientoId)}>Ver asiento</Enlace>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+      <TarjetaLista data-lista="bancos-conciliaciones">
+        <TablaLista
+          columnas={columnas}
+          filas={conciliaciones}
+          claveFila={(conciliacion) => conciliacion.id}
+          vacio={{
+            titulo: "¡Aún no tienes conciliaciones!",
+            descripcion: "Crea la primera para comparar el sistema con el banco.",
+            accion: puedeEscribir ? (
+              <Button render={<Link href="/dashboard/bancos/conciliaciones/nueva" prefetch={false} />}>
+                <Scale />
+                Nueva conciliación
+              </Button>
+            ) : undefined,
+          }}
+        />
+      </TarjetaLista>
+    </ContenedorLista>
   );
 }

@@ -4,18 +4,76 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Scale } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
-import { Badge } from "@/components/ui/badge";
+import {
+  type ColumnaLista,
+  ContenedorLista,
+  PillEstado,
+  TablaLista,
+  TarjetaLista,
+} from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
 import { getDetalleCuentaBanco, normalizarFecha } from "@/lib/bancos/consultas";
 import { tipoCuenta } from "@/lib/bancos/formato";
+import type { MovimientoBanco } from "@/lib/bancos/movimientos";
 import { rutaAsiento, rutaContacto, rutaCuenta } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
 
 import { FiltroFechas } from "./_components/filtro-fechas";
+
+const columnas: readonly ColumnaLista<MovimientoBanco>[] = [
+  {
+    clave: "fecha",
+    encabezado: "Fecha",
+    celda: (movimiento) => <span className="tabular-nums">{formatoDia(movimiento.fecha)}</span>,
+  },
+  {
+    clave: "documento",
+    encabezado: "Documento",
+    celda: (movimiento) => (
+      <span className="flex flex-col gap-0.5 whitespace-normal">
+        {movimiento.documento.href ? (
+          <Enlace href={movimiento.documento.href}>{movimiento.documento.etiqueta}</Enlace>
+        ) : (
+          <span>{movimiento.documento.etiqueta}</span>
+        )}
+        <Enlace href={rutaAsiento(movimiento.asientoId)} className="text-muted-foreground text-xs">
+          Asiento #{movimiento.asientoNumero}
+        </Enlace>
+      </span>
+    ),
+  },
+  {
+    clave: "tercero",
+    encabezado: "Tercero",
+    celda: (movimiento) =>
+      movimiento.tercero ? (
+        <Enlace href={rutaContacto(movimiento.tercero.id)}>{movimiento.tercero.nombre}</Enlace>
+      ) : (
+        "—"
+      ),
+  },
+  {
+    clave: "entrada",
+    encabezado: "Entrada",
+    alineacion: "derecha",
+    celda: (movimiento) => (movimiento.entradaCentavos === 0 ? "—" : formatearRd(movimiento.entradaCentavos)),
+  },
+  {
+    clave: "salida",
+    encabezado: "Salida",
+    alineacion: "derecha",
+    celda: (movimiento) => (movimiento.salidaCentavos === 0 ? "—" : formatearRd(movimiento.salidaCentavos)),
+  },
+  {
+    clave: "saldo",
+    encabezado: "Saldo",
+    alineacion: "derecha",
+    celda: (movimiento) => formatearRd(movimiento.saldoCentavos),
+  },
+];
 
 export default async function Page({
   params,
@@ -39,7 +97,7 @@ export default async function Page({
   const puedeEscribir = rol !== "lector";
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <div className="flex flex-col gap-2">
         <Button variant="ghost" size="sm" className="w-fit" render={<Link href="/dashboard/bancos" prefetch={false} />}>
           <ArrowLeft data-icon="inline-start" />
@@ -49,7 +107,7 @@ export default async function Page({
           <div className="flex flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-3xl tracking-tight">{cuenta.nombre}</h1>
-              <Badge variant="secondary">{tipoCuenta(cuenta.nombre, cuenta.tipoBanco)}</Badge>
+              <PillEstado tono="neutro">{tipoCuenta(cuenta.nombre, cuenta.tipoBanco)}</PillEstado>
             </div>
             <p className="text-muted-foreground text-sm">
               <Enlace href={rutaCuenta(cuenta.id)}>Cuenta contable {cuenta.codigo}</Enlace>
@@ -82,82 +140,30 @@ export default async function Page({
         ) : null}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Movimientos</CardTitle>
-        </CardHeader>
-        <CardContent className="px-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-(--card-spacing)">Fecha</TableHead>
-                <TableHead>Documento</TableHead>
-                <TableHead>Tercero</TableHead>
-                <TableHead className="text-right">Entrada</TableHead>
-                <TableHead className="text-right">Salida</TableHead>
-                <TableHead className="pr-(--card-spacing) text-right">Saldo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {detalle.movimientos.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
-                    La cuenta no tiene movimientos en el período seleccionado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                detalle.movimientos.map((movimiento) => (
-                  <TableRow key={movimiento.id}>
-                    <TableCell className="pl-(--card-spacing) tabular-nums">{formatoDia(movimiento.fecha)}</TableCell>
-                    <TableCell className="whitespace-normal">
-                      <div className="flex flex-col gap-0.5">
-                        {movimiento.documento.href ? (
-                          <Enlace href={movimiento.documento.href}>{movimiento.documento.etiqueta}</Enlace>
-                        ) : (
-                          <span>{movimiento.documento.etiqueta}</span>
-                        )}
-                        <Enlace href={rutaAsiento(movimiento.asientoId)} className="text-muted-foreground text-xs">
-                          Asiento #{movimiento.asientoNumero}
-                        </Enlace>
-                      </div>
-                    </TableCell>
-                    <TableCell className="whitespace-normal">
-                      {movimiento.tercero ? (
-                        <Enlace href={rutaContacto(movimiento.tercero.id)}>{movimiento.tercero.nombre}</Enlace>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {movimiento.entradaCentavos === 0 ? "—" : formatearRd(movimiento.entradaCentavos)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {movimiento.salidaCentavos === 0 ? "—" : formatearRd(movimiento.salidaCentavos)}
-                    </TableCell>
-                    <TableCell className="pr-(--card-spacing) text-right tabular-nums">
-                      {formatearRd(movimiento.saldoCentavos)}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={3} className="pl-(--card-spacing) text-right">
-                  Totales
-                </TableCell>
-                <TableCell className="text-right tabular-nums">{formatearRd(detalle.totalEntradasCentavos)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatearRd(detalle.totalSalidasCentavos)}</TableCell>
-                <TableCell className="pr-(--card-spacing) text-right tabular-nums">
-                  {formatearRd(detalle.saldoCentavos)}
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </CardContent>
-      </Card>
+      <TarjetaLista data-lista="banco-movimientos">
+        <TablaLista
+          columnas={columnas}
+          filas={detalle.movimientos}
+          claveFila={(movimiento) => movimiento.id}
+          vacio={{
+            filtrada: true,
+            titulo: "Sin movimientos",
+            descripcion: "La cuenta no tiene movimientos en el período seleccionado.",
+          }}
+          pie={
+            <TableRow>
+              <TableCell colSpan={3} className="text-right">
+                Totales
+              </TableCell>
+              <TableCell className="text-right tabular-nums">{formatearRd(detalle.totalEntradasCentavos)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatearRd(detalle.totalSalidasCentavos)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatearRd(detalle.saldoCentavos)}</TableCell>
+            </TableRow>
+          }
+        />
+      </TarjetaLista>
 
       {cuenta.descripcion ? <p className="text-muted-foreground text-sm">{cuenta.descripcion}</p> : null}
-    </div>
+    </ContenedorLista>
   );
 }

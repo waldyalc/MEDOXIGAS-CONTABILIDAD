@@ -35,6 +35,20 @@ const LISTAS_MIGRADAS = [
   "app/(main)/dashboard/contabilidad/asientos/page.tsx",
   "app/(main)/dashboard/contabilidad/activos/page.tsx",
   "app/(main)/dashboard/contabilidad/periodos/_components/panel-periodos.tsx",
+  "app/(main)/dashboard/compras/page.tsx",
+  "app/(main)/dashboard/gastos/_components/gastos-tabla.tsx",
+  "app/(main)/dashboard/facturas-recurrentes/_components/facturas-recurrentes-tabla.tsx",
+  "app/(main)/dashboard/ordenes-compra/page.tsx",
+  "app/(main)/dashboard/cotizaciones/_components/documentos-tabla.tsx",
+  "app/(main)/dashboard/inventario/ajustes/_components/ajustes-tabla.tsx",
+  "app/(main)/dashboard/inventario/transferencias/_components/transferencias-tabla.tsx",
+  "app/(main)/dashboard/inventario/almacenes/_components/almacenes-cliente.tsx",
+  "app/(main)/dashboard/inventario/categorias/_components/categorias-cliente.tsx",
+  "app/(main)/dashboard/inventario/listas-precios/_components/listas-precios-cliente.tsx",
+  "app/(main)/dashboard/bancos/_components/panel-bancos.tsx",
+  "app/(main)/dashboard/bancos/[id]/page.tsx",
+  "app/(main)/dashboard/bancos/conciliaciones/page.tsx",
+  "app/(main)/dashboard/bancos/conciliaciones/[id]/_components/panel-conciliacion.tsx",
 ] as const;
 
 function leer(ruta: string): string {
