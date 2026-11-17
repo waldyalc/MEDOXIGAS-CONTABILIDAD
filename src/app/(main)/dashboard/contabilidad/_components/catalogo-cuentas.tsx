@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 
 import { cn } from "cn";
-import { BookOpen, ChevronRight, Pencil, Plus, Search } from "lucide-react";
+import { BookOpen, ChevronRight, Info, Pencil, Plus, Search } from "lucide-react";
 
 import { BarraLista, type ColumnaLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Badge } from "@/components/ui/badge";
@@ -185,7 +185,28 @@ function columnasCatalogo({
     },
     {
       clave: "uso",
-      encabezado: "Uso de cuenta",
+      encabezado: (
+        <span className="inline-flex items-center gap-1">
+          Uso de cuenta
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  type="button"
+                  aria-label="Qué es el uso de cuenta"
+                  className="text-muted-foreground hover:text-foreground inline-flex transition-colors"
+                >
+                  <Info className="size-3.5" />
+                </button>
+              }
+            />
+            <TooltipContent className="max-w-64 whitespace-normal">
+              Cuenta especial que usa el motor contable: caja, banco, cuentas por cobrar o pagar, inventario, impuestos,
+              ventas, costos o gastos generales.
+            </TooltipContent>
+          </Tooltip>
+        </span>
+      ),
       className: "hidden w-44 md:table-cell",
       celda: (fila) => (
         <span className="text-muted-foreground block max-w-44 truncate">{uso(fila.nodo.cuenta) ?? "—"}</span>
