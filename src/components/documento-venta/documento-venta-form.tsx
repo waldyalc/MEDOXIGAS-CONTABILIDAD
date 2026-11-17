@@ -5,7 +5,7 @@ import { type Dispatch, type SetStateAction, useRef, useState, useTransition } f
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Loader2, Plus, Settings, Trash2 } from "lucide-react";
 
 import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
@@ -198,37 +198,40 @@ function NumeroComprobante({
   numeroActual?: string;
   vistaNcf?: PrevisualizacionNcf | null;
 }) {
-  if (vistaNcf?.estado === "lista") {
-    return (
-      <div className="flex min-w-0 flex-col gap-1">
-        <div className="flex items-center gap-2.5 pl-2.5 text-base">
-          <span className="text-slate-500">{etiqueta}</span>
-          <span className="truncate text-slate-700 tabular-nums" aria-live="polite">
-            {vistaNcf.ncf}
-          </span>
-        </div>
-        <p className="pl-2.5 text-xs leading-4 text-slate-500">Se asigna al guardar</p>
-      </div>
-    );
-  }
-
   if (vistaNcf) {
+    const hayNumero = vistaNcf.estado === "lista";
+
     return (
-      <div className="flex min-w-0 flex-col gap-1">
-        <div className="flex items-center gap-2.5 pl-2.5 text-base">
-          <span className="text-slate-500">{etiqueta}</span>
-          <span className="truncate text-slate-700 tabular-nums">—</span>
-        </div>
-        <p className="text-destructive flex max-w-sm flex-wrap items-center gap-x-1 pl-2.5 text-xs leading-4">
-          <span role="status">{vistaNcf.mensaje}</span>
-          <Link
-            href="/dashboard/contabilidad/numeraciones"
-            prefetch={false}
-            className="underline underline-offset-2 hover:no-underline"
+      <div className="w-full">
+        <div
+          className={`flex h-10 items-center justify-between gap-2 rounded-[10px] border bg-white pr-1 pl-2.5 ${
+            hayNumero ? "border-slate-300" : "border-destructive"
+          }`}
+        >
+          <div className="flex min-w-0 items-baseline gap-2.5 text-base">
+            <span className="text-slate-500">{etiqueta}</span>
+            <span className="truncate text-slate-700 tabular-nums" aria-live="polite">
+              {hayNumero ? vistaNcf.ncf : "—"}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            render={<Link href="/dashboard/contabilidad/numeraciones" prefetch={false} />}
+            aria-label="Configurar numeración"
+            title="Configurar numeración"
           >
-            Revisar numeraciones
-          </Link>
-        </p>
+            <Settings className="size-4" aria-hidden="true" />
+          </Button>
+        </div>
+        {hayNumero ? (
+          <p className="mt-1 pl-2.5 text-[11px] leading-4 text-slate-500">Se asigna al guardar</p>
+        ) : (
+          <p className="text-destructive mt-1 pl-2.5 text-xs leading-4" role="status">
+            {vistaNcf.mensaje}
+          </p>
+        )}
       </div>
     );
   }
