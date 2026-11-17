@@ -35,6 +35,7 @@ import { requerido } from "@/lib/formularios/validacion";
 import { etiquetaImpuesto, type Impuesto, impuestoNinguno, impuestoPorTasa } from "@/lib/impuestos/tipos";
 import { etiquetaTipoLista } from "@/lib/inventario/precios";
 import type { Almacen, CategoriaProducto, ExistenciaAlmacen, ListaPrecio } from "@/lib/inventario/tipos";
+import { esAccionCrearOtro } from "@/lib/productos/acciones-formulario";
 import { actualizarProducto, crearProducto } from "@/lib/productos/actions";
 import type { ProductoEditable } from "@/lib/productos/consultas";
 import { precioConItbis } from "@/lib/productos/ficha";
@@ -610,7 +611,7 @@ function PieFormulario({
         Cancelar
       </Button>
       {producto ? null : (
-        <Button type="submit" variant="outline" name="accion" value="crear-otro" disabled={pendiente}>
+        <Button type="submit" variant="outline" value="crear-otro" disabled={pendiente}>
           Guardar y crear otro
         </Button>
       )}
@@ -859,7 +860,8 @@ export function FormularioProducto({
     setMensaje(null);
 
     const formData = new FormData(evento.currentTarget);
-    const crearOtro = formData.get("accion") === "crear-otro";
+    const submitter = (evento.nativeEvent as SubmitEvent).submitter;
+    const crearOtro = esAccionCrearOtro(submitter);
 
     const reglas = [
       requerido("nombre", formData.get("nombre"), "El nombre es requerido."),
