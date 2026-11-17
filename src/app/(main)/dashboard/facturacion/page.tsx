@@ -8,27 +8,32 @@ import { Plus } from "lucide-react";
 import { EsqueletoTabla } from "@/components/carga/esqueletos";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
+import { BarraLista, ContenedorLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRol } from "@/lib/auth/rol";
 import { getFacturasLista } from "@/lib/facturacion/consultas";
-import { leerOpcionesLista, type OpcionesLista, type ParametrosLista } from "@/lib/listas/parametros";
+import { leerOpcionesLista, type OpcionesLista, type ParametrosLista, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 
 import { FacturasTabla } from "./_components/facturas-tabla";
 
 const RUTA = "/dashboard/facturacion";
 
-async function AccionNuevaFactura() {
-  const rol = await getRol();
-  if (rol === null) redirect("/unauthorized");
-  if (rol === "lector") return null;
-
+function BotonNuevaFactura() {
   return (
     <Button render={<Link href="/dashboard/facturacion/nueva" />}>
       <Plus />
       Nueva factura
     </Button>
   );
+}
+
+async function AccionNuevaFactura() {
+  const rol = await getRol();
+  if (rol === null) redirect("/unauthorized");
+  if (rol === "lector") return null;
+
+  return <BotonNuevaFactura />;
 }
 
 async function TablaFacturas({
@@ -38,12 +43,27 @@ async function TablaFacturas({
   readonly opciones: OpcionesLista;
   readonly params: ParametrosLista;
 }) {
-  const { filas: facturas, resumen } = await getFacturasLista(opciones);
+  const [lista, rol] = await Promise.all([getFacturasLista(opciones), getRol()]);
+  const puedeCrear = rol !== null && rol !== "lector";
 
   return (
     <>
-      <FacturasTabla facturas={facturas} busqueda={opciones.q} />
-      <PaginadorLista base={RUTA} params={params} resumen={resumen} className="border-t px-4 py-2" />
+      <FacturasTabla
+        facturas={lista.filas}
+        busqueda={opciones.q}
+        accion={puedeCrear ? <BotonNuevaFactura /> : undefined}
+      />
+      <PaginadorLista
+        base={RUTA}
+        params={params}
+        resumen={lista.resumen}
+        etiqueta="Ítems por página"
+        tamano={opciones.tamano}
+        opciones={TAMANOS_PAGINA}
+        mostrarEnVacio
+        botonesExtremos={false}
+        className="border-border h-14 border-t px-4 text-slate-700 dark:text-slate-300"
+      />
     </>
   );
 }
@@ -53,7 +73,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const opciones = leerOpcionesLista(params);
 
   return (
-    <div className="flex flex-col gap-4">
+    <ContenedorLista>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl tracking-tight">Facturas de venta</h1>
@@ -64,8 +84,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         </Suspense>
       </div>
 
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-        <div className="flex h-12 items-center gap-2 border-b px-3">
+      <TarjetaLista data-lista="facturas">
+        <BarraLista>
           <BuscadorLista
             base={RUTA}
             parametros={params}
@@ -74,12 +94,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
             ariaLabel="Buscar facturas"
             className="sm:max-w-[267px] [&_input]:h-8"
           />
-        </div>
+        </BarraLista>
 
-        <Suspense fallback={<EsqueletoTabla filas={8} columnas={9} className="rounded-none ring-0" />}>
+        <Suspense fallback={<EsqueletoTabla filas={8} columnas={9} className="rounded-none bg-transparent ring-0" />}>
           <TablaFacturas opciones={opciones} params={params} />
         </Suspense>
-      </div>
-    </div>
+      </TarjetaLista>
+    </ContenedorLista>
   );
 }
