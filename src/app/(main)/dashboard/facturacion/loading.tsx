@@ -7,7 +7,7 @@ export default function Loading() {
       descripcion="Facturas de venta con comprobante fiscal (NCF)."
       grande
       acciones={1}
-      columnas={9}
+      columnas={8}
     />
   );
 }

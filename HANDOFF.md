@@ -2,11 +2,20 @@
 
 ## Diseño — Numeraciones con la tabla unificada (17 nov 2026)
 
-- Rama `diseno/numeraciones-orq` (desde `prueba` 0524709). La página `/dashboard/contabilidad/numeraciones` usa el patrón de Facturas: `ContenedorLista`, `TarjetaLista`, `BarraLista`, `TablaLista`, `PillEstado` y `PaginadorLocal` (25 por página, sin tocar consultas ni URL).
+- Rama `diseno/numeraciones-orq` (desde `prueba` 0524709; actualizada con `origin/prueba` 38d7473, que trae menú, búsqueda global, `TablaLista`, facturas sin número interno y reporte Compras). La página `/dashboard/contabilidad/numeraciones` usa el patrón de Facturas: `ContenedorLista`, `TarjetaLista`, `BarraLista`, `TablaLista`, `PillEstado` y `PaginadorLocal` (25 por página, sin tocar consultas ni URL).
 - Se agregó el filtro visible «Tipo de documento» y la columna del mismo nombre. Las opciones salen de las numeraciones existentes (sin inventar tipos): `01 Crédito fiscal`, `02 Consumo`, `03 Nota de débito`, `04 Nota de crédito`, `13 Gastos menores`, `14 Régimen especial`, `15 Gubernamental` y `16 Exportaciones`. El filtro es local; también se corrigieron las etiquetas 03/04/13 que antes salían como código pelado.
 - Se conserva el diálogo de edición (mismos campos y server action). **No se agregó «Nueva numeración»**: el sistema no tiene RPC ni server action para crear; queda fuera y no se inventó backend. Tampoco se agregaron «Preferida», «Electrónica» ni borrado, porque no existen en `numeraciones`.
 - Candado: `numeraciones-cliente.tsx` agregado a `LISTAS_MIGRADAS` en `src/lib/tablas-listas.test.ts`.
-- Verificado: `pnpm typecheck`, Biome de lo tocado y `pnpm test` (742) en verde. Sin build, dev server ni capturas; sin push ni merge.
+- Actualización con `origin/prueba`: conflictos solo en `HANDOFF.md` y `src/lib/tablas-listas.test.ts`; se conservan las secciones de Numeraciones y Reporte Compras y las tres entradas de `LISTAS_MIGRADAS` (facturas, numeraciones, compras).
+- Verificado tras el merge: `pnpm typecheck`, Biome de lo tocado y `pnpm test` (742) en verde. Sin build, dev server ni capturas; sin push ni merge.
+
+## Diseño — Reporte Compras y migas de pan (17 nov 2026)
+
+- Rama `diseno/reportes-compras-orq` (desde `prueba` 0524709). Nuevo `src/components/migas-de-pan.tsx` con los `Breadcrumb` de shadcn tal cual: API `items: {etiqueta, href?}[]`, texto de 14 px slate-500, separador `ChevronRight` y la miga actual en slate-900 medium, sin enlace. En Compras: `Reportes > Administrativos > Compras`.
+- `reportes/compras`: encabezado, fechas, totales y tarjeta dentro de `ContenedorLista` (`mx-auto max-w-[1289px]`). El filtro de proveedor pasó a la `BarraLista` de la `TarjetaLista` como buscador de 267×32 (`h-14`, `px-4`) con su form GET, `desde`/`hasta` ocultos y botón «Aplicar»; las fechas siguen arriba. El `Paginador` va dentro de un pie `border-t px-4 py-3`, sin cambios de lógica.
+- `tabla-compras.tsx` usa `TablaLista`: cabecera de 48 px, filas de 56 px, padding 20/24, montos a la derecha y vacío «No hay compras en el período seleccionado.» sin CTA. Se conservan los enlaces a la compra y al contacto.
+- Candado: `tabla-compras.tsx` agregado a `LISTAS_MIGRADAS` en `src/lib/tablas-listas.test.ts`.
+- Verificado: `pnpm typecheck`, Biome de lo tocado y `pnpm test` (742, incluido `tablas-listas`) en verde. Sin build, dev server ni capturas; sin push ni merge.
 
 ## Fix — Reportes de libros: RPC directo y paginación completa (16 nov 2026)
 
