@@ -36,15 +36,18 @@ export function useValidacionFormulario() {
 
   const errorDe = (campo: string) => errores[campo];
 
-  const limpiar = (campo: string) =>
-    setErrores((previos) => {
-      if (!(campo in previos)) return previos;
-      const resto = { ...previos };
-      delete resto[campo];
-      return resto;
-    });
+  const limpiar = useCallback(
+    (campo: string) =>
+      setErrores((previos) => {
+        if (!(campo in previos)) return previos;
+        const resto = { ...previos };
+        delete resto[campo];
+        return resto;
+      }),
+    [],
+  );
 
-  const limpiarTodo = () => setErrores({});
+  const limpiarTodo = useCallback(() => setErrores({}), []);
 
   const validar = useCallback((reglas: ReglaCampo[]) => {
     const lista = erroresDe(reglas);

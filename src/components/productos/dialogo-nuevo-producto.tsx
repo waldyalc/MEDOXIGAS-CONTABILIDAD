@@ -4,12 +4,15 @@ import { type FormEvent, useEffect, useRef, useState, useTransition } from "reac
 
 import { Loader2 } from "lucide-react";
 
-import { FORM_INPUT, FORM_INPUT_GROUP, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_INPUT, FORM_INPUT_GROUP, FORM_SELECT } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { requerido } from "@/lib/formularios/validacion";
 import { crearProducto } from "@/lib/productos/actions";
 import { normalizarNombre, type ProductoTipo, parsearMonto } from "@/lib/productos/productos";
 
@@ -49,6 +52,7 @@ export function DialogoNuevoProducto({ abierto, onOpenChange, nombreInicial = ""
   const [tipo, setTipo] = useState<ProductoTipo>("producto");
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
   const estabaAbierto = useRef(false);
 
   useEffect(() => {
@@ -58,24 +62,32 @@ export function DialogoNuevoProducto({ abierto, onOpenChange, nombreInicial = ""
       setItbisTasa("18");
       setTipo("producto");
       setError(null);
+      validacion.limpiarTodo();
     }
     estabaAbierto.current = abierto;
-  }, [abierto, nombreInicial]);
+  }, [abierto, nombreInicial, validacion.limpiarTodo]);
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     setError(null);
 
     if (normalizarNombre(nombre) === "") {
-      setError("El nombre del producto es obligatorio.");
+      validacion.validar([requerido("producto-rapido-nombre", "", "El nombre es requerido.")]);
       return;
     }
 
     const precioNumero = parsearMonto(precio);
-    if (precioNumero === null) {
-      setError("El precio no es válido.");
+    if (
+      !validacion.validar([
+        requerido("producto-rapido-nombre", nombre, "El nombre es requerido."),
+        requerido("producto-rapido-precio", precio, "El precio es requerido."),
+        { campo: "producto-rapido-precio", invalido: precioNumero === null, mensaje: "El precio no es válido." },
+      ])
+    ) {
       return;
     }
+
+    if (precioNumero === null) return;
 
     const formData = new FormData();
     formData.set("nombre", nombre);
@@ -112,20 +124,33 @@ export function DialogoNuevoProducto({ abierto, onOpenChange, nombreInicial = ""
           <DialogTitle>Nuevo producto</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={enviar} className="flex flex-col gap-4">
+        <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
           <div className="flex flex-col gap-4">
-            <FormField htmlFor="producto-rapido-nombre" label="Nombre" required>
+            <CampoFormulario
+              htmlFor="producto-rapido-nombre"
+              label="Nombre"
+              required
+              error={validacion.errorDe("producto-rapido-nombre")}
+            >
               <Input
                 id="producto-rapido-nombre"
                 required
                 maxLength={200}
                 value={nombre}
-                onChange={(evento) => setNombre(evento.target.value)}
+                onChange={(evento) => {
+                  setNombre(evento.target.value);
+                  validacion.limpiar("producto-rapido-nombre");
+                }}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="producto-rapido-precio" label="Precio" required>
+            <CampoFormulario
+              htmlFor="producto-rapido-precio"
+              label="Precio"
+              required
+              error={validacion.errorDe("producto-rapido-precio")}
+            >
               <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
@@ -134,14 +159,17 @@ export function DialogoNuevoProducto({ abierto, onOpenChange, nombreInicial = ""
                   id="producto-rapido-precio"
                   inputMode="decimal"
                   value={precio}
-                  onChange={(evento) => setPrecio(evento.target.value)}
+                  onChange={(evento) => {
+                    setPrecio(evento.target.value);
+                    validacion.limpiar("producto-rapido-precio");
+                  }}
                   className="pl-1"
                 />
               </InputGroup>
-            </FormField>
+            </CampoFormulario>
 
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-              <FormField htmlFor="producto-rapido-itbis" label="ITBIS">
+              <CampoFormulario htmlFor="producto-rapido-itbis" label="ITBIS">
                 <Select
                   items={OPCIONES_ITBIS}
                   value={itbisTasa}
@@ -158,9 +186,9 @@ export function DialogoNuevoProducto({ abierto, onOpenChange, nombreInicial = ""
                     ))}
                   </SelectContent>
                 </Select>
-              </FormField>
+              </CampoFormulario>
 
-              <FormField htmlFor="producto-rapido-tipo" label="Tipo">
+              <CampoFormulario htmlFor="producto-rapido-tipo" label="Tipo">
                 <Select
                   items={OPCIONES_TIPO}
                   value={tipo}
@@ -179,7 +207,7 @@ export function DialogoNuevoProducto({ abierto, onOpenChange, nombreInicial = ""
                     ))}
                   </SelectContent>
                 </Select>
-              </FormField>
+              </CampoFormulario>
             </div>
           </div>
 
