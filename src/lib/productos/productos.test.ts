@@ -188,6 +188,30 @@ describe("validación del formulario de producto", () => {
     }
   });
 
+  test("las cuentas contables solo viajan si el formulario las envía", () => {
+    const cuentas = {
+      nombre: "Cilindro",
+      precio: "10",
+      cuenta_ingreso_id: "22222222-2222-4222-8222-222222222222",
+      cuenta_costo_id: "",
+    };
+    const enviadas = esquemaProducto.safeParse(cuentas);
+    expect(enviadas.success).toBe(true);
+    if (enviadas.success) {
+      expect(enviadas.data.cuenta_ingreso_id).toBe("22222222-2222-4222-8222-222222222222");
+      expect(enviadas.data.cuenta_costo_id).toBeNull();
+      expect("cuenta_inventario_id" in enviadas.data).toBe(false);
+    }
+
+    const sinCuentas = esquemaProducto.safeParse({ nombre: "Cilindro", precio: "10" });
+    expect(sinCuentas.success).toBe(true);
+    if (sinCuentas.success) {
+      expect("cuenta_ingreso_id" in sinCuentas.data).toBe(false);
+      expect("cuenta_inventario_id" in sinCuentas.data).toBe(false);
+      expect("cuenta_costo_id" in sinCuentas.data).toBe(false);
+    }
+  });
+
   test("la categoría es opcional y el centinela significa sin categoría", () => {
     const sinCategoria = esquemaProducto.safeParse({
       nombre: "Cilindro",

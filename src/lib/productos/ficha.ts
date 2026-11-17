@@ -1,5 +1,5 @@
 import { calcularLinea, centavosAValor, valorACentavos } from "@/lib/facturacion/calculo";
-import type { ExistenciaAlmacen } from "@/lib/inventario/tipos";
+import type { ExistenciaAlmacen, TipoListaPrecio } from "@/lib/inventario/tipos";
 
 import type { ResultadoKardex } from "./kardex";
 import type { ProductoTipo } from "./productos";
@@ -10,17 +10,28 @@ export interface CuentaResumen {
   nombre: string;
 }
 
+export interface PrecioListaFicha {
+  listaId: string;
+  nombre: string;
+  esPrincipal: boolean;
+  tipo: TipoListaPrecio;
+  precio: number | null;
+}
+
 export interface ProductoFicha {
   id: string;
   nombre: string;
   referencia: string | null;
   descripcion: string | null;
   tipo: ProductoTipo;
+  categoriaNombre: string | null;
+  activo: boolean;
   inventariable: boolean;
   precio: number;
   itbis_tasa: number;
   costo: number;
   cantidad: number;
+  precios: PrecioListaFicha[];
   cuentaIngresoId: string | null;
   cuentaInventarioId: string | null;
   cuentaCostoId: string | null;

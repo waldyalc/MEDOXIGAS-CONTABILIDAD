@@ -22,3 +22,28 @@ Reglas:
 
 - La búsqueda y el orden por defecto usan `numero` y `ncf`: ambos campos deben seguir en la consulta aunque el número no sea una columna visible.
 - Nada de esto se crea en el frontend: si un dato falta, es TODO backend — avisar a Waldy en vez de inventarlo.
+
+## Producto — pantalla completa de edición
+
+Ruta: `/dashboard/productos/[id]/editar`. Usa el mismo shell de la ficha y guarda con `actualizarProducto` (`actualizar_producto` en la base).
+
+| Lo que se ve en pantalla | Campo del backend |
+| --- | --- |
+| Tipo | `productos.tipo` (`producto` o `servicio`) |
+| Nombre, referencia, descripción | `productos.nombre`, `productos.referencia`, `productos.descripcion` |
+| Categoría | `productos.categoria_id` → `categorias_productos.nombre` |
+| Estado | `productos.activo` |
+| Precio base e impuesto | `productos.precio`, `productos.impuesto_id`, `productos.itbis_tasa` |
+| Controlar inventario, existencia actual y costo | `productos.inventariable`, `productos.cantidad`, `productos.costo` |
+| Almacenes (solo lectura) | `existencias.cantidad` por `almacenes` |
+| Listas de precios | `producto_precios.precio` por `listas_precios` |
+| Cuentas contables | `productos.cuenta_ingreso_id`, `productos.cuenta_inventario_id`, `productos.cuenta_costo_id` |
+
+Campos de Alegra que la base **no** soporta todavía. No se inventaron; quedan pendientes de decidir:
+
+- **Combo** como tipo de producto: el check de `productos.tipo` solo acepta `producto` y `servicio`.
+- **Almacén obligatorio en el formulario**: no existe `productos.almacen_id`; el stock vive por almacén en `existencias`.
+- **Unidad de medida** y **tipo de referencia**: no hay columnas para esos datos.
+- **Existencia inicial, mínimo y máximo por almacén**, y **en conduces**: `existencias` solo guarda `cantidad`; la inicial se deduce del kárdex.
+- **Variantes**, **campos extra** e **imagen del producto**: no existen tablas ni columnas.
+- **Archivos adjuntos**: no hay tabla de adjuntos de productos; la sección se muestra vacía.

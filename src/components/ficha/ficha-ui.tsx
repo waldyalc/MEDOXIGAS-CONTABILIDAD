@@ -18,6 +18,14 @@ export const TH = "text-muted-foreground text-xs font-medium tracking-wider uppe
 
 export const CLASE_PANEL_FICHA = "bg-card ring-foreground/10 rounded-xl ring-1";
 
+export function Pildora({ className, children }: { readonly className: string; readonly children: ReactNode }) {
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium", className)}>
+      {children}
+    </span>
+  );
+}
+
 export function MetaItem({ icono, texto }: { readonly icono: ReactNode; readonly texto: string }) {
   return (
     <span className="text-muted-foreground inline-flex items-center gap-1.5 text-sm">

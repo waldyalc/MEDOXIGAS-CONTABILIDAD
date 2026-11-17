@@ -138,6 +138,20 @@ const campoPrecio = z.union([z.string(), z.number()]).transform((valor, ctx) => 
 
 const campoOpcional = z.string().nullish().transform(textoOpcional);
 
+export const CAMPOS_CUENTA_PRODUCTO = ["cuenta_ingreso_id", "cuenta_inventario_id", "cuenta_costo_id"] as const;
+
+export type CampoCuentaProducto = (typeof CAMPOS_CUENTA_PRODUCTO)[number];
+
+/**
+ * Solo viaja si el formulario envía el campo. Así el diálogo, la importación y
+ * la edición masiva siguen sin tocar las cuentas que ya tenga el producto.
+ */
+const campoCuenta = z
+  .string()
+  .transform(textoOpcional)
+  .refine((valor) => valor === null || z.uuid().safeParse(valor).success, "La cuenta contable no es válida")
+  .optional();
+
 export const esquemaProducto = z
   .object({
     nombre: z
@@ -173,9 +187,18 @@ export const esquemaProducto = z
       })
       .refine((valor) => valor === null || z.uuid().safeParse(valor).success, "La categoría no es válida"),
     activo: z.boolean().optional(),
+    cuenta_ingreso_id: campoCuenta,
+    cuenta_inventario_id: campoCuenta,
+    cuenta_costo_id: campoCuenta,
   })
   .transform((datos) => {
     const inventariable = datos.tipo === "servicio" ? false : datos.inventariable;
+    const cuentas: Partial<Record<CampoCuentaProducto, string | null>> = {};
+    for (const campo of CAMPOS_CUENTA_PRODUCTO) {
+      const valor = datos[campo];
+      if (valor !== undefined) cuentas[campo] = valor;
+    }
+
     return {
       nombre: datos.nombre,
       tipo: datos.tipo,
@@ -189,6 +212,7 @@ export const esquemaProducto = z
       costo: inventariable ? datos.costo : 0,
       categoria_id: datos.categoria_id,
       activo: datos.activo,
+      ...cuentas,
     };
   });
 

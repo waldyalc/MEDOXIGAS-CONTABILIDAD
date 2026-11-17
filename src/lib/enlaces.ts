@@ -10,6 +10,10 @@ export function rutaProducto(id: string) {
   return ruta("/dashboard/productos", id);
 }
 
+export function rutaEditarProducto(id: string) {
+  return `${rutaProducto(id)}/editar`;
+}
+
 export function rutaFactura(id: string) {
   return ruta("/dashboard/facturacion", id);
 }
