@@ -2244,9 +2244,11 @@ export type Database = {
       numeraciones: {
         Row: {
           activa: boolean
+          automatica: boolean
           hasta: number | null
           id: string
           nombre: string
+          preferida: boolean
           prefijo: string
           siguiente: number
           tipo_comprobante: string
@@ -2254,9 +2256,11 @@ export type Database = {
         }
         Insert: {
           activa?: boolean
+          automatica?: boolean
           hasta?: number | null
           id?: string
           nombre: string
+          preferida?: boolean
           prefijo: string
           siguiente?: number
           tipo_comprobante: string
@@ -2264,9 +2268,11 @@ export type Database = {
         }
         Update: {
           activa?: boolean
+          automatica?: boolean
           hasta?: number | null
           id?: string
           nombre?: string
+          preferida?: boolean
           prefijo?: string
           siguiente?: number
           tipo_comprobante?: string
@@ -3704,6 +3710,14 @@ export type Database = {
           p_cantidad: number
         }
         Returns: undefined
+      }
+      _ncf_factura: {
+        Args: {
+          p_fecha: string
+          p_ncf_manual?: string
+          p_tipo: string
+        }
+        Returns: string
       }
       _resolver_impuesto: {
         Args: {
