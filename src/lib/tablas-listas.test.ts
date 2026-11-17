@@ -10,7 +10,10 @@ const COMPONENTE = join(SRC, "components", "listas", "tabla-lista.tsx");
  * Listas ya migradas al patrón Facturas. Al migrar otra, agrégala aquí con su
  * ruta relativa a `src/`; el candado exige que use el componente compartido.
  */
-const LISTAS_MIGRADAS = ["app/(main)/dashboard/facturacion/_components/facturas-tabla.tsx"] as const;
+const LISTAS_MIGRADAS = [
+  "app/(main)/dashboard/facturacion/_components/facturas-tabla.tsx",
+  "app/(main)/dashboard/reportes/compras/_components/tabla-compras.tsx",
+] as const;
 
 function leer(ruta: string): string {
   return readFileSync(join(SRC, ruta), "utf8");

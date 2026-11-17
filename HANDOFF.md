@@ -1,5 +1,13 @@
 # Handoff — Medoxigas Contabilidad
 
+## Diseño — Reporte Compras y migas de pan (17 nov 2026)
+
+- Rama `diseno/reportes-compras-orq` (desde `prueba` 0524709). Nuevo `src/components/migas-de-pan.tsx` con los `Breadcrumb` de shadcn tal cual: API `items: {etiqueta, href?}[]`, texto de 14 px slate-500, separador `ChevronRight` y la miga actual en slate-900 medium, sin enlace. En Compras: `Reportes > Administrativos > Compras`.
+- `reportes/compras`: encabezado, fechas, totales y tarjeta dentro de `ContenedorLista` (`mx-auto max-w-[1289px]`). El filtro de proveedor pasó a la `BarraLista` de la `TarjetaLista` como buscador de 267×32 (`h-14`, `px-4`) con su form GET, `desde`/`hasta` ocultos y botón «Aplicar»; las fechas siguen arriba. El `Paginador` va dentro de un pie `border-t px-4 py-3`, sin cambios de lógica.
+- `tabla-compras.tsx` usa `TablaLista`: cabecera de 48 px, filas de 56 px, padding 20/24, montos a la derecha y vacío «No hay compras en el período seleccionado.» sin CTA. Se conservan los enlaces a la compra y al contacto.
+- Candado: `tabla-compras.tsx` agregado a `LISTAS_MIGRADAS` en `src/lib/tablas-listas.test.ts`.
+- Verificado: `pnpm typecheck`, Biome de lo tocado y `pnpm test` (742, incluido `tablas-listas`) en verde. Sin build, dev server ni capturas; sin push ni merge.
+
 ## Fix — Reportes de libros: RPC directo y paginación completa (16 nov 2026)
 
 - Rama `fix/reportes-libros-rpc` (desde `origin/prueba` b1f3f27). El `TypeError (reading 'rest')` de los 6 reportes de libros y de Guardar numeraciones **ya estaba corregido en `prueba`** (`cdfea68`, llamar `supabase.rpc` directo) y los libros pesados ya paginaban (`8cc75cf`). Esta rama no reintroduce el patrón; cierra el hueco que quedaba y lo blinda.
