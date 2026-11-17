@@ -44,6 +44,7 @@ import {
   mensajeSubidaImagen,
   validarImagenProducto,
 } from "@/lib/productos/imagen";
+import { type PreciosListaFormulario, preciosIniciales } from "@/lib/productos/precios-formulario";
 import { etiquetaTasaItbis, etiquetaTipoProducto, type ProductoTipo, parsearMonto } from "@/lib/productos/productos";
 import { createClient } from "@/lib/supabase/client";
 
@@ -123,6 +124,50 @@ function minimosIniciales(existencias: ExistenciaAlmacen[]): MinimosAlmacen {
       },
     ]),
   );
+}
+
+function valoresConTipo(actuales: ValoresFormulario, tipo: string): ValoresFormulario {
+  if (tipo !== "producto" && tipo !== "servicio" && tipo !== "combo") return actuales;
+  if (tipo === "producto") return { ...actuales, tipo, inventariable: true };
+  return { ...actuales, tipo, inventariable: false, vendeNegativo: false };
+}
+
+function valoresConImpuesto(actuales: ValoresFormulario, impuestos: Impuesto[], impuestoId: string): ValoresFormulario {
+  const impuesto = impuestos.find((item) => item.id === impuestoId);
+  return { ...actuales, impuestoId, itbisTasa: String(impuesto?.tarifa ?? 0) };
+}
+
+function errorDeRango(fila: MinimosAlmacen[string] | undefined, nombre: string): string | null {
+  if (!fila) return null;
+
+  const minimoTexto = fila.minimo.trim();
+  const maximoTexto = fila.maximo.trim();
+  const minimo = minimoTexto === "" ? 0 : parsearMonto(minimoTexto);
+  const maximo = maximoTexto === "" ? null : parsearMonto(maximoTexto);
+
+  if (minimo === null) return `El mínimo de ${nombre} no es válido.`;
+  if (maximo === null && maximoTexto !== "") return `El máximo de ${nombre} no es válido.`;
+  if (maximo !== null && maximo < minimo) return `El máximo de ${nombre} no puede ser menor que el mínimo.`;
+  return null;
+}
+
+function errorEnMinimosDeFormulario(
+  almacenes: readonly Almacen[],
+  almacenId: string,
+  minimos: MinimosAlmacen,
+  existenciasPorAlmacen: ReadonlySet<string>,
+  controlaInventario: boolean,
+): string | null {
+  if (!controlaInventario) return null;
+
+  const editables = almacenes.filter((almacen) => existenciasPorAlmacen.has(almacen.id) || almacen.id === almacenId);
+
+  for (const almacen of editables) {
+    const error = errorDeRango(minimos[almacen.id], almacen.nombre);
+    if (error) return error;
+  }
+
+  return null;
 }
 
 function TarjetaImagen({
@@ -270,12 +315,14 @@ function TablaAlmacenes({
   existencias,
   valores,
   minimos,
+  controlaInventario,
   onCambiarMinimo,
 }: {
   readonly almacenes: Almacen[];
   readonly existencias: ExistenciaAlmacen[];
   readonly valores: ValoresFormulario;
   readonly minimos: MinimosAlmacen;
+  readonly controlaInventario: boolean;
   readonly onCambiarMinimo: (almacenId: string, campo: "minimo" | "maximo", valor: string) => void;
 }) {
   const porAlmacen = new Map(existencias.map((existencia) => [existencia.almacen_id, existencia]));
@@ -319,6 +366,7 @@ function TablaAlmacenes({
       encabezado: "Mín.",
       alineacion: "derecha",
       celda: (almacen) => {
+        if (!controlaInventario) return <span className="text-muted-foreground">—</span>;
         if (!porAlmacen.has(almacen.id) && almacen.id !== valores.almacenId) {
           return <span className="text-muted-foreground">—</span>;
         }
@@ -341,6 +389,7 @@ function TablaAlmacenes({
       encabezado: "Máx.",
       alineacion: "derecha",
       celda: (almacen) => {
+        if (!controlaInventario) return <span className="text-muted-foreground">—</span>;
         if (!porAlmacen.has(almacen.id) && almacen.id !== valores.almacenId) {
           return <span className="text-muted-foreground">—</span>;
         }
@@ -387,10 +436,12 @@ function TablaAlmacenes({
 
 function ListasPrecios({
   listasPrecios,
-  precios,
+  valores,
+  onCambiar,
 }: {
   readonly listasPrecios: ListaPrecio[];
-  readonly precios: ProductoEditable["precios"];
+  readonly valores: PreciosListaFormulario;
+  readonly onCambiar: (listaId: string, valor: string) => void;
 }) {
   if (listasPrecios.length === 0) {
     return (
@@ -407,27 +458,24 @@ function ListasPrecios({
         Listas de precios
       </FormSectionTitle>
       <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-        {listasPrecios.map((lista) => {
-          const valor = precios.find((precio) => precio.lista_id === lista.id)?.precio;
-
-          return (
-            <CampoFormulario
-              key={lista.id}
-              htmlFor={`precio_lista_${lista.id}`}
-              label={`${lista.nombre}${lista.es_principal ? " (principal)" : ""}`}
-            >
-              <Input
-                id={`precio_lista_${lista.id}`}
-                name={`precio_lista_${lista.id}`}
-                inputMode="decimal"
-                placeholder={lista.tipo === "porcentaje" ? "0" : "0.00"}
-                defaultValue={valor === undefined ? "" : String(valor)}
-                className={FORM_INPUT}
-              />
-              <span className="text-muted-foreground text-xs">{etiquetaTipoLista(lista.tipo)}</span>
-            </CampoFormulario>
-          );
-        })}
+        {listasPrecios.map((lista) => (
+          <CampoFormulario
+            key={lista.id}
+            htmlFor={`precio_lista_${lista.id}`}
+            label={`${lista.nombre}${lista.es_principal ? " (principal)" : ""}`}
+          >
+            <Input
+              id={`precio_lista_${lista.id}`}
+              name={`precio_lista_${lista.id}`}
+              inputMode="decimal"
+              placeholder={lista.tipo === "porcentaje" ? "0" : "0.00"}
+              value={valores[lista.id] ?? ""}
+              onChange={(evento) => onCambiar(lista.id, evento.target.value)}
+              className={FORM_INPUT}
+            />
+            <span className="text-muted-foreground text-xs">{etiquetaTipoLista(lista.tipo)}</span>
+          </CampoFormulario>
+        ))}
       </div>
     </div>
   );
@@ -492,6 +540,186 @@ function CuentasContables({
   );
 }
 
+function EncabezadoFormulario({
+  producto,
+  pendiente,
+  hrefCancelar,
+}: {
+  readonly producto: ProductoEditable | null;
+  readonly pendiente: boolean;
+  readonly hrefCancelar: string;
+}) {
+  const migas = [
+    { etiqueta: "Productos", href: "/dashboard/productos" },
+    { etiqueta: producto ? producto.nombre : "Nuevo producto" },
+  ];
+
+  return (
+    <EncabezadoPagina
+      titulo={producto ? "Editar producto" : "Nuevo producto"}
+      subtitulo={
+        producto
+          ? "Cambia la información, el inventario y los precios del producto."
+          : "Crea productos inventariables, servicios y combos para tus ventas."
+      }
+      migas={migas}
+      acciones={
+        <>
+          <Button variant="outline" nativeButton={false} render={<Link href={hrefCancelar} prefetch={false} />}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={pendiente}>
+            {pendiente ? "Guardando..." : "Guardar"}
+          </Button>
+        </>
+      }
+    />
+  );
+}
+
+function AvisosFormulario({ error, mensaje }: { readonly error: string | null; readonly mensaje: string | null }) {
+  return (
+    <>
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {mensaje ? (
+        <p role="status" className="text-sm text-emerald-600 dark:text-emerald-400">
+          {mensaje}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+function PieFormulario({
+  producto,
+  pendiente,
+  hrefCancelar,
+}: {
+  readonly producto: ProductoEditable | null;
+  readonly pendiente: boolean;
+  readonly hrefCancelar: string;
+}) {
+  return (
+    <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
+      <Button variant="outline" nativeButton={false} render={<Link href={hrefCancelar} prefetch={false} />}>
+        Cancelar
+      </Button>
+      {producto ? null : (
+        <Button type="submit" variant="outline" name="accion" value="crear-otro" disabled={pendiente}>
+          Guardar y crear otro
+        </Button>
+      )}
+      <Button type="submit" disabled={pendiente}>
+        {pendiente ? "Guardando..." : "Guardar"}
+      </Button>
+    </div>
+  );
+}
+
+function LateralFormulario({
+  producto,
+  valores,
+  imagenUrl,
+  subiendoImagen,
+  errorImagen,
+  controlaInventario,
+  precioBase,
+  precioTotal,
+  etiquetaImpuestoActual,
+  onSubirImagen,
+  onQuitarImagen,
+  onCambiar,
+}: {
+  readonly producto: ProductoEditable | null;
+  readonly valores: ValoresFormulario;
+  readonly imagenUrl: string | null;
+  readonly subiendoImagen: boolean;
+  readonly errorImagen: string | null;
+  readonly controlaInventario: boolean;
+  readonly precioBase: string;
+  readonly precioTotal: string;
+  readonly etiquetaImpuestoActual: string;
+  readonly onSubirImagen: (evento: ChangeEvent<HTMLInputElement>) => void;
+  readonly onQuitarImagen: () => void;
+  readonly onCambiar: (cambios: Partial<ValoresFormulario>) => void;
+}) {
+  return (
+    <aside className="flex flex-col gap-4 lg:sticky lg:top-4 lg:self-start">
+      <TarjetaImagen
+        imagenUrl={imagenUrl}
+        nombre={valores.nombre}
+        subiendo={subiendoImagen}
+        error={errorImagen}
+        onSubir={onSubirImagen}
+        onQuitar={onQuitarImagen}
+      />
+
+      <ResumenProducto
+        valores={valores}
+        controlaInventario={controlaInventario}
+        precioBase={precioBase}
+        precioTotal={precioTotal}
+        etiquetaImpuestoActual={etiquetaImpuestoActual}
+        onCambiar={onCambiar}
+      />
+
+      <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
+        <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
+        {producto
+          ? "Los cambios de cantidad se registran como ajuste de inventario."
+          : "La cantidad inicial entra al almacén elegido al guardar."}
+      </p>
+    </aside>
+  );
+}
+
+function CamposCantidadCosto({
+  producto,
+  valores,
+  controlaInventario,
+  cambiar,
+}: {
+  readonly producto: ProductoEditable | null;
+  readonly valores: ValoresFormulario;
+  readonly controlaInventario: boolean;
+  readonly cambiar: (cambios: Partial<ValoresFormulario>) => void;
+}) {
+  if (!controlaInventario) return <input type="hidden" name="costo" value="0" />;
+
+  return (
+    <>
+      <CampoFormulario htmlFor="cantidad" label={producto ? "Cantidad actual" : "Cantidad inicial"}>
+        <Input
+          id="cantidad"
+          name="cantidad"
+          inputMode="decimal"
+          placeholder="0"
+          value={valores.cantidad}
+          onChange={(evento) => cambiar({ cantidad: evento.target.value })}
+          className={FORM_INPUT}
+        />
+      </CampoFormulario>
+
+      <CampoFormulario htmlFor="costo" label="Costo por unidad">
+        <Input
+          id="costo"
+          name="costo"
+          inputMode="decimal"
+          placeholder="0"
+          value={valores.costo}
+          onChange={(evento) => cambiar({ costo: evento.target.value })}
+          className={FORM_INPUT}
+        />
+      </CampoFormulario>
+    </>
+  );
+}
+
 export function FormularioProducto({
   producto,
   categorias,
@@ -513,7 +741,6 @@ export function FormularioProducto({
 }) {
   const router = useRouter();
   const validacion = useValidacionFormulario();
-  const crearOtroRef = useRef(false);
   const [pendiente, startTransition] = useTransition();
   const almacenPorDefecto = (almacenes.find((almacen) => almacen.es_principal) ?? almacenes[0])?.id ?? "";
 
@@ -521,6 +748,9 @@ export function FormularioProducto({
     valoresIniciales(producto, almacenPorDefecto, impuestos),
   );
   const [minimos, setMinimos] = useState<MinimosAlmacen>(() => minimosIniciales(existencias));
+  const [preciosListas, setPreciosListas] = useState<PreciosListaFormulario>(() =>
+    preciosIniciales(producto?.precios, listasPrecios),
+  );
   const [imagenPath, setImagenPath] = useState(producto?.imagen_path ?? "");
   const [imagenUrl, setImagenUrl] = useState<string | null>(imagenUrlInicial);
   const [subiendoImagen, setSubiendoImagen] = useState(false);
@@ -546,17 +776,15 @@ export function FormularioProducto({
   }
 
   function cambiarTipo(tipo: string) {
-    if (tipo !== "producto" && tipo !== "servicio" && tipo !== "combo") return;
-    if (tipo === "producto") {
-      cambiar({ tipo, inventariable: true });
-      return;
-    }
-    cambiar({ tipo, inventariable: false, vendeNegativo: false });
+    setValores((previos) => valoresConTipo(previos, tipo));
   }
 
-  function cambiarImpuesto(id: string) {
-    const impuesto = impuestos.find((item) => item.id === id);
-    cambiar({ impuestoId: id, itbisTasa: String(impuesto?.tarifa ?? 0) });
+  function cambiarImpuesto(impuestoId: string) {
+    setValores((previos) => valoresConImpuesto(previos, impuestos, impuestoId));
+  }
+
+  function cambiarPrecioLista(listaId: string, valor: string) {
+    setPreciosListas((previos) => ({ ...previos, [listaId]: valor }));
   }
 
   function cambiarMinimo(almacenId: string, campo: "minimo" | "maximo", valor: string) {
@@ -566,28 +794,8 @@ export function FormularioProducto({
     }));
   }
 
-  function puedeEditarMinimos(almacenId: string) {
-    return existenciasPorAlmacen.has(almacenId) || almacenId === valores.almacenId;
-  }
-
   function errorEnMinimos(): string | null {
-    for (const almacen of almacenes) {
-      if (!puedeEditarMinimos(almacen.id)) continue;
-
-      const fila = minimos[almacen.id] ?? { minimo: "", maximo: "" };
-      const minimoTexto = fila.minimo.trim();
-      const maximoTexto = fila.maximo.trim();
-      const minimo = minimoTexto === "" ? 0 : parsearMonto(minimoTexto);
-      const maximo = maximoTexto === "" ? null : parsearMonto(maximoTexto);
-
-      if (minimo === null) return `El mínimo de ${almacen.nombre} no es válido.`;
-      if (maximo === null && maximoTexto !== "") return `El máximo de ${almacen.nombre} no es válido.`;
-      if (maximo !== null && maximo < minimo) {
-        return `El máximo de ${almacen.nombre} no puede ser menor que el mínimo.`;
-      }
-    }
-
-    return null;
+    return errorEnMinimosDeFormulario(almacenes, valores.almacenId, minimos, existenciasPorAlmacen, controlaInventario);
   }
 
   async function subirImagen(evento: ChangeEvent<HTMLInputElement>) {
@@ -637,6 +845,7 @@ export function FormularioProducto({
   function reiniciarFormulario() {
     setValores(valoresIniciales(null, almacenPorDefecto, impuestos));
     setMinimos({});
+    setPreciosListas(preciosIniciales(null, listasPrecios));
     setImagenPath("");
     setImagenUrl(null);
     setErrorImagen(null);
@@ -650,8 +859,7 @@ export function FormularioProducto({
     setMensaje(null);
 
     const formData = new FormData(evento.currentTarget);
-    const crearOtro = crearOtroRef.current;
-    crearOtroRef.current = false;
+    const crearOtro = formData.get("accion") === "crear-otro";
 
     const reglas = [
       requerido("nombre", formData.get("nombre"), "El nombre es requerido."),
@@ -688,42 +896,16 @@ export function FormularioProducto({
         return;
       }
 
-      if (resultado.id) {
-        router.push(rutaProducto(resultado.id));
-      } else {
-        router.push("/dashboard/productos");
-      }
+      router.push(resultado.id ? rutaProducto(resultado.id) : "/dashboard/productos");
       router.refresh();
     });
   }
 
   const hrefCancelar = producto ? rutaProducto(producto.id) : "/dashboard/productos";
-  const migas = [
-    { etiqueta: "Productos", href: "/dashboard/productos" },
-    { etiqueta: producto ? producto.nombre : "Nuevo producto" },
-  ];
 
   return (
     <form noValidate onSubmit={enviar} className="flex flex-col gap-6">
-      <EncabezadoPagina
-        titulo={producto ? "Editar producto" : "Nuevo producto"}
-        subtitulo={
-          producto
-            ? "Cambia la información, el inventario y los precios del producto."
-            : "Crea productos inventariables, servicios y combos para tus ventas."
-        }
-        migas={migas}
-        acciones={
-          <>
-            <Button variant="outline" nativeButton={false} render={<Link href={hrefCancelar} prefetch={false} />}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={pendiente}>
-              {pendiente ? "Guardando..." : "Guardar"}
-            </Button>
-          </>
-        }
-      />
+      <EncabezadoFormulario producto={producto} pendiente={pendiente} hrefCancelar={hrefCancelar} />
 
       <input type="hidden" name="tipo" value={valores.tipo} />
       <input type="hidden" name="inventariable" value={String(controlaInventario)} />
@@ -875,35 +1057,12 @@ export function FormularioProducto({
             </FormSectionTitle>
 
             <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-              {controlaInventario ? (
-                <>
-                  <CampoFormulario htmlFor="cantidad" label="Cantidad inicial">
-                    <Input
-                      id="cantidad"
-                      name="cantidad"
-                      inputMode="decimal"
-                      placeholder="0"
-                      value={valores.cantidad}
-                      onChange={(evento) => cambiar({ cantidad: evento.target.value })}
-                      className={FORM_INPUT}
-                    />
-                  </CampoFormulario>
-
-                  <CampoFormulario htmlFor="costo" label="Costo por unidad">
-                    <Input
-                      id="costo"
-                      name="costo"
-                      inputMode="decimal"
-                      placeholder="0"
-                      value={valores.costo}
-                      onChange={(evento) => cambiar({ costo: evento.target.value })}
-                      className={FORM_INPUT}
-                    />
-                  </CampoFormulario>
-                </>
-              ) : (
-                <input type="hidden" name="costo" value="0" />
-              )}
+              <CamposCantidadCosto
+                producto={producto}
+                valores={valores}
+                controlaInventario={controlaInventario}
+                cambiar={cambiar}
+              />
 
               <CampoFormulario htmlFor="precio" label="Precio base" required error={validacion.errorDe("precio")}>
                 <Input
@@ -960,76 +1119,36 @@ export function FormularioProducto({
                 existencias={existencias}
                 valores={valores}
                 minimos={minimos}
+                controlaInventario={controlaInventario}
                 onCambiarMinimo={cambiarMinimo}
               />
 
-              <ListasPrecios listasPrecios={listasPrecios} precios={producto?.precios ?? []} />
+              <ListasPrecios listasPrecios={listasPrecios} valores={preciosListas} onCambiar={cambiarPrecioLista} />
 
               <CuentasContables producto={producto} cuentas={cuentas} controlaInventario={controlaInventario} />
             </CollapsibleContent>
           </Collapsible>
         </div>
 
-        <aside className="flex flex-col gap-4 lg:sticky lg:top-4 lg:self-start">
-          <TarjetaImagen
-            imagenUrl={imagenUrl}
-            nombre={valores.nombre}
-            subiendo={subiendoImagen}
-            error={errorImagen}
-            onSubir={subirImagen}
-            onQuitar={quitarImagen}
-          />
-
-          <ResumenProducto
-            valores={valores}
-            controlaInventario={controlaInventario}
-            precioBase={formatoMoneda(precioNumero)}
-            precioTotal={precioTotal}
-            etiquetaImpuestoActual={etiquetaImpuestoActual}
-            onCambiar={cambiar}
-          />
-
-          <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
-            <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
-            {producto
-              ? "Los cambios de cantidad se registran como ajuste de inventario."
-              : "La cantidad inicial entra al almacén elegido al guardar."}
-          </p>
-        </aside>
+        <LateralFormulario
+          producto={producto}
+          valores={valores}
+          imagenUrl={imagenUrl}
+          subiendoImagen={subiendoImagen}
+          errorImagen={errorImagen}
+          controlaInventario={controlaInventario}
+          precioBase={formatoMoneda(precioNumero)}
+          precioTotal={precioTotal}
+          etiquetaImpuestoActual={etiquetaImpuestoActual}
+          onSubirImagen={subirImagen}
+          onQuitarImagen={quitarImagen}
+          onCambiar={cambiar}
+        />
       </div>
 
-      {error ? (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
+      <AvisosFormulario error={error} mensaje={mensaje} />
 
-      {mensaje ? (
-        <p role="status" className="text-sm text-emerald-600 dark:text-emerald-400">
-          {mensaje}
-        </p>
-      ) : null}
-
-      <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
-        <Button variant="outline" nativeButton={false} render={<Link href={hrefCancelar} prefetch={false} />}>
-          Cancelar
-        </Button>
-        {producto ? null : (
-          <Button
-            type="submit"
-            variant="outline"
-            disabled={pendiente}
-            onClick={() => {
-              crearOtroRef.current = true;
-            }}
-          >
-            Guardar y crear otro
-          </Button>
-        )}
-        <Button type="submit" disabled={pendiente}>
-          {pendiente ? "Guardando..." : "Guardar"}
-        </Button>
-      </div>
+      <PieFormulario producto={producto} pendiente={pendiente} hrefCancelar={hrefCancelar} />
     </form>
   );
 }

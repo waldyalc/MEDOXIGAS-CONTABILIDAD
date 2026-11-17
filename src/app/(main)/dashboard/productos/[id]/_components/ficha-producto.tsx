@@ -92,7 +92,7 @@ function EncabezadoProducto({
   readonly hrefEditar: string | null;
   readonly onVerHistorial: () => void;
 }) {
-  const esServicio = producto.tipo === "servicio";
+  const Icono = producto.tipo === "servicio" ? Wrench : Package;
   const id = encodeURIComponent(producto.id);
 
   return (
@@ -102,10 +102,8 @@ function EncabezadoProducto({
           {producto.imagenUrl ? (
             // biome-ignore lint/performance/noImgElement: imagen del producto guardada en Storage
             <img src={producto.imagenUrl} alt={producto.nombre} className="size-full object-cover" />
-          ) : esServicio ? (
-            <Wrench className="size-6" />
           ) : (
-            <Package className="size-6" />
+            <Icono className="size-6" />
           )}
         </div>
         <div className="flex flex-col gap-1.5">
