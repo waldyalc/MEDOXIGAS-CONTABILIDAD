@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { getCentrosCostoActivos } from "@/lib/centros-costo/consultas";
 import { crearRemision } from "@/lib/conduces/acciones";
-import { getDocumentoVista } from "@/lib/cotizaciones/consultas";
+import { getDocumentoVista, getProximoNumero } from "@/lib/cotizaciones/consultas";
 import { getContactosClientes, getEmpresa, getProductosActivos } from "@/lib/facturacion/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
 import { getImpuestosActivos } from "@/lib/impuestos/consultas";
@@ -49,7 +49,7 @@ export default async function Page({
 }
 
 async function ConduceContenido({ clonar, cotizacion }: { clonar?: string; cotizacion?: string }) {
-  const [empresa, contactos, productos, vendedores, centrosCosto, plantilla, clon, origen, impuestos] =
+  const [empresa, contactos, productos, vendedores, centrosCosto, plantilla, clon, origen, impuestos, vistaNumero] =
     await Promise.all([
       getEmpresa(),
       getContactosClientes(),
@@ -60,6 +60,7 @@ async function ConduceContenido({ clonar, cotizacion }: { clonar?: string; cotiz
       clonar ? getDocumentoVista("remision", clonar) : Promise.resolve(null),
       cotizacion ? getDocumentoVista("cotizacion", cotizacion) : Promise.resolve(null),
       getImpuestosActivos(),
+      getProximoNumero("remision"),
     ]);
 
   const hoy = hoyRD();
@@ -80,6 +81,7 @@ async function ConduceContenido({ clonar, cotizacion }: { clonar?: string; cotiz
       fechaHoy={hoy}
       titulo="Información del conduce"
       etiquetaNumero="Conduce No."
+      vistaNumero={vistaNumero}
       conTerminos
       textoGuardar="Guardar conduce"
       rutaCancelar="/dashboard/conduces"
