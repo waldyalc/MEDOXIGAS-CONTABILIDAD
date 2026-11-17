@@ -203,12 +203,13 @@ function NumeroComprobante({
 
     return (
       <div className="w-full">
-        <div
-          className={`flex h-10 items-center justify-between gap-2 rounded-[10px] border bg-white pr-1 pl-2.5 ${
-            hayNumero ? "border-slate-300" : "border-destructive"
-          }`}
-        >
-          <div className="flex min-w-0 items-baseline gap-2.5 text-base">
+        <div className="flex w-full items-center justify-between gap-2.5">
+          <div
+            className={`flex h-14 w-[215px] shrink-0 items-center gap-2.5 rounded-[10px] border bg-white px-3 text-base ${
+              hayNumero ? "border-slate-300" : "border-destructive"
+            }`}
+            title="El NCF se asigna al guardar la factura"
+          >
             <span className="text-slate-500">{etiqueta}</span>
             <span className="truncate text-slate-700 tabular-nums" aria-live="polite">
               {hayNumero ? vistaNcf.ncf : "—"}
@@ -216,8 +217,8 @@ function NumeroComprobante({
           </div>
           <Button
             variant="ghost"
-            size="icon-sm"
-            className="shrink-0 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+            size="icon"
+            className="size-10 shrink-0 rounded-[10px] text-slate-500 hover:bg-slate-100 hover:text-slate-700"
             render={<Link href="/dashboard/contabilidad/numeraciones" prefetch={false} />}
             aria-label="Configurar numeración"
             title="Configurar numeración"
@@ -225,10 +226,8 @@ function NumeroComprobante({
             <Settings className="size-4" aria-hidden="true" />
           </Button>
         </div>
-        {hayNumero ? (
-          <p className="mt-1 pl-2.5 text-[11px] leading-4 text-slate-500">Se asigna al guardar</p>
-        ) : (
-          <p className="text-destructive mt-1 pl-2.5 text-xs leading-4" role="status">
+        {hayNumero ? null : (
+          <p className="text-destructive mt-1 max-w-[215px] text-xs leading-4" role="status">
             {vistaNcf.mensaje}
           </p>
         )}
