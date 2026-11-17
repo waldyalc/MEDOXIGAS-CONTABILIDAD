@@ -21,6 +21,7 @@ import {
   Percent,
   ReceiptText,
   ShoppingCart,
+  SquarePen,
   Tag,
   Truck,
   Wrench,
@@ -45,14 +46,17 @@ import {
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { etiquetaEstadoDocumento } from "@/lib/contactos/ficha";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
+import type { Impuesto } from "@/lib/impuestos/tipos";
+import type { CategoriaProducto, ListaPrecio } from "@/lib/inventario/tipos";
 import {
   type FichaProducto as DatosFichaProducto,
   type DocumentoFicha,
   precioConItbis,
   sumarCantidades,
 } from "@/lib/productos/ficha";
-import { etiquetaTasaItbis } from "@/lib/productos/productos";
+import { etiquetaTasaItbis, type Producto } from "@/lib/productos/productos";
 
+import { ProductoDialogo } from "../../_components/producto-dialogo";
 import { InformacionGeneral } from "./informacion-general";
 import { ListaBuscable, PendienteBackend, TablaComerciales, TablaFacturas, TablaKardex } from "./tablas-producto";
 
@@ -89,10 +93,12 @@ function Pildora({ className, children }: { readonly className: string; readonly
 function EncabezadoProducto({
   producto,
   puedeEscribir,
+  onEditar,
   onVerHistorial,
 }: {
   readonly producto: DatosFichaProducto["producto"];
   readonly puedeEscribir: boolean;
+  readonly onEditar: (() => void) | null;
   readonly onVerHistorial: () => void;
 }) {
   const esServicio = producto.tipo === "servicio";
@@ -138,9 +144,16 @@ function EncabezadoProducto({
         </div>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
+        {onEditar ? (
+          <Button onClick={onEditar}>
+            <SquarePen data-icon="inline-start" />
+            Editar producto
+          </Button>
+        ) : null}
         {puedeEscribir ? (
           <>
             <Button
+              variant="outline"
               nativeButton={false}
               render={<Link href={`/dashboard/facturacion/nueva?producto=${id}`} prefetch={false} />}
             >
@@ -222,12 +235,21 @@ function filtrarEstado<T extends { estado: string }>(documentos: readonly T[], e
 export function FichaProducto({
   ficha,
   puedeEscribir,
+  productoEditable,
+  categorias,
+  listasPrecios,
+  impuestos,
 }: {
   readonly ficha: DatosFichaProducto;
   readonly puedeEscribir: boolean;
+  readonly productoEditable: Producto | null;
+  readonly categorias: CategoriaProducto[];
+  readonly listasPrecios: ListaPrecio[];
+  readonly impuestos: Impuesto[];
 }) {
   const { producto, facturasVenta, facturasCompra, cotizaciones, conduces, kardex } = ficha;
   const [pestana, setPestana] = useState<PestanaProducto>("informacion");
+  const [editando, setEditando] = useState(false);
   const [estadoVentas, setEstadoVentas] = useState("todos");
   const [estadoCompras, setEstadoCompras] = useState("todos");
 
@@ -266,7 +288,12 @@ export function FichaProducto({
       </Button>
 
       <div className={CLASE_PANEL_FICHA}>
-        <EncabezadoProducto producto={producto} puedeEscribir={puedeEscribir} onVerHistorial={verHistorial} />
+        <EncabezadoProducto
+          producto={producto}
+          puedeEscribir={puedeEscribir}
+          onEditar={puedeEscribir && productoEditable ? () => setEditando(true) : null}
+          onVerHistorial={verHistorial}
+        />
 
         <div className="px-5 pb-5">
           <GrillaKpis kpis={construirKpis(ficha)} />
@@ -274,7 +301,10 @@ export function FichaProducto({
 
         <Tabs value={pestana} className="gap-0">
           <div className="border-border flex items-center justify-between gap-2 border-b px-2 sm:px-4">
-            <nav className="flex min-w-0 items-center gap-1 overflow-x-auto" aria-label="Secciones de la ficha">
+            <nav
+              className="flex min-w-0 [scrollbar-width:none] items-center gap-1 overflow-x-auto overscroll-x-contain scroll-smooth [&::-webkit-scrollbar]:hidden"
+              aria-label="Secciones de la ficha"
+            >
               {pestanas.map((item) => (
                 <ItemPestana
                   key={item.valor}
@@ -346,6 +376,15 @@ export function FichaProducto({
           ) : null}
         </Tabs>
       </div>
+
+      <ProductoDialogo
+        abierto={editando}
+        producto={productoEditable}
+        categorias={categorias}
+        listasPrecios={listasPrecios}
+        impuestos={impuestos}
+        onCambiarAbierto={setEditando}
+      />
     </div>
   );
 }
