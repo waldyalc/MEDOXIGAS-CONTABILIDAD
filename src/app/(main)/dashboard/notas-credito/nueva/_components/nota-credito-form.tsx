@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_INPUT,
@@ -15,10 +16,10 @@ import {
   FormActions,
   FormCard,
   FormDivider,
-  FormField,
   FormSectionTitle,
   FormTotal,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,6 +31,7 @@ import { rutaFactura, rutaNotaCreditoVenta } from "@/lib/enlaces";
 import { calcularLinea, calcularTotales, parsearCantidad, valorACentavos } from "@/lib/facturacion/calculo";
 import { formatoCantidad, formatoMoneda, formatoMonedaCentavos, saldoDeFactura } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
+import { requerido } from "@/lib/formularios/validacion";
 import { crearNotaCreditoVenta } from "@/lib/notas-credito/acciones";
 import type { DatosFormularioNota } from "@/lib/notas-credito/tipos";
 
@@ -52,6 +54,7 @@ export function NotaCreditoForm({ datos, fechaHoy }: Props) {
     Object.fromEntries(datos.lineas.map((linea) => [linea.id, "0"])),
   );
   const [error, setError] = useState<string | null>(null);
+  const validacion = useValidacionFormulario();
 
   const calculadas = datos.lineas.map((linea) => {
     const cantidad = parsearCantidad(cantidades[linea.id] ?? "");
@@ -82,16 +85,29 @@ export function NotaCreditoForm({ datos, fechaHoy }: Props) {
     setError(null);
 
     const seleccionadas = calculadas.filter((item) => item.cantidad > 0);
-    if (seleccionadas.length === 0) {
-      setError("Indica al menos una cantidad a devolver.");
-      return;
-    }
+    const primeraLinea = datos.lineas.find((linea) => linea.pendiente > 0) ?? datos.lineas[0];
 
-    const excedida = seleccionadas.find((item) => excedePendiente(item.cantidad, item.linea.pendiente));
-    if (excedida) {
-      setError(
-        `La cantidad de "${excedida.linea.descripcion}" supera lo pendiente (${formatoCantidad(excedida.linea.pendiente)}).`,
-      );
+    if (
+      !validacion.validar([
+        requerido("fecha", fecha, "La fecha es requerida."),
+        {
+          campo: primeraLinea ? `nota-cantidad-${primeraLinea.id}` : "fecha",
+          invalido: seleccionadas.length === 0,
+          mensaje: "Indica al menos una cantidad a devolver.",
+        },
+        ...calculadas.map((item) => ({
+          campo: `nota-cantidad-${item.linea.id}`,
+          invalido:
+            item.cantidad < 0 ||
+            !Number.isFinite(item.cantidad) ||
+            (item.cantidad > 0 && excedePendiente(item.cantidad, item.linea.pendiente)),
+          mensaje:
+            item.cantidad > 0 && excedePendiente(item.cantidad, item.linea.pendiente)
+              ? `Supera lo pendiente (${formatoCantidad(item.linea.pendiente)}).`
+              : "La cantidad no es válida.",
+        })),
+      ])
+    ) {
       return;
     }
 
@@ -119,6 +135,7 @@ export function NotaCreditoForm({ datos, fechaHoy }: Props) {
 
   return (
     <form
+      noValidate
       className="mx-auto flex w-full max-w-[1040px] flex-col gap-6"
       onSubmit={(evento) => {
         evento.preventDefault();
@@ -164,16 +181,19 @@ export function NotaCreditoForm({ datos, fechaHoy }: Props) {
         <section>
           <FormSectionTitle className="mb-4">Datos de la nota</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
-            <FormField htmlFor="fecha" label="Fecha" required>
+            <CampoFormulario htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
               <Input
                 id="fecha"
                 type="date"
                 required
                 value={fecha}
-                onChange={(evento) => setFecha(evento.target.value)}
+                onChange={(evento) => {
+                  setFecha(evento.target.value);
+                  validacion.limpiar("fecha");
+                }}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
             <div className="flex items-start gap-2 pt-6">
               <Checkbox
                 id="devuelve-inventario"
@@ -187,7 +207,7 @@ export function NotaCreditoForm({ datos, fechaHoy }: Props) {
                 </p>
               </div>
             </div>
-            <FormField htmlFor="notas" label="Notas" className="md:col-span-2">
+            <CampoFormulario htmlFor="notas" label="Notas" className="md:col-span-2">
               <Textarea
                 id="notas"
                 placeholder="Motivo o detalle de la devolución (opcional)"
@@ -195,7 +215,7 @@ export function NotaCreditoForm({ datos, fechaHoy }: Props) {
                 onChange={(evento) => setNotas(evento.target.value)}
                 className={FORM_TEXTAREA}
               />
-            </FormField>
+            </CampoFormulario>
           </div>
         </section>
 
@@ -226,13 +246,23 @@ export function NotaCreditoForm({ datos, fechaHoy }: Props) {
                     <TableCell className="text-right tabular-nums">{formatoMoneda(item.linea.precio)}</TableCell>
                     <TableCell>
                       <Input
+                        id={`nota-cantidad-${item.linea.id}`}
                         className={`${FORM_INPUT} text-right`}
                         inputMode="decimal"
                         aria-label={`Cantidad a devolver de ${item.linea.descripcion}`}
+                        aria-invalid={Boolean(validacion.errorDe(`nota-cantidad-${item.linea.id}`))}
                         value={cantidades[item.linea.id] ?? "0"}
                         disabled={item.linea.pendiente <= 0}
-                        onChange={(evento) => cambiarCantidad(item.linea.id, evento.target.value)}
+                        onChange={(evento) => {
+                          cambiarCantidad(item.linea.id, evento.target.value);
+                          validacion.limpiar(`nota-cantidad-${item.linea.id}`);
+                        }}
                       />
+                      {validacion.errorDe(`nota-cantidad-${item.linea.id}`) ? (
+                        <p role="alert" className="text-destructive mt-1 text-xs">
+                          {validacion.errorDe(`nota-cantidad-${item.linea.id}`)}
+                        </p>
+                      ) : null}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {formatoMonedaCentavos(item.calculo.totalCentavos)}

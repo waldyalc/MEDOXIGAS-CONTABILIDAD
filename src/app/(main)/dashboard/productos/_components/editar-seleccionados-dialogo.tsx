@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { FORM_INPUT_GROUP, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_INPUT_GROUP, FORM_SELECT } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,8 +20,8 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CategoriaProducto } from "@/lib/inventario/tipos";
 import { actualizarProducto } from "@/lib/productos/actions";
-import { type CambiosEdicionMasiva, calcularEdicionMasiva } from "@/lib/productos/importar";
-import { type Producto, SIN_CATEGORIA, TASAS_ITBIS } from "@/lib/productos/productos";
+import { type CambiosEdicionMasiva, calcularEdicionMasiva, parsearPorcentaje } from "@/lib/productos/importar";
+import { type Producto, parsearMonto, SIN_CATEGORIA, TASAS_ITBIS } from "@/lib/productos/productos";
 
 import { formDataProducto } from "./form-data-producto";
 
@@ -68,6 +70,7 @@ export function EditarSeleccionadosDialogo({
   const [activo, setActivo] = useState<CambiosEdicionMasiva["activo"]>("");
   const [error, setError] = useState<string | null>(null);
   const [resumen, setResumen] = useState<ResumenEdicion | null>(null);
+  const validacion = useValidacionFormulario();
 
   const opcionesCategoria = [
     { value: "", label: "Sin cambio" },
@@ -84,6 +87,7 @@ export function EditarSeleccionadosDialogo({
     setActivo("");
     setError(null);
     setResumen(null);
+    validacion.limpiarTodo();
   }
 
   function cambiarAbierto(valor: boolean) {
@@ -93,6 +97,23 @@ export function EditarSeleccionadosDialogo({
 
   function aplicar() {
     setError(null);
+
+    if (
+      !validacion.validar([
+        {
+          campo: "precio-fijo",
+          invalido: precioModo === "fijo" && parsearMonto(precioFijo) === null,
+          mensaje: "Escribe un precio fijo válido.",
+        },
+        {
+          campo: "porcentaje",
+          invalido: precioModo === "porcentaje" && parsearPorcentaje(porcentaje) === null,
+          mensaje: "Escribe un porcentaje válido (puede ser negativo).",
+        },
+      ])
+    ) {
+      return;
+    }
 
     const calculo = calcularEdicionMasiva(productos, {
       precioModo,
@@ -140,7 +161,7 @@ export function EditarSeleccionadosDialogo({
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          <FormField htmlFor="precio-modo" label="Precio">
+          <CampoFormulario htmlFor="precio-modo" label="Precio">
             <Select
               value={precioModo}
               onValueChange={(valor) => setPrecioModo((valor as CambiosEdicionMasiva["precioModo"]) ?? "sin_cambio")}
@@ -157,10 +178,10 @@ export function EditarSeleccionadosDialogo({
                 ))}
               </SelectContent>
             </Select>
-          </FormField>
+          </CampoFormulario>
 
           {precioModo === "fijo" ? (
-            <FormField htmlFor="precio-fijo" label="Precio fijo">
+            <CampoFormulario htmlFor="precio-fijo" label="Precio fijo" error={validacion.errorDe("precio-fijo")}>
               <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
@@ -169,32 +190,38 @@ export function EditarSeleccionadosDialogo({
                   id="precio-fijo"
                   inputMode="decimal"
                   value={precioFijo}
-                  onChange={(evento) => setPrecioFijo(evento.target.value)}
+                  onChange={(evento) => {
+                    setPrecioFijo(evento.target.value);
+                    validacion.limpiar("precio-fijo");
+                  }}
                   placeholder="0"
                 />
               </InputGroup>
-            </FormField>
+            </CampoFormulario>
           ) : null}
 
           {precioModo === "porcentaje" ? (
-            <FormField htmlFor="porcentaje" label="Ajuste">
+            <CampoFormulario htmlFor="porcentaje" label="Ajuste" error={validacion.errorDe("porcentaje")}>
               <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupInput
                   id="porcentaje"
                   inputMode="decimal"
                   value={porcentaje}
-                  onChange={(evento) => setPorcentaje(evento.target.value)}
+                  onChange={(evento) => {
+                    setPorcentaje(evento.target.value);
+                    validacion.limpiar("porcentaje");
+                  }}
                   placeholder="Ej. -10 o +15"
                 />
                 <InputGroupAddon align="inline-end" className="pr-2 pl-0 text-sm text-slate-500">
                   %
                 </InputGroupAddon>
               </InputGroup>
-            </FormField>
+            </CampoFormulario>
           ) : null}
 
           <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="itbis-masivo" label="ITBIS">
+            <CampoFormulario htmlFor="itbis-masivo" label="ITBIS">
               <Select value={itbisTasa} onValueChange={(valor) => setItbisTasa(valor ?? "")} items={OPCIONES_ITBIS}>
                 <SelectTrigger id="itbis-masivo" className={FORM_SELECT}>
                   <SelectValue />
@@ -207,9 +234,9 @@ export function EditarSeleccionadosDialogo({
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="estado-masivo" label="Estado">
+            <CampoFormulario htmlFor="estado-masivo" label="Estado">
               <Select
                 value={activo}
                 onValueChange={(valor) => setActivo((valor as CambiosEdicionMasiva["activo"]) ?? "")}
@@ -226,10 +253,10 @@ export function EditarSeleccionadosDialogo({
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
+            </CampoFormulario>
           </div>
 
-          <FormField htmlFor="categoria-masiva" label="Categoría">
+          <CampoFormulario htmlFor="categoria-masiva" label="Categoría">
             <Select
               value={categoriaId}
               onValueChange={(valor) => setCategoriaId(valor ?? "")}
@@ -246,7 +273,7 @@ export function EditarSeleccionadosDialogo({
                 ))}
               </SelectContent>
             </Select>
-          </FormField>
+          </CampoFormulario>
 
           {error ? (
             <p role="alert" className="text-destructive text-sm">

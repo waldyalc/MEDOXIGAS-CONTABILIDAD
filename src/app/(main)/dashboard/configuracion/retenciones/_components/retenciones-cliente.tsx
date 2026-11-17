@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Percent, Plus } from "lucide-react";
 
-import { FORM_INPUT, FORM_INPUT_GROUP, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_INPUT, FORM_INPUT_GROUP, FORM_SELECT } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -18,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { actualizarRetencion, crearRetencion } from "@/lib/configuracion/acciones";
 import type { CuentaRetencion, RetencionConfig } from "@/lib/configuracion/tipos";
 import { formatoPct } from "@/lib/formato";
+import { requerido } from "@/lib/formularios/validacion";
 import type { TipoRetencion } from "@/lib/retenciones/calculo";
 
 const columnas: readonly ColumnaLista<RetencionConfig>[] = [
@@ -95,6 +98,7 @@ function FormularioRetencion({
   const [activa, setActiva] = useState(retencion?.activa ?? true);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
 
   const opcionesPasivo = opcionesCuenta(cuentasPasivo);
   const opcionesActivo = [{ value: SIN_CUENTA, label: "Sin cuenta (usa la configuración contable)" }];
@@ -105,11 +109,29 @@ function FormularioRetencion({
     const datos = new FormData(evento.currentTarget);
     setError(null);
 
+    const nombre = String(datos.get("nombre") ?? "");
+    const porcentajeValor = String(datos.get("porcentaje") ?? "");
+
+    if (
+      !validacion.validar([
+        requerido("nombre", nombre, "El nombre es requerido."),
+        requerido("porcentaje", porcentajeValor, "El porcentaje es requerido."),
+        {
+          campo: "porcentaje",
+          invalido: porcentajeValor.trim() !== "" && Number(porcentajeValor) <= 0,
+          mensaje: "El porcentaje debe ser mayor que cero.",
+        },
+        requerido("cuenta", cuentaId, "La cuenta es requerida."),
+      ])
+    ) {
+      return;
+    }
+
     const entrada = {
       ...(retencion ? { id: retencion.id } : {}),
-      nombre: String(datos.get("nombre") ?? ""),
+      nombre,
       tipo,
-      porcentaje: String(datos.get("porcentaje") ?? ""),
+      porcentaje: porcentajeValor,
       cuenta_id: cuentaId,
       cuenta_anticipo_id: anticipoId === SIN_CUENTA ? "" : anticipoId,
       activa,
@@ -128,22 +150,23 @@ function FormularioRetencion({
   }
 
   return (
-    <form onSubmit={enviar} className="flex flex-col gap-4">
+    <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
       <div className="flex flex-col gap-4">
-        <FormField htmlFor="nombre" label="Nombre" required>
+        <CampoFormulario htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
           <Input
             id="nombre"
             name="nombre"
             required
             maxLength={80}
             defaultValue={retencion?.nombre ?? ""}
+            onChange={() => validacion.limpiar("nombre")}
             placeholder="Ej. ITBIS 30 %"
             className={FORM_INPUT}
           />
-        </FormField>
+        </CampoFormulario>
 
         <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-          <FormField htmlFor="tipo" label="Tipo" required>
+          <CampoFormulario htmlFor="tipo" label="Tipo" required error={validacion.errorDe("tipo")}>
             <Select
               items={[...TIPOS]}
               value={tipo}
@@ -162,9 +185,9 @@ function FormularioRetencion({
                 ))}
               </SelectContent>
             </Select>
-          </FormField>
+          </CampoFormulario>
 
-          <FormField htmlFor="porcentaje" label="Porcentaje" required>
+          <CampoFormulario htmlFor="porcentaje" label="Porcentaje" required error={validacion.errorDe("porcentaje")}>
             <InputGroup className={FORM_INPUT_GROUP}>
               <InputGroupInput
                 id="porcentaje"
@@ -172,21 +195,32 @@ function FormularioRetencion({
                 inputMode="decimal"
                 required
                 defaultValue={porcentaje}
-                onChange={(evento) => setPorcentaje(evento.target.value)}
+                onChange={(evento) => {
+                  setPorcentaje(evento.target.value);
+                  validacion.limpiar("porcentaje");
+                }}
                 placeholder="30"
               />
               <InputGroupAddon align="inline-end" className="pr-2 pl-0 text-sm text-slate-500">
                 %
               </InputGroupAddon>
             </InputGroup>
-          </FormField>
+          </CampoFormulario>
         </div>
 
-        <FormField htmlFor="cuenta" label="Cuenta cuando retenemos (pasivo)" required>
+        <CampoFormulario
+          htmlFor="cuenta"
+          label="Cuenta cuando retenemos (pasivo)"
+          required
+          error={validacion.errorDe("cuenta")}
+        >
           <Select
             items={opcionesPasivo}
             value={cuentaId}
-            onValueChange={(valor: string | null) => setCuentaId(valor ?? "")}
+            onValueChange={(valor: string | null) => {
+              setCuentaId(valor ?? "");
+              validacion.limpiar("cuenta");
+            }}
           >
             <SelectTrigger id="cuenta" className={FORM_SELECT}>
               <SelectValue />
@@ -199,9 +233,9 @@ function FormularioRetencion({
               ))}
             </SelectContent>
           </Select>
-        </FormField>
+        </CampoFormulario>
 
-        <FormField htmlFor="cuenta_anticipo" label="Cuenta cuando nos retienen (activo)">
+        <CampoFormulario htmlFor="cuenta_anticipo" label="Cuenta cuando nos retienen (activo)">
           <Select
             items={opcionesActivo}
             value={anticipoId}
@@ -218,7 +252,7 @@ function FormularioRetencion({
               ))}
             </SelectContent>
           </Select>
-        </FormField>
+        </CampoFormulario>
 
         <div className="flex items-center justify-between gap-3">
           <FieldLabel htmlFor="activa">Activa</FieldLabel>

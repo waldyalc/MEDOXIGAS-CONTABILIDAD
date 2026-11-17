@@ -9,6 +9,7 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_COMBO,
@@ -19,10 +20,10 @@ import {
   FormActions,
   FormCard,
   FormDivider,
-  FormField,
   FormSectionTitle,
   FormTotal,
 } from "@/components/formularios/formulario";
+import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { type ProductoSeleccionable, SelectorProducto } from "@/components/productos/selector-producto";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -36,6 +37,7 @@ import { aNumero, calcularTotales, desdeCentavos } from "@/lib/compras/calculo";
 import { hoyEnRd } from "@/lib/compras/fechas";
 import { formatoMoneda } from "@/lib/compras/formato";
 import { rutaOrdenCompra } from "@/lib/enlaces";
+import { requerido } from "@/lib/formularios/validacion";
 import { impuestoNinguno } from "@/lib/impuestos/tipos";
 import { crearOrdenCompra } from "@/lib/ordenes-compra/acciones";
 import { esquemaOrdenCompra } from "@/lib/ordenes-compra/esquema";
@@ -93,6 +95,7 @@ export function FormularioOrden({ contactos, productos, cuentasGasto, impuestos 
   ]);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
+  const validacion = useValidacionFormulario();
 
   const opcionesGastos: OpcionCombobox[] = cuentasGasto.map((cuenta) => ({
     value: cuenta.id,
@@ -144,16 +147,32 @@ export function FormularioOrden({ contactos, productos, cuentasGasto, impuestos 
     evento.preventDefault();
     setError(null);
 
-    if (!proveedorId) {
-      setError("Selecciona un proveedor.");
-      return;
-    }
-
-    const lineaIncompleta = lineas.some(
-      (linea) => (linea.modo === "producto" && !linea.productoId) || (linea.modo === "gasto" && !linea.cuentaId),
-    );
-    if (lineaIncompleta) {
-      setError("Selecciona un producto o una cuenta de gasto en cada línea.");
+    if (
+      !validacion.validar([
+        requerido("proveedor", proveedorId, "El proveedor es requerido."),
+        requerido("fecha", fecha, "La fecha es requerida."),
+        requerido("fecha-entrega", fechaEntrega, "La fecha de entrega es requerida."),
+        ...lineas.flatMap((linea) => {
+          const cantidad = aNumero(linea.cantidad);
+          const costo = aNumero(linea.costo);
+          return [
+            linea.modo === "producto"
+              ? requerido(`linea-${linea.id}-producto`, linea.productoId, "Seleccione un producto.")
+              : requerido(`linea-${linea.id}-cuenta`, linea.cuentaId, "Seleccione una cuenta de gasto."),
+            {
+              campo: `linea-${linea.id}-cantidad`,
+              invalido: !Number.isFinite(cantidad) || cantidad <= 0,
+              mensaje: "La cantidad debe ser mayor que cero.",
+            },
+            {
+              campo: `linea-${linea.id}-costo`,
+              invalido: !Number.isFinite(costo) || costo < 0,
+              mensaje: "El costo no puede ser negativo.",
+            },
+          ];
+        }),
+      ])
+    ) {
       return;
     }
 
@@ -174,9 +193,9 @@ export function FormularioOrden({ contactos, productos, cuentasGasto, impuestos 
       })),
     };
 
-    const validacion = esquemaOrdenCompra.safeParse(entrada);
-    if (!validacion.success) {
-      setError(validacion.error.issues[0]?.message ?? "Revisa los datos de la orden.");
+    const resultadoValidacion = esquemaOrdenCompra.safeParse(entrada);
+    if (!resultadoValidacion.success) {
+      setError(resultadoValidacion.error.issues[0]?.message ?? "Revisa los datos de la orden.");
       return;
     }
 
@@ -192,7 +211,7 @@ export function FormularioOrden({ contactos, productos, cuentasGasto, impuestos 
   }
 
   return (
-    <form onSubmit={enviar} className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
+    <form noValidate onSubmit={enviar} className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-2">
           <Button
@@ -218,29 +237,57 @@ export function FormularioOrden({ contactos, productos, cuentasGasto, impuestos 
         <section>
           <FormSectionTitle className="mb-4">Datos de la orden</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="proveedor" label="Proveedor" required className="sm:col-span-2">
+            <CampoFormulario
+              htmlFor="proveedor"
+              label="Proveedor"
+              required
+              error={validacion.errorDe("proveedor")}
+              className="sm:col-span-2"
+            >
               <SelectorContacto
                 id="proveedor"
                 contactos={contactos}
                 valor={proveedorId}
-                onCambio={(contacto) => setProveedorId(contacto?.id ?? "")}
+                onCambio={(contacto) => {
+                  setProveedorId(contacto?.id ?? "");
+                  validacion.limpiar("proveedor");
+                }}
                 tipoInicial="proveedor"
                 placeholder="Buscar proveedor…"
                 className={FORM_COMBO}
               />
-            </FormField>
-            <FormField htmlFor="fecha" label="Fecha" required>
-              <DatePicker id="fecha" value={fecha} onChange={setFecha} />
-            </FormField>
-            <FormField htmlFor="fecha-entrega" label="Fecha de entrega" required>
-              <DatePicker id="fecha-entrega" value={fechaEntrega} onChange={setFechaEntrega} />
-            </FormField>
+            </CampoFormulario>
+            <CampoFormulario htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
+              <DatePicker
+                id="fecha"
+                value={fecha}
+                onChange={(valor) => {
+                  setFecha(valor);
+                  validacion.limpiar("fecha");
+                }}
+              />
+            </CampoFormulario>
+            <CampoFormulario
+              htmlFor="fecha-entrega"
+              label="Fecha de entrega"
+              required
+              error={validacion.errorDe("fecha-entrega")}
+            >
+              <DatePicker
+                id="fecha-entrega"
+                value={fechaEntrega}
+                onChange={(valor) => {
+                  setFechaEntrega(valor);
+                  validacion.limpiar("fecha-entrega");
+                }}
+              />
+            </CampoFormulario>
             <Accordion className="sm:col-span-2">
               <AccordionItem value="mas" className="border-0">
                 <AccordionTrigger>Más opciones</AccordionTrigger>
                 <AccordionContent>
                   <div className="grid gap-x-8 gap-y-4">
-                    <FormField htmlFor="notas" label="Notas">
+                    <CampoFormulario htmlFor="notas" label="Notas">
                       <Textarea
                         id="notas"
                         value={notas}
@@ -249,8 +296,8 @@ export function FormularioOrden({ contactos, productos, cuentasGasto, impuestos 
                         maxLength={500}
                         className={FORM_TEXTAREA}
                       />
-                    </FormField>
-                    <FormField htmlFor="terminos" label="Términos">
+                    </CampoFormulario>
+                    <CampoFormulario htmlFor="terminos" label="Términos">
                       <Textarea
                         id="terminos"
                         value={terminos}
@@ -259,7 +306,7 @@ export function FormularioOrden({ contactos, productos, cuentasGasto, impuestos 
                         maxLength={500}
                         className={FORM_TEXTAREA}
                       />
-                    </FormField>
+                    </CampoFormulario>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -304,7 +351,7 @@ export function FormularioOrden({ contactos, productos, cuentasGasto, impuestos 
                   </Button>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12">
-                  <FormField label="Tipo" className="lg:col-span-2">
+                  <CampoFormulario label="Tipo" className="lg:col-span-2">
                     <Select
                       value={linea.modo}
                       items={OPCIONES_MODO}
@@ -323,51 +370,78 @@ export function FormularioOrden({ contactos, productos, cuentasGasto, impuestos 
                         ))}
                       </SelectContent>
                     </Select>
-                  </FormField>
-                  <FormField
+                  </CampoFormulario>
+                  <CampoFormulario
                     label={linea.modo === "producto" ? "Producto" : "Cuenta de gasto"}
+                    error={validacion.errorDe(
+                      linea.modo === "producto" ? `linea-${linea.id}-producto` : `linea-${linea.id}-cuenta`,
+                    )}
                     className="lg:col-span-4"
                   >
                     {linea.modo === "producto" ? (
                       <SelectorProducto
+                        id={`linea-${linea.id}-producto`}
                         productos={productosLocales}
                         valor={linea.productoId}
-                        onCambio={(producto) => seleccionarProducto(linea.id, producto)}
+                        onCambio={(producto) => {
+                          seleccionarProducto(linea.id, producto);
+                          validacion.limpiar(`linea-${linea.id}-producto`);
+                        }}
                         className={FORM_COMBO}
                       />
                     ) : (
                       <ComboboxCampo
+                        id={`linea-${linea.id}-cuenta`}
                         opciones={opcionesGastos}
                         valor={linea.cuentaId}
-                        onCambio={(valor) => seleccionarCuenta(linea.id, valor)}
+                        onCambio={(valor) => {
+                          seleccionarCuenta(linea.id, valor);
+                          validacion.limpiar(`linea-${linea.id}-cuenta`);
+                        }}
                         placeholder="Buscar cuenta…"
                         vacio="No hay cuentas de gasto."
                         className={FORM_COMBO}
                       />
                     )}
-                  </FormField>
-                  <FormField label="Cantidad" className="lg:col-span-1">
+                  </CampoFormulario>
+                  <CampoFormulario
+                    label="Cantidad"
+                    error={validacion.errorDe(`linea-${linea.id}-cantidad`)}
+                    className="lg:col-span-1"
+                  >
                     <Input
+                      id={`linea-${linea.id}-cantidad`}
                       inputMode="decimal"
                       value={linea.cantidad}
-                      onChange={(evento) => actualizarLinea(linea.id, { cantidad: evento.target.value })}
+                      onChange={(evento) => {
+                        actualizarLinea(linea.id, { cantidad: evento.target.value });
+                        validacion.limpiar(`linea-${linea.id}-cantidad`);
+                      }}
                       className={FORM_INPUT}
                     />
-                  </FormField>
-                  <FormField label="Costo" className="lg:col-span-2">
+                  </CampoFormulario>
+                  <CampoFormulario
+                    label="Costo"
+                    error={validacion.errorDe(`linea-${linea.id}-costo`)}
+                    className="lg:col-span-2"
+                  >
                     <InputGroup className={FORM_INPUT_GROUP}>
                       <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                         RD$
                       </InputGroupAddon>
                       <InputGroupInput
+                        id={`linea-${linea.id}-costo`}
                         inputMode="decimal"
                         value={linea.costo}
                         placeholder="0.00"
-                        onChange={(evento) => actualizarLinea(linea.id, { costo: evento.target.value })}
+                        onChange={(evento) => {
+                          actualizarLinea(linea.id, { costo: evento.target.value });
+                          validacion.limpiar(`linea-${linea.id}-costo`);
+                        }}
                       />
                     </InputGroup>
-                  </FormField>
-                  <FormField label="Impuesto" className="lg:col-span-1">
+                  </CampoFormulario>
+                  <CampoFormulario label="Impuesto" className="lg:col-span-1">
                     <SelectorImpuesto
                       className={FORM_SELECT}
                       impuestos={impuestos}
@@ -380,12 +454,12 @@ export function FormularioOrden({ contactos, productos, cuentasGasto, impuestos 
                         });
                       }}
                     />
-                  </FormField>
-                  <FormField label="Subtotal" className="lg:col-span-2">
+                  </CampoFormulario>
+                  <CampoFormulario label="Subtotal" className="lg:col-span-2">
                     <div className="flex h-10 items-center justify-end text-sm tabular-nums">
                       {formatoMoneda(aNumero(linea.cantidad) * aNumero(linea.costo))}
                     </div>
-                  </FormField>
+                  </CampoFormulario>
                 </div>
               </div>
             ))}
