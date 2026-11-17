@@ -24,7 +24,7 @@ const SIN_LISTA = SIN_LISTA_PRECIO;
 
 function tieneOpcionales(contacto: Contacto | null) {
   if (contacto === null) return false;
-  return Boolean(contacto.rnc_cedula ?? contacto.telefono ?? contacto.correo ?? contacto.direccion);
+  return Boolean(contacto.telefono ?? contacto.correo ?? contacto.direccion);
 }
 
 export function FormularioContacto({
@@ -122,6 +122,30 @@ export function FormularioContacto({
           </Select>
         </FormField>
 
+        <FormField htmlFor="rnc_cedula" label="RNC / Cédula">
+          <Input
+            id="rnc_cedula"
+            name="rnc_cedula"
+            inputMode="numeric"
+            placeholder="131123456"
+            value={rncCedula}
+            onChange={(event) => {
+              setRncCedula(event.target.value);
+              limpiar();
+            }}
+            onBlur={() => consultarEnDgii(true)}
+            className={FORM_INPUT}
+          />
+          <div className="mt-1">
+            <BotonAutocompletarDgii
+              onClick={() => consultarEnDgii(false)}
+              cargando={cargando}
+              disabled={contacto?.tipo_identificacion === "pasaporte"}
+            />
+          </div>
+          <MensajeDgii mensaje={mensaje} />
+        </FormField>
+
         <Collapsible
           className="rounded-xl border border-slate-200 sm:col-span-2"
           defaultOpen={tieneOpcionales(contacto)}
@@ -131,29 +155,6 @@ export function FormularioContacto({
             <ChevronDown className="size-4" />
           </CollapsibleTrigger>
           <CollapsibleContent className="grid gap-x-8 gap-y-4 border-t border-slate-200 p-3 sm:grid-cols-2">
-            <FormField htmlFor="rnc_cedula" label="RNC / Cédula">
-              <Input
-                id="rnc_cedula"
-                name="rnc_cedula"
-                inputMode="numeric"
-                placeholder="131123456"
-                value={rncCedula}
-                onChange={(event) => {
-                  setRncCedula(event.target.value);
-                  limpiar();
-                }}
-                onBlur={() => consultarEnDgii(true)}
-                className={FORM_INPUT}
-              />
-              <div className="mt-1">
-                <BotonAutocompletarDgii
-                  onClick={() => consultarEnDgii(false)}
-                  cargando={cargando}
-                  disabled={contacto?.tipo_identificacion === "pasaporte"}
-                />
-              </div>
-              <MensajeDgii mensaje={mensaje} />
-            </FormField>
             <FormField htmlFor="telefono" label="Teléfono">
               <Input
                 id="telefono"
