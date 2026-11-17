@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { type Dispatch, type SetStateAction, useRef, useState, useTransition } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -34,6 +34,7 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
 import { centavosAValor } from "@/lib/facturacion/calculo";
 import { esTipoComprobante, OPCIONES_TIPO_COMPROBANTE } from "@/lib/facturacion/comprobantes";
@@ -49,16 +50,22 @@ import type {
 import { type Impuesto, impuestoNinguno } from "@/lib/impuestos/tipos";
 import { precioSugeridoCentavos } from "@/lib/inventario/precios";
 import type { Almacen } from "@/lib/inventario/tipos";
+import { type PrevisualizacionNcf, previsualizarNcf } from "@/lib/numeraciones/preview";
+import type { Numeracion } from "@/lib/numeraciones/tipos";
 import type { MetodoPago } from "@/lib/pagos/tipos";
 import type { VendedorOpcion } from "@/lib/vendedores/tipos";
 
 import {
+  type CampoDocumento,
   calcularDocumento,
+  claveErrorDocumento,
   construirEntrada,
+  type ErrorDocumento,
+  erroresValidacionDocumento,
+  idCampoDocumento,
   type LineaCalculadaFormulario,
   type LineaFormulario,
   lineaVacia,
-  mensajeValidacionDocumento,
 } from "./calculo";
 import type { ValoresIniciales } from "./prellenado";
 
@@ -92,6 +99,8 @@ interface Props {
   valoresIniciales?: ValoresIniciales;
   cotizacionOrigenId?: string;
   numeroActual?: string;
+  /** Numeraciones para previsualizar el NCF antes de guardar (solo facturas). */
+  numeraciones?: Numeracion[];
 }
 
 interface OpcionSelect {
@@ -180,12 +189,65 @@ function opcionesDocumento(opciones: OpcionesDocumento) {
   };
 }
 
+function NumeroComprobante({
+  etiqueta,
+  numeroActual,
+  vistaNcf,
+}: {
+  etiqueta: string;
+  numeroActual?: string;
+  vistaNcf?: PrevisualizacionNcf | null;
+}) {
+  if (vistaNcf?.estado === "lista") {
+    return (
+      <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex items-center gap-2.5 pl-2.5 text-base">
+          <span className="text-slate-500">{etiqueta}</span>
+          <span className="truncate text-slate-700 tabular-nums" aria-live="polite">
+            {vistaNcf.ncf}
+          </span>
+        </div>
+        <p className="pl-2.5 text-xs leading-4 text-slate-500">Se asigna al guardar</p>
+      </div>
+    );
+  }
+
+  if (vistaNcf) {
+    return (
+      <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex items-center gap-2.5 pl-2.5 text-base">
+          <span className="text-slate-500">{etiqueta}</span>
+          <span className="truncate text-slate-700 tabular-nums">—</span>
+        </div>
+        <p className="text-destructive flex max-w-sm flex-wrap items-center gap-x-1 pl-2.5 text-xs leading-4">
+          <span role="status">{vistaNcf.mensaje}</span>
+          <Link
+            href="/dashboard/contabilidad/numeraciones"
+            prefetch={false}
+            className="underline underline-offset-2 hover:no-underline"
+          >
+            Revisar numeraciones
+          </Link>
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2.5 pl-2.5 text-base">
+      <span className="text-slate-500">{etiqueta}</span>
+      <span className="truncate text-slate-700 tabular-nums">{numeroActual ?? "Se asigna al guardar"}</span>
+    </div>
+  );
+}
+
 function Encabezado({
   empresa,
   conComprobante,
   etiquetaNumero,
   tipo,
   numeroActual,
+  vistaNcf,
   onTipo,
   comprobantesItems,
   mostrarLogo,
@@ -195,6 +257,7 @@ function Encabezado({
   etiquetaNumero: string;
   tipo: TipoComprobante;
   numeroActual?: string;
+  vistaNcf?: PrevisualizacionNcf | null;
   onTipo: (tipo: TipoComprobante) => void;
   comprobantesItems: OpcionSelect[];
   mostrarLogo: boolean;
@@ -244,10 +307,11 @@ function Encabezado({
             </Select>
           </div>
         ) : null}
-        <div className="flex items-center gap-2.5 pl-2.5 text-base">
-          <span className="text-slate-500">{conComprobante ? "NCF" : etiquetaNumero}</span>
-          <span className="truncate text-slate-700">{numeroActual ?? "Se asigna al guardar"}</span>
-        </div>
+        <NumeroComprobante
+          etiqueta={conComprobante ? "NCF" : etiquetaNumero}
+          numeroActual={numeroActual}
+          vistaNcf={vistaNcf}
+        />
       </div>
     </header>
   );
@@ -262,6 +326,7 @@ function AjustesPago({
   onCuentaPago,
   metodoPago,
   onMetodoPago,
+  errorCuenta,
 }: {
   totalCentavos: number;
   cuentasItems: OpcionSelect[];
@@ -271,6 +336,7 @@ function AjustesPago({
   onCuentaPago: (valor: string) => void;
   metodoPago: MetodoPago;
   onMetodoPago: (valor: MetodoPago) => void;
+  errorCuenta?: string;
 }) {
   function cambiarMetodo(valor: string | null) {
     if (esMetodoPago(valor)) onMetodoPago(valor);
@@ -294,14 +360,19 @@ function AjustesPago({
           </div>
         </div>
 
-        <FormField htmlFor="cuenta-pago" label="Cuenta de caja o banco">
+        <FormField htmlFor="cuenta-pago" label="Cuenta de caja o banco" error={errorCuenta}>
           <Select
             items={cuentasItems}
             value={cuentaPago}
             disabled={!registrarPago}
             onValueChange={(valor: string | null) => onCuentaPago(valor ?? "")}
           >
-            <SelectTrigger id="cuenta-pago" className={FORM_SELECT}>
+            <SelectTrigger
+              id="cuenta-pago"
+              className={FORM_SELECT}
+              aria-invalid={errorCuenta ? true : undefined}
+              aria-describedby={errorCuenta ? "cuenta-pago-error" : undefined}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
@@ -343,6 +414,197 @@ function AjustesPago({
   );
 }
 
+function propsError(mensaje: string | undefined, id: string) {
+  return mensaje ? { "aria-invalid": true, "aria-describedby": `${id}-error` } : {};
+}
+
+function ErrorInline({ id, mensaje }: { id: string; mensaje?: string }) {
+  if (!mensaje) return null;
+
+  return (
+    <p id={`${id}-error`} role="alert" className="text-destructive mt-1 text-xs leading-4">
+      {mensaje}
+    </p>
+  );
+}
+
+type ActualizarErrores = Dispatch<SetStateAction<ErrorDocumento[]>>;
+
+function limpiarError(setErrores: ActualizarErrores, campo: string) {
+  setErrores((actuales) => {
+    const siguientes = actuales.filter((item) => claveErrorDocumento(item.campo) !== campo);
+    return siguientes.length === actuales.length ? actuales : siguientes;
+  });
+}
+
+function limpiarErroresDeLinea(setErrores: ActualizarErrores, clave: string) {
+  setErrores((actuales) => {
+    const siguientes = actuales.filter((item) => typeof item.campo === "string" || item.campo.linea !== clave);
+    return siguientes.length === actuales.length ? actuales : siguientes;
+  });
+}
+
+function enfocarCampo(campo: CampoDocumento) {
+  const id = idCampoDocumento(campo);
+  requestAnimationFrame(() => {
+    const elemento = document.getElementById(id);
+    if (!elemento) return;
+    elemento.scrollIntoView({ block: "center", behavior: "smooth" });
+    elemento.focus({ preventScroll: true });
+  });
+}
+
+/** Muestra los errores inline y el toast, enfoca el primero y dice si el documento puede guardarse. */
+function mostrarErroresDocumento(erroresDocumento: ErrorDocumento[], setErrores: ActualizarErrores): boolean {
+  if (erroresDocumento.length === 0) {
+    setErrores([]);
+    return true;
+  }
+
+  setErrores(erroresDocumento);
+  toast.add({
+    type: "error",
+    title: "Revise los campos obligatorios",
+    description: "Asegúrese de completar todos los campos marcados en rojo",
+  });
+  const primero = erroresDocumento[0];
+  if (primero) enfocarCampo(primero.campo);
+  return false;
+}
+
+function FilaLinea({
+  linea,
+  indice,
+  productos,
+  producto,
+  calculo,
+  impuestos,
+  onActualizar,
+  onSeleccionarProducto,
+  onQuitar,
+  puedeQuitar,
+  errorDe,
+}: {
+  linea: LineaFormulario;
+  indice: number;
+  productos: readonly ProductoSeleccionable[];
+  producto: ProductoSeleccionable | undefined;
+  calculo: LineaCalculadaFormulario["calculo"] | undefined;
+  impuestos: Impuesto[];
+  onActualizar: (clave: string, cambios: Partial<LineaFormulario>) => void;
+  onSeleccionarProducto: (clave: string, producto: ProductoSeleccionable | null) => void;
+  onQuitar: (clave: string) => void;
+  puedeQuitar: boolean;
+  errorDe: (campo: string) => string | undefined;
+}) {
+  const clave = linea.clave;
+  const errorProducto = errorDe(`producto:${clave}`);
+  const errorCantidad = errorDe(`cantidad:${clave}`);
+  const errorPrecio = errorDe(`precio:${clave}`);
+  const errorDescuento = errorDe(`descuento:${clave}`);
+
+  return (
+    <div className="contents">
+      <div className="flex justify-center py-2 pr-1 text-xs leading-10 text-slate-500">{indice + 1}</div>
+      <div className="min-w-0 py-2 pr-1">
+        <SelectorProducto
+          id={`producto-${clave}`}
+          productos={productos}
+          valor={linea.productoId}
+          onCambio={(seleccionado) => onSeleccionarProducto(clave, seleccionado)}
+          className={`${FORM_COMBO} border [&>input]:text-sm`}
+          aria-label={`Producto de la línea ${indice + 1}`}
+          {...propsError(errorProducto, `producto-${clave}`)}
+        />
+        {producto?.referencia ? (
+          <p className="mt-1 text-xs leading-4 text-slate-500">Ref. {producto.referencia}</p>
+        ) : null}
+        <ErrorInline id={`producto-${clave}`} mensaje={errorProducto} />
+      </div>
+      <div className="min-w-0 py-2 pr-1">
+        <Input
+          id={`cantidad-${clave}`}
+          inputMode="decimal"
+          value={linea.cantidad}
+          onChange={(evento) => onActualizar(clave, { cantidad: evento.target.value })}
+          aria-label={`Cantidad de la línea ${indice + 1}`}
+          className={FORM_INPUT}
+          {...propsError(errorCantidad, `cantidad-${clave}`)}
+        />
+        <ErrorInline id={`cantidad-${clave}`} mensaje={errorCantidad} />
+      </div>
+      <div className="min-w-0 py-2 pr-1">
+        <InputGroup className={FORM_INPUT_GROUP}>
+          <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
+            RD$
+          </InputGroupAddon>
+          <InputGroupInput
+            id={`precio-${clave}`}
+            inputMode="decimal"
+            value={linea.precio}
+            onChange={(evento) => onActualizar(clave, { precio: evento.target.value })}
+            aria-label={`Precio de la línea ${indice + 1}`}
+            className="h-full min-w-0 pl-1 text-sm text-slate-700 md:text-sm"
+            {...propsError(errorPrecio, `precio-${clave}`)}
+          />
+        </InputGroup>
+        <ErrorInline id={`precio-${clave}`} mensaje={errorPrecio} />
+      </div>
+      <div className="min-w-0 py-2 pr-1">
+        <InputGroup className={FORM_INPUT_GROUP}>
+          <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
+            %
+          </InputGroupAddon>
+          <InputGroupInput
+            id={`descuento-${clave}`}
+            inputMode="decimal"
+            value={linea.descuentoPct}
+            onChange={(evento) => onActualizar(clave, { descuentoPct: evento.target.value })}
+            aria-label={`Descuento de la línea ${indice + 1}`}
+            className="h-full min-w-0 pl-1 text-sm text-slate-700 md:text-sm"
+            {...propsError(errorDescuento, `descuento-${clave}`)}
+          />
+        </InputGroup>
+        <ErrorInline id={`descuento-${clave}`} mensaje={errorDescuento} />
+      </div>
+      <div className="min-w-0 py-2 pr-1">
+        <SelectorImpuesto
+          id={`itbis-${clave}`}
+          className={FORM_SELECT}
+          ariaLabel={`Impuesto de la lA-nea ${indice + 1}`}
+          impuestos={impuestos}
+          value={linea.impuestoId}
+          onValueChange={(impuestoId) => {
+            const impuesto = impuestos.find((item) => item.id === impuestoId);
+            onActualizar(clave, {
+              impuestoId,
+              itbisTasa: String(impuesto?.tarifa ?? 0),
+            });
+          }}
+        />
+      </div>
+      <div className="flex min-w-0 justify-end py-2 pr-1">
+        <span className="mt-1 text-sm leading-8 text-slate-700 tabular-nums">
+          {formatoMonedaCentavos(calculo?.totalCentavos ?? 0)}
+        </span>
+      </div>
+      <div className="flex justify-center py-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="size-8 text-slate-900 hover:bg-slate-200/45"
+          disabled={!puedeQuitar}
+          onClick={() => onQuitar(clave)}
+        >
+          <Trash2 />
+          <span className="sr-only">Quitar línea {indice + 1}</span>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function LineasDocumento({
   lineas,
   productos,
@@ -352,6 +614,8 @@ function LineasDocumento({
   onSeleccionarProducto,
   onAgregar,
   onQuitar,
+  errorDe,
+  errorGeneral,
 }: {
   lineas: LineaFormulario[];
   productos: readonly ProductoSeleccionable[];
@@ -361,11 +625,18 @@ function LineasDocumento({
   onSeleccionarProducto: (clave: string, producto: ProductoSeleccionable | null) => void;
   onAgregar: () => void;
   onQuitar: (clave: string) => void;
+  errorDe: (campo: string) => string | undefined;
+  errorGeneral?: string;
 }) {
   return (
     <section>
       <FormDivider className="mb-4" />
       <FormSectionTitle className="mb-4">Productos y servicios</FormSectionTitle>
+      {errorGeneral ? (
+        <p id="lineas-error" role="alert" tabIndex={-1} className="text-destructive mb-2 text-xs leading-4">
+          {errorGeneral}
+        </p>
+      ) : null}
       <div className="overflow-x-auto">
         <div className="grid min-w-[820px] grid-cols-[44px_minmax(0,29fr)_minmax(0,7.4fr)_minmax(0,12.6fr)_148px_minmax(0,13.6fr)_minmax(0,13.5fr)_32px]">
           <div className={`${CELDA_ENCABEZADO} justify-center`}>N.º</div>
@@ -377,103 +648,22 @@ function LineasDocumento({
           <div className={`${CELDA_ENCABEZADO} justify-end`}>Subtotal</div>
           <div className={CELDA_ENCABEZADO} />
 
-          {lineas.map((linea, indice) => {
-            const calculo = calculadas.find((item) => item.clave === linea.clave)?.calculo;
-            const producto = productos.find((item) => item.id === linea.productoId);
-
-            return (
-              <div key={linea.clave} className="contents">
-                <div className="flex justify-center py-2 pr-1 text-xs leading-10 text-slate-500">{indice + 1}</div>
-                <div className="min-w-0 py-2 pr-1">
-                  <SelectorProducto
-                    id={`producto-${linea.clave}`}
-                    productos={productos}
-                    valor={linea.productoId}
-                    onCambio={(producto) => onSeleccionarProducto(linea.clave, producto)}
-                    className={`${FORM_COMBO} border [&>input]:text-sm`}
-                    aria-label={`Producto de la línea ${indice + 1}`}
-                  />
-                  {producto?.referencia ? (
-                    <p className="mt-1 text-xs leading-4 text-slate-500">Ref. {producto.referencia}</p>
-                  ) : null}
-                </div>
-                <div className="min-w-0 py-2 pr-1">
-                  <Input
-                    id={`cantidad-${linea.clave}`}
-                    inputMode="decimal"
-                    value={linea.cantidad}
-                    onChange={(evento) => onActualizar(linea.clave, { cantidad: evento.target.value })}
-                    aria-label={`Cantidad de la línea ${indice + 1}`}
-                    className={FORM_INPUT}
-                  />
-                </div>
-                <div className="min-w-0 py-2 pr-1">
-                  <InputGroup className={FORM_INPUT_GROUP}>
-                    <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
-                      RD$
-                    </InputGroupAddon>
-                    <InputGroupInput
-                      id={`precio-${linea.clave}`}
-                      inputMode="decimal"
-                      value={linea.precio}
-                      onChange={(evento) => onActualizar(linea.clave, { precio: evento.target.value })}
-                      aria-label={`Precio de la línea ${indice + 1}`}
-                      className="h-full min-w-0 pl-1 text-sm text-slate-700 md:text-sm"
-                    />
-                  </InputGroup>
-                </div>
-                <div className="min-w-0 py-2 pr-1">
-                  <InputGroup className={FORM_INPUT_GROUP}>
-                    <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
-                      %
-                    </InputGroupAddon>
-                    <InputGroupInput
-                      id={`descuento-${linea.clave}`}
-                      inputMode="decimal"
-                      value={linea.descuentoPct}
-                      onChange={(evento) => onActualizar(linea.clave, { descuentoPct: evento.target.value })}
-                      aria-label={`Descuento de la línea ${indice + 1}`}
-                      className="h-full min-w-0 pl-1 text-sm text-slate-700 md:text-sm"
-                    />
-                  </InputGroup>
-                </div>
-                <div className="min-w-0 py-2 pr-1">
-                  <SelectorImpuesto
-                    id={`itbis-${linea.clave}`}
-                    className={FORM_SELECT}
-                    ariaLabel={`Impuesto de la lA-nea ${indice + 1}`}
-                    impuestos={impuestos}
-                    value={linea.impuestoId}
-                    onValueChange={(impuestoId) => {
-                      const impuesto = impuestos.find((item) => item.id === impuestoId);
-                      onActualizar(linea.clave, {
-                        impuestoId,
-                        itbisTasa: String(impuesto?.tarifa ?? 0),
-                      });
-                    }}
-                  />
-                </div>
-                <div className="flex min-w-0 justify-end py-2 pr-1">
-                  <span className="mt-1 text-sm leading-8 text-slate-700 tabular-nums">
-                    {formatoMonedaCentavos(calculo?.totalCentavos ?? 0)}
-                  </span>
-                </div>
-                <div className="flex justify-center py-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="size-8 text-slate-900 hover:bg-slate-200/45"
-                    disabled={lineas.length === 1}
-                    onClick={() => onQuitar(linea.clave)}
-                  >
-                    <Trash2 />
-                    <span className="sr-only">Quitar línea {indice + 1}</span>
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
+          {lineas.map((linea, indice) => (
+            <FilaLinea
+              key={linea.clave}
+              linea={linea}
+              indice={indice}
+              productos={productos}
+              producto={productos.find((item) => item.id === linea.productoId)}
+              calculo={calculadas.find((item) => item.clave === linea.clave)?.calculo}
+              impuestos={impuestos}
+              onActualizar={onActualizar}
+              onSeleccionarProducto={onSeleccionarProducto}
+              onQuitar={onQuitar}
+              puedeQuitar={lineas.length > 1}
+              errorDe={errorDe}
+            />
+          ))}
 
           <div className="col-span-full">
             <Button
@@ -684,6 +874,108 @@ function MasOpciones({
   );
 }
 
+function DatosDocumento({
+  titulo,
+  clienteId,
+  contactos,
+  fecha,
+  vencimiento,
+  conVencimiento,
+  errorCliente,
+  errorFecha,
+  errorVencimiento,
+  onCliente,
+  onFecha,
+  onVencimiento,
+}: {
+  titulo: string;
+  clienteId: string;
+  contactos: ContactoResumen[];
+  fecha: string;
+  vencimiento: string;
+  conVencimiento: boolean;
+  errorCliente?: string;
+  errorFecha?: string;
+  errorVencimiento?: string;
+  onCliente: (contacto: ContactoOpcion | null) => void;
+  onFecha: (valor: string) => void;
+  onVencimiento: (valor: string) => void;
+}) {
+  return (
+    <section>
+      <FormDivider className="mb-4" />
+      <FormSectionTitle className="mb-4">{titulo}</FormSectionTitle>
+      <div className={`grid grid-cols-1 gap-x-8 gap-y-4 ${conVencimiento ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+        <FormField htmlFor="cliente" label="Cliente" required error={errorCliente}>
+          <SelectorContacto
+            id="cliente"
+            contactos={contactos}
+            valor={clienteId}
+            onCambio={onCliente}
+            tipoInicial="cliente"
+            className={FORM_COMBO}
+            placeholder="Buscar cliente…"
+            {...propsError(errorCliente, "cliente")}
+          />
+        </FormField>
+        <FormField htmlFor="fecha" label="Fecha de creación" required error={errorFecha}>
+          <DatePicker id="fecha" value={fecha} onChange={onFecha} {...propsError(errorFecha, "fecha")} />
+        </FormField>
+        {conVencimiento ? (
+          <FormField htmlFor="vencimiento" label="Fecha de vencimiento" required error={errorVencimiento}>
+            <DatePicker
+              id="vencimiento"
+              value={vencimiento}
+              onChange={onVencimiento}
+              {...propsError(errorVencimiento, "vencimiento")}
+            />
+          </FormField>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function TotalesDocumento({
+  subtotalCentavos,
+  descuentoCentavos,
+  itbisCentavos,
+  totalCentavos,
+  error,
+}: {
+  subtotalCentavos: number;
+  descuentoCentavos: number;
+  itbisCentavos: number;
+  totalCentavos: number;
+  error?: string;
+}) {
+  return (
+    <FormTotal>
+      <div className="flex h-6 items-center justify-between">
+        <span>Subtotal</span>
+        <span className="tabular-nums">{formatoMonedaCentavos(subtotalCentavos)}</span>
+      </div>
+      <div className="flex h-6 items-center justify-between">
+        <span>Descuento</span>
+        <span className="tabular-nums">{formatoMonedaCentavos(descuentoCentavos)}</span>
+      </div>
+      <div className="flex h-6 items-center justify-between">
+        <span>Impuestos</span>
+        <span className="tabular-nums">{formatoMonedaCentavos(itbisCentavos)}</span>
+      </div>
+      <div className="mt-7 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
+        <span>Total</span>
+        <span className="tabular-nums">{formatoMonedaCentavos(totalCentavos)}</span>
+      </div>
+      {error ? (
+        <p id="total-error" role="alert" tabIndex={-1} className="text-destructive mt-2 text-right text-xs leading-4">
+          {error}
+        </p>
+      ) : null}
+    </FormTotal>
+  );
+}
+
 export function DocumentoVentaForm({
   empresa,
   contactos,
@@ -712,6 +1004,7 @@ export function DocumentoVentaForm({
   valoresIniciales,
   cotizacionOrigenId,
   numeroActual,
+  numeraciones,
 }: Props) {
   const router = useRouter();
   const inicial = estadoInicialDocumento(valoresIniciales, fechaHoy, notasIniciales, terminosIniciales);
@@ -744,6 +1037,7 @@ export function DocumentoVentaForm({
     almacenes.find((almacen) => almacen.es_principal)?.id ?? almacenes[0]?.id ?? "",
   );
   const [error, setError] = useState<string | null>(null);
+  const [errores, setErrores] = useState<ErrorDocumento[]>([]);
 
   const comprobantesItems = OPCIONES_TIPO_COMPROBANTE.map((opcion) => ({
     value: opcion.valor,
@@ -759,9 +1053,14 @@ export function DocumentoVentaForm({
     ...centrosCosto.map((centro) => ({ value: centro.id, label: `${centro.codigo} · ${centro.nombre}` })),
   ];
   const { calculadas, totales } = calcularDocumento(lineas);
+  const vistaNcf = conComprobante && numeraciones ? previsualizarNcf({ numeraciones, tipo, fecha }) : null;
+  const erroresPorCampo = new Map(errores.map((item) => [claveErrorDocumento(item.campo), item.mensaje]));
+  const errorDe = (campo: string) => erroresPorCampo.get(campo);
 
   function actualizarLinea(clave: string, cambios: Partial<LineaFormulario>) {
     setLineas((actuales) => actuales.map((linea) => (linea.clave === clave ? { ...linea, ...cambios } : linea)));
+    limpiarErroresDeLinea(setErrores, clave);
+    limpiarError(setErrores, "total");
   }
 
   function precioDeProducto(producto: ProductoSeleccionable, listaId: string): string {
@@ -788,8 +1087,30 @@ export function DocumentoVentaForm({
 
   function seleccionarCliente(contacto: ContactoOpcion | null) {
     setClienteId(contacto?.id ?? "");
+    limpiarError(setErrores, "cliente");
     const lista = contacto?.lista_precio_id;
     if (lista && listasPrecios.some((opcion) => opcion.id === lista)) cambiarListaPrecio(lista);
+  }
+
+  function cambiarFecha(valor: string) {
+    setFecha(valor);
+    limpiarError(setErrores, "fecha");
+    limpiarError(setErrores, "vencimiento");
+  }
+
+  function cambiarVencimiento(valor: string) {
+    setVencimiento(valor);
+    limpiarError(setErrores, "vencimiento");
+  }
+
+  function cambiarCuentaPago(valor: string) {
+    setCuentaPago(valor);
+    limpiarError(setErrores, "cuentaPago");
+  }
+
+  function cambiarRegistrarPago(valor: boolean) {
+    setRegistrarPago(valor);
+    limpiarError(setErrores, "cuentaPago");
   }
 
   function cambiarListaPrecio(listaId: string) {
@@ -800,6 +1121,7 @@ export function DocumentoVentaForm({
         return producto ? { ...linea, precio: precioDeProducto(producto, listaId) } : linea;
       }),
     );
+    limpiarError(setErrores, "total");
   }
 
   function agregarLinea() {
@@ -812,22 +1134,24 @@ export function DocumentoVentaForm({
 
   function quitarLinea(clave: string) {
     setLineas((actuales) => (actuales.length > 1 ? actuales.filter((linea) => linea.clave !== clave) : actuales));
+    limpiarErroresDeLinea(setErrores, clave);
+    limpiarError(setErrores, "total");
   }
 
   function guardar() {
     setError(null);
 
-    const mensaje = mensajeValidacionDocumento({
+    const erroresDocumento = erroresValidacionDocumento({
       clienteId,
+      fecha,
+      vencimiento,
+      conVencimiento,
       lineas,
       totalCentavos: totales.totalCentavos,
       requiereCuentaPago: conPago && registrarPago,
       cuentaPago,
     });
-    if (mensaje) {
-      setError(mensaje);
-      return;
-    }
+    if (!mostrarErroresDocumento(erroresDocumento, setErrores)) return;
 
     const entrada = construirEntrada({
       clienteId,
@@ -866,6 +1190,13 @@ export function DocumentoVentaForm({
     });
   }
 
+  const errorCliente = errorDe("cliente");
+  const errorFecha = errorDe("fecha");
+  const errorVencimiento = errorDe("vencimiento");
+  const errorLineas = errorDe("lineas");
+  const errorCuentaPago = errorDe("cuentaPago");
+  const errorTotal = errorDe("total");
+
   return (
     <form
       className="mx-auto flex w-full max-w-[1040px] flex-col gap-6 [font-family:var(--font-inter)]"
@@ -887,6 +1218,7 @@ export function DocumentoVentaForm({
           etiquetaNumero={etiquetaNumero}
           tipo={tipo}
           numeroActual={numeroActual}
+          vistaNcf={vistaNcf}
           onTipo={setTipo}
           comprobantesItems={comprobantesItems}
           mostrarLogo={mostrarLogo}
@@ -897,39 +1229,29 @@ export function DocumentoVentaForm({
             totalCentavos={totales.totalCentavos}
             cuentasItems={cuentasItems}
             registrarPago={registrarPago}
-            onRegistrarPago={setRegistrarPago}
+            onRegistrarPago={cambiarRegistrarPago}
             cuentaPago={cuentaPago}
-            onCuentaPago={setCuentaPago}
+            onCuentaPago={cambiarCuentaPago}
             metodoPago={metodoPago}
             onMetodoPago={setMetodoPago}
+            errorCuenta={errorCuentaPago}
           />
         ) : null}
 
-        <section>
-          <FormDivider className="mb-4" />
-          <FormSectionTitle className="mb-4">{titulo}</FormSectionTitle>
-          <div className={`grid grid-cols-1 gap-x-8 gap-y-4 ${conVencimiento ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
-            <FormField htmlFor="cliente" label="Cliente" required>
-              <SelectorContacto
-                id="cliente"
-                contactos={contactos}
-                valor={clienteId}
-                onCambio={seleccionarCliente}
-                tipoInicial="cliente"
-                className={FORM_COMBO}
-                placeholder="Buscar cliente…"
-              />
-            </FormField>
-            <FormField htmlFor="fecha" label="Fecha de creación" required>
-              <DatePicker id="fecha" value={fecha} onChange={setFecha} />
-            </FormField>
-            {conVencimiento ? (
-              <FormField htmlFor="vencimiento" label="Fecha de vencimiento" required>
-                <DatePicker id="vencimiento" value={vencimiento} onChange={setVencimiento} />
-              </FormField>
-            ) : null}
-          </div>
-        </section>
+        <DatosDocumento
+          titulo={titulo}
+          clienteId={clienteId}
+          contactos={contactos}
+          fecha={fecha}
+          vencimiento={vencimiento}
+          conVencimiento={conVencimiento}
+          errorCliente={errorCliente}
+          errorFecha={errorFecha}
+          errorVencimiento={errorVencimiento}
+          onCliente={seleccionarCliente}
+          onFecha={cambiarFecha}
+          onVencimiento={cambiarVencimiento}
+        />
 
         <LineasDocumento
           lineas={lineas}
@@ -940,26 +1262,17 @@ export function DocumentoVentaForm({
           onSeleccionarProducto={seleccionarProducto}
           onAgregar={agregarLinea}
           onQuitar={quitarLinea}
+          errorDe={errorDe}
+          errorGeneral={errorLineas}
         />
 
-        <FormTotal>
-          <div className="flex h-6 items-center justify-between">
-            <span>Subtotal</span>
-            <span className="tabular-nums">{formatoMonedaCentavos(totales.subtotalCentavos)}</span>
-          </div>
-          <div className="flex h-6 items-center justify-between">
-            <span>Descuento</span>
-            <span className="tabular-nums">{formatoMonedaCentavos(totales.descuentoCentavos)}</span>
-          </div>
-          <div className="flex h-6 items-center justify-between">
-            <span>Impuestos</span>
-            <span className="tabular-nums">{formatoMonedaCentavos(totales.itbisCentavos)}</span>
-          </div>
-          <div className="mt-7 flex items-center justify-between text-xl leading-7 font-semibold text-slate-900">
-            <span>Total</span>
-            <span className="tabular-nums">{formatoMonedaCentavos(totales.totalCentavos)}</span>
-          </div>
-        </FormTotal>
+        <TotalesDocumento
+          subtotalCentavos={totales.subtotalCentavos}
+          descuentoCentavos={totales.descuentoCentavos}
+          itbisCentavos={totales.itbisCentavos}
+          totalCentavos={totales.totalCentavos}
+          error={errorTotal}
+        />
 
         <MasOpciones
           conTerminos={conTerminos}
