@@ -36,7 +36,7 @@ Rutas: `/dashboard/productos/[id]/editar` y `/dashboard/productos/nuevo`. Guarda
 | Unidad de medida | `productos.unidad_medida` (texto libre, por defecto `Unidad`) |
 | Estado | `productos.activo` |
 | Precio base e impuesto | `productos.precio`, `productos.impuesto_id`, `productos.itbis_tasa` |
-| Precio total | Calculado en el servidor con `precioConItbis`; no es una columna |
+| Precio total | Se calcula en pantalla con `precioConItbis` (la ficha también lo recalcula al leer); no es una columna |
 | Inventariable y venta en negativo | `productos.inventariable`, `productos.vende_negativo` |
 | Existencia actual, inicial y costo | `productos.cantidad`, `productos.costo` y `existencias.cantidad_inicial` del almacén |
 | Imagen | `productos.imagen_path` en el bucket **privado** `productos`; se muestra con URL firmada |
@@ -54,5 +54,5 @@ Campos de Alegra que la base **no** soporta todavía. No se inventaron; quedan p
 - **Tipo de referencia**: no hay columna para ese dato.
 - **En conduces por almacén**: `remisiones` no guarda almacén, así que no se puede repartir lo comprometido; la columna se muestra con `—`.
 - **Variantes** y **campos extra**: no existen tablas ni columnas.
-- **Archivos adjuntos**: no hay tabla de adjuntos de productos; la sección se muestra vacía.
+- **Archivos adjuntos**: no hay tabla de adjuntos de productos; solo la ficha muestra esa sección vacía (el formulario de alta/edición ya no la tiene).
 - **Limpieza de imágenes huérfanas**: al quitar o reemplazar la imagen, el objeto anterior queda en el bucket. Falta una tarea de limpieza o borrado al guardar.
