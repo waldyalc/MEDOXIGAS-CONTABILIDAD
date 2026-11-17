@@ -1,5 +1,15 @@
 # Handoff — Medoxigas Contabilidad
 
+## Feature — Autocompletar el nombre del contacto con la DGII (17 nov 2026)
+
+- Rama `feat/rnc-dgii-orq` (desde `prueba` 0524709). En el diálogo «Nuevo contacto» y en el formulario de contacto, al escribir el RNC (9) o la cédula (11) aparece el botón **Autocompletar**; al salir del campo con la longitud exacta también consulta solo. Llena únicamente **Nombre o Razón social**, y solo si está vacío o si lo puso una consulta anterior: nunca sobrescribe lo que escribió el usuario y nunca guarda. Municipio y Dirección quedan manuales.
+- La DGII no tiene API pública: el SOAP `wsMovilDGII` está retirado (301/403) y `api.digital.gob.do` da 500. Se usa la consulta pública oficial `https://dgii.gov.do/app/WebApps/ConsultasWeb2/ConsultasWeb/consultas/rnc.aspx`: GET para el viewstate + POST con el número, y se parsea la tabla `cphMain_dvDatosContribuyentes`. Detalle y límites en `docs/dgii-consulta.md`.
+- `src/lib/dgii/consulta.ts`: validación 9/11, extracción de campos ASP.NET, parser (entidades HTML, prioriza la razón social sobre el nombre comercial), timeout 8 s, caché 10 min/2 min, deduplicación de solicitudes simultáneas y pausa de 5 min si la DGII responde 403, User-Agent propio. `acciones.ts` devuelve `{ ok, datos | error }` serializable con mensajes en español. `completar.ts` decide el llenado. UI: `consulta-dgii.tsx` (hook, botón y mensaje), `dialogo-nuevo-contacto.tsx` y `formulario-contacto.tsx`.
+- Se eliminó la copia local de `FormularioContacto` en `contactos-cliente.tsx` (era idéntica a la compartida) para que el botón funcione también al crear/editar desde la lista.
+- La página oficial no devuelve municipio ni dirección, y el listado `DGII_RNC.zip` tampoco (se verificó: RNC, nombre, nombre comercial, actividad, fecha, estado y régimen). No se inventan datos: solo se autocompleta el nombre. El ZIP se descartó por peso y porque Waldy no quiere cargar la base; Alegra no publica su método.
+- Prueba real: RNC `130893489` → `MEDOXIGAS ALC SRL` (ACTIVO, «VENTA AL POR MAYOR DE GASES INDUSTRIALES, METANOL»), ~0.3–0.9 s; `000000000` → no encontrado. `pnpm typecheck` y Biome de lo tocado en verde; `pnpm test` **759** (17 nuevas de DGII, sin red). Sin build ni dev server, sin migraciones, sin tocar `components/ui`, sin push ni merge.
+- Riesgo: si la DGII cambia el HTML o bloquea la IP, el botón muestra el error y el nombre se escribe a mano. Si el volumen crece, la alternativa es importar el listado diario (tabla + cron), que no trae dirección.
+
 ## Fix — Reportes de libros: RPC directo y paginación completa (16 nov 2026)
 
 - Rama `fix/reportes-libros-rpc` (desde `origin/prueba` b1f3f27). El `TypeError (reading 'rest')` de los 6 reportes de libros y de Guardar numeraciones **ya estaba corregido en `prueba`** (`cdfea68`, llamar `supabase.rpc` directo) y los libros pesados ya paginaban (`8cc75cf`). Esta rama no reintroduce el patrón; cierra el hueco que quedaba y lo blinda.
