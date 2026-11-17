@@ -5,7 +5,10 @@
 //
 // La cabecera, `__InternalSupabase` y los helpers (`DefaultSchema` vs
 // `PublicSchema`, etc.) cambian con la versión del generador, no con el
-// esquema: compararlos daría falsos positivos en CI.
+// esquema: compararlos daría falsos positivos en CI. Lo mismo pasa con el
+// formato (claves entre comillas, `ComputedFields: never`, comas y punto y
+// coma), así que aquí se normaliza para que dos versiones del generador con
+// el mismo esquema impriman exactamente lo mismo.
 //
 // Uso: node scripts/extract-db-schema.mjs <archivo>   (imprime a stdout)
 // Falla (exit 1) si no encuentra el bloque: mejor fallar que comparar vacío.
@@ -27,7 +30,7 @@ if (inicioDb === -1) {
   throw new Error("no se encontró `export type Database`");
 }
 
-const matchPublic = /public\s*:\s*\{/.exec(texto.slice(inicioDb));
+const matchPublic = /"?public"?\s*:\s*\{/.exec(texto.slice(inicioDb));
 if (!matchPublic) {
   throw new Error("no se encontró el bloque `public:` de Database");
 }
@@ -52,4 +55,12 @@ if (fin === -1) {
 }
 
 const bloque = texto.slice(inicioDb + matchPublic.index, fin + 1);
-process.stdout.write(`${bloque.replace(/\s+/g, " ").trim()}\n`);
+process.stdout.write(
+  `${bloque
+    .replace(/\/\/[^\n]*/g, "")
+    .replace(/ComputedFields:\s*never;?/g, "")
+    .replace(/"/g, "")
+    .replace(/[;,]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()}\n`,
+);
