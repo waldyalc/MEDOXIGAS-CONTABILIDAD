@@ -1,5 +1,18 @@
 # Handoff — Medoxigas Contabilidad
 
+## Diseño — Tablas restantes unificadas al patrón Facturas (17 nov 2026)
+
+- Rama `diseno/tablas-restantes-orq` (desde `prueba` 0524709). Solo frontend: todas las listas y fichas usan `ContenedorLista`, `TarjetaLista`, `BarraLista`, `TablaLista` y `PillEstado` de `src/components/listas/tabla-lista.tsx`, con los colores y el espaciado ya definidos en `docs/diseno/tablas-unificadas.md`. No se tocó `tabla-lista.tsx`, `src/components/ui`, impresión, matrices fiscales, líneas editables ni las páginas en curso (`facturacion`, `reportes/compras`, `numeraciones`, layout/topbar).
+- **Producto:** lista con buscador dentro de la tarjeta, selección múltiple, «Editar seleccionados» a la derecha, lápiz de 32 px, pills de estado, montos a la derecha y vacío con «Nuevo producto». Ficha: facturas de venta/compra, comerciales y kárdex con búsqueda local, `PaginadorLocal`, pills y enlaces por número; existencias por almacén con pie de total.
+- **Cliente:** contactos con avatar de inicial, tabs fuera de la tarjeta, búsqueda y paginación dentro, lápiz y vacío con CTA. Ficha: transacciones, facturas, comerciales, notas, pagos, asientos, personas y documentos con `BarraLista` sin borde, `TablaLista` y `PaginadorLocal`; estado de cuenta con pie de totales.
+- **Pagos y notas:** pagos recibidos, pagos a proveedores, notas de crédito/débito, notas de crédito de compras y pagos recurrentes (con la acción «Generar» intacta). Se conservan buscador, filtros de servidor, paginación y roles; los CTA del vacío solo aparecen si el rol puede crear.
+- **Configuración y contabilidad:** usuarios, impuestos, vendedores, centros de costo, monedas (monedas + historial de tasas), retenciones y términos de pago; catálogo de cuentas (árbol, búsqueda local, expansión, panel lateral y ayuda del «uso de cuenta»), configuración contable, asientos, activos y periodos (Cerrar/Reabrir por fila).
+- **Resto de listas:** compras, gastos, facturas recurrentes, órdenes de compra, cotizaciones/conduces, ajustes y transferencias de inventario, almacenes, categorías, listas de precios y bancos (cuentas, movimientos con totales, conciliaciones y panel de conciliación con selección múltiple).
+- No se inventaron features ni datos: no se agregaron buscadores donde la consulta no los tiene (ajustes, transferencias, recurrentes, bancos, configuración), ni «Filtrar» donde no hay filtro real. Los `colSpan` y `TableFooter` se conservan; ahora el vacío calcula su colSpan.
+- Candado `src/lib/tablas-listas.test.ts`: `LISTAS_MIGRADAS` pasó de 1 a 38 archivos; exige que cada uno importe `TablaLista` y no defina `EstadoPill`/`EstadoBadge` local. Los badges compartidos de compras y órdenes ahora son `PillEstado`.
+- Verificado: `pnpm typecheck`, `pnpm check` (exit 0; solo avisos preexistentes) y `pnpm test` (**742**). Sin build ni dev server, sin push ni merge.
+- **Pendiente / fuera:** reportes con filtros y descarga propia, matrices fiscales (606/607/608, balance de comprobación, balanza, libro diario, IT-1), detalles P3 de documentos, líneas editables y la vista previa de importación de productos (modal) no se migraron al componente: `docs/diseno/tablas-unificadas.md` §1.10/§6 los deja solo con tipografía o fuera. `contabilidad/numeraciones` y `facturacion` los está haciendo otro agente.
+
 ## Fix — Reportes de libros: RPC directo y paginación completa (16 nov 2026)
 
 - Rama `fix/reportes-libros-rpc` (desde `origin/prueba` b1f3f27). El `TypeError (reading 'rest')` de los 6 reportes de libros y de Guardar numeraciones **ya estaba corregido en `prueba`** (`cdfea68`, llamar `supabase.rpc` directo) y los libros pesados ya paginaban (`8cc75cf`). Esta rama no reintroduce el patrón; cierra el hueco que quedaba y lo blinda.
