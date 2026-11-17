@@ -188,12 +188,14 @@ function TarjetaImagen({
 function ResumenProducto({
   valores,
   controlaInventario,
+  precioBase,
   precioTotal,
   etiquetaImpuestoActual,
   onCambiar,
 }: {
   readonly valores: ValoresFormulario;
   readonly controlaInventario: boolean;
+  readonly precioBase: string;
   readonly precioTotal: string;
   readonly etiquetaImpuestoActual: string;
   readonly onCambiar: (cambios: Partial<ValoresFormulario>) => void;
@@ -217,6 +219,10 @@ function ResumenProducto({
         <div className="flex items-baseline justify-between gap-3">
           <dt className="text-muted-foreground">Costo por unidad</dt>
           <dd className="font-medium tabular-nums">{formatoMoneda(parsearMonto(valores.costo) ?? 0)}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="text-muted-foreground">Precio sin impuesto</dt>
+          <dd className="font-medium tabular-nums">{precioBase}</dd>
         </div>
         <div className="flex items-baseline justify-between gap-3">
           <dt className="text-muted-foreground">Precio de venta</dt>
@@ -507,6 +513,7 @@ export function FormularioProducto({
 }) {
   const router = useRouter();
   const validacion = useValidacionFormulario();
+  const crearOtroRef = useRef(false);
   const [pendiente, startTransition] = useTransition();
   const almacenPorDefecto = (almacenes.find((almacen) => almacen.es_principal) ?? almacenes[0])?.id ?? "";
 
@@ -643,8 +650,8 @@ export function FormularioProducto({
     setMensaje(null);
 
     const formData = new FormData(evento.currentTarget);
-    const submitter = (evento.nativeEvent as SubmitEvent).submitter;
-    const crearOtro = submitter instanceof HTMLButtonElement && submitter.value === "crear-otro";
+    const crearOtro = crearOtroRef.current;
+    crearOtroRef.current = false;
 
     const reglas = [
       requerido("nombre", formData.get("nombre"), "El nombre es requerido."),
@@ -976,6 +983,7 @@ export function FormularioProducto({
           <ResumenProducto
             valores={valores}
             controlaInventario={controlaInventario}
+            precioBase={formatoMoneda(precioNumero)}
             precioTotal={precioTotal}
             etiquetaImpuestoActual={etiquetaImpuestoActual}
             onCambiar={cambiar}
@@ -1007,7 +1015,14 @@ export function FormularioProducto({
           Cancelar
         </Button>
         {producto ? null : (
-          <Button type="submit" variant="outline" value="crear-otro" disabled={pendiente}>
+          <Button
+            type="submit"
+            variant="outline"
+            disabled={pendiente}
+            onClick={() => {
+              crearOtroRef.current = true;
+            }}
+          >
             Guardar y crear otro
           </Button>
         )}
