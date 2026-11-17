@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import type { PrecioLista } from "@/lib/inventario/tipos";
 import { limpiarBusqueda, patronIlike } from "@/lib/listas/busqueda";
 import {
@@ -15,6 +17,26 @@ const CAMPOS =
   "id, nombre, tipo, referencia, descripcion, precio, itbis_tasa, impuesto_id, inventariable, cantidad, costo, categoria_id, activo";
 
 const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
+
+export async function obtenerProducto(id: string): Promise<Producto | null> {
+  if (!z.uuid().safeParse(id).success) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("productos")
+    .select(CAMPOS)
+    .eq("id", id)
+    .maybeSingle()
+    .returns<Omit<Producto, "precios"> | null>();
+
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  const preciosRes = await supabase.from("producto_precios").select("lista_id, precio").eq("producto_id", id);
+  const precios = preciosRes.error ? [] : ((preciosRes.data ?? []) as PrecioLista[]);
+
+  return { ...data, precios };
+}
 
 export async function listarProductos(
   opciones: OpcionesLista = OPCIONES_LISTA_DEFECTO,
