@@ -7,7 +7,6 @@ import {
   Package,
   Settings,
   ShoppingCart,
-  Tag,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -81,19 +80,14 @@ export const sidebarItems: NavGroup[] = [
             url: "/dashboard/facturacion",
           },
           {
+            id: "facturas-recurrentes",
+            title: "Facturas de venta recurrentes",
+            url: "/dashboard/facturas-recurrentes",
+          },
+          {
             id: "pagos-recibidos",
             title: "Pagos recibidos",
             url: "/dashboard/pagos-recibidos",
-          },
-          {
-            id: "cotizaciones",
-            title: "Cotizaciones",
-            url: "/dashboard/cotizaciones",
-          },
-          {
-            id: "conduces",
-            title: "Conduces",
-            url: "/dashboard/conduces",
           },
           {
             id: "notas-credito",
@@ -106,9 +100,14 @@ export const sidebarItems: NavGroup[] = [
             url: "/dashboard/notas-debito",
           },
           {
-            id: "facturas-recurrentes",
-            title: "Facturas recurrentes",
-            url: "/dashboard/facturas-recurrentes",
+            id: "cotizaciones",
+            title: "Cotizaciones",
+            url: "/dashboard/cotizaciones",
+          },
+          {
+            id: "conduces",
+            title: "Conduces",
+            url: "/dashboard/conduces",
           },
         ],
       },
@@ -158,18 +157,16 @@ export const sidebarItems: NavGroup[] = [
         roles: TODOS_LOS_ROLES,
       },
       {
-        id: "productos",
-        title: "Productos",
-        url: "/dashboard/productos",
-        icon: Tag,
-        roles: TODOS_LOS_ROLES,
-      },
-      {
         id: "inventario",
         title: "Inventario",
         icon: Package,
         roles: TODOS_LOS_ROLES,
         subItems: [
+          {
+            id: "productos",
+            title: "Productos",
+            url: "/dashboard/productos",
+          },
           {
             id: "ajustes-inventario",
             title: "Ajustes de inventario",
@@ -194,6 +191,24 @@ export const sidebarItems: NavGroup[] = [
             id: "categorias-productos",
             title: "Categorías",
             url: "/dashboard/inventario/categorias",
+          },
+        ],
+      },
+      {
+        id: "bancos",
+        title: "Bancos",
+        icon: Landmark,
+        roles: TODOS_LOS_ROLES,
+        subItems: [
+          {
+            id: "bancos-cuentas",
+            title: "Cuentas",
+            url: "/dashboard/bancos",
+          },
+          {
+            id: "bancos-conciliaciones",
+            title: "Conciliaciones",
+            url: "/dashboard/bancos/conciliaciones",
           },
         ],
       },
@@ -227,24 +242,6 @@ export const sidebarItems: NavGroup[] = [
             id: "periodos",
             title: "Periodos",
             url: "/dashboard/contabilidad/periodos",
-          },
-        ],
-      },
-      {
-        id: "bancos",
-        title: "Bancos",
-        icon: Landmark,
-        roles: TODOS_LOS_ROLES,
-        subItems: [
-          {
-            id: "bancos-cuentas",
-            title: "Cuentas",
-            url: "/dashboard/bancos",
-          },
-          {
-            id: "bancos-conciliaciones",
-            title: "Conciliaciones",
-            url: "/dashboard/bancos/conciliaciones",
           },
         ],
       },

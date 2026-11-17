@@ -10,10 +10,9 @@ const MODULOS = [
   "ingresos",
   "compras",
   "contactos",
-  "productos",
   "inventario",
-  "contabilidad",
   "bancos",
+  "contabilidad",
   "reportes",
   "configuracion",
 ];
@@ -57,12 +56,21 @@ describe("filtrarItemsPorRol", () => {
     if (ingresos?.subItems == null) throw new Error("Ingresos debe tener submenú");
     expect(ingresos.subItems.map((sub) => sub.url)).toEqual([
       "/dashboard/facturacion",
+      "/dashboard/facturas-recurrentes",
       "/dashboard/pagos-recibidos",
-      "/dashboard/cotizaciones",
-      "/dashboard/conduces",
       "/dashboard/notas-credito",
       "/dashboard/notas-debito",
-      "/dashboard/facturas-recurrentes",
+      "/dashboard/cotizaciones",
+      "/dashboard/conduces",
+    ]);
+    expect(ingresos.subItems.map((sub) => sub.title)).toEqual([
+      "Facturas de venta",
+      "Facturas de venta recurrentes",
+      "Pagos recibidos",
+      "Notas de crédito",
+      "Notas de débito",
+      "Cotizaciones",
+      "Conduces",
     ]);
 
     const compras = items("admin").find((item) => item.id === "compras");
@@ -79,6 +87,7 @@ describe("filtrarItemsPorRol", () => {
     const inventario = items("admin").find((item) => item.id === "inventario");
     if (inventario?.subItems == null) throw new Error("Inventario debe tener submenú");
     expect(inventario.subItems.map((sub) => sub.url)).toEqual([
+      "/dashboard/productos",
       "/dashboard/inventario/ajustes",
       "/dashboard/inventario/transferencias",
       "/dashboard/inventario/listas-precios",
@@ -99,6 +108,28 @@ describe("filtrarItemsPorRol", () => {
     const bancos = items("admin").find((item) => item.id === "bancos");
     if (bancos?.subItems == null) throw new Error("Bancos debe tener submenú");
     expect(bancos.subItems.map((sub) => sub.url)).toEqual(["/dashboard/bancos", "/dashboard/bancos/conciliaciones"]);
+  });
+
+  test("Productos vive dentro de Inventario como primer subítem", () => {
+    expect(ids("admin")).not.toContain("productos");
+
+    const inventario = items("admin").find((item) => item.id === "inventario");
+    if (inventario?.subItems == null) throw new Error("Inventario debe tener submenú");
+
+    expect(inventario.icon).toBeDefined();
+    expect(inventario.subItems[0]).toMatchObject({
+      id: "productos",
+      title: "Productos",
+      url: "/dashboard/productos",
+    });
+  });
+
+  test("solo Inicio lleva separador después", () => {
+    expect(
+      items("admin")
+        .filter((item) => item.separadorDespues)
+        .map((item) => item.id),
+    ).toEqual(["inicio"]);
   });
 
   test("el grupo se titula Módulos", () => {
