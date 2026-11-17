@@ -4,11 +4,11 @@ import { cn } from "cn";
 import { Boxes, ClipboardList, Paperclip, TrendingDown } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
-import { ItemDato, TH } from "@/components/ficha/ficha-ui";
-import { Badge } from "@/components/ui/badge";
+import { ItemDato } from "@/components/ficha/ficha-ui";
+import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { rutaCuenta } from "@/lib/enlaces";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
 import { type CuentaFicha, type FichaProducto, precioConItbis } from "@/lib/productos/ficha";
@@ -126,6 +126,60 @@ function TarjetaPrecio({ producto }: { readonly producto: FichaProducto["product
   );
 }
 
+interface InventarioFicha {
+  readonly almacen_id: string;
+  readonly almacen_nombre: string;
+  readonly es_principal: boolean;
+  readonly cantidad: number;
+}
+
+/**
+ * TODO backend: la ficha no trae la cantidad inicial, el mínimo, el máximo ni
+ * lo comprometido en conduces por almacén; se muestran guiones.
+ */
+const columnasExistencias: readonly ColumnaLista<InventarioFicha>[] = [
+  {
+    clave: "almacen",
+    encabezado: "Almacén",
+    celda: (existencia) => (
+      <span className="inline-flex items-center gap-2 font-medium">
+        {existencia.almacen_nombre}
+        {existencia.es_principal ? <PillEstado tono="info">Principal</PillEstado> : null}
+      </span>
+    ),
+  },
+  {
+    clave: "inicial",
+    encabezado: "Cant. inicial",
+    alineacion: "derecha",
+    celda: () => <span className="text-muted-foreground">—</span>,
+  },
+  {
+    clave: "actual",
+    encabezado: "Cant. actual",
+    alineacion: "derecha",
+    celda: (existencia) => <span className="font-medium">{formatoCantidad(existencia.cantidad)}</span>,
+  },
+  {
+    clave: "minimo",
+    encabezado: "Mín.",
+    alineacion: "derecha",
+    celda: () => <span className="text-muted-foreground">—</span>,
+  },
+  {
+    clave: "maximo",
+    encabezado: "Máx.",
+    alineacion: "derecha",
+    celda: () => <span className="text-muted-foreground">—</span>,
+  },
+  {
+    clave: "conduces",
+    encabezado: "En conduces",
+    alineacion: "derecha",
+    celda: () => <span className="text-muted-foreground">—</span>,
+  },
+];
+
 function Inventario({ ficha, onVerHistorial }: { readonly ficha: FichaProducto; readonly onVerHistorial: () => void }) {
   const { producto, existencias, kardex } = ficha;
   return (
@@ -151,47 +205,15 @@ function Inventario({ ficha, onVerHistorial }: { readonly ficha: FichaProducto; 
         </span>
       </div>
       <div className={cn(CLASE_SUBPANEL, "overflow-hidden")}>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className={cn(TH, "pl-4")}>Almacén</TableHead>
-              <TableHead className={cn(TH, "text-right")}>Cant. inicial</TableHead>
-              <TableHead className={cn(TH, "text-right")}>Cant. actual</TableHead>
-              <TableHead className={cn(TH, "text-right")}>Mín.</TableHead>
-              <TableHead className={cn(TH, "text-right")}>Máx.</TableHead>
-              <TableHead className={cn(TH, "pr-4 text-right")}>En conduces</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {existencias.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground py-8 text-center">
-                  Sin existencias registradas por almacén.
-                </TableCell>
-              </TableRow>
-            ) : (
-              existencias.map((existencia) => (
-                <TableRow key={existencia.almacen_id}>
-                  <TableCell className="pl-4 font-medium">
-                    <span className="inline-flex items-center gap-2">
-                      {existencia.almacen_nombre}
-                      {existencia.es_principal ? <Badge className="bg-primary/10 text-primary">Principal</Badge> : null}
-                    </span>
-                  </TableCell>
-                  {/* TODO backend: no existen la cantidad inicial, el mínimo, el máximo ni lo comprometido en conduces por almacén. */}
-                  <TableCell className="text-muted-foreground text-right">—</TableCell>
-                  <TableCell className="text-right font-medium tabular-nums">
-                    {formatoCantidad(existencia.cantidad)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-right">—</TableCell>
-                  <TableCell className="text-muted-foreground text-right">—</TableCell>
-                  <TableCell className="text-muted-foreground pr-4 text-right">—</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-          {existencias.length > 1 ? (
-            <TableFooter>
+        <TablaLista
+          columnas={columnasExistencias}
+          filas={existencias}
+          claveFila={(existencia) => existencia.almacen_id}
+          vacio={{
+            titulo: "Sin existencias registradas por almacén",
+          }}
+          pie={
+            existencias.length > 1 ? (
               <TableRow>
                 <TableCell className="pl-4 font-semibold">Total</TableCell>
                 <TableCell />
@@ -200,9 +222,9 @@ function Inventario({ ficha, onVerHistorial }: { readonly ficha: FichaProducto; 
                 </TableCell>
                 <TableCell colSpan={3} />
               </TableRow>
-            </TableFooter>
-          ) : null}
-        </Table>
+            ) : undefined
+          }
+        />
       </div>
     </section>
   );
@@ -216,7 +238,7 @@ function ListasPrecios({ producto }: { readonly producto: FichaProducto["product
         <div className="flex items-center justify-between gap-4 py-2">
           <dt className="inline-flex items-center gap-2">
             General
-            <Badge className="bg-primary/10 text-primary">Principal</Badge>
+            <PillEstado tono="info">Principal</PillEstado>
           </dt>
           <dd className="font-medium tabular-nums">{formatoMoneda(producto.precio)}</dd>
         </div>
