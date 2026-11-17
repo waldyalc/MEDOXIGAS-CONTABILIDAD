@@ -16,6 +16,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRol } from "@/lib/auth/rol";
@@ -160,23 +161,24 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Compras</h1>
-          <p className="text-muted-foreground text-sm">Facturas de proveedores, cuentas por pagar y sus pagos.</p>
-        </div>
-        <Suspense
-          fallback={
-            <div className="flex flex-wrap gap-2">
-              <Skeleton className="h-9 w-40" />
-              <Skeleton className="h-9 w-32" />
-              <Skeleton className="h-9 w-52" />
-            </div>
-          }
-        >
-          <AccionesCompra />
-        </Suspense>
-      </div>
+      <EncabezadoPagina
+        titulo="Compras"
+        subtitulo="Facturas de proveedores, cuentas por pagar y sus pagos."
+        migas={[{ etiqueta: "Compras" }, { etiqueta: "Facturas de proveedor" }]}
+        acciones={
+          <Suspense
+            fallback={
+              <div className="flex flex-wrap gap-2">
+                <Skeleton className="h-9 w-40" />
+                <Skeleton className="h-9 w-32" />
+                <Skeleton className="h-9 w-52" />
+              </div>
+            }
+          >
+            <AccionesCompra />
+          </Suspense>
+        }
+      />
 
       <TarjetaLista data-lista="compras">
         <BarraLista>
