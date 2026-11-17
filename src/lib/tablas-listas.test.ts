@@ -12,6 +12,8 @@ const COMPONENTE = join(SRC, "components", "listas", "tabla-lista.tsx");
  */
 const LISTAS_MIGRADAS = [
   "app/(main)/dashboard/facturacion/_components/facturas-tabla.tsx",
+  "app/(main)/dashboard/contabilidad/numeraciones/_components/numeraciones-cliente.tsx",
+  "app/(main)/dashboard/reportes/compras/_components/tabla-compras.tsx",
   "app/(main)/dashboard/productos/_components/productos-cliente.tsx",
   "app/(main)/dashboard/productos/[id]/_components/tablas-producto.tsx",
   "app/(main)/dashboard/productos/[id]/_components/informacion-general.tsx",

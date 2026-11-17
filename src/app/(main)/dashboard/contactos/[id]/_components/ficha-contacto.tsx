@@ -463,20 +463,40 @@ function coincidenTexto(fila: FilaUnificada, texto: string): boolean {
   );
 }
 
+function IdentificadorMovimiento({ fila, numero }: { readonly fila: FilaUnificada; readonly numero: string }) {
+  if (fila.tipo === "factura") {
+    return fila.ncf ? (
+      <span className="font-medium">{fila.ncf}</span>
+    ) : (
+      <span className="text-muted-foreground">—</span>
+    );
+  }
+
+  return (
+    <>
+      <span className="font-medium">{numero}</span>
+      {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
+    </>
+  );
+}
+
+function ariaMovimiento(fila: FilaUnificada, numero: string): string {
+  if (fila.tipo === "factura") return fila.ncf ? `Ver factura ${fila.ncf}` : "Ver factura de venta";
+  return `Ver ${fila.detalle} ${numero}`;
+}
+
 const columnasMovimientos: readonly ColumnaLista<FilaUnificada>[] = [
   {
     clave: "transaccion",
     encabezado: "Transacción",
-    celda: (fila) => (
-      <Enlace
-        href={fila.href}
-        aria-label={`Ver ${fila.detalle} ${fila.prefijo}-${fila.numero}`}
-        className="flex flex-col"
-      >
-        <span className="font-medium">{`${fila.prefijo}-${String(fila.numero).padStart(4, "0")}`}</span>
-        {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
-      </Enlace>
-    ),
+    celda: (fila) => {
+      const numero = `${fila.prefijo}-${String(fila.numero).padStart(4, "0")}`;
+      return (
+        <Enlace href={fila.href} aria-label={ariaMovimiento(fila, numero)} className="flex flex-col">
+          <IdentificadorMovimiento fila={fila} numero={numero} />
+        </Enlace>
+      );
+    },
   },
   {
     clave: "fecha",

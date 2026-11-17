@@ -11,9 +11,12 @@ const columnas: readonly ColumnaLista<FilaEstadoCuenta>[] = [
     clave: "documento",
     encabezado: "Documento",
     celda: (fila) => (
-      <Enlace href={rutaFactura(fila.id)} className="flex flex-col">
-        <span className="font-medium">#{fila.numero}</span>
-        <span className="text-muted-foreground font-mono text-xs">{fila.ncf ?? "—"}</span>
+      <Enlace
+        href={rutaFactura(fila.id)}
+        aria-label={fila.ncf ? `Ver factura ${fila.ncf}` : "Ver factura"}
+        className="flex flex-col"
+      >
+        <span className="font-medium">{fila.ncf ?? "—"}</span>
       </Enlace>
     ),
   },

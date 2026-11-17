@@ -555,23 +555,19 @@ function TablaNotas({ notas, tipo }: { notas: NotaVentaResumen[]; tipo: "credito
 function TablaFacturaRelacionada({ factura }: { factura: FacturaRelacionada }) {
   return (
     <TablaDatos
-      columnas={[
-        { titulo: "Número" },
-        { titulo: "NCF" },
-        { titulo: "Fecha" },
-        { titulo: "Total" },
-        { titulo: "Estado" },
-      ]}
+      columnas={[{ titulo: "Número de factura" }, { titulo: "Fecha" }, { titulo: "Total" }, { titulo: "Estado" }]}
       vacio="Sin factura asociada."
       hayFilas
     >
       <TableRow>
         <TableCell className="h-12 px-4 text-sm">
-          <Link href={rutaFactura(factura.id)} className="text-primary hover:underline">
-            #{factura.numero}
+          <Link
+            href={rutaFactura(factura.id)}
+            className={factura.ncf ? "text-primary hover:underline" : "text-muted-foreground"}
+          >
+            {factura.ncf ?? "—"}
           </Link>
         </TableCell>
-        <TableCell className="h-12 px-4 font-mono text-xs">{factura.ncf ?? "—"}</TableCell>
         <TableCell className="h-12 px-4 text-sm">{formatoDia(factura.fecha)}</TableCell>
         <TableCell className="h-12 px-4 text-sm tabular-nums">{formatoMoneda(factura.total)}</TableCell>
         <TableCell className="h-12 px-4 text-sm">{factura.estado === "anulada" ? "Anulada" : "Activa"}</TableCell>
@@ -1140,14 +1136,14 @@ function DialogoConvertir({
 function DialogoAnular({
   abierto,
   onOpenChange,
-  numero,
+  ncf,
   pendiente,
   error,
   onAnular,
 }: {
   abierto: boolean;
   onOpenChange: (abierto: boolean) => void;
-  numero: number;
+  ncf: string | null;
   pendiente: boolean;
   error: string | null;
   onAnular: () => void;
@@ -1156,7 +1152,7 @@ function DialogoAnular({
     <AlertDialog open={abierto} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>¿Anular la factura #{numero}?</AlertDialogTitle>
+          <AlertDialogTitle>{ncf ? `¿Anular la factura NCF ${ncf}?` : "¿Anular la factura?"}</AlertDialogTitle>
           <AlertDialogDescription>
             Se creará un asiento de anulación y el NCF quedará sin efecto. Esta acción no se puede deshacer.
           </AlertDialogDescription>
@@ -1205,6 +1201,11 @@ interface VistaPreparada {
   rutaVolver: string;
   etiquetaVolver: string;
   tituloInformacion: string;
+}
+
+function numeroDocumentoVista(factura: FacturaDetalle | null, base: FacturaDetalle | DocumentoDetalle): string {
+  if (!factura) return String(base.numero);
+  return factura.ncf ? `NCF ${factura.ncf}` : "—";
 }
 
 function prepararVista(props: Props): VistaPreparada | null {
@@ -1266,7 +1267,7 @@ function prepararVista(props: Props): VistaPreparada | null {
     titulo: factura
       ? `${tituloTipoComprobante(factura.tipo_comprobante)}${factura.ncf ? ` NCF ${factura.ncf}` : ""}`
       : `${TITULOS_DOCUMENTO[tipo]} ${base.numero}`,
-    numeroDocumento: factura ? (factura.ncf ?? String(factura.numero)) : String(base.numero),
+    numeroDocumento: numeroDocumentoVista(factura, base),
     nombreArchivo: nombreArchivoPapel(tipo, base.numero, factura?.ncf ?? null),
     rutaVolver: RUTAS_VOLVER[tipo],
     etiquetaVolver: ETIQUETAS_VOLVER[tipo],
@@ -1527,7 +1528,7 @@ export function VistaDocumentoVenta(props: Props) {
       <DialogoAnular
         abierto={acciones.anularAbierto}
         onOpenChange={acciones.cambiarAnular}
-        numero={factura?.numero ?? 0}
+        ncf={factura?.ncf ?? null}
         pendiente={acciones.pendiente}
         error={acciones.error}
         onAnular={acciones.anular}

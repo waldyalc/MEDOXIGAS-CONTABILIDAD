@@ -52,10 +52,29 @@ export interface LineaCalculadaFormulario {
 
 export interface ValidacionDocumento {
   clienteId: string;
+  fecha: string;
+  vencimiento: string;
+  conVencimiento?: boolean;
   lineas: LineaFormulario[];
   totalCentavos: number;
   requiereCuentaPago?: boolean;
   cuentaPago?: string;
+}
+
+export type CampoLineaDocumento = "producto" | "cantidad" | "precio" | "descuento";
+
+export type CampoDocumento =
+  | "cliente"
+  | "fecha"
+  | "vencimiento"
+  | "lineas"
+  | "cuentaPago"
+  | "total"
+  | { linea: string; campo: CampoLineaDocumento };
+
+export interface ErrorDocumento {
+  campo: CampoDocumento;
+  mensaje: string;
 }
 
 export interface DocumentoCalculado {
@@ -86,14 +105,107 @@ export function calcularDocumento(lineas: LineaFormulario[]): DocumentoCalculado
   return { calculadas, totales: calcularTotales(calculadas.map((linea) => linea.calculo)) };
 }
 
-export function mensajeValidacionDocumento(datos: ValidacionDocumento): string | null {
-  if (!datos.clienteId) return "Selecciona un cliente.";
-  if (datos.lineas.some((linea) => !linea.productoId)) return "Selecciona el producto en todas las líneas.";
-  if (datos.totalCentavos <= 0) return "El total del documento debe ser mayor que cero.";
-  if (datos.requiereCuentaPago && !datos.cuentaPago) {
-    return "Selecciona la cuenta de caja o banco para el pago.";
+/** Clave estable para buscar el error de un campo, incluidas las líneas. */
+export function claveErrorDocumento(campo: CampoDocumento): string {
+  return typeof campo === "string" ? campo : `${campo.campo}:${campo.linea}`;
+}
+
+/** id del control (o del mensaje, si el campo no es un control) al que se lleva el foco. */
+export function idCampoDocumento(campo: CampoDocumento): string {
+  if (typeof campo !== "string") return `${campo.campo}-${campo.linea}`;
+  if (campo === "cuentaPago") return "cuenta-pago";
+  if (campo === "total") return "total-error";
+  if (campo === "lineas") return "lineas-error";
+  return campo;
+}
+
+function esFechaISO(valor: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(valor);
+}
+
+function erroresFechas(datos: ValidacionDocumento): ErrorDocumento[] {
+  const errores: ErrorDocumento[] = [];
+
+  if (!esFechaISO(datos.fecha)) {
+    errores.push({ campo: "fecha", mensaje: "La fecha es requerida." });
   }
-  return null;
+
+  if (datos.conVencimiento === false) return errores;
+
+  if (!esFechaISO(datos.vencimiento)) {
+    errores.push({ campo: "vencimiento", mensaje: "La fecha de vencimiento es requerida." });
+    return errores;
+  }
+
+  if (esFechaISO(datos.fecha) && datos.vencimiento < datos.fecha) {
+    errores.push({
+      campo: "vencimiento",
+      mensaje: "La fecha de vencimiento no puede ser anterior a la fecha de creación.",
+    });
+  }
+
+  return errores;
+}
+
+function erroresLinea(linea: LineaFormulario): ErrorDocumento[] {
+  const errores: ErrorDocumento[] = [];
+
+  if (!linea.productoId) {
+    errores.push({
+      campo: { linea: linea.clave, campo: "producto" },
+      mensaje: "El producto es requerido.",
+    });
+  }
+  if (parsearCantidad(linea.cantidad) <= 0) {
+    errores.push({
+      campo: { linea: linea.clave, campo: "cantidad" },
+      mensaje: "La cantidad debe ser mayor que cero.",
+    });
+  }
+  if (parsearCentavos(linea.precio) === null) {
+    errores.push({
+      campo: { linea: linea.clave, campo: "precio" },
+      mensaje: "El precio no es válido.",
+    });
+  }
+  const descuento = numero(linea.descuentoPct);
+  if (descuento < 0 || descuento > 100) {
+    errores.push({
+      campo: { linea: linea.clave, campo: "descuento" },
+      mensaje: "El descuento debe estar entre 0 y 100.",
+    });
+  }
+
+  return errores;
+}
+
+/** Errores de los campos obligatorios, en el orden en que se deben corregir. */
+export function erroresValidacionDocumento(datos: ValidacionDocumento): ErrorDocumento[] {
+  const errores: ErrorDocumento[] = [];
+
+  if (!datos.clienteId) {
+    errores.push({ campo: "cliente", mensaje: "El cliente es requerido." });
+  }
+
+  errores.push(...erroresFechas(datos));
+
+  if (datos.lineas.length === 0) {
+    errores.push({ campo: "lineas", mensaje: "Agrega al menos una línea." });
+  }
+
+  for (const linea of datos.lineas) {
+    errores.push(...erroresLinea(linea));
+  }
+
+  if (datos.totalCentavos <= 0) {
+    errores.push({ campo: "total", mensaje: "El total del documento debe ser mayor que cero." });
+  }
+
+  if (datos.requiereCuentaPago && !datos.cuentaPago) {
+    errores.push({ campo: "cuentaPago", mensaje: "La cuenta de caja o banco es requerida." });
+  }
+
+  return errores;
 }
 
 export function construirEntrada(datos: DatosDocumento) {

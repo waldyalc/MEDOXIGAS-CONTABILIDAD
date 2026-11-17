@@ -36,22 +36,51 @@ function tonoEstado(estado: string): TonoPill {
   return "pendiente";
 }
 
+function IdentificadorDocumento({
+  ncf,
+  id,
+  ncfPrincipal,
+}: {
+  readonly ncf?: string | null;
+  readonly id: string;
+  readonly ncfPrincipal: boolean;
+}) {
+  if (ncfPrincipal) {
+    return ncf ? (
+      <span className="text-primary font-medium">{ncf}</span>
+    ) : (
+      <span className="text-muted-foreground">—</span>
+    );
+  }
+
+  return (
+    <>
+      <span className="text-primary font-medium">{id}</span>
+      {ncf ? <span className="text-muted-foreground font-mono text-xs">{ncf}</span> : null}
+    </>
+  );
+}
+
 function CeldaDocumento({
   href,
   prefijo,
   numero,
   ncf,
+  ncfPrincipal = false,
 }: {
   readonly href: string;
   readonly prefijo: string;
   readonly numero: number;
   readonly ncf?: string | null;
+  readonly ncfPrincipal?: boolean;
 }) {
   const id = numeroDocumento(prefijo, numero);
+  let ariaLabel = `Ver ${id}`;
+  if (ncfPrincipal) ariaLabel = ncf ? `Ver factura ${ncf}` : "Ver factura de venta";
+
   return (
-    <Enlace href={href} aria-label={`Ver ${id}`} className="flex flex-col">
-      <span className="font-medium">{id}</span>
-      {ncf ? <span className="text-muted-foreground font-mono text-xs">{ncf}</span> : null}
+    <Enlace href={href} aria-label={ariaLabel} className="flex flex-col">
+      <IdentificadorDocumento id={id} ncf={ncf} ncfPrincipal={ncfPrincipal} />
     </Enlace>
   );
 }
@@ -125,6 +154,7 @@ export function TablaFacturas({
           prefijo={esVenta ? "FAC" : "COM"}
           numero={documento.numero}
           ncf={documento.ncf}
+          ncfPrincipal={esVenta}
         />
       ),
     },
@@ -262,6 +292,7 @@ export function TablaKardex({
           prefijo={fila.tipo === "venta" ? "FAC" : "COM"}
           numero={fila.numero}
           ncf={fila.ncf}
+          ncfPrincipal={fila.tipo === "venta"}
         />
       ),
     },

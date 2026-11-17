@@ -56,20 +56,51 @@ interface ColumnaDocumento<T> {
   readonly celda: (fila: T) => ReactNode;
 }
 
+function IdentificadorFicha({
+  fila,
+  numero,
+  ncfPrincipal,
+}: {
+  readonly fila: Fila;
+  readonly numero: string;
+  readonly ncfPrincipal: boolean;
+}) {
+  if (ncfPrincipal) {
+    return fila.ncf ? (
+      <span className="font-medium">{fila.ncf}</span>
+    ) : (
+      <span className="text-muted-foreground">—</span>
+    );
+  }
+
+  return (
+    <>
+      <span className="font-medium">{numero}</span>
+      {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
+    </>
+  );
+}
+
+function etiquetaEnlace(numero: string, ncfPrincipal: boolean, ncf?: string | null): string {
+  if (!ncfPrincipal) return `Ver ${numero}`;
+  return ncf ? `Ver factura ${ncf}` : "Ver factura de venta";
+}
+
 function NumeroEnlace({
   href,
   prefijo,
   fila,
+  ncfPrincipal = false,
 }: {
   readonly href: string;
   readonly prefijo: string;
   readonly fila: Fila;
+  readonly ncfPrincipal?: boolean;
 }) {
   const numero = `${prefijo}-${String(fila.numero).padStart(4, "0")}`;
   return (
-    <Enlace href={href} aria-label={`Ver ${numero}`} className="flex flex-col">
-      <span className="font-medium">{numero}</span>
-      {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
+    <Enlace href={href} aria-label={etiquetaEnlace(numero, ncfPrincipal, fila.ncf)} className="flex flex-col">
+      <IdentificadorFicha fila={fila} numero={numero} ncfPrincipal={ncfPrincipal} />
     </Enlace>
   );
 }
@@ -88,12 +119,14 @@ function TablaFicha<T extends Fila>({
   unidad,
   prefijo,
   ruta,
+  ncfPrincipal = false,
 }: {
   readonly filas: readonly T[];
   readonly columnas: readonly ColumnaDocumento<T>[];
   readonly unidad: string;
   readonly prefijo: (fila: T) => string;
   readonly ruta: (fila: T) => string;
+  readonly ncfPrincipal?: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const texto = busqueda.trim().toLowerCase();
@@ -111,7 +144,9 @@ function TablaFicha<T extends Fila>({
     {
       clave: "numero",
       encabezado: "Número",
-      celda: (fila) => <NumeroEnlace href={ruta(fila)} prefijo={prefijo(fila)} fila={fila} />,
+      celda: (fila) => (
+        <NumeroEnlace href={ruta(fila)} prefijo={prefijo(fila)} fila={fila} ncfPrincipal={ncfPrincipal} />
+      ),
     },
     ...columnas.map((columna, indice) => ({
       clave: `columna-${indice}`,
@@ -189,6 +224,7 @@ export function PestanaFacturas({
       unidad={esVenta ? "facturas de venta" : "facturas de proveedor"}
       prefijo={() => (esVenta ? "FAC" : "COM")}
       ruta={(f) => ruta(f.id)}
+      ncfPrincipal={esVenta}
     />
   );
 }
