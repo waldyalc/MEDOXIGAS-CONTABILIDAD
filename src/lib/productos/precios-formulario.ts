@@ -23,6 +23,9 @@ export type DatosPayloadProducto = {
   costo: number;
   categoria_id: string | null;
   activo?: boolean;
+  cuenta_ingreso_id?: string | null;
+  cuenta_inventario_id?: string | null;
+  cuenta_costo_id?: string | null;
 };
 
 export type PayloadProducto = DatosPayloadProducto & {

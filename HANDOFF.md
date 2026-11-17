@@ -1,5 +1,14 @@
 # Handoff — Medoxigas Contabilidad
 
+## Diseño — Editar producto en pantalla completa (17 nov 2026)
+
+- Rama `diseno/producto-editar-full-orq` (desde `prueba` 6e5f8db). Nueva ruta `/dashboard/productos/[id]/editar`: el lápiz de la lista y el botón «Editar producto» de la ficha navegan a una pantalla completa con el shell de la ficha (`CLASE_PANEL_FICHA`, `GrillaKpis`, `Pildora`, `MetaItem`, `ItemDato`). Ya no se edita producto en diálogo; el diálogo queda solo para «Nuevo producto».
+- Secciones en el orden de Alegra: **Datos del producto** (Tipo Producto/Servicio, Categoría, Nombre, Referencia, Estado, Descripción), tarjeta lateral con Precio total / sin impuesto / impuesto / costo, **Inventario y precio** (Controlar inventario, Existencia actual, Costo por unidad, Precio base, Impuesto, Precio total calculado), **Almacenes** (cantidades actuales por almacén, solo lectura), **Listas de precios**, **Archivos adjuntos** (vacío) y **Contabilidad** (cuentas de ventas, inventario y costo). Guardar aparece arriba y abajo; Cancelar vuelve a la ficha.
+- Se usan `CampoFormulario`, `FORM_*`, `SelectCampo`, `SelectorImpuesto`, `Switch`, `TablaLista`/`PillEstado`, `Empty`, `ValidacionFormulario` y `actualizarProducto`. La ficha ahora muestra la categoría, el estado y todas las listas de precios activas (antes salían «—» y solo General), leyendo `productos.categoria_id`, `productos.activo`, `producto_precios` y `listas_precios` con consultas de solo lectura.
+- Las cuentas contables ya existían en `productos` y las acepta `actualizar_producto`, pero la action las descartaba. Se agregaron al esquema y al payload **solo cuando el formulario envía el campo**, para que alta, importación, edición masiva y el diálogo no borren cuentas personalizadas. Candado en `productos.test.ts`: sin campos de cuenta las claves no viajan; con el campo vacío se envía `null` explícito.
+- **Pendiente de backend (no se inventó ni se muestra en pantalla):** tipo Combo (el check solo acepta producto/servicio), almacén obligatorio del producto (no hay `productos.almacen_id`; el stock vive en `existencias`), unidad de medida y tipo de referencia, existencia inicial / mínimo / máximo / en conduces por almacén, variantes, campos extra, imagen y archivos adjuntos. Está documentado en `docs/diseno/notas-backend.md`.
+- Verificado: `pnpm typecheck`, `pnpm check` (exit 0; solo avisos preexistentes), `pnpm test` (**795**, incluida la prueba nueva) y Biome de lo tocado sin errores. Sin build, dev server ni capturas; sin migraciones, sin tocar `src/components/ui`, sin push ni merge.
+
 ## Fix — La DGII decía «No se encontró ese RNC» a un RNC inscrito (17 nov 2026)
 
 - Rama `feat/dgii-fix-orq` (desde `prueba` 6e5f8db). Reporte de Waldy: con el RNC **131488791** (OXYMAT SRL, ACTIVO) el diálogo «Nuevo contacto» mostraba «No se encontró ese RNC en la DGII», y el autocompletado tampoco se veía en el perfil del cliente.

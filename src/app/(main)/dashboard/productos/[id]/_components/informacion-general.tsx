@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { rutaCuenta } from "@/lib/enlaces";
+import { centavosAValor } from "@/lib/facturacion/calculo";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
-import { type CuentaFicha, type FichaProducto, precioConItbis } from "@/lib/productos/ficha";
+import { precioSugeridoCentavos } from "@/lib/inventario/precios";
+import { type CuentaFicha, type FichaProducto, type PrecioListaFicha, precioConItbis } from "@/lib/productos/ficha";
 import { etiquetaTasaItbis } from "@/lib/productos/productos";
 
 const CLASE_SUBPANEL = "ring-foreground/10 rounded-lg ring-1";
@@ -71,19 +73,13 @@ function DatosProducto({ producto }: { readonly producto: FichaProducto["product
       <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
         <ItemDato etiqueta="Nombre">{producto.nombre}</ItemDato>
         <ItemDato etiqueta="Referencia">{producto.referencia?.trim() || "—"}</ItemDato>
-        {/* TODO backend: la ficha no recibe la categoría (productos.categoria_id). */}
-        <ItemDato etiqueta="Categoría">
-          <SinDato />
-        </ItemDato>
+        <ItemDato etiqueta="Categoría">{producto.categoriaNombre ?? "Sin categoría"}</ItemDato>
         <ItemDato etiqueta="Tipo">{esServicio ? "Servicio" : "Producto"}</ItemDato>
         {/* TODO backend: no existe la unidad de medida del producto. */}
         <ItemDato etiqueta="Unidad de medida">
           <SinDato />
         </ItemDato>
-        {/* TODO backend: la ficha no recibe si el producto está activo (productos.activo). */}
-        <ItemDato etiqueta="Estado">
-          <SinDato />
-        </ItemDato>
+        <ItemDato etiqueta="Estado">{producto.activo ? "Activo" : "Inactivo"}</ItemDato>
         <div className="sm:col-span-2">
           <ItemDato etiqueta="Descripción">
             <span className="whitespace-pre-line">{producto.descripcion?.trim() || "—"}</span>
@@ -230,19 +226,34 @@ function Inventario({ ficha, onVerHistorial }: { readonly ficha: FichaProducto; 
   );
 }
 
+function precioDeLista(producto: FichaProducto["producto"], lista: PrecioListaFicha): number {
+  const precios = lista.precio === null ? [] : [{ lista_id: lista.listaId, precio: lista.precio }];
+  const centavos = precioSugeridoCentavos(
+    producto.precio,
+    [{ id: lista.listaId, tipo: lista.tipo }],
+    precios,
+    lista.listaId,
+  );
+  return centavosAValor(centavos);
+}
+
 function ListasPrecios({ producto }: { readonly producto: FichaProducto["producto"] }) {
   return (
     <section className={cn(CLASE_SUBPANEL, "flex flex-col gap-3 p-4")}>
       <TituloSeccion>Listas de precios</TituloSeccion>
       <dl className="divide-border flex flex-col divide-y text-sm">
-        <div className="flex items-center justify-between gap-4 py-2">
-          <dt className="inline-flex items-center gap-2">
-            General
-            <PillEstado tono="info">Principal</PillEstado>
-          </dt>
-          <dd className="font-medium tabular-nums">{formatoMoneda(producto.precio)}</dd>
-        </div>
-        {/* TODO backend: la ficha no recibe los precios del producto en otras listas (producto_precios). */}
+        {producto.precios.map((lista) => (
+          <div key={lista.listaId} className="flex items-center justify-between gap-4 py-2">
+            <dt className="inline-flex items-center gap-2">
+              {lista.nombre}
+              {lista.esPrincipal ? <PillEstado tono="info">Principal</PillEstado> : null}
+            </dt>
+            <dd className="font-medium tabular-nums">{formatoMoneda(precioDeLista(producto, lista))}</dd>
+          </div>
+        ))}
+        {producto.precios.length === 0 ? (
+          <span className="text-muted-foreground text-sm">Sin listas de precios activas.</span>
+        ) : null}
       </dl>
     </section>
   );

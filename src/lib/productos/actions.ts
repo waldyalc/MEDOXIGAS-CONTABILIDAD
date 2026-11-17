@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 import { construirPayloadProducto, leerPreciosFormulario } from "./precios-formulario";
-import { esquemaProducto } from "./productos";
+import { CAMPOS_CUENTA_PRODUCTO, type CampoCuentaProducto, esquemaProducto } from "./productos";
 
 export type ResultadoAccion = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -17,6 +17,14 @@ function texto(formData: FormData, campo: string) {
 function booleano(formData: FormData, campo: string) {
   const valor = texto(formData, campo).toLowerCase();
   return valor === "true" || valor === "on" || valor === "1";
+}
+
+function cuentasDesdeFormulario(formData: FormData) {
+  const cuentas: Partial<Record<CampoCuentaProducto, string>> = {};
+  for (const campo of CAMPOS_CUENTA_PRODUCTO) {
+    if (formData.has(campo)) cuentas[campo] = texto(formData, campo);
+  }
+  return cuentas;
 }
 
 function datosDesdeFormulario(formData: FormData) {
@@ -33,6 +41,7 @@ function datosDesdeFormulario(formData: FormData) {
     costo: texto(formData, "costo") || "0",
     categoria_id: texto(formData, "categoria_id"),
     activo: formData.has("activo") ? booleano(formData, "activo") : undefined,
+    ...cuentasDesdeFormulario(formData),
   };
 }
 

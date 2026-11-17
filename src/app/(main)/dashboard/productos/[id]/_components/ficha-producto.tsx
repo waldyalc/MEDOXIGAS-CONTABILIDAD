@@ -35,6 +35,7 @@ import {
   type KpiFicha,
   MetaItem,
   type OpcionFiltro,
+  Pildora,
 } from "@/components/ficha/ficha-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,18 +46,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { etiquetaEstadoDocumento } from "@/lib/contactos/ficha";
+import { rutaEditarProducto } from "@/lib/enlaces";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
-import type { Impuesto } from "@/lib/impuestos/tipos";
-import type { CategoriaProducto, ListaPrecio } from "@/lib/inventario/tipos";
 import {
   type FichaProducto as DatosFichaProducto,
   type DocumentoFicha,
   precioConItbis,
   sumarCantidades,
 } from "@/lib/productos/ficha";
-import { etiquetaTasaItbis, type Producto } from "@/lib/productos/productos";
+import { etiquetaTasaItbis } from "@/lib/productos/productos";
 
-import { ProductoDialogo } from "../../_components/producto-dialogo";
 import { InformacionGeneral } from "./informacion-general";
 import { ListaBuscable, PendienteBackend, TablaComerciales, TablaFacturas, TablaKardex } from "./tablas-producto";
 
@@ -82,23 +81,15 @@ const PENDIENTES: { valor: PestanaProducto; titulo: string; icono: ReactNode }[]
   { valor: "transferencias", titulo: "transferencias entre almacenes", icono: <ArrowLeftRight /> },
 ];
 
-function Pildora({ className, children }: { readonly className: string; readonly children: ReactNode }) {
-  return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium", className)}>
-      {children}
-    </span>
-  );
-}
-
 function EncabezadoProducto({
   producto,
   puedeEscribir,
-  onEditar,
+  hrefEditar,
   onVerHistorial,
 }: {
   readonly producto: DatosFichaProducto["producto"];
   readonly puedeEscribir: boolean;
-  readonly onEditar: (() => void) | null;
+  readonly hrefEditar: string | null;
   readonly onVerHistorial: () => void;
 }) {
   const esServicio = producto.tipo === "servicio";
@@ -144,8 +135,8 @@ function EncabezadoProducto({
         </div>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
-        {onEditar ? (
-          <Button onClick={onEditar}>
+        {hrefEditar ? (
+          <Button nativeButton={false} render={<Link href={hrefEditar} prefetch={false} />}>
             <SquarePen data-icon="inline-start" />
             Editar producto
           </Button>
@@ -235,21 +226,12 @@ function filtrarEstado<T extends { estado: string }>(documentos: readonly T[], e
 export function FichaProducto({
   ficha,
   puedeEscribir,
-  productoEditable,
-  categorias,
-  listasPrecios,
-  impuestos,
 }: {
   readonly ficha: DatosFichaProducto;
   readonly puedeEscribir: boolean;
-  readonly productoEditable: Producto | null;
-  readonly categorias: CategoriaProducto[];
-  readonly listasPrecios: ListaPrecio[];
-  readonly impuestos: Impuesto[];
 }) {
   const { producto, facturasVenta, facturasCompra, cotizaciones, conduces, kardex } = ficha;
   const [pestana, setPestana] = useState<PestanaProducto>("informacion");
-  const [editando, setEditando] = useState(false);
   const [estadoVentas, setEstadoVentas] = useState("todos");
   const [estadoCompras, setEstadoCompras] = useState("todos");
 
@@ -291,7 +273,7 @@ export function FichaProducto({
         <EncabezadoProducto
           producto={producto}
           puedeEscribir={puedeEscribir}
-          onEditar={puedeEscribir && productoEditable ? () => setEditando(true) : null}
+          hrefEditar={puedeEscribir ? rutaEditarProducto(producto.id) : null}
           onVerHistorial={verHistorial}
         />
 
@@ -376,15 +358,6 @@ export function FichaProducto({
           ) : null}
         </Tabs>
       </div>
-
-      <ProductoDialogo
-        abierto={editando}
-        producto={productoEditable}
-        categorias={categorias}
-        listasPrecios={listasPrecios}
-        impuestos={impuestos}
-        onCambiarAbierto={setEditando}
-      />
     </div>
   );
 }

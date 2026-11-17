@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Package, Pencil, Plus, Upload } from "lucide-react";
@@ -19,7 +20,7 @@ import {
 } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { rutaProducto } from "@/lib/enlaces";
+import { rutaEditarProducto, rutaProducto } from "@/lib/enlaces";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { CategoriaProducto, ListaPrecio } from "@/lib/inventario/tipos";
 import { type OpcionesLista, type ParametrosLista, type ResumenPagina, TAMANOS_PAGINA } from "@/lib/listas/parametros";
@@ -104,7 +105,6 @@ export function ProductosCliente({
 }) {
   const router = useRouter();
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
-  const [productoEditando, setProductoEditando] = useState<Producto | null>(null);
   const [importarAbierto, setImportarAbierto] = useState(false);
   const [edicionMasivaAbierta, setEdicionMasivaAbierta] = useState(false);
   const [seleccionados, setSeleccionados] = useState<Set<string>>(() => new Set());
@@ -153,18 +153,7 @@ export function ProductosCliente({
   }
 
   function abrirNuevo() {
-    setProductoEditando(null);
     setDialogoAbierto(true);
-  }
-
-  function abrirEditar(producto: Producto) {
-    setProductoEditando(producto);
-    setDialogoAbierto(true);
-  }
-
-  function cambiarDialogo(abierto: boolean) {
-    setDialogoAbierto(abierto);
-    if (!abierto) setProductoEditando(null);
   }
 
   return (
@@ -240,11 +229,11 @@ export function ProductosCliente({
             puedeEditar
               ? (producto) => (
                   <Button
-                    type="button"
                     variant="ghost"
                     size="icon-sm"
+                    nativeButton={false}
                     aria-label={`Editar ${producto.nombre}`}
-                    onClick={() => abrirEditar(producto)}
+                    render={<Link href={rutaEditarProducto(producto.id)} prefetch={false} />}
                   >
                     <Pencil />
                   </Button>
@@ -282,11 +271,11 @@ export function ProductosCliente({
 
       <ProductoDialogo
         abierto={dialogoAbierto}
-        producto={productoEditando}
+        producto={null}
         categorias={categorias}
         listasPrecios={listasPrecios}
         impuestos={impuestos}
-        onCambiarAbierto={cambiarDialogo}
+        onCambiarAbierto={setDialogoAbierto}
       />
 
       <ImportarProductosDialogo

@@ -18,6 +18,13 @@ const CAMPOS =
 
 const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
 
+type ClienteSupabase = Awaited<ReturnType<typeof createClient>>;
+
+async function cargarPreciosProducto(supabase: ClienteSupabase, id: string): Promise<PrecioLista[]> {
+  const preciosRes = await supabase.from("producto_precios").select("lista_id, precio").eq("producto_id", id);
+  return preciosRes.error ? [] : ((preciosRes.data ?? []) as PrecioLista[]);
+}
+
 export async function obtenerProducto(id: string): Promise<Producto | null> {
   if (!z.uuid().safeParse(id).success) return null;
 
@@ -32,10 +39,31 @@ export async function obtenerProducto(id: string): Promise<Producto | null> {
   if (error) throw new Error(error.message);
   if (!data) return null;
 
-  const preciosRes = await supabase.from("producto_precios").select("lista_id, precio").eq("producto_id", id);
-  const precios = preciosRes.error ? [] : ((preciosRes.data ?? []) as PrecioLista[]);
+  return { ...data, precios: await cargarPreciosProducto(supabase, id) };
+}
 
-  return { ...data, precios };
+export interface ProductoEditable extends Producto {
+  cuenta_ingreso_id: string | null;
+  cuenta_inventario_id: string | null;
+  cuenta_costo_id: string | null;
+}
+
+/** Producto con las cuentas contables propias para la pantalla de edición. */
+export async function obtenerProductoEditable(id: string): Promise<ProductoEditable | null> {
+  if (!z.uuid().safeParse(id).success) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("productos")
+    .select(`${CAMPOS}, cuenta_ingreso_id, cuenta_inventario_id, cuenta_costo_id`)
+    .eq("id", id)
+    .maybeSingle()
+    .returns<Omit<ProductoEditable, "precios"> | null>();
+
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  return { ...data, precios: await cargarPreciosProducto(supabase, id) };
 }
 
 export async function listarProductos(

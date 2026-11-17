@@ -10,6 +10,7 @@ import {
   type DocumentoComercialFicha,
   type DocumentoFicha,
   type FichaProducto,
+  type PrecioListaFicha,
   type ProductoFicha,
   resolverCuentasFicha,
   sumarCantidades,
@@ -22,6 +23,7 @@ interface ProductoFila {
   referencia: string | null;
   descripcion: string | null;
   tipo: string;
+  activo: boolean;
   inventariable: boolean;
   precio: number;
   itbis_tasa: number;
@@ -30,6 +32,19 @@ interface ProductoFila {
   cuenta_ingreso_id: string | null;
   cuenta_inventario_id: string | null;
   cuenta_costo_id: string | null;
+  categorias_productos: { nombre: string } | null;
+}
+
+interface ListaPrecioFila {
+  id: string;
+  nombre: string;
+  es_principal: boolean;
+  tipo: string;
+}
+
+interface PrecioProductoFila {
+  lista_id: string;
+  precio: number;
 }
 
 interface LineaVentaFila {
@@ -200,7 +215,7 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
   const { data: producto, error } = await supabase
     .from("productos")
     .select(
-      "id, nombre, referencia, descripcion, tipo, inventariable, precio, itbis_tasa, costo, cantidad, cuenta_ingreso_id, cuenta_inventario_id, cuenta_costo_id",
+      "id, nombre, referencia, descripcion, tipo, activo, inventariable, precio, itbis_tasa, costo, cantidad, cuenta_ingreso_id, cuenta_inventario_id, cuenta_costo_id, categorias_productos(nombre)",
     )
     .eq("id", id)
     .maybeSingle()
@@ -212,65 +227,92 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
   const CAMPOS_FACTURA =
     "id, numero, ncf, contacto_id, fecha, creado_en, vencimiento, total, pagado, credito, estado, contactos(nombre)";
 
-  const [lineasVenta, lineasCompra, lineasCotizacion, lineasRemision, existenciasRes, configuracion] =
-    await Promise.all([
-      paginarConsulta((inicio, fin) =>
-        supabase
-          .from("factura_lineas")
-          .select(`factura_id, cantidad, costo_unitario, facturas!inner(${CAMPOS_FACTURA})`)
-          .eq("producto_id", id)
-          .neq("facturas.estado", "anulada")
-          .order("id")
-          .range(inicio, fin)
-          .returns<LineaVentaJoin[]>(),
-      ),
-      paginarConsulta((inicio, fin) =>
-        supabase
-          .from("facturas_proveedor_lineas")
-          .select(`factura_proveedor_id, cantidad, costo, facturas_proveedor!inner(${CAMPOS_FACTURA})`)
-          .eq("producto_id", id)
-          .neq("facturas_proveedor.estado", "anulada")
-          .order("id")
-          .range(inicio, fin)
-          .returns<LineaCompraJoin[]>(),
-      ),
-      paginarConsulta((inicio, fin) =>
-        supabase
-          .from("cotizacion_lineas")
-          .select("cotizacion_id, cotizaciones!inner(id, numero, fecha, total, estado)")
-          .eq("producto_id", id)
-          .order("id")
-          .range(inicio, fin)
-          .returns<LineaCotizacionJoin[]>(),
-      ),
-      paginarConsulta((inicio, fin) =>
-        supabase
-          .from("remision_lineas")
-          .select("remision_id, remisiones!inner(id, numero, fecha, total, estado)")
-          .eq("producto_id", id)
-          .order("id")
-          .range(inicio, fin)
-          .returns<LineaRemisionJoin[]>(),
-      ),
+  const [
+    lineasVenta,
+    lineasCompra,
+    lineasCotizacion,
+    lineasRemision,
+    existenciasRes,
+    listasPreciosRes,
+    preciosProductoRes,
+    configuracion,
+  ] = await Promise.all([
+    paginarConsulta((inicio, fin) =>
       supabase
-        .from("existencias")
-        .select("almacen_id, cantidad, almacenes(nombre, es_principal)")
+        .from("factura_lineas")
+        .select(`factura_id, cantidad, costo_unitario, facturas!inner(${CAMPOS_FACTURA})`)
         .eq("producto_id", id)
-        .returns<
-          {
-            almacen_id: string;
-            cantidad: number;
-            almacenes: { nombre: string; es_principal: boolean } | null;
-          }[]
-        >(),
-      cargarConfiguracionFicha(),
-    ]);
+        .neq("facturas.estado", "anulada")
+        .order("id")
+        .range(inicio, fin)
+        .returns<LineaVentaJoin[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("facturas_proveedor_lineas")
+        .select(`factura_proveedor_id, cantidad, costo, facturas_proveedor!inner(${CAMPOS_FACTURA})`)
+        .eq("producto_id", id)
+        .neq("facturas_proveedor.estado", "anulada")
+        .order("id")
+        .range(inicio, fin)
+        .returns<LineaCompraJoin[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("cotizacion_lineas")
+        .select("cotizacion_id, cotizaciones!inner(id, numero, fecha, total, estado)")
+        .eq("producto_id", id)
+        .order("id")
+        .range(inicio, fin)
+        .returns<LineaCotizacionJoin[]>(),
+    ),
+    paginarConsulta((inicio, fin) =>
+      supabase
+        .from("remision_lineas")
+        .select("remision_id, remisiones!inner(id, numero, fecha, total, estado)")
+        .eq("producto_id", id)
+        .order("id")
+        .range(inicio, fin)
+        .returns<LineaRemisionJoin[]>(),
+    ),
+    supabase
+      .from("existencias")
+      .select("almacen_id, cantidad, almacenes(nombre, es_principal)")
+      .eq("producto_id", id)
+      .returns<
+        {
+          almacen_id: string;
+          cantidad: number;
+          almacenes: { nombre: string; es_principal: boolean } | null;
+        }[]
+      >(),
+    supabase
+      .from("listas_precios")
+      .select("id, nombre, es_principal, tipo")
+      .eq("activo", true)
+      .order("es_principal", { ascending: false })
+      .order("nombre")
+      .returns<ListaPrecioFila[]>(),
+    supabase.from("producto_precios").select("lista_id, precio").eq("producto_id", id).returns<PrecioProductoFila[]>(),
+    cargarConfiguracionFicha(),
+  ]);
 
   if (lineasVenta.error) throw new Error(lineasVenta.error.message);
   if (lineasCompra.error) throw new Error(lineasCompra.error.message);
   if (lineasCotizacion.error) throw new Error(lineasCotizacion.error.message);
   if (lineasRemision.error) throw new Error(lineasRemision.error.message);
   if (existenciasRes.error) throw new Error(existenciasRes.error.message);
+  if (listasPreciosRes.error) throw new Error(listasPreciosRes.error.message);
+  if (preciosProductoRes.error) throw new Error(preciosProductoRes.error.message);
+
+  const preciosPorLista = new Map((preciosProductoRes.data ?? []).map((fila) => [fila.lista_id, aNumero(fila.precio)]));
+  const precios: PrecioListaFicha[] = (listasPreciosRes.data ?? []).map((lista) => ({
+    listaId: lista.id,
+    nombre: lista.nombre,
+    esPrincipal: lista.es_principal,
+    tipo: lista.tipo === "porcentaje" ? "porcentaje" : "fijo",
+    precio: preciosPorLista.get(lista.id) ?? null,
+  }));
 
   const existencias: ExistenciaAlmacen[] = (existenciasRes.data ?? [])
     .map((fila) => ({
@@ -316,11 +358,14 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
     referencia: producto.referencia,
     descripcion: producto.descripcion,
     tipo: producto.tipo === "servicio" ? "servicio" : "producto",
+    categoriaNombre: producto.categorias_productos?.nombre ?? null,
+    activo: producto.activo,
     inventariable: producto.inventariable,
     precio: aNumero(producto.precio),
     itbis_tasa: aNumero(producto.itbis_tasa),
     costo: aNumero(producto.costo),
     cantidad: aNumero(producto.cantidad),
+    precios,
     cuentaIngresoId: producto.cuenta_ingreso_id,
     cuentaInventarioId: producto.cuenta_inventario_id,
     cuentaCostoId: producto.cuenta_costo_id,
