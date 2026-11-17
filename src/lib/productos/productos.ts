@@ -186,14 +186,24 @@ const campoImagen = z
   .refine((valor) => valor === null || valor.length <= 500, "La ruta de la imagen no es válida")
   .optional();
 
-const campoCantidadOpcional = z.coerce.number().min(0, "La cantidad no puede ser negativa").nullish();
+const campoCantidadOpcional = z
+  .union([z.literal(""), z.coerce.number().min(0, "La cantidad no puede ser negativa")])
+  .transform((valor) => (valor === "" ? null : valor))
+  .nullish();
 
 const campoExistenciaAlmacen = z.object({
   almacen_id: z
     .string()
     .refine((valor) => z.uuid().safeParse(valor).success, "El almacén de la existencia no es válido"),
-  minimo: z.coerce.number().min(0, "El mínimo no puede ser negativo").default(0),
-  maximo: z.coerce.number().min(0, "El máximo no puede ser negativo").nullable(),
+  minimo: z
+    .union([z.literal(""), z.coerce.number().min(0, "El mínimo no puede ser negativo")])
+    .transform((valor) => (valor === "" ? 0 : valor))
+    .default(0),
+  maximo: z
+    .union([z.literal(""), z.coerce.number().min(0, "El máximo no puede ser negativo")])
+    .transform((valor) => (valor === "" ? null : valor))
+    .nullable()
+    .default(null),
 });
 
 export const esquemaProducto = z

@@ -235,6 +235,74 @@ describe("validación del formulario de producto", () => {
       expect(conCategoria.data.categoria_id).toBe("11111111-1111-4111-8111-111111111111");
     }
   });
+
+  test("acepta combos y no los marca inventariables", () => {
+    const resultado = esquemaProducto.safeParse({
+      nombre: "Kit de oxígeno",
+      tipo: "combo",
+      precio: "1500",
+      inventariable: true,
+      cantidad: "3",
+    });
+    expect(resultado.success).toBe(true);
+    if (resultado.success) {
+      expect(resultado.data.tipo).toBe("combo");
+      expect(resultado.data.inventariable).toBe(false);
+      expect(resultado.data.cantidad).toBe(0);
+    }
+  });
+
+  test("la unidad de medida es obligatoria cuando viaja", () => {
+    const vacia = esquemaProducto.safeParse({ nombre: "Cilindro", precio: "10", unidad_medida: "  " });
+    expect(vacia.success).toBe(false);
+    if (!vacia.success) expect(vacia.error.issues[0]?.message).toBe("La unidad de medida es obligatoria");
+
+    const valida = esquemaProducto.safeParse({ nombre: "Cilindro", precio: "10", unidad_medida: " Caja " });
+    expect(valida.success).toBe(true);
+    if (valida.success) expect(valida.data.unidad_medida).toBe("Caja");
+  });
+
+  test("los campos nuevos solo viajan si el formulario los envía", () => {
+    const almacen = "33333333-3333-4333-8333-333333333333";
+    const enviados = esquemaProducto.safeParse({
+      nombre: "Cilindro",
+      precio: "10",
+      unidad_medida: "Caja",
+      almacen_id: almacen,
+      vende_negativo: true,
+      imagen_path: "producto/imagen.png",
+      minimo: "2",
+      maximo: "",
+      existencias: [{ almacen_id: almacen, minimo: "2", maximo: "" }],
+    });
+
+    expect(enviados.success).toBe(true);
+    if (enviados.success) {
+      expect(enviados.data.unidad_medida).toBe("Caja");
+      expect(enviados.data.almacen_id).toBe(almacen);
+      expect(enviados.data.vende_negativo).toBe(true);
+      expect(enviados.data.imagen_path).toBe("producto/imagen.png");
+      expect(enviados.data.minimo).toBe(2);
+      expect(enviados.data.maximo).toBeNull();
+      expect(enviados.data.existencias).toEqual([{ almacen_id: almacen, minimo: 2, maximo: null }]);
+    }
+
+    const sinCampos = esquemaProducto.safeParse({ nombre: "Cilindro", precio: "10" });
+    expect(sinCampos.success).toBe(true);
+    if (sinCampos.success) {
+      for (const campo of [
+        "unidad_medida",
+        "almacen_id",
+        "vende_negativo",
+        "imagen_path",
+        "minimo",
+        "maximo",
+        "existencias",
+      ]) {
+        expect(campo in sinCampos.data).toBe(false);
+      }
+    }
+  });
 });
 
 describe("filtro de productos", () => {
