@@ -4,7 +4,8 @@ import { type FormEvent, type ReactElement, useState, useTransition } from "reac
 
 import { ChevronDown, Pencil, Plus } from "lucide-react";
 
-import { FORM_COMBO, FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_COMBO, FORM_INPUT, FORM_SELECT } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
@@ -124,7 +125,7 @@ function FormularioCuenta({
         ) : null}
 
         <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-          <FormField htmlFor="codigo" label="Código" required error={validacion.errorDe("codigo")}>
+          <CampoFormulario htmlFor="codigo" label="Código" required error={validacion.errorDe("codigo")}>
             <Input
               id="codigo"
               name="codigo"
@@ -135,9 +136,9 @@ function FormularioCuenta({
               onChange={() => validacion.limpiar("codigo")}
               className={FORM_INPUT}
             />
-          </FormField>
+          </CampoFormulario>
 
-          <FormField htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
+          <CampoFormulario htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
             <Input
               id="nombre"
               name="nombre"
@@ -147,11 +148,11 @@ function FormularioCuenta({
               onChange={() => validacion.limpiar("nombre")}
               className={FORM_INPUT}
             />
-          </FormField>
+          </CampoFormulario>
         </div>
 
         <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-          <FormField htmlFor="tipo" label="Tipo">
+          <CampoFormulario htmlFor="tipo" label="Tipo">
             <SelectCampo
               id="tipo"
               name="tipo"
@@ -161,9 +162,9 @@ function FormularioCuenta({
               deshabilitado={bloquearCodigoTipoNaturaleza}
               className={FORM_SELECT}
             />
-          </FormField>
+          </CampoFormulario>
 
-          <FormField htmlFor="naturaleza" label="Naturaleza">
+          <CampoFormulario htmlFor="naturaleza" label="Naturaleza">
             <SelectCampo
               id="naturaleza"
               name="naturaleza"
@@ -173,10 +174,10 @@ function FormularioCuenta({
               deshabilitado={bloquearCodigoTipoNaturaleza}
               className={FORM_SELECT}
             />
-          </FormField>
+          </CampoFormulario>
         </div>
 
-        <FormField htmlFor="padre" label="Padre">
+        <CampoFormulario htmlFor="padre" label="Padre">
           <Combobox
             items={padresItems}
             value={padreSeleccionado}
@@ -197,7 +198,7 @@ function FormularioCuenta({
             </ComboboxContent>
           </Combobox>
           <input type="hidden" name="padre_id" value={padreId} />
-        </FormField>
+        </CampoFormulario>
 
         <Collapsible
           className="rounded-xl border border-slate-200"

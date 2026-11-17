@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_INPUT,
@@ -16,7 +17,6 @@ import {
   FormActions,
   FormCard,
   FormDivider,
-  FormField,
   FormSectionTitle,
 } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
@@ -156,7 +156,7 @@ export function TransferenciaForm({
         <section>
           <FormSectionTitle className="mb-4">Datos de la transferencia</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="origen" label="Almacén de origen" required error={validacion.errorDe("origen")}>
+            <CampoFormulario htmlFor="origen" label="Almacén de origen" required error={validacion.errorDe("origen")}>
               <Select
                 items={almacenesItems}
                 value={origenId}
@@ -176,8 +176,13 @@ export function TransferenciaForm({
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
-            <FormField htmlFor="destino" label="Almacén de destino" required error={validacion.errorDe("destino")}>
+            </CampoFormulario>
+            <CampoFormulario
+              htmlFor="destino"
+              label="Almacén de destino"
+              required
+              error={validacion.errorDe("destino")}
+            >
               <Select
                 items={almacenesItems}
                 value={destinoId}
@@ -197,8 +202,8 @@ export function TransferenciaForm({
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
-            <FormField htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
+            </CampoFormulario>
+            <CampoFormulario htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
               <DatePicker
                 id="fecha"
                 value={fecha}
@@ -207,8 +212,8 @@ export function TransferenciaForm({
                   validacion.limpiar("fecha");
                 }}
               />
-            </FormField>
-            <FormField htmlFor="observaciones" label="Observaciones">
+            </CampoFormulario>
+            <CampoFormulario htmlFor="observaciones" label="Observaciones">
               <Textarea
                 id="observaciones"
                 placeholder="Ej. Traslado a la sucursal"
@@ -217,7 +222,7 @@ export function TransferenciaForm({
                 maxLength={2000}
                 className={FORM_TEXTAREA}
               />
-            </FormField>
+            </CampoFormulario>
           </div>
         </section>
 

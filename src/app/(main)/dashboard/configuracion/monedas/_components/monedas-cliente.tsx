@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import { Loader2, Pencil, Plus } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
-import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_INPUT, FORM_SELECT } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -217,7 +218,7 @@ export function MonedasCliente({
             <DialogTitle>Registrar tasa de cambio</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
-            <FormField htmlFor="tasa-moneda" label="Moneda" required error={validacion.errorDe("tasa-moneda")}>
+            <CampoFormulario htmlFor="tasa-moneda" label="Moneda" required error={validacion.errorDe("tasa-moneda")}>
               <Select
                 items={opciones}
                 value={monedaCodigo}
@@ -237,8 +238,8 @@ export function MonedasCliente({
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
-            <FormField htmlFor="tasa-fecha" label="Fecha" required error={validacion.errorDe("tasa-fecha")}>
+            </CampoFormulario>
+            <CampoFormulario htmlFor="tasa-fecha" label="Fecha" required error={validacion.errorDe("tasa-fecha")}>
               <DatePicker
                 id="tasa-fecha"
                 value={fecha}
@@ -247,8 +248,8 @@ export function MonedasCliente({
                   validacion.limpiar("tasa-fecha");
                 }}
               />
-            </FormField>
-            <FormField htmlFor="tasa-valor" label="Tasa en DOP" required error={validacion.errorDe("tasa-valor")}>
+            </CampoFormulario>
+            <CampoFormulario htmlFor="tasa-valor" label="Tasa en DOP" required error={validacion.errorDe("tasa-valor")}>
               <Input
                 id="tasa-valor"
                 inputMode="decimal"
@@ -261,7 +262,7 @@ export function MonedasCliente({
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
 
             {error ? (
               <Alert variant="destructive">

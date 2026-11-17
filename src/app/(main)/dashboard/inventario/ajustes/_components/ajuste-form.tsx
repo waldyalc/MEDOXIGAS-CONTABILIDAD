@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_INPUT,
@@ -17,7 +18,6 @@ import {
   FormActions,
   FormCard,
   FormDivider,
-  FormField,
   FormSectionTitle,
   FormTotal,
 } from "@/components/formularios/formulario";
@@ -188,7 +188,7 @@ export function AjusteForm({
         <section>
           <FormSectionTitle className="mb-4">Datos del ajuste</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="almacen" label="Almacén" required error={validacion.errorDe("almacen")}>
+            <CampoFormulario htmlFor="almacen" label="Almacén" required error={validacion.errorDe("almacen")}>
               <Select
                 items={almacenesItems}
                 value={almacenId}
@@ -208,9 +208,9 @@ export function AjusteForm({
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
+            <CampoFormulario htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
               <DatePicker
                 id="fecha"
                 value={fecha}
@@ -219,9 +219,9 @@ export function AjusteForm({
                   validacion.limpiar("fecha");
                 }}
               />
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="observaciones" label="Observaciones" className="sm:col-span-2">
+            <CampoFormulario htmlFor="observaciones" label="Observaciones" className="sm:col-span-2">
               <Textarea
                 id="observaciones"
                 placeholder="Ej. Conteo físico de fin de mes"
@@ -230,7 +230,7 @@ export function AjusteForm({
                 maxLength={2000}
                 className={FORM_TEXTAREA}
               />
-            </FormField>
+            </CampoFormulario>
           </div>
         </section>
 

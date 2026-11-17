@@ -6,13 +6,13 @@ import { useRouter } from "next/navigation";
 
 import { ChevronDown, Loader2, Upload } from "lucide-react";
 
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_INPUT,
   FormActions,
   FormCard,
   FormDivider,
-  FormField,
   FormSectionTitle,
 } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
@@ -176,7 +176,7 @@ export function EmpresaForm({
           </FormSectionTitle>
           <div className="mt-4 flex flex-col gap-4">
             <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-              <FormField htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
+              <CampoFormulario htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
                 <Input
                   id="nombre"
                   name="nombre"
@@ -187,8 +187,8 @@ export function EmpresaForm({
                   onChange={() => validacion.limpiar("nombre")}
                   className={FORM_INPUT}
                 />
-              </FormField>
-              <FormField htmlFor="rnc" label="RNC">
+              </CampoFormulario>
+              <CampoFormulario htmlFor="rnc" label="RNC">
                 <Input
                   id="rnc"
                   name="rnc"
@@ -197,7 +197,7 @@ export function EmpresaForm({
                   disabled={!puedeEditar}
                   className={FORM_INPUT}
                 />
-              </FormField>
+              </CampoFormulario>
             </div>
 
             <Collapsible
@@ -209,7 +209,7 @@ export function EmpresaForm({
                 <ChevronDown className="size-4" />
               </CollapsibleTrigger>
               <CollapsibleContent className="flex flex-col gap-4 border-t border-slate-200 p-3">
-                <FormField htmlFor="direccion" label="Dirección">
+                <CampoFormulario htmlFor="direccion" label="Dirección">
                   <Input
                     id="direccion"
                     name="direccion"
@@ -218,9 +218,9 @@ export function EmpresaForm({
                     disabled={!puedeEditar}
                     className={FORM_INPUT}
                   />
-                </FormField>
+                </CampoFormulario>
                 <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-                  <FormField htmlFor="telefono" label="Teléfono">
+                  <CampoFormulario htmlFor="telefono" label="Teléfono">
                     <Input
                       id="telefono"
                       name="telefono"
@@ -229,8 +229,8 @@ export function EmpresaForm({
                       disabled={!puedeEditar}
                       className={FORM_INPUT}
                     />
-                  </FormField>
-                  <FormField htmlFor="correo" label="Correo">
+                  </CampoFormulario>
+                  <CampoFormulario htmlFor="correo" label="Correo">
                     <Input
                       id="correo"
                       name="correo"
@@ -240,7 +240,7 @@ export function EmpresaForm({
                       disabled={!puedeEditar}
                       className={FORM_INPUT}
                     />
-                  </FormField>
+                  </CampoFormulario>
                 </div>
               </CollapsibleContent>
             </Collapsible>
@@ -267,7 +267,7 @@ export function EmpresaForm({
             )}
 
             {puedeEditar ? (
-              <FormField htmlFor="logo" label="Subir imagen" className="min-w-0 flex-1">
+              <CampoFormulario htmlFor="logo" label="Subir imagen" className="min-w-0 flex-1">
                 <Input
                   ref={inputLogo}
                   id="logo"
@@ -278,7 +278,7 @@ export function EmpresaForm({
                   className={FORM_INPUT}
                 />
                 <p className="text-muted-foreground text-xs">{LIMITE_LOGO_BYTES / (1024 * 1024)} MB como máximo.</p>
-              </FormField>
+              </CampoFormulario>
             ) : null}
           </div>
         </section>

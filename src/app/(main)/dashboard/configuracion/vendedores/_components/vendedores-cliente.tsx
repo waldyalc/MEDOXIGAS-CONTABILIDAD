@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus } from "lucide-react";
 
-import { FORM_INPUT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_INPUT, FORM_TEXTAREA } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -170,7 +171,12 @@ export function VendedoresCliente({
             <DialogTitle>{editando ? "Editar vendedor" : "Nuevo vendedor"}</DialogTitle>
           </DialogHeader>
           <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
-            <FormField htmlFor="vendedor-nombre" label="Nombre" required error={validacion.errorDe("vendedor-nombre")}>
+            <CampoFormulario
+              htmlFor="vendedor-nombre"
+              label="Nombre"
+              required
+              error={validacion.errorDe("vendedor-nombre")}
+            >
               <Input
                 id="vendedor-nombre"
                 value={nombre}
@@ -183,8 +189,8 @@ export function VendedoresCliente({
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
-            <FormField htmlFor="vendedor-identificacion" label="Identificación">
+            </CampoFormulario>
+            <CampoFormulario htmlFor="vendedor-identificacion" label="Identificación">
               <Input
                 id="vendedor-identificacion"
                 value={identificacion}
@@ -194,8 +200,8 @@ export function VendedoresCliente({
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
-            <FormField htmlFor="vendedor-observacion" label="Observación">
+            </CampoFormulario>
+            <CampoFormulario htmlFor="vendedor-observacion" label="Observación">
               <Textarea
                 id="vendedor-observacion"
                 value={observacion}
@@ -204,7 +210,7 @@ export function VendedoresCliente({
                 disabled={pendiente}
                 className={FORM_TEXTAREA}
               />
-            </FormField>
+            </CampoFormulario>
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="vendedor-activo">Activo</Label>
               <Switch id="vendedor-activo" checked={activo} onCheckedChange={setActivo} disabled={pendiente} />

@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus } from "lucide-react";
 
-import { FORM_INPUT, FORM_INPUT_GROUP, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_INPUT, FORM_INPUT_GROUP, FORM_SELECT } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -106,7 +107,7 @@ function FormularioRetencion({
   return (
     <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
       <div className="flex flex-col gap-4">
-        <FormField htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
+        <CampoFormulario htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
           <Input
             id="nombre"
             name="nombre"
@@ -117,10 +118,10 @@ function FormularioRetencion({
             placeholder="Ej. ITBIS 30 %"
             className={FORM_INPUT}
           />
-        </FormField>
+        </CampoFormulario>
 
         <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-          <FormField htmlFor="tipo" label="Tipo" required error={validacion.errorDe("tipo")}>
+          <CampoFormulario htmlFor="tipo" label="Tipo" required error={validacion.errorDe("tipo")}>
             <Select
               items={[...TIPOS]}
               value={tipo}
@@ -139,9 +140,9 @@ function FormularioRetencion({
                 ))}
               </SelectContent>
             </Select>
-          </FormField>
+          </CampoFormulario>
 
-          <FormField htmlFor="porcentaje" label="Porcentaje" required error={validacion.errorDe("porcentaje")}>
+          <CampoFormulario htmlFor="porcentaje" label="Porcentaje" required error={validacion.errorDe("porcentaje")}>
             <InputGroup className={FORM_INPUT_GROUP}>
               <InputGroupInput
                 id="porcentaje"
@@ -159,10 +160,10 @@ function FormularioRetencion({
                 %
               </InputGroupAddon>
             </InputGroup>
-          </FormField>
+          </CampoFormulario>
         </div>
 
-        <FormField
+        <CampoFormulario
           htmlFor="cuenta"
           label="Cuenta cuando retenemos (pasivo)"
           required
@@ -187,9 +188,9 @@ function FormularioRetencion({
               ))}
             </SelectContent>
           </Select>
-        </FormField>
+        </CampoFormulario>
 
-        <FormField htmlFor="cuenta_anticipo" label="Cuenta cuando nos retienen (activo)">
+        <CampoFormulario htmlFor="cuenta_anticipo" label="Cuenta cuando nos retienen (activo)">
           <Select
             items={opcionesActivo}
             value={anticipoId}
@@ -206,7 +207,7 @@ function FormularioRetencion({
               ))}
             </SelectContent>
           </Select>
-        </FormField>
+        </CampoFormulario>
 
         <div className="flex items-center justify-between gap-3">
           <FieldLabel htmlFor="activa">Activa</FieldLabel>

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
 import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_INPUT,
@@ -15,7 +16,6 @@ import {
   FormActions,
   FormCard,
   FormDivider,
-  FormField,
   FormSectionTitle,
   FormTotal,
 } from "@/components/formularios/formulario";
@@ -38,7 +38,7 @@ import type { CentroCostoAsiento, ContactoAsiento, CuentaAsiento } from "@/lib/a
 import { rutaAsiento } from "@/lib/enlaces";
 import { centavosAValor, parsearCentavos } from "@/lib/facturacion/calculo";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
-import { requerido } from "@/lib/formularios/validacion";
+import { type ReglaCampo, requerido } from "@/lib/formularios/validacion";
 
 const SIN_CENTRO = "__ninguno";
 
@@ -75,6 +75,45 @@ function tieneUnSoloLado(debito: number, credito: number): boolean {
   const hayDebito = debito > 0;
   const hayCredito = credito > 0;
   return hayDebito !== hayCredito;
+}
+
+function reglasDeLinea(linea: LineaForm): ReglaCampo[] {
+  const debito = linea.debito.trim();
+  const credito = linea.credito.trim();
+  const reglas: ReglaCampo[] = [requerido(`cuenta-${linea.clave}`, linea.cuentaId, "Seleccione una cuenta.")];
+
+  if (debito !== "" && parsearCentavos(debito) == null) {
+    reglas.push({ campo: `debito-${linea.clave}`, invalido: true, mensaje: "Use un número con hasta dos decimales." });
+  }
+  if (credito !== "" && parsearCentavos(credito) == null) {
+    reglas.push({ campo: `credito-${linea.clave}`, invalido: true, mensaje: "Use un número con hasta dos decimales." });
+  }
+  if (debito === "" && credito === "") {
+    reglas.push({ campo: `debito-${linea.clave}`, invalido: true, mensaje: "Escriba el débito o el crédito." });
+  }
+  if (debito !== "" && credito !== "") {
+    reglas.push({
+      campo: `credito-${linea.clave}`,
+      invalido: true,
+      mensaje: "Cada línea lleva débito o crédito, no ambos.",
+    });
+  }
+  if (debito !== "" && credito === "" && montoCentavos(debito) <= 0) {
+    reglas.push({ campo: `debito-${linea.clave}`, invalido: true, mensaje: "El monto debe ser mayor que cero." });
+  }
+  if (credito !== "" && debito === "" && montoCentavos(credito) <= 0) {
+    reglas.push({ campo: `credito-${linea.clave}`, invalido: true, mensaje: "El monto debe ser mayor que cero." });
+  }
+
+  return reglas;
+}
+
+function reglasDelAsiento(fecha: string, descripcion: string, lineas: LineaForm[]): ReglaCampo[] {
+  return [
+    requerido("fecha", fecha, "La fecha es requerida."),
+    requerido("descripcion", descripcion, "La descripción es requerida."),
+    ...lineas.flatMap(reglasDeLinea),
+  ];
 }
 
 export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Props) {
@@ -118,61 +157,7 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
   function guardar() {
     setError(null);
 
-    const reglas = [
-      requerido("fecha", fecha, "La fecha es requerida."),
-      requerido("descripcion", descripcion, "La descripción es requerida."),
-      ...lineas.flatMap((linea) => {
-        const debito = linea.debito.trim();
-        const credito = linea.credito.trim();
-        const reglasLinea = [requerido(`cuenta-${linea.clave}`, linea.cuentaId, "Seleccione una cuenta.")];
-
-        if (debito !== "" && parsearCentavos(debito) == null) {
-          reglasLinea.push({
-            campo: `debito-${linea.clave}`,
-            invalido: true,
-            mensaje: "Use un número con hasta dos decimales.",
-          });
-        }
-        if (credito !== "" && parsearCentavos(credito) == null) {
-          reglasLinea.push({
-            campo: `credito-${linea.clave}`,
-            invalido: true,
-            mensaje: "Use un número con hasta dos decimales.",
-          });
-        }
-        if (debito === "" && credito === "") {
-          reglasLinea.push({
-            campo: `debito-${linea.clave}`,
-            invalido: true,
-            mensaje: "Escriba el débito o el crédito.",
-          });
-        }
-        if (debito !== "" && credito !== "") {
-          reglasLinea.push({
-            campo: `credito-${linea.clave}`,
-            invalido: true,
-            mensaje: "Cada línea lleva débito o crédito, no ambos.",
-          });
-        }
-        if (debito !== "" && credito === "" && montoCentavos(debito) <= 0) {
-          reglasLinea.push({
-            campo: `debito-${linea.clave}`,
-            invalido: true,
-            mensaje: "El monto debe ser mayor que cero.",
-          });
-        }
-        if (credito !== "" && debito === "" && montoCentavos(credito) <= 0) {
-          reglasLinea.push({
-            campo: `credito-${linea.clave}`,
-            invalido: true,
-            mensaje: "El monto debe ser mayor que cero.",
-          });
-        }
-        return reglasLinea;
-      }),
-    ];
-
-    if (!validacion.validar(reglas)) return;
+    if (!validacion.validar(reglasDelAsiento(fecha, descripcion, lineas))) return;
 
     if (lineas.length < 2) {
       setError("Un asiento requiere al menos dos líneas.");
@@ -242,7 +227,7 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
         <section>
           <FormSectionTitle className="mb-4">Datos del asiento</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-3">
-            <FormField htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
+            <CampoFormulario htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
               <Input
                 id="fecha"
                 type="date"
@@ -254,8 +239,8 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
                 }}
                 className={FORM_INPUT}
               />
-            </FormField>
-            <FormField
+            </CampoFormulario>
+            <CampoFormulario
               htmlFor="descripcion"
               label="Descripción"
               required
@@ -274,7 +259,7 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
                 }}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
           </div>
         </section>
 

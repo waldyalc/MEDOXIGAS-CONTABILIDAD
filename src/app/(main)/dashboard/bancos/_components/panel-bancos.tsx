@@ -8,13 +8,13 @@ import { useRouter } from "next/navigation";
 import { ArrowRightLeft, ChevronDown, Loader2, Plus } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_INPUT,
   FORM_INPUT_GROUP,
   FORM_SELECT,
   FORM_TEXTAREA,
-  FormField,
 } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -159,7 +159,7 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
           <DialogDescription>Crea la cuenta contable con su saldo inicial.</DialogDescription>
         </DialogHeader>
         <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
-          <FormField
+          <CampoFormulario
             htmlFor="cuenta-nombre"
             label="Nombre de la cuenta"
             required
@@ -178,9 +178,9 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
               disabled={pendiente}
               className={FORM_INPUT}
             />
-          </FormField>
+          </CampoFormulario>
           <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="cuenta-tipo" label="Tipo de cuenta" required>
+            <CampoFormulario htmlFor="cuenta-tipo" label="Tipo de cuenta" required>
               <Select
                 items={TIPOS_CUENTA}
                 value={tipo}
@@ -197,8 +197,8 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
-            <FormField htmlFor="cuenta-numero" label="Número de cuenta">
+            </CampoFormulario>
+            <CampoFormulario htmlFor="cuenta-numero" label="Número de cuenta">
               <Input
                 id="cuenta-numero"
                 placeholder="Opcional"
@@ -208,10 +208,15 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
           </div>
           <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="cuenta-saldo" label="Saldo inicial" required error={validacion.errorDe("cuenta-saldo")}>
+            <CampoFormulario
+              htmlFor="cuenta-saldo"
+              label="Saldo inicial"
+              required
+              error={validacion.errorDe("cuenta-saldo")}
+            >
               <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
@@ -229,8 +234,8 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
                   disabled={pendiente}
                 />
               </InputGroup>
-            </FormField>
-            <FormField
+            </CampoFormulario>
+            <CampoFormulario
               htmlFor="cuenta-fecha"
               label="Fecha de saldo inicial"
               required
@@ -244,9 +249,9 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
                   validacion.limpiar("cuenta-fecha");
                 }}
               />
-            </FormField>
+            </CampoFormulario>
           </div>
-          <FormField htmlFor="cuenta-descripcion" label="Descripción">
+          <CampoFormulario htmlFor="cuenta-descripcion" label="Descripción">
             <Input
               id="cuenta-descripcion"
               placeholder="Opcional"
@@ -255,7 +260,7 @@ function DialogoNuevaCuenta({ fechaHoy }: { fechaHoy: string }) {
               disabled={pendiente}
               className={FORM_INPUT}
             />
-          </FormField>
+          </CampoFormulario>
           {error ? (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -383,7 +388,7 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
           <DialogDescription>Mueve dinero de una cuenta de caja o banco a otra.</DialogDescription>
         </DialogHeader>
         <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
-          <FormField
+          <CampoFormulario
             htmlFor="transferencia-origen"
             label="Desde"
             required
@@ -408,8 +413,8 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
                 ))}
               </SelectContent>
             </Select>
-          </FormField>
-          <FormField
+          </CampoFormulario>
+          <CampoFormulario
             htmlFor="transferencia-destino"
             label="Hacia"
             required
@@ -434,9 +439,9 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
                 ))}
               </SelectContent>
             </Select>
-          </FormField>
+          </CampoFormulario>
           <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField
+            <CampoFormulario
               htmlFor="transferencia-monto"
               label="Monto"
               required
@@ -459,8 +464,8 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
                   disabled={pendiente}
                 />
               </InputGroup>
-            </FormField>
-            <FormField
+            </CampoFormulario>
+            <CampoFormulario
               htmlFor="transferencia-fecha"
               label="Fecha"
               required
@@ -474,7 +479,7 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
                   validacion.limpiar("transferencia-fecha");
                 }}
               />
-            </FormField>
+            </CampoFormulario>
           </div>
           <Collapsible>
             <CollapsibleTrigger className="flex w-full items-center justify-between border-t border-slate-200 py-2 text-sm font-medium">
@@ -483,7 +488,7 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="pt-2">
-                <FormField htmlFor="transferencia-observaciones" label="Observaciones">
+                <CampoFormulario htmlFor="transferencia-observaciones" label="Observaciones">
                   <Textarea
                     id="transferencia-observaciones"
                     placeholder="Ej. Paso de caja a banco"
@@ -492,7 +497,7 @@ function DialogoTransferencia({ cuentas, fechaHoy }: { cuentas: CuentaSeleccion[
                     disabled={pendiente}
                     className={FORM_TEXTAREA}
                   />
-                </FormField>
+                </CampoFormulario>
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -627,7 +632,7 @@ function DialogoDeposito({
           <DialogDescription>Registra un ingreso o aporte a una cuenta de caja o banco.</DialogDescription>
         </DialogHeader>
         <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
-          <FormField
+          <CampoFormulario
             htmlFor="deposito-destino"
             label="Cuenta destino"
             required
@@ -652,8 +657,8 @@ function DialogoDeposito({
                 ))}
               </SelectContent>
             </Select>
-          </FormField>
-          <FormField
+          </CampoFormulario>
+          <CampoFormulario
             htmlFor="deposito-contrapartida"
             label="Contrapartida"
             required
@@ -678,9 +683,14 @@ function DialogoDeposito({
                 ))}
               </SelectContent>
             </Select>
-          </FormField>
+          </CampoFormulario>
           <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField htmlFor="deposito-monto" label="Monto" required error={validacion.errorDe("deposito-monto")}>
+            <CampoFormulario
+              htmlFor="deposito-monto"
+              label="Monto"
+              required
+              error={validacion.errorDe("deposito-monto")}
+            >
               <InputGroup className={FORM_INPUT_GROUP}>
                 <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
                   RD$
@@ -698,8 +708,13 @@ function DialogoDeposito({
                   disabled={pendiente}
                 />
               </InputGroup>
-            </FormField>
-            <FormField htmlFor="deposito-fecha" label="Fecha" required error={validacion.errorDe("deposito-fecha")}>
+            </CampoFormulario>
+            <CampoFormulario
+              htmlFor="deposito-fecha"
+              label="Fecha"
+              required
+              error={validacion.errorDe("deposito-fecha")}
+            >
               <DatePicker
                 id="deposito-fecha"
                 value={fecha}
@@ -708,7 +723,7 @@ function DialogoDeposito({
                   validacion.limpiar("deposito-fecha");
                 }}
               />
-            </FormField>
+            </CampoFormulario>
           </div>
           <Collapsible>
             <CollapsibleTrigger className="flex w-full items-center justify-between border-t border-slate-200 py-2 text-sm font-medium">
@@ -717,7 +732,7 @@ function DialogoDeposito({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="pt-2">
-                <FormField htmlFor="deposito-notas" label="Notas / descripción">
+                <CampoFormulario htmlFor="deposito-notas" label="Notas / descripción">
                   <Input
                     id="deposito-notas"
                     placeholder="Ej. Aporte de capital"
@@ -726,7 +741,7 @@ function DialogoDeposito({
                     disabled={pendiente}
                     className={FORM_INPUT}
                   />
-                </FormField>
+                </CampoFormulario>
               </div>
             </CollapsibleContent>
           </Collapsible>

@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus } from "lucide-react";
 
-import { FORM_INPUT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_INPUT, FORM_TEXTAREA } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -179,7 +180,12 @@ export function CentrosCostoCliente({
             <DialogTitle>{editando ? "Editar centro de costo" : "Nuevo centro de costo"}</DialogTitle>
           </DialogHeader>
           <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
-            <FormField htmlFor="centro-codigo" label="Código" required error={validacion.errorDe("centro-codigo")}>
+            <CampoFormulario
+              htmlFor="centro-codigo"
+              label="Código"
+              required
+              error={validacion.errorDe("centro-codigo")}
+            >
               <Input
                 id="centro-codigo"
                 value={codigo}
@@ -193,8 +199,13 @@ export function CentrosCostoCliente({
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
-            <FormField htmlFor="centro-nombre" label="Nombre" required error={validacion.errorDe("centro-nombre")}>
+            </CampoFormulario>
+            <CampoFormulario
+              htmlFor="centro-nombre"
+              label="Nombre"
+              required
+              error={validacion.errorDe("centro-nombre")}
+            >
               <Input
                 id="centro-nombre"
                 value={nombre}
@@ -207,8 +218,8 @@ export function CentrosCostoCliente({
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
-            <FormField htmlFor="centro-descripcion" label="Descripción">
+            </CampoFormulario>
+            <CampoFormulario htmlFor="centro-descripcion" label="Descripción">
               <Textarea
                 id="centro-descripcion"
                 value={descripcion}
@@ -217,7 +228,7 @@ export function CentrosCostoCliente({
                 disabled={pendiente}
                 className={FORM_TEXTAREA}
               />
-            </FormField>
+            </CampoFormulario>
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="centro-activo">Activo</Label>
               <Switch id="centro-activo" checked={activo} onCheckedChange={setActivo} disabled={pendiente} />

@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Plus } from "lucide-react";
 
-import { FORM_INPUT, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_INPUT } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,7 +56,7 @@ function FormularioTermino({ onGuardado }: { readonly onGuardado: () => void }) 
   return (
     <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
       <div className="flex flex-col gap-4">
-        <FormField htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
+        <CampoFormulario htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
           <Input
             id="nombre"
             name="nombre"
@@ -65,9 +66,9 @@ function FormularioTermino({ onGuardado }: { readonly onGuardado: () => void }) 
             onChange={() => validacion.limpiar("nombre")}
             className={FORM_INPUT}
           />
-        </FormField>
+        </CampoFormulario>
 
-        <FormField htmlFor="dias" label="Días" required error={validacion.errorDe("dias")}>
+        <CampoFormulario htmlFor="dias" label="Días" required error={validacion.errorDe("dias")}>
           <Input
             id="dias"
             name="dias"
@@ -80,7 +81,7 @@ function FormularioTermino({ onGuardado }: { readonly onGuardado: () => void }) 
             onChange={() => validacion.limpiar("dias")}
             className={FORM_INPUT}
           />
-        </FormField>
+        </CampoFormulario>
 
         {error ? (
           <p role="alert" className="text-destructive text-sm">

@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus } from "lucide-react";
 
-import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_INPUT, FORM_SELECT } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -175,7 +176,7 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
             <DialogTitle>{editando ? "Editar lista de precios" : "Nueva lista de precios"}</DialogTitle>
           </DialogHeader>
           <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
-            <FormField htmlFor="lista-nombre" label="Nombre" required error={validacion.errorDe("lista-nombre")}>
+            <CampoFormulario htmlFor="lista-nombre" label="Nombre" required error={validacion.errorDe("lista-nombre")}>
               <Input
                 id="lista-nombre"
                 value={nombre}
@@ -188,8 +189,8 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
-            <FormField htmlFor="lista-tipo" label="Tipo" required>
+            </CampoFormulario>
+            <CampoFormulario htmlFor="lista-tipo" label="Tipo" required>
               <Select
                 value={tipo}
                 onValueChange={(valor: string | null) => setTipo(valor === "porcentaje" ? "porcentaje" : "fijo")}
@@ -206,7 +207,7 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
+            </CampoFormulario>
             <div className="flex items-center justify-between gap-3">
               <div className="flex flex-col">
                 <Label htmlFor="lista-principal">Principal</Label>

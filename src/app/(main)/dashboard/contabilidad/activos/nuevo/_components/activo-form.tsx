@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Loader2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_COMBO,
@@ -15,7 +16,6 @@ import {
   FORM_SELECT,
   FormActions,
   FormCard,
-  FormField,
   FormSectionTitle,
 } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
@@ -83,7 +83,7 @@ function CampoCuenta({
   const seleccionada = opciones.find((opcion) => opcion.value === valor) ?? null;
 
   return (
-    <FormField htmlFor={id} label={etiqueta} required={requerido} error={error}>
+    <CampoFormulario htmlFor={id} label={etiqueta} required={requerido} error={error}>
       <Combobox
         items={opciones}
         value={seleccionada}
@@ -109,7 +109,7 @@ function CampoCuenta({
           </ComboboxList>
         </ComboboxContent>
       </Combobox>
-    </FormField>
+    </CampoFormulario>
   );
 }
 
@@ -244,7 +244,7 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
         <section>
           <FormSectionTitle className="mb-4">Datos del activo</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField
+            <CampoFormulario
               htmlFor="nombre"
               label="Nombre"
               required
@@ -264,9 +264,9 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="tipo-activo" label="Tipo de activo">
+            <CampoFormulario htmlFor="tipo-activo" label="Tipo de activo">
               <Select
                 value={tipoActivo}
                 onValueChange={(valor) => setTipoActivo(valor ?? "otros_tangibles")}
@@ -283,9 +283,9 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
+            </CampoFormulario>
 
-            <FormField
+            <CampoFormulario
               htmlFor="fecha-adquisicion"
               label="Fecha de adquisición"
               required
@@ -299,9 +299,9 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                   validacion.limpiar("fecha-adquisicion");
                 }}
               />
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="costo" label="Costo de adquisición" required error={validacion.errorDe("costo")}>
+            <CampoFormulario htmlFor="costo" label="Costo de adquisición" required error={validacion.errorDe("costo")}>
               <Input
                 id="costo"
                 inputMode="decimal"
@@ -315,9 +315,9 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="cantidad" label="Cantidad" required error={validacion.errorDe("cantidad")}>
+            <CampoFormulario htmlFor="cantidad" label="Cantidad" required error={validacion.errorDe("cantidad")}>
               <Input
                 id="cantidad"
                 inputMode="decimal"
@@ -330,7 +330,7 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
 
             <div className="flex flex-col gap-1 sm:col-span-2">
               <span className="text-sm leading-5 font-medium text-slate-700">Monto total de inversión</span>
@@ -340,7 +340,7 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
               </div>
             </div>
 
-            <FormField
+            <CampoFormulario
               htmlFor="fecha-inicio"
               label="Inicio de depreciación"
               required
@@ -354,9 +354,9 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                   validacion.limpiar("fecha-inicio");
                 }}
               />
-            </FormField>
+            </CampoFormulario>
 
-            <FormField htmlFor="vida-util" label="Vida útil" required error={validacion.errorDe("vida-util")}>
+            <CampoFormulario htmlFor="vida-util" label="Vida útil" required error={validacion.errorDe("vida-util")}>
               <div className="flex items-center gap-2">
                 <Input
                   id="vida-util"
@@ -384,7 +384,7 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-            </FormField>
+            </CampoFormulario>
 
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-sm sm:col-span-2">
               <span className="text-muted-foreground">
@@ -403,7 +403,7 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="grid gap-x-8 gap-y-4 pt-2 sm:grid-cols-2">
-                    <FormField htmlFor="referencia" label="Referencia">
+                    <CampoFormulario htmlFor="referencia" label="Referencia">
                       <Input
                         id="referencia"
                         placeholder="Opcional"
@@ -413,9 +413,9 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                         disabled={pendiente}
                         className={FORM_INPUT}
                       />
-                    </FormField>
+                    </CampoFormulario>
 
-                    <FormField htmlFor="proveedor" label="Proveedor">
+                    <CampoFormulario htmlFor="proveedor" label="Proveedor">
                       <Combobox
                         items={proveedores}
                         value={proveedorSeleccionado}
@@ -441,9 +441,9 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                           </ComboboxList>
                         </ComboboxContent>
                       </Combobox>
-                    </FormField>
+                    </CampoFormulario>
 
-                    <FormField htmlFor="residual" label="Valor residual" error={validacion.errorDe("residual")}>
+                    <CampoFormulario htmlFor="residual" label="Valor residual" error={validacion.errorDe("residual")}>
                       <Input
                         id="residual"
                         inputMode="decimal"
@@ -457,7 +457,7 @@ export function ActivoForm({ datos, fechaHoy }: Props) {
                         className={FORM_INPUT}
                       />
                       <p className="text-muted-foreground text-xs">No puede ser mayor ni igual al monto total.</p>
-                    </FormField>
+                    </CampoFormulario>
 
                     <div className="flex items-center justify-between gap-3 sm:col-span-2">
                       <div className="flex flex-col gap-1">

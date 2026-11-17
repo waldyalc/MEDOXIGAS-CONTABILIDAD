@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus } from "lucide-react";
 
-import { FORM_INPUT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_INPUT, FORM_TEXTAREA } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -167,7 +168,7 @@ export function CategoriasCliente({
             <DialogTitle>{editando ? "Editar categoría" : "Nueva categoría"}</DialogTitle>
           </DialogHeader>
           <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
-            <FormField
+            <CampoFormulario
               htmlFor="categoria-nombre"
               label="Nombre"
               required
@@ -185,8 +186,8 @@ export function CategoriasCliente({
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
-            <FormField htmlFor="categoria-descripcion" label="Descripción">
+            </CampoFormulario>
+            <CampoFormulario htmlFor="categoria-descripcion" label="Descripción">
               <Textarea
                 id="categoria-descripcion"
                 value={descripcion}
@@ -195,7 +196,7 @@ export function CategoriasCliente({
                 disabled={pendiente}
                 className={FORM_TEXTAREA}
               />
-            </FormField>
+            </CampoFormulario>
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="categoria-activa">Activa</Label>
               <Switch id="categoria-activa" checked={activo} onCheckedChange={setActivo} disabled={pendiente} />

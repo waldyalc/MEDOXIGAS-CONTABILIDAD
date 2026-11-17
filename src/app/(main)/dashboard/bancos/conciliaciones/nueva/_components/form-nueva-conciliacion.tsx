@@ -7,13 +7,13 @@ import { useRouter } from "next/navigation";
 import { Info, Loader2 } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_INPUT_GROUP,
   FORM_SELECT,
   FormActions,
   FormCard,
-  FormField,
   FormSectionTitle,
 } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
@@ -93,7 +93,7 @@ export function FormNuevaConciliacion({ cuentas, borradores, cuentaInicial, fech
         <section>
           <FormSectionTitle className="mb-4">Datos de la conciliación</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-            <FormField
+            <CampoFormulario
               htmlFor="conciliacion-cuenta"
               label="Cuenta"
               required
@@ -119,9 +119,9 @@ export function FormNuevaConciliacion({ cuentas, borradores, cuentaInicial, fech
                   ))}
                 </SelectContent>
               </Select>
-            </FormField>
+            </CampoFormulario>
 
-            <FormField
+            <CampoFormulario
               htmlFor="conciliacion-fecha"
               label="Fecha de corte"
               required
@@ -135,9 +135,9 @@ export function FormNuevaConciliacion({ cuentas, borradores, cuentaInicial, fech
                   validacion.limpiar("conciliacion-fecha");
                 }}
               />
-            </FormField>
+            </CampoFormulario>
 
-            <FormField
+            <CampoFormulario
               htmlFor="conciliacion-saldo"
               label="Saldo del extracto"
               required
@@ -160,7 +160,7 @@ export function FormNuevaConciliacion({ cuentas, borradores, cuentaInicial, fech
                   disabled={pendiente}
                 />
               </InputGroup>
-            </FormField>
+            </CampoFormulario>
 
             <p className="text-muted-foreground text-sm sm:col-span-2">
               Los movimientos se toman desde el día siguiente al último corte conciliado. Si es la primera conciliación,

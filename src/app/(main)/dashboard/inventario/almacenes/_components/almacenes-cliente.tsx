@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 
 import { Loader2, Pencil, Plus } from "lucide-react";
 
-import { FORM_INPUT, FormField } from "@/components/formularios/formulario";
+import { CampoFormulario } from "@/components/formularios/campo-formulario";
+import { FORM_INPUT } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -158,7 +159,12 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
             <DialogTitle>{editando ? "Editar almacén" : "Nuevo almacén"}</DialogTitle>
           </DialogHeader>
           <form noValidate onSubmit={enviar} className="flex flex-col gap-4">
-            <FormField htmlFor="almacen-nombre" label="Nombre" required error={validacion.errorDe("almacen-nombre")}>
+            <CampoFormulario
+              htmlFor="almacen-nombre"
+              label="Nombre"
+              required
+              error={validacion.errorDe("almacen-nombre")}
+            >
               <Input
                 id="almacen-nombre"
                 value={nombre}
@@ -171,7 +177,7 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
                 disabled={pendiente}
                 className={FORM_INPUT}
               />
-            </FormField>
+            </CampoFormulario>
             <div className="flex items-center justify-between gap-3">
               <div className="flex flex-col">
                 <Label htmlFor="almacen-activo">Activo</Label>
