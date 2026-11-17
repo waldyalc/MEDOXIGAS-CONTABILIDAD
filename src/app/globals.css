@@ -244,6 +244,11 @@ html {
   transition: none !important;
 }
 
+/* El cajón móvil del sidebar mide lo mismo que en escritorio (271 px, Alegra). */
+[data-slot="sidebar"][data-mobile="true"] {
+  --sidebar-width: 271px !important;
+}
+
 [data-print-root] {
   display: none;
 }

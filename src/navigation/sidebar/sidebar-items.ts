@@ -1,12 +1,12 @@
 import {
-  CircleArrowOutDownLeft,
-  CircleArrowOutUpRight,
+  HandCoins,
   House,
   Landmark,
   type LucideIcon,
   NotebookText,
   Package,
   Settings,
+  ShoppingCart,
   Tag,
   TrendingUp,
   Users,
@@ -33,6 +33,7 @@ interface NavItemBase {
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;
+  separadorDespues?: boolean;
   roles: Rol[];
 }
 
@@ -65,12 +66,13 @@ export const sidebarItems: NavGroup[] = [
         title: "Inicio",
         url: "/dashboard",
         icon: House,
+        separadorDespues: true,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "ingresos",
         title: "Ingresos",
-        icon: CircleArrowOutUpRight,
+        icon: HandCoins,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -113,7 +115,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "compras",
         title: "Compras",
-        icon: CircleArrowOutDownLeft,
+        icon: ShoppingCart,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
