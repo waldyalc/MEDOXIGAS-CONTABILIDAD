@@ -9,6 +9,7 @@ import { EsqueletoTabla } from "@/components/carga/esqueletos";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { BarraLista, ContenedorLista, TarjetaLista } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRol } from "@/lib/auth/rol";
@@ -74,15 +75,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Facturas de venta</h1>
-          <p className="text-muted-foreground text-sm">Con comprobante fiscal (NCF).</p>
-        </div>
-        <Suspense fallback={<Skeleton className="h-9 w-36" />}>
-          <AccionNuevaFactura />
-        </Suspense>
-      </div>
+      <EncabezadoPagina
+        titulo="Facturas de venta"
+        subtitulo="Con comprobante fiscal (NCF)."
+        migas={[{ etiqueta: "Facturación" }, { etiqueta: "Facturas" }]}
+        acciones={
+          <Suspense fallback={<Skeleton className="h-9 w-36" />}>
+            <AccionNuevaFactura />
+          </Suspense>
+        }
+      />
 
       <TarjetaLista data-lista="facturas">
         <BarraLista>

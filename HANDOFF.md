@@ -1,5 +1,13 @@
 # Handoff — Medoxigas Contabilidad
 
+## Diseño — Encabezado de página de 20 px y contenedores (17 nov 2026)
+
+- Rama `diseno/pagina-encabezado-orq` (desde `prueba` ceb939d). `EncabezadoPagina` (título 20 px/600, subtítulo 14, migas opcionales, slot de acciones) y `ContenedorFormulario`/`ContenedorDetalle` (1040 px); `ContenedorLista` se reexporta desde `listas/tabla-lista.tsx` (1289 px).
+- Piloto migrado: Facturas (lista), Compras (lista) y Nueva factura, con migas.
+- Candado `src/lib/diseno-paginas.test.ts` (4 pruebas): prohíbe `text-3xl` nuevo en `page.tsx`, exige `EncabezadoPagina` + migas en las migradas y congela la deuda de 20 pantallas pendientes (la lista solo puede encoger).
+- Verificado: `pnpm typecheck` ✅, `pnpm check` ✅ (solo avisos preexistentes), `pnpm test` ✅ (818 passed, 3 skipped), `CI=1 pnpm build` ✅ (103 páginas). El primer build de un agente puede salir exit 1 por el nudge de seguridad de Next 16.4.3; el reintento continúa y con CI sin env de agente no aparece. Deuda aparte: subir Next a 16.4.6 (advisories moderate GHSA-mfr8-8qww-v76h y GHSA-vc7v-qv4w-wrv8).
+- Pendiente Fase 1b: migrar una por una las 20 pantallas de `PENDIENTES_TEXT_3XL` (bancos, conduces, configuración, contabilidad, cotizaciones, gastos, notas, pagos, reportes). No se tocó lógica, datos ni migraciones.
+
 ## Diseño — Editar producto en pantalla completa (17 nov 2026)
 
 - Rama `diseno/producto-editar-full-orq` (desde `prueba` 6e5f8db). Nueva ruta `/dashboard/productos/[id]/editar`: el lápiz de la lista y el botón «Editar producto» de la ficha navegan a una pantalla completa con el shell de la ficha (`CLASE_PANEL_FICHA`, `GrillaKpis`, `Pildora`, `MetaItem`, `ItemDato`). Ya no se edita producto en diálogo; el diálogo queda solo para «Nuevo producto».
