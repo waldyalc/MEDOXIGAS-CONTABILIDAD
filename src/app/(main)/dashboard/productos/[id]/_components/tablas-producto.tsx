@@ -49,24 +49,53 @@ function FilaVacia({ columnas, children }: { readonly columnas: number; readonly
   );
 }
 
+function IdentificadorDocumento({
+  ncf,
+  id,
+  ncfPrincipal,
+}: {
+  readonly ncf?: string | null;
+  readonly id: string;
+  readonly ncfPrincipal: boolean;
+}) {
+  if (ncfPrincipal) {
+    return ncf ? (
+      <span className="text-primary font-medium">{ncf}</span>
+    ) : (
+      <span className="text-muted-foreground">—</span>
+    );
+  }
+
+  return (
+    <>
+      <span className="text-primary font-medium">{id}</span>
+      {ncf ? <span className="text-muted-foreground font-mono text-xs">{ncf}</span> : null}
+    </>
+  );
+}
+
 function CeldaDocumento({
   href,
   prefijo,
   numero,
   ncf,
+  ncfPrincipal = false,
 }: {
   readonly href: string;
   readonly prefijo: string;
   readonly numero: number;
   readonly ncf?: string | null;
+  readonly ncfPrincipal?: boolean;
 }) {
   const id = numeroDocumento(prefijo, numero);
+  let ariaLabel = `Ver ${id}`;
+  if (ncfPrincipal) ariaLabel = ncf ? `Ver factura ${ncf}` : "Ver factura de venta";
+
   return (
     <TableCell>
-      <Enlace className="absolute inset-0" href={href} aria-label={`Ver ${id}`} />
+      <Enlace className="absolute inset-0" href={href} aria-label={ariaLabel} />
       <span className="pointer-events-none relative flex flex-col">
-        <span className="text-primary font-medium">{id}</span>
-        {ncf ? <span className="text-muted-foreground font-mono text-xs">{ncf}</span> : null}
+        <IdentificadorDocumento id={id} ncf={ncf} ncfPrincipal={ncfPrincipal} />
       </span>
     </TableCell>
   );
@@ -157,6 +186,7 @@ export function TablaFacturas({
                 prefijo={esVenta ? "FAC" : "COM"}
                 numero={documento.numero}
                 ncf={documento.ncf}
+                ncfPrincipal={esVenta}
               />
               <TableCell>
                 <EnlaceTercero id={documento.contactoId} nombre={documento.contactoNombre} />
@@ -262,6 +292,7 @@ export function TablaKardex({
                 prefijo={fila.tipo === "venta" ? "FAC" : "COM"}
                 numero={fila.numero}
                 ncf={fila.ncf}
+                ncfPrincipal={fila.tipo === "venta"}
               />
               <TableCell className="text-muted-foreground">{formatoDia(fila.fecha)}</TableCell>
               <TableCell>
