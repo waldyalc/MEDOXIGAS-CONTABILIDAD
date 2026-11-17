@@ -2,14 +2,13 @@
 
 import { type ReactNode, useState } from "react";
 
-import { cn } from "cn";
 import { Search } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
-import { PiePagina, TH, usePagina } from "@/components/ficha/ficha-ui";
-import { Badge } from "@/components/ui/badge";
+import { usePagina } from "@/components/ficha/ficha-ui";
+import { PaginadorLocal } from "@/components/listas/paginador-local";
+import { BarraLista, type ColumnaLista, PillEstado, TablaLista, type TonoPill } from "@/components/listas/tabla-lista";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   type AsientoFicha,
   aCentavos,
@@ -29,29 +28,32 @@ const FILAS_POR_PAGINA = 10;
 
 export type ClaseEstado = "venta" | "compra" | "comercial" | "pago";
 
-export function EstadoBadge({ estado, clase }: { readonly estado: string; readonly clase: ClaseEstado }) {
-  let etiqueta: string;
-  if (clase === "venta" || clase === "compra") etiqueta = etiquetaEstadoDocumento(estado, clase);
-  else if (clase === "comercial") etiqueta = etiquetaEstadoComercial(estado);
-  else etiqueta = etiquetaEstadoPago(estado);
-
-  if (estado === "anulada" || estado === "anulado") return <Badge variant="destructive">{etiqueta}</Badge>;
-  if (estado === "pagada" || estado === "convertida") {
-    return <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">{etiqueta}</Badge>;
-  }
-  return <Badge variant="secondary">{etiqueta}</Badge>;
+function etiquetaEstado(estado: string, clase: ClaseEstado): string {
+  if (clase === "venta" || clase === "compra") return etiquetaEstadoDocumento(estado, clase);
+  if (clase === "comercial") return etiquetaEstadoComercial(estado);
+  return etiquetaEstadoPago(estado);
 }
 
-interface Columna<T> {
-  readonly titulo: string;
-  readonly derecha?: boolean;
-  readonly celda: (fila: T) => ReactNode;
+function tonoEstado(estado: string): TonoPill {
+  if (estado === "anulada" || estado === "anulado") return "peligro";
+  if (estado === "pagada" || estado === "convertida") return "exito";
+  return "pendiente";
+}
+
+export function PillEstadoDocumento({ estado, clase }: { readonly estado: string; readonly clase: ClaseEstado }) {
+  return <PillEstado tono={tonoEstado(estado)}>{etiquetaEstado(estado, clase)}</PillEstado>;
 }
 
 interface Fila {
   readonly id: string;
   readonly numero: number;
   readonly ncf?: string | null;
+}
+
+interface ColumnaDocumento<T> {
+  readonly titulo: string;
+  readonly derecha?: boolean;
+  readonly celda: (fila: T) => ReactNode;
 }
 
 function IdentificadorFicha({
@@ -65,7 +67,7 @@ function IdentificadorFicha({
 }) {
   if (ncfPrincipal) {
     return fila.ncf ? (
-      <span className="text-primary font-medium">{fila.ncf}</span>
+      <span className="font-medium">{fila.ncf}</span>
     ) : (
       <span className="text-muted-foreground">—</span>
     );
@@ -73,7 +75,7 @@ function IdentificadorFicha({
 
   return (
     <>
-      <span className="text-primary font-medium">{numero}</span>
+      <span className="font-medium">{numero}</span>
       {fila.ncf ? <span className="text-muted-foreground font-mono text-xs">{fila.ncf}</span> : null}
     </>
   );
@@ -96,14 +98,10 @@ function NumeroEnlace({
   readonly ncfPrincipal?: boolean;
 }) {
   const numero = `${prefijo}-${String(fila.numero).padStart(4, "0")}`;
-
   return (
-    <>
-      <Enlace className="absolute inset-0" href={href} aria-label={etiquetaEnlace(numero, ncfPrincipal, fila.ncf)} />
-      <span className="pointer-events-none relative flex flex-col">
-        <IdentificadorFicha fila={fila} numero={numero} ncfPrincipal={ncfPrincipal} />
-      </span>
-    </>
+    <Enlace href={href} aria-label={etiquetaEnlace(numero, ncfPrincipal, fila.ncf)} className="flex flex-col">
+      <IdentificadorFicha fila={fila} numero={numero} ncfPrincipal={ncfPrincipal} />
+    </Enlace>
   );
 }
 
@@ -124,7 +122,7 @@ function TablaFicha<T extends Fila>({
   ncfPrincipal = false,
 }: {
   readonly filas: readonly T[];
-  readonly columnas: readonly Columna<T>[];
+  readonly columnas: readonly ColumnaDocumento<T>[];
   readonly unidad: string;
   readonly prefijo: (fila: T) => string;
   readonly ruta: (fila: T) => string;
@@ -142,58 +140,54 @@ function TablaFicha<T extends Fila>({
   const { pagina, setPagina } = usePagina(filtradas.length, FILAS_POR_PAGINA);
   const visibles = filtradas.slice(pagina * FILAS_POR_PAGINA, (pagina + 1) * FILAS_POR_PAGINA);
 
+  const todas: readonly ColumnaLista<T>[] = [
+    {
+      clave: "numero",
+      encabezado: "Número",
+      celda: (fila) => (
+        <NumeroEnlace href={ruta(fila)} prefijo={prefijo(fila)} fila={fila} ncfPrincipal={ncfPrincipal} />
+      ),
+    },
+    ...columnas.map((columna, indice) => ({
+      clave: `columna-${indice}`,
+      encabezado: columna.titulo,
+      alineacion: columna.derecha ? ("derecha" as const) : undefined,
+      celda: columna.celda,
+    })),
+  ];
+
   return (
     <div className="flex flex-col gap-5">
-      <div className="relative w-full max-w-xs">
-        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-        <Input
-          value={busqueda}
-          onChange={(event) => setBusqueda(event.target.value)}
-          placeholder={`Buscar ${unidad}…`}
-          aria-label={`Buscar ${unidad}`}
-          className="pl-8"
-        />
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className={TH}>Número</TableHead>
-            {columnas.map((columna) => (
-              <TableHead key={columna.titulo} className={cn(TH, columna.derecha && "text-right")}>
-                {columna.titulo}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {visibles.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={columnas.length + 1} className="text-muted-foreground py-10 text-center">
-                No hay {unidad}.
-              </TableCell>
-            </TableRow>
-          ) : (
-            visibles.map((fila) => (
-              <TableRow key={fila.id} className="relative cursor-pointer">
-                <TableCell>
-                  <NumeroEnlace href={ruta(fila)} prefijo={prefijo(fila)} fila={fila} ncfPrincipal={ncfPrincipal} />
-                </TableCell>
-                {columnas.map((columna) => (
-                  <TableCell key={columna.titulo} className={cn(columna.derecha && "text-right")}>
-                    {columna.celda(fila)}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-      <PiePagina
+      <BarraLista className="border-0 px-0">
+        <div className="relative w-full max-w-xs">
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+          <Input
+            value={busqueda}
+            onChange={(event) => setBusqueda(event.target.value)}
+            placeholder={`Buscar ${unidad}…`}
+            aria-label={`Buscar ${unidad}`}
+            className="h-8 pl-8"
+          />
+        </div>
+      </BarraLista>
+
+      <TablaLista
+        columnas={todas}
+        filas={visibles}
+        claveFila={(fila) => fila.id}
+        vacio={{
+          filtrada: texto !== "",
+          titulo: texto === "" ? "Aún no hay registros" : "Sin resultados",
+          descripcion: texto === "" ? `No hay ${unidad}.` : "La búsqueda no arrojó resultados.",
+        }}
+      />
+
+      <PaginadorLocal
         total={filtradas.length}
         porPagina={FILAS_POR_PAGINA}
         pagina={pagina}
         setPagina={setPagina}
-        unidad={unidad}
+        etiqueta={unidad}
       />
     </div>
   );
@@ -208,7 +202,7 @@ export function PestanaFacturas({
   readonly esVenta: boolean;
   readonly ruta: (id: string) => string;
 }) {
-  const columnas: Columna<DocumentoFicha>[] = [
+  const columnas: ColumnaDocumento<DocumentoFicha>[] = [
     { titulo: "Creación", celda: (f) => <Fecha fecha={f.fecha} /> },
     { titulo: "Vencimiento", celda: (f) => <Fecha fecha={f.vencimiento} /> },
     { titulo: "Total", derecha: true, celda: (f) => <Monto centavos={aCentavos(f.total)} /> },
@@ -218,7 +212,10 @@ export function PestanaFacturas({
       derecha: true,
       celda: (f) => <Monto centavos={f.estado === "anulada" ? 0 : saldoDocumento(f.total, f.pagado, f.credito)} />,
     },
-    { titulo: "Estado", celda: (f) => <EstadoBadge estado={f.estado} clase={esVenta ? "venta" : "compra"} /> },
+    {
+      titulo: "Estado",
+      celda: (f) => <PillEstadoDocumento estado={f.estado} clase={esVenta ? "venta" : "compra"} />,
+    },
   ];
   return (
     <TablaFicha
@@ -243,10 +240,10 @@ export function PestanaComerciales({
   readonly unidad: string;
   readonly ruta: (id: string) => string;
 }) {
-  const columnas: Columna<DocumentoComercialFicha>[] = [
+  const columnas: ColumnaDocumento<DocumentoComercialFicha>[] = [
     { titulo: "Fecha", celda: (f) => <Fecha fecha={f.fecha} /> },
     { titulo: "Total", derecha: true, celda: (f) => <Monto centavos={aCentavos(f.total)} /> },
-    { titulo: "Estado", celda: (f) => <EstadoBadge estado={f.estado} clase="comercial" /> },
+    { titulo: "Estado", celda: (f) => <PillEstadoDocumento estado={f.estado} clase="comercial" /> },
   ];
   return (
     <TablaFicha filas={filas} columnas={columnas} unidad={unidad} prefijo={() => prefijo} ruta={(f) => ruta(f.id)} />
@@ -270,11 +267,11 @@ export function PestanaNotas({
   readonly prefijo: (nota: NotaFicha) => string;
   readonly ruta: (nota: NotaFicha) => string;
 }) {
-  const columnas: Columna<NotaFicha>[] = [
+  const columnas: ColumnaDocumento<NotaFicha>[] = [
     { titulo: "Tipo", celda: (n) => DETALLE_NOTA[n.tipo] },
     { titulo: "Fecha", celda: (n) => <Fecha fecha={n.fecha} /> },
     { titulo: "Total", derecha: true, celda: (n) => <Monto centavos={aCentavos(n.total)} /> },
-    { titulo: "Estado", celda: (n) => <EstadoBadge estado={n.estado} clase="pago" /> },
+    { titulo: "Estado", celda: (n) => <PillEstadoDocumento estado={n.estado} clase="pago" /> },
   ];
   return <TablaFicha filas={notas} columnas={columnas} unidad={unidad} prefijo={prefijo} ruta={ruta} />;
 }
@@ -288,11 +285,11 @@ export function PestanaPagos({
   readonly unidad: string;
   readonly ruta: (id: string) => string;
 }) {
-  const columnas: Columna<PagoFicha>[] = [
+  const columnas: ColumnaDocumento<PagoFicha>[] = [
     { titulo: "Fecha", celda: (p) => <Fecha fecha={p.fecha} /> },
     { titulo: "Factura", celda: (p) => (p.factura_numero == null ? "Anticipo" : `#${p.factura_numero}`) },
     { titulo: "Monto", derecha: true, celda: (p) => <Monto centavos={aCentavos(p.monto)} /> },
-    { titulo: "Estado", celda: (p) => <EstadoBadge estado={p.estado} clase="pago" /> },
+    { titulo: "Estado", celda: (p) => <PillEstadoDocumento estado={p.estado} clase="pago" /> },
   ];
   return (
     <TablaFicha filas={pagos} columnas={columnas} unidad={unidad} prefijo={() => "PAG"} ruta={(p) => ruta(p.id)} />
@@ -306,7 +303,7 @@ export function PestanaAsientos({
   readonly asientos: readonly AsientoFicha[];
   readonly ruta: (id: string) => string;
 }) {
-  const columnas: Columna<AsientoFicha>[] = [
+  const columnas: ColumnaDocumento<AsientoFicha>[] = [
     { titulo: "Fecha", celda: (a) => <Fecha fecha={a.fecha} /> },
     { titulo: "Descripción", celda: (a) => <span className="whitespace-normal">{a.descripcion}</span> },
     { titulo: "Débito", derecha: true, celda: (a) => <Monto centavos={a.debitoCentavos} /> },

@@ -7,15 +7,14 @@ import { useRouter } from "next/navigation";
 
 import { CheckCircle2, ChevronDown, Loader2, Scale } from "lucide-react";
 
+import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
 import { conciliarCuenta, guardarConciliacionBorrador } from "@/lib/bancos/acciones";
 import { resumenConciliacion } from "@/lib/bancos/conciliacion";
@@ -47,77 +46,6 @@ interface Props {
 
 function aTexto(centavos: number): string {
   return (centavos / 100).toFixed(2);
-}
-
-function MovimientoFila({
-  movimiento,
-  marcado,
-  bloqueado,
-  puedeMarcar,
-  pendiente,
-  onToggle,
-}: {
-  movimiento: MovimientoBanco;
-  marcado: boolean;
-  bloqueado: boolean;
-  puedeMarcar: boolean;
-  pendiente: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <TableRow>
-      <TableCell className="pl-(--card-spacing)">
-        {puedeMarcar ? (
-          <Checkbox
-            checked={marcado}
-            onCheckedChange={onToggle}
-            disabled={pendiente || bloqueado}
-            aria-label={`Marcar movimiento del ${formatoDia(movimiento.fecha)}`}
-          />
-        ) : (
-          <CheckCircle2 className={marcado ? "size-4 text-emerald-600" : "text-muted-foreground size-4"} />
-        )}
-      </TableCell>
-      <TableCell className="tabular-nums">{formatoDia(movimiento.fecha)}</TableCell>
-      <TableCell className="whitespace-normal">
-        <div className="flex flex-col gap-0.5">
-          {movimiento.documento.href ? (
-            <Link href={movimiento.documento.href} className="text-primary underline-offset-4 hover:underline">
-              {movimiento.documento.etiqueta}
-            </Link>
-          ) : (
-            <span>{movimiento.documento.etiqueta}</span>
-          )}
-          <Link
-            href={rutaAsiento(movimiento.asientoId)}
-            className="text-muted-foreground text-xs underline-offset-4 hover:underline"
-          >
-            Asiento #{movimiento.asientoNumero}
-          </Link>
-          {bloqueado ? (
-            <Badge variant="outline" className="mt-0.5 w-fit text-[10px]">
-              En otra conciliación
-            </Badge>
-          ) : null}
-        </div>
-      </TableCell>
-      <TableCell className="whitespace-normal">
-        {movimiento.tercero ? (
-          <Link href={rutaContacto(movimiento.tercero.id)} className="text-primary underline-offset-4 hover:underline">
-            {movimiento.tercero.nombre}
-          </Link>
-        ) : (
-          "—"
-        )}
-      </TableCell>
-      <TableCell className="text-right tabular-nums">
-        {movimiento.entradaCentavos === 0 ? "—" : formatearRd(movimiento.entradaCentavos)}
-      </TableCell>
-      <TableCell className="pr-(--card-spacing) text-right tabular-nums">
-        {movimiento.salidaCentavos === 0 ? "—" : formatearRd(movimiento.salidaCentavos)}
-      </TableCell>
-    </TableRow>
-  );
 }
 
 function EntradaMonto({
@@ -315,6 +243,64 @@ export function PanelConciliacion({
     });
   }
 
+  const columnas: readonly ColumnaLista<MovimientoBanco>[] = [
+    {
+      clave: "fecha",
+      encabezado: "Fecha",
+      celda: (movimiento) => <span className="tabular-nums">{formatoDia(movimiento.fecha)}</span>,
+    },
+    {
+      clave: "documento",
+      encabezado: "Documento",
+      celda: (movimiento) => (
+        <span className="flex flex-col gap-0.5 whitespace-normal">
+          {movimiento.documento.href ? (
+            <Link href={movimiento.documento.href} className="text-primary underline-offset-4 hover:underline">
+              {movimiento.documento.etiqueta}
+            </Link>
+          ) : (
+            <span>{movimiento.documento.etiqueta}</span>
+          )}
+          <Link
+            href={rutaAsiento(movimiento.asientoId)}
+            className="text-muted-foreground text-xs underline-offset-4 hover:underline"
+          >
+            Asiento #{movimiento.asientoNumero}
+          </Link>
+          {movimiento.id in bloqueados ? (
+            <PillEstado tono="neutro">
+              <span className="mt-0.5 w-fit text-[10px]">En otra conciliación</span>
+            </PillEstado>
+          ) : null}
+        </span>
+      ),
+    },
+    {
+      clave: "tercero",
+      encabezado: "Tercero",
+      celda: (movimiento) =>
+        movimiento.tercero ? (
+          <Link href={rutaContacto(movimiento.tercero.id)} className="text-primary underline-offset-4 hover:underline">
+            {movimiento.tercero.nombre}
+          </Link>
+        ) : (
+          "—"
+        ),
+    },
+    {
+      clave: "entrada",
+      encabezado: "Entrada",
+      alineacion: "derecha",
+      celda: (movimiento) => (movimiento.entradaCentavos === 0 ? "—" : formatearRd(movimiento.entradaCentavos)),
+    },
+    {
+      clave: "salida",
+      encabezado: "Salida",
+      alineacion: "derecha",
+      celda: (movimiento) => (movimiento.salidaCentavos === 0 ? "—" : formatearRd(movimiento.salidaCentavos)),
+    },
+  ];
+
   function guardar(conciliar: boolean) {
     setError(null);
     const saldoCent = parsearCentavos(saldo);
@@ -387,7 +373,11 @@ export function PanelConciliacion({
               <span className="tabular-nums">
                 {formatoDia(fechaDesde)} — {formatoDia(fechaHasta)}
               </span>
-              {conciliada ? <Badge variant="secondary">Conciliada</Badge> : <Badge variant="outline">Borrador</Badge>}
+              {conciliada ? (
+                <PillEstado tono="exito">Conciliada</PillEstado>
+              ) : (
+                <PillEstado tono="pendiente">Borrador</PillEstado>
+              )}
               {conciliadoEn ? <span>· {formatoFechaHora(conciliadoEn)}</span> : null}
               {asientoId ? (
                 <Link href={rutaAsiento(asientoId)} className="text-primary underline-offset-4 hover:underline">
@@ -410,52 +400,44 @@ export function PanelConciliacion({
             />
           ) : null}
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {!soloLectura && !conciliada ? (
-                  <TableHead className="w-10 pl-(--card-spacing)">
-                    <Checkbox
-                      checked={todosSeleccionados}
-                      onCheckedChange={alternarTodos}
-                      disabled={pendiente || seleccionables.length === 0}
-                      aria-label="Seleccionar todos los movimientos"
-                    />
-                  </TableHead>
-                ) : (
-                  <TableHead className="w-10 pl-(--card-spacing)">
-                    <CheckCircle2 className="text-muted-foreground size-4" />
-                  </TableHead>
-                )}
-                <TableHead>Fecha</TableHead>
-                <TableHead>Documento</TableHead>
-                <TableHead>Tercero</TableHead>
-                <TableHead className="text-right">Entrada</TableHead>
-                <TableHead className="pr-(--card-spacing) text-right">Salida</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {movimientosVisibles.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
-                    No hay movimientos en el período.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                movimientosVisibles.map((movimiento) => (
-                  <MovimientoFila
-                    key={movimiento.id}
-                    movimiento={movimiento}
-                    marcado={seleccion.has(movimiento.id)}
-                    bloqueado={movimiento.id in bloqueados}
-                    puedeMarcar={!soloLectura && !conciliada}
-                    pendiente={pendiente}
-                    onToggle={() => alternar(movimiento.id)}
+          <TablaLista
+            columnas={columnas}
+            filas={movimientosVisibles}
+            claveFila={(movimiento) => movimiento.id}
+            seleccion={{
+              cabecera:
+                !soloLectura && !conciliada ? (
+                  <Checkbox
+                    checked={todosSeleccionados}
+                    onCheckedChange={alternarTodos}
+                    disabled={pendiente || seleccionables.length === 0}
+                    aria-label="Seleccionar todos los movimientos"
                   />
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  <CheckCircle2 className="text-muted-foreground size-4" />
+                ),
+              celda: (movimiento) =>
+                !soloLectura && !conciliada ? (
+                  <Checkbox
+                    checked={seleccion.has(movimiento.id)}
+                    onCheckedChange={() => alternar(movimiento.id)}
+                    disabled={pendiente || movimiento.id in bloqueados}
+                    aria-label={`Marcar movimiento del ${formatoDia(movimiento.fecha)}`}
+                  />
+                ) : (
+                  <CheckCircle2
+                    className={
+                      seleccion.has(movimiento.id) ? "size-4 text-emerald-600" : "text-muted-foreground size-4"
+                    }
+                  />
+                ),
+            }}
+            vacio={{
+              filtrada: true,
+              titulo: "Sin movimientos",
+              descripcion: "No hay movimientos en el período.",
+            }}
+          />
         </CardContent>
       </Card>
 

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { ContenedorLista } from "@/components/listas/tabla-lista";
 import { getRol } from "@/lib/auth/rol";
 import { getMonedasConTasas } from "@/lib/monedas/consultas";
 
@@ -11,12 +12,12 @@ export default async function Page() {
   if (rol == null) redirect("/unauthorized");
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <EncabezadoConfiguracion
         titulo="Monedas"
         descripcion="Moneda base y tasas de cambio por fecha. Los documentos siguen emitiéndose en DOP."
       />
       <MonedasCliente monedas={datos.monedas} tasas={datos.tasas} puedeEditar={rol === "admin" || rol === "contador"} />
-    </div>
+    </ContenedorLista>
   );
 }

@@ -1,14 +1,60 @@
 import Link from "next/link";
 
-import { Plus } from "lucide-react";
+import { ArrowLeftRight, Plus } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
-import { Badge } from "@/components/ui/badge";
+import {
+  type ColumnaLista,
+  ContenedorLista,
+  PillEstado,
+  TablaLista,
+  TarjetaLista,
+} from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaTransferenciaInventario } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import type { TransferenciaLista } from "@/lib/inventario/tipos";
+
+const columnas: readonly ColumnaLista<TransferenciaLista>[] = [
+  {
+    clave: "numero",
+    encabezado: "Número",
+    className: "w-20",
+    celda: (transferencia) => (
+      <Enlace href={rutaTransferenciaInventario(transferencia.id)}>{transferencia.numero}</Enlace>
+    ),
+  },
+  {
+    clave: "fecha",
+    encabezado: "Fecha",
+    celda: (transferencia) => formatoDia(transferencia.fecha),
+  },
+  {
+    clave: "origen",
+    encabezado: "Origen",
+    celda: (transferencia) => transferencia.origen_nombre,
+  },
+  {
+    clave: "destino",
+    encabezado: "Destino",
+    celda: (transferencia) => transferencia.destino_nombre,
+  },
+  {
+    clave: "productos",
+    encabezado: "Productos",
+    alineacion: "derecha",
+    celda: (transferencia) => transferencia.lineas,
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (transferencia) => (
+      <PillEstado tono={transferencia.estado === "anulada" ? "peligro" : "exito"}>
+        {transferencia.estado === "anulada" ? "Anulada" : "Activa"}
+      </PillEstado>
+    ),
+  },
+];
 
 export function TransferenciasTabla({
   transferencias,
@@ -18,7 +64,7 @@ export function TransferenciasTabla({
   puedeEscribir: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-4">
+    <ContenedorLista>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl tracking-tight">Transferencias entre almacenes</h1>
@@ -34,46 +80,24 @@ export function TransferenciasTabla({
         ) : null}
       </div>
 
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-20">Número</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Origen</TableHead>
-              <TableHead>Destino</TableHead>
-              <TableHead className="text-right">Productos</TableHead>
-              <TableHead>Estado</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transferencias.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
-                  No hay transferencias entre almacenes todavía.
-                </TableCell>
-              </TableRow>
-            ) : (
-              transferencias.map((transferencia) => (
-                <TableRow key={transferencia.id}>
-                  <TableCell className="font-medium">
-                    <Enlace href={rutaTransferenciaInventario(transferencia.id)}>{transferencia.numero}</Enlace>
-                  </TableCell>
-                  <TableCell>{formatoDia(transferencia.fecha)}</TableCell>
-                  <TableCell>{transferencia.origen_nombre}</TableCell>
-                  <TableCell>{transferencia.destino_nombre}</TableCell>
-                  <TableCell className="text-right tabular-nums">{transferencia.lineas}</TableCell>
-                  <TableCell>
-                    <Badge variant={transferencia.estado === "anulada" ? "destructive" : "secondary"}>
-                      {transferencia.estado === "anulada" ? "Anulada" : "Activa"}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+      <TarjetaLista data-lista="inventario-transferencias">
+        <TablaLista
+          columnas={columnas}
+          filas={transferencias}
+          claveFila={(transferencia) => transferencia.id}
+          vacio={{
+            titulo: "¡Aún no tienes transferencias!",
+            descripcion: "Mueve existencia de un almacén a otro.",
+            icono: <ArrowLeftRight className="size-10" />,
+            accion: puedeEscribir ? (
+              <Button render={<Link href="/dashboard/inventario/transferencias/nueva" />}>
+                <Plus />
+                Nueva transferencia
+              </Button>
+            ) : undefined,
+          }}
+        />
+      </TarjetaLista>
+    </ContenedorLista>
   );
 }

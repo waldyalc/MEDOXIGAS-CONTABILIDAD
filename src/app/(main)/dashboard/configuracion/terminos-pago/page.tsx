@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { ContenedorLista } from "@/components/listas/tabla-lista";
 import { getRol } from "@/lib/auth/rol";
 import { getTerminosPago } from "@/lib/configuracion/consultas";
 
@@ -11,12 +12,12 @@ export default async function Page() {
   if (rol == null) redirect("/unauthorized");
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <EncabezadoConfiguracion
         titulo="Términos de pago"
         descripcion="Plazos disponibles para las facturas de venta (contado, 8, 15, 30 y 60 días)."
       />
       <TerminosCliente terminos={terminos} puedeCrear={rol === "admin" || rol === "contador"} />
-    </div>
+    </ContenedorLista>
   );
 }

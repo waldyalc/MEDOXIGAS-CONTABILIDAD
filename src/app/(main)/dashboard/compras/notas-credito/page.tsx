@@ -1,101 +1,84 @@
-import { Suspense } from "react";
-
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Plus } from "lucide-react";
+import { FileMinus, Plus } from "lucide-react";
 
-import { EsqueletoTabla } from "@/components/carga/esqueletos";
 import { Enlace } from "@/components/enlace";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
-import { Badge } from "@/components/ui/badge";
+import {
+  BarraLista,
+  type ColumnaLista,
+  ContenedorLista,
+  PillEstado,
+  TablaLista,
+  TarjetaLista,
+} from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
 import { formatoMoneda } from "@/lib/compras/formato";
 import { getNotasCreditoCompraLista } from "@/lib/compras/notas-credito/consultas";
+import type { NotaCreditoCompraLista } from "@/lib/compras/notas-credito/tipos";
 import { rutaCompra, rutaContacto, rutaNotaCreditoCompra } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
-import { leerOpcionesLista, type OpcionesLista, type ParametrosLista } from "@/lib/listas/parametros";
+import { leerOpcionesLista, type ParametrosLista, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 
 const RUTA = "/dashboard/compras/notas-credito";
 
-function EstadoBadge({ estado }: { estado: "activa" | "anulada" }) {
-  if (estado === "anulada") return <Badge variant="destructive">Anulada</Badge>;
-  return <Badge variant="secondary">Activa</Badge>;
-}
-
-async function TablaNotas({
-  opciones,
-  params,
-}: {
-  readonly opciones: OpcionesLista;
-  readonly params: ParametrosLista;
-}) {
-  const { filas: notas, resumen } = await getNotasCreditoCompraLista(opciones);
-
-  return (
-    <div className="flex flex-col gap-3">
-      <Card>
-        <CardContent className="px-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-(--card-spacing)">Número</TableHead>
-                <TableHead>NCF</TableHead>
-                <TableHead>Factura de proveedor</TableHead>
-                <TableHead>Proveedor</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead className="pr-(--card-spacing)">Estado</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {notas.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
-                    {opciones.q
-                      ? "No se encontraron notas de crédito con esa búsqueda."
-                      : "No hay notas de crédito en compras registradas."}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                notas.map((nota) => (
-                  <TableRow key={nota.id}>
-                    <TableCell className="pl-(--card-spacing) font-medium">
-                      <Enlace href={rutaNotaCreditoCompra(nota.id)}>#{nota.numero}</Enlace>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {nota.ncf ? <Enlace href={rutaNotaCreditoCompra(nota.id)}>{nota.ncf}</Enlace> : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Enlace href={rutaCompra(nota.factura_proveedor_id)}>
-                        #{nota.factura_numero}
-                        {nota.factura_ncf ? ` — ${nota.factura_ncf}` : ""}
-                      </Enlace>
-                    </TableCell>
-                    <TableCell>
-                      <Enlace href={rutaContacto(nota.contacto_id)}>{nota.proveedor_nombre}</Enlace>
-                    </TableCell>
-                    <TableCell>{formatoDia(nota.fecha)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatoMoneda(nota.total)}</TableCell>
-                    <TableCell className="pr-(--card-spacing)">
-                      <EstadoBadge estado={nota.estado} />
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <PaginadorLista base={RUTA} params={params} resumen={resumen} />
-    </div>
-  );
-}
+const columnas: readonly ColumnaLista<NotaCreditoCompraLista>[] = [
+  {
+    clave: "numero",
+    encabezado: "Número",
+    celda: (nota) => <Enlace href={rutaNotaCreditoCompra(nota.id)}>#{nota.numero}</Enlace>,
+  },
+  {
+    clave: "ncf",
+    encabezado: "NCF",
+    celda: (nota) =>
+      nota.ncf ? (
+        <Enlace href={rutaNotaCreditoCompra(nota.id)}>
+          <span className="font-mono text-xs">{nota.ncf}</span>
+        </Enlace>
+      ) : (
+        "—"
+      ),
+  },
+  {
+    clave: "factura",
+    encabezado: "Factura de proveedor",
+    celda: (nota) => (
+      <Enlace href={rutaCompra(nota.factura_proveedor_id)}>
+        #{nota.factura_numero}
+        {nota.factura_ncf ? ` — ${nota.factura_ncf}` : ""}
+      </Enlace>
+    ),
+  },
+  {
+    clave: "proveedor",
+    encabezado: "Proveedor",
+    celda: (nota) => <Enlace href={rutaContacto(nota.contacto_id)}>{nota.proveedor_nombre}</Enlace>,
+  },
+  {
+    clave: "fecha",
+    encabezado: "Fecha",
+    celda: (nota) => formatoDia(nota.fecha),
+  },
+  {
+    clave: "total",
+    encabezado: "Total",
+    alineacion: "derecha",
+    celda: (nota) => <span className="font-medium">{formatoMoneda(nota.total)}</span>,
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (nota) => (
+      <PillEstado tono={nota.estado === "anulada" ? "peligro" : "exito"}>
+        {nota.estado === "anulada" ? "Anulada" : "Activa"}
+      </PillEstado>
+    ),
+  },
+];
 
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosLista> }) {
   const params = await searchParams;
@@ -103,8 +86,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const rol = await getRol();
   if (rol == null) redirect("/unauthorized");
 
+  const { filas: notas, resumen } = await getNotasCreditoCompraLista(opciones);
+  const puedeCrear = rol !== "lector";
+
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Notas de crédito en compras</h1>
@@ -116,7 +102,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           <Button variant="outline" render={<Link href="/dashboard/compras" prefetch={false} />}>
             Compras
           </Button>
-          {rol !== "lector" ? (
+          {puedeCrear ? (
             <Button render={<Link href="/dashboard/compras/notas-credito/nueva" prefetch={false} />}>
               <Plus data-icon="inline-start" />
               Nueva nota de crédito
@@ -125,17 +111,50 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         </div>
       </div>
 
-      <BuscadorLista
-        base={RUTA}
-        parametros={params}
-        valorInicial={opciones.q}
-        placeholder="Buscar por número, NCF o proveedor…"
-        ariaLabel="Buscar notas de crédito de compras"
-      />
+      <TarjetaLista data-lista="compras-notas-credito">
+        <BarraLista>
+          <BuscadorLista
+            base={RUTA}
+            parametros={params}
+            valorInicial={opciones.q}
+            placeholder="Buscar por número, NCF o proveedor…"
+            ariaLabel="Buscar notas de crédito de compras"
+            className="sm:max-w-[267px] [&_input]:h-8"
+          />
+        </BarraLista>
 
-      <Suspense fallback={<EsqueletoTabla filas={8} columnas={7} />}>
-        <TablaNotas opciones={opciones} params={params} />
-      </Suspense>
-    </div>
+        <TablaLista
+          columnas={columnas}
+          filas={notas}
+          claveFila={(nota) => nota.id}
+          vacio={{
+            filtrada: Boolean(opciones.q),
+            titulo: opciones.q ? "Sin resultados" : "¡Aún no tienes notas de crédito en compras!",
+            descripcion: opciones.q
+              ? "La búsqueda no arrojó notas de crédito."
+              : "Se crean desde una factura de proveedor; aquí verás su historial.",
+            icono: <FileMinus className="size-10" />,
+            accion: puedeCrear ? (
+              <Button render={<Link href="/dashboard/compras/notas-credito/nueva" prefetch={false} />}>
+                <Plus />
+                Nueva nota de crédito
+              </Button>
+            ) : undefined,
+          }}
+        />
+
+        <PaginadorLista
+          base={RUTA}
+          params={params}
+          resumen={resumen}
+          etiqueta="Ítems por página"
+          tamano={opciones.tamano}
+          opciones={TAMANOS_PAGINA}
+          mostrarEnVacio
+          botonesExtremos={false}
+          className="border-border h-14 border-t px-4 text-slate-700 dark:text-slate-300"
+        />
+      </TarjetaLista>
+    </ContenedorLista>
   );
 }

@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { PillEstado, type TonoPill } from "@/components/listas/tabla-lista";
 import type { EstadoDocumento } from "@/lib/compras/tipos";
 
 const ETIQUETAS: Record<EstadoDocumento, string> = {
@@ -7,12 +7,12 @@ const ETIQUETAS: Record<EstadoDocumento, string> = {
   anulada: "Anulada",
 };
 
-const VARIANTES: Record<EstadoDocumento, "default" | "outline" | "destructive"> = {
-  abierta: "outline",
-  pagada: "default",
-  anulada: "destructive",
+const TONOS: Record<EstadoDocumento, TonoPill> = {
+  abierta: "pendiente",
+  pagada: "exito",
+  anulada: "peligro",
 };
 
 export function EstadoBadge({ estado }: { estado: EstadoDocumento }) {
-  return <Badge variant={VARIANTES[estado]}>{ETIQUETAS[estado]}</Badge>;
+  return <PillEstado tono={TONOS[estado]}>{ETIQUETAS[estado]}</PillEstado>;
 }

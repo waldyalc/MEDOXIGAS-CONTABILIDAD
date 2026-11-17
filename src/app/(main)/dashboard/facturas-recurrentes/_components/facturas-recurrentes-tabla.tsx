@@ -1,5 +1,9 @@
+import type { ReactNode } from "react";
+
+import { Repeat } from "lucide-react";
+
 import { Enlace } from "@/components/enlace";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { type ColumnaLista, TablaLista } from "@/components/listas/tabla-lista";
 import { rutaContacto, rutaFacturaRecurrente } from "@/lib/enlaces";
 import type { FacturaRecurrenteLista } from "@/lib/facturas-recurrentes/tipos";
 import { formatoDia } from "@/lib/formato";
@@ -8,57 +12,70 @@ function frecuenciaTexto(meses: number) {
   return meses === 1 ? "Cada mes" : `Cada ${meses} meses`;
 }
 
+const columnas: readonly ColumnaLista<FacturaRecurrenteLista>[] = [
+  {
+    clave: "numero",
+    encabezado: "#",
+    className: "w-16",
+    celda: (recurrente) => <Enlace href={rutaFacturaRecurrente(recurrente.id)}>{recurrente.numero}</Enlace>,
+  },
+  {
+    clave: "cliente",
+    encabezado: "Cliente",
+    celda: (recurrente) => <Enlace href={rutaContacto(recurrente.contacto_id)}>{recurrente.cliente_nombre}</Enlace>,
+  },
+  {
+    clave: "frecuencia",
+    encabezado: "Frecuencia",
+    celda: (recurrente) => frecuenciaTexto(recurrente.frecuencia_meses),
+  },
+  {
+    clave: "inicio",
+    encabezado: "Inicio",
+    celda: (recurrente) => formatoDia(recurrente.fecha_inicio),
+  },
+  {
+    clave: "hasta",
+    encabezado: "Hasta",
+    celda: (recurrente) => (recurrente.vigencia_hasta ? formatoDia(recurrente.vigencia_hasta) : "Sin límite"),
+  },
+  {
+    clave: "ultima",
+    encabezado: "Última generación",
+    celda: (recurrente) => (recurrente.ultimo_periodo ? formatoDia(recurrente.ultimo_periodo) : "—"),
+  },
+  {
+    clave: "generaciones",
+    encabezado: "Facturas",
+    alineacion: "derecha",
+    celda: (recurrente) => recurrente.generaciones,
+  },
+];
+
 export function FacturasRecurrentesTabla({
   recurrentes,
   busqueda,
+  accion,
 }: {
   recurrentes: FacturaRecurrenteLista[];
   busqueda?: string;
+  /** CTA del vacío; la página solo la pasa si el rol puede crear. */
+  accion?: ReactNode;
 }) {
   return (
-    <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16">#</TableHead>
-            <TableHead>Cliente</TableHead>
-            <TableHead>Frecuencia</TableHead>
-            <TableHead>Inicio</TableHead>
-            <TableHead>Hasta</TableHead>
-            <TableHead>Última generación</TableHead>
-            <TableHead className="text-right">Facturas</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {recurrentes.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
-                {busqueda
-                  ? "No se encontraron facturas recurrentes con esa búsqueda."
-                  : "No hay facturas recurrentes todavía."}
-              </TableCell>
-            </TableRow>
-          ) : (
-            recurrentes.map((recurrente) => (
-              <TableRow key={recurrente.id}>
-                <TableCell className="font-medium">
-                  <Enlace href={rutaFacturaRecurrente(recurrente.id)}>{recurrente.numero}</Enlace>
-                </TableCell>
-                <TableCell>
-                  <Enlace href={rutaContacto(recurrente.contacto_id)}>{recurrente.cliente_nombre}</Enlace>
-                </TableCell>
-                <TableCell>{frecuenciaTexto(recurrente.frecuencia_meses)}</TableCell>
-                <TableCell>{formatoDia(recurrente.fecha_inicio)}</TableCell>
-                <TableCell>
-                  {recurrente.vigencia_hasta ? formatoDia(recurrente.vigencia_hasta) : "Sin límite"}
-                </TableCell>
-                <TableCell>{recurrente.ultimo_periodo ? formatoDia(recurrente.ultimo_periodo) : "—"}</TableCell>
-                <TableCell className="text-right tabular-nums">{recurrente.generaciones}</TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <TablaLista
+      columnas={columnas}
+      filas={recurrentes}
+      claveFila={(recurrente) => recurrente.id}
+      vacio={{
+        filtrada: Boolean(busqueda),
+        titulo: busqueda ? "Sin resultados" : "¡Aún no tienes facturas recurrentes!",
+        descripcion: busqueda
+          ? "La búsqueda no arrojó facturas recurrentes."
+          : "Crea una plantilla para facturar a clientes con contrato fijo.",
+        icono: <Repeat className="size-10" />,
+        accion,
+      }}
+    />
   );
 }

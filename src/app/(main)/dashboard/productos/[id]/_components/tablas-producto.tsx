@@ -2,15 +2,14 @@
 
 import { type ReactNode, useState } from "react";
 
-import { cn } from "cn";
 import { Search } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
-import { PiePagina, TH, usePagina } from "@/components/ficha/ficha-ui";
-import { Badge } from "@/components/ui/badge";
+import { usePagina } from "@/components/ficha/ficha-ui";
+import { PaginadorLocal } from "@/components/listas/paginador-local";
+import { BarraLista, type ColumnaLista, PillEstado, TablaLista, type TonoPill } from "@/components/listas/tabla-lista";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { etiquetaEstadoDocumento } from "@/lib/contactos/ficha";
 import { rutaCompra, rutaConduce, rutaContacto, rutaCotizacion, rutaFactura } from "@/lib/enlaces";
 import { formatoCantidad, formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
@@ -31,22 +30,10 @@ function numeroDocumento(prefijo: string, numero: number): string {
   return `${prefijo}-${String(numero).padStart(4, "0")}`;
 }
 
-function EstadoBadge({ estado, etiqueta }: { readonly estado: string; readonly etiqueta: string }) {
-  if (estado === "anulada") return <Badge variant="destructive">{etiqueta}</Badge>;
-  if (estado === "pagada" || estado === "convertida") {
-    return <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">{etiqueta}</Badge>;
-  }
-  return <Badge variant="secondary">{etiqueta}</Badge>;
-}
-
-function FilaVacia({ columnas, children }: { readonly columnas: number; readonly children: ReactNode }) {
-  return (
-    <TableRow>
-      <TableCell colSpan={columnas} className="text-muted-foreground py-10 text-center whitespace-normal">
-        {children}
-      </TableCell>
-    </TableRow>
-  );
+function tonoEstado(estado: string): TonoPill {
+  if (estado === "anulada") return "peligro";
+  if (estado === "pagada" || estado === "convertida") return "exito";
+  return "pendiente";
 }
 
 function IdentificadorDocumento({
@@ -92,12 +79,9 @@ function CeldaDocumento({
   if (ncfPrincipal) ariaLabel = ncf ? `Ver factura ${ncf}` : "Ver factura de venta";
 
   return (
-    <TableCell>
-      <Enlace className="absolute inset-0" href={href} aria-label={ariaLabel} />
-      <span className="pointer-events-none relative flex flex-col">
-        <IdentificadorDocumento id={id} ncf={ncf} ncfPrincipal={ncfPrincipal} />
-      </span>
-    </TableCell>
+    <Enlace href={href} aria-label={ariaLabel} className="flex flex-col">
+      <IdentificadorDocumento id={id} ncf={ncf} ncfPrincipal={ncfPrincipal} />
+    </Enlace>
   );
 }
 
@@ -125,23 +109,25 @@ export function ListaBuscable<T extends DocumentoNumerado>({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="relative w-full max-w-xs">
-        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
-        <Input
-          value={busqueda}
-          onChange={(event) => setBusqueda(event.target.value)}
-          placeholder="Buscar por número o NCF…"
-          aria-label={`Buscar ${unidad}`}
-          className="pl-8"
-        />
-      </div>
+      <BarraLista className="border-0 px-0">
+        <div className="relative w-full max-w-xs">
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+          <Input
+            value={busqueda}
+            onChange={(event) => setBusqueda(event.target.value)}
+            placeholder="Buscar por número o NCF…"
+            aria-label={`Buscar ${unidad}`}
+            className="h-8 pl-8"
+          />
+        </div>
+      </BarraLista>
       {children(visibles, busqueda.trim() !== "")}
-      <PiePagina
+      <PaginadorLocal
         total={filtradas.length}
         porPagina={POR_PAGINA}
         pagina={pagina}
         setPagina={setPagina}
-        unidad={unidad}
+        etiqueta={unidad}
       />
     </div>
   );
@@ -157,55 +143,76 @@ export function TablaFacturas({
   readonly filtrado: boolean;
 }) {
   const esVenta = tipo === "venta";
+
+  const columnas: readonly ColumnaLista<DocumentoFicha>[] = [
+    {
+      clave: "factura",
+      encabezado: "Factura",
+      celda: (documento) => (
+        <CeldaDocumento
+          href={esVenta ? rutaFactura(documento.id) : rutaCompra(documento.id)}
+          prefijo={esVenta ? "FAC" : "COM"}
+          numero={documento.numero}
+          ncf={documento.ncf}
+          ncfPrincipal={esVenta}
+        />
+      ),
+    },
+    {
+      clave: "tercero",
+      encabezado: esVenta ? "Cliente" : "Proveedor",
+      celda: (documento) => <EnlaceTercero id={documento.contactoId} nombre={documento.contactoNombre} />,
+    },
+    {
+      clave: "fecha",
+      encabezado: "Fecha",
+      celda: (documento) => <span className="text-muted-foreground">{formatoDia(documento.fecha)}</span>,
+    },
+    {
+      clave: "vence",
+      encabezado: "Vence",
+      celda: (documento) => <span className="text-muted-foreground">{formatoDia(documento.vencimiento)}</span>,
+    },
+    {
+      clave: "cantidad",
+      encabezado: "Cantidad",
+      alineacion: "derecha",
+      celda: (documento) => formatoCantidad(documento.cantidad),
+    },
+    {
+      clave: "total",
+      encabezado: "Total",
+      alineacion: "derecha",
+      celda: (documento) => <span className="font-medium">{formatoMoneda(documento.total)}</span>,
+    },
+    {
+      clave: "saldo",
+      encabezado: esVenta ? "Por cobrar" : "Por pagar",
+      alineacion: "derecha",
+      celda: (documento) => formatoMonedaCentavos(saldoCentavos(documento.total, documento.pagado, documento.credito)),
+    },
+    {
+      clave: "estado",
+      encabezado: "Estado",
+      celda: (documento) => (
+        <PillEstado tono={tonoEstado(documento.estado)}>{etiquetaEstadoDocumento(documento.estado, tipo)}</PillEstado>
+      ),
+    },
+  ];
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className={TH}>Factura</TableHead>
-          <TableHead className={TH}>{esVenta ? "Cliente" : "Proveedor"}</TableHead>
-          <TableHead className={TH}>Fecha</TableHead>
-          <TableHead className={TH}>Vence</TableHead>
-          <TableHead className={cn(TH, "text-right")}>Cantidad</TableHead>
-          <TableHead className={cn(TH, "text-right")}>Total</TableHead>
-          <TableHead className={cn(TH, "text-right")}>{esVenta ? "Por cobrar" : "Por pagar"}</TableHead>
-          <TableHead className={TH}>Estado</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {documentos.length === 0 ? (
-          <FilaVacia columnas={8}>
-            {filtrado
-              ? "No se encontraron facturas con ese filtro."
-              : `Este producto todavía no tiene facturas de ${esVenta ? "venta" : "compra"}.`}
-          </FilaVacia>
-        ) : (
-          documentos.map((documento) => (
-            <TableRow key={documento.id} className="relative cursor-pointer">
-              <CeldaDocumento
-                href={esVenta ? rutaFactura(documento.id) : rutaCompra(documento.id)}
-                prefijo={esVenta ? "FAC" : "COM"}
-                numero={documento.numero}
-                ncf={documento.ncf}
-                ncfPrincipal={esVenta}
-              />
-              <TableCell>
-                <EnlaceTercero id={documento.contactoId} nombre={documento.contactoNombre} />
-              </TableCell>
-              <TableCell className="text-muted-foreground">{formatoDia(documento.fecha)}</TableCell>
-              <TableCell className="text-muted-foreground">{formatoDia(documento.vencimiento)}</TableCell>
-              <TableCell className="text-right tabular-nums">{formatoCantidad(documento.cantidad)}</TableCell>
-              <TableCell className="text-right font-medium tabular-nums">{formatoMoneda(documento.total)}</TableCell>
-              <TableCell className="text-right tabular-nums">
-                {formatoMonedaCentavos(saldoCentavos(documento.total, documento.pagado, documento.credito))}
-              </TableCell>
-              <TableCell>
-                <EstadoBadge estado={documento.estado} etiqueta={etiquetaEstadoDocumento(documento.estado, tipo)} />
-              </TableCell>
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+    <TablaLista
+      columnas={columnas}
+      filas={documentos}
+      claveFila={(documento) => documento.id}
+      vacio={{
+        filtrada: filtrado,
+        titulo: filtrado ? "Sin resultados" : "Aún no hay facturas",
+        descripcion: filtrado
+          ? "La búsqueda no arrojó facturas."
+          : `Este producto todavía no tiene facturas de ${esVenta ? "venta" : "compra"}.`,
+      }}
+    />
   );
 }
 
@@ -219,41 +226,52 @@ export function TablaComerciales({
   readonly filtrado: boolean;
 }) {
   const esCotizacion = tipo === "cotizacion";
+
+  const columnas: readonly ColumnaLista<DocumentoComercialFicha>[] = [
+    {
+      clave: "documento",
+      encabezado: esCotizacion ? "Cotización" : "Conduce",
+      celda: (documento) => (
+        <CeldaDocumento
+          href={esCotizacion ? rutaCotizacion(documento.id) : rutaConduce(documento.id)}
+          prefijo={esCotizacion ? "COT" : "CON"}
+          numero={documento.numero}
+        />
+      ),
+    },
+    {
+      clave: "fecha",
+      encabezado: "Fecha",
+      celda: (documento) => <span className="text-muted-foreground">{formatoDia(documento.fecha)}</span>,
+    },
+    {
+      clave: "total",
+      encabezado: "Total",
+      alineacion: "derecha",
+      celda: (documento) => <span className="font-medium">{formatoMoneda(documento.total)}</span>,
+    },
+    {
+      clave: "estado",
+      encabezado: "Estado",
+      celda: (documento) => (
+        <PillEstado tono={tonoEstado(documento.estado)}>{etiquetaEstadoComercial(documento.estado)}</PillEstado>
+      ),
+    },
+  ];
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className={TH}>{esCotizacion ? "Cotización" : "Conduce"}</TableHead>
-          <TableHead className={TH}>Fecha</TableHead>
-          <TableHead className={cn(TH, "text-right")}>Total</TableHead>
-          <TableHead className={TH}>Estado</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {documentos.length === 0 ? (
-          <FilaVacia columnas={4}>
-            {filtrado
-              ? "No se encontraron documentos con ese filtro."
-              : `Este producto todavía no tiene ${esCotizacion ? "cotizaciones" : "conduces"}.`}
-          </FilaVacia>
-        ) : (
-          documentos.map((documento) => (
-            <TableRow key={documento.id} className="relative cursor-pointer">
-              <CeldaDocumento
-                href={esCotizacion ? rutaCotizacion(documento.id) : rutaConduce(documento.id)}
-                prefijo={esCotizacion ? "COT" : "CON"}
-                numero={documento.numero}
-              />
-              <TableCell className="text-muted-foreground">{formatoDia(documento.fecha)}</TableCell>
-              <TableCell className="text-right font-medium tabular-nums">{formatoMoneda(documento.total)}</TableCell>
-              <TableCell>
-                <EstadoBadge estado={documento.estado} etiqueta={etiquetaEstadoComercial(documento.estado)} />
-              </TableCell>
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+    <TablaLista
+      columnas={columnas}
+      filas={documentos}
+      claveFila={(documento) => documento.id}
+      vacio={{
+        filtrada: filtrado,
+        titulo: filtrado ? "Sin resultados" : "Aún no hay documentos",
+        descripcion: filtrado
+          ? "La búsqueda no arrojó documentos."
+          : `Este producto todavía no tiene ${esCotizacion ? "cotizaciones" : "conduces"}.`,
+      }}
+    />
   );
 }
 
@@ -264,61 +282,79 @@ export function TablaKardex({
   readonly filas: readonly FilaKardex[];
   readonly filtrado: boolean;
 }) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className={TH}>Documento</TableHead>
-          <TableHead className={TH}>Fecha</TableHead>
-          <TableHead className={TH}>Tercero</TableHead>
-          <TableHead className={cn(TH, "text-right")}>Entrada</TableHead>
-          <TableHead className={cn(TH, "text-right")}>Salida</TableHead>
-          <TableHead className={cn(TH, "text-right")}>Costo unitario</TableHead>
-          <TableHead className={cn(TH, "text-right")}>Existencia</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {filas.length === 0 ? (
-          <FilaVacia columnas={7}>
-            {filtrado
-              ? "No se encontraron movimientos con ese filtro."
-              : "Este producto todavía no tiene movimientos de inventario."}
-          </FilaVacia>
+  const columnas: readonly ColumnaLista<FilaKardex>[] = [
+    {
+      clave: "documento",
+      encabezado: "Documento",
+      celda: (fila) => (
+        <CeldaDocumento
+          href={fila.tipo === "venta" ? rutaFactura(fila.documentoId) : rutaCompra(fila.documentoId)}
+          prefijo={fila.tipo === "venta" ? "FAC" : "COM"}
+          numero={fila.numero}
+          ncf={fila.ncf}
+          ncfPrincipal={fila.tipo === "venta"}
+        />
+      ),
+    },
+    {
+      clave: "fecha",
+      encabezado: "Fecha",
+      celda: (fila) => <span className="text-muted-foreground">{formatoDia(fila.fecha)}</span>,
+    },
+    {
+      clave: "tercero",
+      encabezado: "Tercero",
+      celda: (fila) => <EnlaceTercero id={fila.terceroId} nombre={fila.terceroNombre} />,
+    },
+    {
+      clave: "entrada",
+      encabezado: "Entrada",
+      alineacion: "derecha",
+      celda: (fila) =>
+        fila.entrada > 0 ? (
+          <span className="text-emerald-600 dark:text-emerald-400">+{formatoCantidad(fila.entrada)}</span>
         ) : (
-          filas.map((fila) => (
-            <TableRow key={`${fila.tipo}:${fila.documentoId}`} className="relative cursor-pointer">
-              <CeldaDocumento
-                href={fila.tipo === "venta" ? rutaFactura(fila.documentoId) : rutaCompra(fila.documentoId)}
-                prefijo={fila.tipo === "venta" ? "FAC" : "COM"}
-                numero={fila.numero}
-                ncf={fila.ncf}
-                ncfPrincipal={fila.tipo === "venta"}
-              />
-              <TableCell className="text-muted-foreground">{formatoDia(fila.fecha)}</TableCell>
-              <TableCell>
-                <EnlaceTercero id={fila.terceroId} nombre={fila.terceroNombre} />
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {fila.entrada > 0 ? (
-                  <span className="text-emerald-600 dark:text-emerald-400">+{formatoCantidad(fila.entrada)}</span>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {fila.salida > 0 ? (
-                  <span className="text-red-500">-{formatoCantidad(fila.salida)}</span>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">{formatoMoneda(fila.costoUnitario)}</TableCell>
-              <TableCell className="text-right font-medium tabular-nums">{formatoCantidad(fila.existencia)}</TableCell>
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      clave: "salida",
+      encabezado: "Salida",
+      alineacion: "derecha",
+      celda: (fila) =>
+        fila.salida > 0 ? (
+          <span className="text-red-500">-{formatoCantidad(fila.salida)}</span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      clave: "costoUnitario",
+      encabezado: "Costo unitario",
+      alineacion: "derecha",
+      celda: (fila) => formatoMoneda(fila.costoUnitario),
+    },
+    {
+      clave: "existencia",
+      encabezado: "Existencia",
+      alineacion: "derecha",
+      celda: (fila) => <span className="font-medium">{formatoCantidad(fila.existencia)}</span>,
+    },
+  ];
+
+  return (
+    <TablaLista
+      columnas={columnas}
+      filas={filas}
+      claveFila={(fila) => `${fila.tipo}:${fila.documentoId}`}
+      vacio={{
+        filtrada: filtrado,
+        titulo: filtrado ? "Sin resultados" : "Aún no hay movimientos",
+        descripcion: filtrado
+          ? "La búsqueda no arrojó movimientos."
+          : "Este producto todavía no tiene movimientos de inventario.",
+      }}
+    />
   );
 }
 

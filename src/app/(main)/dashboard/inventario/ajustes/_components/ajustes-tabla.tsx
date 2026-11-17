@@ -1,19 +1,65 @@
 import Link from "next/link";
 
-import { Plus } from "lucide-react";
+import { Plus, SlidersHorizontal } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
-import { Badge } from "@/components/ui/badge";
+import {
+  type ColumnaLista,
+  ContenedorLista,
+  PillEstado,
+  TablaLista,
+  TarjetaLista,
+} from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaAjusteInventario } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import type { AjusteLista } from "@/lib/inventario/tipos";
 
+const columnas: readonly ColumnaLista<AjusteLista>[] = [
+  {
+    clave: "numero",
+    encabezado: "Número",
+    className: "w-20",
+    celda: (ajuste) => <Enlace href={rutaAjusteInventario(ajuste.id)}>{ajuste.numero}</Enlace>,
+  },
+  {
+    clave: "fecha",
+    encabezado: "Fecha",
+    celda: (ajuste) => formatoDia(ajuste.fecha),
+  },
+  {
+    clave: "almacen",
+    encabezado: "Almacén",
+    celda: (ajuste) => ajuste.almacen_nombre,
+  },
+  {
+    clave: "total",
+    encabezado: "Total ajustado",
+    alineacion: "derecha",
+    celda: (ajuste) => formatoMoneda(ajuste.total),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (ajuste) => (
+      <PillEstado tono={ajuste.estado === "anulada" ? "peligro" : "exito"}>
+        {ajuste.estado === "anulada" ? "Anulado" : "Activo"}
+      </PillEstado>
+    ),
+  },
+  {
+    clave: "observaciones",
+    encabezado: "Observaciones",
+    celda: (ajuste) => (
+      <span className="text-muted-foreground block max-w-[360px] truncate">{ajuste.observaciones?.trim() || "—"}</span>
+    ),
+  },
+];
+
 export function AjustesTabla({ ajustes, puedeEscribir }: { ajustes: AjusteLista[]; puedeEscribir: boolean }) {
   return (
-    <div className="flex flex-col gap-4">
+    <ContenedorLista>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl tracking-tight">Ajustes de inventario</h1>
@@ -29,48 +75,24 @@ export function AjustesTabla({ ajustes, puedeEscribir }: { ajustes: AjusteLista[
         ) : null}
       </div>
 
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-20">Número</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Almacén</TableHead>
-              <TableHead className="text-right">Total ajustado</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Observaciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {ajustes.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-muted-foreground py-10 text-center">
-                  No hay ajustes de inventario todavía.
-                </TableCell>
-              </TableRow>
-            ) : (
-              ajustes.map((ajuste) => (
-                <TableRow key={ajuste.id}>
-                  <TableCell className="font-medium">
-                    <Enlace href={rutaAjusteInventario(ajuste.id)}>{ajuste.numero}</Enlace>
-                  </TableCell>
-                  <TableCell>{formatoDia(ajuste.fecha)}</TableCell>
-                  <TableCell>{ajuste.almacen_nombre}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoMoneda(ajuste.total)}</TableCell>
-                  <TableCell>
-                    <Badge variant={ajuste.estado === "anulada" ? "destructive" : "secondary"}>
-                      {ajuste.estado === "anulada" ? "Anulado" : "Activo"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground max-w-[360px] truncate">
-                    {ajuste.observaciones?.trim() || "—"}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+      <TarjetaLista data-lista="inventario-ajustes">
+        <TablaLista
+          columnas={columnas}
+          filas={ajustes}
+          claveFila={(ajuste) => ajuste.id}
+          vacio={{
+            titulo: "¡Aún no tienes ajustes de inventario!",
+            descripcion: "Registra la primera entrada o salida de productos.",
+            icono: <SlidersHorizontal className="size-10" />,
+            accion: puedeEscribir ? (
+              <Button render={<Link href="/dashboard/inventario/ajustes/nuevo" />}>
+                <Plus />
+                Nuevo ajuste
+              </Button>
+            ) : undefined,
+          }}
+        />
+      </TarjetaLista>
+    </ContenedorLista>
   );
 }

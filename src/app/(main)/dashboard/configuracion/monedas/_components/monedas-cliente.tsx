@@ -4,17 +4,16 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Pencil, Plus } from "lucide-react";
+import { Coins, Loader2, Pencil, Plus } from "lucide-react";
 
 import { DatePicker } from "@/components/date-picker";
 import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { hoyRD } from "@/lib/facturacion/formato";
 import { guardarTasaCambio } from "@/lib/monedas/acciones";
 import type { MonedaConTasa, TasaCambio } from "@/lib/monedas/tipos";
@@ -26,6 +25,49 @@ const formatoFecha = new Intl.DateTimeFormat("es-DO", { day: "2-digit", month: "
 function fechaVisible(fecha: string): string {
   return formatoFecha.format(new Date(`${fecha}T12:00:00`));
 }
+
+const columnasMonedas: readonly ColumnaLista<MonedaConTasa>[] = [
+  {
+    clave: "codigo",
+    encabezado: "Código",
+    celda: (moneda) => <span className="font-mono text-sm">{moneda.codigo}</span>,
+  },
+  {
+    clave: "nombre",
+    encabezado: "Nombre",
+    celda: (moneda) => (
+      <span className="inline-flex items-center gap-2 font-medium">
+        {moneda.nombre}
+        {moneda.es_base ? <PillEstado tono="neutro">Base</PillEstado> : null}
+      </span>
+    ),
+  },
+  {
+    clave: "simbolo",
+    encabezado: "Símbolo",
+    celda: (moneda) => <span className="text-muted-foreground">{moneda.simbolo}</span>,
+  },
+  {
+    clave: "ultimaTasa",
+    encabezado: "Última tasa",
+    alineacion: "derecha",
+    celda: (moneda) => (moneda.ultimaTasa == null ? "—" : formatoTasa.format(moneda.ultimaTasa)),
+  },
+  {
+    clave: "fechaTasa",
+    encabezado: "Fecha de la tasa",
+    celda: (moneda) => (
+      <span className="text-muted-foreground">{moneda.ultimaFecha ? fechaVisible(moneda.ultimaFecha) : "—"}</span>
+    ),
+  },
+  {
+    clave: "estado",
+    encabezado: "Estado",
+    celda: (moneda) => (
+      <PillEstado tono={moneda.activo ? "exito" : "neutro"}>{moneda.activo ? "Activa" : "Inactiva"}</PillEstado>
+    ),
+  },
+];
 
 export function MonedasCliente({
   monedas,
@@ -50,6 +92,29 @@ export function MonedasCliente({
     label: `${moneda.codigo} · ${moneda.nombre}`,
   }));
   const nombres = new Map(monedas.map((moneda) => [moneda.codigo, moneda.nombre]));
+
+  const columnasTasas: readonly ColumnaLista<TasaCambio>[] = [
+    {
+      clave: "moneda",
+      encabezado: "Moneda",
+      celda: (item) => (
+        <span className="font-medium">
+          {item.moneda_codigo} · {nombres.get(item.moneda_codigo) ?? ""}
+        </span>
+      ),
+    },
+    {
+      clave: "fecha",
+      encabezado: "Fecha",
+      celda: (item) => fechaVisible(item.fecha),
+    },
+    {
+      clave: "tasa",
+      encabezado: "Tasa",
+      alineacion: "derecha",
+      celda: (item) => formatoTasa.format(item.tasa),
+    },
+  ];
 
   function abrirNueva() {
     setMonedaCodigo(editables[0]?.codigo ?? "");
@@ -97,98 +162,47 @@ export function MonedasCliente({
         ) : null}
       </div>
 
-      <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Código</TableHead>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Símbolo</TableHead>
-              <TableHead>Última tasa</TableHead>
-              <TableHead>Fecha de la tasa</TableHead>
-              <TableHead>Estado</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {monedas.map((moneda) => (
-              <TableRow key={moneda.codigo}>
-                <TableCell className="font-mono text-sm">{moneda.codigo}</TableCell>
-                <TableCell className="font-medium">
-                  {moneda.nombre}
-                  {moneda.es_base ? (
-                    <Badge variant="secondary" className="ml-2">
-                      Base
-                    </Badge>
-                  ) : null}
-                </TableCell>
-                <TableCell className="text-muted-foreground">{moneda.simbolo}</TableCell>
-                <TableCell className="tabular-nums">
-                  {moneda.ultimaTasa == null ? "—" : formatoTasa.format(moneda.ultimaTasa)}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {moneda.ultimaFecha ? fechaVisible(moneda.ultimaFecha) : "—"}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={moneda.activo ? "secondary" : "destructive"}>
-                    {moneda.activo ? "Activa" : "Inactiva"}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <TarjetaLista data-lista="configuracion-monedas">
+        <TablaLista
+          columnas={columnasMonedas}
+          filas={monedas}
+          claveFila={(moneda) => moneda.codigo}
+          vacio={{
+            titulo: "Sin monedas",
+            descripcion: "No hay monedas configuradas.",
+            icono: <Coins className="size-10" />,
+          }}
+        />
+      </TarjetaLista>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold tracking-tight">Historial de tasas</h2>
-        <div className="bg-card ring-foreground/10 overflow-hidden rounded-xl ring-1">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Moneda</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead className="text-right">Tasa</TableHead>
-                {puedeEditar ? (
-                  <TableHead className="w-10">
-                    <span className="sr-only">Acciones</span>
-                  </TableHead>
-                ) : null}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tasas.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={puedeEditar ? 4 : 3} className="text-muted-foreground py-10 text-center">
-                    Todavía no hay tasas registradas.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                tasas.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">
-                      {item.moneda_codigo} · {nombres.get(item.moneda_codigo) ?? ""}
-                    </TableCell>
-                    <TableCell>{fechaVisible(item.fecha)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatoTasa.format(item.tasa)}</TableCell>
-                    {puedeEditar ? (
-                      <TableCell className="text-right">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={`Editar tasa de ${item.moneda_codigo} del ${fechaVisible(item.fecha)}`}
-                          onClick={() => abrirEdicion(item)}
-                        >
-                          <Pencil />
-                        </Button>
-                      </TableCell>
-                    ) : null}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <TarjetaLista data-lista="configuracion-tasas">
+          <TablaLista
+            columnas={columnasTasas}
+            filas={tasas}
+            claveFila={(item) => item.id}
+            acciones={
+              puedeEditar
+                ? (item) => (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Editar tasa de ${item.moneda_codigo} del ${fechaVisible(item.fecha)}`}
+                      onClick={() => abrirEdicion(item)}
+                    >
+                      <Pencil />
+                    </Button>
+                  )
+                : undefined
+            }
+            vacio={{
+              titulo: "Sin tasas de cambio",
+              descripcion: "Todavía no hay tasas registradas.",
+            }}
+          />
+        </TarjetaLista>
       </section>
 
       <Dialog open={abierto} onOpenChange={setAbierto}>
