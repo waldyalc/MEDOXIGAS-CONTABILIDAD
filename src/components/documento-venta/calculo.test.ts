@@ -1,11 +1,14 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  type CampoDocumento,
   calcularDocumento,
+  claveErrorDocumento,
   construirEntrada,
+  erroresValidacionDocumento,
+  idCampoDocumento,
   type LineaFormulario,
   lineaVacia,
-  mensajeValidacionDocumento,
 } from "./calculo";
 
 const PRODUCTOS = [
@@ -198,44 +201,119 @@ describe("construirEntrada", () => {
   });
 });
 
-describe("mensajeValidacionDocumento", () => {
-  test("exige cliente", () => {
-    expect(mensajeValidacionDocumento({ clienteId: "", lineas: [linea()], totalCentavos: 100 })).toBe(
-      "Selecciona un cliente.",
-    );
+describe("erroresValidacionDocumento", () => {
+  const valida = {
+    clienteId: "c1",
+    fecha: "2026-11-13",
+    vencimiento: "2026-11-20",
+    lineas: [linea({ precio: "100.00" })],
+    totalCentavos: 10000,
+  };
+
+  test("no devuelve errores con los campos obligatorios completos", () => {
+    expect(erroresValidacionDocumento(valida)).toEqual([]);
   });
 
-  test("exige producto en todas las líneas", () => {
-    expect(
-      mensajeValidacionDocumento({ clienteId: "c1", lineas: [linea({ productoId: "" })], totalCentavos: 100 }),
-    ).toBe("Selecciona el producto en todas las líneas.");
+  test("exige el cliente primero", () => {
+    const errores = erroresValidacionDocumento({
+      ...valida,
+      clienteId: "",
+      fecha: "",
+      vencimiento: "",
+      lineas: [linea({ productoId: "" })],
+      totalCentavos: 0,
+    });
+
+    expect(errores[0]).toEqual({ campo: "cliente", mensaje: "El cliente es requerido." });
+  });
+
+  test("exige la fecha y la fecha de vencimiento", () => {
+    expect(erroresValidacionDocumento({ ...valida, fecha: "", vencimiento: "" }).map((error) => error.campo)).toEqual([
+      "fecha",
+      "vencimiento",
+    ]);
+  });
+
+  test("rechaza un vencimiento anterior a la fecha de creación", () => {
+    expect(erroresValidacionDocumento({ ...valida, fecha: "2026-11-20", vencimiento: "2026-11-13" })).toEqual([
+      {
+        campo: "vencimiento",
+        mensaje: "La fecha de vencimiento no puede ser anterior a la fecha de creación.",
+      },
+    ]);
+  });
+
+  test("omite el vencimiento cuando el documento no lo pide", () => {
+    expect(erroresValidacionDocumento({ ...valida, conVencimiento: false, vencimiento: "" })).toEqual([]);
+  });
+
+  test("valida cada dato obligatorio de la línea", () => {
+    const errores = erroresValidacionDocumento({
+      ...valida,
+      lineas: [linea({ productoId: "", cantidad: "0", precio: "abc", descuentoPct: "150" })],
+    });
+
+    expect(errores).toEqual([
+      { campo: { linea: "l1", campo: "producto" }, mensaje: "El producto es requerido." },
+      { campo: { linea: "l1", campo: "cantidad" }, mensaje: "La cantidad debe ser mayor que cero." },
+      { campo: { linea: "l1", campo: "precio" }, mensaje: "El precio no es válido." },
+      { campo: { linea: "l1", campo: "descuento" }, mensaje: "El descuento debe estar entre 0 y 100." },
+    ]);
+  });
+
+  test("ordena los errores de las líneas antes de los totales", () => {
+    const errores = erroresValidacionDocumento({
+      ...valida,
+      lineas: [linea({ productoId: "" }), linea({ clave: "l2", precio: "abc" })],
+      totalCentavos: 0,
+    });
+
+    expect(errores.map((error) => error.campo)).toEqual([
+      { linea: "l1", campo: "producto" },
+      { linea: "l2", campo: "precio" },
+      "total",
+    ]);
   });
 
   test("exige un total mayor que cero", () => {
-    expect(mensajeValidacionDocumento({ clienteId: "c1", lineas: [linea()], totalCentavos: 0 })).toBe(
-      "El total del documento debe ser mayor que cero.",
-    );
+    expect(erroresValidacionDocumento({ ...valida, totalCentavos: 0 })).toEqual([
+      { campo: "total", mensaje: "El total del documento debe ser mayor que cero." },
+    ]);
   });
 
   test("exige cuenta de pago solo cuando se registra pago", () => {
-    expect(
-      mensajeValidacionDocumento({
-        clienteId: "c1",
-        lineas: [linea()],
-        totalCentavos: 100,
-        requiereCuentaPago: true,
-        cuentaPago: "",
-      }),
-    ).toBe("Selecciona la cuenta de caja o banco para el pago.");
+    expect(erroresValidacionDocumento({ ...valida, requiereCuentaPago: true, cuentaPago: "" })).toEqual([
+      { campo: "cuentaPago", mensaje: "La cuenta de caja o banco es requerida." },
+    ]);
 
-    expect(
-      mensajeValidacionDocumento({
-        clienteId: "c1",
-        lineas: [linea()],
-        totalCentavos: 100,
-        requiereCuentaPago: true,
-        cuentaPago: "cuenta-1",
-      }),
-    ).toBeNull();
+    expect(erroresValidacionDocumento({ ...valida, requiereCuentaPago: true, cuentaPago: "cuenta-1" })).toEqual([]);
+  });
+
+  test("exige al menos una línea", () => {
+    expect(erroresValidacionDocumento({ ...valida, lineas: [], totalCentavos: 0 })).toEqual([
+      { campo: "lineas", mensaje: "Agrega al menos una línea." },
+      { campo: "total", mensaje: "El total del documento debe ser mayor que cero." },
+    ]);
+  });
+
+  test("identifica el control al que se lleva el foco", () => {
+    expect(idCampoDocumento("cliente")).toBe("cliente");
+    expect(idCampoDocumento("fecha")).toBe("fecha");
+    expect(idCampoDocumento("vencimiento")).toBe("vencimiento");
+    expect(idCampoDocumento("lineas")).toBe("lineas-error");
+    expect(idCampoDocumento("cuentaPago")).toBe("cuenta-pago");
+    expect(idCampoDocumento("total")).toBe("total-error");
+    expect(idCampoDocumento({ linea: "l1", campo: "producto" })).toBe("producto-l1");
+  });
+
+  test("genera una clave distinta por campo y línea", () => {
+    const campos: CampoDocumento[] = [
+      "cliente",
+      { linea: "l1", campo: "producto" },
+      { linea: "l1", campo: "cantidad" },
+      { linea: "l2", campo: "producto" },
+    ];
+
+    expect(new Set(campos.map(claveErrorDocumento)).size).toBe(4);
   });
 });

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { ArrowLeft } from "lucide-react";
 
+import { ContenedorLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { getRol } from "@/lib/auth/rol";
 import { getNumeraciones } from "@/lib/numeraciones/consultas";
@@ -16,7 +17,7 @@ export default async function Page() {
   const numeraciones = await getNumeraciones();
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <div className="flex flex-col gap-2">
         <Button
           variant="ghost"
@@ -36,6 +37,6 @@ export default async function Page() {
       </div>
 
       <NumeracionesCliente numeraciones={numeraciones} puedeEditar={rol !== "lector"} />
-    </div>
+    </ContenedorLista>
   );
 }

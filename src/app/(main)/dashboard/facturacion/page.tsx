@@ -90,13 +90,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
             base={RUTA}
             parametros={params}
             valorInicial={opciones.q}
-            placeholder="Buscar por número, NCF o cliente…"
+            placeholder="Buscar por NCF o cliente…"
             ariaLabel="Buscar facturas"
             className="sm:max-w-[267px] [&_input]:h-8"
           />
         </BarraLista>
 
-        <Suspense fallback={<EsqueletoTabla filas={8} columnas={9} className="rounded-none bg-transparent ring-0" />}>
+        <Suspense fallback={<EsqueletoTabla filas={8} columnas={8} className="rounded-none bg-transparent ring-0" />}>
           <TablaFacturas opciones={opciones} params={params} />
         </Suspense>
       </TarjetaLista>

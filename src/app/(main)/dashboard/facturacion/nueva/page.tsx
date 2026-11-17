@@ -21,6 +21,7 @@ import {
 import { hoyRD } from "@/lib/facturacion/formato";
 import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { listarAlmacenesActivos } from "@/lib/inventario/consultas";
+import { getNumeraciones } from "@/lib/numeraciones/consultas";
 import { getPlantillaImpresion } from "@/lib/plantillas-impresion/consultas";
 import { getVendedoresActivos } from "@/lib/vendedores/consultas";
 
@@ -64,6 +65,7 @@ async function FacturaContenido({ clonar }: { clonar?: string }) {
     almacenes,
     vista,
     impuestos,
+    numeraciones,
   ] = await Promise.all([
     getEmpresa(),
     getContactosClientes(),
@@ -76,6 +78,7 @@ async function FacturaContenido({ clonar }: { clonar?: string }) {
     listarAlmacenesActivos(),
     clonar ? getFacturaVista(clonar) : Promise.resolve(null),
     getImpuestosActivos(),
+    getNumeraciones(),
   ]);
 
   const hoy = hoyRD();
@@ -106,6 +109,7 @@ async function FacturaContenido({ clonar }: { clonar?: string }) {
       rutaCancelar="/dashboard/facturacion"
       rutaDestino="/dashboard/facturacion"
       accion={crearFactura}
+      numeraciones={numeraciones}
       {...(vista ? { valoresIniciales: prellenarDocumento({ ...vista.factura, lineas: vista.lineas }, hoy) } : {})}
     />
   );

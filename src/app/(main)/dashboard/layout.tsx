@@ -9,6 +9,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { getPerfil } from "@/lib/auth/rol";
 import { getPreference } from "@/server/server-actions";
 
+import { BusquedaGlobal } from "./_components/header/busqueda-global";
 import { ProfileMenu } from "./_components/header/profile-menu";
 import { ThemeSwitcher } from "./_components/header/theme-switcher";
 
@@ -49,11 +50,14 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
             "[html[data-navbar-style=sticky]_&]:bg-background/50 [html[data-navbar-style=sticky]_&]:sticky [html[data-navbar-style=sticky]_&]:top-0 [html[data-navbar-style=sticky]_&]:z-50 [html[data-navbar-style=sticky]_&]:overflow-hidden [html[data-navbar-style=sticky]_&]:rounded-t-[inherit] [html[data-navbar-style=sticky]_&]:backdrop-blur-md",
           )}
         >
-          <div className="flex w-full items-center justify-between px-4 lg:px-6">
-            <div className="flex items-center gap-1 lg:gap-2">
+          <div className="flex w-full items-center gap-2 px-4 lg:px-6">
+            <div className="flex flex-1 items-center gap-1 lg:gap-2">
               <SidebarTrigger className="-ml-1 md:hidden" />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center justify-center md:max-w-xl md:flex-[2]">
+              <BusquedaGlobal rol={perfil?.rol ?? null} />
+            </div>
+            <div className="flex flex-1 items-center justify-end gap-2">
               <ThemeSwitcher />
               <ProfileMenu nombre={perfil?.nombre ?? null} correo={perfil?.correo ?? null} />
             </div>

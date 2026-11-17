@@ -1,4 +1,5 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { BarraLista, ContenedorLista, TarjetaLista } from "@/components/listas/tabla-lista";
+import { MigasDePan } from "@/components/migas-de-pan";
 import { formatoDia } from "@/lib/formato";
 import { filtrarCompras, totalesCompras } from "@/lib/reportes/administrativos/d/compras";
 import { obtenerCompras } from "@/lib/reportes/administrativos/d/consultas";
@@ -10,7 +11,7 @@ import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
 import { BotonImprimir } from "../_components/boton-imprimir";
 import { Paginador } from "../cxc/_components/paginador";
-import { FiltrosCompras } from "./_components/filtros-compras";
+import { FiltroProveedorCompras, FiltrosCompras } from "./_components/filtros-compras";
 import { TablaCompras } from "./_components/tabla-compras";
 import { TotalesCompras } from "./_components/totales-compras";
 
@@ -32,7 +33,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const nombreArchivo = `compras-${desde}-${hasta}`;
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
+      <MigasDePan
+        items={[
+          { etiqueta: "Reportes", href: "/dashboard/reportes" },
+          { etiqueta: "Administrativos", href: "/dashboard/reportes?categoria=Administrativos" },
+          { etiqueta: "Compras" },
+        ]}
+      />
+
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">Compras</h1>
@@ -49,27 +58,33 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         </div>
       </div>
 
-      <FiltrosCompras desde={desde} hasta={hasta} proveedor={proveedor} />
+      <FiltrosCompras desde={desde} hasta={hasta} />
 
       {error ? <AlertaError mensaje={error} /> : null}
 
       <TotalesCompras antesDeImpuestos={totales.antesDeImpuestos} despuesDeImpuestos={totales.despuesDeImpuestos} />
 
-      <Card className="py-0">
-        <CardContent className="p-0">
-          <TablaCompras filas={pagina.filas} />
-        </CardContent>
-      </Card>
+      <TarjetaLista data-lista="reporte-compras">
+        <BarraLista className="print:hidden">
+          <FiltroProveedorCompras desde={desde} hasta={hasta} proveedor={proveedor} />
+        </BarraLista>
 
-      <Paginador
-        base={BASE}
-        params={params}
-        pagina={pagina.pagina}
-        totalPaginas={pagina.totalPaginas}
-        inicio={pagina.inicio}
-        fin={pagina.fin}
-        total={pagina.total}
-      />
-    </div>
+        <TablaCompras filas={pagina.filas} />
+
+        {pagina.total > 0 ? (
+          <div className="border-border border-t px-4 py-3 print:hidden">
+            <Paginador
+              base={BASE}
+              params={params}
+              pagina={pagina.pagina}
+              totalPaginas={pagina.totalPaginas}
+              inicio={pagina.inicio}
+              fin={pagina.fin}
+              total={pagina.total}
+            />
+          </div>
+        ) : null}
+      </TarjetaLista>
+    </ContenedorLista>
   );
 }
