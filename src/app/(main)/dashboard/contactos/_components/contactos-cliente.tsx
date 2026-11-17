@@ -6,17 +6,24 @@ import { useRouter } from "next/navigation";
 
 import { ChevronDown, Pencil, Plus } from "lucide-react";
 
+import { AvatarInicial } from "@/components/avatar-inicial";
 import { Enlace } from "@/components/enlace";
 import { FORM_INPUT, FORM_SELECT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
-import { Badge } from "@/components/ui/badge";
+import {
+  BarraLista,
+  type ColumnaLista,
+  ContenedorLista,
+  PillEstado,
+  TablaLista,
+  TarjetaLista,
+} from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { actualizarContacto, crearContacto } from "@/lib/contactos/actions";
@@ -29,7 +36,13 @@ import {
 } from "@/lib/contactos/contactos";
 import { rutaContacto } from "@/lib/enlaces";
 import type { ListaPrecio } from "@/lib/inventario/tipos";
-import { type OpcionesLista, type ParametrosLista, type ResumenPagina, urlLista } from "@/lib/listas/parametros";
+import {
+  type OpcionesLista,
+  type ParametrosLista,
+  type ResumenPagina,
+  TAMANOS_PAGINA,
+  urlLista,
+} from "@/lib/listas/parametros";
 
 const OPCIONES_TIPO = TIPOS_CONTACTO.map((tipo) => ({ value: tipo.valor, label: tipo.etiqueta }));
 const SIN_LISTA = SIN_LISTA_PRECIO;
@@ -194,10 +207,38 @@ function FormularioContacto({
 }
 
 function mensajeVacio(q: string, pestana: PestanaContactos): string {
-  if (q) return "No se encontraron contactos con esa búsqueda.";
+  if (q) return "La búsqueda no arrojó contactos.";
   if (pestana !== "todos") return "No hay contactos en esta pestaña.";
   return "Todavía no hay contactos.";
 }
+
+const columnasContactos: readonly ColumnaLista<Contacto>[] = [
+  {
+    clave: "nombre",
+    encabezado: "Nombre",
+    celda: (contacto) => (
+      <Enlace href={rutaContacto(contacto.id)} className="flex items-center gap-2.5 font-medium">
+        <AvatarInicial nombre={contacto.nombre} correo={contacto.correo} size="sm" />
+        {contacto.nombre}
+      </Enlace>
+    ),
+  },
+  {
+    clave: "rnc",
+    encabezado: "RNC / Cédula",
+    celda: (contacto) => <span className="tabular-nums">{contacto.rnc_cedula ?? "—"}</span>,
+  },
+  {
+    clave: "telefono",
+    encabezado: "Teléfono",
+    celda: (contacto) => <span className="tabular-nums">{contacto.telefono ?? "—"}</span>,
+  },
+  {
+    clave: "tipo",
+    encabezado: "Tipo",
+    celda: (contacto) => <PillEstado tono="info">{etiquetaTipoContacto(contacto.tipo)}</PillEstado>,
+  },
+];
 
 export function ContactosCliente({
   contactos,
@@ -257,7 +298,7 @@ export function ContactosCliente({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <ContenedorLista>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl tracking-tight">Contactos</h1>
@@ -271,84 +312,70 @@ export function ContactosCliente({
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs value={pestana} onValueChange={cambiarPestana}>
-          <TabsList>
-            <TabsTrigger value="todos">Todos</TabsTrigger>
-            <TabsTrigger value="clientes">Clientes</TabsTrigger>
-            <TabsTrigger value="proveedores">Proveedores</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <Tabs value={pestana} onValueChange={cambiarPestana}>
+        <TabsList>
+          <TabsTrigger value="todos">Todos</TabsTrigger>
+          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="proveedores">Proveedores</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-        <BuscadorLista
-          base="/dashboard/contactos"
-          parametros={params}
-          valorInicial={opciones.q}
-          placeholder="Buscar por nombre, RNC o teléfono…"
-          ariaLabel="Buscar contactos"
-          className="sm:max-w-xs"
-        />
-      </div>
+      <TarjetaLista data-lista="contactos">
+        <BarraLista>
+          <BuscadorLista
+            base="/dashboard/contactos"
+            parametros={params}
+            valorInicial={opciones.q}
+            placeholder="Buscar por nombre, RNC o teléfono…"
+            ariaLabel="Buscar contactos"
+            className="sm:max-w-[267px] [&_input]:h-8"
+          />
+        </BarraLista>
 
-      <div className="flex flex-col gap-3">
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nombre</TableHead>
-                <TableHead>RNC / Cédula</TableHead>
-                <TableHead>Teléfono</TableHead>
-                <TableHead>Tipo</TableHead>
-                {puedeEditar ? (
-                  <TableHead className="w-10">
-                    <span className="sr-only">Acciones</span>
-                  </TableHead>
-                ) : null}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contactos.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={puedeEditar ? 5 : 4}
-                    className="text-muted-foreground h-24 text-center whitespace-normal"
+        <TablaLista
+          columnas={columnasContactos}
+          filas={contactos}
+          claveFila={(contacto) => contacto.id}
+          acciones={
+            puedeEditar
+              ? (contacto) => (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Editar ${contacto.nombre}`}
+                    onClick={() => abrirEditar(contacto)}
                   >
-                    {mensajeVacio(opciones.q, pestana)}
-                  </TableCell>
-                </TableRow>
-              ) : (
-                contactos.map((contacto) => (
-                  <TableRow key={contacto.id}>
-                    <TableCell className="font-medium">
-                      <Enlace href={rutaContacto(contacto.id)}>{contacto.nombre}</Enlace>
-                    </TableCell>
-                    <TableCell className="tabular-nums">{contacto.rnc_cedula ?? "—"}</TableCell>
-                    <TableCell className="tabular-nums">{contacto.telefono ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{etiquetaTipoContacto(contacto.tipo)}</Badge>
-                    </TableCell>
-                    {puedeEditar ? (
-                      <TableCell className="text-right">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={`Editar ${contacto.nombre}`}
-                          onClick={() => abrirEditar(contacto)}
-                        >
-                          <Pencil />
-                        </Button>
-                      </TableCell>
-                    ) : null}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                    <Pencil />
+                  </Button>
+                )
+              : undefined
+          }
+          vacio={{
+            filtrada: Boolean(opciones.q) || pestana !== "todos",
+            titulo: opciones.q ? "Sin resultados" : "¡Aún no tienes contactos!",
+            descripcion: mensajeVacio(opciones.q, pestana),
+            accion: puedeEditar ? (
+              <Button type="button" onClick={abrirNuevo}>
+                <Plus />
+                Nuevo contacto
+              </Button>
+            ) : undefined,
+          }}
+        />
 
-        <PaginadorLista base="/dashboard/contactos" params={params} resumen={resumen} />
-      </div>
+        <PaginadorLista
+          base="/dashboard/contactos"
+          params={params}
+          resumen={resumen}
+          etiqueta="Ítems por página"
+          tamano={opciones.tamano}
+          opciones={TAMANOS_PAGINA}
+          mostrarEnVacio
+          botonesExtremos={false}
+          className="border-border h-14 border-t px-4 text-slate-700 dark:text-slate-300"
+        />
+      </TarjetaLista>
 
       <Dialog open={dialogoAbierto} onOpenChange={cambiarDialogo}>
         <DialogContent className="sm:max-w-lg">
@@ -363,6 +390,6 @@ export function ContactosCliente({
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </ContenedorLista>
   );
 }

@@ -15,6 +15,10 @@ const LISTAS_MIGRADAS = [
   "app/(main)/dashboard/productos/_components/productos-cliente.tsx",
   "app/(main)/dashboard/productos/[id]/_components/tablas-producto.tsx",
   "app/(main)/dashboard/productos/[id]/_components/informacion-general.tsx",
+  "app/(main)/dashboard/contactos/_components/contactos-cliente.tsx",
+  "app/(main)/dashboard/contactos/[id]/_components/ficha-contacto.tsx",
+  "app/(main)/dashboard/contactos/[id]/_components/pestanas-documentos.tsx",
+  "app/(main)/dashboard/contactos/[id]/estado-cuenta/_components/tabla-estado-cuenta.tsx",
 ] as const;
 
 function leer(ruta: string): string {
