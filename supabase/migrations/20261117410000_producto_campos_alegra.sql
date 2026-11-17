@@ -109,6 +109,7 @@ security definer
 set search_path = ''
 as $$
 declare
+  v_rol text;
   v_item jsonb;
   v_almacen_id uuid;
   v_minimo numeric(14,2);
@@ -116,6 +117,11 @@ declare
   v_minimo_actual numeric(14,2);
   v_maximo_actual numeric(14,2);
 begin
+  v_rol := public.rol_actual();
+  if v_rol is null or v_rol not in ('admin', 'contador') then
+    raise exception 'sin permiso' using errcode = '42501';
+  end if;
+
   if p ? 'existencias' then
     if jsonb_typeof(p->'existencias') <> 'array' then
       raise exception 'las existencias por almacén deben ser una lista' using errcode = '22023';
@@ -451,9 +457,8 @@ begin
     end if;
   end if;
 
-  v_inventariable := case
-    when p ? 'inventariable' then
-      v_tipo = 'producto' and (p->>'inventariable')::boolean
+  v_inventariable := v_tipo = 'producto' and case
+    when p ? 'inventariable' then (p->>'inventariable')::boolean
     else v_actual.inventariable
   end;
   v_cantidad := case
@@ -461,6 +466,11 @@ begin
     when not v_inventariable then 0
     else v_actual.cantidad
   end;
+
+  if v_cantidad < 0 then
+    raise exception 'la cantidad no puede ser negativa' using errcode = '22023';
+  end if;
+
   v_delta := round(v_cantidad - v_actual.cantidad, 2);
 
   update public.productos pr
@@ -538,8 +548,10 @@ $$;
 -- Imagen del producto: bucket privado `productos`
 --
 -- Lectura para cualquier usuario autenticado (la ficha genera una URL
--- firmada); subir, reemplazar y borrar solo admin o contador. El bucket se
--- crea una vez y no se toca si ya existe.
+-- firmada) y subida solo admin o contador. No hay políticas de update ni
+-- delete: la app sube objetos nuevos con nombre UUID y nunca los reemplaza ni
+-- los borra (la limpieza de huérfanos queda pendiente). El bucket se crea una
+-- vez y no se toca si ya existe.
 -- ---------------------------------------------------------------------------
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -556,16 +568,9 @@ create policy productos_subir on storage.objects
   for insert to authenticated
   with check (bucket_id = 'productos' and (select public.rol_actual()) in ('admin', 'contador'));
 
+-- Si una versión anterior del archivo creó estas políticas, se retiran.
 drop policy if exists productos_actualizar on storage.objects;
-create policy productos_actualizar on storage.objects
-  for update to authenticated
-  using (bucket_id = 'productos' and (select public.rol_actual()) in ('admin', 'contador'))
-  with check (bucket_id = 'productos' and (select public.rol_actual()) in ('admin', 'contador'));
-
 drop policy if exists productos_borrar on storage.objects;
-create policy productos_borrar on storage.objects
-  for delete to authenticated
-  using (bucket_id = 'productos' and (select public.rol_actual()) in ('admin', 'contador'));
 
 -- ---------------------------------------------------------------------------
 -- Permisos: la función interna no se expone a la app

@@ -35,7 +35,7 @@ import { requerido } from "@/lib/formularios/validacion";
 import { etiquetaImpuesto, type Impuesto, impuestoNinguno, impuestoPorTasa } from "@/lib/impuestos/tipos";
 import { etiquetaTipoLista } from "@/lib/inventario/precios";
 import type { Almacen, CategoriaProducto, ExistenciaAlmacen, ListaPrecio } from "@/lib/inventario/tipos";
-import { esAccionCrearOtro } from "@/lib/productos/acciones-formulario";
+import { ACCION_CREAR_OTRO, esAccionCrearOtro } from "@/lib/productos/acciones-formulario";
 import { actualizarProducto, crearProducto } from "@/lib/productos/actions";
 import type { ProductoEditable } from "@/lib/productos/consultas";
 import { precioConItbis } from "@/lib/productos/ficha";
@@ -297,7 +297,7 @@ function ResumenProducto({
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium text-slate-700">Venta en negativo</span>
-            <span className="text-muted-foreground text-xs">Vende sin unidades disponibles.</span>
+            <span className="text-muted-foreground text-xs">Preferencia de venta sin existencia.</span>
           </div>
           <Switch
             checked={valores.vendeNegativo}
@@ -544,10 +544,12 @@ function CuentasContables({
 function EncabezadoFormulario({
   producto,
   pendiente,
+  subiendoImagen,
   hrefCancelar,
 }: {
   readonly producto: ProductoEditable | null;
   readonly pendiente: boolean;
+  readonly subiendoImagen: boolean;
   readonly hrefCancelar: string;
 }) {
   const migas = [
@@ -569,7 +571,7 @@ function EncabezadoFormulario({
           <Button variant="outline" nativeButton={false} render={<Link href={hrefCancelar} prefetch={false} />}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={pendiente}>
+          <Button type="submit" disabled={pendiente || subiendoImagen}>
             {pendiente ? "Guardando..." : "Guardar"}
           </Button>
         </>
@@ -599,10 +601,12 @@ function AvisosFormulario({ error, mensaje }: { readonly error: string | null; r
 function PieFormulario({
   producto,
   pendiente,
+  subiendoImagen,
   hrefCancelar,
 }: {
   readonly producto: ProductoEditable | null;
   readonly pendiente: boolean;
+  readonly subiendoImagen: boolean;
   readonly hrefCancelar: string;
 }) {
   return (
@@ -611,11 +615,11 @@ function PieFormulario({
         Cancelar
       </Button>
       {producto ? null : (
-        <Button type="submit" variant="outline" value="crear-otro" disabled={pendiente}>
+        <Button type="submit" variant="outline" value={ACCION_CREAR_OTRO} disabled={pendiente || subiendoImagen}>
           Guardar y crear otro
         </Button>
       )}
-      <Button type="submit" disabled={pendiente}>
+      <Button type="submit" disabled={pendiente || subiendoImagen}>
         {pendiente ? "Guardando..." : "Guardar"}
       </Button>
     </div>
@@ -907,7 +911,12 @@ export function FormularioProducto({
 
   return (
     <form noValidate onSubmit={enviar} className="flex flex-col gap-6">
-      <EncabezadoFormulario producto={producto} pendiente={pendiente} hrefCancelar={hrefCancelar} />
+      <EncabezadoFormulario
+        producto={producto}
+        pendiente={pendiente}
+        subiendoImagen={subiendoImagen}
+        hrefCancelar={hrefCancelar}
+      />
 
       <input type="hidden" name="tipo" value={valores.tipo} />
       <input type="hidden" name="inventariable" value={String(controlaInventario)} />
@@ -1150,7 +1159,12 @@ export function FormularioProducto({
 
       <AvisosFormulario error={error} mensaje={mensaje} />
 
-      <PieFormulario producto={producto} pendiente={pendiente} hrefCancelar={hrefCancelar} />
+      <PieFormulario
+        producto={producto}
+        pendiente={pendiente}
+        subiendoImagen={subiendoImagen}
+        hrefCancelar={hrefCancelar}
+      />
     </form>
   );
 }

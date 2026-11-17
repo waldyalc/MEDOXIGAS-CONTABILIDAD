@@ -1,5 +1,5 @@
 begin;
-select plan(22);
+select plan(26);
 
 insert into auth.users (id, email) values
   ('c1c1c1c1-1111-1111-1111-111111111111', 'admin.campos.alegra@prueba.local'),
@@ -250,6 +250,41 @@ select throws_ok(
   '42501',
   'sin permiso',
   'un lector no puede crear productos'
+);
+
+-- ---------------------------------------------------------------------------
+-- Bucket y defensa de la función interna
+-- ---------------------------------------------------------------------------
+
+reset role;
+
+select ok(
+  not has_function_privilege(
+    'authenticated',
+    'public._producto_guardar_minimos(uuid,uuid,jsonb)',
+    'execute'
+  ),
+  'authenticated no puede ejecutar _producto_guardar_minimos'
+);
+
+select is(
+  (select public from storage.buckets where id = 'productos'),
+  false,
+  'el bucket productos existe y es privado'
+);
+
+select is(
+  (select file_size_limit from storage.buckets where id = 'productos'),
+  5242880::bigint,
+  'el bucket productos limita los archivos a 5 MB'
+);
+
+select is(
+  (select count(*)::int
+   from pg_policies
+   where schemaname = 'storage' and tablename = 'objects' and policyname like 'productos\_%'),
+  2,
+  'el bucket productos solo tiene lectura y subida'
 );
 
 select * from finish();

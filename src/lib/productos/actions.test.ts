@@ -106,6 +106,29 @@ describe("actualizarProducto", () => {
     expect(payloadDe(rpc)?.existencias).toEqual([{ almacen_id: ALMACEN, minimo: 0, maximo: null }]);
   });
 
+  test("normaliza montos con separador de miles en cantidad, costo y mín/máx", async () => {
+    const rpc = vi.fn().mockResolvedValue({ error: null });
+    mocks.createClient.mockResolvedValue({ rpc });
+
+    await actualizarProducto(
+      PRODUCTO,
+      formulario({
+        cantidad: "1,500",
+        costo: "2,500.50",
+        [`existencia_minimo_${ALMACEN}`]: "1,500",
+        [`existencia_maximo_${ALMACEN}`]: "3,000",
+      }),
+    );
+
+    expect(payloadDe(rpc)).toEqual(
+      expect.objectContaining({
+        cantidad: 1500,
+        costo: 2500.5,
+        existencias: [{ almacen_id: ALMACEN, minimo: 1500, maximo: 3000 }],
+      }),
+    );
+  });
+
   test("rechaza una unidad de medida en blanco sin llamar la RPC", async () => {
     const rpc = vi.fn();
     mocks.createClient.mockResolvedValue({ rpc });

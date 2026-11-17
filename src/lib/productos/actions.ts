@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 import { construirPayloadProducto, leerPreciosFormulario } from "./precios-formulario";
-import { CAMPOS_CUENTA_PRODUCTO, type CampoCuentaProducto, esquemaProducto } from "./productos";
+import { CAMPOS_CUENTA_PRODUCTO, type CampoCuentaProducto, esquemaProducto, parsearMonto } from "./productos";
 
 export type ResultadoAccion = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -32,6 +32,17 @@ const PREFIJO_MINIMO = "existencia_minimo_";
 const PREFIJO_MAXIMO = "existencia_maximo_";
 
 /**
+ * Normaliza un monto escrito por el usuario con el mismo criterio que la
+ * pantalla (``1,500`` → ``1500``, ``1250,50`` → ``1250.5``). Si no se puede
+ * leer, devuelve el texto original para que Zod muestre el error.
+ */
+function normalizarMonto(valor: string) {
+  const limpio = valor.trim();
+  const numero = parsearMonto(limpio);
+  return numero === null ? limpio : String(numero);
+}
+
+/**
  * Campos nuevos que solo se envían si el formulario los manda (como las
  * cuentas): así el diálogo viejo, la importación y la edición masiva no pisan
  * la unidad, el almacén, la imagen ni la venta en negativo.
@@ -47,8 +58,8 @@ function opcionalesDesdeFormulario(formData: FormData) {
 
   for (const campo of ["minimo", "maximo"] as const) {
     if (!formData.has(campo)) continue;
-    const valor = texto(formData, campo).trim().replace(",", ".");
-    datos[campo] = valor === "" ? null : valor;
+    const valor = texto(formData, campo).trim();
+    datos[campo] = valor === "" ? null : normalizarMonto(valor);
   }
 
   return datos;
@@ -69,7 +80,7 @@ function existenciasDesdeFormulario(formData: FormData) {
     if (!idValido(almacenId)) continue;
 
     const actual = porAlmacen.get(almacenId) ?? { almacen_id: almacenId, minimo: null, maximo: null };
-    const limpio = valor.trim().replace(",", ".");
+    const limpio = normalizarMonto(valor);
     if (esMinimo) actual.minimo = limpio;
     else actual.maximo = limpio;
     porAlmacen.set(almacenId, actual);
@@ -96,8 +107,8 @@ function datosDesdeFormulario(formData: FormData) {
     itbis_tasa: texto(formData, "itbis_tasa") || "18",
     impuesto_id: texto(formData, "impuesto_id"),
     inventariable: booleano(formData, "inventariable"),
-    cantidad: texto(formData, "cantidad") || "0",
-    costo: texto(formData, "costo") || "0",
+    cantidad: normalizarMonto(texto(formData, "cantidad")) || "0",
+    costo: normalizarMonto(texto(formData, "costo")) || "0",
     categoria_id: texto(formData, "categoria_id"),
     activo: formData.has("activo") ? booleano(formData, "activo") : undefined,
     ...cuentasDesdeFormulario(formData),
