@@ -15,6 +15,7 @@ import {
 } from "@/lib/listas/parametros";
 import { createClient } from "@/lib/supabase/server";
 
+import { type PrevisualizacionNumero, previsualizarNumero } from "./numero";
 import type {
   DocumentoDetalle,
   DocumentoFila,
@@ -104,6 +105,24 @@ export async function getDocumentosLista(
     })),
     resumen,
   };
+}
+
+/**
+ * Próximo número de una cotización o un conduce. Lee el último número guardado
+ * (`max(numero)`) y le suma uno; no reserva ni consume la secuencia.
+ */
+export async function getProximoNumero(tipo: TipoDocumento): Promise<PrevisualizacionNumero> {
+  const supabase = await cliente();
+  const { data, error } = await supabase
+    .from(TABLAS[tipo].documento)
+    .select("numero")
+    .order("numero", { ascending: false })
+    .limit(1)
+    .maybeSingle()
+    .returns<{ numero: number } | null>();
+
+  if (error) return { estado: "no-disponible", mensaje: "No se pudo calcular el próximo número." };
+  return previsualizarNumero(data?.numero ?? null);
 }
 
 async function getDocumentoRelacionado(

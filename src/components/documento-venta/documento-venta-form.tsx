@@ -36,6 +36,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
+import type { PrevisualizacionNumero } from "@/lib/cotizaciones/numero";
 import { centavosAValor } from "@/lib/facturacion/calculo";
 import { esTipoComprobante, OPCIONES_TIPO_COMPROBANTE } from "@/lib/facturacion/comprobantes";
 import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
@@ -99,6 +100,8 @@ interface Props {
   valoresIniciales?: ValoresIniciales;
   cotizacionOrigenId?: string;
   numeroActual?: string;
+  /** Próximo número de cotización o conduce, calculado en el servidor sin consumirlo. */
+  vistaNumero?: PrevisualizacionNumero;
   /** Numeraciones para previsualizar el NCF antes de guardar (solo facturas). */
   numeraciones?: Numeracion[];
 }
@@ -109,6 +112,7 @@ interface OpcionSelect {
 }
 
 const CAMPO_BLOQUEADO = "disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-300 disabled:opacity-100";
+const CAJA_NUMERO = "flex h-14 w-[215px] shrink-0 items-center gap-2.5 rounded-[10px] bg-white px-3 text-base";
 const CELDA_ENCABEZADO =
   "flex h-10 items-center border-b border-slate-400/20 bg-slate-50 px-1 text-xs leading-4 font-medium text-gray-500";
 const SIN_SELECCION = "__ninguno";
@@ -192,10 +196,12 @@ function opcionesDocumento(opciones: OpcionesDocumento) {
 function NumeroComprobante({
   etiqueta,
   numeroActual,
+  vistaNumero,
   vistaNcf,
 }: {
   etiqueta: string;
   numeroActual?: string;
+  vistaNumero?: PrevisualizacionNumero;
   vistaNcf?: PrevisualizacionNcf | null;
 }) {
   if (vistaNcf) {
@@ -204,12 +210,7 @@ function NumeroComprobante({
     return (
       <div className="w-full">
         <div className="flex w-full items-center justify-between gap-2.5">
-          <div
-            className={`flex h-14 w-[215px] shrink-0 items-center gap-2.5 rounded-[10px] border bg-white px-3 text-base ${
-              hayNumero ? "border-slate-300" : "border-destructive"
-            }`}
-            title="El NCF se asigna al guardar la factura"
-          >
+          <div className={CAJA_NUMERO} title="El NCF se asigna al guardar la factura">
             <span className="text-slate-500">{etiqueta}</span>
             <span className="truncate text-slate-700 tabular-nums" aria-live="polite">
               {hayNumero ? vistaNcf.ncf : "—"}
@@ -235,6 +236,28 @@ function NumeroComprobante({
     );
   }
 
+  if (vistaNumero) {
+    const hayNumero = vistaNumero.estado === "lista";
+
+    return (
+      <div className="w-full">
+        <div className="flex w-full justify-end">
+          <div className={CAJA_NUMERO} title="El número se asigna al guardar el documento">
+            <span className="text-slate-500">{etiqueta}</span>
+            <span className="truncate text-slate-700 tabular-nums" aria-live="polite">
+              {hayNumero ? String(vistaNumero.numero) : "—"}
+            </span>
+          </div>
+        </div>
+        {hayNumero ? null : (
+          <p className="text-destructive mt-1 ml-auto max-w-[215px] text-xs leading-4" role="status">
+            {vistaNumero.mensaje}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-2.5 pl-2.5 text-base">
       <span className="text-slate-500">{etiqueta}</span>
@@ -249,6 +272,7 @@ function Encabezado({
   etiquetaNumero,
   tipo,
   numeroActual,
+  vistaNumero,
   vistaNcf,
   onTipo,
   comprobantesItems,
@@ -259,6 +283,7 @@ function Encabezado({
   etiquetaNumero: string;
   tipo: TipoComprobante;
   numeroActual?: string;
+  vistaNumero?: PrevisualizacionNumero;
   vistaNcf?: PrevisualizacionNcf | null;
   onTipo: (tipo: TipoComprobante) => void;
   comprobantesItems: OpcionSelect[];
@@ -312,6 +337,7 @@ function Encabezado({
         <NumeroComprobante
           etiqueta={conComprobante ? "NCF" : etiquetaNumero}
           numeroActual={numeroActual}
+          vistaNumero={vistaNumero}
           vistaNcf={vistaNcf}
         />
       </div>
@@ -1006,6 +1032,7 @@ export function DocumentoVentaForm({
   valoresIniciales,
   cotizacionOrigenId,
   numeroActual,
+  vistaNumero,
   numeraciones,
 }: Props) {
   const router = useRouter();
@@ -1220,6 +1247,7 @@ export function DocumentoVentaForm({
           etiquetaNumero={etiquetaNumero}
           tipo={tipo}
           numeroActual={numeroActual}
+          vistaNumero={vistaNumero}
           vistaNcf={vistaNcf}
           onTipo={setTipo}
           comprobantesItems={comprobantesItems}
