@@ -1,62 +1,57 @@
-import Link from "next/link";
+import { FileText } from "lucide-react";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Enlace } from "@/components/enlace";
+import { type ColumnaLista, TablaLista } from "@/components/listas/tabla-lista";
 import { rutaCompra, rutaContacto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
 import type { FilaCompra } from "@/lib/reportes/administrativos/d/tipos";
 import { formatearRd } from "@/lib/reportes/dinero";
 
-function Factura({ fila }: { fila: FilaCompra }) {
-  return (
-    <Link href={rutaCompra(fila.id)} prefetch={false} className="text-primary font-medium hover:underline">
-      {fila.ncf ?? `#${fila.numero}`}
-    </Link>
-  );
-}
-
-function Proveedor({ fila }: { fila: FilaCompra }) {
-  return (
-    <Link href={rutaContacto(fila.contactoId)} prefetch={false} className="hover:underline">
-      {fila.contactoNombre}
-    </Link>
-  );
-}
+const columnas: readonly ColumnaLista<FilaCompra>[] = [
+  {
+    clave: "numero",
+    encabezado: "Número de factura",
+    celda: (fila) => (
+      <Enlace href={rutaCompra(fila.id)} className="font-medium">
+        {fila.ncf ?? `#${fila.numero}`}
+      </Enlace>
+    ),
+  },
+  {
+    clave: "proveedor",
+    encabezado: "Proveedor",
+    celda: (fila) => <Enlace href={rutaContacto(fila.contactoId)}>{fila.contactoNombre}</Enlace>,
+  },
+  {
+    clave: "fecha",
+    encabezado: "Fecha",
+    celda: (fila) => formatoDia(fila.fecha),
+  },
+  {
+    clave: "antes",
+    encabezado: "Antes de impuestos",
+    alineacion: "derecha",
+    celda: (fila) => formatearRd(fila.subtotal),
+  },
+  {
+    clave: "despues",
+    encabezado: "Después de impuestos",
+    alineacion: "derecha",
+    celda: (fila) => <span className="font-medium">{formatearRd(fila.total)}</span>,
+  },
+];
 
 export function TablaCompras({ filas }: { filas: FilaCompra[] }) {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Número de factura</TableHead>
-          <TableHead>Proveedor</TableHead>
-          <TableHead>Fecha</TableHead>
-          <TableHead className="text-right">Antes de impuestos</TableHead>
-          <TableHead className="text-right">Después de impuestos</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {filas.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={5} className="text-muted-foreground h-32 text-center whitespace-normal">
-              No hay compras en el período seleccionado.
-            </TableCell>
-          </TableRow>
-        ) : (
-          filas.map((fila) => (
-            <TableRow key={fila.id}>
-              <TableCell>
-                <Factura fila={fila} />
-              </TableCell>
-              <TableCell>
-                <Proveedor fila={fila} />
-              </TableCell>
-              <TableCell>{formatoDia(fila.fecha)}</TableCell>
-              <TableCell className="text-right tabular-nums">{formatearRd(fila.subtotal)}</TableCell>
-              <TableCell className="text-right font-medium tabular-nums">{formatearRd(fila.total)}</TableCell>
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+    <TablaLista
+      columnas={columnas}
+      filas={filas}
+      claveFila={(fila) => fila.id}
+      vacio={{
+        filtrada: true,
+        titulo: "No hay compras en el período seleccionado.",
+        icono: <FileText className="size-10" />,
+      }}
+    />
   );
 }
