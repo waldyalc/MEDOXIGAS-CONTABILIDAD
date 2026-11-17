@@ -43,8 +43,10 @@ alter table public.existencias
   add column if not exists maximo numeric(14,2);
 
 -- Backfill: la existencia actual es la inicial para lo que ya estaba cargado.
+-- La cantidad inicial nunca queda negativa; la existencia actual sí puede
+-- estar negativa (ventas sin stock) y no se toca.
 update public.existencias e
-set cantidad_inicial = e.cantidad
+set cantidad_inicial = greatest(e.cantidad, 0)
 where e.cantidad_inicial = 0
   and e.cantidad <> 0;
 
