@@ -20,7 +20,8 @@ import {
 
 const UUID = z.uuid();
 
-const CAMPOS_CONTACTO = "id, nombre, rnc_cedula, telefono, correo, direccion, tipo, cuenta_cxc_id, cuenta_cxp_id";
+const CAMPOS_CONTACTO =
+  "id, nombre, rnc_cedula, telefono, correo, direccion, tipo, limite_credito, cuenta_cxc_id, cuenta_cxp_id";
 const CAMPOS_DOCUMENTO = "id, numero, ncf, fecha, vencimiento, total, pagado, credito, estado";
 const CAMPOS_COMERCIAL = "id, numero, fecha, total, estado";
 const CAMPOS_NOTA = "id, numero, ncf, fecha, total, estado";
@@ -76,6 +77,7 @@ function mapearContacto(fila: ContactoConCuentas): ContactoFicha {
     correo: fila.correo,
     direccion: fila.direccion,
     tipo: normalizarTipo(fila.tipo),
+    limite_credito: fila.limite_credito,
   };
 }
 
