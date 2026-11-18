@@ -654,18 +654,30 @@ function PortalImpresion({ children }: { children: ReactNode }) {
 interface MenuAccionesProps {
   facturaId: string | null;
   facturaRelacionada: FacturaRelacionada | null;
+  puedeClonar: boolean;
   puedeNotaCredito: boolean;
   puedeNotaDebito: boolean;
   puedeAnular: boolean;
   onNavegar: (ruta: string) => void;
   onDescargarPdf: () => void;
   onImprimir: () => void;
+  onClonar: () => void;
   onAnular: () => void;
 }
 
 function MenuAcciones(props: MenuAccionesProps) {
   return (
     <>
+      {props.puedeClonar ? (
+        <>
+          <DropdownMenuItem className="px-4 py-2" onClick={props.onClonar}>
+            <Copy />
+            Clonar
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+        </>
+      ) : null}
+
       {props.puedeNotaCredito && props.facturaId ? (
         <DropdownMenuItem
           className="px-4 py-2"
@@ -733,12 +745,10 @@ interface AccionesDocumentoProps extends MenuAccionesProps {
   puedeConvertir: boolean;
   puedeConvertirEnConduce: boolean;
   puedeEditar: boolean;
-  puedeClonar: boolean;
   pendiente: boolean;
   onCompartir: () => void;
   onAbrirConvertir: () => void;
   onConvertirEnConduce: () => void;
-  onClonar: () => void;
 }
 
 function AccionesDocumento(props: AccionesDocumentoProps) {
@@ -750,13 +760,6 @@ function AccionesDocumento(props: AccionesDocumentoProps) {
         <Button variant="outline" className={BOTON_TEXTO} render={<Link href={rutaEditar} />}>
           <Pencil />
           Editar
-        </Button>
-      ) : null}
-
-      {props.puedeClonar ? (
-        <Button variant="outline" className={BOTON_TEXTO} onClick={props.onClonar}>
-          <Copy />
-          Clonar
         </Button>
       ) : null}
 
@@ -791,12 +794,14 @@ function AccionesDocumento(props: AccionesDocumentoProps) {
           <MenuAcciones
             facturaId={props.facturaId}
             facturaRelacionada={props.facturaRelacionada}
+            puedeClonar={props.puedeClonar}
             puedeNotaCredito={props.puedeNotaCredito}
             puedeNotaDebito={props.puedeNotaDebito}
             puedeAnular={props.puedeAnular}
             onNavegar={props.onNavegar}
             onDescargarPdf={props.onDescargarPdf}
             onImprimir={props.onImprimir}
+            onClonar={props.onClonar}
             onAnular={props.onAnular}
           />
         </DropdownMenuContent>
