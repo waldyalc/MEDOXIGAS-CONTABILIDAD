@@ -9,6 +9,7 @@ import { EsqueletoTabla } from "@/components/carga/esqueletos";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { BarraLista, ContenedorLista, TarjetaLista } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPerfil } from "@/lib/auth/rol";
@@ -76,17 +77,20 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Facturas recurrentes</h1>
-          <p className="text-muted-foreground text-sm">
-            Plantillas para clientes con contrato fijo. Genera la factura del periodo cuando toque.
-          </p>
-        </div>
-        <Suspense fallback={<Skeleton className="h-9 w-52" />}>
-          <AccionNuevaRecurrente />
-        </Suspense>
-      </div>
+      <EncabezadoPagina
+        titulo="Facturas recurrentes"
+        subtitulo="Plantillas para clientes con contrato fijo. Genera la factura del periodo cuando toque."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Ingresos" },
+          { etiqueta: "Facturas recurrentes" },
+        ]}
+        acciones={
+          <Suspense fallback={<Skeleton className="h-9 w-52" />}>
+            <AccionNuevaRecurrente />
+          </Suspense>
+        }
+      />
 
       <TarjetaLista data-lista="facturas-recurrentes">
         <BarraLista>

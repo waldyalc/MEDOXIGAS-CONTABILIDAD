@@ -19,27 +19,22 @@ function rutaRelativa(ruta: string) {
 
 const PAGINAS = listarPaginas(DASHBOARD);
 
-/** Piloto de la fase 1a: el marco de la página es EncabezadoPagina + contenedor. */
-const PAGINAS_MIGRADAS = ["facturacion/page.tsx", "compras/page.tsx", "facturacion/nueva/page.tsx"] as const;
-
-/**
- * Deuda congelada de la fase 1b. Son las page.tsx que todavía traen `h1.text-3xl`
- * (30 px, el tamaño de la plantilla vieja); no se pueden tocar todas en este PR.
- * Al migrar una pantalla a `EncabezadoPagina`, quítala de esta lista: el test falla
- * si una entrada ya no tiene `text-3xl` (la lista solo puede encoger).
- */
-const PENDIENTES_TEXT_3XL = [
+/** Pantallas con el marco de la fase 1: EncabezadoPagina + migas + contenedor. */
+const PAGINAS_MIGRADAS = [
+  "facturacion/page.tsx",
+  "compras/page.tsx",
+  "facturacion/nueva/page.tsx",
+  "bancos/page.tsx",
   "bancos/[id]/page.tsx",
+  "bancos/conciliaciones/page.tsx",
   "bancos/conciliaciones/[id]/page.tsx",
   "bancos/conciliaciones/nueva/page.tsx",
-  "bancos/conciliaciones/page.tsx",
-  "bancos/page.tsx",
   "bancos/transferencias/[id]/page.tsx",
   "conduces/page.tsx",
+  "contabilidad/page.tsx",
   "contabilidad/activos/page.tsx",
   "contabilidad/asientos/page.tsx",
   "contabilidad/numeraciones/page.tsx",
-  "contabilidad/page.tsx",
   "contabilidad/periodos/page.tsx",
   "cotizaciones/page.tsx",
   "facturas-recurrentes/page.tsx",
@@ -48,6 +43,13 @@ const PENDIENTES_TEXT_3XL = [
   "notas-debito/page.tsx",
   "pagos-recibidos/page.tsx",
 ] as const;
+
+/**
+ * Deuda de la fase 1b: page.tsx que todavía traen `h1.text-3xl` (30 px, el tamaño
+ * de la plantilla vieja). La lista ya está vacía: si una pantalla vuelve a usar
+ * text-3xl, el test "no estrena text-3xl" la detecta sin necesidad de listarla.
+ */
+const PENDIENTES_TEXT_3XL: readonly string[] = [];
 
 const AYUDA_TITULO =
   "Usa <EncabezadoPagina titulo=... subtitulo=... migas=... /> de src/components/pagina/encabezado-pagina.tsx: " +
@@ -83,7 +85,7 @@ describe("marco de las páginas del dashboard", () => {
 
   it("no estrena text-3xl en las page.tsx del dashboard", () => {
     const infractores = PAGINAS.map(rutaRelativa).filter(
-      (ruta) => /text-3xl/.test(leer(ruta)) && !(PENDIENTES_TEXT_3XL as readonly string[]).includes(ruta),
+      (ruta) => /text-3xl/.test(leer(ruta)) && !PENDIENTES_TEXT_3XL.includes(ruta),
     );
 
     expect(infractores, AYUDA_TITULO).toEqual([]);

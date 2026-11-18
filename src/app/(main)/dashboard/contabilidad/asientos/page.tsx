@@ -16,6 +16,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -135,18 +136,23 @@ export default async function Page({ searchParams }: Props) {
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Asientos contables</h1>
-          <p className="text-muted-foreground text-sm">Movimientos del libro diario, con o sin documento de origen.</p>
-        </div>
-        {puedeEscribir ? (
-          <Button render={<Link href="/dashboard/contabilidad/asientos/nuevo" />}>
-            <Plus />
-            Nuevo asiento
-          </Button>
-        ) : null}
-      </div>
+      <EncabezadoPagina
+        titulo="Asientos contables"
+        subtitulo="Movimientos del libro diario, con o sin documento de origen."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Contabilidad", href: "/dashboard/contabilidad" },
+          { etiqueta: "Asientos contables" },
+        ]}
+        acciones={
+          puedeEscribir ? (
+            <Button render={<Link href="/dashboard/contabilidad/asientos/nuevo" />}>
+              <Plus />
+              Nuevo asiento
+            </Button>
+          ) : undefined
+        }
+      />
 
       <form method="get" className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1.5">
