@@ -68,13 +68,14 @@ const ETIQUETAS_CAMPO: Record<string, string> = {
   metodo: "Método",
   ncf: "NCF",
   descripcion: "Descripción",
+  limite_credito: "Límite de crédito",
 };
 
 export function etiquetaCampo(campo: string): string {
   return ETIQUETAS_CAMPO[campo] ?? campo.charAt(0).toLocaleUpperCase("es") + campo.slice(1);
 }
 
-const CAMPOS_MONEDA = new Set(["total", "monto", "precio", "costo"]);
+const CAMPOS_MONEDA = new Set(["total", "monto", "precio", "costo", "limite_credito"]);
 
 /** Valores crudos de la base ('true', '1534.00', 'efectivo') en español legible. */
 export function formatearValorCampo(campo: string, valor: string | null): string {
