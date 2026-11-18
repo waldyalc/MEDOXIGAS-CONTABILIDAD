@@ -1,5 +1,13 @@
 # Handoff — Medoxigas Contabilidad
 
+## Feature — Saldos iniciales en el catálogo de cuentas (17 nov 2026)
+
+- Rama `feat/saldos-iniciales-catalogo` (desde `origin/prueba`; el nombre pedido `feat/saldos-iniciales` estaba tomado por otro worktree con un intento previo sin commitear — este trabajo lo adoptó y corrigió). Botón **Saldos iniciales** en `/dashboard/contabilidad` (ALEGRA.md §11.1): diálogo con tabla editable (cuenta, débito, crédito), totales y diferencia; solo guarda con diferencia 0.
+- Migración `20261118000000_saldos_iniciales.sql`: suma `origen_tipo = 'saldo_inicial'` (equivale al tipo SI de Alegra), crea la cuenta de patrimonio **«Ajustes iniciales»** bajo Capital (reutiliza si ya existe, código libre tras el mayor de sus hermanas, ej. 3301) y la registra en `config_contable.ajustes_iniciales`. RPC `registrar_saldos_iniciales(p jsonb)`: `security definer`, rol admin/contador, crea **un** asiento `saldo_inicial` balanceado con una línea por cuenta (el usuario mismo agrega la contrapartida «Ajustes iniciales» en la tabla, como en Alegra). Idempotente por cuenta: una cuenta con línea en un asiento `saldo_inicial` no admite otra carga (excepto la de ajustes, que repite como contrapartida). Rechaza caja/banco (su saldo se carga en Bancos), agrupación, inactivas, montos negativos, línea con ambos lados y registros descuadrados; mensajes en español.
+- Frontend `_components/saldos-iniciales-dialogo.tsx` + action `registrarSaldosIniciales` (`src/lib/contabilidad/acciones.ts`, RPC directa, montos en centavos) + esquema `esquemaSaldosIniciales` (cuenta única por línea y cuadre en centavos). Etiquetas «Saldos iniciales» en libro diario, asientos y parámetros de reportes. `ajustes_iniciales` agregada a `CONFIGURACION_CONTABLE`.
+- **Limitación:** sin Supabase CLI en este entorno no se corrió `supabase test db` ni `pnpm db:types`; `types.ts` lleva solo la firma mínima de la RPC añadida a mano (patrón del repo con migraciones sin aplicar), hay que regenerarlo al aplicar la migración. pgTAP nuevo `saldos_iniciales_test.sql` con 24 asserts.
+- Verificado: `pnpm exec tsc --noEmit` ✅, `biome check` de lo tocado ✅ (solo aviso preexistente en `libros/parametros.ts` fuera del diff), `pnpm test` ✅ (818 passed), `pnpm build` ✅.
+
 ## Diseño — Encabezado de página de 20 px y contenedores (17 nov 2026)
 
 - Rama `diseno/pagina-encabezado-orq` (desde `prueba` ceb939d). `EncabezadoPagina` (título 20 px/600, subtítulo 14, migas opcionales, slot de acciones) y `ContenedorFormulario`/`ContenedorDetalle` (1040 px); `ContenedorLista` se reexporta desde `listas/tabla-lista.tsx` (1289 px).
