@@ -155,7 +155,13 @@ function FilasAsiento({ lineasAsiento }: { lineasAsiento: AsientoLinea[] }) {
   ));
 }
 
-function PanelContabilidad({ asiento, lineasAsiento }: { asiento: AsientoDetalle | null; lineasAsiento: AsientoLinea[] }) {
+function PanelContabilidad({
+  asiento,
+  lineasAsiento,
+}: {
+  asiento: AsientoDetalle | null;
+  lineasAsiento: AsientoLinea[];
+}) {
   if (!asiento) return <p className="text-muted-foreground text-sm">La factura no tiene asiento contable.</p>;
 
   const debitos = lineasAsiento.reduce((suma, linea) => suma + aNumero(linea.debito), 0);
