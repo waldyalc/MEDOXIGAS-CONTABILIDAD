@@ -1,5 +1,5 @@
 begin;
-select plan(26);
+select plan(27);
 
 insert into auth.users (id, email) values
   ('c1c1c1c1-1111-1111-1111-111111111111', 'admin.campos.alegra@prueba.local'),
@@ -173,6 +173,29 @@ select is(
     where p.nombre = 'Combo Campos Alegra' and a.es_principal),
   0.00::numeric,
   'editar los mínimos no mueve la cantidad actual'
+);
+
+-- ---------------------------------------------------------------------------
+-- Actualización conservadora: sin la clave vende_negativo se conserva el valor
+-- ---------------------------------------------------------------------------
+-- La RPC guarda el flag verbatim cuando la clave viaja (p ? 'vende_negativo');
+-- la normalización (solo inventariables) vive en la capa de app, en
+-- esquemaProducto. Candado: una actualización sin la clave no lo pisa.
+
+select public.actualizar_producto(
+  (select id from public.productos where nombre = 'Combo Campos Alegra'),
+  '{"vende_negativo":true}'::jsonb
+);
+
+select public.actualizar_producto(
+  (select id from public.productos where nombre = 'Combo Campos Alegra'),
+  '{"unidad_medida":"Caja"}'::jsonb
+);
+
+select is(
+  (select p.vende_negativo from public.productos p where p.nombre = 'Combo Campos Alegra'),
+  true,
+  'actualizar_producto sin la clave vende_negativo conserva el valor guardado'
 );
 
 -- Se crea un producto inventariable para comprobar que la cantidad no cambia.

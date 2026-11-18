@@ -276,7 +276,9 @@ export const esquemaProducto = z
       ...cuentas,
       ...(datos.unidad_medida === undefined ? {} : { unidad_medida: datos.unidad_medida }),
       ...(datos.almacen_id === undefined ? {} : { almacen_id: datos.almacen_id }),
-      ...(datos.vende_negativo === undefined ? {} : { vende_negativo: datos.vende_negativo }),
+      // La venta en negativo solo aplica a productos que controlan inventario:
+      // la RPC remota guarda el flag verbatim, así que se normaliza aquí.
+      ...(datos.vende_negativo === undefined ? {} : { vende_negativo: inventariable && datos.vende_negativo }),
       ...(datos.imagen_path === undefined ? {} : { imagen_path: datos.imagen_path }),
       ...(datos.minimo === undefined ? {} : { minimo: datos.minimo }),
       ...(datos.maximo === undefined ? {} : { maximo: datos.maximo }),

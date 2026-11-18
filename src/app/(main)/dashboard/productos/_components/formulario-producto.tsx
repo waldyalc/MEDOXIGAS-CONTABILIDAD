@@ -290,7 +290,9 @@ function ResumenProducto({
             checked={controlaInventario}
             disabled={!esProducto}
             aria-label="Producto inventariable"
-            onCheckedChange={(marcado) => onCambiar({ inventariable: marcado })}
+            onCheckedChange={(marcado) =>
+              onCambiar(marcado ? { inventariable: true } : { inventariable: false, vendeNegativo: false })
+            }
           />
         </div>
 
@@ -301,7 +303,7 @@ function ResumenProducto({
           </div>
           <Switch
             checked={valores.vendeNegativo}
-            disabled={!esProducto}
+            disabled={!controlaInventario}
             aria-label="Permitir venta en negativo"
             onCheckedChange={(marcado) => onCambiar({ vendeNegativo: marcado })}
           />
