@@ -44,6 +44,7 @@ async function AsientoContenido() {
       cuentas={datos.cuentas}
       contactos={datos.contactos}
       centrosCosto={datos.centrosCosto}
+      tiposEntrada={datos.tiposEntrada}
       fechaHoy={hoyRD()}
     />
   );
