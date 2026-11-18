@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(11);
 
 create temp table _ids (clave text primary key, id uuid) on commit drop;
 grant select, insert, update, delete on _ids to authenticated;
