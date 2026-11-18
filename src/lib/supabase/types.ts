@@ -4164,6 +4164,12 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_saldos_iniciales: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
       reporte_balance_comprobacion: {
         Args: {
           p_desde: string
