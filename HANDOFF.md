@@ -8,6 +8,7 @@
 - **Specs e2e nuevos** (`6a6c8b5`): `flujo-venta`, `flujo-compra`, `flujo-contable`, `flujo-banco` + guía `docs/e2e-flujos-completos.md`. Se saltan sin `E2E_EMAIL`/`E2E_PASSWORD` como el resto.
 - **`biome.json`**: `docs/reportes` excluido (`220583c`) — el reporte HTML del vaporizador usa `class="data"` y `data` es un token reservado del parser de candidatos CSS de Biome 2.6 (error de parseo, no ignorable por comentario). Es artefacto generado, no código de la app.
 - Verificado: `pnpm typecheck`, `pnpm check` (0 errores; avisos preexistentes), `pnpm test` (**909** passed, 3 skipped), `pnpm build` con env placeholder.
+- **CI sigue bloqueado por billing (18 nov):** tras el push (`ab9a033`), los jobs `ci`, `e2e`, `db` y `scan` vuelven a fallar en 2-4 s sin arrancar: «recent account payments have failed or your spending limit needs to be increased». No es del código — falta que Waldy revise GitHub Billing & plans y re-corra los workflows (`gh run rerun` o un push nuevo).
 
 ## Producto — campos de Alegra en edición y alta a pantalla completa (17 nov 2026)
 
