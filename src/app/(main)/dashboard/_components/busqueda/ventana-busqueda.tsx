@@ -53,8 +53,12 @@ const CLAVE_RECIENTES = "medoxigas.busqueda.recientes";
 const MAX_RECIENTES = 8;
 const MINIMO_BUSQUEDA = 2;
 
-/** Debounce de la consulta mientras se escribe (§3.6). */
-const DEBOUNCE_BUSQUEDA_MS = 250;
+/** Debounce de la consulta mientras se escribe (§3.6): ágil sin hacer spam de peticiones. */
+const DEBOUNCE_BUSQUEDA_MS = 150;
+
+/** Caché LRU en memoria (§3.6): 10 entradas que valen 60 segundos. */
+const MAX_ENTRADAS_CACHE = 10;
+const TTL_CACHE_MS = 60_000;
 
 /** «Ver más» avanza de 20 en 20: el límite de categoría de la RPC (§3.5). */
 const PASO_VER_MAS = 20;
@@ -152,6 +156,52 @@ function combinarRespuestas(anterior: RespuestaBusqueda | null, pagina: Respuest
   });
 
   return { grupos, total: pagina.total, hayMas: pagina.hayMas, ms: pagina.ms };
+}
+
+/** Entrada de la caché LRU (§3.6): la respuesta completa y cuándo vence. */
+interface EntradaCache {
+  respuesta: RespuestaBusqueda;
+  expira: number;
+}
+
+/**
+ * Clave de la caché: término + categoría (§3.6). Con «recientes» la ventana
+ * llama a la misma RPC que sin categoría (modo «todos»), así que comparten
+ * clave. El separador NUL no se puede teclear: no hay colisiones.
+ */
+function claveCache(termino: string, categoria: CategoriaRail | null): string {
+  if (categoria == null || categoria === "recientes") return termino;
+  return `${termino}\u0000${categoria}`;
+}
+
+/**
+ * Lee la caché barriendo primero las entradas vencidas (§3.6). Al acertar,
+ * reinserta la entrada al final del Map: el orden de inserción hace de LRU.
+ */
+function leerCache(cache: Map<string, EntradaCache>, clave: string): RespuestaBusqueda | null {
+  const ahora = Date.now();
+  for (const [claveEntrada, entrada] of cache) {
+    if (entrada.expira <= ahora) cache.delete(claveEntrada);
+  }
+
+  const entrada = cache.get(clave);
+  if (entrada == null) return null;
+  cache.delete(clave);
+  cache.set(clave, entrada);
+  return entrada.respuesta;
+}
+
+/** Guarda la respuesta completa y desaloja la entrada más vieja si sobran (§3.6). */
+function guardarEnCache(cache: Map<string, EntradaCache>, clave: string, respuesta: RespuestaBusqueda) {
+  cache.delete(clave);
+  cache.set(clave, { respuesta, expira: Date.now() + TTL_CACHE_MS });
+
+  if (cache.size > MAX_ENTRADAS_CACHE) {
+    for (const claveMasVieja of cache.keys()) {
+      cache.delete(claveMasVieja);
+      break;
+    }
+  }
 }
 
 type ModoVentana = "movil" | "compacta" | "escritorio";
@@ -305,8 +355,18 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
   const secuencia = React.useRef(0);
   /** Término de la última consulta: al cambiar, los conteos viejos ya no valen. */
   const terminoAnterior = React.useRef("");
+  /** Caché LRU de búsquedas (§3.6) en un ref: no se pierde al re-renderizar. */
+  const cacheBusqueda = React.useRef(new Map<string, EntradaCache>());
+  /** AbortController de la petición en vuelo: se aborta al cambiar el término (§3.6). */
+  const controlador = React.useRef<AbortController | null>(null);
 
   const termino = texto.trim();
+  /**
+   * Texto diferido (§3.6): el input responde al instante y el panel (fallback,
+   * recientes y tarjetas) re-renderiza con prioridad baja, aunque haya 40+.
+   */
+  const textoDiferido = React.useDeferredValue(texto);
+  const terminoDiferido = textoDiferido.trim();
   const buscando = termino.length >= MINIMO_BUSQUEDA;
   const categoriaFijada = categoria != null && categoria !== "recientes";
   const puedeCrear = rol === "admin" || rol === "contador";
@@ -321,16 +381,23 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
     setRecientes(leerRecientes());
     setCategoria(null);
     setIndiceActivo(-1);
-    // Reabrir conserva la última consulta de la sesión y la selecciona (§1.3).
-    document.querySelector<HTMLInputElement>("input[data-busqueda]")?.select();
+    // Reabrir conserva la última consulta de la sesión; el foco y la selección
+    // del texto son inmediatos, sin depender solo del autoFocus (§1.3).
+    const entrada = document.querySelector<HTMLInputElement>("input[data-busqueda]");
+    entrada?.focus();
+    entrada?.select();
   }, [abierto]);
 
-  // Consulta a buscar_global (§3.6): debounce de 250 ms, mínimo 2 caracteres y
-  // un contador de secuencia que descarta respuestas tardías. `null` (error de
-  // red o RPC ausente) deja el fallback sin mostrar error (§1.9).
+  // Consulta a buscar_global (§3.6): mínimo 2 caracteres (al abrir, con el
+  // input vacío, no se toca la base), debounce de 150 ms, caché LRU en memoria
+  // y cancelación con AbortController + contador de secuencia. Mientras llega
+  // la respuesta nueva, los resultados viejos se quedan visibles. `null` (error
+  // de red o RPC ausente) deja el fallback sin mostrar error (§1.9).
   React.useEffect(() => {
     if (!abierto || !buscando) {
       secuencia.current += 1;
+      controlador.current?.abort();
+      controlador.current = null;
       setCargando(false);
       setCargandoMas(false);
       setRespuesta(null);
@@ -344,23 +411,50 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
     const cambioTermino = terminoAnterior.current !== termino;
     terminoAnterior.current = termino;
 
-    setCargando(true);
     setDesplazamiento(0);
     // Con categoría fijada la RPC solo devuelve ese grupo: los conteos del
     // resto se conservan para que el rail no muestre ceros falsos; si cambió
     // el término, ya no valen y se limpian.
     if (cambioTermino && esCategoria) setTotalesRail({});
 
+    const clave = claveCache(termino, categoria);
+    const enCache = leerCache(cacheBusqueda.current, clave);
+    if (enCache != null) {
+      // Caché fresca (§3.6): repetir la misma búsqueda pinta al instante, con
+      // 0 ms de red y sin esperar el debounce; se cancela lo que volara.
+      controlador.current?.abort();
+      controlador.current = null;
+      setCargando(false);
+      setRespuesta(enCache);
+      setTotalesRail((anterior) => {
+        const suma = totalesPorGrupoDe(enCache);
+        return esCategoria ? { ...anterior, ...suma } : suma;
+      });
+      return;
+    }
+
+    // Sin caché: `cargando` deja los resultados anteriores en pantalla,
+    // atenuados con la barra superior; skeletons solo la primera vez.
+    setCargando(true);
+
     const temporizador = setTimeout(() => {
+      // La server action no acepta un AbortSignal (no es serializable), así
+      // que la cancelación es local: el abort marca la bandera y el contador
+      // de secuencia descarta la respuesta tardía (§3.6).
+      controlador.current?.abort();
+      const controller = new AbortController();
+      controlador.current = controller;
+
       const accion =
         esCategoria && categoria != null ? buscarGlobalPorCategoria(termino, categoria) : buscarGlobal(termino);
 
       accion
         .then((resultado) => {
-          if (secuencia.current !== numero) return;
+          if (controller.signal.aborted || secuencia.current !== numero) return;
           setCargando(false);
           setRespuesta(resultado);
           if (resultado != null) {
+            guardarEnCache(cacheBusqueda.current, clave, resultado);
             setTotalesRail((anterior) => {
               const suma = totalesPorGrupoDe(resultado);
               return esCategoria ? { ...anterior, ...suma } : suma;
@@ -368,7 +462,7 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
           }
         })
         .catch(() => {
-          if (secuencia.current !== numero) return;
+          if (controller.signal.aborted || secuencia.current !== numero) return;
           setCargando(false);
           setRespuesta(null);
         });
@@ -376,6 +470,9 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
 
     return () => clearTimeout(temporizador);
   }, [abierto, buscando, termino, categoria]);
+
+  // Al desmontar la ventana se cancela la petición que quede en vuelo (§3.6).
+  React.useEffect(() => () => controlador.current?.abort(), []);
 
   // Sugerencia rotativa del placeholder a los 4 s; se detiene al primer carácter (§1.3).
   React.useEffect(() => {
@@ -409,12 +506,13 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
     [categoria, categoriaFijada, grupos],
   );
 
-  // Con la categoría «Recientes» la búsqueda es local (§2.5).
+  // Con la categoría «Recientes» la búsqueda es local (§2.5) y usa el término
+  // diferido para no frenar el input (§3.6).
   const recientesFiltrados = React.useMemo(() => {
     if (categoria !== "recientes" || !buscando) return recientes;
-    const patron = normalizar(termino);
+    const patron = normalizar(terminoDiferido);
     return recientes.filter((reciente) => normalizar(reciente.titulo).includes(patron));
-  }, [buscando, categoria, recientes, termino]);
+  }, [buscando, categoria, recientes, terminoDiferido]);
   const inicios = React.useMemo(() => {
     let acumulado = 0;
     return gruposVisibles.map((grupo) => {
@@ -475,14 +573,17 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
 
     const numero = secuencia.current + 1;
     secuencia.current = numero;
+    controlador.current?.abort();
+    const controller = new AbortController();
+    controlador.current = controller;
     const siguiente = desplazamiento + PASO_VER_MAS;
     setCargandoMas(true);
 
     buscarGlobalPorCategoria(termino, categoria, siguiente)
       .then((pagina) => {
         setCargandoMas(false);
-        // Llegó tarde: manda la consulta nueva.
-        if (secuencia.current !== numero) return;
+        // Llegó tarde o se canceló (§3.6): manda la consulta nueva.
+        if (controller.signal.aborted || secuencia.current !== numero) return;
         // Falló: se conserva lo acumulado y el botón permite reintentar (§1.9).
         if (pagina == null) return;
         setDesplazamiento(siguiente);
@@ -556,7 +657,7 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
   const panel = (
     <ContenidoPanel
       modo={modo}
-      termino={termino}
+      termino={terminoDiferido}
       buscando={buscando}
       cargando={cargando}
       cargandoMas={cargandoMas}
@@ -735,6 +836,15 @@ function PieAtajos({ atajo }: { atajo: string }) {
   );
 }
 
+/**
+ * Barra sutil de 2 px arriba del panel (§3.6): avisa que llegan resultados
+ * nuevos sin tapar los viejos. Es absoluta, para no mover el contenido, y
+ * solo anima la opacidad: sin desplazamientos.
+ */
+function BarraCarga() {
+  return <div aria-hidden="true" className="bg-primary/70 absolute inset-x-0 top-0 h-0.5 animate-pulse" />;
+}
+
 interface PropsContenidoPanel {
   modo: ModoVentana;
   termino: string;
@@ -789,11 +899,23 @@ function ContenidoPanel(props: PropsContenidoPanel) {
 
   const columnas = modo === "escritorio" ? "grid-cols-2" : "grid-cols-1";
   const categoriaFijada = categoria != null && categoria !== "recientes";
-  const conResultados = buscando && grupos.length > 0 && !cargando;
+  // «Recientes» es local (§2.5): ni barra de conteo ni indicador de carga.
+  const esLocal = categoria === "recientes";
+  const conResultados = buscando && grupos.length > 0 && !esLocal;
+  // Stale-while-revalidate (§3.6): refrescando con los resultados viejos aún en pantalla.
+  const refrescando = cargando && grupos.length > 0 && !esLocal;
   const textoAria = textoVivo(buscando, cargando, total, grupos.length, termino);
 
   function contenido() {
-    if (cargando) {
+    // Con «Recientes» la lista es local (§2.5): se pinta al instante, sin
+    // esperar la RPC que solo actualiza los conteos del rail.
+    if (categoria === "recientes") {
+      return <SeccionRecientes recientes={recientes} onAbrir={onAbrirReciente} modo={modo} />;
+    }
+
+    // Skeletons solo la primera vez, cuando no hay resultados previos (§1.9):
+    // después, los viejos se quedan visibles mientras llega la respuesta (§3.6).
+    if (cargando && grupos.length === 0) {
       return (
         <ul className={cn("grid gap-3", columnas)}>
           <li>
@@ -807,10 +929,6 @@ function ContenidoPanel(props: PropsContenidoPanel) {
           </li>
         </ul>
       );
-    }
-
-    if (categoria === "recientes") {
-      return <SeccionRecientes recientes={recientes} onAbrir={onAbrirReciente} modo={modo} />;
     }
 
     if (!buscando) {
@@ -874,30 +992,37 @@ function ContenidoPanel(props: PropsContenidoPanel) {
   }
 
   return (
-    <div id="resultados-busqueda" className={cn("flex flex-col gap-4", modo === "movil" ? "p-4" : "p-5")}>
+    <div id="resultados-busqueda" className={cn("relative flex flex-col gap-4", modo === "movil" ? "p-4" : "p-5")}>
+      {refrescando ? <BarraCarga /> : null}
       <p className="sr-only" aria-live="polite">
         {textoAria}
       </p>
 
-      {conResultados ? (
-        <div className="flex h-9 shrink-0 items-center gap-2">
-          {categoriaFijada && categoria != null ? (
-            <>
-              <span className="text-[13px] font-semibold">{NOMBRE_CATEGORIAS[categoria]}</span>
-              <span className="text-muted-foreground text-xs tabular-nums">{grupos[0]?.total ?? 0}</span>
-              <button type="button" onClick={onQuitarFiltro} className="text-primary ml-auto text-xs hover:underline">
-                Quitar filtro
-              </button>
-            </>
-          ) : (
-            <span className="text-muted-foreground text-[13px]">
-              Todos los resultados · <span className="tabular-nums">{total}</span>
-            </span>
-          )}
-        </div>
-      ) : null}
+      {/*
+        Stale-while-revalidate (§3.6): mientras llega la respuesta nueva, los
+        resultados viejos se quedan visibles, atenuados (opacity-70).
+      */}
+      <div className={cn("flex flex-col gap-4", refrescando && "opacity-70")}>
+        {conResultados ? (
+          <div className="flex h-9 shrink-0 items-center gap-2">
+            {categoriaFijada && categoria != null ? (
+              <>
+                <span className="text-[13px] font-semibold">{NOMBRE_CATEGORIAS[categoria]}</span>
+                <span className="text-muted-foreground text-xs tabular-nums">{grupos[0]?.total ?? 0}</span>
+                <button type="button" onClick={onQuitarFiltro} className="text-primary ml-auto text-xs hover:underline">
+                  Quitar filtro
+                </button>
+              </>
+            ) : (
+              <span className="text-muted-foreground text-[13px]">
+                Todos los resultados · <span className="tabular-nums">{total}</span>
+              </span>
+            )}
+          </div>
+        ) : null}
 
-      {contenido()}
+        {contenido()}
+      </div>
     </div>
   );
 }
