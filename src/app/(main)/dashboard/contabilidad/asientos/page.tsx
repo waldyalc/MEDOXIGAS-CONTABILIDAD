@@ -36,6 +36,7 @@ const ORIGENES: Record<string, string> = {
   pago_proveedor: "Pago a proveedor",
   gasto_menor: "Gasto",
   manual: "Manual",
+  saldo_inicial: "Saldos iniciales",
   anulacion: "Anulación",
 };
 

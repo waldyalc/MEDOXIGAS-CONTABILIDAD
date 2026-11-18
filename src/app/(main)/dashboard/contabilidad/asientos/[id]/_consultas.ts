@@ -187,6 +187,7 @@ async function resolverAnulacion(cliente: Cliente, asiento: AsientoFila): Promis
 async function resolverOrigen(cliente: Cliente, asiento: AsientoFila): Promise<OrigenAsiento> {
   if (asiento.origen_tipo === "anulacion") return resolverAnulacion(cliente, asiento);
   if (asiento.origen_tipo === "manual") return { etiqueta: "Manual", href: null };
+  if (asiento.origen_tipo === "saldo_inicial") return { etiqueta: "Saldos iniciales", href: null };
 
   if (asiento.origen_tipo === "transferencia" || asiento.origen_tipo === "deposito") {
     return {
