@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { listarAdjuntos } from "@/lib/adjuntos/consultas";
 import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
@@ -183,6 +184,7 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     pagosProveedorRes,
     lineasRes,
     configRes,
+    adjuntosRes,
   ] = await Promise.all([
     supabase.from("contactos").select(CAMPOS_CONTACTO).eq("id", id).maybeSingle().returns<ContactoConCuentas | null>(),
     paginarConsulta((inicio, fin) =>
@@ -289,6 +291,7 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
       .select("clave, cuenta_id")
       .in("clave", ["cxc", "cxp"])
       .returns<{ clave: string; cuenta_id: string }[]>(),
+    listarAdjuntos(supabase, "contacto", id),
   ]);
 
   for (const resultado of [
@@ -304,6 +307,7 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     pagosProveedorRes,
     lineasRes,
     configRes,
+    adjuntosRes,
   ]) {
     verificarError(resultado);
   }
@@ -363,5 +367,6 @@ export async function obtenerFichaContacto(id: string): Promise<DatosFichaContac
     pagosRecibidos,
     pagosProveedor,
     asientos,
+    adjuntos: adjuntosRes.data ?? [],
   };
 }

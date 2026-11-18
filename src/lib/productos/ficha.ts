@@ -1,3 +1,4 @@
+import type { AdjuntoItem } from "@/lib/adjuntos/adjuntos";
 import { calcularLinea, centavosAValor, valorACentavos } from "@/lib/facturacion/calculo";
 import type { ExistenciaAlmacen, TipoListaPrecio } from "@/lib/inventario/tipos";
 
@@ -85,6 +86,7 @@ export interface FichaProducto {
   conduces: DocumentoComercialFicha[];
   existencias: ExistenciaAlmacen[];
   kardex: ResultadoKardex;
+  adjuntos: AdjuntoItem[];
 }
 
 export interface DocumentoNumerado {

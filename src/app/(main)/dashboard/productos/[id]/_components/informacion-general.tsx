@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 
 import { cn } from "cn";
-import { Boxes, ClipboardList, Paperclip, TrendingDown } from "lucide-react";
+import { Boxes, ClipboardList, TrendingDown } from "lucide-react";
 
+import { SeccionAdjuntos } from "@/components/adjuntos/seccion-adjuntos";
 import { Enlace } from "@/components/enlace";
 import { ItemDato } from "@/components/ficha/ficha-ui";
 import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { rutaCuenta } from "@/lib/enlaces";
 import { centavosAValor } from "@/lib/facturacion/calculo";
@@ -260,25 +260,22 @@ function ListasPrecios({ producto }: { readonly producto: FichaProducto["product
   );
 }
 
-function ArchivosAdjuntos() {
+function ArchivosAdjuntos({
+  ficha,
+  puedeEscribir,
+}: {
+  readonly ficha: FichaProducto;
+  readonly puedeEscribir: boolean;
+}) {
   return (
     <section className={cn(CLASE_SUBPANEL, "flex flex-col gap-3 p-4")}>
       <TituloSeccion>Archivos adjuntos</TituloSeccion>
-      {/* TODO backend: no existen archivos adjuntos para productos. */}
-      <Empty className="border border-dashed py-6">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <Paperclip />
-          </EmptyMedia>
-          <EmptyTitle>Sin archivos adjuntos</EmptyTitle>
-          <EmptyDescription>Tamaño máximo 10 MB.</EmptyDescription>
-        </EmptyHeader>
-        <EmptyContent>
-          <Button variant="outline" size="sm" disabled>
-            Adjuntar archivo
-          </Button>
-        </EmptyContent>
-      </Empty>
+      <SeccionAdjuntos
+        adjuntos={ficha.adjuntos}
+        entidadTipo="producto"
+        entidadId={ficha.producto.id}
+        puedeEscribir={puedeEscribir}
+      />
     </section>
   );
 }
@@ -307,9 +304,11 @@ function Contabilidad({ ficha }: { readonly ficha: FichaProducto }) {
 
 export function InformacionGeneral({
   ficha,
+  puedeEscribir,
   onVerHistorial,
 }: {
   readonly ficha: FichaProducto;
+  readonly puedeEscribir: boolean;
   readonly onVerHistorial: () => void;
 }) {
   const { producto } = ficha;
@@ -322,7 +321,7 @@ export function InformacionGeneral({
       {producto.inventariable ? <Inventario ficha={ficha} onVerHistorial={onVerHistorial} /> : null}
       <div className="grid gap-6 lg:grid-cols-2">
         <ListasPrecios producto={producto} />
-        <ArchivosAdjuntos />
+        <ArchivosAdjuntos ficha={ficha} puedeEscribir={puedeEscribir} />
       </div>
       <Contabilidad ficha={ficha} />
     </div>

@@ -317,7 +317,7 @@ export function FichaProducto({
           </div>
 
           <TabsContent value="informacion" className="p-4 sm:p-5">
-            <InformacionGeneral ficha={ficha} onVerHistorial={verHistorial} />
+            <InformacionGeneral ficha={ficha} puedeEscribir={puedeEscribir} onVerHistorial={verHistorial} />
           </TabsContent>
 
           <TabsContent value="facturas-venta" className="p-4 sm:p-5">
