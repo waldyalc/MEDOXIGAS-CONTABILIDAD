@@ -82,17 +82,22 @@ test.describe("flujo de venta", () => {
     });
 
     // 2. Producto inventariable: precio 1000, costo 500, existencia inicial 50.
+    //    El alta es una página completa (el diálogo "Nuevo producto" ya no existe).
     await page.goto("/dashboard/productos", { timeout: LENTO });
-    await page.getByRole("button", { name: "Nuevo producto" }).first().click();
-    const dialogoProducto = page.getByRole("dialog", { name: "Nuevo producto" });
-    await expect(dialogoProducto).toBeVisible();
-    await dialogoProducto.getByLabel(/^Nombre/).fill(producto);
-    await dialogoProducto.getByLabel(/^Precio/).fill("1000");
-    await dialogoProducto.getByRole("switch", { name: "Controlar inventario" }).click();
-    await dialogoProducto.getByLabel("Cantidad inicial").fill("50");
-    await dialogoProducto.getByLabel("Costo", { exact: true }).fill("500");
-    await dialogoProducto.getByRole("button", { name: "Guardar", exact: true }).click();
-    await expect(dialogoProducto, "el diálogo del producto no cerró tras guardar").toBeHidden({ timeout: LENTO });
+    await page.getByRole("link", { name: "Nuevo producto" }).first().click();
+    await page.waitForURL(/\/dashboard\/productos\/nuevo/, { timeout: LENTO });
+
+    await page.getByLabel("Nombre").fill(producto);
+    await page.getByLabel("Precio base").fill("1000");
+    // El alta nace inventariable: el switch solo se prende si llegara apagado.
+    const switchInventariable = page.getByRole("switch", { name: "Producto inventariable" });
+    if ((await switchInventariable.getAttribute("aria-checked")) !== "true") {
+      await switchInventariable.click();
+    }
+    await page.getByLabel("Cantidad inicial").fill("50");
+    await page.getByLabel("Costo por unidad").fill("500");
+    await page.getByRole("button", { name: "Guardar", exact: true }).first().click();
+    await page.waitForURL(/\/dashboard\/productos\/[0-9a-f-]{36}/, { timeout: LENTO });
 
     await page.goto(`/dashboard/productos?q=${encodeURIComponent(producto)}`, { timeout: LENTO });
     const filaProducto = page.getByRole("row").filter({ hasText: producto });
