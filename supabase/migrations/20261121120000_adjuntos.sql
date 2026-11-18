@@ -67,6 +67,7 @@ declare
   v_rol text;
   v_tipo text;
   v_entidad uuid;
+  v_existe boolean;
   v_path text;
   v_nombre text;
   v_mime text;
@@ -93,13 +94,14 @@ begin
     raise exception 'la entidad es obligatoria' using errcode = '22023';
   end if;
 
-  if not case v_tipo
+  v_existe := case v_tipo
     when 'contacto' then exists (select 1 from public.contactos c where c.id = v_entidad)
     when 'producto' then exists (select 1 from public.productos pr where pr.id = v_entidad)
     when 'factura' then exists (select 1 from public.facturas f where f.id = v_entidad)
     when 'factura_proveedor' then exists (select 1 from public.facturas_proveedor fp where fp.id = v_entidad)
     else exists (select 1 from public.pagos_recibidos pg where pg.id = v_entidad)
-  end then
+  end;
+  if not v_existe then
     raise exception 'la entidad no existe' using errcode = '22023';
   end if;
 
