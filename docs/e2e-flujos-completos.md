@@ -337,9 +337,9 @@ expect(saldoTotalDespues).toBe(saldoTotalAntes); // la transferencia no crea din
 
 ---
 
-## TEST 5: Búsqueda global
+## TEST 5: Búsqueda global — pendiente
 
-**Archivo:** `tests/e2e/busqueda-global.spec.ts`
+**Archivo:** `tests/e2e/busqueda-global.spec.ts` ⏳ **Pendiente: el spec aún no existe; esta sección es solo el plan.**
 
 **Qué simula:** Waldy usa Ctrl+K para buscar y navegar a un resultado.
 
@@ -388,9 +388,9 @@ expect(saldoTotalDespues).toBe(saldoTotalAntes); // la transferencia no crea din
 
 ---
 
-## TEST 6: Impresión de documentos
+## TEST 6: Impresión de documentos — pendiente
 
-**Archivo:** `tests/e2e/impresion.spec.ts`
+**Archivo:** `tests/e2e/impresion.spec.ts` ⏳ **Pendiente: el spec aún no existe; esta sección es solo el plan.**
 
 **Qué simula:** Waldy imprime una factura y verifica que el PDF es correcto.
 
@@ -424,8 +424,8 @@ tests/e2e/
 ├── flujo-compra.spec.ts      ← Test 2: compra completa
 ├── flujo-contable.spec.ts    ← Test 3: asientos, reportes, periodos
 ├── flujo-banco.spec.ts       ← Test 4: transferencias, conciliaciones
-├── busqueda-global.spec.ts   ← Test 5: Ctrl+K, buscar, navegar
-├── impresion.spec.ts         ← Test 6: PDF de documentos
+├── busqueda-global.spec.ts   ← Test 5 (pendiente): Ctrl+K, buscar, navegar
+├── impresion.spec.ts         ← Test 6 (pendiente): PDF de documentos
 ├── smoke.spec.ts             ← ya existe (login, redirect)
 ├── numeraciones.spec.ts      ← ya existe (guardar B16)
 ├── listas.spec.ts            ← ya existe (búsqueda sin resultados)
@@ -486,7 +486,7 @@ E2E_PASSWORD=...
 | flujo-compra | Compra creada + pagada + inventario subió + asiento cuadra + aparece en 606 |
 | flujo-contable | Asiento cuadrado se guarda, descuadrado se bloquea, reporte lo muestra, periodo se cierra/reabre |
 | flujo-banco | Transferencia no crea dinero, saldos correctos, asiento cuadra |
-| busqueda-global | Ctrl+K abre/cierra, busca navegación/contactos/facturas, navega a resultado |
-| impresion | PDF incluye logo, empresa, NCF, líneas, totales |
+| busqueda-global (pendiente) | Ctrl+K abre/cierra, busca navegación/contactos/facturas, navega a resultado |
+| impresion (pendiente) | PDF incluye logo, empresa, NCF, líneas, totales |
 
-Si los 6 tests pasan, el sistema está listo para operar el negocio real con confianza.
+Si los 4 tests implementados pasan, el sistema está listo para operar el negocio real con confianza (los 2 pendientes se suman cuando existan sus specs).
