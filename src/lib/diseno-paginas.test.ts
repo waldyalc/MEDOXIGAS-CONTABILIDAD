@@ -36,7 +36,6 @@ const PENDIENTES_TEXT_3XL = [
   "bancos/page.tsx",
   "bancos/transferencias/[id]/page.tsx",
   "conduces/page.tsx",
-  "configuracion/page.tsx",
   "contabilidad/activos/page.tsx",
   "contabilidad/asientos/page.tsx",
   "contabilidad/numeraciones/page.tsx",
@@ -48,7 +47,6 @@ const PENDIENTES_TEXT_3XL = [
   "notas-credito/page.tsx",
   "notas-debito/page.tsx",
   "pagos-recibidos/page.tsx",
-  "reportes/page.tsx",
 ] as const;
 
 const AYUDA_TITULO =
