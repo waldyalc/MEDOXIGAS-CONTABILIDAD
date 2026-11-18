@@ -1,6 +1,9 @@
 begin;
 select plan(16);
 
+create temp table _ids (clave text primary key, id uuid) on commit drop;
+grant select, insert, update, delete on _ids to authenticated;
+
 insert into auth.users (id, email) values
   ('77777777-7777-7777-7777-777777777777', 'admin.tipos@prueba.local'),
   ('88888888-8888-8888-8888-888888888888', 'lector.tipos@prueba.local');
@@ -94,55 +97,59 @@ select is(
   'el consecutivo de AC sube a 2 tras el asiento'
 );
 
--- Asiento con tipo elegido: usa el prefijo del tipo y su propio consecutivo
+-- Asiento con tipo elegido: usa el prefijo del tipo y su propio consecutivo.
+-- El id se guarda en _ids: una función volátil dentro del WHERE se evalúa por
+-- fila y la fila que crea no entra en el snapshot de la misma consulta.
+insert into _ids (clave, id)
+select 'dtb1', public.crear_asiento_manual(
+  jsonb_build_object(
+    'fecha', '2026-11-18',
+    'descripcion', 'Asiento con tipo pgTAP',
+    'tipo_entrada_id', (select id from public.tipos_entrada_diario where prefijo = 'DTB'),
+    'lineas', jsonb_build_array(
+      jsonb_build_object(
+        'cuenta_id', (select id from public.cuentas where codigo = '1101'),
+        'debito', 25,
+        'credito', 0
+      ),
+      jsonb_build_object(
+        'cuenta_id', (select id from public.cuentas where codigo = '3101'),
+        'debito', 0,
+        'credito', 25
+      )
+    )
+  )
+);
+
 select is(
-  (select a.codigo
-   from public.asientos a
-   where a.id = public.crear_asiento_manual(
-     jsonb_build_object(
-       'fecha', '2026-11-18',
-       'descripcion', 'Asiento con tipo pgTAP',
-       'tipo_entrada_id', (select id from public.tipos_entrada_diario where prefijo = 'DTB'),
-       'lineas', jsonb_build_array(
-         jsonb_build_object(
-           'cuenta_id', (select id from public.cuentas where codigo = '1101'),
-           'debito', 25,
-           'credito', 0
-         ),
-         jsonb_build_object(
-           'cuenta_id', (select id from public.cuentas where codigo = '3101'),
-           'debito', 0,
-           'credito', 25
-         )
-       )
-     )
-   )),
+  (select a.codigo from public.asientos a where a.id = (select id from _ids where clave = 'dtb1')),
   'DTB-1',
   'el asiento con tipo DTB toma el código DTB-1'
 );
 
+insert into _ids (clave, id)
+select 'dtb2', public.crear_asiento_manual(
+  jsonb_build_object(
+    'fecha', '2026-11-18',
+    'descripcion', 'Asiento con tipo dos pgTAP',
+    'tipo_entrada_id', (select id from public.tipos_entrada_diario where prefijo = 'DTB'),
+    'lineas', jsonb_build_array(
+      jsonb_build_object(
+        'cuenta_id', (select id from public.cuentas where codigo = '1101'),
+        'debito', 25,
+        'credito', 0
+      ),
+      jsonb_build_object(
+        'cuenta_id', (select id from public.cuentas where codigo = '3101'),
+        'debito', 0,
+        'credito', 25
+      )
+    )
+  )
+);
+
 select is(
-  (select a.codigo
-   from public.asientos a
-   where a.id = public.crear_asiento_manual(
-     jsonb_build_object(
-       'fecha', '2026-11-18',
-       'descripcion', 'Asiento con tipo dos pgTAP',
-       'tipo_entrada_id', (select id from public.tipos_entrada_diario where prefijo = 'DTB'),
-       'lineas', jsonb_build_array(
-         jsonb_build_object(
-           'cuenta_id', (select id from public.cuentas where codigo = '1101'),
-           'debito', 25,
-           'credito', 0
-         ),
-         jsonb_build_object(
-           'cuenta_id', (select id from public.cuentas where codigo = '3101'),
-           'debito', 0,
-           'credito', 25
-         )
-       )
-     )
-   )),
+  (select a.codigo from public.asientos a where a.id = (select id from _ids where clave = 'dtb2')),
   'DTB-2',
   'el segundo asiento del mismo tipo toma DTB-2'
 );
