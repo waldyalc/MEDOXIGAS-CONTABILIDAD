@@ -5,7 +5,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 
 import type { LucideIcon } from "lucide-react";
-import { Clock, Search, TrendingUp } from "lucide-react";
+import { Clock, FileText, Package, Search, TrendingUp, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,12 +19,21 @@ import {
 } from "@/components/ui/command";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import type { Rol } from "@/lib/auth/rol";
+import { buscarEntidades, type ResultadoBusquedaGlobal } from "@/lib/busqueda/acciones";
+import { formatoMoneda } from "@/lib/facturacion/formato";
+import { formatoDia } from "@/lib/formato";
 import { getLocalStorageValue, setLocalStorageValue } from "@/lib/local-storage.client";
 import { REPORTES } from "@/lib/reportes/catalogo-reportes";
 import { filtrarItemsPorRol } from "@/navigation/sidebar/sidebar-items";
 
 const CLAVE_RECIENTES = "medoxigas.busqueda.recientes";
 const MAX_RECIENTES = 5;
+
+/** Espera antes de consultar la base mientras se escribe (ms). */
+const ESPERA_BUSQUEDA_MS = 300;
+
+/** Mínimo de caracteres para buscar datos (igual que la server action). */
+const MINIMO_BUSQUEDA = 2;
 
 interface Enlace {
   id: string;
@@ -67,8 +76,6 @@ function enlacesDeNavegacion(rol: Rol | null): Enlace[] {
   return enlaces;
 }
 
-// TODO backend: cuando exista la búsqueda de contactos, productos y facturas,
-// agregar esos grupos aquí (consultando una ruta api/ o server action).
 const ENLACES_REPORTES: Enlace[] = REPORTES.flatMap((reporte) =>
   reporte.href == null
     ? []
@@ -121,7 +128,9 @@ export function BusquedaGlobal({ rol }: Props) {
   const [abierto, setAbierto] = React.useState(false);
   const [texto, setTexto] = React.useState("");
   const [recientes, setRecientes] = React.useState<Reciente[]>([]);
+  const [datos, setDatos] = React.useState<ResultadoBusquedaGlobal | null>(null);
   const [atajo, setAtajo] = React.useState("Ctrl");
+  const solicitudDatos = React.useRef(0);
 
   const enlaces = React.useMemo(() => enlacesDeNavegacion(rol), [rol]);
   const buscando = texto.trim().length > 0;
@@ -129,6 +138,33 @@ export function BusquedaGlobal({ rol }: Props) {
   React.useEffect(() => {
     if (esMac()) setAtajo("⌘");
   }, []);
+
+  // Busca contactos, productos y facturas en la base con debounce; si falla,
+  // los datos se descartan y la paleta queda solo con navegación y reportes.
+  React.useEffect(() => {
+    const termino = texto.trim();
+
+    if (!abierto || termino.length < MINIMO_BUSQUEDA) {
+      solicitudDatos.current += 1;
+      setDatos(null);
+      return;
+    }
+
+    const numero = solicitudDatos.current + 1;
+    solicitudDatos.current = numero;
+
+    const temporizador = setTimeout(() => {
+      buscarEntidades(termino)
+        .then((resultado) => {
+          if (solicitudDatos.current === numero) setDatos(resultado);
+        })
+        .catch(() => {
+          if (solicitudDatos.current === numero) setDatos(null);
+        });
+    }, ESPERA_BUSQUEDA_MS);
+
+    return () => clearTimeout(temporizador);
+  }, [abierto, texto]);
 
   const abrirDialogo = React.useCallback(() => {
     setRecientes(leerRecientes());
@@ -191,14 +227,14 @@ export function BusquedaGlobal({ rol }: Props) {
         open={abierto}
         onOpenChange={cambiarApertura}
         title="Buscar en Medoxigas Contabilidad"
-        description="Ir a módulos, reportes y páginas recientes."
+        description="Buscar contactos, productos y facturas, o ir a módulos y reportes."
         className="gap-0 sm:max-w-lg"
       >
         <Command>
           <CommandInput
             autoFocus
-            placeholder="Buscar módulos y reportes…"
-            aria-label="Buscar módulos y reportes"
+            placeholder="Buscar contactos, productos, facturas…"
+            aria-label="Buscar contactos, productos, facturas, módulos y reportes"
             value={texto}
             onValueChange={setTexto}
           />
@@ -206,6 +242,70 @@ export function BusquedaGlobal({ rol }: Props) {
             <CommandEmpty>
               {buscando ? `Sin resultados para «${texto.trim()}».` : "No hay páginas para mostrar."}
             </CommandEmpty>
+
+            {datos && datos.contactos.length > 0 ? (
+              <CommandGroup heading="Contactos">
+                {datos.contactos.map((contacto) => (
+                  <CommandItem
+                    key={`contacto-${contacto.id}`}
+                    value={["contacto", contacto.nombre, contacto.rnc].filter(Boolean).join(" ")}
+                    onSelect={() => ir(`/dashboard/contactos/${contacto.id}`, contacto.nombre)}
+                  >
+                    <Users />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate">{contacto.nombre}</span>
+                      {contacto.rnc ? (
+                        <span className="text-muted-foreground truncate text-xs tabular-nums">{contacto.rnc}</span>
+                      ) : null}
+                    </span>
+                    <span className="text-muted-foreground ml-auto shrink-0 text-xs">{contacto.tipo}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ) : null}
+
+            {datos && datos.productos.length > 0 ? (
+              <CommandGroup heading="Productos">
+                {datos.productos.map((producto) => (
+                  <CommandItem
+                    key={`producto-${producto.id}`}
+                    value={["producto", producto.nombre, producto.referencia].filter(Boolean).join(" ")}
+                    onSelect={() => ir(`/dashboard/productos/${producto.id}`, producto.nombre)}
+                  >
+                    <Package />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate">{producto.nombre}</span>
+                      <span className="text-muted-foreground truncate text-xs tabular-nums">
+                        {[producto.referencia, formatoMoneda(producto.precio)].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ) : null}
+
+            {datos && datos.facturas.length > 0 ? (
+              <CommandGroup heading="Facturas">
+                {datos.facturas.map((factura) => (
+                  <CommandItem
+                    key={`factura-${factura.id}`}
+                    value={["factura", factura.ncf, factura.contacto].filter(Boolean).join(" ")}
+                    onSelect={() => ir(`/dashboard/facturacion/${factura.id}`, factura.ncf)}
+                  >
+                    <FileText />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate font-mono">{factura.ncf}</span>
+                      <span className="text-muted-foreground truncate text-xs">
+                        {[factura.contacto, formatoDia(factura.fecha)].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                    <span className="text-muted-foreground ml-auto shrink-0 text-xs tabular-nums">
+                      {formatoMoneda(factura.total)}
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ) : null}
 
             {!buscando && recientes.length > 0 ? (
               <CommandGroup heading="Recientes">
