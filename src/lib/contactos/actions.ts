@@ -28,6 +28,7 @@ function datosDesdeFormulario(formData: FormData) {
     ...(typeof tipoIdentificacion === "string"
       ? { tipo_identificacion: tipoIdentificacion === "" ? null : tipoIdentificacion }
       : {}),
+    ...(formData.has("limite_credito") ? { limite_credito: texto(formData, "limite_credito") } : {}),
     ...(formData.has("municipio_provincia") ? { municipio_provincia: texto(formData, "municipio_provincia") } : {}),
   };
 }
