@@ -159,7 +159,7 @@ select ok(
 -- ---------------------------------------------------------------------------
 
 select is(
-  (select count(*)
+  (select count(*)::int
    from _filas_res
    where clave = 'ncf' and entidad = 'factura'
      and resultado->>'id' = (select id::text from _ids where clave = 'f_nov')),
@@ -168,7 +168,7 @@ select is(
 );
 
 select is(
-  (select count(*)
+  (select count(*)::int
    from _filas_res
    where clave = 'numero' and entidad = 'factura'
      and resultado->>'id' = (select id::text from _ids where clave = 'f_nov')),
@@ -279,13 +279,13 @@ select ok(
 -- ---------------------------------------------------------------------------
 
 select is(
-  (select count(*) from _filas_res where clave = 'tope4' and entidad = 'factura'),
+  (select count(*)::int from _filas_res where clave = 'tope4' and entidad = 'factura'),
   4,
   'Prueba 8: limite=4 respeta el tope por grupo (hay 5 facturas)'
 );
 
 select is(
-  (select count(*) from _filas_res where clave = 'gastos_p1'),
+  (select count(*)::int from _filas_res where clave = 'gastos_p1'),
   200,
   'Prueba 8: el tope duro por categoría son 200 (hay 205 gastos)'
 );
@@ -297,13 +297,13 @@ select is(
 );
 
 select is(
-  (select count(*) from _filas_res where clave = 'gastos_p2'),
+  (select count(*)::int from _filas_res where clave = 'gastos_p2'),
   5,
   'Prueba 8: desplazamiento=200 trae solo las 5 restantes'
 );
 
 select is(
-  (select count(*)
+  (select count(*)::int
    from _filas_res a
    join _filas_res b
      on b.clave = 'gastos_p2' and a.resultado->>'id' = b.resultado->>'id'
@@ -346,7 +346,7 @@ select is(
 );
 
 select is(
-  (select count(*)
+  (select count(*)::int
    from _filas_res
    where clave = 'exacto_y_texto'
      and resultado->>'id' = (select id::text from _ids where clave = 'f_nov')),

@@ -1,5 +1,5 @@
 begin;
-select plan(17);
+select plan(21);
 
 insert into auth.users (id, email) values
   ('d1d1d1d1-1111-1111-1111-111111111111', 'admin.adjuntos@prueba.local'),
