@@ -3980,6 +3980,12 @@ export type Database = {
         }
         Returns: string
       }
+      crear_numeracion: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
       crear_orden_compra: {
         Args: {
           p: Json

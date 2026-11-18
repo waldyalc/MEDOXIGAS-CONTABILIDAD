@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { TIPO_SIN_NCF, TIPOS_NUMERACION } from "./tipos";
+
 const siguienteSchema = z.coerce
   .number()
   .int("El siguiente debe ser un entero")
@@ -30,6 +32,32 @@ export const actualizarNumeracionSchema = z
   });
 
 export type ActualizarNumeracionEntrada = z.infer<typeof actualizarNumeracionSchema>;
+
+const prefijoSchema = z.preprocess(
+  (valor) => (valor == null ? null : String(valor).trim() || null),
+  z.string().min(1).max(10, "El prefijo es demasiado largo").nullable(),
+);
+
+export const crearNumeracionSchema = z
+  .object({
+    tipo_comprobante: z.enum(TIPOS_NUMERACION, "El tipo de documento no es válido"),
+    nombre: z.string().trim().min(1, "El nombre es obligatorio").max(120, "El nombre es demasiado largo"),
+    prefijo: prefijoSchema,
+    siguiente: siguienteSchema,
+    hasta: hastaSchema,
+    vence: venceSchema,
+    activa: z.boolean(),
+  })
+  .refine((datos) => datos.tipo_comprobante !== TIPO_SIN_NCF || datos.prefijo != null, {
+    message: "El prefijo es obligatorio",
+    path: ["prefijo"],
+  })
+  .refine((datos) => datos.hasta == null || datos.siguiente <= datos.hasta, {
+    message: "El siguiente no puede ser mayor que el hasta",
+    path: ["siguiente"],
+  });
+
+export type CrearNumeracionEntrada = z.infer<typeof crearNumeracionSchema>;
 
 export function mensajeValidacion(error: z.ZodError): string {
   return error.issues[0]?.message ?? "Datos inválidos";
