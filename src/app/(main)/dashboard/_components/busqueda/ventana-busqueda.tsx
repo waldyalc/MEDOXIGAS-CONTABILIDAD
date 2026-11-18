@@ -16,6 +16,7 @@ import {
   Search,
   ShoppingCart,
   Sparkles,
+  TrendingUp,
   UserPlus,
   Wallet,
 } from "lucide-react";
@@ -26,20 +27,12 @@ import { Kbd } from "@/components/ui/kbd";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Rol } from "@/lib/auth/rol";
-import {
-  rutaAsiento,
-  rutaCompra,
-  rutaContacto,
-  rutaCuenta,
-  rutaFactura,
-  rutaGasto,
-  rutaNotaCreditoVenta,
-  rutaOrdenCompra,
-  rutaPagoProveedor,
-  rutaPagoRecibido,
-  rutaProducto,
-} from "@/lib/enlaces";
+import { buscarGlobal, buscarGlobalPorCategoria } from "@/lib/busqueda/consultas";
+import { rutaDeResultado } from "@/lib/busqueda/rutas";
+import type { RespuestaBusqueda } from "@/lib/busqueda/tipos";
 import { getLocalStorageValue, setLocalStorageValue } from "@/lib/local-storage.client";
+import { REPORTES } from "@/lib/reportes/catalogo-reportes";
+import { filtrarItemsPorRol } from "@/navigation/sidebar/sidebar-items";
 
 import {
   agrupar,
@@ -53,12 +46,21 @@ import { type CategoriaRail, ICONO_CATEGORIA, NOMBRE_CATEGORIAS, RailCategorias 
 import { TarjetaResultado } from "./tarjeta-resultado";
 
 const CLAVE_RECIENTES = "medoxigas.busqueda.recientes";
-/** Mismo formato y tope que el diálogo actual: los recientes viejos se leen igual (§2.5). */
-const MAX_RECIENTES = 5;
+/**
+ * Recientes en localStorage con el formato de siempre, `{titulo, url}` (§2.5):
+ * los que guardó el diálogo viejo se siguen leyendo. Tope 8, dedupe por url.
+ */
+const MAX_RECIENTES = 8;
 const MINIMO_BUSQUEDA = 2;
 
-/** Espera simulada mientras no exista la RPC: deja ver el estado de carga. */
-const ESPERA_BUSQUEDA_MS = 300;
+/** Debounce de la consulta mientras se escribe (§3.6). */
+const DEBOUNCE_BUSQUEDA_MS = 250;
+
+/** «Ver más» avanza de 20 en 20: el límite de categoría de la RPC (§3.5). */
+const PASO_VER_MAS = 20;
+
+/** Con categoría fijada el servidor ya paginó y «Ver más» acumula: el cliente no recorta (§1.5). */
+const SIN_LIMITE = Number.POSITIVE_INFINITY;
 
 const PLACEHOLDER = "Busca facturas, clientes, NCF, montos…";
 /** Sugerencia rotativa a los 4 s sin escribir (§1.3). */
@@ -83,241 +85,73 @@ interface Reciente {
   url: string;
 }
 
-/**
- * Datos de ejemplo de la fase 1 (§5.7): la ventana se publica antes de la RPC
- * y estos datos dejan clavar medidas, grupos y estados sin depender de la base.
- * TODO: conectar a buscar_global cuando exista la RPC; entonces se borran estos
- * datos y el filtro local, y las rutas salen de src/lib/busqueda/rutas.ts.
- */
-const RESULTADOS_EJEMPLO: (ResultadoBusqueda & { url: string })[] = [
-  // — Clientes (contactos)
-  {
-    entidad: "contacto",
-    id: "ejemplo-pedro",
-    titulo: "Pedro Pérez",
-    subtitulo: "1-01-12345-6",
-    etiquetas: ["809-555-1234"],
-    estado: { texto: "Cliente", tono: "info" },
-    fecha: null,
-    monto: null,
-    rango: 2,
-    url: rutaContacto("ejemplo-pedro"),
-  },
-  {
-    entidad: "contacto",
-    id: "ejemplo-oxymat",
-    titulo: "OXYMAT SRL",
-    subtitulo: "131488791",
-    etiquetas: ["809-555-0199"],
-    estado: { texto: "Proveedor", tono: "neutro" },
-    fecha: null,
-    monto: null,
-    rango: 2,
-    url: rutaContacto("ejemplo-oxymat"),
-  },
-  {
-    entidad: "contacto",
-    id: "ejemplo-farmacia",
-    titulo: "Farmacia del Sol",
-    subtitulo: "00112345678",
-    etiquetas: ["809-333-2211"],
-    estado: { texto: "Cliente", tono: "info" },
-    fecha: null,
-    monto: null,
-    rango: 3,
-    url: rutaContacto("ejemplo-farmacia"),
-  },
-  // — Productos
-  {
-    entidad: "producto",
-    id: "ejemplo-ox200",
-    titulo: "Cilindro de oxígeno 200 bar",
-    subtitulo: "OX-200",
-    etiquetas: ["ITBIS 18 %"],
-    estado: { texto: "Producto", tono: "neutro" },
-    fecha: null,
-    monto: "3500.00",
-    rango: 2,
-    url: rutaProducto("ejemplo-ox200"),
-  },
-  {
-    entidad: "producto",
-    id: "ejemplo-nitrogeno",
-    titulo: "Nitrógeno líquido por litro",
-    subtitulo: "NL-001",
-    etiquetas: ["ITBIS 18 %"],
-    estado: { texto: "Producto", tono: "neutro" },
-    fecha: null,
-    monto: "180.00",
-    rango: 3,
-    url: rutaProducto("ejemplo-nitrogeno"),
-  },
-  {
-    entidad: "producto",
-    id: "ejemplo-transporte",
-    titulo: "Transporte de cilindros",
-    subtitulo: "SERV-01",
-    etiquetas: ["Exento"],
-    estado: { texto: "Servicio", tono: "info" },
-    fecha: null,
-    monto: "1200.00",
-    rango: 3,
-    url: rutaProducto("ejemplo-transporte"),
-  },
-  // — Facturación
-  {
-    entidad: "factura",
-    id: "ejemplo-f123",
-    titulo: "B0100000123",
-    subtitulo: "Pedro Pérez · 12/10/2026",
-    etiquetas: ["01 · Crédito fiscal"],
-    estado: { texto: "Cobrada", tono: "exito" },
-    fecha: "2026-10-12",
-    monto: "4500.00",
-    rango: 1,
-    url: rutaFactura("ejemplo-f123"),
-  },
-  {
-    entidad: "factura",
-    id: "ejemplo-f124",
-    titulo: "B0100000124",
-    subtitulo: "Pedro Pérez · 03/10/2026",
-    etiquetas: ["01 · Crédito fiscal"],
-    estado: { texto: "Por cobrar", tono: "pendiente" },
-    fecha: "2026-10-03",
-    monto: "1200.00",
-    rango: 2,
-    url: rutaFactura("ejemplo-f124"),
-  },
-  {
-    entidad: "factura",
-    id: "ejemplo-f118",
-    titulo: "B0100000118",
-    subtitulo: "OXYMAT SRL · 28/09/2026",
-    etiquetas: ["02 · Consumo"],
-    estado: { texto: "Cobrada", tono: "exito" },
-    fecha: "2026-09-28",
-    monto: "18750.00",
-    rango: 3,
-    url: rutaFactura("ejemplo-f118"),
-  },
-  {
-    entidad: "nota_credito_venta",
-    id: "ejemplo-nc31",
-    titulo: "B0400000031",
-    subtitulo: "Pedro Pérez · 15/10/2026",
-    etiquetas: ["Nota de crédito"],
-    estado: { texto: "Anulada", tono: "peligro" },
-    fecha: "2026-10-15",
-    monto: "450.00",
-    rango: 4,
-    url: rutaNotaCreditoVenta("ejemplo-nc31"),
-  },
-  {
-    entidad: "pago_recibido",
-    id: "ejemplo-pr66",
-    titulo: "N.º 66",
-    subtitulo: "OXYMAT SRL · 05/11/2026",
-    etiquetas: ["Transferencia"],
-    estado: { texto: "Registrado", tono: "exito" },
-    fecha: "2026-11-05",
-    monto: "18750.00",
-    rango: 4,
-    url: rutaPagoRecibido("ejemplo-pr66"),
-  },
-  // — Compras
-  {
-    entidad: "factura_proveedor",
-    id: "ejemplo-cp99",
-    titulo: "B0104500099",
-    subtitulo: "Oxígeno RD SRL · 10/11/2026",
-    etiquetas: ["01 · Crédito fiscal"],
-    estado: { texto: "Pagada", tono: "exito" },
-    fecha: "2026-11-10",
-    monto: "22400.00",
-    rango: 2,
-    url: rutaCompra("ejemplo-cp99"),
-  },
-  {
-    entidad: "gasto_menor",
-    id: "ejemplo-gasto1",
-    titulo: "B1300000001",
-    subtitulo: "Almuerzo de la oficina · 14/11/2026",
-    etiquetas: ["Gasto menor"],
-    estado: { texto: "Registrado", tono: "exito" },
-    fecha: "2026-11-14",
-    monto: "1850.00",
-    rango: 4,
-    url: rutaGasto("ejemplo-gasto1"),
-  },
-  {
-    entidad: "pago_proveedor",
-    id: "ejemplo-pp45",
-    titulo: "N.º 45",
-    subtitulo: "Oxígeno RD SRL · 08/11/2026",
-    etiquetas: ["Cheque"],
-    estado: { texto: "Registrado", tono: "exito" },
-    fecha: "2026-11-08",
-    monto: "15000.00",
-    rango: 4,
-    url: rutaPagoProveedor("ejemplo-pp45"),
-  },
-  {
-    entidad: "orden_compra",
-    id: "ejemplo-oc210",
-    titulo: "N.º 210",
-    subtitulo: "Oxígeno RD SRL · 02/11/2026",
-    etiquetas: ["Orden de compra"],
-    estado: { texto: "Pendiente", tono: "pendiente" },
-    fecha: "2026-11-02",
-    monto: "9800.00",
-    rango: 4,
-    url: rutaOrdenCompra("ejemplo-oc210"),
-  },
-  // — Otros
-  {
-    entidad: "asiento",
-    id: "ejemplo-a4210",
-    titulo: "N.º 4210",
-    subtitulo: "Venta B0100000123 · 12/10/2026",
-    etiquetas: [],
-    estado: { texto: "Automático", tono: "info" },
-    fecha: "2026-10-12",
-    monto: "4500.00",
-    rango: 4,
-    url: rutaAsiento("ejemplo-a4210"),
-  },
-  {
-    entidad: "cuenta",
-    id: "ejemplo-cuenta1103",
-    titulo: "1103",
-    subtitulo: "Efectivo y equivalentes",
-    etiquetas: ["Activo"],
-    estado: { texto: "Detalle", tono: "neutro" },
-    fecha: null,
-    monto: null,
-    rango: 4,
-    url: rutaCuenta("ejemplo-cuenta1103"),
-  },
-  {
-    entidad: "reporte",
-    id: "ejemplo-ventas-producto",
-    titulo: "Ventas por producto",
-    subtitulo: "Reportes · Ventas",
-    etiquetas: [],
-    estado: null,
-    fecha: null,
-    monto: null,
-    rango: 5,
-    url: "/dashboard/reportes/ventas-producto",
-  },
-];
+/** Enlace del fallback (§1.9): página del menú lateral o reporte del catálogo. */
+interface Enlace {
+  id: string;
+  titulo: string;
+  url: string;
+  /** Módulo del menú al que pertenece (solo subítems de navegación). */
+  modulo?: string;
+  icono: typeof Search;
+}
 
-const URLS_EJEMPLO = new Map<string, string>(RESULTADOS_EJEMPLO.map((r) => [claveResultado(r), r.url]));
+/** Enlaces de navegación del menú lateral, aplanados a una sola lista. */
+function enlacesDeNavegacion(rol: Rol | null): Enlace[] {
+  const enlaces: Enlace[] = [];
 
-/** En fase 1 la ruta viene embebida en los datos de ejemplo (TODO: src/lib/busqueda/rutas.ts). */
-function urlEjemplo(resultado: ResultadoBusqueda): string {
-  return URLS_EJEMPLO.get(claveResultado(resultado)) ?? "/dashboard";
+  for (const grupo of filtrarItemsPorRol(rol)) {
+    for (const item of grupo.items) {
+      if (item.subItems == null) {
+        enlaces.push({ id: item.id, titulo: item.title, url: item.url, icono: item.icon ?? Search });
+        continue;
+      }
+
+      for (const subItem of item.subItems) {
+        if (subItem.disabled) continue;
+        enlaces.push({
+          id: subItem.id,
+          titulo: subItem.title,
+          url: subItem.url,
+          modulo: item.title,
+          icono: item.icon ?? Search,
+        });
+      }
+    }
+  }
+
+  return enlaces;
+}
+
+/** Reportes del catálogo con ruta; los que aún no la tienen quedan fuera (como en el diálogo viejo). */
+const ENLACES_REPORTES: Enlace[] = REPORTES.flatMap((reporte) =>
+  reporte.href == null
+    ? []
+    : [{ id: `reporte-${reporte.href}`, titulo: reporte.nombre, url: reporte.href, icono: TrendingUp }],
+);
+
+/** Suma los `total` de los grupos de entidad de la RPC por categoría del rail (§1.4). */
+function totalesPorGrupoDe(respuesta: RespuestaBusqueda): Partial<Record<GrupoBusqueda, number>> {
+  const totales: Partial<Record<GrupoBusqueda, number>> = {};
+  for (const grupo of respuesta.grupos) {
+    totales[grupo.grupo] = (totales[grupo.grupo] ?? 0) + grupo.total;
+  }
+  return totales;
+}
+
+/** Une una página de «Ver más» a la respuesta acumulada, sin repetir (entidad, id) (§2.7). */
+function combinarRespuestas(anterior: RespuestaBusqueda | null, pagina: RespuestaBusqueda): RespuestaBusqueda {
+  if (anterior == null) return pagina;
+
+  const acumulados = new Map(anterior.grupos.map((grupo) => [grupo.entidad, grupo.resultados]));
+  const grupos = pagina.grupos.map((grupo) => {
+    const previos = acumulados.get(grupo.entidad);
+    if (previos == null) return grupo;
+    const vistos = new Set(previos.map(claveResultado));
+    const nuevos = grupo.resultados.filter((resultado) => !vistos.has(claveResultado(resultado)));
+    return { ...grupo, resultados: [...previos, ...nuevos] };
+  });
+
+  return { grupos, total: pagina.total, hayMas: pagina.hayMas, ms: pagina.ms };
 }
 
 type ModoVentana = "movil" | "compacta" | "escritorio";
@@ -373,12 +207,14 @@ function leerRecientes(): Reciente[] {
     const datos: unknown = JSON.parse(crudo);
     if (!Array.isArray(datos)) return [];
 
-    return datos.flatMap((valor): Reciente[] => {
-      if (typeof valor !== "object" || valor == null) return [];
-      const { titulo, url } = valor as { titulo?: unknown; url?: unknown };
-      if (typeof titulo !== "string" || typeof url !== "string") return [];
-      return [{ titulo, url }];
-    });
+    return datos
+      .flatMap((valor): Reciente[] => {
+        if (typeof valor !== "object" || valor == null) return [];
+        const { titulo, url } = valor as { titulo?: unknown; url?: unknown };
+        if (typeof titulo !== "string" || typeof url !== "string") return [];
+        return [{ titulo, url }];
+      })
+      .slice(0, MAX_RECIENTES);
   } catch {
     return [];
   }
@@ -404,11 +240,13 @@ const MODULOS: Record<string, string> = {
   bancos: "Bancos",
 };
 
-/** Tope de tarjetas por grupo según el modo (§1.5 y §1.11). */
-function limiteSegunModo(modo: ModoVentana, categoria: CategoriaRail | null): number {
-  if (modo === "movil") return 3;
-  if (categoria != null) return 20;
-  return LIMITE_TODOS;
+/**
+ * Tope de tarjetas por grupo (§1.5 y §1.11). Con categoría fijada el servidor
+ * ya paginó (20 por entidad) y «Ver más» acumula: no se recorta en el cliente.
+ */
+function limiteSegunModo(modo: ModoVentana, categoriaFijada: boolean): number {
+  if (categoriaFijada) return SIN_LIMITE;
+  return modo === "movil" ? 3 : LIMITE_TODOS;
 }
 
 /** Texto del `aria-live` de resultados (§1.9). */
@@ -443,7 +281,8 @@ interface Props {
  * Ventana flotante de búsqueda global (870 × 690, §1.1–1.2): cabecera de 64 px
  * con input, rail de categorías de 190 px, panel de grupos con tarjetas de
  * 313 × 76 y pie de atajos de 40 px. En móvil (< 768) se vuelve un sheet
- * inferior con chips. Fase 1: funciona con datos de ejemplo y recientes.
+ * inferior con chips. Consulta la RPC `buscar_global` con debounce (§3.6) y,
+ * si no responde, se queda con el fallback: recientes, navegación y reportes.
  */
 export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Props) {
   const router = useRouter();
@@ -452,13 +291,26 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
   const [categoria, setCategoria] = React.useState<CategoriaRail | null>(null);
   const [recientes, setRecientes] = React.useState<Reciente[]>([]);
   const [cargando, setCargando] = React.useState(false);
+  const [cargandoMas, setCargandoMas] = React.useState(false);
+  /** Última respuesta de la RPC; `null` = no se pudo buscar (§1.9). */
+  const [respuesta, setRespuesta] = React.useState<RespuestaBusqueda | null>(null);
+  /** Conteos exactos por categoría del rail (respuesta.grupos[].total, §1.4). */
+  const [totalesRail, setTotalesRail] = React.useState<Partial<Record<GrupoBusqueda, number>>>({});
+  /** Página actual de «Ver más»: 0, 20, 40… (§3.5). */
+  const [desplazamiento, setDesplazamiento] = React.useState(0);
   const [indiceActivo, setIndiceActivo] = React.useState(-1);
   const [placeholderIA, setPlaceholderIA] = React.useState(false);
   const [atajo, setAtajo] = React.useState("Ctrl");
+  /** Número de la última solicitud: descarta respuestas que llegan tarde (§3.6). */
+  const secuencia = React.useRef(0);
+  /** Término de la última consulta: al cambiar, los conteos viejos ya no valen. */
+  const terminoAnterior = React.useRef("");
 
   const termino = texto.trim();
   const buscando = termino.length >= MINIMO_BUSQUEDA;
+  const categoriaFijada = categoria != null && categoria !== "recientes";
   const puedeCrear = rol === "admin" || rol === "contador";
+  const enlaces = React.useMemo(() => enlacesDeNavegacion(rol), [rol]);
 
   React.useEffect(() => {
     if (esMac()) setAtajo("⌘");
@@ -473,17 +325,57 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
     document.querySelector<HTMLInputElement>("input[data-busqueda]")?.select();
   }, [abierto]);
 
-  // TODO: reemplazar la espera por la server action de buscar_global
-  // (debounce 250 ms + AbortController + caché LRU, §3.6).
+  // Consulta a buscar_global (§3.6): debounce de 250 ms, mínimo 2 caracteres y
+  // un contador de secuencia que descarta respuestas tardías. `null` (error de
+  // red o RPC ausente) deja el fallback sin mostrar error (§1.9).
   React.useEffect(() => {
     if (!abierto || !buscando) {
+      secuencia.current += 1;
       setCargando(false);
+      setCargandoMas(false);
+      setRespuesta(null);
+      setTotalesRail({});
       return;
     }
+
+    const esCategoria = categoria != null && categoria !== "recientes";
+    const numero = secuencia.current + 1;
+    secuencia.current = numero;
+    const cambioTermino = terminoAnterior.current !== termino;
+    terminoAnterior.current = termino;
+
     setCargando(true);
-    const temporizador = setTimeout(() => setCargando(false), ESPERA_BUSQUEDA_MS);
+    setDesplazamiento(0);
+    // Con categoría fijada la RPC solo devuelve ese grupo: los conteos del
+    // resto se conservan para que el rail no muestre ceros falsos; si cambió
+    // el término, ya no valen y se limpian.
+    if (cambioTermino && esCategoria) setTotalesRail({});
+
+    const temporizador = setTimeout(() => {
+      const accion =
+        esCategoria && categoria != null ? buscarGlobalPorCategoria(termino, categoria) : buscarGlobal(termino);
+
+      accion
+        .then((resultado) => {
+          if (secuencia.current !== numero) return;
+          setCargando(false);
+          setRespuesta(resultado);
+          if (resultado != null) {
+            setTotalesRail((anterior) => {
+              const suma = totalesPorGrupoDe(resultado);
+              return esCategoria ? { ...anterior, ...suma } : suma;
+            });
+          }
+        })
+        .catch(() => {
+          if (secuencia.current !== numero) return;
+          setCargando(false);
+          setRespuesta(null);
+        });
+    }, DEBOUNCE_BUSQUEDA_MS);
+
     return () => clearTimeout(temporizador);
-  }, [abierto, buscando]);
+  }, [abierto, buscando, termino, categoria]);
 
   // Sugerencia rotativa del placeholder a los 4 s; se detiene al primer carácter (§1.3).
   React.useEffect(() => {
@@ -492,23 +384,29 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
     return () => clearInterval(temporizador);
   }, [texto]);
 
-  // TODO: conectar a buscar_global cuando exista la RPC; mientras, filtro local sobre los datos de ejemplo.
+  // Resultados planos con ruta (§2.1): `documento` (fase 4) aún no tiene a
+  // dónde navegar, así que no se pinta como tarjeta.
   const resultados = React.useMemo(() => {
-    if (!buscando) return [];
-    const patron = normalizar(termino);
-    return RESULTADOS_EJEMPLO.filter((resultado) =>
-      normalizar([resultado.titulo, resultado.subtitulo, resultado.etiquetas.join(" ")].join(" ")).includes(patron),
-    );
-  }, [buscando, termino]);
+    const planos: ResultadoBusqueda[] = [];
+    for (const grupo of respuesta?.grupos ?? []) {
+      for (const resultado of grupo.resultados) {
+        if (rutaDeResultado(resultado) != null) planos.push(resultado);
+      }
+    }
+    return planos;
+  }, [respuesta]);
 
-  const limitePorGrupo = limiteSegunModo(modo, categoria);
-  const grupos = React.useMemo(() => agrupar(resultados, { limitePorGrupo }), [resultados, limitePorGrupo]);
-  const total = React.useMemo(() => grupos.reduce((suma, grupo) => suma + grupo.total, 0), [grupos]);
+  const limitePorGrupo = limiteSegunModo(modo, categoriaFijada);
+  const grupos = React.useMemo(() => {
+    const agrupados = agrupar(resultados, { limitePorGrupo });
+    // agrupar solo conoce las filas recibidas; el total exacto lo trae la RPC.
+    return agrupados.map((grupo) => ({ ...grupo, total: totalesRail[grupo.grupo] ?? grupo.total }));
+  }, [limitePorGrupo, resultados, totalesRail]);
+  const total = respuesta?.total ?? 0;
 
   const gruposVisibles = React.useMemo(
-    () =>
-      categoria != null && categoria !== "recientes" ? grupos.filter((grupo) => grupo.grupo === categoria) : grupos,
-    [categoria, grupos],
+    () => (categoriaFijada ? grupos.filter((grupo) => grupo.grupo === categoria) : grupos),
+    [categoria, categoriaFijada, grupos],
   );
 
   // Con la categoría «Recientes» la búsqueda es local (§2.5).
@@ -528,17 +426,17 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
 
   const tarjetas = React.useMemo(
     () =>
+      // La lista ya se filtró por resultados con ruta; `?? ""` solo satisface el tipo.
       gruposVisibles.flatMap((grupo) =>
-        grupo.resultados.map((resultado) => ({ resultado, url: urlEjemplo(resultado) })),
+        grupo.resultados.map((resultado) => ({ resultado, url: rutaDeResultado(resultado) ?? "" })),
       ),
     [gruposVisibles],
   );
 
-  const conteos = React.useMemo(() => {
-    const mapa: Partial<Record<CategoriaRail, number>> = { recientes: recientes.length };
-    for (const grupo of grupos) mapa[grupo.grupo] = grupo.total;
-    return mapa;
-  }, [grupos, recientes]);
+  const conteos = React.useMemo(
+    () => ({ recientes: recientes.length, ...totalesRail }),
+    [recientes.length, totalesRail],
+  );
 
   React.useEffect(() => {
     if (indiceActivo >= tarjetas.length) setIndiceActivo(tarjetas.length - 1);
@@ -569,6 +467,32 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
   function sugerir(sugerencia: string) {
     setTexto(sugerencia);
     document.querySelector<HTMLInputElement>("input[data-busqueda]")?.focus();
+  }
+
+  /** «Ver más» (§3.5): pide la siguiente página de 20 y la acumula sin repetir. */
+  function verMas() {
+    if (respuesta == null || categoria == null || categoria === "recientes" || cargandoMas) return;
+
+    const numero = secuencia.current + 1;
+    secuencia.current = numero;
+    const siguiente = desplazamiento + PASO_VER_MAS;
+    setCargandoMas(true);
+
+    buscarGlobalPorCategoria(termino, categoria, siguiente)
+      .then((pagina) => {
+        setCargandoMas(false);
+        // Llegó tarde: manda la consulta nueva.
+        if (secuencia.current !== numero) return;
+        // Falló: se conserva lo acumulado y el botón permite reintentar (§1.9).
+        if (pagina == null) return;
+        setDesplazamiento(siguiente);
+        setRespuesta((anterior) => combinarRespuestas(anterior, pagina));
+        setTotalesRail((anterior) => ({ ...anterior, ...totalesPorGrupoDe(pagina) }));
+      })
+      .catch(() => {
+        // Error silencioso (§1.9): se conserva lo acumulado y se puede reintentar.
+        setCargandoMas(false);
+      });
   }
 
   /** Teclado (§1.10): ↑↓ roving focus, ↵ abre, ⌘↵ pestaña nueva. */
@@ -635,11 +559,14 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
       termino={termino}
       buscando={buscando}
       cargando={cargando}
+      cargandoMas={cargandoMas}
       categoria={categoria}
       grupos={gruposVisibles}
       inicios={inicios}
       total={total}
+      respuesta={respuesta}
       recientes={categoria === "recientes" ? recientesFiltrados : recientes}
+      enlaces={enlaces}
       puedeCrear={puedeCrear}
       indiceActivo={indiceActivo}
       onAbrir={abrir}
@@ -649,6 +576,7 @@ export function VentanaBusqueda({ abierto, onCambiarApertura, rol = null }: Prop
         setCategoria(grupo);
         setIndiceActivo(-1);
       }}
+      onVerMas={verMas}
       onQuitarFiltro={() => setCategoria(null)}
       onSugerir={sugerir}
       onEnfocarTarjeta={setIndiceActivo}
@@ -812,17 +740,21 @@ interface PropsContenidoPanel {
   termino: string;
   buscando: boolean;
   cargando: boolean;
+  cargandoMas: boolean;
   categoria: CategoriaRail | null;
   grupos: GrupoResultados[];
   inicios: number[];
   total: number;
+  respuesta: RespuestaBusqueda | null;
   recientes: Reciente[];
+  enlaces: Enlace[];
   puedeCrear: boolean;
   indiceActivo: number;
   onAbrir: (resultado: ResultadoBusqueda, url: string) => void;
   onAbrirReciente: (reciente: Reciente) => void;
   onNavegar: (url: string) => void;
   onVerTodos: (grupo: GrupoBusqueda) => void;
+  onVerMas: () => void;
   onQuitarFiltro: () => void;
   onSugerir: (texto: string) => void;
   onEnfocarTarjeta: (indice: number) => void;
@@ -835,17 +767,21 @@ function ContenidoPanel(props: PropsContenidoPanel) {
     termino,
     buscando,
     cargando,
+    cargandoMas,
     categoria,
     grupos,
     inicios,
     total,
+    respuesta,
     recientes,
+    enlaces,
     puedeCrear,
     indiceActivo,
     onAbrir,
     onAbrirReciente,
     onNavegar,
     onVerTodos,
+    onVerMas,
     onQuitarFiltro,
     onSugerir,
     onEnfocarTarjeta,
@@ -898,51 +834,43 @@ function ContenidoPanel(props: PropsContenidoPanel) {
       );
     }
 
+    // La RPC no respondió (error de red o ausente): fallback silencioso con lo
+    // que no depende de la base (§1.9).
+    if (respuesta == null) {
+      return (
+        <FallbackBusqueda
+          termino={termino}
+          recientes={recientes}
+          enlaces={enlaces}
+          modo={modo}
+          conFiltro={categoriaFijada}
+          onAbrirReciente={onAbrirReciente}
+          onNavegar={onNavegar}
+          onQuitarFiltro={onQuitarFiltro}
+        />
+      );
+    }
+
     if (grupos.length === 0) {
       return <EstadoSinResultados termino={termino} conFiltro={categoriaFijada} onQuitarFiltro={onQuitarFiltro} />;
     }
 
-    return grupos.map((grupo, indiceGrupo) => {
-      const inicio = inicios[indiceGrupo] ?? 0;
-      const Icono = ICONO_CATEGORIA[grupo.grupo];
-      return (
-        <section key={grupo.grupo} className="flex flex-col gap-2">
-          <div
-            className={cn(
-              "bg-popover sticky top-0 z-10 flex h-9 items-center gap-2",
-              modo === "movil" ? "-mx-4 px-4" : "-mx-5 px-5",
-            )}
-          >
-            <Icono className="text-muted-foreground size-4 shrink-0" />
-            <h3 className="text-[13px] font-semibold">{NOMBRE_CATEGORIAS[grupo.grupo]}</h3>
-            <span className="text-muted-foreground text-xs tabular-nums">{grupo.total}</span>
-            {grupo.total > grupo.resultados.length ? (
-              <button
-                type="button"
-                onClick={() => onVerTodos(grupo.grupo)}
-                className="text-primary ml-auto text-xs hover:underline"
-              >
-                Ver todos →
-              </button>
-            ) : null}
-          </div>
-          <ul className={cn("grid gap-3", columnas)}>
-            {grupo.resultados.map((resultado, indice) => (
-              <li key={claveResultado(resultado)}>
-                <TarjetaResultado
-                  resultado={resultado}
-                  url={urlEjemplo(resultado)}
-                  activa={indiceActivo === inicio + indice}
-                  compacta={modo === "movil"}
-                  onAbrir={onAbrir}
-                  onFocus={() => onEnfocarTarjeta(inicio + indice)}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-      );
-    });
+    return grupos.map((grupo, indiceGrupo) => (
+      <SeccionGrupo
+        key={grupo.grupo}
+        grupo={grupo}
+        inicio={inicios[indiceGrupo] ?? 0}
+        modo={modo}
+        categoriaFijada={categoriaFijada}
+        hayMas={respuesta?.hayMas ?? false}
+        cargandoMas={cargandoMas}
+        indiceActivo={indiceActivo}
+        onAbrir={onAbrir}
+        onVerTodos={onVerTodos}
+        onVerMas={onVerMas}
+        onEnfocarTarjeta={onEnfocarTarjeta}
+      />
+    ));
   }
 
   return (
@@ -974,6 +902,85 @@ function ContenidoPanel(props: PropsContenidoPanel) {
   );
 }
 
+/** Grupo de resultados (§1.5): cabecera sticky con conteo, tarjetas y «Ver más»/«Ver todos →». */
+function SeccionGrupo({
+  grupo,
+  inicio,
+  modo,
+  categoriaFijada,
+  hayMas,
+  cargandoMas,
+  indiceActivo,
+  onAbrir,
+  onVerTodos,
+  onVerMas,
+  onEnfocarTarjeta,
+}: {
+  grupo: GrupoResultados;
+  inicio: number;
+  modo: ModoVentana;
+  categoriaFijada: boolean;
+  hayMas: boolean;
+  cargandoMas: boolean;
+  indiceActivo: number;
+  onAbrir: (resultado: ResultadoBusqueda, url: string) => void;
+  onVerTodos: (grupo: GrupoBusqueda) => void;
+  onVerMas: () => void;
+  onEnfocarTarjeta: (indice: number) => void;
+}) {
+  const Icono = ICONO_CATEGORIA[grupo.grupo];
+  const columnas = modo === "escritorio" ? "grid-cols-2" : "grid-cols-1";
+
+  return (
+    <section className="flex flex-col gap-2">
+      <div
+        className={cn(
+          "bg-popover sticky top-0 z-10 flex h-9 items-center gap-2",
+          modo === "movil" ? "-mx-4 px-4" : "-mx-5 px-5",
+        )}
+      >
+        <Icono className="text-muted-foreground size-4 shrink-0" />
+        <h3 className="text-[13px] font-semibold">{NOMBRE_CATEGORIAS[grupo.grupo]}</h3>
+        <span className="text-muted-foreground text-xs tabular-nums">{grupo.total}</span>
+        {!categoriaFijada && grupo.total > grupo.resultados.length ? (
+          <button
+            type="button"
+            onClick={() => onVerTodos(grupo.grupo)}
+            className="text-primary ml-auto text-xs hover:underline"
+          >
+            Ver todos →
+          </button>
+        ) : null}
+      </div>
+      <ul className={cn("grid gap-3", columnas)}>
+        {grupo.resultados.map((resultado, indice) => (
+          <li key={claveResultado(resultado)}>
+            <TarjetaResultado
+              resultado={resultado}
+              // La lista ya se filtró por resultados con ruta (§2.1).
+              url={rutaDeResultado(resultado) ?? ""}
+              activa={indiceActivo === inicio + indice}
+              compacta={modo === "movil"}
+              onAbrir={onAbrir}
+              onFocus={() => onEnfocarTarjeta(inicio + indice)}
+            />
+          </li>
+        ))}
+      </ul>
+      {categoriaFijada && hayMas ? (
+        <button
+          type="button"
+          onClick={onVerMas}
+          disabled={cargandoMas}
+          className="text-primary mx-auto h-9 rounded-lg px-4 text-xs hover:underline disabled:opacity-50"
+        >
+          {cargandoMas ? "Cargando más…" : "Ver más"}
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
 /** Estado vacío (§1.8): recientes, acciones rápidas y sugerencias. Nunca un panel en blanco. */
 function EstadoVacio({
   recientes,
@@ -995,6 +1002,52 @@ function EstadoVacio({
       <SeccionRecientes recientes={recientes} onAbrir={onAbrirReciente} modo={modo} />
       {puedeCrear ? <SeccionAcciones onNavegar={onNavegar} /> : null}
       <SeccionSugerencias onSugerir={onSugerir} />
+    </div>
+  );
+}
+
+/**
+ * Fallback (§1.9): la RPC no respondió (error de red o ausente) y la ventana
+ * se queda con lo que no depende de la base — recientes, navegación y reportes
+ * filtrados por el término — sin mostrar ningún error al usuario.
+ */
+function FallbackBusqueda({
+  termino,
+  recientes,
+  enlaces,
+  modo,
+  conFiltro,
+  onAbrirReciente,
+  onNavegar,
+  onQuitarFiltro,
+}: {
+  termino: string;
+  recientes: Reciente[];
+  enlaces: Enlace[];
+  modo: ModoVentana;
+  conFiltro: boolean;
+  onAbrirReciente: (reciente: Reciente) => void;
+  onNavegar: (url: string) => void;
+  onQuitarFiltro: () => void;
+}) {
+  const patron = normalizar(termino);
+  const recientesCoincidentes = recientes.filter((reciente) => normalizar(reciente.titulo).includes(patron));
+  const navegacion = enlaces.filter((enlace) =>
+    normalizar([enlace.titulo, enlace.modulo ?? ""].join(" ")).includes(patron),
+  );
+  const reportes = ENLACES_REPORTES.filter((enlace) => normalizar(enlace.titulo).includes(patron));
+
+  if (recientesCoincidentes.length === 0 && navegacion.length === 0 && reportes.length === 0) {
+    return <EstadoSinResultados termino={termino} conFiltro={conFiltro} onQuitarFiltro={onQuitarFiltro} />;
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {recientesCoincidentes.length > 0 ? (
+        <SeccionRecientes recientes={recientesCoincidentes} onAbrir={onAbrirReciente} modo={modo} />
+      ) : null}
+      {navegacion.length > 0 ? <SeccionEnlaces titulo="Ir a" enlaces={navegacion} onNavegar={onNavegar} /> : null}
+      {reportes.length > 0 ? <SeccionEnlaces titulo="Reportes" enlaces={reportes} onNavegar={onNavegar} /> : null}
     </div>
   );
 }
@@ -1057,6 +1110,40 @@ function SeccionAcciones({ onNavegar }: { onNavegar: (url: string) => void }) {
   );
 }
 
+/** Enlaces del fallback (navegación o reportes), con el mismo molde de las acciones rápidas. */
+function SeccionEnlaces({
+  titulo,
+  enlaces,
+  onNavegar,
+}: {
+  titulo: string;
+  enlaces: Enlace[];
+  onNavegar: (url: string) => void;
+}) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="text-[13px] font-semibold">{titulo}</h3>
+      <ul className="grid grid-cols-2 gap-2">
+        {enlaces.map((enlace) => (
+          <li key={enlace.id}>
+            <a
+              href={enlace.url}
+              onClick={(evento) => abrirConEnlace(evento, () => onNavegar(enlace.url))}
+              className="bg-muted/40 hover:bg-muted flex h-10 items-center gap-2 rounded-[10px] px-3"
+            >
+              <enlace.icono className="text-muted-foreground size-4 shrink-0" />
+              <span className="truncate text-[13px]">{enlace.titulo}</span>
+              {enlace.modulo ? (
+                <span className="text-muted-foreground ml-auto truncate text-[11px]">{enlace.modulo}</span>
+              ) : null}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /** Sugerencias: 3 chips de 32 px que rellenan el input, no navegan (§1.8). */
 function SeccionSugerencias({ onSugerir }: { onSugerir: (texto: string) => void }) {
   return (
@@ -1085,14 +1172,14 @@ function EstadoSinResultados({
 }: {
   termino: string;
   conFiltro: boolean;
-  onQuitarFiltro: () => void;
+  onQuitarFiltro?: () => void;
 }) {
   return (
     <div className="flex flex-col items-center gap-2 py-16 text-center">
       <Search className="text-muted-foreground/60 size-8" />
       <p className="text-sm font-semibold">Sin resultados para «{termino}»</p>
       <p className="text-muted-foreground text-xs">Prueba con el NCF, el número o el nombre del cliente.</p>
-      {conFiltro ? (
+      {conFiltro && onQuitarFiltro != null ? (
         <button type="button" onClick={onQuitarFiltro} className="text-primary mt-1 text-xs hover:underline">
           Quitar filtros
         </button>

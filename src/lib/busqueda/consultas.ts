@@ -20,8 +20,7 @@ import type { EntidadBusqueda, GrupoBusqueda, IntencionBusqueda, RespuestaBusque
  * `RespuestaBusqueda` antes de que llegue a la ventana.
  *
  * `null` significa «no se pudo buscar» (término corto, error o RPC ausente):
- * la ventana responde con el fallback (recientes, navegación y datos de
- * ejemplo mientras la migración no esté aplicada).
+ * la ventana responde con el fallback (recientes, navegación y reportes).
  */
 
 /** Con menos de 2 caracteres el término no aporta resultados (§3.5). */
@@ -232,6 +231,8 @@ interface PayloadBusqueda {
   desde?: string;
   hasta?: string;
   monto?: number;
+  /** Página de «Ver más» en modo categoría (§3.5): filas 21–40, 41–60… */
+  desplazamiento?: number;
   limite: number;
 }
 
@@ -240,7 +241,12 @@ interface PayloadBusqueda {
  * categoría del rail (modo categoría, §3.5): la entidad que el parser dedujo
  * de la frase es una pista de ranking y no filtra.
  */
-function construirPayload(intencion: IntencionBusqueda, limite: number, entidad?: string): PayloadBusqueda {
+function construirPayload(
+  intencion: IntencionBusqueda,
+  limite: number,
+  entidad?: string,
+  desplazamiento = 0,
+): PayloadBusqueda {
   const p: PayloadBusqueda = { limite };
 
   if (intencion.texto != null) p.texto = intencion.texto;
@@ -251,20 +257,26 @@ function construirPayload(intencion: IntencionBusqueda, limite: number, entidad?
   if (intencion.hasta != null) p.hasta = intencion.hasta;
   if (intencion.monto != null) p.monto = intencion.monto;
   if (entidad != null) p.entidad = entidad;
+  if (desplazamiento > 0) p.desplazamiento = desplazamiento;
 
   return p;
 }
 
-async function consultar(termino: string, limite: number, categoria?: string): Promise<RespuestaBusqueda | null> {
+async function consultar(
+  termino: string,
+  limite: number,
+  categoria?: string,
+  desplazamiento = 0,
+): Promise<RespuestaBusqueda | null> {
   if (termino.trim().length < MINIMO_CARACTERES) return null;
 
   const entidad = categoria?.trim() ?? "";
-  const p = construirPayload(interpretar(termino), limite, entidad.length > 0 ? entidad : undefined);
+  const p = construirPayload(interpretar(termino), limite, entidad.length > 0 ? entidad : undefined, desplazamiento);
 
-  // La migración de buscar_global aún no está aplicada, así que la RPC no
-  // figura en los tipos generados y el cliente se tipa sin esquema (el patrón
-  // de bancos y cotizaciones). Cuando se aplique y `pnpm db:types` la
-  // registre, vuelve el cliente tipado y sobra el cast.
+  // buscar_global todavía no figura en los tipos generados (haría falta
+  // `pnpm db:types` tras la migración), así que el cliente se tipa sin
+  // esquema, como en bancos y cotizaciones. Cuando se regeneren los tipos,
+  // vuelve el cliente tipado y sobra el cast.
   const supabase = (await createClient()) as unknown as SupabaseClient;
   const { data, error } = await supabase.rpc("buscar_global", { p });
 
@@ -286,8 +298,13 @@ export async function buscarGlobal(termino: string): Promise<RespuestaBusqueda |
 /**
  * Busca con una categoría del rail fijada ('clientes', 'compras', …) o una
  * entidad concreta ('factura'): la RPC entra en modo categoría (20 resultados
- * y las fechas filtran en vez de solo ordenar).
+ * por entidad y las fechas filtran en vez de solo ordenar). `desplazamiento`
+ * pagina los «Ver más» de 20 en 20 (§3.5).
  */
-export async function buscarGlobalPorCategoria(termino: string, categoria: string): Promise<RespuestaBusqueda | null> {
-  return consultar(termino, LIMITE_CATEGORIA, categoria);
+export async function buscarGlobalPorCategoria(
+  termino: string,
+  categoria: string,
+  desplazamiento = 0,
+): Promise<RespuestaBusqueda | null> {
+  return consultar(termino, LIMITE_CATEGORIA, categoria, desplazamiento);
 }
