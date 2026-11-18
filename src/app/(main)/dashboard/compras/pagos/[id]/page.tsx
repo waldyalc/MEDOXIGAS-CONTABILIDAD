@@ -14,6 +14,7 @@ import {
   TotalesDocumento,
 } from "@/components/documento/documento-detalle";
 import { Enlace } from "@/components/enlace";
+import { ComprobanteEgreso } from "@/components/impresion/comprobante-egreso";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
@@ -75,8 +76,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       estado={estado}
       acciones={
         <>
-          {/* TODO backend: Alegra imprime el pago a proveedor (comprobante de egreso);
-              el repo todavía no tiene papel de impresión de pagos. */}
+          <ComprobanteEgreso pago={pago} empresa={empresa} classNameBoton={CLASE_BOTON_DOCUMENTO} />
           {pago.asiento_id ? (
             <Button
               variant="outline"

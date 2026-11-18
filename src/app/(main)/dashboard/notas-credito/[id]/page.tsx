@@ -14,6 +14,7 @@ import {
   TotalesDocumento,
 } from "@/components/documento/documento-detalle";
 import { Enlace } from "@/components/enlace";
+import { NotaCreditoPapel } from "@/components/impresion/nota-credito-papel";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { getPerfil } from "@/lib/auth/rol";
@@ -65,8 +66,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       estado={estado}
       acciones={
         <>
-          {/* TODO backend: Alegra imprime la nota de crédito; el repo todavía
-              no tiene papel de impresión de notas. */}
+          <NotaCreditoPapel nota={nota} empresa={empresa} classNameBoton={CLASE_BOTON_DOCUMENTO} />
           {nota.asiento_id ? (
             <Button
               variant="outline"
