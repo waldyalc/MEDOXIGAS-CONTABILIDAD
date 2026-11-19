@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { ArrowLeft, ArrowRightLeft, BookOpen } from "lucide-react";
+import { ArrowRightLeft, BookOpen } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { ContenedorDetalle } from "@/components/pagina/contenedor-pagina";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,27 +35,29 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const cuentaDestino = esTransferencia ? entrada : salida;
   const debitos = transferencia.lineas.reduce((total, linea) => total + valorACentavos(linea.debito), 0);
   const creditos = transferencia.lineas.reduce((total, linea) => total + valorACentavos(linea.credito), 0);
+  const titulo = `${esTransferencia ? "Transferencia" : "Depósito"} #${transferencia.numero}`;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <Button variant="ghost" size="sm" className="w-fit" render={<Link href="/dashboard/bancos" prefetch={false} />}>
-          <ArrowLeft data-icon="inline-start" />
-          Bancos
-        </Button>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-3xl tracking-tight">
-              {esTransferencia ? "Transferencia" : "Depósito"} #{transferencia.numero}
-            </h1>
+    <ContenedorDetalle>
+      <EncabezadoPagina
+        titulo={
+          <span className="flex flex-wrap items-center gap-2">
+            {titulo}
             <Badge variant="secondary">{esTransferencia ? "Entre cuentas" : "Depósito"}</Badge>
-          </div>
+          </span>
+        }
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Bancos", href: "/dashboard/bancos" },
+          { etiqueta: titulo },
+        ]}
+        acciones={
           <Button variant="outline" render={<Link href={rutaAsiento(transferencia.id)} prefetch={false} />}>
             <BookOpen />
             Ver asiento
           </Button>
-        </div>
-      </div>
+        }
+      />
 
       <Card>
         <CardHeader>
@@ -166,6 +170,6 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           </Table>
         </CardContent>
       </Card>
-    </div>
+    </ContenedorDetalle>
   );
 }

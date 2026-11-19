@@ -1,3 +1,4 @@
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import {
   CATEGORIAS_REPORTES,
   type CategoriaReporte,
@@ -7,7 +8,7 @@ import {
 
 import { ReportesExplorador } from "./_components/reportes-explorador";
 
-const ENLACES_FISCALES: Record<string, string> = {
+const ENLACES_REPORTES: Record<string, string> = {
   "Reporte 606": "/dashboard/reportes/606",
   "Reporte 607": "/dashboard/reportes/607",
   "Reporte 608": "/dashboard/reportes/608",
@@ -18,11 +19,12 @@ const ENLACES_FISCALES: Record<string, string> = {
   "Cartas de retención": "/dashboard/reportes/cartas-retencion",
   "Exportar facturas": "/dashboard/reportes/exportar-contador",
   "Informe contador": "/dashboard/reportes/exportar-contador",
+  "Flujo de caja": "/dashboard/reportes/flujo-efectivo",
 };
 
 function conEnlaces(reportes: readonly ReporteCatalogo[]): ReporteCatalogo[] {
   return reportes.map((reporte) => {
-    const href = ENLACES_FISCALES[reporte.nombre];
+    const href = ENLACES_REPORTES[reporte.nombre];
     return href == null ? reporte : { ...reporte, href };
   });
 }
@@ -43,12 +45,11 @@ export default async function Page({ searchParams }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl tracking-tight">Reportes</h1>
-        <p className="text-muted-foreground max-w-2xl text-balance">
-          Consulta, descarga y comparte la información contable, administrativa y fiscal de tu empresa.
-        </p>
-      </div>
+      <EncabezadoPagina
+        titulo="Reportes"
+        subtitulo="Consulta, descarga y comparte la información contable, administrativa y fiscal de tu empresa."
+        migas={[{ etiqueta: "Inicio", href: "/dashboard" }, { etiqueta: "Reportes" }]}
+      />
 
       <ReportesExplorador categoria={categoria} reportes={conEnlaces(REPORTES)} />
     </div>

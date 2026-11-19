@@ -42,6 +42,9 @@ export interface ExistenciaAlmacen {
   almacen_nombre: string;
   es_principal: boolean;
   cantidad: number;
+  cantidad_inicial: number;
+  minimo: number;
+  maximo: number | null;
 }
 
 export interface AjusteLista {

@@ -409,6 +409,42 @@ export type Database = {
           },
         ]
       }
+      auditoria: {
+        Row: {
+          accion: string
+          cambios: Json
+          creado_en: string
+          entidad: string
+          entidad_etiqueta: string
+          entidad_id: string | null
+          id: string
+          usuario_id: string | null
+          usuario_nombre: string
+        }
+        Insert: {
+          accion: string
+          cambios?: Json
+          creado_en?: string
+          entidad: string
+          entidad_etiqueta?: string
+          entidad_id?: string | null
+          id?: string
+          usuario_id?: string | null
+          usuario_nombre?: string
+        }
+        Update: {
+          accion?: string
+          cambios?: Json
+          creado_en?: string
+          entidad?: string
+          entidad_etiqueta?: string
+          entidad_id?: string | null
+          id?: string
+          usuario_id?: string | null
+          usuario_nombre?: string
+        }
+        Relationships: []
+      }
       categorias_productos: {
         Row: {
           activo: boolean
@@ -647,6 +683,7 @@ export type Database = {
           cuenta_cxp_id: string | null
           direccion: string | null
           id: string
+          limite_credito: number | null
           lista_precio_id: string | null
           municipio_provincia: string | null
           nombre: string
@@ -663,6 +700,7 @@ export type Database = {
           cuenta_cxp_id?: string | null
           direccion?: string | null
           id?: string
+          limite_credito?: number | null
           lista_precio_id?: string | null
           municipio_provincia?: string | null
           nombre: string
@@ -679,6 +717,7 @@ export type Database = {
           cuenta_cxp_id?: string | null
           direccion?: string | null
           id?: string
+          limite_credito?: number | null
           lista_precio_id?: string | null
           municipio_provincia?: string | null
           nombre?: string
@@ -973,16 +1012,25 @@ export type Database = {
         Row: {
           almacen_id: string
           cantidad: number
+          cantidad_inicial: number
+          maximo: number | null
+          minimo: number
           producto_id: string
         }
         Insert: {
           almacen_id: string
           cantidad?: number
+          cantidad_inicial?: number
+          maximo?: number | null
+          minimo?: number
           producto_id: string
         }
         Update: {
           almacen_id?: string
           cantidad?: number
+          cantidad_inicial?: number
+          maximo?: number | null
+          minimo?: number
           producto_id?: string
         }
         Relationships: [
@@ -3030,6 +3078,7 @@ export type Database = {
       productos: {
         Row: {
           activo: boolean
+          almacen_id: string | null
           cantidad: number
           categoria_id: string | null
           costo: number
@@ -3039,6 +3088,7 @@ export type Database = {
           cuenta_inventario_id: string | null
           descripcion: string | null
           id: string
+          imagen_path: string | null
           impuesto_id: string | null
           inventariable: boolean
           itbis_tasa: number
@@ -3046,9 +3096,12 @@ export type Database = {
           precio: number
           referencia: string | null
           tipo: string
+          unidad_medida: string
+          vende_negativo: boolean
         }
         Insert: {
           activo?: boolean
+          almacen_id?: string | null
           cantidad?: number
           categoria_id?: string | null
           costo?: number
@@ -3058,6 +3111,7 @@ export type Database = {
           cuenta_inventario_id?: string | null
           descripcion?: string | null
           id?: string
+          imagen_path?: string | null
           impuesto_id?: string | null
           inventariable?: boolean
           itbis_tasa?: number
@@ -3065,9 +3119,12 @@ export type Database = {
           precio?: number
           referencia?: string | null
           tipo?: string
+          unidad_medida?: string
+          vende_negativo?: boolean
         }
         Update: {
           activo?: boolean
+          almacen_id?: string | null
           cantidad?: number
           categoria_id?: string | null
           costo?: number
@@ -3077,6 +3134,7 @@ export type Database = {
           cuenta_inventario_id?: string | null
           descripcion?: string | null
           id?: string
+          imagen_path?: string | null
           impuesto_id?: string | null
           inventariable?: boolean
           itbis_tasa?: number
@@ -3084,8 +3142,17 @@ export type Database = {
           precio?: number
           referencia?: string | null
           tipo?: string
+          unidad_medida?: string
+          vende_negativo?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "productos_almacen_id_fkey"
+            columns: ["almacen_id"]
+            isOneToOne: false
+            referencedRelation: "almacenes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "productos_categoria_id_fkey"
             columns: ["categoria_id"]
@@ -3546,29 +3613,15 @@ export type Database = {
     }
     Functions: {
       _actualizar_producto_sin_impuestos: {
-        Args: {
-          p_id: string
-          p: Json
-        }
+        Args: { p_id: string; p: Json }
         Returns: string
       }
-      _almacen_principal: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      _almacen_principal: { Args: Record<PropertyKey, never>; Returns: string }
       _anular_documento_base: {
-        Args: {
-          p_tipo: string
-          p_id: string
-        }
+        Args: { p_tipo: string; p_id: string }
         Returns: string
       }
-      _conciliacion_lineas: {
-        Args: {
-          p_lineas: Json
-        }
-        Returns: string[]
-      }
+      _conciliacion_lineas: { Args: { p_lineas: Json }; Returns: string[] }
       _crear_asiento: {
         Args: {
           p_fecha: string
@@ -3580,67 +3633,34 @@ export type Database = {
         Returns: string
       }
       _crear_documento_no_contable: {
-        Args: {
-          p_tipo: string
-          p: Json
-        }
+        Args: { p_tipo: string; p: Json }
         Returns: string
       }
       _crear_documento_no_contable_sin_impuestos: {
-        Args: {
-          p_tipo: string
-          p: Json
-        }
+        Args: { p_tipo: string; p: Json }
         Returns: string
       }
       _crear_factura_proveedor_sin_impuestos: {
-        Args: {
-          p: Json
-        }
+        Args: { p: Json }
         Returns: string
       }
-      _crear_factura_sin_impuestos: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      _crear_gasto_menor_sin_impuestos: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
+      _crear_factura_sin_control_stock: { Args: { p: Json }; Returns: string }
+      _crear_factura_sin_impuestos: { Args: { p: Json }; Returns: string }
+      _crear_gasto_menor_sin_impuestos: { Args: { p: Json }; Returns: string }
       _crear_nota_credito_compra_sin_impuestos: {
-        Args: {
-          p: Json
-        }
+        Args: { p: Json }
         Returns: string
       }
       _crear_nota_credito_venta_sin_impuestos: {
-        Args: {
-          p: Json
-        }
+        Args: { p: Json }
         Returns: string
       }
       _crear_nota_debito_venta_sin_impuestos: {
-        Args: {
-          p: Json
-        }
+        Args: { p: Json }
         Returns: string
       }
-      _crear_orden_compra_sin_impuestos: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      _crear_producto_sin_impuestos: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
+      _crear_orden_compra_sin_impuestos: { Args: { p: Json }; Returns: string }
+      _crear_producto_sin_impuestos: { Args: { p: Json }; Returns: string }
       _cuenta_conciliacion: {
         Args: {
           p_cuenta_id: string
@@ -3652,24 +3672,13 @@ export type Database = {
         }
         Returns: string
       }
-      _cuenta_config: {
-        Args: {
-          p_clave: string
-        }
-        Returns: string
-      }
+      _cuenta_config: { Args: { p_clave: string }; Returns: string }
       _editar_documento_no_contable: {
-        Args: {
-          p_tipo: string
-          p: Json
-        }
+        Args: { p_tipo: string; p: Json }
         Returns: string
       }
       _editar_documento_no_contable_sin_impuestos: {
-        Args: {
-          p_tipo: string
-          p: Json
-        }
+        Args: { p_tipo: string; p: Json }
         Returns: string
       }
       _guardar_conciliacion_cabecera: {
@@ -3688,12 +3697,7 @@ export type Database = {
         }
         Returns: string
       }
-      _impuesto_id_por_tasa: {
-        Args: {
-          p_tasa: number
-        }
-        Returns: string
-      }
+      _impuesto_id_por_tasa: { Args: { p_tasa: number }; Returns: string }
       _impuestos_actualizar_totales: {
         Args: {
           p_tabla_documento: string
@@ -3715,26 +3719,13 @@ export type Database = {
         }
         Returns: undefined
       }
-      _impuestos_preparar: {
-        Args: {
-          p_lineas: Json
-        }
-        Returns: Json
-      }
+      _impuestos_preparar: { Args: { p_lineas: Json }; Returns: Json }
       _impuestos_preparar_fuente: {
-        Args: {
-          p_lineas: Json
-          p_tabla: string
-          p_clave: string
-        }
+        Args: { p_lineas: Json; p_tabla: string; p_clave: string }
         Returns: Json
       }
       _impuestos_sincronizar: {
-        Args: {
-          p_tabla: string
-          p_clave: string
-          p_documento_id: string
-        }
+        Args: { p_tabla: string; p_clave: string; p_documento_id: string }
         Returns: undefined
       }
       _mover_existencia: {
@@ -3745,11 +3736,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      _producto_guardar_minimos: {
+        Args: { p_producto_id: string; p_almacen_id: string; p: Json }
+        Returns: undefined
+      }
       _resolver_impuesto: {
-        Args: {
-          p_impuesto_id: string
-          p_tasa: number
-        }
+        Args: { p_impuesto_id: string; p_tasa: number }
         Returns: {
           activo: boolean
           codigo: string
@@ -3780,370 +3772,105 @@ export type Database = {
         }
         Returns: undefined
       }
-      _validar_pago_recurrente: {
-        Args: {
-          p: Json
-        }
-        Returns: Json
-      }
-      actualizar_almacen: {
-        Args: {
-          p_id: string
-          p: Json
-        }
-        Returns: string
-      }
+      _validar_pago_recurrente: { Args: { p: Json }; Returns: Json }
+      actualizar_almacen: { Args: { p_id: string; p: Json }; Returns: string }
       actualizar_categoria_producto: {
-        Args: {
-          p_id: string
-          p: Json
-        }
+        Args: { p_id: string; p: Json }
         Returns: string
       }
       actualizar_centro_costo: {
-        Args: {
-          p_id: string
-          p: Json
-        }
+        Args: { p_id: string; p: Json }
         Returns: string
       }
-      actualizar_contacto: {
-        Args: {
-          p_id: string
-          p: Json
-        }
-        Returns: string
-      }
-      actualizar_cuenta: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      actualizar_empresa: {
-        Args: {
-          p: Json
-        }
-        Returns: undefined
-      }
+      actualizar_contacto: { Args: { p_id: string; p: Json }; Returns: string }
+      actualizar_cuenta: { Args: { p: Json }; Returns: string }
+      actualizar_empresa: { Args: { p: Json }; Returns: undefined }
       actualizar_lista_precio: {
-        Args: {
-          p_id: string
-          p: Json
-        }
+        Args: { p_id: string; p: Json }
         Returns: string
       }
-      actualizar_numeracion: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
+      actualizar_numeracion: { Args: { p: Json }; Returns: string }
       actualizar_pago_recurrente: {
-        Args: {
-          p_id: string
-          p: Json
-        }
+        Args: { p_id: string; p: Json }
         Returns: string
       }
-      actualizar_producto: {
-        Args: {
-          p_id: string
-          p: Json
-        }
-        Returns: string
-      }
-      actualizar_retencion: {
-        Args: {
-          p: Json
-        }
-        Returns: undefined
-      }
+      actualizar_producto: { Args: { p_id: string; p: Json }; Returns: string }
+      actualizar_retencion: { Args: { p: Json }; Returns: undefined }
       actualizar_tipo_entrada_diario: {
-        Args: {
-          p_id: string
-          p: Json
-        }
+        Args: { p_id: string; p: Json }
         Returns: string
       }
-      actualizar_vendedor: {
-        Args: {
-          p_id: string
-          p: Json
-        }
-        Returns: string
-      }
+      actualizar_vendedor: { Args: { p_id: string; p: Json }; Returns: string }
       anular_documento: {
-        Args: {
-          p_tipo: string
-          p_id: string
-        }
+        Args: { p_tipo: string; p_id: string }
         Returns: string
       }
       anular_transferencia_inventario: {
-        Args: {
-          p_id: string
-        }
+        Args: { p_id: string }
         Returns: string
       }
+      buscar_global: { Args: { p: Json }; Returns: Json }
       catalogo_saldos: {
-        Args: {
-          p_hasta?: string
-        }
+        Args: { p_hasta?: string }
         Returns: {
           cuenta_codigo: string
           saldo: number
         }[]
       }
-      cerrar_periodo: {
-        Args: {
-          p_periodo: string
-        }
-        Returns: string
-      }
-      cerrar_resultados_anio: {
-        Args: {
-          p_anio: number
-        }
-        Returns: string
-      }
-      conciliar_cuenta: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      convertir_a_factura: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_activo_fijo: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_ajuste_inventario: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_almacen: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_asiento_manual: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_categoria_producto: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_centro_costo: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_contacto: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_cotizacion: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_cuenta: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_cuenta_banco: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_factura: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_factura_proveedor: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_factura_recurrente: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_gasto_menor: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_lista_precio: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_nota_credito_compra: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_nota_credito_venta: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_nota_debito_venta: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_orden_compra: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_pago_recurrente: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_producto: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_remision: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_remision_desde_cotizacion: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_retencion: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_termino_pago: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
+      cerrar_periodo: { Args: { p_periodo: string }; Returns: string }
+      cerrar_resultados_anio: { Args: { p_anio: number }; Returns: string }
+      conciliar_cuenta: { Args: { p: Json }; Returns: string }
+      convertir_a_factura: { Args: { p: Json }; Returns: string }
+      crear_activo_fijo: { Args: { p: Json }; Returns: string }
+      crear_ajuste_inventario: { Args: { p: Json }; Returns: string }
+      crear_almacen: { Args: { p: Json }; Returns: string }
+      crear_asiento_manual: { Args: { p: Json }; Returns: string }
+      crear_categoria_producto: { Args: { p: Json }; Returns: string }
+      crear_centro_costo: { Args: { p: Json }; Returns: string }
+      crear_contacto: { Args: { p: Json }; Returns: string }
+      crear_cotizacion: { Args: { p: Json }; Returns: string }
+      crear_cuenta: { Args: { p: Json }; Returns: string }
+      crear_cuenta_banco: { Args: { p: Json }; Returns: string }
+      crear_factura: { Args: { p: Json }; Returns: string }
+      crear_factura_proveedor: { Args: { p: Json }; Returns: string }
+      crear_factura_recurrente: { Args: { p: Json }; Returns: string }
+      crear_gasto_menor: { Args: { p: Json }; Returns: string }
+      crear_lista_precio: { Args: { p: Json }; Returns: string }
+      crear_nota_credito_compra: { Args: { p: Json }; Returns: string }
+      crear_nota_credito_venta: { Args: { p: Json }; Returns: string }
+      crear_nota_debito_venta: { Args: { p: Json }; Returns: string }
+      crear_numeracion: { Args: { p: Json }; Returns: string }
+      crear_orden_compra: { Args: { p: Json }; Returns: string }
+      crear_pago_recurrente: { Args: { p: Json }; Returns: string }
+      crear_producto: { Args: { p: Json }; Returns: string }
+      crear_remision: { Args: { p: Json }; Returns: string }
+      crear_remision_desde_cotizacion: { Args: { p: Json }; Returns: string }
+      crear_retencion: { Args: { p: Json }; Returns: string }
+      crear_termino_pago: { Args: { p: Json }; Returns: string }
       crear_tipo_entrada_diario: {
-        Args: {
-          p: Json
-        }
+        Args: { p: Json }
         Returns: string
       }
-      crear_transferencia_inventario: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      crear_vendedor: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
+      crear_transferencia_inventario: { Args: { p: Json }; Returns: string }
+      crear_vendedor: { Args: { p: Json }; Returns: string }
       dashboard_resumen: {
-        Args: {
-          p_desde: string
-          p_hasta: string
-        }
+        Args: { p_desde: string; p_hasta: string }
         Returns: Json
       }
       depreciar_activo: {
-        Args: {
-          p_activo_id: string
-          p_periodo?: string
-        }
+        Args: { p_activo_id: string; p_periodo?: string }
         Returns: string
       }
-      editar_cotizacion: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      editar_remision: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
+      editar_cotizacion: { Args: { p: Json }; Returns: string }
+      editar_remision: { Args: { p: Json }; Returns: string }
       generar_factura_recurrente: {
-        Args: {
-          p_recurrente_id: string
-          p_fecha?: string
-        }
+        Args: { p_recurrente_id: string; p_fecha?: string }
         Returns: string
       }
-      generar_pago_recurrente: {
-        Args: {
-          p_id: string
-        }
-        Returns: string
-      }
-      guardar_borrador_conciliacion: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      guardar_plantilla_impresion: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      guardar_tasa_cambio: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
+      generar_pago_recurrente: { Args: { p_id: string }; Returns: string }
+      guardar_borrador_conciliacion: { Args: { p: Json }; Returns: string }
+      guardar_plantilla_impresion: { Args: { p: Json }; Returns: string }
+      guardar_tasa_cambio: { Args: { p: Json }; Returns: string }
       listar_perfiles: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -4179,49 +3906,22 @@ export type Database = {
           activo: boolean
         }[]
       }
-      reabrir_periodo: {
-        Args: {
-          p_periodo: string
-        }
-        Returns: string
-      }
-      registrar_deposito: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
-      registrar_pago_proveedor: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
+      normalizar: { Args: { p_texto: string }; Returns: string }
+      obtener_auditoria: { Args: { p: Json }; Returns: Json }
+      reabrir_periodo: { Args: { p_periodo: string }; Returns: string }
+      registrar_deposito: { Args: { p: Json }; Returns: string }
+      registrar_pago_proveedor: { Args: { p: Json }; Returns: string }
       registrar_pago_proveedor_multi: {
-        Args: {
-          p_encabezado: Json
-          p_aplicaciones: Json
-        }
+        Args: { p_encabezado: Json; p_aplicaciones: Json }
         Returns: string
       }
-      registrar_pago_recibido: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
+      registrar_pago_recibido: { Args: { p: Json }; Returns: string }
       registrar_pago_recibido_multi: {
-        Args: {
-          p_encabezado: Json
-          p_aplicaciones: Json
-        }
+        Args: { p_encabezado: Json; p_aplicaciones: Json }
         Returns: string
       }
       reporte_balance_comprobacion: {
-        Args: {
-          p_desde: string
-          p_hasta: string
-        }
+        Args: { p_desde: string; p_hasta: string }
         Returns: {
           cuenta_codigo: string
           cuenta_nombre: string
@@ -4232,9 +3932,7 @@ export type Database = {
         }[]
       }
       reporte_cxc: {
-        Args: {
-          p_fecha: string
-        }
+        Args: { p_fecha: string }
         Returns: {
           contacto_id: string
           contacto_nombre: string
@@ -4250,10 +3948,7 @@ export type Database = {
         }[]
       }
       reporte_estado_resultados: {
-        Args: {
-          p_desde: string
-          p_hasta: string
-        }
+        Args: { p_desde: string; p_hasta: string }
         Returns: {
           tipo: string
           cuenta_codigo: string
@@ -4262,11 +3957,7 @@ export type Database = {
         }[]
       }
       reporte_estado_resultados_centro: {
-        Args: {
-          p_desde: string
-          p_hasta: string
-          p_centro_costo?: string
-        }
+        Args: { p_desde: string; p_hasta: string; p_centro_costo?: string }
         Returns: {
           tipo: string
           cuenta_codigo: string
@@ -4275,10 +3966,7 @@ export type Database = {
         }[]
       }
       reporte_libro_diario: {
-        Args: {
-          p_desde: string
-          p_hasta: string
-        }
+        Args: { p_desde: string; p_hasta: string }
         Returns: {
           asiento_numero: number
           fecha: string
@@ -4355,14 +4043,9 @@ export type Database = {
           creditos: number
         }[]
       }
-      rol_actual: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      rol_actual: { Args: Record<PropertyKey, never>; Returns: string }
       saldos_caja_banco: {
-        Args: {
-          p_fecha?: string
-        }
+        Args: { p_fecha?: string }
         Returns: {
           cuenta_id: string
           codigo: string
@@ -4370,17 +4053,9 @@ export type Database = {
           saldo: number
         }[]
       }
-      transferir_entre_cuentas: {
-        Args: {
-          p: Json
-        }
-        Returns: string
-      }
+      transferir_entre_cuentas: { Args: { p: Json }; Returns: string }
       vincular_orden_compra: {
-        Args: {
-          p_orden_id: string
-          p_factura_proveedor_id: string
-        }
+        Args: { p_orden_id: string; p_factura_proveedor_id: string }
         Returns: string
       }
     }
@@ -4515,3 +4190,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

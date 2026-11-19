@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { AsientoPapel } from "@/components/impresion/asiento-papel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { getRol } from "@/lib/auth/rol";
 import { rutaContacto, rutaCuenta } from "@/lib/enlaces";
 import { valorACentavos } from "@/lib/facturacion/calculo";
+import { getEmpresa } from "@/lib/facturacion/consultas";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
@@ -29,10 +31,8 @@ function EstadoAsiento({ cuadrado }: { cuadrado: boolean }) {
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const rol = await getRol();
+  const [rol, asiento, empresa] = await Promise.all([getRol(), obtenerAsientoDetalle(id), getEmpresa()]);
   if (rol == null) redirect("/unauthorized");
-
-  const asiento = await obtenerAsientoDetalle(id);
   if (!asiento) notFound();
 
   const debitos = asiento.lineas.reduce((total, linea) => total + valorACentavos(linea.debito), 0);
@@ -54,7 +54,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           <h1 className="text-2xl font-semibold tracking-tight">
             Asiento contable {asiento.codigo ?? `#${asiento.numero}`}
           </h1>
-          <EstadoAsiento cuadrado={debitos === creditos} />
+          <div className="flex flex-wrap items-center gap-2">
+            <EstadoAsiento cuadrado={debitos === creditos} />
+            <AsientoPapel asiento={asiento} empresa={empresa} />
+          </div>
         </div>
       </div>
 

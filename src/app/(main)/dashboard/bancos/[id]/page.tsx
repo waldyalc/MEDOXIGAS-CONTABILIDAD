@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { ArrowLeft, Scale } from "lucide-react";
+import { Scale } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
 import {
@@ -11,6 +11,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
@@ -98,22 +99,25 @@ export default async function Page({
 
   return (
     <ContenedorLista>
-      <div className="flex flex-col gap-2">
-        <Button variant="ghost" size="sm" className="w-fit" render={<Link href="/dashboard/bancos" prefetch={false} />}>
-          <ArrowLeft data-icon="inline-start" />
-          Bancos
-        </Button>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl tracking-tight">{cuenta.nombre}</h1>
-              <PillEstado tono="neutro">{tipoCuenta(cuenta.nombre, cuenta.tipoBanco)}</PillEstado>
-            </div>
-            <p className="text-muted-foreground text-sm">
-              <Enlace href={rutaCuenta(cuenta.id)}>Cuenta contable {cuenta.codigo}</Enlace>
-              {cuenta.numeroCuenta ? ` · N.º ${cuenta.numeroCuenta}` : ""}
-            </p>
-          </div>
+      <EncabezadoPagina
+        titulo={
+          <span className="flex flex-wrap items-center gap-2">
+            {cuenta.nombre}
+            <PillEstado tono="neutro">{tipoCuenta(cuenta.nombre, cuenta.tipoBanco)}</PillEstado>
+          </span>
+        }
+        subtitulo={
+          <>
+            <Enlace href={rutaCuenta(cuenta.id)}>Cuenta contable {cuenta.codigo}</Enlace>
+            {cuenta.numeroCuenta ? ` · N.º ${cuenta.numeroCuenta}` : ""}
+          </>
+        }
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Bancos", href: "/dashboard/bancos" },
+          { etiqueta: cuenta.nombre },
+        ]}
+        acciones={
           <div className="flex flex-col items-end">
             <span className="text-muted-foreground text-xs">Saldo actual</span>
             <span
@@ -124,8 +128,8 @@ export default async function Page({
               {formatearRd(detalle.saldoActualCentavos)}
             </span>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <FiltroFechas desde={desde ?? ""} hasta={hasta ?? ""} />
