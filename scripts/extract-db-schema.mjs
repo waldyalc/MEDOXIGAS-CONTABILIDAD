@@ -54,7 +54,37 @@ if (fin === -1) {
   throw new Error("llaves sin balancear en el bloque `public:`");
 }
 
-const bloque = texto.slice(inicioDb + matchPublic.index, fin + 1);
+let bloque = texto.slice(inicioDb + matchPublic.index, fin + 1);
+
+// Diferencias de versión del generador que no son esquema (mismo motivo que la
+// normalización de abajo): --local (CLI) y --project-id (remoto, más nuevo)
+// emiten el mismo esquema con formato distinto y la comparación fallaba.
+// · viejo: `Args: Record<PropertyKey, never>` · nuevo: `Args: never`.
+// · nuevo agrega `SetofOptions: {…}` a funciones que devuelven una fila
+//   compuesta; el viejo no lo emite (el `Returns` sigue comparándose).
+// · viejo: args y columnas en orden de declaración · nuevo: orden
+//   alfabético. Se ordenan los campos de cada objeto hoja para que el orden
+//   no importe (los objetos anidados conservan su orden, igual en ambos).
+bloque = bloque
+  .replace(/Record<\s*PropertyKey\s*,\s*never\s*>/g, "never")
+  .replace(/SetofOptions\s*:\s*\{[^{}]*\}/g, "");
+
+// Ordena los campos dentro de cada objeto sin llaves anidadas ({ a: T, b: U }):
+// separadores `;` (formato compacto) o saltos de línea (formato expandido).
+bloque = bloque.replace(/\{[^{}]*\}/g, (obj) => {
+  const campos = obj
+    .slice(1, -1)
+    .replace(/;/g, "\n")
+    .split("\n")
+    .map((c) => c.replace(/,$/, "").trim())
+    .filter(Boolean);
+  if (campos.length <= 1) {
+    return obj;
+  }
+  campos.sort((x, y) => x.split(":")[0].localeCompare(y.split(":")[0]));
+  return `{ ${campos.join("; ")} }`;
+});
+
 process.stdout.write(
   `${bloque
     .replace(/\/\/[^\n]*/g, "")
