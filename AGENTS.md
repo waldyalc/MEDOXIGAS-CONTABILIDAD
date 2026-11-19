@@ -134,6 +134,7 @@ Candados que ya existen:
 - `src/lib/paginacion.test.ts` — los reportes, bancos, fichas y selectores críticos leen por lotes (`paginarConsulta`/`consultarEnLotes`), sin topes de 300/500/1,000; ventas/rentabilidad por producto no se corta en 20,000 líneas.
 - `src/lib/tablas-listas.test.ts` — las listas migradas usan `TablaLista` (una sola implementación de tabla/paginación).
 - `src/lib/diseno-paginas.test.ts` — las pantallas migradas usan el marco `EncabezadoPagina` + migas, sin `text-3xl` suelto.
+- `src/lib/supabase/migraciones.test.ts` — exige formato `YYYYMMDDHHMMSS_nombre.sql`, sin duplicados ni archivos vacíos/sueltos, y timestamp UTC real para toda migración nueva posterior a `20261123000000`.
 - `tests/e2e/numeraciones.spec.ts` — guardar B16 sin cambios cierra el diálogo y un nombre en blanco muestra el error en español (requiere `E2E_EMAIL`/`E2E_PASSWORD`, como el humo).
 - `supabase/tests/anular_ajuste_costo_test.sql` — anular un ajuste de inventario de entrada devuelve la cantidad y revierte el costo promedio; anular una compra ya lo hacía (`anular_compra_costo_test.sql`).
 
