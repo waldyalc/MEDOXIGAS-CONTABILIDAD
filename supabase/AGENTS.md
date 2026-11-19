@@ -21,6 +21,7 @@ transaccionales; exigen rol `admin` o `contador`):
 
 - Catálogo: `crear_contacto`, `actualizar_contacto`, `crear_producto`,
   `actualizar_producto`.
+- Numeraciones: `crear_numeracion`, `actualizar_numeracion`.
 - Documentos: `crear_factura`, `registrar_pago_recibido`,
   `crear_factura_proveedor`, `registrar_pago_proveedor`, `crear_gasto_menor`.
 - Anulación: `anular_documento(p_tipo, p_id)`.

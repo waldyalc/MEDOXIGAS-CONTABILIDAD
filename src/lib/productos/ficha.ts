@@ -1,3 +1,4 @@
+import type { AdjuntoItem } from "@/lib/adjuntos/adjuntos";
 import { calcularLinea, centavosAValor, valorACentavos } from "@/lib/facturacion/calculo";
 import type { ExistenciaAlmacen, TipoListaPrecio } from "@/lib/inventario/tipos";
 
@@ -31,6 +32,11 @@ export interface ProductoFicha {
   itbis_tasa: number;
   costo: number;
   cantidad: number;
+  unidadMedida: string;
+  almacenId: string | null;
+  vendeNegativo: boolean;
+  imagenPath: string | null;
+  imagenUrl: string | null;
   precios: PrecioListaFicha[];
   cuentaIngresoId: string | null;
   cuentaInventarioId: string | null;
@@ -80,6 +86,7 @@ export interface FichaProducto {
   conduces: DocumentoComercialFicha[];
   existencias: ExistenciaAlmacen[];
   kardex: ResultadoKardex;
+  adjuntos: AdjuntoItem[];
 }
 
 export interface DocumentoNumerado {

@@ -1,3 +1,4 @@
+import type { AdjuntoItem } from "@/lib/adjuntos/adjuntos";
 import { rutaPagoProveedor, rutaPagoRecibido } from "@/lib/enlaces";
 
 import type { ContactoTipo } from "./contactos";
@@ -10,6 +11,7 @@ export interface ContactoFicha {
   correo: string | null;
   direccion: string | null;
   tipo: ContactoTipo;
+  limite_credito: number | null;
 }
 
 export interface CuentaFicha {
@@ -93,6 +95,7 @@ export interface DatosFichaContacto {
   pagosRecibidos: PagoFicha[];
   pagosProveedor: PagoFicha[];
   asientos: AsientoFicha[];
+  adjuntos: AdjuntoItem[];
 }
 
 export interface TransaccionFicha {

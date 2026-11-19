@@ -54,7 +54,7 @@ import {
   precioConItbis,
   sumarCantidades,
 } from "@/lib/productos/ficha";
-import { etiquetaTasaItbis } from "@/lib/productos/productos";
+import { etiquetaTasaItbis, etiquetaTipoProducto } from "@/lib/productos/productos";
 
 import { InformacionGeneral } from "./informacion-general";
 import { ListaBuscable, PendienteBackend, TablaComerciales, TablaFacturas, TablaKardex } from "./tablas-producto";
@@ -92,24 +92,32 @@ function EncabezadoProducto({
   readonly hrefEditar: string | null;
   readonly onVerHistorial: () => void;
 }) {
-  const esServicio = producto.tipo === "servicio";
+  const Icono = producto.tipo === "servicio" ? Wrench : Package;
   const id = encodeURIComponent(producto.id);
 
   return (
     <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex items-start gap-3.5">
-        <div className="bg-primary text-primary-foreground flex size-11 shrink-0 items-center justify-center rounded-lg">
-          {esServicio ? <Wrench className="size-6" /> : <Package className="size-6" />}
+        <div className="bg-primary text-primary-foreground flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg">
+          {producto.imagenUrl ? (
+            // biome-ignore lint/performance/noImgElement: imagen del producto guardada en Storage
+            <img src={producto.imagenUrl} alt={producto.nombre} className="size-full object-cover" />
+          ) : (
+            <Icono className="size-6" />
+          )}
         </div>
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-lg font-semibold tracking-tight">{producto.nombre}</h1>
-            <Pildora className="bg-primary/10 text-primary">{esServicio ? "Servicio" : "Producto"}</Pildora>
+            <Pildora className="bg-primary/10 text-primary">{etiquetaTipoProducto(producto.tipo)}</Pildora>
             {producto.inventariable ? (
               <Pildora className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                 <span className="size-1.5 rounded-full bg-emerald-500" />
                 Inventariable
               </Pildora>
+            ) : null}
+            {producto.vendeNegativo ? (
+              <Pildora className="bg-amber-500/10 text-amber-700 dark:text-amber-400">Venta en negativo</Pildora>
             ) : null}
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -125,6 +133,7 @@ function EncabezadoProducto({
               icono={<Percent className="size-3.5" />}
               texto={`ITBIS ${etiquetaTasaItbis(producto.itbis_tasa)}`}
             />
+            <MetaItem icono={<Boxes className="size-3.5" />} texto={`Unidad: ${producto.unidadMedida}`} />
             {producto.inventariable ? (
               <MetaItem
                 icono={<Boxes className="size-3.5" />}
@@ -308,7 +317,7 @@ export function FichaProducto({
           </div>
 
           <TabsContent value="informacion" className="p-4 sm:p-5">
-            <InformacionGeneral ficha={ficha} onVerHistorial={verHistorial} />
+            <InformacionGeneral ficha={ficha} puedeEscribir={puedeEscribir} onVerHistorial={verHistorial} />
           </TabsContent>
 
           <TabsContent value="facturas-venta" className="p-4 sm:p-5">

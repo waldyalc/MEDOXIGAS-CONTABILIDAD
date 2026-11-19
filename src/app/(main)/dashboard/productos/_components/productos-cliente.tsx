@@ -18,17 +18,16 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { rutaEditarProducto, rutaProducto } from "@/lib/enlaces";
-import type { Impuesto } from "@/lib/impuestos/tipos";
-import type { CategoriaProducto, ListaPrecio } from "@/lib/inventario/tipos";
+import { rutaEditarProducto, rutaNuevoProducto, rutaProducto } from "@/lib/enlaces";
+import type { CategoriaProducto } from "@/lib/inventario/tipos";
 import { type OpcionesLista, type ParametrosLista, type ResumenPagina, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import { etiquetaTasaItbis, formatoCantidad, formatoMoneda, type Producto } from "@/lib/productos/productos";
 
 import { EditarSeleccionadosDialogo } from "./editar-seleccionados-dialogo";
 import { ImportarProductosDialogo } from "./importar-productos-dialogo";
-import { ProductoDialogo } from "./producto-dialogo";
 
 function muestraInventario(producto: Producto) {
   return producto.tipo === "producto" && producto.inventariable;
@@ -90,8 +89,6 @@ export function ProductosCliente({
   params,
   opciones,
   categorias,
-  listasPrecios,
-  impuestos,
   puedeEditar,
 }: {
   readonly productos: Producto[];
@@ -99,12 +96,9 @@ export function ProductosCliente({
   readonly params: ParametrosLista;
   readonly opciones: OpcionesLista;
   readonly categorias: CategoriaProducto[];
-  readonly listasPrecios: ListaPrecio[];
-  readonly impuestos: Impuesto[];
   readonly puedeEditar: boolean;
 }) {
   const router = useRouter();
-  const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [importarAbierto, setImportarAbierto] = useState(false);
   const [edicionMasivaAbierta, setEdicionMasivaAbierta] = useState(false);
   const [seleccionados, setSeleccionados] = useState<Set<string>>(() => new Set());
@@ -152,30 +146,27 @@ export function ProductosCliente({
     router.refresh();
   }
 
-  function abrirNuevo() {
-    setDialogoAbierto(true);
-  }
-
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Productos</h1>
-          <p className="text-muted-foreground">Administra los productos y servicios que vendes.</p>
-        </div>
-        {puedeEditar ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" onClick={() => setImportarAbierto(true)}>
-              <Upload />
-              Importar
-            </Button>
-            <Button type="button" onClick={abrirNuevo}>
-              <Plus />
-              Nuevo producto
-            </Button>
-          </div>
-        ) : null}
-      </div>
+      <EncabezadoPagina
+        titulo="Productos"
+        subtitulo="Administra los productos y servicios que vendes."
+        migas={[{ etiqueta: "Productos" }]}
+        acciones={
+          puedeEditar ? (
+            <>
+              <Button type="button" variant="outline" onClick={() => setImportarAbierto(true)}>
+                <Upload />
+                Importar
+              </Button>
+              <Button nativeButton={false} render={<Link href={rutaNuevoProducto()} prefetch={false} />}>
+                <Plus />
+                Nuevo producto
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
 
       <TarjetaLista data-lista="productos">
         <BarraLista>
@@ -249,7 +240,7 @@ export function ProductosCliente({
               : "Crea tu primer producto o servicio para empezar.",
             icono: <Package className="size-10" />,
             accion: puedeEditar ? (
-              <Button type="button" onClick={abrirNuevo}>
+              <Button nativeButton={false} render={<Link href={rutaNuevoProducto()} prefetch={false} />}>
                 <Plus />
                 Nuevo producto
               </Button>
@@ -269,15 +260,6 @@ export function ProductosCliente({
           className="border-border h-14 border-t px-4 text-slate-700 dark:text-slate-300"
         />
       </TarjetaLista>
-
-      <ProductoDialogo
-        abierto={dialogoAbierto}
-        producto={null}
-        categorias={categorias}
-        listasPrecios={listasPrecios}
-        impuestos={impuestos}
-        onCambiarAbierto={setDialogoAbierto}
-      />
 
       <ImportarProductosDialogo
         abierto={importarAbierto}

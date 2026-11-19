@@ -7,6 +7,7 @@ export const TIPOS_REGISTRO = [
   { valor: "pago_proveedor", etiqueta: "Comprobantes de egreso" },
   { valor: "gasto_menor", etiqueta: "Gastos menores" },
   { valor: "manual", etiqueta: "Comprobantes contables" },
+  { valor: "saldo_inicial", etiqueta: "Saldos iniciales" },
   { valor: "anulacion", etiqueta: "Anulaciones" },
 ] as const;
 
@@ -17,6 +18,7 @@ export const ETIQUETAS_DOCUMENTO: Record<string, string> = {
   pago_proveedor: "Comprobante de egreso",
   gasto_menor: "Gasto menor",
   manual: "Comprobante contable",
+  saldo_inicial: "Saldo inicial",
   anulacion: "Anulación",
 };
 

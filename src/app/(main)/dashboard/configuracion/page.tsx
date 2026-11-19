@@ -9,6 +9,7 @@ import {
   Hash,
   type LucideIcon,
   MapPin,
+  NotebookText,
   Percent,
   Printer,
   ReceiptText,
@@ -16,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRol } from "@/lib/auth/rol";
 
@@ -141,18 +143,24 @@ export default async function Page() {
           url: "/dashboard/contabilidad",
           icon: BookOpen,
         },
+        {
+          id: "tipos-entrada-diario",
+          titulo: "Tipos de entrada de diario",
+          descripcion: "Prefijos y numeraciones de los asientos manuales.",
+          url: "/dashboard/configuracion/tipos-entrada-diario",
+          icon: NotebookText,
+        },
       ],
     },
   ];
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl tracking-tight">Configuración</h1>
-        <p className="text-muted-foreground text-balance">
-          Datos de la empresa, facturación, impuestos y cuentas por defecto.
-        </p>
-      </div>
+      <EncabezadoPagina
+        titulo="Configuración"
+        subtitulo="Datos de la empresa, facturación, impuestos y cuentas por defecto."
+        migas={[{ etiqueta: "Inicio", href: "/dashboard" }, { etiqueta: "Configuración" }]}
+      />
 
       {grupos.map((grupo) => (
         <section key={grupo.id} className="flex flex-col gap-3">

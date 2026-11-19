@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
+import { SeccionAdjuntos } from "@/components/adjuntos/seccion-adjuntos";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -60,6 +61,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
+import type { AdjuntoItem } from "@/lib/adjuntos/adjuntos";
 import { convertirRemisionAFactura } from "@/lib/conduces/acciones";
 import { convertirCotizacionAFactura } from "@/lib/cotizaciones/acciones";
 import type {
@@ -655,18 +657,30 @@ function PortalImpresion({ children }: { children: ReactNode }) {
 interface MenuAccionesProps {
   facturaId: string | null;
   facturaRelacionada: FacturaRelacionada | null;
+  puedeClonar: boolean;
   puedeNotaCredito: boolean;
   puedeNotaDebito: boolean;
   puedeAnular: boolean;
   onNavegar: (ruta: string) => void;
   onDescargarPdf: () => void;
   onImprimir: () => void;
+  onClonar: () => void;
   onAnular: () => void;
 }
 
 function MenuAcciones(props: MenuAccionesProps) {
   return (
     <>
+      {props.puedeClonar ? (
+        <>
+          <DropdownMenuItem className="px-4 py-2" onClick={props.onClonar}>
+            <Copy />
+            Clonar
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+        </>
+      ) : null}
+
       {props.puedeNotaCredito && props.facturaId ? (
         <DropdownMenuItem
           className="px-4 py-2"
@@ -734,12 +748,10 @@ interface AccionesDocumentoProps extends MenuAccionesProps {
   puedeConvertir: boolean;
   puedeConvertirEnConduce: boolean;
   puedeEditar: boolean;
-  puedeClonar: boolean;
   pendiente: boolean;
   onCompartir: () => void;
   onAbrirConvertir: () => void;
   onConvertirEnConduce: () => void;
-  onClonar: () => void;
 }
 
 function AccionesDocumento(props: AccionesDocumentoProps) {
@@ -751,13 +763,6 @@ function AccionesDocumento(props: AccionesDocumentoProps) {
         <Button variant="outline" className={BOTON_TEXTO} render={<Link href={rutaEditar} />}>
           <Pencil />
           Editar
-        </Button>
-      ) : null}
-
-      {props.puedeClonar ? (
-        <Button variant="outline" className={BOTON_TEXTO} onClick={props.onClonar}>
-          <Copy />
-          Clonar
         </Button>
       ) : null}
 
@@ -792,12 +797,14 @@ function AccionesDocumento(props: AccionesDocumentoProps) {
           <MenuAcciones
             facturaId={props.facturaId}
             facturaRelacionada={props.facturaRelacionada}
+            puedeClonar={props.puedeClonar}
             puedeNotaCredito={props.puedeNotaCredito}
             puedeNotaDebito={props.puedeNotaDebito}
             puedeAnular={props.puedeAnular}
             onNavegar={props.onNavegar}
             onDescargarPdf={props.onDescargarPdf}
             onImprimir={props.onImprimir}
+            onClonar={props.onClonar}
             onAnular={props.onAnular}
           />
         </DropdownMenuContent>
@@ -905,11 +912,17 @@ function PanelFactura({
   notasCredito,
   notasDebito,
   asiento,
+  adjuntos,
+  facturaId,
+  puedeEscribir,
 }: {
   pagos: PagoFacturaVista[];
   notasCredito: NotaVentaResumen[];
   notasDebito: NotaVentaResumen[];
   asiento: AsientoVista | null;
+  adjuntos: AdjuntoItem[];
+  facturaId: string;
+  puedeEscribir: boolean;
 }) {
   return (
     <Card className="bg-card gap-0 rounded-[12px] border border-slate-400/20 px-2 pt-2 pb-6 shadow-none ring-0 [--card-spacing:0px] sm:px-8 sm:pb-8">
@@ -930,6 +943,9 @@ function PanelFactura({
           <TabsTrigger value="contabilidad" className={PESTANA}>
             Contabilidad
           </TabsTrigger>
+          <TabsTrigger value="adjuntos" className={PESTANA}>
+            Adjuntos
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pagos" className="mt-6">
@@ -943,6 +959,14 @@ function PanelFactura({
         </TabsContent>
         <TabsContent value="contabilidad" className="mt-6">
           <AsientoContable asiento={asiento ?? { asiento: null, lineas: [] }} />
+        </TabsContent>
+        <TabsContent value="adjuntos" className="mt-6">
+          <SeccionAdjuntos
+            adjuntos={adjuntos}
+            entidadTipo="factura"
+            entidadId={facturaId}
+            puedeEscribir={puedeEscribir}
+          />
         </TabsContent>
       </Tabs>
     </Card>
@@ -1189,6 +1213,7 @@ interface VistaPreparada {
   notasCredito: NotaVentaResumen[];
   notasDebito: NotaVentaResumen[];
   asiento: AsientoVista | null;
+  adjuntos: AdjuntoItem[];
   facturaRelacionada: FacturaRelacionada | null;
   cotizacionOrigen: DocumentoRelacionado | null;
   remisionRelacionada: DocumentoRelacionado | null;
@@ -1216,6 +1241,7 @@ function prepararVista(props: Props): VistaPreparada | null {
   let notasCredito: NotaVentaResumen[] = [];
   let notasDebito: NotaVentaResumen[] = [];
   let asiento: AsientoVista | null = null;
+  let adjuntos: AdjuntoItem[] = [];
   let facturaRelacionada: FacturaRelacionada | null = null;
   let cotizacionOrigen: DocumentoRelacionado | null = null;
   let remisionRelacionada: DocumentoRelacionado | null = null;
@@ -1226,6 +1252,7 @@ function prepararVista(props: Props): VistaPreparada | null {
     notasCredito = props.datos.notasCredito;
     notasDebito = props.datos.notasDebito;
     asiento = props.datos.asiento;
+    adjuntos = props.datos.adjuntos;
   } else {
     documento = props.datos.documento;
     facturaRelacionada = props.datos.facturaRelacionada;
@@ -1253,6 +1280,7 @@ function prepararVista(props: Props): VistaPreparada | null {
     notasCredito,
     notasDebito,
     asiento,
+    adjuntos,
     facturaRelacionada,
     cotizacionOrigen,
     remisionRelacionada,
@@ -1431,13 +1459,23 @@ export function VistaDocumentoVenta(props: Props) {
 
   if (!preparado) return null;
 
-  const { factura, base, lineas, contacto, empresa, pagos, notasCredito, notasDebito, asiento } = preparado;
+  const { factura, base, lineas, contacto, empresa, pagos, notasCredito, notasDebito, asiento, adjuntos } = preparado;
   const tipoDocumento = props.tipo === "factura" ? null : props.tipo;
   const documentoId = factura?.id ?? preparado.documento?.id ?? null;
 
   let panel: ReactNode = null;
   if (factura) {
-    panel = <PanelFactura pagos={pagos} notasCredito={notasCredito} notasDebito={notasDebito} asiento={asiento} />;
+    panel = (
+      <PanelFactura
+        pagos={pagos}
+        notasCredito={notasCredito}
+        notasDebito={notasDebito}
+        asiento={asiento}
+        adjuntos={adjuntos}
+        facturaId={factura.id}
+        puedeEscribir={props.puedeEscribir}
+      />
+    );
   } else if (tipoDocumento) {
     panel = (
       <PanelDocumento

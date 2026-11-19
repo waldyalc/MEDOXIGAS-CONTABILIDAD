@@ -4,9 +4,10 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Hash, Loader2, Pencil } from "lucide-react";
+import { Hash, Loader2, Pencil, Plus } from "lucide-react";
 
-import { FORM_INPUT, FormField } from "@/components/formularios/formulario";
+import { DatePicker } from "@/components/date-picker";
+import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
 import { BarraLista, type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { SelectCampo } from "@/components/select-campo";
@@ -16,10 +17,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { formatoDia, formatoEntero } from "@/lib/formato";
-import { actualizarNumeracion } from "@/lib/numeraciones/acciones";
-import type { Numeracion } from "@/lib/numeraciones/tipos";
+import { actualizarNumeracion, crearNumeracion } from "@/lib/numeraciones/acciones";
+import { type Numeracion, TIPO_SIN_NCF } from "@/lib/numeraciones/tipos";
 
-import { etiquetaTipoDocumento, opcionesTipoDocumento } from "./tipos-documento";
+import {
+  etiquetaTipoDocumento,
+  OPCIONES_TIPO_NUEVA_NUMERACION,
+  opcionesTipoDocumento,
+  prefijoTipoDocumento,
+} from "./tipos-documento";
 
 const POR_PAGINA = 25;
 
@@ -174,6 +180,129 @@ function FormularioNumeracion({
   );
 }
 
+function FormularioNuevaNumeracion({ onGuardado }: { readonly onGuardado: () => void }) {
+  const [tipoNuevo, setTipoNuevo] = useState("");
+  const [vence, setVence] = useState("");
+  const [activa, setActiva] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [pendiente, iniciar] = useTransition();
+
+  function cambiarTipo(valor: string) {
+    setTipoNuevo(valor);
+    setError(null);
+  }
+
+  function enviar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    const datos = new FormData(evento.currentTarget);
+    setError(null);
+
+    iniciar(async () => {
+      const resultado = await crearNumeracion({
+        tipo_comprobante: tipoNuevo,
+        nombre: String(datos.get("nombre") ?? ""),
+        prefijo: String(datos.get("prefijo") ?? ""),
+        siguiente: String(datos.get("siguiente") ?? ""),
+        hasta: String(datos.get("hasta") ?? ""),
+        vence,
+        activa,
+      });
+
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+
+      onGuardado();
+    });
+  }
+
+  return (
+    <form onSubmit={enviar} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
+        <FormField htmlFor="tipo-comprobante" label="Tipo de documento" required>
+          <SelectCampo
+            id="tipo-comprobante"
+            opciones={OPCIONES_TIPO_NUEVA_NUMERACION}
+            valor={tipoNuevo}
+            onCambio={cambiarTipo}
+            requerido
+            aria-label="Tipo de documento"
+            className={FORM_SELECT}
+          />
+        </FormField>
+
+        {tipoNuevo !== "" && tipoNuevo !== TIPO_SIN_NCF ? (
+          <p className="bg-muted text-muted-foreground rounded-lg px-3 py-2 text-sm">
+            El prefijo de esta serie es <span className="font-mono">{prefijoTipoDocumento(tipoNuevo)}</span>.
+          </p>
+        ) : null}
+
+        {tipoNuevo === TIPO_SIN_NCF ? (
+          <FormField htmlFor="nuevo-prefijo" label="Prefijo" required>
+            <Input id="nuevo-prefijo" name="prefijo" required maxLength={10} placeholder="REC" className={FORM_INPUT} />
+          </FormField>
+        ) : null}
+
+        <FormField htmlFor="nuevo-nombre" label="Nombre" required>
+          <Input id="nuevo-nombre" name="nombre" required maxLength={120} className={FORM_INPUT} />
+        </FormField>
+
+        <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          <FormField htmlFor="nuevo-siguiente" label="Siguiente" required>
+            <Input
+              id="nuevo-siguiente"
+              name="siguiente"
+              type="number"
+              min={1}
+              step={1}
+              required
+              defaultValue={1}
+              className={FORM_INPUT}
+            />
+          </FormField>
+          <FormField htmlFor="nuevo-hasta" label="Hasta">
+            <Input
+              id="nuevo-hasta"
+              name="hasta"
+              type="number"
+              min={1}
+              step={1}
+              placeholder="Sin límite"
+              className={FORM_INPUT}
+            />
+          </FormField>
+        </div>
+
+        <FormField htmlFor="nuevo-vence" label="Vencimiento del NCF">
+          <DatePicker id="nuevo-vence" value={vence} onChange={setVence} />
+        </FormField>
+
+        <div className="border-border flex items-center justify-between gap-3 rounded-xl border p-3">
+          <Label htmlFor="nuevo-activa">Activa</Label>
+          <Switch id="nuevo-activa" checked={activa} onCheckedChange={setActiva} />
+        </div>
+
+        {error ? (
+          <p role="alert" className="text-destructive text-sm">
+            {error}
+          </p>
+        ) : null}
+      </div>
+
+      <DialogFooter>
+        <DialogClose render={<Button type="button" variant="outline" className="h-11 rounded-[12px] px-6" />}>
+          Cancelar
+        </DialogClose>
+        <Button type="submit" disabled={pendiente} className="h-11 rounded-[12px] px-6">
+          {pendiente ? <Loader2 className="animate-spin" /> : null}
+          Guardar
+        </Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
 export function NumeracionesCliente({
   numeraciones,
   puedeEditar,
@@ -183,6 +312,7 @@ export function NumeracionesCliente({
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState<Numeracion | null>(null);
+  const [creando, setCreando] = useState(false);
   const [tipo, setTipo] = useState("");
   const [pagina, setPagina] = useState(0);
 
@@ -198,6 +328,11 @@ export function NumeracionesCliente({
 
   function cerrarTrasGuardar() {
     setEditando(null);
+    router.refresh();
+  }
+
+  function cerrarCrearTrasGuardar() {
+    setCreando(false);
     router.refresh();
   }
 
@@ -224,6 +359,12 @@ export function NumeracionesCliente({
               className="h-8 w-[220px]"
             />
           </div>
+          {puedeEditar ? (
+            <Button type="button" className="ml-auto" onClick={() => setCreando(true)}>
+              <Plus />
+              Nueva numeración
+            </Button>
+          ) : null}
         </BarraLista>
 
         <TablaLista
@@ -238,6 +379,12 @@ export function NumeracionesCliente({
                 ? "No hay secuencias de NCF para mostrar."
                 : `No hay numeraciones del tipo ${etiquetaTipoDocumento(tipo)}.`,
             icono: <Hash className="size-10" />,
+            accion: puedeEditar ? (
+              <Button type="button" onClick={() => setCreando(true)}>
+                <Plus />
+                Nueva numeración
+              </Button>
+            ) : undefined,
           }}
           acciones={
             puedeEditar
@@ -274,6 +421,15 @@ export function NumeracionesCliente({
           {editando ? (
             <FormularioNumeracion key={editando.id} numeracion={editando} onGuardado={cerrarTrasGuardar} />
           ) : null}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={creando} onOpenChange={setCreando}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nueva numeración</DialogTitle>
+          </DialogHeader>
+          {creando ? <FormularioNuevaNumeracion onGuardado={cerrarCrearTrasGuardar} /> : null}
         </DialogContent>
       </Dialog>
     </>

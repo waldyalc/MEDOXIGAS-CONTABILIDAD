@@ -23,27 +23,36 @@ Reglas:
 - La búsqueda y el orden por defecto usan `numero` y `ncf`: ambos campos deben seguir en la consulta aunque el número no sea una columna visible.
 - Nada de esto se crea en el frontend: si un dato falta, es TODO backend — avisar a Waldy en vez de inventarlo.
 
-## Producto — pantalla completa de edición
+## Producto — pantalla completa de edición y alta
 
-Ruta: `/dashboard/productos/[id]/editar`. Usa el mismo shell de la ficha y guarda con `actualizarProducto` (`actualizar_producto` en la base).
+Rutas: `/dashboard/productos/[id]/editar` y `/dashboard/productos/nuevo`. Guardan con `actualizarProducto`/`crearProducto` (`actualizar_producto`/`crear_producto` en la base). Los campos nuevos solo viajan si el formulario los envía, igual que las cuentas contables.
 
 | Lo que se ve en pantalla | Campo del backend |
 | --- | --- |
-| Tipo | `productos.tipo` (`producto` o `servicio`) |
+| Tipo | `productos.tipo` (`producto`, `servicio` o `combo`) |
 | Nombre, referencia, descripción | `productos.nombre`, `productos.referencia`, `productos.descripcion` |
+| Almacén | `productos.almacen_id` → `almacenes.nombre` |
 | Categoría | `productos.categoria_id` → `categorias_productos.nombre` |
+| Unidad de medida | `productos.unidad_medida` (texto libre, por defecto `Unidad`) |
 | Estado | `productos.activo` |
 | Precio base e impuesto | `productos.precio`, `productos.impuesto_id`, `productos.itbis_tasa` |
-| Controlar inventario, existencia actual y costo | `productos.inventariable`, `productos.cantidad`, `productos.costo` |
-| Almacenes (solo lectura) | `existencias.cantidad` por `almacenes` |
+| Precio total | Se calcula en pantalla con `precioConItbis` (la ficha también lo recalcula al leer); no es una columna |
+| Inventariable y venta en negativo | `productos.inventariable`, `productos.vende_negativo` |
+| Existencia actual, inicial y costo | `productos.cantidad`, `productos.costo` y `existencias.cantidad_inicial` del almacén |
+| Imagen | `productos.imagen_path` en el bucket **privado** `productos`; se muestra con URL firmada |
+| Almacenes (mín/máx por almacén) | `existencias.cantidad_inicial`, `existencias.cantidad`, `existencias.minimo`, `existencias.maximo` |
 | Listas de precios | `producto_precios.precio` por `listas_precios` |
 | Cuentas contables | `productos.cuenta_ingreso_id`, `productos.cuenta_inventario_id`, `productos.cuenta_costo_id` |
 
+Reglas:
+
+- La cantidad de la pantalla solo mueve el stock del **almacén elegido** (`actualizar_producto` ajusta la diferencia ahí). Las cantidades de los otros almacenes se muestran de solo lectura.
+- Los mínimos y máximos por almacén se guardan con `_producto_guardar_minimos`; si el bloque de opciones avanzadas no se abre, no se envían y no se tocan.
+
 Campos de Alegra que la base **no** soporta todavía. No se inventaron; quedan pendientes de decidir:
 
-- **Combo** como tipo de producto: el check de `productos.tipo` solo acepta `producto` y `servicio`.
-- **Almacén obligatorio en el formulario**: no existe `productos.almacen_id`; el stock vive por almacén en `existencias`.
-- **Unidad de medida** y **tipo de referencia**: no hay columnas para esos datos.
-- **Existencia inicial, mínimo y máximo por almacén**, y **en conduces**: `existencias` solo guarda `cantidad`; la inicial se deduce del kárdex.
-- **Variantes**, **campos extra** e **imagen del producto**: no existen tablas ni columnas.
-- **Archivos adjuntos**: no hay tabla de adjuntos de productos; la sección se muestra vacía.
+- **Tipo de referencia**: no hay columna para ese dato.
+- **En conduces por almacén**: `remisiones` no guarda almacén, así que no se puede repartir lo comprometido; la columna se muestra con `—`.
+- **Variantes** y **campos extra**: no existen tablas ni columnas.
+- **Archivos adjuntos**: no hay tabla de adjuntos de productos; solo la ficha muestra esa sección vacía (el formulario de alta/edición ya no la tiene).
+- **Limpieza de imágenes huérfanas**: al quitar o reemplazar la imagen, el objeto anterior queda en el bucket. Falta una tarea de limpieza o borrado al guardar.

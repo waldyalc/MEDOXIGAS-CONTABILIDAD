@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getRol } from "@/lib/auth/rol";
-import { getImpuestosActivos } from "@/lib/impuestos/consultas";
-import { listarCategorias, listarListasPreciosActivas } from "@/lib/inventario/consultas";
+import { listarCategorias } from "@/lib/inventario/consultas";
 import { leerOpcionesLista, type ParametrosLista } from "@/lib/listas/parametros";
 import { listarProductos } from "@/lib/productos/consultas";
 
@@ -12,13 +11,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const params = await searchParams;
   const opciones = leerOpcionesLista(params);
 
-  const [rol, productos, categorias, listasPrecios, impuestos] = await Promise.all([
-    getRol(),
-    listarProductos(opciones),
-    listarCategorias(),
-    listarListasPreciosActivas(),
-    getImpuestosActivos(),
-  ]);
+  const [rol, productos, categorias] = await Promise.all([getRol(), listarProductos(opciones), listarCategorias()]);
   if (rol === null) redirect("/unauthorized");
 
   return (
@@ -28,8 +21,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
       params={params}
       opciones={opciones}
       categorias={categorias}
-      listasPrecios={listasPrecios}
-      impuestos={impuestos}
       puedeEditar={rol !== "lector"}
     />
   );

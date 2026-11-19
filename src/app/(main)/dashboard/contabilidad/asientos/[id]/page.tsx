@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { AsientoPapel } from "@/components/impresion/asiento-papel";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { getRol } from "@/lib/auth/rol";
 import { rutaContacto, rutaCuenta } from "@/lib/enlaces";
 import { valorACentavos } from "@/lib/facturacion/calculo";
+import { getEmpresa } from "@/lib/facturacion/consultas";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
@@ -30,10 +32,8 @@ function EstadoAsiento({ cuadrado }: { cuadrado: boolean }) {
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const rol = await getRol();
+  const [rol, asiento, empresa] = await Promise.all([getRol(), obtenerAsientoDetalle(id), getEmpresa()]);
   if (rol == null) redirect("/unauthorized");
-
-  const asiento = await obtenerAsientoDetalle(id);
   if (!asiento) notFound();
 
   const debitos = asiento.lineas.reduce((total, linea) => total + valorACentavos(linea.debito), 0);
@@ -52,8 +52,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           Contabilidad
         </Button>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Asiento contable #{asiento.numero}</h1>
-          <EstadoAsiento cuadrado={debitos === creditos} />
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Asiento contable {asiento.codigo ?? `#${asiento.numero}`}
+          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <EstadoAsiento cuadrado={debitos === creditos} />
+            <AsientoPapel asiento={asiento} empresa={empresa} />
+          </div>
         </div>
       </div>
 
@@ -63,7 +68,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Número</dt>
+            <dt className="text-muted-foreground">Código</dt>
+            <dd className="tabular-nums">{asiento.codigo ?? `#${asiento.numero}`}</dd>
+            <dt className="text-muted-foreground">Tipo de entrada</dt>
+            <dd>{asiento.tipoEntrada ?? "—"}</dd>
+            <dt className="text-muted-foreground">Número interno</dt>
             <dd className="tabular-nums">#{asiento.numero}</dd>
             <dt className="text-muted-foreground">Fecha</dt>
             <dd>{formatoDia(asiento.fecha)}</dd>

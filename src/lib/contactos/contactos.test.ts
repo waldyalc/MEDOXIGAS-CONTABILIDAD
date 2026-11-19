@@ -90,6 +90,7 @@ describe("validación del formulario de contacto", () => {
       telefono: "809 555 1234",
       correo: " ana@medoxigas.do ",
       direccion: " Av. 27 de Febrero ",
+      limite_credito: " 50,000.50 ",
     });
     expect(resultado.success).toBe(true);
     if (resultado.success) {
@@ -101,8 +102,30 @@ describe("validación del formulario de contacto", () => {
         correo: "ana@medoxigas.do",
         direccion: "Av. 27 de Febrero",
         lista_precio_id: null,
+        limite_credito: "50000.50",
       });
     }
+  });
+
+  test("el límite de crédito es opcional y solo acepta montos de hasta 2 decimales", () => {
+    const sinLimite = esquemaContacto.safeParse({ nombre: "Ana" });
+    expect(sinLimite.success).toBe(true);
+    if (sinLimite.success) expect(sinLimite.data.limite_credito).toBeNull();
+
+    expect(esquemaContacto.safeParse({ nombre: "Ana", limite_credito: "50000" }).success).toBe(true);
+    expect(esquemaContacto.safeParse({ nombre: "Ana", limite_credito: "50000.5" }).success).toBe(true);
+    expect(esquemaContacto.safeParse({ nombre: "Ana", limite_credito: "   " }).success).toBe(true);
+
+    const montoInvalido = esquemaContacto.safeParse({ nombre: "Ana", limite_credito: "50 mil" });
+    expect(montoInvalido.success).toBe(false);
+    if (!montoInvalido.success) {
+      expect(montoInvalido.error.issues[0]?.message).toBe(
+        "El límite de crédito debe ser un monto válido (hasta 2 decimales)",
+      );
+    }
+
+    expect(esquemaContacto.safeParse({ nombre: "Ana", limite_credito: "-500" }).success).toBe(false);
+    expect(esquemaContacto.safeParse({ nombre: "Ana", limite_credito: "50000.999" }).success).toBe(false);
   });
 });
 

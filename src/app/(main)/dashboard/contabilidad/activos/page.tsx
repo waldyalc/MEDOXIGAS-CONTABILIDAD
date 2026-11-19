@@ -16,6 +16,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { getActivosLista } from "@/lib/activos-fijos/consultas";
 import { type ActivoLista, ETIQUETAS_TIPO_ACTIVO, type TipoActivo } from "@/lib/activos-fijos/tipos";
@@ -130,20 +131,23 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Activos fijos</h1>
-          <p className="text-muted-foreground text-sm">
-            Bienes de la empresa, su valor actual y la depreciación mes a mes.
-          </p>
-        </div>
-        {perfil.rol !== "lector" ? (
-          <Button render={<Link href="/dashboard/contabilidad/activos/nuevo" />}>
-            <Plus />
-            Nuevo activo
-          </Button>
-        ) : null}
-      </div>
+      <EncabezadoPagina
+        titulo="Activos fijos"
+        subtitulo="Bienes de la empresa, su valor actual y la depreciación mes a mes."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Contabilidad", href: "/dashboard/contabilidad" },
+          { etiqueta: "Activos fijos" },
+        ]}
+        acciones={
+          perfil.rol !== "lector" ? (
+            <Button render={<Link href="/dashboard/contabilidad/activos/nuevo" />}>
+              <Plus />
+              Nuevo activo
+            </Button>
+          ) : undefined
+        }
+      />
 
       <TarjetaLista data-lista="contabilidad-activos">
         <BarraLista>

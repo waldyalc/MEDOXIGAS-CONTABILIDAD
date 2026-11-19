@@ -9,7 +9,14 @@ import {
 } from "@/lib/listas/parametros";
 import { createClient } from "@/lib/supabase/server";
 
-import type { AsientoLista, CentroCostoAsiento, ContactoAsiento, CuentaAsiento, DatosFormularioAsiento } from "./tipos";
+import type {
+  AsientoLista,
+  CentroCostoAsiento,
+  ContactoAsiento,
+  CuentaAsiento,
+  DatosFormularioAsiento,
+  TipoEntradaAsiento,
+} from "./tipos";
 
 const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -33,7 +40,7 @@ export async function getAsientosLista(
     const { desde: inicio, hasta: fin } = rangoPagina(pagina, opciones.tamano);
     let consulta = supabase
       .from("asientos")
-      .select("id, numero, fecha, descripcion, origen_tipo, origen_id, total", { count: "exact" });
+      .select("id, numero, codigo, fecha, descripcion, origen_tipo, origen_id, total", { count: "exact" });
 
     if (desde) consulta = consulta.gte("fecha", desde);
     if (hasta) consulta = consulta.lte("fecha", hasta);
@@ -62,7 +69,7 @@ export async function getAsientosLista(
 
 export async function getDatosFormularioAsiento(): Promise<DatosFormularioAsiento> {
   const supabase = await createClient();
-  const [cuentas, contactos, centrosCosto] = await Promise.all([
+  const [cuentas, contactos, centrosCosto, tiposEntrada] = await Promise.all([
     supabase
       .from("cuentas")
       .select("id, codigo, nombre")
@@ -83,11 +90,23 @@ export async function getDatosFormularioAsiento(): Promise<DatosFormularioAsient
       .eq("activo", true)
       .order("codigo")
       .returns<CentroCostoAsiento[]>(),
+    supabase
+      .from("tipos_entrada_diario")
+      .select("id, nombre, prefijo, siguiente")
+      .eq("activo", true)
+      .order("nombre")
+      .returns<TipoEntradaAsiento[]>(),
   ]);
 
   if (cuentas.error) throw new Error(cuentas.error.message);
   if (contactos.error) throw new Error(contactos.error.message);
   if (centrosCosto.error) throw new Error(centrosCosto.error.message);
+  if (tiposEntrada.error) throw new Error(tiposEntrada.error.message);
 
-  return { cuentas: cuentas.data, contactos: contactos.data, centrosCosto: centrosCosto.data };
+  return {
+    cuentas: cuentas.data,
+    contactos: contactos.data,
+    centrosCosto: centrosCosto.data,
+    tiposEntrada: tiposEntrada.data,
+  };
 }

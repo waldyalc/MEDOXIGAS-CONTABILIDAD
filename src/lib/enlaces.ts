@@ -14,6 +14,10 @@ export function rutaEditarProducto(id: string) {
   return `${rutaProducto(id)}/editar`;
 }
 
+export function rutaNuevoProducto() {
+  return "/dashboard/productos/nuevo";
+}
+
 export function rutaFactura(id: string) {
   return ruta("/dashboard/facturacion", id);
 }
