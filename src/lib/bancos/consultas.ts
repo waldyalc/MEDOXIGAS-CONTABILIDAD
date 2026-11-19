@@ -547,16 +547,26 @@ const NOMBRES_MES = [
   "Diciembre",
 ];
 
+interface AsientoFechaFila {
+  id: string;
+  fecha: string;
+}
+
 interface LineaIngresoGasto {
+  asiento_id: string;
   debito: number;
   credito: number;
-  asientos: { fecha: string; origen_tipo: string };
 }
 
 /**
  * Entradas y salidas de las cuentas de caja/banco por mes, últimos 6 meses
  * (gráfica de la lista de bancos). Las transferencias entre cuentas propias
  * se excluyen: sumarían la misma plata como ingreso y como gasto.
+ *
+ * Se lee en dos pasos indexados: primero los asientos del rango (índice por
+ * fecha) y luego solo sus líneas (índice asiento_id, cuenta_id). Filtrar
+ * `asientos.fecha` desde `asiento_lineas` obligaba a recorrer el histórico
+ * completo y agotaba el statement_timeout.
  */
 export async function getIngresosGastosMensual(): Promise<PuntoIngresosGastos[]> {
   const hoy = hoyRD();
@@ -582,23 +592,43 @@ export async function getIngresosGastosMensual(): Promise<PuntoIngresosGastos[]>
   if (ids.length === 0) return puntos;
 
   const desde = `${puntos[0]?.clave}-01`;
-  const { data: lineas, error } = await paginarConsulta((inicio, fin) =>
+  const { data: asientos, error: errorAsientos } = await paginarConsulta((inicio, fin) =>
     cliente
-      .from("asiento_lineas")
-      .select("debito, credito, asientos!inner(fecha, origen_tipo)")
-      .in("cuenta_id", ids)
-      .gte("asientos.fecha", desde)
-      .order("id")
+      .from("asientos")
+      .select("id, fecha")
+      .gte("fecha", desde)
+      .neq("origen_tipo", "transferencia")
+      .order("fecha", { ascending: true })
+      .order("id", { ascending: true })
       .range(inicio, fin)
-      .returns<LineaIngresoGasto[]>(),
+      .returns<AsientoFechaFila[]>(),
+  );
+
+  if (errorAsientos) throw new Error(errorAsientos.message);
+  if (!asientos || asientos.length === 0) return puntos;
+
+  const fechaPorAsiento = new Map(asientos.map((asiento) => [asiento.id, asiento.fecha]));
+  const { data: lineas, error } = await consultarEnLotes(
+    asientos.map((asiento) => asiento.id),
+    (lote) =>
+      paginarConsulta((inicio, fin) =>
+        cliente
+          .from("asiento_lineas")
+          .select("asiento_id, debito, credito")
+          .in("asiento_id", lote)
+          .in("cuenta_id", ids)
+          .order("id")
+          .range(inicio, fin)
+          .returns<LineaIngresoGasto[]>(),
+      ),
   );
 
   if (error) throw new Error(error.message);
 
   const porMes = new Map(puntos.map((punto) => [punto.clave, punto]));
   for (const linea of lineas ?? []) {
-    if (linea.asientos.origen_tipo === "transferencia") continue;
-    const punto = porMes.get(linea.asientos.fecha.slice(0, 7));
+    const fecha = fechaPorAsiento.get(linea.asiento_id);
+    const punto = fecha ? porMes.get(fecha.slice(0, 7)) : undefined;
     if (!punto) continue;
     punto.ingresosCentavos += centavosSaldo(linea.debito);
     punto.gastosCentavos += centavosSaldo(linea.credito);

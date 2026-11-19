@@ -190,7 +190,7 @@ export function TablaLista<T>({
       <TableHeader>
         <TableRow className="border-border h-12 border-b bg-slate-200/20 hover:bg-slate-200/20 dark:bg-slate-800/40 dark:hover:bg-slate-800/40">
           {seleccion ? (
-            <TableHead className={cn("w-12", clasesEspaciado(false, true, colSpan === 1))}>
+            <TableHead className={cn("h-12 w-12", clasesEspaciado(false, true, colSpan === 1))}>
               {seleccion.cabecera}
             </TableHead>
           ) : null}
@@ -201,7 +201,7 @@ export function TablaLista<T>({
                 key={columna.clave}
                 scope="col"
                 className={cn(
-                  "text-xs font-medium text-slate-700 dark:text-slate-300",
+                  "h-12 text-xs font-medium text-slate-700 dark:text-slate-300",
                   clasesEspaciado(false, posicion === 0, posicion === colSpan - 1),
                   ALINEACION[columna.alineacion ?? "izquierda"],
                   columna.className,
@@ -212,7 +212,7 @@ export function TablaLista<T>({
             );
           })}
           {acciones ? (
-            <TableHead className={cn("w-[88px] text-center", clasesEspaciado(false, colSpan === 1, true))}>
+            <TableHead className={cn("h-12 w-[88px] text-center", clasesEspaciado(false, colSpan === 1, true))}>
               <span className="sr-only">Acciones</span>
             </TableHead>
           ) : null}

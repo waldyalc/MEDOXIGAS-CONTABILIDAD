@@ -132,7 +132,8 @@ Candados que ya existen:
 - `src/lib/rpc-sin-extraer.test.ts` — prohíbe guardar `supabase.rpc` en una variable o convertirlo con `as`; llamar siempre `supabase.rpc("nombre", args)` directo.
 - `src/lib/numeraciones/acciones.test.ts` — la server action de numeraciones llama la RPC directa con el payload validado y devuelve los errores en español.
 - `src/lib/paginacion.test.ts` — los reportes, bancos, fichas y selectores críticos leen por lotes (`paginarConsulta`/`consultarEnLotes`), sin topes de 300/500/1,000; ventas/rentabilidad por producto no se corta en 20,000 líneas.
-- `src/lib/tablas-listas.test.ts` — las listas migradas usan `TablaLista` (una sola implementación de tabla/paginación).
+- `src/lib/tablas-listas.test.ts` — las listas migradas usan `TablaLista` (una sola implementación de tabla/paginación), cada `<TableHead>` mide 48 px (`h-12`) y `EsqueletoTabla` conserva 48/56 px sin salto de layout.
+- `src/lib/bancos/consultas.test.ts` — la gráfica de `/dashboard/bancos` (`getIngresosGastosMensual`) lee `asientos` por índice de fecha y luego sus líneas con `consultarEnLotes`, prohibiendo volver al join `asientos!inner` que agotaba `statement_timeout`.
 - `src/lib/diseno-paginas.test.ts` — las pantallas migradas usan el marco `EncabezadoPagina` + migas, sin `text-3xl` suelto.
 - `src/lib/supabase/migraciones.test.ts` — exige formato `YYYYMMDDHHMMSS_nombre.sql`, sin duplicados ni archivos vacíos/sueltos, y timestamp UTC real para toda migración nueva posterior a `20261123000000`.
 - `tests/e2e/numeraciones.spec.ts` — guardar B16 sin cambios cierra el diálogo y un nombre en blanco muestra el error en español (requiere `E2E_EMAIL`/`E2E_PASSWORD`, como el humo).

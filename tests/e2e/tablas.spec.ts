@@ -34,7 +34,10 @@ test.describe("tablas unificadas", () => {
   test("Facturas: cabecera de 48 px y filas de 56 px", async ({ page }) => {
     await page.goto("/dashboard/facturacion");
     const tarjeta = page.locator('[data-lista="facturas"]');
-    const cabecera = tarjeta.locator("thead tr");
+    // La tabla real vive dentro de <Suspense>: durante el streaming conviven el
+    // esqueleto y TablaFacturas. Filtra por el encabezado real para medir siempre
+    // la TablaLista (nunca la cabecera del esqueleto) y para no resolver 2 filas.
+    const cabecera = tarjeta.locator("thead tr").filter({ hasText: "Número de factura" });
 
     await expect(cabecera).toBeVisible();
     const cajaCabecera = await cabecera.boundingBox();
