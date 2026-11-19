@@ -1,5 +1,11 @@
 # Handoff — Medoxigas Contabilidad
 
+## Estabilidad E2E y limpieza de PRs (19 nov 2026)
+
+- **Cabecera 48 px en listas y esqueleto sin salto (`src/components/listas/tabla-lista.tsx`, `src/components/carga/esqueletos.tsx`, `tests/e2e/tablas.spec.ts`):** los `<TableHead>` de `TablaLista` llevaban implícito `h-10` (40 px) desde `ui/table.tsx` y `EsqueletoTabla` tampoco tenía `h-12`/`h-14`; durante el streaming de `<Suspense>` en `/dashboard/facturacion`, `tablas.spec.ts:34` medía 40 px. Se fijó `h-12` en los 3 `<TableHead>` de `TablaLista`, `h-12`/`h-14` en `EsqueletoTabla`, se filtró la cabecera real (`Número de factura`) en el spec E2E y se sumaron 2 candados en `src/lib/tablas-listas.test.ts`.
+- **Timeout en `/dashboard/bancos` (`src/lib/bancos/consultas.ts`):** `getIngresosGastosMensual` hacía `.from("asiento_lineas")` con `asientos!inner`, `.gte("asientos.fecha", desde)` y `.order("id")`, lo que forzaba un escaneo de `asiento_lineas_pkey` (~258k filas históricas) hasta agotar el `statement_timeout` de Supabase. Se reescribió en dos pasos indexados (`asientos` por `asientos_fecha_idx` con `paginarConsulta` y luego `asiento_lineas` por `asiento_lineas_asiento_cuenta_idx` con `consultarEnLotes` + `paginarConsulta`), sin migración SQL, más 6 pruebas y candado estático en `src/lib/bancos/consultas.test.ts`.
+- **Limpieza de PRs viejos:** se cerraron `#1` (Actions 530 commits atrás y roto en `db`), `#3` (`typescript` 7.0 mayor), `#4` (`@hookform/resolvers` 7.0 mayor), `#5` (`@types/node` 26 desalineado con Node 22) y `#31` (`feat/ncf-manual-orq`, 138 commits atrás con conflictos y prefijo de migración obsoleto; la spec `docs/dominio-ncf-manual.md` y el commit `8749309` quedan de referencia). En `#16` (parches menores, incluye `next 16.4.6`) se pidió `@dependabot rebase`.
+
 ## Unificación en main, limpieza de repo y modo Orquestador (19 nov 2026)
 
 - **Una sola rama principal (`main`):** se integró `origin/prueba` en `main` por fast-forward (`bdbe32d..fa3fa6e`, incluyendo PRs #41–#50) y se retiró la rama `prueba` y el remoto viejo `diseno-local`. El repo en GitHub se mantiene público temporalmente durante las pruebas.
