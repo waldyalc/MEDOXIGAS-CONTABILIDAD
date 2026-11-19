@@ -2,12 +2,13 @@ name: Supabase
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main"]
     paths:
       - "supabase/**"
       - "src/lib/supabase/types.ts"
       - ".github/workflows/supabase.yml"
   pull_request:
+    branches: ["main"]
     paths:
       - "supabase/**"
       - "src/lib/supabase/types.ts"

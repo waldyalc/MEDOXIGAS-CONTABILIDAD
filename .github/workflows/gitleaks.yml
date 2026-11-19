@@ -2,8 +2,10 @@ name: Gitleaks
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main"]
   pull_request:
+    branches: ["main"]
+  workflow_dispatch:
 
 concurrency:
   group: gitleaks-${{ github.ref }}
