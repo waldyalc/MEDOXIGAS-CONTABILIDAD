@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { TrendingUp } from "lucide-react";
 
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -106,7 +107,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                 </TableHeader>
                 <TableBody>
                   {paginado.filas.map((fila) => (
-                    <TableRow key={fila.clave}>
+                    <FilaNavegable key={fila.clave} href={fila.productoId ? rutaProducto(fila.productoId) : null}>
                       <TableCell>
                         {fila.productoId ? (
                           <Link
@@ -127,7 +128,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                         {formatearRd(fila.rentabilidad)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{PORCENTAJE.format(fila.porcentaje)}%</TableCell>
-                    </TableRow>
+                    </FilaNavegable>
                   ))}
                 </TableBody>
               </Table>

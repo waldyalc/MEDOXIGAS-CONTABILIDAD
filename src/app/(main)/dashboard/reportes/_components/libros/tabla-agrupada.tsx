@@ -3,6 +3,7 @@
 import { ChevronRight } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -72,7 +73,7 @@ export function TablaAgrupada({ grupos, total }: Props) {
                   </TableHeader>
                   <TableBody>
                     {grupo.detalles.map((detalle) => (
-                      <TableRow key={detalle.clave}>
+                      <FilaNavegable key={detalle.clave} href={rutaAsiento(detalle.asientoId)}>
                         <TableCell className="tabular-nums">
                           <Enlace href={rutaAsiento(detalle.asientoId)}>#{detalle.asientoNumero}</Enlace>
                         </TableCell>
@@ -101,7 +102,7 @@ export function TablaAgrupada({ grupos, total }: Props) {
                           {detalle.credito === 0 ? "" : formatearRd(detalle.credito)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{formatearRd(detalle.neto)}</TableCell>
-                      </TableRow>
+                      </FilaNavegable>
                     ))}
                   </TableBody>
                 </Table>

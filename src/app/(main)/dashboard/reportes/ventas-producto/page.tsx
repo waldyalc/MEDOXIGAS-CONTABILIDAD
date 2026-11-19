@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Package } from "lucide-react";
 
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -108,7 +109,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                 </TableHeader>
                 <TableBody>
                   {paginado.filas.map((fila) => (
-                    <TableRow key={fila.clave}>
+                    <FilaNavegable key={fila.clave} href={fila.productoId ? rutaProducto(fila.productoId) : null}>
                       <TableCell>
                         {fila.productoId ? (
                           <Link
@@ -126,7 +127,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                       <TableCell className="text-right tabular-nums">{CANTIDAD.format(fila.cantidad)}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatearRd(fila.antes)}</TableCell>
                       <TableCell className="text-right font-medium tabular-nums">{formatearRd(fila.despues)}</TableCell>
-                    </TableRow>
+                    </FilaNavegable>
                   ))}
                 </TableBody>
               </Table>

@@ -6,7 +6,8 @@ import Link from "next/link";
 
 import { ChevronDown, ChevronRight } from "lucide-react";
 
-import { TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
+import { TableBody, TableCell } from "@/components/ui/table";
 import type { NodoIngresoCompra } from "@/lib/reportes/administrativos/e/ingresos-compras";
 import { urlMovimientosCuenta } from "@/lib/reportes/administrativos/e/urls";
 import { formatearRd } from "@/lib/reportes/dinero";
@@ -32,7 +33,10 @@ function FilaCuenta({ nodo, nivel, colapsado, desde, hasta, onAlternar }: PropsF
   const tieneHijos = nodo.hijos.length > 0;
 
   return (
-    <TableRow className={tieneHijos ? "font-medium" : undefined}>
+    <FilaNavegable
+      href={urlMovimientosCuenta(nodo.codigo, desde, hasta)}
+      className={tieneHijos ? "font-medium" : undefined}
+    >
       <TableCell>
         <div className="flex items-center gap-1" style={{ paddingLeft: `${nivel * 1.25}rem` }}>
           {tieneHijos ? (
@@ -55,7 +59,7 @@ function FilaCuenta({ nodo, nivel, colapsado, desde, hasta, onAlternar }: PropsF
         </div>
       </TableCell>
       <TableCell className="text-right tabular-nums">{formatearRd(nodo.monto)}</TableCell>
-    </TableRow>
+    </FilaNavegable>
   );
 }
 

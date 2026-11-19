@@ -1,6 +1,7 @@
 import { CircleCheck, Scale, TriangleAlert } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -77,8 +78,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
               </TableHeader>
               <TableBody>
                 {balance.filas.map((fila) => (
-                  <TableRow
+                  <FilaNavegable
                     key={fila.clave}
+                    href={rutaCuenta(fila.cuentaId)}
                     className={
                       fila.esGrupo
                         ? "bg-muted/50 hover:bg-muted/50 font-semibold"
@@ -110,7 +112,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                     <TableCell className="text-right tabular-nums">
                       {fila.saldoFinalCredito === 0 ? "" : formatearRd(fila.saldoFinalCredito)}
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))}
               </TableBody>
               <TableFooter>

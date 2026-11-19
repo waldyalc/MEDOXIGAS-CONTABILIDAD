@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto } from "@/lib/enlaces";
@@ -63,7 +64,10 @@ export function TablaFormato({ columnas, filas, vacio = "No hay registros en el 
         </TableHeader>
         <TableBody>
           {filas.map((fila) => (
-            <TableRow key={`${fila.ncf ?? ""}-${fila.fechaComprobante ?? ""}-${fila.fechaComprobanteDia ?? ""}`}>
+            <FilaNavegable
+              key={`${fila.ncf ?? ""}-${fila.fechaComprobante ?? ""}-${fila.fechaComprobanteDia ?? ""}`}
+              href={typeof fila.__ruta === "string" && fila.__ruta !== "" ? fila.__ruta : null}
+            >
               {columnas.map((columna) => {
                 const valor = fila[columna.clave];
                 return (
@@ -75,7 +79,7 @@ export function TablaFormato({ columnas, filas, vacio = "No hay registros en el 
                   </TableCell>
                 );
               })}
-            </TableRow>
+            </FilaNavegable>
           ))}
         </TableBody>
       </Table>
