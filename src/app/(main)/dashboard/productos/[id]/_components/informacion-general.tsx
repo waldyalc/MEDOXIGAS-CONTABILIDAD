@@ -13,8 +13,9 @@ import { rutaCuenta } from "@/lib/enlaces";
 import { centavosAValor } from "@/lib/facturacion/calculo";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
 import { precioSugeridoCentavos } from "@/lib/inventario/precios";
+import type { ExistenciaAlmacen } from "@/lib/inventario/tipos";
 import { type CuentaFicha, type FichaProducto, type PrecioListaFicha, precioConItbis } from "@/lib/productos/ficha";
-import { etiquetaTasaItbis } from "@/lib/productos/productos";
+import { etiquetaTasaItbis, etiquetaTipoProducto } from "@/lib/productos/productos";
 
 const CLASE_SUBPANEL = "ring-foreground/10 rounded-lg ring-1";
 
@@ -61,12 +62,9 @@ function Opcion({
   );
 }
 
-function SinDato() {
-  return <span className="text-muted-foreground">—</span>;
-}
-
 function DatosProducto({ producto }: { readonly producto: FichaProducto["producto"] }) {
   const esServicio = producto.tipo === "servicio";
+
   return (
     <section className="flex flex-col gap-4">
       <TituloSeccion>Datos del {esServicio ? "servicio" : "producto"}</TituloSeccion>
@@ -74,11 +72,8 @@ function DatosProducto({ producto }: { readonly producto: FichaProducto["product
         <ItemDato etiqueta="Nombre">{producto.nombre}</ItemDato>
         <ItemDato etiqueta="Referencia">{producto.referencia?.trim() || "—"}</ItemDato>
         <ItemDato etiqueta="Categoría">{producto.categoriaNombre ?? "Sin categoría"}</ItemDato>
-        <ItemDato etiqueta="Tipo">{esServicio ? "Servicio" : "Producto"}</ItemDato>
-        {/* TODO backend: no existe la unidad de medida del producto. */}
-        <ItemDato etiqueta="Unidad de medida">
-          <SinDato />
-        </ItemDato>
+        <ItemDato etiqueta="Tipo">{etiquetaTipoProducto(producto.tipo)}</ItemDato>
+        <ItemDato etiqueta="Unidad de medida">{producto.unidadMedida || "Unidad"}</ItemDato>
         <ItemDato etiqueta="Estado">{producto.activo ? "Activo" : "Inactivo"}</ItemDato>
         <div className="sm:col-span-2">
           <ItemDato etiqueta="Descripción">
@@ -92,8 +87,11 @@ function DatosProducto({ producto }: { readonly producto: FichaProducto["product
           etiqueta="Producto inventariable"
           activa={producto.inventariable}
         />
-        {/* TODO backend: no existe la opción de venta en negativo. */}
-        <Opcion icono={<TrendingDown className="size-4" />} etiqueta="Venta en negativo" activa={null} />
+        <Opcion
+          icono={<TrendingDown className="size-4" />}
+          etiqueta="Venta en negativo"
+          activa={producto.vendeNegativo}
+        />
       </div>
     </section>
   );
@@ -122,18 +120,11 @@ function TarjetaPrecio({ producto }: { readonly producto: FichaProducto["product
   );
 }
 
-interface InventarioFicha {
-  readonly almacen_id: string;
-  readonly almacen_nombre: string;
-  readonly es_principal: boolean;
-  readonly cantidad: number;
-}
-
 /**
- * TODO backend: la ficha no trae la cantidad inicial, el mínimo, el máximo ni
- * lo comprometido en conduces por almacén; se muestran guiones.
+ * La ficha no trae lo comprometido en conduces por almacén (los conduces no
+ * guardan almacén); esa columna se queda en guiones.
  */
-const columnasExistencias: readonly ColumnaLista<InventarioFicha>[] = [
+const columnasExistencias: readonly ColumnaLista<ExistenciaAlmacen>[] = [
   {
     clave: "almacen",
     encabezado: "Almacén",
@@ -148,30 +139,36 @@ const columnasExistencias: readonly ColumnaLista<InventarioFicha>[] = [
     clave: "inicial",
     encabezado: "Cant. inicial",
     alineacion: "derecha",
-    celda: () => <span className="text-muted-foreground">—</span>,
+    celda: (existencia) => <span className="tabular-nums">{formatoCantidad(existencia.cantidad_inicial)}</span>,
   },
   {
     clave: "actual",
     encabezado: "Cant. actual",
     alineacion: "derecha",
-    celda: (existencia) => <span className="font-medium">{formatoCantidad(existencia.cantidad)}</span>,
+    celda: (existencia) => <span className="font-medium tabular-nums">{formatoCantidad(existencia.cantidad)}</span>,
   },
   {
     clave: "minimo",
     encabezado: "Mín.",
     alineacion: "derecha",
-    celda: () => <span className="text-muted-foreground">—</span>,
+    celda: (existencia) => <span className="tabular-nums">{formatoCantidad(existencia.minimo)}</span>,
   },
   {
     clave: "maximo",
     encabezado: "Máx.",
     alineacion: "derecha",
-    celda: () => <span className="text-muted-foreground">—</span>,
+    celda: (existencia) =>
+      existencia.maximo === null ? (
+        <span className="text-muted-foreground">—</span>
+      ) : (
+        <span className="tabular-nums">{formatoCantidad(existencia.maximo)}</span>
+      ),
   },
   {
     clave: "conduces",
     encabezado: "En conduces",
     alineacion: "derecha",
+    // TODO backend: los conduces no guardan almacén, no se puede repartir lo comprometido.
     celda: () => <span className="text-muted-foreground">—</span>,
   },
 ];
@@ -194,6 +191,10 @@ function Inventario({ ficha, onVerHistorial }: { readonly ficha: FichaProducto; 
         <span>
           <span className="text-muted-foreground">Total en inventario: </span>
           <span className="text-primary font-medium tabular-nums">{formatoCantidad(producto.cantidad)}</span>
+        </span>
+        <span>
+          <span className="text-muted-foreground">Valor del inventario: </span>
+          <span className="font-medium tabular-nums">{formatoMoneda(producto.cantidad * producto.costo)}</span>
         </span>
         <span>
           <span className="text-muted-foreground">Existencia inicial: </span>

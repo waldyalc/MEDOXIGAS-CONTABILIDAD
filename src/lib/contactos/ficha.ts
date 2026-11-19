@@ -10,6 +10,7 @@ export interface ContactoFicha {
   correo: string | null;
   direccion: string | null;
   tipo: ContactoTipo;
+  limite_credito: number | null;
 }
 
 export interface CuentaFicha {

@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Producto } from "./productos";
 
 const CAMPOS =
-  "id, nombre, tipo, referencia, descripcion, precio, itbis_tasa, impuesto_id, inventariable, cantidad, costo, categoria_id, activo";
+  "id, nombre, tipo, referencia, descripcion, precio, itbis_tasa, impuesto_id, inventariable, cantidad, costo, categoria_id, activo, unidad_medida, almacen_id, vende_negativo, imagen_path";
 
 const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
 

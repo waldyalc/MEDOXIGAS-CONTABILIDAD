@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Contacto, PestanaContactos } from "./contactos";
 
 const CAMPOS =
-  "id, nombre, rnc_cedula, telefono, correo, direccion, tipo, lista_precio_id, tipo_identificacion, municipio_provincia";
+  "id, nombre, rnc_cedula, telefono, correo, direccion, tipo, lista_precio_id, tipo_identificacion, municipio_provincia, limite_credito";
 
 const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
 

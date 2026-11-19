@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import type { PrecioLista } from "@/lib/inventario/tipos";
 
-export type ProductoTipo = "producto" | "servicio";
+export type ProductoTipo = "producto" | "servicio" | "combo";
 export type TasaItbis = 0 | 2 | 10 | 16 | 18;
 
 export const SIN_CATEGORIA = "__sin_categoria__";
@@ -22,6 +22,10 @@ export interface Producto {
   categoria_id: string | null;
   precios: PrecioLista[];
   activo: boolean;
+  unidad_medida: string;
+  almacen_id: string | null;
+  vende_negativo: boolean;
+  imagen_path: string | null;
 }
 
 export const TASAS_ITBIS: { valor: TasaItbis; etiqueta: string }[] = [
@@ -34,6 +38,12 @@ export function etiquetaTasaItbis(tasa: number) {
   if (tasa === 2) return "CDT 2 %";
   if (tasa === 10) return "Propina 10 %";
   return TASAS_ITBIS.find((item) => item.valor === tasa)?.etiqueta ?? `${tasa} %`;
+}
+
+export function etiquetaTipoProducto(tipo: ProductoTipo) {
+  if (tipo === "servicio") return "Servicio";
+  if (tipo === "combo") return "Combo";
+  return "Producto";
 }
 
 export function parsearMonto(texto: string): number | null {
@@ -113,7 +123,7 @@ export function filtrarProductos(productos: Producto[], busqueda: string): Produ
   );
 }
 
-const campoTipo = z.enum(["producto", "servicio"]);
+const campoTipo = z.enum(["producto", "servicio", "combo"]);
 
 const campoPrecio = z.union([z.string(), z.number()]).transform((valor, ctx) => {
   if (typeof valor === "number") {
@@ -151,6 +161,50 @@ const campoCuenta = z
   .transform(textoOpcional)
   .refine((valor) => valor === null || z.uuid().safeParse(valor).success, "La cuenta contable no es válida")
   .optional();
+
+/**
+ * Campos que Alegra agregó al producto. Igual que las cuentas, solo viajan si
+ * el formulario los envía para no alterar altas viejas, la importación ni la
+ * edición masiva.
+ */
+const campoUnidadMedida = z
+  .string()
+  .transform((valor) => valor.trim())
+  .refine((valor) => valor.length > 0, "La unidad de medida es obligatoria")
+  .refine((valor) => valor.length <= 60, "La unidad de medida no puede pasar de 60 caracteres")
+  .optional();
+
+const campoAlmacen = z
+  .string()
+  .transform(textoOpcional)
+  .refine((valor) => valor === null || z.uuid().safeParse(valor).success, "El almacén no es válido")
+  .optional();
+
+const campoImagen = z
+  .string()
+  .transform(textoOpcional)
+  .refine((valor) => valor === null || valor.length <= 500, "La ruta de la imagen no es válida")
+  .optional();
+
+const campoCantidadOpcional = z
+  .union([z.literal(""), z.coerce.number().min(0, "La cantidad no puede ser negativa")])
+  .transform((valor) => (valor === "" ? null : valor))
+  .nullish();
+
+const campoExistenciaAlmacen = z.object({
+  almacen_id: z
+    .string()
+    .refine((valor) => z.uuid().safeParse(valor).success, "El almacén de la existencia no es válido"),
+  minimo: z
+    .union([z.literal(""), z.coerce.number().min(0, "El mínimo no puede ser negativo")])
+    .transform((valor) => (valor === "" ? 0 : valor))
+    .default(0),
+  maximo: z
+    .union([z.literal(""), z.coerce.number().min(0, "El máximo no puede ser negativo")])
+    .transform((valor) => (valor === "" ? null : valor))
+    .nullable()
+    .default(null),
+});
 
 export const esquemaProducto = z
   .object({
@@ -190,9 +244,16 @@ export const esquemaProducto = z
     cuenta_ingreso_id: campoCuenta,
     cuenta_inventario_id: campoCuenta,
     cuenta_costo_id: campoCuenta,
+    unidad_medida: campoUnidadMedida,
+    almacen_id: campoAlmacen,
+    vende_negativo: z.boolean().optional(),
+    imagen_path: campoImagen,
+    minimo: campoCantidadOpcional,
+    maximo: campoCantidadOpcional,
+    existencias: z.array(campoExistenciaAlmacen).optional(),
   })
   .transform((datos) => {
-    const inventariable = datos.tipo === "servicio" ? false : datos.inventariable;
+    const inventariable = datos.tipo === "producto" ? datos.inventariable : false;
     const cuentas: Partial<Record<CampoCuentaProducto, string | null>> = {};
     for (const campo of CAMPOS_CUENTA_PRODUCTO) {
       const valor = datos[campo];
@@ -213,6 +274,15 @@ export const esquemaProducto = z
       categoria_id: datos.categoria_id,
       activo: datos.activo,
       ...cuentas,
+      ...(datos.unidad_medida === undefined ? {} : { unidad_medida: datos.unidad_medida }),
+      ...(datos.almacen_id === undefined ? {} : { almacen_id: datos.almacen_id }),
+      // La venta en negativo solo aplica a productos que controlan inventario:
+      // la RPC remota guarda el flag verbatim, así que se normaliza aquí.
+      ...(datos.vende_negativo === undefined ? {} : { vende_negativo: inventariable && datos.vende_negativo }),
+      ...(datos.imagen_path === undefined ? {} : { imagen_path: datos.imagen_path }),
+      ...(datos.minimo === undefined ? {} : { minimo: datos.minimo }),
+      ...(datos.maximo === undefined ? {} : { maximo: datos.maximo }),
+      ...(datos.existencias === undefined ? {} : { existencias: datos.existencias }),
     };
   });
 

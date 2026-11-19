@@ -4,12 +4,14 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, BookOpen } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { ReciboCaja } from "@/components/impresion/recibo-caja";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
 import { rutaAsiento, rutaContacto, rutaCuenta, rutaFactura } from "@/lib/enlaces";
+import { getEmpresa } from "@/lib/facturacion/consultas";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import { puedeAnularDocumento } from "@/lib/pagos/anulacion";
@@ -28,10 +30,8 @@ const ETIQUETAS_METODO: Record<MetodoPago, string> = {
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const rol = await getRol();
+  const [rol, pago, empresa] = await Promise.all([getRol(), obtenerPagoRecibido(id), getEmpresa()]);
   if (rol == null) redirect("/unauthorized");
-
-  const pago = await obtenerPagoRecibido(id);
   if (!pago) notFound();
 
   const puedeAnular = puedeAnularDocumento(rol, pago.estado);
@@ -56,6 +56,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             </Badge>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <ReciboCaja pago={pago} empresa={empresa} />
             {pago.asiento_id ? (
               <Button variant="outline" render={<Link href={rutaAsiento(pago.asiento_id)} prefetch={false} />}>
                 <BookOpen data-icon="inline-start" />

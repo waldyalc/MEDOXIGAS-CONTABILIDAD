@@ -2,6 +2,9 @@ import { Suspense } from "react";
 
 import { redirect } from "next/navigation";
 
+import { ChevronDown } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { opcionesPeriodo, parsearPeriodo, rangoPeriodo } from "@/lib/inicio/periodo";
 import { hoyRd } from "@/lib/reportes/fechas";
@@ -25,13 +28,20 @@ export default async function Page({ searchParams }: Props) {
   const opciones = opcionesPeriodo(hoy);
 
   return (
-    <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-[22px] pt-6">
-      <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
+    <div className="mx-auto flex w-full max-w-[970px] flex-col gap-4 pb-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-semibold tracking-tight">Resumen del negocio</h1>
-        <SelectorPeriodo periodo={periodo} opciones={opciones} />
+        <div className="flex flex-wrap items-center gap-4">
+          <SelectorPeriodo periodo={periodo} opciones={opciones} />
+          {/* TODO backend: habilitar cuando se puedan agregar más gráficas al resumen. */}
+          <Button variant="default" className="h-10 gap-2 rounded-[10px] px-4" disabled title="Próximamente">
+            Agregar gráfica
+            <ChevronDown className="size-4" aria-hidden="true" />
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-[22px] sm:grid-cols-2 lg:auto-rows-[124px] lg:grid-cols-[1.55fr_1.55fr_1fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Suspense fallback={<EsqueletoCartera />}>
           <BloqueCartera desde={rango.desde} hasta={rango.hasta} />
         </Suspense>

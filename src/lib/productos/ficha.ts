@@ -31,6 +31,11 @@ export interface ProductoFicha {
   itbis_tasa: number;
   costo: number;
   cantidad: number;
+  unidadMedida: string;
+  almacenId: string | null;
+  vendeNegativo: boolean;
+  imagenPath: string | null;
+  imagenUrl: string | null;
   precios: PrecioListaFicha[];
   cuentaIngresoId: string | null;
   cuentaInventarioId: string | null;

@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reporte de Producción y Merma — Período del daño del vaporizador (28 oct – 17 nov 2026)</title>
+<meta name="author" content="MEDOXIGAS ALC, SRL">
+<meta name="description" content="Producción y merma de LOX durante el período del daño del vaporizador (28-oct al 17-nov-2026).">
+<style>
+@page{size:A4;margin:0}
+:root{
+  --ink:#0B1B2B; --ink-2:#1E293B; --muted:#64748B; --soft:#94A3B8;
+  --line:#E2E8F0; --paper:#FFFFFF; --wash:#F8FAFC;
+  --teal:#0F766E; --teal-2:#14B8A6; --teal-wash:#F0FDFA;
+  --blue:#2563EB; --amber:#B45309; --red:#DC2626;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{
+  background:#fff;color:var(--ink);
+  font-family:"Segoe UI","Segoe UI Variable Text",system-ui,-apple-system,Arial,sans-serif;
+  font-size:9.5pt;line-height:1.45;font-variant-numeric:tabular-nums;
+}
+.page{
+  position:relative;width:210mm;height:297mm;padding:14mm 15mm 10mm;
+  background:var(--paper);display:flex;flex-direction:column;overflow:hidden;
+  page-break-after:always;break-after:page;
+}
+.page:last-child{page-break-after:auto;break-after:auto}
+.page::before{content:"";position:absolute;top:0;left:0;right:0;height:2mm;background:var(--ink)}
+.page::after{content:"";position:absolute;top:0;left:0;width:42mm;height:2mm;background:var(--teal-2)}
+
+/* cabecera de portada */
+.masthead{display:flex;justify-content:space-between;align-items:center;padding-bottom:4mm;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:3.5mm}
+.brand-mark{width:11mm;height:11mm;display:block}
+.brand-name{font-size:14pt;font-weight:700;letter-spacing:.12em;line-height:1.1}
+.brand-sub{font-size:7.5pt;color:var(--muted);margin-top:.6mm}
+.doc-meta{text-align:right;font-size:7.5pt;color:var(--muted);line-height:1.5}
+.meta-strong{font-size:8pt;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.12em}
+
+.eyebrow{display:flex;align-items:center;gap:2.5mm;margin-top:7mm;font-size:7.5pt;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
+.eyebrow.small{margin-top:0;font-size:7pt;color:var(--teal)}
+.eyebrow-rule{display:inline-block;width:7mm;height:1.4px;background:var(--teal-2)}
+h1{font-size:27pt;line-height:1.12;letter-spacing:-.02em;font-weight:700;margin-top:2.4mm}
+.lede{margin-top:2.2mm;font-size:10.5pt;font-weight:600;color:#334155}
+.intro{margin-top:2.4mm;font-size:9pt;color:var(--muted);max-width:158mm;line-height:1.5}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-top:5mm}
+.kpi{border:1px solid var(--line);border-radius:3mm;padding:3.4mm 3.6mm 3.2mm;background:#fff}
+.kpi-label{font-size:6.8pt;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+.kpi-value{margin-top:1.2mm;font-size:16.5pt;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.kpi-value .unit{font-size:8.5pt;font-weight:600;color:var(--muted);margin-left:1.2mm;letter-spacing:0}
+.kpi-note{margin-top:1mm;font-size:7pt;color:var(--muted);line-height:1.35}
+.kpi-good{background:var(--teal-wash);border-color:#99F6E4}
+.kpi-good .kpi-value{color:var(--teal)}
+.dot-ok{display:inline-block;width:1.6mm;height:1.6mm;border-radius:50%;background:#10B981;margin-right:1mm;vertical-align:.2mm}
+
+/* encabezados de bloque */
+.block-head{display:flex;justify-content:space-between;align-items:baseline;gap:6mm;margin:5.5mm 0 2.2mm}
+.block-head.tight{margin-top:5mm;margin-bottom:1.6mm}
+.block-head h2{font-size:11.5pt;font-weight:700;letter-spacing:-.01em}
+.block-head span{font-size:7.2pt;color:var(--soft);text-align:right}
+
+/* tabla contable */
+table.data{width:100%;border-collapse:collapse;font-size:8.6pt}
+table.data thead th{
+  padding:1.7mm 2mm 1.7mm;text-align:left;font-size:6.8pt;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);border-top:1.2px solid var(--ink);border-bottom:1px solid var(--ink);
+  white-space:nowrap;
+}
+table.data tbody td{padding:2.3mm 2mm;border-bottom:1px solid var(--line);vertical-align:middle}
+table.data tbody tr:nth-child(even){background:#FBFDFE}
+table.data tfoot td{padding:2.4mm 2mm;border-top:1.2px solid var(--ink);font-weight:700;background:#F8FAFC}
+table.data .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.data .cell-strong{display:block;font-weight:600}
+table.data .cell-sub{display:block;font-size:7pt;color:var(--soft);font-weight:400;margin-top:.2mm}
+table.data .cell-pct{font-weight:700;color:var(--teal)}
+table.data .cell-pct-soft{font-weight:600;color:#475569}
+table.data .muted{color:var(--soft)}
+table.data .cell-mono{font-family:Consolas,"Cascadia Mono",monospace;font-size:7.8pt;color:#475569;letter-spacing:.01em}
+table.data.compact tbody td{padding:1.65mm 2mm}
+table.data.compact tfoot td{padding:1.9mm 2mm}
+.table-note{margin-top:2.2mm;font-size:6.9pt;color:var(--soft);line-height:1.45}
+
+/* conclusión */
+.conclusion{
+  margin-top:4mm;background:var(--ink);color:#fff;border-radius:3mm;padding:4.6mm 5mm;
+  display:flex;align-items:flex-start;gap:4mm;position:relative;overflow:hidden;
+}
+.conclusion-icon{flex:none;width:8.5mm;height:8.5mm;border-radius:50%;border:1.4px solid rgba(20,184,166,.55);display:flex;align-items:center;justify-content:center;margin-top:.3mm;background:rgba(20,184,166,.12)}
+.conclusion-icon svg{width:4.6mm;height:4.6mm}
+.conclusion-text{flex:1;min-width:0}
+.conclusion-label{font-size:6.8pt;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5EEAD4}
+.conclusion-title{font-size:13pt;font-weight:700;letter-spacing:-.01em;margin-top:.8mm;line-height:1.2}
+.conclusion-text p{margin-top:1.4mm;font-size:8.5pt;line-height:1.45;color:#CBD5E1;max-width:118mm}
+.conclusion-text strong{color:#fff;font-weight:700}
+.conclusion-metric{flex:none;text-align:right;padding-left:5mm;border-left:1px solid rgba(255,255,255,.16);position:relative;z-index:1}
+.metric-big{font-size:21pt;font-weight:700;color:#5EEAD4;line-height:1;letter-spacing:-.02em}
+.metric-big span{font-size:10pt;margin-left:.4mm}
+.metric-cap{font-size:6.6pt;text-transform:uppercase;letter-spacing:.1em;color:#94A3B8;margin-top:1.2mm}
+.metric-vs{font-size:6.8pt;color:#64748B;margin-top:.8mm}
+
+/* banda histórica */
+.band-block{margin-top:4.5mm}
+.band-block .block-head{margin-top:0;margin-bottom:1mm}
+.band-block svg{width:100%;height:auto;display:block}
+
+/* cabecera de páginas interiores */
+.runhead{display:flex;justify-content:space-between;align-items:center;padding-bottom:3mm;border-bottom:1px solid var(--line);font-size:7.2pt;color:var(--soft);letter-spacing:.04em}
+.rbrand{display:flex;align-items:center;gap:2mm;font-weight:700;color:var(--ink);letter-spacing:.14em;font-size:8pt}
+.rlogo{width:6.4mm;height:6.4mm;border-radius:1.6mm;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:6pt;font-weight:700;letter-spacing:0;border:1.2px solid var(--teal-2)}
+
+.section-head{display:flex;gap:4.5mm;align-items:flex-start;margin-top:6.5mm}
+.section-num{font-size:9pt;font-weight:700;color:var(--teal-2);border:1.2px solid #99F6E4;background:var(--teal-wash);border-radius:2mm;padding:1.2mm 2mm;line-height:1;margin-top:.6mm}
+.section-title{font-size:19pt;line-height:1.15;letter-spacing:-.02em;font-weight:700;margin-top:1mm}
+.section-sub{font-size:8.6pt;color:var(--muted);margin-top:1.6mm;max-width:156mm;line-height:1.5}
+
+/* tarjeta de gráfico */
+.chart-card{border:1px solid var(--line);border-radius:3mm;padding:3.6mm 4.5mm 2.6mm;margin-top:4.5mm;background:#fff}
+.chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:5mm;margin-bottom:1mm}
+.chart-title{font-size:10pt;font-weight:700}
+.chart-sub{font-size:7.2pt;color:var(--soft);margin-top:.6mm}
+.legend{display:flex;gap:4.5mm;font-size:7.2pt;color:var(--muted);flex-wrap:wrap;justify-content:flex-end}
+.legend span{display:inline-flex;align-items:center;gap:1.4mm;white-space:nowrap}
+.sw{width:3.4mm;height:1.4mm;border-radius:1mm;display:inline-block}
+.sw-a{background:var(--teal)}
+.sw-b{background:var(--blue)}
+.sw-event{background:repeating-linear-gradient(90deg,#DC2626 0 1mm,transparent 1mm 2mm);height:.9mm}
+.sw-sold{background:var(--teal)}
+.sw-loss{background:var(--red)}
+.sw-rest{background:#CBD5E1}
+.sw-avg{background:repeating-linear-gradient(90deg,#D97706 0 1mm,transparent 1mm 2mm);height:.9mm}
+.chart-card svg{width:100%;height:auto;display:block}
+
+/* mini tarjetas */
+.mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;margin-top:4mm}
+.mini-grid.four{grid-template-columns:repeat(4,1fr);margin-top:3.6mm}
+.mini{border:1px solid var(--line);border-radius:2.6mm;padding:2.8mm 3.2mm;background:var(--wash)}
+.mini-label{font-size:6.6pt;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.mini-value{font-size:12pt;font-weight:700;letter-spacing:-.01em;margin-top:.8mm;line-height:1.15}
+.mini-value span{font-size:8pt;color:var(--muted);font-weight:600}
+.mini-note{font-size:6.8pt;color:var(--soft);margin-top:.7mm}
+
+/* conciliación */
+.recon{margin-top:5mm}
+.recon-legend{display:flex;gap:5mm;font-size:7pt;color:var(--muted);margin-bottom:2.2mm}
+.recon-legend span{display:inline-flex;align-items:center;gap:1.4mm}
+.recon-row{display:grid;grid-template-columns:24mm 1fr 22mm;align-items:center;gap:3mm;margin-bottom:2.4mm}
+.recon-name{font-size:8pt;font-weight:600;color:#334155}
+.recon-track{display:flex;height:8.2mm;border-radius:1.6mm;overflow:hidden;background:#F1F5F9}
+.seg{display:flex;align-items:center;gap:1mm;padding:0 2mm;overflow:hidden;white-space:nowrap;font-size:7pt}
+.seg b{font-weight:700}
+.seg em{font-style:normal;font-size:6.4pt;opacity:.85}
+.seg-sold{background:var(--teal);color:#fff}
+.seg-loss{background:var(--red);color:#fff;justify-content:center;padding:0}
+.seg-rest{background:#E2E8F0;color:#334155;justify-content:flex-end}
+.recon-total{text-align:right;line-height:1.15}
+.recon-total b{display:block;font-size:10pt}
+.recon-total span{font-size:6.4pt;text-transform:uppercase;letter-spacing:.08em;color:var(--soft)}
+.recon-note{font-size:7pt;color:var(--soft);margin-top:1.4mm;line-height:1.5;max-width:160mm}
+
+/* hallazgos */
+.findings{display:grid;grid-template-columns:1fr 1fr;gap:3mm;margin-top:5mm}
+.finding{border:1px solid var(--line);border-radius:2.6mm;padding:3.6mm 4mm;position:relative;background:#fff}
+.finding:nth-child(1){border-top:2px solid var(--teal-2)}
+.fnum{position:absolute;top:3.4mm;right:4mm;font-size:8pt;font-weight:700;color:#CBD5E1;letter-spacing:.06em}
+.finding h3{font-size:10pt;font-weight:700;line-height:1.25;padding-right:8mm}
+.finding p{font-size:8pt;color:var(--muted);margin-top:1.6mm;line-height:1.5}
+.finding strong{color:var(--ink);font-weight:700}
+
+/* sensibilidad */
+.sens{margin-top:4mm;border:1px solid #BAE6FD;border-radius:3mm;background:#F0F9FF;padding:3.8mm 4.4mm}
+.sens-head{display:flex;justify-content:space-between;align-items:flex-start;gap:5mm}
+.s-label{font-size:6.6pt;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#0369A1}
+.s-title{font-size:9.6pt;font-weight:700;margin-top:.6mm}
+.s-badge{font-size:6.8pt;font-weight:700;color:#047857;background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10mm;padding:1mm 2.6mm;white-space:nowrap}
+.sens-grid{display:flex;align-items:center;gap:4mm;margin-top:2.8mm}
+.sens-cell{flex:1;background:#fff;border:1px solid #E0F2FE;border-radius:2.2mm;padding:2.2mm 3mm}
+.s-k{font-size:6.6pt;color:#0369A1;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.s-v{font-size:12pt;font-weight:700;margin-top:.4mm}
+.s-r{font-size:7pt;color:var(--muted);margin-top:.2mm}
+.sens-arrow{color:#7DD3FC;font-size:12pt;font-weight:700}
+.sens-note{flex:1.1;font-size:7.2pt;color:#0C4A6E;line-height:1.5}
+
+/* recomendaciones */
+ol.recs{list-style:none;counter-reset:none;display:flex;flex-direction:column;gap:2.2mm}
+ol.recs li{display:flex;gap:2.8mm;align-items:flex-start;font-size:8.1pt;color:var(--muted);line-height:1.45}
+ol.recs li strong{color:var(--ink);font-weight:600}
+.rn{flex:none;width:4.6mm;height:4.6mm;border-radius:50%;background:var(--teal-wash);border:1px solid #99F6E4;color:var(--teal);font-size:6.6pt;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:.2mm}
+
+/* método */
+.method{margin-top:4.5mm;border-top:1px solid var(--line);padding-top:3mm}
+.m-title{font-size:7pt;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:2mm}
+.m-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.6mm 8mm}
+.m-grid > div{display:flex;gap:2.4mm;font-size:7.2pt;line-height:1.4}
+.m-k{flex:none;width:25mm;color:var(--soft);font-weight:600}
+.m-v{color:#475569}
+
+/* dictamen */
+.verdict{margin-top:4mm;border-left:2.6px solid var(--teal-2);background:var(--wash);padding:2.6mm 4mm 2.8mm;border-radius:0 2mm 2mm 0}
+.v-label{font-size:6.6pt;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
+.verdict p{font-size:8.4pt;color:#475569;margin-top:.8mm;line-height:1.45}
+.verdict strong{color:var(--ink);font-weight:700}
+
+/* firma */
+.sign{display:flex;align-items:flex-end;gap:8mm;margin-top:auto;padding-top:5mm}.sign-cell{flex:1}
+.sign-cell span{display:block;font-size:6.6pt;text-transform:uppercase;letter-spacing:.1em;color:var(--soft)}
+.sign-cell i{display:block;border-bottom:1px solid #CBD5E1;height:7mm}
+.sign-stamp{flex:none;text-align:right;font-size:6.4pt;letter-spacing:.12em;color:var(--soft);line-height:1.4}
+.sign-stamp b{display:block;font-size:7.2pt;color:var(--muted);letter-spacing:.14em}
+
+/* mix */
+.mixbar{display:flex;height:8mm;border-radius:1.6mm;overflow:hidden;margin-top:3.2mm;font-size:7pt;font-weight:600;color:#fff}
+.mixbar span{display:flex;align-items:center;padding:0 3mm}
+.mix-a{background:var(--teal)}
+.mix-b{background:var(--blue)}
+
+/* pie */
+.foot{margin-top:auto;padding-top:3mm;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:5mm;font-size:6.6pt;color:var(--soft);line-height:1.35}
+.foot span:nth-child(2){text-align:center}
+
+@media print{body{background:#fff}}
+</style>
+</head>
+<body>
+
+<section class="page">
+  <div class="masthead">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 44 44" aria-hidden="true">
+        <rect width="44" height="44" rx="10" fill="#0B1B2B"/>
+        <circle cx="22" cy="22" r="11.5" fill="none" stroke="#14B8A6" stroke-width="2.4"/>
+        <text x="22" y="26.8" text-anchor="middle" font-size="11.5" font-weight="700" fill="#fff" font-family="Segoe UI, Arial">O₂</text>
+      </svg>
+      <div>
+        <div class="brand-name">MEDOXIGAS</div>
+        <div class="brand-sub">ALC, SRL · Planta de oxígeno medicinal</div>
+      </div>
+    </div>
+    <div class="doc-meta">
+      <div class="meta-strong">Reporte interno</div>
+      <div>Operaciones · 17 de noviembre de 2026</div>
+    </div>
+  </div>
+
+  <div class="eyebrow"><span class="eyebrow-rule"></span>Producción y merma · período del daño del vaporizador</div>
+  <h1>Reporte de Producción<br>y Merma</h1>
+  <p class="lede">28 de octubre – 17 de noviembre de 2026 · ISOs del 28-oct y 4-nov · 21 días de operación</p>
+  <p class="intro">Reconstrucción del ciclo del tanque de LOX (oxígeno líquido) con las lecturas del reloj, los cierres de ISO y los llenados diarios, para medir si la merma aumentó tras el daño del vaporizador.</p>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-label">Base acumulada</div>
+      <div class="kpi-value">33.890<span class="unit">kg</span></div>
+      <div class="kpi-note">Bases de ambos ISO</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Vendido</div>
+      <div class="kpi-value">21.880<span class="unit">kg</span></div>
+      <div class="kpi-note">63 termos · 1.097 cilindros</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Merma</div>
+      <div class="kpi-value">2.722<span class="unit">kg</span></div>
+      <div class="kpi-note">735 kg + 1.987 kg</div>
+    </div>
+    <div class="kpi kpi-good">
+      <div class="kpi-label">Merma del período</div>
+      <div class="kpi-value">8,0<span class="unit">%</span></div>
+      <div class="kpi-note"><span class="dot-ok"></span>Por debajo del 12–17 %</div>
+    </div>
+  </div>
+
+  <div class="block-head">
+    <h2>Producción y merma por ISO</h2>
+    <span>Cifras en kilogramos · 1 termo = 208 kg · 1 cilindro = 8 kg</span>
+  </div>
+  <table class="data">
+    <thead>
+      <tr>
+        <th>ISO</th>
+        <th class="num">Base</th>
+        <th class="num">Cierre</th>
+        <th class="num">Termos</th>
+        <th class="num">Cilindros</th>
+        <th class="num">Vendido</th>
+        <th class="num">Merma</th>
+        <th class="num">Merma %</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+  <tr>
+    <td>
+      <span class="cell-strong">ISO 28 oct</span>
+      <span class="cell-sub">cerrado el 4-nov</span>
+    </td>
+    <td class="num">13.540</td>
+    <td class="num">5.173</td>
+    <td class="num">22</td>
+    <td class="num">382</td>
+    <td class="num">7.632</td>
+    <td class="num">735</td>
+    <td class="num cell-pct">5,4 %</td>
+  </tr>
+      
+  <tr>
+    <td>
+      <span class="cell-strong">ISO 4 nov</span>
+      <span class="cell-sub">cerrado el 17-nov</span>
+    </td>
+    <td class="num">20.350</td>
+    <td class="num">4.115</td>
+    <td class="num">41</td>
+    <td class="num">715</td>
+    <td class="num">14.248</td>
+    <td class="num">1.987</td>
+    <td class="num cell-pct">9,8 %</td>
+  </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td><span class="cell-strong">Total del período</span><span class="cell-sub">21 días · 28-oct al 17-nov</span></td>
+        <td class="num">33.890</td>
+        <td class="num muted">—</td>
+        <td class="num">63</td>
+        <td class="num">1.097</td>
+        <td class="num">21.880</td>
+        <td class="num">2.722</td>
+        <td class="num cell-pct">8,0 %</td>
+      </tr>
+    </tfoot>
+  </table>
+  <p class="table-note">El cierre del ISO 28-oct usa el registro de la aplicación (5.173 kg); la última foto del reloj leía 5.475 kg. Ver el análisis de sensibilidad en la página 4.</p>
+
+  <div class="conclusion">
+    <div class="conclusion-icon">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5" fill="none" stroke="#14B8A6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="conclusion-text">
+      <div class="conclusion-label">Conclusión del análisis</div>
+      <div class="conclusion-title">El daño del vaporizador no aumentó la merma.</div>
+      <p>Ambos cierres quedaron por debajo del rango histórico de 12–17 %: el ISO 28-oct, activo al momento del daño, registró <strong>5,4 %</strong> —el valor más bajo documentado— y el ISO 4-nov, <strong>9,8 %</strong>. La producción continuó con normalidad hasta el 16-nov.</p>
+    </div>
+    <div class="conclusion-metric">
+      <div class="metric-big">8,0<span>%</span></div>
+      <div class="metric-cap">merma del período</div>
+      <div class="metric-vs">vs. 12–17 % histórico</div>
+    </div>
+  </div>
+
+  <div class="band-block">
+    <div class="block-head tight">
+      <h2>Merma por ISO frente al rango histórico</h2>
+      <span>Porcentaje de la base de cada ISO</span>
+    </div>
+    <svg viewBox="0 0 760 150" role="img" aria-label="Merma de cada ISO frente al rango histórico de 12 a 17 por ciento">
+    <rect x="461.2" y="32" width="143" height="92" fill="#E2E8F0" opacity=".7" rx="3"/>
+    <text x="532.7" y="26" font-size="9.5" font-weight="600" fill="#64748B" text-anchor="middle">Rango histórico ago–oct · 12–17 %</text>
+    <line x1="118" x2="690" y1="124" y2="124" stroke="#E2E8F0"/>
+    <line x1="118" x2="118" y1="124" y2="128" stroke="#CBD5E1"/><text x="118" y="144" font-size="9" font-weight="400" fill="#94A3B8" text-anchor="middle">0 %</text><line x1="261" x2="261" y1="124" y2="128" stroke="#CBD5E1"/><text x="261" y="144" font-size="9" font-weight="400" fill="#94A3B8" text-anchor="middle">5 %</text><line x1="404" x2="404" y1="124" y2="128" stroke="#CBD5E1"/><text x="404" y="144" font-size="9" font-weight="400" fill="#94A3B8" text-anchor="middle">10 %</text><line x1="547" x2="547" y1="124" y2="128" stroke="#CBD5E1"/><text x="547" y="144" font-size="9" font-weight="400" fill="#94A3B8" text-anchor="middle">15 %</text><line x1="690" x2="690" y1="124" y2="128" stroke="#CBD5E1"/><text x="690" y="144" font-size="9" font-weight="400" fill="#94A3B8" text-anchor="middle">20 %</text>
+    <text x="104" y="54" font-size="10" font-weight="600" fill="#475569" text-anchor="end">ISO 28 oct</text><line x1="118" x2="690" y1="50" y2="50" stroke="#F1F5F9"/><line x1="118" x2="273.3" y1="50" y2="50" stroke="#0F766E" stroke-width="2" opacity=".25"/><circle cx="273.3" cy="50" r="6" fill="#0F766E" stroke="#fff" stroke-width="2.5"/><text x="285.3" y="54" font-size="11" font-weight="700" fill="#0F766E" text-anchor="start">5,4 %</text><text x="104" y="84" font-size="10" font-weight="600" fill="#475569" text-anchor="end">ISO 4 nov</text><line x1="118" x2="690" y1="80" y2="80" stroke="#F1F5F9"/><line x1="118" x2="397.3" y1="80" y2="80" stroke="#2563EB" stroke-width="2" opacity=".25"/><circle cx="397.3" cy="80" r="6" fill="#2563EB" stroke="#fff" stroke-width="2.5"/><text x="409.3" y="84" font-size="11" font-weight="700" fill="#2563EB" text-anchor="start">9,8 %</text><text x="104" y="114" font-size="10" font-weight="600" fill="#475569" text-anchor="end">Período</text><line x1="118" x2="690" y1="110" y2="110" stroke="#F1F5F9"/><line x1="118" x2="347.7" y1="110" y2="110" stroke="#0B1B2B" stroke-width="2" opacity=".25"/><circle cx="347.7" cy="110" r="6" fill="#0B1B2B" stroke="#fff" stroke-width="2.5"/><text x="359.7" y="114" font-size="11" font-weight="700" fill="#0B1B2B" text-anchor="start">8,0 %</text>
+  </svg>
+  </div>
+
+  <footer class="foot">
+    <span>MEDOXIGAS ALC, SRL · Documento interno</span>
+    <span>Producción y merma · 28 oct – 17 nov 2026</span>
+    <span>Página 1 de 4</span>
+  </footer>
+</section>
+
+<section class="page">
+  <div class="runhead">
+    <div class="rbrand">
+      <span class="rlogo">O₂</span>
+      <span>MEDOXIGAS</span>
+    </div>
+    <span>Reporte de Producción y Merma · 28 oct – 17 nov 2026</span>
+  </div>
+
+  <div class="section-head">
+    <div class="section-num">01</div>
+    <div>
+      <div class="eyebrow small">Lectura del tanque</div>
+      <h2 class="section-title">El reloj, día por día</h2>
+      <p class="section-sub">Kilogramos de LOX en el tanque según las lecturas registradas. El cambio de ISO se ve como un salto vertical: el tanque se rellena y vuelve a arrancar el conteo.</p>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-head">
+      <div>
+        <div class="chart-title">Lectura del reloj del tanque</div>
+        <div class="chart-sub">28 de octubre – 17 de noviembre de 2026</div>
+      </div>
+      <div class="legend">
+        <span><i class="sw sw-a"></i>ISO 28 oct</span>
+        <span><i class="sw sw-b"></i>ISO 4 nov</span>
+        <span><i class="sw sw-event"></i>Vaporizador dañado</span>
+      </div>
+    </div>
+    <svg viewBox="0 0 760 470" role="img" aria-label="Lectura del reloj del tanque entre el 28 de octubre y el 17 de noviembre">
+    <defs>
+      <linearGradient id="fillA" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#0F766E" stop-opacity=".16"/>
+        <stop offset="1" stop-color="#0F766E" stop-opacity=".01"/>
+      </linearGradient>
+      <linearGradient id="fillB" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#2563EB" stop-opacity=".14"/>
+        <stop offset="1" stop-color="#2563EB" stop-opacity=".01"/>
+      </linearGradient>
+    </defs>
+
+    <rect x="70" y="44" width="196.7" height="386" fill="#0F766E" opacity=".025"/>
+    <rect x="266.7" y="44" width="390.5" height="386" fill="#2563EB" opacity=".025"/>
+
+    <line x1="70" x2="660" y1="430" y2="430" stroke="#E6EDF4" stroke-width="1"/><text x="60" y="433.5" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="end">0</text><line x1="70" x2="660" y1="359.8" y2="359.8" stroke="#E6EDF4" stroke-width="1"/><text x="60" y="363.3" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="end">4.000</text><line x1="70" x2="660" y1="289.6" y2="289.6" stroke="#E6EDF4" stroke-width="1"/><text x="60" y="293.1" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="end">8.000</text><line x1="70" x2="660" y1="219.5" y2="219.5" stroke="#E6EDF4" stroke-width="1"/><text x="60" y="223" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="end">12.000</text><line x1="70" x2="660" y1="149.3" y2="149.3" stroke="#E6EDF4" stroke-width="1"/><text x="60" y="152.8" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="end">16.000</text><line x1="70" x2="660" y1="79.1" y2="79.1" stroke="#E6EDF4" stroke-width="1"/><text x="60" y="82.6" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="end">20.000</text>
+    <line x1="70" x2="660" y1="430" y2="430" stroke="#CBD5E1"/>
+    <line x1="70" x2="70" y1="430" y2="435" stroke="#CBD5E1"/><text x="70" y="450" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="start">28 oct</text><line x1="126.2" x2="126.2" y1="430" y2="435" stroke="#CBD5E1"/><text x="126.2" y="450" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="middle">30</text><line x1="182.4" x2="182.4" y1="430" y2="435" stroke="#CBD5E1"/><text x="182.4" y="450" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="middle">1 nov</text><line x1="238.6" x2="238.6" y1="430" y2="435" stroke="#CBD5E1"/><text x="238.6" y="450" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="middle">3</text><line x1="294.8" x2="294.8" y1="430" y2="435" stroke="#CBD5E1"/><text x="294.8" y="450" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="middle">5</text><line x1="351" x2="351" y1="430" y2="435" stroke="#CBD5E1"/><text x="351" y="450" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="middle">7</text><line x1="407.1" x2="407.1" y1="430" y2="435" stroke="#CBD5E1"/><text x="407.1" y="450" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="middle">9</text><line x1="463.3" x2="463.3" y1="430" y2="435" stroke="#CBD5E1"/><text x="463.3" y="450" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="middle">11</text><line x1="519.5" x2="519.5" y1="430" y2="435" stroke="#CBD5E1"/><text x="519.5" y="450" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="middle">13</text><line x1="575.7" x2="575.7" y1="430" y2="435" stroke="#CBD5E1"/><text x="575.7" y="450" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="middle">15</text><line x1="631.9" x2="631.9" y1="430" y2="435" stroke="#CBD5E1"/><text x="631.9" y="450" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="end">17 nov</text>
+
+    <path d="M 70 192.4 L 266.7 339.2 L 266.7 430 L 70 430 Z" fill="url(#fillA)"/>
+    <path d="M 266.7 72.9 L 645.5 357.8 L 645.5 430 L 266.7 430 Z" fill="url(#fillB)"/>
+
+    <line x1="70" y1="430" x2="266.7" y2="339.2" stroke="#0F766E" stroke-width="2.6" stroke-linecap="round"/>
+    <line x1="266.7" y1="72.9" x2="645.5" y2="357.8" stroke="#2563EB" stroke-width="2.6" stroke-linecap="round"/>
+
+    <line x1="266.7" y1="339.2" x2="266.7" y2="72.9" stroke="#94A3B8" stroke-width="1.6" stroke-dasharray="4 4"/>
+    <line x1="645.5" y1="357.8" x2="651.7" y2="73.3" stroke="#94A3B8" stroke-width="1.6" stroke-dasharray="4 4"/>
+
+    <line x1="85.5" y1="44" x2="85.5" y2="430" stroke="#DC2626" stroke-width="1.4" stroke-dasharray="5 4" opacity=".85"/>
+    <circle cx="85.5" cy="192.4" r="4.5" fill="#DC2626" stroke="#fff" stroke-width="2"/>
+    <rect x="95.5" y="10" width="190" height="24" rx="12" fill="#FEF2F2" stroke="#FECACA"/>
+    <text x="109.5" y="26" font-size="10" font-weight="600" fill="#B91C1C" text-anchor="start">Vaporizador dañado · 28 oct</text>
+
+    <circle cx="70" cy="192.4" r="4" fill="#0F766E" stroke="#fff" stroke-width="2"/>
+    <circle cx="266.7" cy="339.2" r="4" fill="#0F766E" stroke="#fff" stroke-width="2"/>
+    <circle cx="266.7" cy="72.9" r="4" fill="#2563EB" stroke="#fff" stroke-width="2"/>
+    <circle cx="645.5" cy="357.8" r="4" fill="#2563EB" stroke="#fff" stroke-width="2"/>
+    <circle cx="651.7" cy="73.3" r="4" fill="#94A3B8" stroke="#fff" stroke-width="2"/>
+
+    <text x="92" y="170.4" font-size="9.5" font-weight="600" fill="#0F766E" text-anchor="start" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">Base ISO 28-oct</text>
+    <text x="92" y="184.4" font-size="12" font-weight="700" fill="#0B1B2B" text-anchor="start" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">13.540 kg</text>
+
+    <text x="250.7" y="379.2" font-size="9.5" font-weight="600" fill="#0F766E" text-anchor="end" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">Cierre 4-nov</text>
+    <text x="250.7" y="393.2" font-size="11" font-weight="700" fill="#0B1B2B" text-anchor="end" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">5.173 kg</text>
+
+    <text x="256.7" y="74.9" font-size="10.5" font-weight="700" fill="#1E40AF" text-anchor="end">Base ISO 4-nov · 20.350 kg</text>
+
+    <text x="637.5" y="379.8" font-size="9.5" font-weight="600" fill="#1D4ED8" text-anchor="end">Cierre 17-nov · 11:39</text>
+    <text x="637.5" y="393.8" font-size="11" font-weight="700" fill="#0B1B2B" text-anchor="end">4.115 kg</text>
+
+    <line x1="651.7" y1="68.3" x2="651.7" y2="38" stroke="#94A3B8" stroke-width="1"/>
+    <text x="647.7" y="34" font-size="9.5" font-weight="600" fill="#475569" text-anchor="end">17-nov 16:51 · nuevo ISO 20.330 kg</text>
+
+  </svg>
+  </div>
+
+  <div class="mini-grid">
+    <div class="mini">
+      <div class="mini-label">ISO 28-oct</div>
+      <div class="mini-value">13.540 <span>→</span> 5.173</div>
+      <div class="mini-note">Base − cierre: 8.367 kg</div>
+    </div>
+    <div class="mini">
+      <div class="mini-label">Cambio de ISO · 4-nov</div>
+      <div class="mini-value">5.173 <span>→</span> 20.350</div>
+      <div class="mini-note">Entrada de 15.177 kg de LOX</div>
+    </div>
+    <div class="mini">
+      <div class="mini-label">ISO 4-nov</div>
+      <div class="mini-value">20.350 <span>→</span> 4.115</div>
+      <div class="mini-note">Base − cierre: 16.235 kg</div>
+    </div>
+  </div>
+
+  <div class="recon">
+    <div class="block-head tight">
+      <h2>Conciliación del tanque</h2>
+      <span>Base = vendido + merma + cierre</span>
+    </div>
+    <div class="recon-legend">
+      <span><i class="sw sw-sold"></i>Vendido</span>
+      <span><i class="sw sw-loss"></i>Merma</span>
+      <span><i class="sw sw-rest"></i>Cierre (queda en el tanque)</span>
+    </div>
+    <div class="recon-row">
+          <div class="recon-name">ISO 28 oct</div>
+          <div class="recon-track">
+            <span class="seg seg-sold" style="width:56.366322008862625%"><b>7.632</b><em>vendido</em></span>
+            <span class="seg seg-loss" style="width:5.428360413589365%"><b>735</b></span>
+            <span class="seg seg-rest" style="width:38.205317577548%"><b>5.173</b><em>cierre</em></span>
+          </div>
+          <div class="recon-total"><b>13.540</b><span>base</span></div>
+        </div><div class="recon-row">
+          <div class="recon-name">ISO 4 nov</div>
+          <div class="recon-track">
+            <span class="seg seg-sold" style="width:70.01474201474201%"><b>14.248</b><em>vendido</em></span>
+            <span class="seg seg-loss" style="width:9.764127764127764%"><b>1.987</b></span>
+            <span class="seg seg-rest" style="width:20.22113022113022%"><b>4.115</b><em>cierre</em></span>
+          </div>
+          <div class="recon-total"><b>20.350</b><span>base</span></div>
+        </div>
+    <p class="recon-note">La barra representa la base de cada ISO (100 %). La merma es la diferencia que no se vendió ni quedó en el tanque al cerrar. Ambas conciliaciones cuadran al kilogramo.</p>
+  </div>
+
+  <footer class="foot">
+    <span>MEDOXIGAS ALC, SRL · Documento interno</span>
+    <span>Nota: la unión entre lecturas es lineal; no reconstruye el consumo diario.</span>
+    <span>Página 2 de 4</span>
+  </footer>
+</section>
+
+<section class="page">
+  <div class="runhead">
+    <div class="rbrand">
+      <span class="rlogo">O₂</span>
+      <span>MEDOXIGAS</span>
+    </div>
+    <span>Reporte de Producción y Merma · 28 oct – 17 nov 2026</span>
+  </div>
+
+  <div class="section-head">
+    <div class="section-num">02</div>
+    <div>
+      <div class="eyebrow small">Llenados diarios</div>
+      <h2 class="section-title">El ritmo de despacho del ISO 4-nov</h2>
+      <p class="section-sub">Del 5 al 17 de noviembre se despacharon 41 termos y 715 cilindros: 14.248 kg. El ISO 28-oct no tiene detalle diario; se registra como bloque de 7.632 kg entre el 28-oct y el 4-nov.</p>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-head">
+      <div>
+        <div class="chart-title">Kilogramos vendidos por día</div>
+        <div class="chart-sub">Eje continuo del 5 al 17 de noviembre · los días sin barra no registraron llenados</div>
+      </div>
+      <div class="legend">
+        <span><i class="sw sw-b"></i>ISO 4 nov</span>
+        <span><i class="sw sw-avg"></i>Promedio 1.042 kg/día</span>
+      </div>
+    </div>
+    <svg viewBox="0 0 760 300" role="img" aria-label="Kilogramos vendidos por día entre el 5 y el 17 de noviembre">
+    <line x1="58" x2="742" y1="238" y2="238" stroke="#E6EDF4"/><text x="48" y="241.5" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="end">0</text><line x1="58" x2="742" y1="167.3" y2="167.3" stroke="#E6EDF4"/><text x="48" y="170.8" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="end">1.000</text><line x1="58" x2="742" y1="96.7" y2="96.7" stroke="#E6EDF4"/><text x="48" y="100.2" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="end">2.000</text><line x1="58" x2="742" y1="26" y2="26" stroke="#E6EDF4"/><text x="48" y="29.5" font-size="9.5" font-weight="400" fill="#94A3B8" text-anchor="end">3.000</text>
+    <line x1="58" x2="742" y1="238" y2="238" stroke="#CBD5E1"/>
+    <line x1="58" x2="742" y1="164.4" y2="164.4" stroke="#D97706" stroke-width="1.4" stroke-dasharray="6 4"/>
+    <rect x="66.4" y="121.5" width="26" height="116.5" rx="2.5" fill="#2563EB" opacity=".82"/><text x="79.4" y="113.5" font-size="9" font-weight="700" fill="#1E3A8A" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">1.648</text><rect x="173.3" y="85.4" width="26" height="152.6" rx="2.5" fill="#2563EB" opacity=".82"/><text x="186.3" y="77.4" font-size="9" font-weight="700" fill="#1E3A8A" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">2.160</text><rect x="280.1" y="223.3" width="26" height="14.7" rx="2.5" fill="#2563EB" opacity=".82"/><text x="293.1" y="215.3" font-size="9" font-weight="700" fill="#1E3A8A" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">208</text><rect x="333.6" y="56" width="26" height="182" rx="2.5" fill="#2563EB" opacity="1"/><text x="346.6" y="48" font-size="9" font-weight="700" fill="#1E3A8A" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">2.576</text><rect x="387" y="136.2" width="26" height="101.8" rx="2.5" fill="#2563EB" opacity=".82"/><text x="400" y="128.2" font-size="9" font-weight="700" fill="#1E3A8A" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">1.440</text><rect x="440.4" y="78.6" width="26" height="159.4" rx="2.5" fill="#2563EB" opacity=".82"/><text x="453.4" y="70.6" font-size="9" font-weight="700" fill="#1E3A8A" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">2.256</text><rect x="493.9" y="149.8" width="26" height="88.2" rx="2.5" fill="#2563EB" opacity=".82"/><text x="506.9" y="141.8" font-size="9" font-weight="700" fill="#1E3A8A" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">1.248</text><rect x="547.3" y="177.5" width="26" height="60.5" rx="2.5" fill="#2563EB" opacity=".82"/><rect x="542.3" y="156.5" width="36" height="15" rx="3" fill="#FFFFFF"/><text x="560.3" y="169.5" font-size="9" font-weight="700" fill="#1E3A8A" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">856</text><rect x="654.2" y="106.8" width="26" height="131.2" rx="2.5" fill="#2563EB" opacity=".82"/><text x="667.2" y="98.8" font-size="9" font-weight="700" fill="#1E3A8A" text-anchor="middle" paint-order="stroke" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round">1.856</text>
+    <circle cx="132.8" cy="235" r="2.5" fill="#CBD5E1"/><circle cx="239.7" cy="235" r="2.5" fill="#CBD5E1"/><circle cx="613.8" cy="235" r="2.5" fill="#CBD5E1"/>
+    <text x="79.4" y="258" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="middle">5 nov</text><text x="132.8" y="258" font-size="9.5" font-weight="400" fill="#CBD5E1" text-anchor="middle">6</text><text x="186.3" y="258" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="middle">7</text><text x="239.7" y="258" font-size="9.5" font-weight="400" fill="#CBD5E1" text-anchor="middle">8</text><text x="293.1" y="258" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="middle">9</text><text x="346.6" y="258" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="middle">10</text><text x="400" y="258" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="middle">11</text><text x="453.4" y="258" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="middle">12</text><text x="506.9" y="258" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="middle">13</text><text x="560.3" y="258" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="middle">14</text><text x="613.8" y="258" font-size="9.5" font-weight="400" fill="#CBD5E1" text-anchor="middle">15</text><text x="667.2" y="258" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="middle">16</text><text x="720.6" y="258" font-size="9.5" font-weight="400" fill="#64748B" text-anchor="middle">17 nov</text>
+  </svg>
+  </div>
+
+  <div class="block-head">
+    <h2>Detalle de llenados</h2>
+    <span>Registro original · conversión a kilogramos</span>
+  </div>
+  <table class="data compact">
+    <thead>
+      <tr>
+        <th>Fecha (nov)</th>
+        <th>Registro</th>
+        <th class="num">Termos</th>
+        <th class="num">Cilindros</th>
+        <th class="num">Vendido kg</th>
+        <th class="num">Acumulado kg</th>
+        <th class="num">Acum. %</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+            <td class="cell-strong">Jue 5</td>
+            <td class="cell-mono">2T + 76C + 3T</td>
+            <td class="num">5</td>
+            <td class="num">76</td>
+            <td class="num">1.648</td>
+            <td class="num">1.648</td>
+            <td class="num cell-pct-soft">12</td>
+          </tr><tr>
+            <td class="cell-strong">Sáb 7</td>
+            <td class="cell-mono">6T + 114C</td>
+            <td class="num">6</td>
+            <td class="num">114</td>
+            <td class="num">2.160</td>
+            <td class="num">3.808</td>
+            <td class="num cell-pct-soft">27</td>
+          </tr><tr>
+            <td class="cell-strong">Lun 9</td>
+            <td class="cell-mono">1T</td>
+            <td class="num">1</td>
+            <td class="num">—</td>
+            <td class="num">208</td>
+            <td class="num">4.016</td>
+            <td class="num cell-pct-soft">28</td>
+          </tr><tr>
+            <td class="cell-strong">Mar 10</td>
+            <td class="cell-mono">8T + 76C + 38C</td>
+            <td class="num">8</td>
+            <td class="num">114</td>
+            <td class="num">2.576</td>
+            <td class="num">6.592</td>
+            <td class="num cell-pct-soft">46</td>
+          </tr><tr>
+            <td class="cell-strong">Mié 11</td>
+            <td class="cell-mono">4T + 76C</td>
+            <td class="num">4</td>
+            <td class="num">76</td>
+            <td class="num">1.440</td>
+            <td class="num">8.032</td>
+            <td class="num cell-pct-soft">56</td>
+          </tr><tr>
+            <td class="cell-strong">Jue 12</td>
+            <td class="cell-mono">76C + 5T + 76C</td>
+            <td class="num">5</td>
+            <td class="num">152</td>
+            <td class="num">2.256</td>
+            <td class="num">10.288</td>
+            <td class="num cell-pct-soft">72</td>
+          </tr><tr>
+            <td class="cell-strong">Vie 13</td>
+            <td class="cell-mono">4T + 2T</td>
+            <td class="num">6</td>
+            <td class="num">—</td>
+            <td class="num">1.248</td>
+            <td class="num">11.536</td>
+            <td class="num cell-pct-soft">81</td>
+          </tr><tr>
+            <td class="cell-strong">Sáb 14</td>
+            <td class="cell-mono">107C</td>
+            <td class="num">—</td>
+            <td class="num">107</td>
+            <td class="num">856</td>
+            <td class="num">12.392</td>
+            <td class="num cell-pct-soft">87</td>
+          </tr><tr>
+            <td class="cell-strong">Lun 16</td>
+            <td class="cell-mono">3T + 76C + 3T</td>
+            <td class="num">6</td>
+            <td class="num">76</td>
+            <td class="num">1.856</td>
+            <td class="num">14.248</td>
+            <td class="num cell-pct-soft">100</td>
+          </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td><span class="cell-strong">ISO 4-nov</span></td>
+        <td class="cell-mono muted">9 días con llenado</td>
+        <td class="num">41</td>
+        <td class="num">715</td>
+        <td class="num">14.248</td>
+        <td class="num">14.248</td>
+        <td class="num cell-pct-soft">100</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="mini-grid four">
+    <div class="mini">
+      <div class="mini-label">Promedio con llenado</div>
+      <div class="mini-value">1.583<span> kg/día</span></div>
+      <div class="mini-note">9 días · ISO 4-nov</div>
+    </div>
+    <div class="mini">
+      <div class="mini-label">Día máximo</div>
+      <div class="mini-value">2.576<span> kg</span></div>
+      <div class="mini-note">10-nov · 8 T + 114 C</div>
+    </div>
+    <div class="mini">
+      <div class="mini-label">Días sin llenado</div>
+      <div class="mini-value">4<span> días</span></div>
+      <div class="mini-note">6, 8, 15 y 17-nov</div>
+    </div>
+    <div class="mini">
+      <div class="mini-label">Reparto por peso</div>
+      <div class="mini-value">60 / 40<span> %</span></div>
+      <div class="mini-note">termos / cilindros</div>
+    </div>
+  </div>
+
+  <div class="mixbar" aria-hidden="true">
+    <span class="mix-a" style="width:59.890310786106035%">Termos · 13.104 kg</span>
+    <span class="mix-b" style="width:40.109689213893965%">Cilindros · 8.776 kg</span>
+  </div>
+
+  <footer class="foot">
+    <span>MEDOXIGAS ALC, SRL · Documento interno</span>
+    <span>Conversiones: 1 termo = 208 kg · 1 cilindro = 8 kg</span>
+    <span>Página 3 de 4</span>
+  </footer>
+</section>
+
+<section class="page">
+  <div class="runhead">
+    <div class="rbrand">
+      <span class="rlogo">O₂</span>
+      <span>MEDOXIGAS</span>
+    </div>
+    <span>Reporte de Producción y Merma · 28 oct – 17 nov 2026</span>
+  </div>
+
+  <div class="section-head">
+    <div class="section-num">03</div>
+    <div>
+      <div class="eyebrow small">Hallazgos y recomendaciones</div>
+      <h2 class="section-title">Lo que dicen los números</h2>
+      <p class="section-sub">Cuatro lecturas del período y las acciones sugeridas para que el próximo cierre de ISO sea verificable sin discusiones.</p>
+    </div>
+  </div>
+
+  <div class="findings">
+    <article class="finding">
+      <div class="fnum">01</div>
+      <h3>La merma no subió por el vaporizador</h3>
+      <p>El ISO activo al momento del daño cerró en <strong>5,4 %</strong>, el registro más bajo del que se tiene evidencia. El ISO siguiente cerró en <strong>9,8 %</strong>.</p>
+    </article>
+    <article class="finding">
+      <div class="fnum">02</div>
+      <h3>Ambos ISO, debajo del histórico</h3>
+      <p>El rango documentado de agosto a octubre es <strong>12–17 %</strong>. Los dos cierres del período quedaron por debajo del piso de ese rango.</p>
+    </article>
+    <article class="finding">
+      <div class="fnum">03</div>
+      <h3>La operación siguió a ritmo normal</h3>
+      <p>21.880 kg vendidos en 21 días (<strong>1.042 kg/día</strong>). El último llenado registrado, el 16-nov, fue de 1.856 kg.</p>
+    </article>
+    <article class="finding">
+      <div class="fnum">04</div>
+      <h3>El cierre del 28-oct depende del registro</h3>
+      <p>La app registra 5.173 kg; la última foto del reloj leía 5.475 kg. Con la foto, la merma sería <strong>433 kg (3,2 %)</strong>.</p>
+    </article>
+  </div>
+
+  <div class="sens">
+    <div class="sens-head">
+      <div>
+        <div class="s-label">Sensibilidad · cierre del ISO 28 oct</div>
+        <div class="s-title">La conclusión se mantiene con cualquiera de las dos lecturas</div>
+      </div>
+      <div class="s-badge">Ambas &lt; 12 %</div>
+    </div>
+    <div class="sens-grid">
+      <div class="sens-cell">
+        <div class="s-k">Cierre según la app</div>
+        <div class="s-v">5.173 kg</div>
+        <div class="s-r">735 kg de merma · 5,4 %</div>
+      </div>
+      <div class="sens-arrow">→</div>
+      <div class="sens-cell">
+        <div class="s-k">Cierre según la última foto</div>
+        <div class="s-v">5.475 kg</div>
+        <div class="s-r">433 kg de merma · 3,2 %</div>
+      </div>
+      <div class="sens-note">302 kg de diferencia entre ambos registros. No cambian el sentido del análisis: la merma sigue por debajo del 12 %.</div>
+    </div>
+  </div>
+
+  <div class="block-head tight">
+    <h2>Recomendaciones</h2>
+    <span>Para el próximo período</span>
+  </div>
+  <ol class="recs">
+    <li><span class="rn">1</span><div><strong>Fijar hora y frecuencia de la foto.</strong> Una lectura diaria y una segunda el día de llenado, con el mismo ángulo y el reloj completo en el encuadre.</div></li>
+    <li><span class="rn">2</span><div><strong>Registrar la hora exacta del cambio de ISO</strong> y la lectura antes y después de la descarga. Es el dato que evita el salto “huérfano” del gráfico.</div></li>
+    <li><span class="rn">3</span><div><strong>Documentar la reparación del vaporizador</strong> (fecha, diagnóstico y repuestos). No está en estos datos y es la pieza que falta para atribuir la merma.</div></li>
+    <li><span class="rn">4</span><div><strong>Conciliar base − vendido − merma = cierre en cada cierre de ISO.</strong> Si no cuadra, buscar la lectura faltante antes de abrir el ISO siguiente.</div></li>
+    <li><span class="rn">5</span><div><strong>Conservar la foto del último reloj como respaldo del cierre.</strong> El caso 5.173 vs 5.475 muestra por qué la app y la foto deben coincidir.</div></li>
+  </ol>
+
+  <div class="method">
+    <div class="m-title">Método y fuentes</div>
+    <div class="m-grid">
+      <div><span class="m-k">Fórmula</span><span class="m-v">merma = (base − cierre − vendido) / base × 100</span></div>
+      <div><span class="m-k">Conversiones</span><span class="m-v">1 termo = 208 kg · 1 cilindro = 8 kg</span></div>
+      <div><span class="m-k">Fuente</span><span class="m-v">Lecturas del reloj, cierres de ISO y llenados del 28-oct al 17-nov-2026</span></div>
+      <div><span class="m-k">Criterio del total</span><span class="m-v">% sobre la suma de bases (33.890 kg). Sobre LOX consumido (24.602 kg) sería 11,1 %; ambos criterios quedan bajo 12 %</span></div>
+      <div><span class="m-k">Alcance</span><span class="m-v">No incluye el nuevo ISO cargado el 17-nov a las 16:51 ni la merma posterior</span></div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div class="v-label">Dictamen</div>
+    <p>Con la evidencia disponible, el daño del vaporizador <strong>no explica un aumento de la merma</strong>: ambos ISO cerraron por debajo del piso del rango histórico (12&nbsp;%).</p>
+  </div>
+
+  <div class="sign">
+    <div class="sign-cell"><span>Elaborado por</span><i></i></div>
+    <div class="sign-cell"><span>Revisado por</span><i></i></div>
+    <div class="sign-cell"><span>Fecha</span><i></i></div>
+    <div class="sign-stamp">MEDOXIGAS<br><b>Operaciones</b></div>
+  </div>
+
+  <footer class="foot">
+    <span>MEDOXIGAS ALC, SRL · Documento interno</span>
+    <span>Elaborado el 17 de noviembre de 2026 · Datos del período 28-oct al 17-nov</span>
+    <span>Página 4 de 4</span>
+  </footer>
+</section>
+</body>
+</html>
