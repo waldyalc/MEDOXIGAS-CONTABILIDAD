@@ -1,6 +1,7 @@
 import { ListOrdered } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -103,7 +104,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                 </TableHeader>
                 <TableBody>
                   {movimientos.filas.map((fila) => (
-                    <TableRow key={fila.clave}>
+                    <FilaNavegable key={fila.clave} href={rutaAsiento(fila.asientoId)}>
                       <TableCell>{fila.tipoDocumento}</TableCell>
                       <TableCell>{formatoDia(fila.fecha)}</TableCell>
                       <TableCell className="tabular-nums">
@@ -136,7 +137,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                       <TableCell className="text-right font-medium tabular-nums">
                         {formatearRd(fila.saldoFinal)}
                       </TableCell>
-                    </TableRow>
+                    </FilaNavegable>
                   ))}
                 </TableBody>
                 <TableFooter>

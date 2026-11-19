@@ -175,6 +175,7 @@ function TablaFicha<T extends Fila>({
         columnas={todas}
         filas={visibles}
         claveFila={(fila) => fila.id}
+        filaHref={(fila) => ruta(fila)}
         vacio={{
           filtrada: texto !== "",
           titulo: texto === "" ? "Aún no hay registros" : "Sin resultados",

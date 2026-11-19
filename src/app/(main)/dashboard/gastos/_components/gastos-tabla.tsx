@@ -95,6 +95,7 @@ export function GastosTabla({
       columnas={columnas}
       filas={gastos}
       claveFila={(gasto) => gasto.id}
+      filaHref={(gasto) => rutaGasto(gasto.id)}
       vacio={{
         filtrada: Boolean(busqueda),
         titulo: busqueda ? "Sin resultados" : "¡Aún no tienes gastos menores!",

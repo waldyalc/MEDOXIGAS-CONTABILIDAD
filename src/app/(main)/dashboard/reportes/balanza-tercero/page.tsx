@@ -1,6 +1,7 @@
 import { UsersRound } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -95,7 +96,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
               </TableHeader>
               <TableBody>
                 {balanza.filas.map((fila) => (
-                  <TableRow key={fila.clave}>
+                  <FilaNavegable key={fila.clave} href={rutaCuenta(fila.cuentaId)}>
                     <TableCell>
                       <Enlace href={rutaCuenta(fila.cuentaId)}>
                         <span className="text-muted-foreground tabular-nums">{fila.cuentaCodigo}</span>{" "}
@@ -127,7 +128,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                     <TableCell className="text-right tabular-nums">
                       {fila.saldoFinalCredito === 0 ? "" : formatearRd(fila.saldoFinalCredito)}
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))}
               </TableBody>
               <TableFooter>

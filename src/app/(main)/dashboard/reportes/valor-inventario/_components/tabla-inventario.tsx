@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaProducto } from "@/lib/enlaces";
@@ -39,7 +40,7 @@ export function TablaInventario({ filas }: { filas: FilaInventario[] }) {
           </TableRow>
         ) : (
           filas.map((fila) => (
-            <TableRow key={fila.id}>
+            <FilaNavegable key={fila.id} href={rutaProducto(fila.id)}>
               <TableCell>
                 <Link
                   href={rutaProducto(fila.id)}
@@ -58,7 +59,7 @@ export function TablaInventario({ filas }: { filas: FilaInventario[] }) {
               </TableCell>
               <TableCell className="text-right tabular-nums">{formatearRd(fila.costo)}</TableCell>
               <TableCell className="text-right font-medium tabular-nums">{formatearRd(fila.total)}</TableCell>
-            </TableRow>
+            </FilaNavegable>
           ))
         )}
       </TableBody>

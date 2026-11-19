@@ -127,6 +127,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           columnas={columnas}
           filas={notas}
           claveFila={(nota) => nota.id}
+          filaHref={(nota) => rutaNotaCreditoCompra(nota.id)}
           vacio={{
             filtrada: Boolean(opciones.q),
             titulo: opciones.q ? "Sin resultados" : "¡Aún no tienes notas de crédito en compras!",

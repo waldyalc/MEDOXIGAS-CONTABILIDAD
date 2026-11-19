@@ -161,6 +161,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           columnas={columnas}
           filas={pagos}
           claveFila={(pago) => pago.id}
+          filaHref={(pago) => rutaPagoProveedor(pago.id)}
           vacio={{
             filtrada: Boolean(opciones.q),
             titulo: opciones.q ? "Sin resultados" : "¡Aún no tienes pagos a proveedores!",

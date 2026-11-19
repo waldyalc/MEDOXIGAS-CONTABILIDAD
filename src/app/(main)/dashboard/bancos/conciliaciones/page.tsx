@@ -105,6 +105,7 @@ export default async function Page() {
           columnas={columnas}
           filas={conciliaciones}
           claveFila={(conciliacion) => conciliacion.id}
+          filaHref={(conciliacion) => rutaConciliacion(conciliacion.id)}
           vacio={{
             titulo: "¡Aún no tienes conciliaciones!",
             descripcion: "Crea la primera para comparar el sistema con el banco.",

@@ -131,6 +131,7 @@ async function TablaCompras({
         columnas={columnas}
         filas={facturas}
         claveFila={(factura) => factura.id}
+        filaHref={(factura) => rutaCompra(factura.id)}
         vacio={{
           filtrada: Boolean(opciones.q),
           titulo: opciones.q ? "Sin resultados" : "¡Aún no tienes compras!",

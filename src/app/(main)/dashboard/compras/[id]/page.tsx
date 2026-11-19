@@ -17,6 +17,7 @@ import {
   TotalesDocumento,
 } from "@/components/documento/documento-detalle";
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -92,7 +93,7 @@ function InformacionCompra({ factura }: { factura: FacturaDetalle }) {
 
 function FilasLineas({ lineas }: { lineas: LineaDetalle[] }) {
   return lineas.map((linea) => (
-    <TableRow key={linea.id}>
+    <FilaNavegable key={linea.id} href={linea.producto_id ? rutaProducto(linea.producto_id) : null}>
       <TableCell className="h-12 px-4 text-sm whitespace-normal">
         <div className="flex flex-col">
           <span>{linea.descripcion || "—"}</span>
@@ -114,13 +115,13 @@ function FilasLineas({ lineas }: { lineas: LineaDetalle[] }) {
       <TableCell className="h-12 px-4 text-right text-sm tabular-nums">{formatoMoneda(linea.subtotal)}</TableCell>
       <TableCell className="h-12 px-4 text-right text-sm tabular-nums">{formatoMoneda(linea.itbis)}</TableCell>
       <TableCell className="h-12 px-4 text-right text-sm tabular-nums">{formatoMoneda(linea.total)}</TableCell>
-    </TableRow>
+    </FilaNavegable>
   ));
 }
 
 function FilasPagosAsociados({ pagos }: { pagos: PagoProveedorVista[] }) {
   return pagos.map((pago) => (
-    <TableRow key={pago.id}>
+    <FilaNavegable key={pago.id} href={rutaPagoProveedor(pago.id)}>
       <TableCell className="h-12 px-4 text-sm font-medium">
         <Enlace href={rutaPagoProveedor(pago.id)}>#{pago.numero}</Enlace>
       </TableCell>
@@ -132,13 +133,13 @@ function FilasPagosAsociados({ pagos }: { pagos: PagoProveedorVista[] }) {
           {pago.estado === "anulado" ? "Anulado" : "Activo"}
         </Badge>
       </TableCell>
-    </TableRow>
+    </FilaNavegable>
   ));
 }
 
 function FilasAsiento({ lineasAsiento }: { lineasAsiento: AsientoLinea[] }) {
   return lineasAsiento.map((linea) => (
-    <TableRow key={linea.id}>
+    <FilaNavegable key={linea.id} href={linea.cuentas ? rutaCuenta(linea.cuenta_id) : null}>
       <TableCell className="h-12 px-4 text-sm whitespace-normal">
         {linea.cuentas ? (
           <Enlace href={rutaCuenta(linea.cuenta_id)}>
@@ -151,7 +152,7 @@ function FilasAsiento({ lineasAsiento }: { lineasAsiento: AsientoLinea[] }) {
       <TableCell className="h-12 px-4 text-sm whitespace-normal">{linea.descripcion || "—"}</TableCell>
       <TableCell className="h-12 px-4 text-right text-sm tabular-nums">{formatoMoneda(linea.debito)}</TableCell>
       <TableCell className="h-12 px-4 text-right text-sm tabular-nums">{formatoMoneda(linea.credito)}</TableCell>
-    </TableRow>
+    </FilaNavegable>
   ));
 }
 

@@ -15,8 +15,9 @@ import {
 } from "@/components/documento/documento-detalle";
 import { Enlace } from "@/components/enlace";
 import { ComprobanteEgreso } from "@/components/impresion/comprobante-egreso";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
-import { TableCell, TableRow } from "@/components/ui/table";
+import { TableCell } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
 import { obtenerPagoProveedor } from "@/lib/compras/detalle";
 import type { MetodoPago } from "@/lib/compras/tipos";
@@ -106,7 +107,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           hayFilas={pago.aplicaciones.length > 0}
         >
           {pago.aplicaciones.map((aplicacion) => (
-            <TableRow key={aplicacion.factura_proveedor_id}>
+            <FilaNavegable key={aplicacion.factura_proveedor_id} href={rutaCompra(aplicacion.factura_proveedor_id)}>
               <TableCell className="h-12 px-4 text-sm font-medium">
                 <Enlace href={rutaCompra(aplicacion.factura_proveedor_id)}>#{aplicacion.numero}</Enlace>
               </TableCell>
@@ -117,7 +118,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
                 {formatoMoneda(aplicacion.retenido)}
               </TableCell>
-            </TableRow>
+            </FilaNavegable>
           ))}
         </TablaDocumento>
 

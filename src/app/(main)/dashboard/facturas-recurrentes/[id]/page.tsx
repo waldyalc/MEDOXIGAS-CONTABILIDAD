@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,7 +106,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                   itbisTasa: linea.itbis_tasa,
                 });
                 return (
-                  <TableRow key={linea.id}>
+                  <FilaNavegable key={linea.id} href={linea.producto_id ? rutaProducto(linea.producto_id) : null}>
                     <TableCell className="font-medium">
                       {linea.producto_id ? (
                         <Enlace href={rutaProducto(linea.producto_id)}>{linea.descripcion}</Enlace>
@@ -120,7 +121,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                     <TableCell className="text-right font-medium tabular-nums">
                       {formatoMonedaCentavos(calculo.totalCentavos)}
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 );
               })}
             </TableBody>
@@ -153,7 +154,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 </TableRow>
               ) : (
                 recurrente.generaciones.map((generacion) => (
-                  <TableRow key={generacion.id}>
+                  <FilaNavegable key={generacion.id} href={rutaFactura(generacion.factura_id)}>
                     <TableCell>{formatoDia(generacion.periodo)}</TableCell>
                     <TableCell className="font-medium">
                       <Enlace href={rutaFactura(generacion.factura_id)}>#{generacion.factura_numero}</Enlace>
@@ -166,7 +167,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                         {etiquetaEstado(generacion.factura_estado)}
                       </Badge>
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))
               )}
             </TableBody>

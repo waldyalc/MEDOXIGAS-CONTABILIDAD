@@ -80,6 +80,7 @@ export function AjustesTabla({ ajustes, puedeEscribir }: { ajustes: AjusteLista[
           columnas={columnas}
           filas={ajustes}
           claveFila={(ajuste) => ajuste.id}
+          filaHref={(ajuste) => rutaAjusteInventario(ajuste.id)}
           vacio={{
             titulo: "¡Aún no tienes ajustes de inventario!",
             descripcion: "Registra la primera entrada o salida de productos.",

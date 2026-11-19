@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,7 +123,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 </TableRow>
               ) : (
                 plan.gastos.map((gasto) => (
-                  <TableRow key={gasto.id}>
+                  <FilaNavegable key={gasto.id} href={rutaGasto(gasto.id)}>
                     <TableCell className="pl-(--card-spacing) font-medium">
                       <Enlace href={rutaGasto(gasto.id)}>#{gasto.numero}</Enlace>
                     </TableCell>
@@ -138,7 +139,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                         {gasto.estado === "anulado" ? "Anulado" : "Activo"}
                       </Badge>
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))
               )}
             </TableBody>

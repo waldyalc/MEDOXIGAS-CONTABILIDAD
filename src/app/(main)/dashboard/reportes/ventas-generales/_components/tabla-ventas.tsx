@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cn } from "cn";
 import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,7 +43,7 @@ function EstadoVenta({ venta }: { venta: VentaCalculada }) {
 
 function FilaVenta({ venta, porAlmacen }: { venta: VentaCalculada; porAlmacen: boolean }) {
   return (
-    <TableRow>
+    <FilaNavegable href={rutaFactura(venta.id)}>
       <TableCell>
         <Link className="font-medium hover:underline" href={rutaFactura(venta.id)}>
           {venta.ncf}
@@ -68,7 +69,7 @@ function FilaVenta({ venta, porAlmacen }: { venta: VentaCalculada; porAlmacen: b
       <TableCell className="text-right tabular-nums">{formatearRd(venta.antesImpuestos)}</TableCell>
       <TableCell className="text-right tabular-nums">{formatearRd(venta.impuestos)}</TableCell>
       <TableCell className="text-right font-medium tabular-nums">{formatearRd(venta.despuesImpuestos)}</TableCell>
-    </TableRow>
+    </FilaNavegable>
   );
 }
 

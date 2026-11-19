@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -45,7 +46,7 @@ export function DetalleRetencion({ titulo, filas }: Props) {
             </TableHeader>
             <TableBody>
               {filas.map((fila) => (
-                <TableRow key={`${fila.documentoId}-${fila.tipo}-${fila.tasa}`}>
+                <FilaNavegable key={`${fila.documentoId}-${fila.tipo}-${fila.tasa}`} href={fila.ruta}>
                   <TableCell>
                     {fila.ruta == null ? (
                       fila.ncf || `#${fila.numero}`
@@ -67,7 +68,7 @@ export function DetalleRetencion({ titulo, filas }: Props) {
                   <TableCell>{formatoDia(fila.fecha)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatearRd(fila.base)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatearRd(fila.impuesto)}</TableCell>
-                </TableRow>
+                </FilaNavegable>
               ))}
             </TableBody>
           </Table>

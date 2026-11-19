@@ -1,4 +1,5 @@
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaAsiento, rutaCuenta } from "@/lib/enlaces";
 import { valorACentavos } from "@/lib/facturacion/calculo";
@@ -36,7 +37,7 @@ export function AsientoContable({ asiento }: { asiento: AsientoVista }) {
           </TableHeader>
           <TableBody>
             {asiento.lineas.map((linea) => (
-              <TableRow key={linea.id}>
+              <FilaNavegable key={linea.id} href={rutaCuenta(linea.cuenta_id)}>
                 <TableCell className="h-12 px-4 text-sm">
                   <Enlace href={rutaCuenta(linea.cuenta_id)}>
                     <span className="font-mono text-xs">{linea.codigo}</span> {linea.nombre}
@@ -49,7 +50,7 @@ export function AsientoContable({ asiento }: { asiento: AsientoVista }) {
                 <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
                   {linea.credito > 0 ? formatoMoneda(linea.credito) : "—"}
                 </TableCell>
-              </TableRow>
+              </FilaNavegable>
             ))}
           </TableBody>
           <TableFooter>

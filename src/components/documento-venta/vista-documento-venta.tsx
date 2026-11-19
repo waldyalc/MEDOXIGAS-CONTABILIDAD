@@ -26,6 +26,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { SeccionAdjuntos } from "@/components/adjuntos/seccion-adjuntos";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -365,7 +366,7 @@ function TablaLineas({ lineas }: { lineas: FacturaLinea[] }) {
               </TableRow>
             ) : (
               lineas.map((linea) => (
-                <TableRow key={linea.id}>
+                <FilaNavegable key={linea.id} href={linea.producto_id ? rutaProducto(linea.producto_id) : null}>
                   <TableCell className="h-12 px-4 text-sm">
                     {linea.producto_id ? (
                       <Link
@@ -393,7 +394,7 @@ function TablaLineas({ lineas }: { lineas: FacturaLinea[] }) {
                   <TableCell className="h-12 px-4 text-right text-sm whitespace-nowrap tabular-nums">
                     {formatoMoneda(linea.subtotal)}
                   </TableCell>
-                </TableRow>
+                </FilaNavegable>
               ))
             )}
           </TableBody>
@@ -505,7 +506,7 @@ function TablaPagos({ pagos }: { pagos: PagoFacturaVista[] }) {
       hayFilas={pagos.length > 0}
     >
       {pagos.map((pago) => (
-        <TableRow key={pago.id}>
+        <FilaNavegable key={pago.id} href={rutaPagoRecibido(pago.id)}>
           <TableCell className="h-12 px-4 text-sm">{formatoDia(pago.fecha)}</TableCell>
           <TableCell className="h-12 px-4 text-sm tabular-nums">{formatoMoneda(pago.monto)}</TableCell>
           <TableCell className="h-12 px-4 text-sm">
@@ -515,7 +516,7 @@ function TablaPagos({ pagos }: { pagos: PagoFacturaVista[] }) {
           </TableCell>
           <TableCell className="h-12 px-4 text-sm">{METODOS_PAGO[pago.metodo]}</TableCell>
           <TableCell className="h-12 px-4 text-sm">{pago.estado === "anulado" ? "Anulado" : "Activo"}</TableCell>
-        </TableRow>
+        </FilaNavegable>
       ))}
     </TablaDatos>
   );
@@ -538,7 +539,7 @@ function TablaNotas({ notas, tipo }: { notas: NotaVentaResumen[]; tipo: "credito
       hayFilas={notas.length > 0}
     >
       {notas.map((nota) => (
-        <TableRow key={nota.id}>
+        <FilaNavegable key={nota.id} href={ruta(nota.id)}>
           <TableCell className="h-12 px-4 text-sm">
             <Link href={ruta(nota.id)} className="text-primary hover:underline">
               {nota.numero}
@@ -548,7 +549,7 @@ function TablaNotas({ notas, tipo }: { notas: NotaVentaResumen[]; tipo: "credito
           <TableCell className="h-12 px-4 font-mono text-xs">{nota.ncf}</TableCell>
           <TableCell className="h-12 px-4 text-sm tabular-nums">{formatoMoneda(nota.total)}</TableCell>
           <TableCell className="h-12 px-4 text-sm">{nota.estado === "anulada" ? "Anulada" : "Activa"}</TableCell>
-        </TableRow>
+        </FilaNavegable>
       ))}
     </TablaDatos>
   );
@@ -561,7 +562,7 @@ function TablaFacturaRelacionada({ factura }: { factura: FacturaRelacionada }) {
       vacio="Sin factura asociada."
       hayFilas
     >
-      <TableRow>
+      <FilaNavegable href={rutaFactura(factura.id)}>
         <TableCell className="h-12 px-4 text-sm">
           <Link
             href={rutaFactura(factura.id)}
@@ -573,7 +574,7 @@ function TablaFacturaRelacionada({ factura }: { factura: FacturaRelacionada }) {
         <TableCell className="h-12 px-4 text-sm">{formatoDia(factura.fecha)}</TableCell>
         <TableCell className="h-12 px-4 text-sm tabular-nums">{formatoMoneda(factura.total)}</TableCell>
         <TableCell className="h-12 px-4 text-sm">{factura.estado === "anulada" ? "Anulada" : "Activa"}</TableCell>
-      </TableRow>
+      </FilaNavegable>
     </TablaDatos>
   );
 }
@@ -597,7 +598,7 @@ function TablaDocumentoRelacionado({
       vacio="Sin documento asociado."
       hayFilas
     >
-      <TableRow>
+      <FilaNavegable href={tipo === "cotizacion" ? rutaCotizacion(documento.id) : rutaConduce(documento.id)}>
         <TableCell className="h-12 px-4 text-sm">
           <Link
             href={tipo === "cotizacion" ? rutaCotizacion(documento.id) : rutaConduce(documento.id)}
@@ -609,7 +610,7 @@ function TablaDocumentoRelacionado({
         <TableCell className="h-12 px-4 text-sm">{formatoDia(documento.fecha)}</TableCell>
         <TableCell className="h-12 px-4 text-sm tabular-nums">{formatoMoneda(documento.total)}</TableCell>
         <TableCell className="h-12 px-4 text-sm">{etiquetaEstadoRelacionado(documento.estado)}</TableCell>
-      </TableRow>
+      </FilaNavegable>
     </TablaDatos>
   );
 }

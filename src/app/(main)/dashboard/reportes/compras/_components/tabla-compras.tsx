@@ -47,6 +47,7 @@ export function TablaCompras({ filas }: { filas: FilaCompra[] }) {
       columnas={columnas}
       filas={filas}
       claveFila={(fila) => fila.id}
+      filaHref={(fila) => rutaCompra(fila.id)}
       vacio={{
         filtrada: true,
         titulo: "No hay compras en el período seleccionado.",

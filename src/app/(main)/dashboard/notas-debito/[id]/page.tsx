@@ -5,6 +5,7 @@ import { ArrowLeft, BookOpen, ReceiptText } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
 import { NotaDebitoPapel } from "@/components/impresion/nota-debito-papel";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,7 +112,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             </TableHeader>
             <TableBody>
               {nota.lineas.map((linea) => (
-                <TableRow key={linea.id}>
+                <FilaNavegable key={linea.id} href={linea.producto_id ? rutaProducto(linea.producto_id) : null}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
                       <span>{linea.descripcion}</span>
@@ -133,7 +134,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                   <TableCell className="text-right tabular-nums">{formatoMoneda(linea.subtotal)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatoMoneda(linea.itbis)}</TableCell>
                   <TableCell className="text-right font-medium tabular-nums">{formatoMoneda(linea.total)}</TableCell>
-                </TableRow>
+                </FilaNavegable>
               ))}
             </TableBody>
           </Table>

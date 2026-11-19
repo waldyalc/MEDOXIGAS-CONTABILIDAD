@@ -95,6 +95,7 @@ export function FacturasTabla({
       columnas={columnas}
       filas={facturas}
       claveFila={(factura) => factura.id}
+      filaHref={(factura) => rutaFactura(factura.id)}
       vacio={{
         filtrada: Boolean(busqueda),
         titulo: busqueda ? "Sin resultados" : "¡Aún no tienes facturas!",

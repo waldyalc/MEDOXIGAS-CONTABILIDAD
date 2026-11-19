@@ -116,6 +116,7 @@ export default async function Page() {
             columnas={columnasConfiguracion}
             filas={filasConfiguracion}
             claveFila={(fila) => fila.clave}
+            filaHref={(fila) => (fila.cuenta ? rutaCuenta(fila.cuenta.id) : null)}
             vacio={{
               titulo: "Sin configuración contable",
               descripcion: "No hay conceptos configurados.",

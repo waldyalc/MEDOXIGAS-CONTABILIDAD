@@ -149,6 +149,7 @@ export default async function Page({
           columnas={columnas}
           filas={detalle.movimientos}
           claveFila={(movimiento) => movimiento.id}
+          filaHref={(movimiento) => movimiento.documento.href ?? rutaAsiento(movimiento.asientoId)}
           vacio={{
             filtrada: true,
             titulo: "Sin movimientos",

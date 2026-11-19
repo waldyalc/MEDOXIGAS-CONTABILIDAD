@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Users } from "lucide-react";
 
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -144,7 +145,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                 </TableHeader>
                 <TableBody>
                   {visibles.map((cliente) => (
-                    <TableRow key={cliente.contactoId}>
+                    <FilaNavegable key={cliente.contactoId} href={rutaContacto(cliente.contactoId)}>
                       <TableCell>
                         <Link className="font-medium hover:underline" href={rutaContacto(cliente.contactoId)}>
                           {cliente.contactoNombre}
@@ -159,7 +160,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                       <TableCell className="text-right font-medium tabular-nums">
                         {formatearRd(cliente.despuesImpuestos)}
                       </TableCell>
-                    </TableRow>
+                    </FilaNavegable>
                   ))}
                 </TableBody>
                 <TableFooter>

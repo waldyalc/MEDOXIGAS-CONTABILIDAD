@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -83,12 +84,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               </TableHeader>
               <TableBody>
                 {transferencia.lineas.map((linea) => (
-                  <TableRow key={linea.id}>
+                  <FilaNavegable key={linea.id} href={rutaProducto(linea.producto_id)}>
                     <TableCell>
                       <Enlace href={rutaProducto(linea.producto_id)}>{linea.producto_nombre}</Enlace>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatoCantidad(linea.cantidad)}</TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))}
               </TableBody>
             </Table>

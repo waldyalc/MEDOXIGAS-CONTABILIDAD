@@ -15,8 +15,9 @@ import {
 } from "@/components/documento/documento-detalle";
 import { Enlace } from "@/components/enlace";
 import { NotaCreditoPapel } from "@/components/impresion/nota-credito-papel";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
-import { TableCell, TableRow } from "@/components/ui/table";
+import { TableCell } from "@/components/ui/table";
 import { getPerfil } from "@/lib/auth/rol";
 import { rutaAsiento, rutaContacto, rutaFactura, rutaProducto } from "@/lib/enlaces";
 import { getEmpresa } from "@/lib/facturacion/consultas";
@@ -107,7 +108,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           hayFilas={nota.lineas.length > 0}
         >
           {nota.lineas.map((linea) => (
-            <TableRow key={linea.id}>
+            <FilaNavegable key={linea.id} href={linea.producto_id ? rutaProducto(linea.producto_id) : null}>
               <TableCell className="h-12 px-4 text-sm font-medium whitespace-normal">
                 <div className="flex flex-col">
                   <span>{linea.descripcion}</span>
@@ -139,7 +140,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               <TableCell className="h-12 px-4 text-right text-sm font-medium tabular-nums">
                 {formatoMoneda(linea.total)}
               </TableCell>
-            </TableRow>
+            </FilaNavegable>
           ))}
         </TablaDocumento>
 

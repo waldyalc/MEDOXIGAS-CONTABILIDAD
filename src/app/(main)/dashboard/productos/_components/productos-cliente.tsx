@@ -196,6 +196,7 @@ export function ProductosCliente({
           columnas={columnasProductos()}
           filas={productos}
           claveFila={(producto) => producto.id}
+          filaHref={(producto) => rutaProducto(producto.id)}
           seleccion={
             puedeEditar
               ? {

@@ -124,6 +124,7 @@ export default async function Page() {
           columnas={columnasPagos(hoy)}
           filas={planes}
           claveFila={(plan) => plan.id}
+          filaHref={(plan) => rutaPagoRecurrente(plan.id)}
           acciones={puedeEscribir ? (plan) => <BotonGenerar planId={plan.id} activo={plan.activo} /> : undefined}
           vacio={{
             titulo: "¡Aún no tienes pagos recurrentes!",
