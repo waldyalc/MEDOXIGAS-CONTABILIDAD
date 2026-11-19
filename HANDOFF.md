@@ -1,5 +1,16 @@
 # Handoff — Medoxigas Contabilidad
 
+## Unificación en main, limpieza de repo y modo Orquestador (19 nov 2026)
+
+- **Una sola rama principal (`main`):** se integró `origin/prueba` en `main` por fast-forward (`bdbe32d..fa3fa6e`, incluyendo PRs #41–#50) y se retiró la rama `prueba` y el remoto viejo `diseno-local`. El repo en GitHub se mantiene público temporalmente durante las pruebas.
+- **Limpieza operativa:** se podaron ~78 worktrees muertos de T3, se borraron ramas viejas ya mergeadas, se cerró PR #6 (`diseno/rediseno`) y se movió PR #31 (`feat/ncf-manual-orq`, marcado "NO MERGEAR aún") a base `main`.
+- **Gobierno y CI:** `AGENTS.md` limpio sin el bloque de "rediseño completo", con separación explícita Orquestador (`docs/ORQUESTADOR.md`) vs Subagente (DeepSeek V4.1 Flash 1017 por defecto). Workflows de GitHub Actions limitados a `push`/`pull_request` sobre `main` (+ `workflow_dispatch`): `ci.yml` y `gitleaks.yml` ya no corren en cada rama, y `supabase.yml` conserva sus `paths`.
+- **Migraciones:** las 56 migraciones de `supabase/migrations/` están aplicadas en el proyecto remoto (`ljfdhrnvlsfaweuvnqxz`), documentadas en `docs/migraciones-estado.md` con candado de formato/orden en `src/lib/supabase/migraciones.test.ts`.
+- **Bugs y pendientes para la próxima sesión de Orquestador** (identificados en el CI real de PR #50, dejados explícitamente para atacar en sesión nueva):
+    1. `tests/e2e/tablas.spec.ts:34` — cabecera de la tabla de Facturas mide `40 px` en vez de `48 px` (`>= 47` esperado).
+    2. `src/lib/bancos/consultas.ts` — `Error: canceling statement due to statement timeout` al cargar `/dashboard/bancos` (causa timeout/flaky en `tests/e2e/flujo-banco.spec.ts`).
+    3. Revisar/decidir PR #31 (`feat/ncf-manual-orq`) y PRs de Dependabot (#1, #3, #4, #5, #16).
+
 ## Specs E2E actualizados a la UI actual (rama `fix/e2e-specs-prueba`)
 
 - Tras la integración de los 8 PRs, el job e2e de CI corrió por primera vez con secrets reales: 15/20 pasaban y 5 fallaban por specs desactualizados (no por bugs de la app). Se actualizaron los 5 specs que fallaban.
