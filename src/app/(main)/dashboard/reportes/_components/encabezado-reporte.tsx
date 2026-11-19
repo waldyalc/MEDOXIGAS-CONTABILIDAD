@@ -1,6 +1,5 @@
+import { BotonImprimir } from "@/components/boton-imprimir";
 import { formatoDia } from "@/lib/formato";
-
-import { BotonImprimir } from "./boton-imprimir";
 
 interface Props {
   titulo: string;

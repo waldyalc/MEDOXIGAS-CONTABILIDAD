@@ -1,5 +1,6 @@
 import { BookOpen, TriangleAlert } from "lucide-react";
 
+import { NuevaCuenta } from "@/components/contabilidad/cuenta-formulario";
 import { Enlace } from "@/components/enlace";
 import { type ColumnaLista, ContenedorLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -12,7 +13,6 @@ import { obtenerCatalogoContable } from "@/lib/reportes/consultas";
 import type { CuentaContable } from "@/lib/reportes/tipos";
 
 import { CatalogoCuentas } from "./_components/catalogo-cuentas";
-import { NuevaCuenta } from "./_components/cuenta-formulario";
 
 interface FilaConfiguracion {
   clave: string;

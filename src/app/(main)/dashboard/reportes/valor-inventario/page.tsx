@@ -1,3 +1,4 @@
+import { BotonImprimir } from "@/components/boton-imprimir";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatoDia } from "@/lib/formato";
 import { obtenerInventario } from "@/lib/reportes/administrativos/d/consultas";
@@ -8,7 +9,6 @@ import { hoyRd, type ParametrosFecha } from "@/lib/reportes/fechas";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
-import { BotonImprimir } from "../_components/boton-imprimir";
 import { Paginador } from "../cxc/_components/paginador";
 import { TarjetaTotal } from "../cxc/_components/tarjeta-total";
 import { FiltrosInventario } from "./_components/filtros-inventario";

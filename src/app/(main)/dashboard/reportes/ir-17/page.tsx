@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { BotonImprimir } from "@/components/boton-imprimir";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto } from "@/lib/enlaces";
@@ -11,7 +12,6 @@ import { obtenerRetencionesProveedores } from "@/lib/reportes/fiscales/retencion
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
-import { BotonImprimir } from "../_components/boton-imprimir";
 import { FiltrosPeriodo } from "../fiscales/_components/filtros-periodo";
 import { TarjetasResumen } from "../fiscales/_components/tarjetas-resumen";
 

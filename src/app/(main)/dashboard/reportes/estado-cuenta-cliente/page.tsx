@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { FileText, UserRound } from "lucide-react";
 
+import { BotonImprimir } from "@/components/boton-imprimir";
 import { SelectCampo } from "@/components/select-campo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,6 @@ import type { ClienteOpcion, FiltroVencimiento } from "@/lib/reportes/ventas/v3/
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
-import { BotonImprimir } from "../_components/boton-imprimir";
 import { SelectorFechaCorte } from "../_components/selector-fechas";
 
 const OPCIONES_VENCIMIENTO: FiltroVencimiento[] = ["todas", "sin-vencer", "1-30", "31-60", "61-90", "91-mas"];

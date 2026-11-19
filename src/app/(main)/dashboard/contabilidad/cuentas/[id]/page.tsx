@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ArrowLeft } from "lucide-react";
 
+import { EditarCuenta } from "@/components/contabilidad/cuenta-formulario";
 import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,6 @@ import { rutaAsiento, rutaContacto } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
-import { EditarCuenta } from "../../_components/cuenta-formulario";
 import { normalizarFecha, obtenerCuentaDetalle } from "./_consultas";
 
 export default async function Page({

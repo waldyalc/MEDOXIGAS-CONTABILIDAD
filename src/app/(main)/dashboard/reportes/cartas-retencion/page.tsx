@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { FileText } from "lucide-react";
 
+import { BotonImprimir } from "@/components/boton-imprimir";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,7 +15,6 @@ import { agruparCartas, type CartaProveedor } from "@/lib/reportes/fiscales/ir17
 import { obtenerRetencionesProveedores } from "@/lib/reportes/fiscales/retenciones-consultas";
 
 import { AlertaError } from "../_components/alerta-error";
-import { BotonImprimir } from "../_components/boton-imprimir";
 import { FiltrosPeriodo } from "../fiscales/_components/filtros-periodo";
 import { TarjetasResumen } from "../fiscales/_components/tarjetas-resumen";
 

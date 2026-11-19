@@ -1,3 +1,4 @@
+import { BotonImprimir } from "@/components/boton-imprimir";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatoDia } from "@/lib/formato";
 import { filtrarCartera, filtrosDesdeUrl, totalCartera } from "@/lib/reportes/administrativos/d/antiguedad";
@@ -14,7 +15,6 @@ import { hoyRd, type ParametrosFecha, rangoMesActual } from "@/lib/reportes/fech
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
-import { BotonImprimir } from "../_components/boton-imprimir";
 import { FiltrosCartera } from "./_components/filtros-cartera";
 import { Paginador } from "./_components/paginador";
 import { PestanasAntiguedad } from "./_components/pestanas-antiguedad";

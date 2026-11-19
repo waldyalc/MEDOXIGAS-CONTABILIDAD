@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ArrowLeft } from "lucide-react";
 
+import { BotonImprimir } from "@/components/boton-imprimir";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,7 +23,6 @@ import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
 import { BotonDescargar } from "../../../reportes/_components/boton-descargar";
-import { BotonImprimir } from "./_components/boton-imprimir";
 import { EstadoCuentaImpresion } from "./_components/estado-cuenta-impresion";
 import { TablaEstadoCuenta } from "./_components/tabla-estado-cuenta";
 
