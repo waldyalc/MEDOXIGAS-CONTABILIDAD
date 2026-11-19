@@ -1,51 +1,6 @@
-import { expect, type Locator, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
-const email = process.env.E2E_EMAIL;
-const password = process.env.E2E_PASSWORD;
-
-/** Las pantallas traen datos del servidor de pruebas: darles tiempo. */
-const LENTO = 45_000;
-
-async function entrar(page: Page): Promise<void> {
-  await page.goto("/login");
-  await page.getByLabel("Correo").fill(email ?? "");
-  await page.getByLabel("Contraseña").fill(password ?? "");
-  await page.getByRole("button", { name: "Entrar", exact: true }).click();
-  await page.waitForURL(/\/(dashboard|unauthorized)/, { timeout: LENTO });
-  if (page.url().includes("/unauthorized")) {
-    throw new Error("El usuario de E2E no tiene perfil en la base de pruebas; no puede transferir.");
-  }
-}
-
-function escucharErrores(page: Page): string[] {
-  const errores: string[] = [];
-  page.on("pageerror", (error) => errores.push(String(error)));
-  page.on("console", (mensaje) => {
-    // Base UI registra advertencias de desarrollo con console.error solo en el
-    // dev server (no en el build de producción); no son errores del flujo.
-    if (mensaje.type() === "error" && !mensaje.text().startsWith("Base UI:")) errores.push(mensaje.text());
-  });
-  return errores;
-}
-
-/** "RD$ 5,900.00" o "RD$5,900.00" → 5900. */
-function pesos(texto: string): number {
-  return Number(texto.replace(/[^0-9.,-]/g, "").replace(/,/g, ""));
-}
-
-/** Texto de una celda de la fila, localizada por el encabezado de su columna. */
-async function textoCelda(page: Page, fila: Locator, encabezado: string): Promise<string> {
-  const indice = await page
-    .getByRole("columnheader")
-    .evaluateAll(
-      (cabeceras, titulo) => cabeceras.findIndex((cabecera) => (cabecera.textContent ?? "").trim() === titulo),
-      encabezado,
-    );
-  if (indice < 0) {
-    throw new Error(`No se encontró la columna "${encabezado}" en la tabla.`);
-  }
-  return ((await fila.getByRole("cell").nth(indice).textContent()) ?? "").trim();
-}
+import { elegirEnSelect, email, entrar, escucharErrores, LENTO, password, pesos, textoCelda } from "./ayudantes";
 
 /** Crea una cuenta de banco con saldo 2,000 y vuelve a la lista de bancos. */
 async function crearCuenta(page: Page, nombre: string): Promise<void> {
@@ -59,10 +14,9 @@ async function crearCuenta(page: Page, nombre: string): Promise<void> {
   await page.goto("/dashboard/bancos", { timeout: LENTO });
 }
 
-/** Elige una cuenta del select de la transferencia buscando por código. */
+/** Elige una cuenta del select de la transferencia buscando por código ("1101 · Caja general"). */
 async function elegirCuenta(page: Page, idSelect: string, codigo: string): Promise<void> {
-  await page.locator(`#${idSelect}`).click();
-  await page.getByRole("option", { name: codigo }).first().click({ timeout: LENTO });
+  await elegirEnSelect(page, page.locator(`#${idSelect}`), new RegExp(`^${codigo} ·`));
 }
 
 test.describe("flujo bancario", () => {
@@ -74,7 +28,7 @@ test.describe("flujo bancario", () => {
 
     const sufijo = Date.now().toString(36);
 
-    await entrar(page);
+    await entrar(page, "El usuario de E2E no tiene perfil en la base de pruebas; no puede transferir.");
 
     // 1. Garantizar dos cuentas de caja o banco para poder transferir.
     await page.goto("/dashboard/bancos", { timeout: LENTO });
@@ -136,7 +90,8 @@ test.describe("flujo bancario", () => {
     // El botón navega al asiento: la app lo renderiza como enlace.
     await page.getByRole("link", { name: "Ver asiento" }).click();
     await page.waitForURL(/\/dashboard\/contabilidad\/asientos\/[0-9a-f-]{36}/, { timeout: LENTO });
-    await expect(page.getByRole("heading", { name: /Asiento contable #/ })).toBeVisible();
+    // El detalle titula "Asiento contable <código>" (AC-1) o "#<número>" sin código.
+    await expect(page.getByRole("heading", { name: /Asiento contable/ })).toBeVisible();
     await expect(page.getByText("Cuadrado ✓")).toBeVisible();
 
     expect(errores, "la consola del navegador registró errores durante el flujo").toEqual([]);
