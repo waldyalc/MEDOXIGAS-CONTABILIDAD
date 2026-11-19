@@ -33,7 +33,6 @@ const PENDIENTES_TEXT_3XL = [
   "bancos/conciliaciones/[id]/page.tsx",
   "bancos/conciliaciones/nueva/page.tsx",
   "bancos/conciliaciones/page.tsx",
-  "bancos/page.tsx",
   "bancos/transferencias/[id]/page.tsx",
   "conduces/page.tsx",
   "configuracion/page.tsx",

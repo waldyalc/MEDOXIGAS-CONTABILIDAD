@@ -48,7 +48,7 @@ const LISTAS_MIGRADAS = [
   "app/(main)/dashboard/inventario/categorias/_components/categorias-cliente.tsx",
   "app/(main)/dashboard/inventario/listas-precios/_components/listas-precios-cliente.tsx",
   "app/(main)/dashboard/bancos/_components/panel-bancos.tsx",
-  "app/(main)/dashboard/bancos/[id]/page.tsx",
+  "app/(main)/dashboard/bancos/[id]/_components/panel-movimientos.tsx",
   "app/(main)/dashboard/bancos/conciliaciones/page.tsx",
   "app/(main)/dashboard/bancos/conciliaciones/[id]/_components/panel-conciliacion.tsx",
 ] as const;

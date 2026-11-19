@@ -1,86 +1,36 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { ArrowLeft, Scale } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 
-import { Enlace } from "@/components/enlace";
-import {
-  type ColumnaLista,
-  ContenedorLista,
-  PillEstado,
-  TablaLista,
-  TarjetaLista,
-} from "@/components/listas/tabla-lista";
+import { EditarCuenta } from "@/components/contabilidad/cuenta-formulario";
+import { ContenedorLista, PillEstado } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
-import { TableCell, TableRow } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 import { getRol } from "@/lib/auth/rol";
-import { getDetalleCuentaBanco, normalizarFecha } from "@/lib/bancos/consultas";
-import { tipoCuenta } from "@/lib/bancos/formato";
-import type { MovimientoBanco } from "@/lib/bancos/movimientos";
-import { rutaAsiento, rutaContacto, rutaCuenta } from "@/lib/enlaces";
-import { formatoDia } from "@/lib/formato";
+import {
+  getCuentasCajaBanco,
+  getDetalleCuentaBanco,
+  normalizarFecha,
+  resolverAsientoCuenta,
+} from "@/lib/bancos/consultas";
+import { numeroEnmascarado, tipoCuenta } from "@/lib/bancos/formato";
+import { listarOpcionesCuenta } from "@/lib/contabilidad/consultas";
+import type { CuentaEditable } from "@/lib/contabilidad/validacion";
+import { getEmpresa } from "@/lib/facturacion/consultas";
+import { hoyRD } from "@/lib/facturacion/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
 
-import { FiltroFechas } from "./_components/filtro-fechas";
-
-const columnas: readonly ColumnaLista<MovimientoBanco>[] = [
-  {
-    clave: "fecha",
-    encabezado: "Fecha",
-    celda: (movimiento) => <span className="tabular-nums">{formatoDia(movimiento.fecha)}</span>,
-  },
-  {
-    clave: "documento",
-    encabezado: "Documento",
-    celda: (movimiento) => (
-      <span className="flex flex-col gap-0.5 whitespace-normal">
-        {movimiento.documento.href ? (
-          <Enlace href={movimiento.documento.href}>{movimiento.documento.etiqueta}</Enlace>
-        ) : (
-          <span>{movimiento.documento.etiqueta}</span>
-        )}
-        <Enlace href={rutaAsiento(movimiento.asientoId)} className="text-muted-foreground text-xs">
-          Asiento #{movimiento.asientoNumero}
-        </Enlace>
-      </span>
-    ),
-  },
-  {
-    clave: "tercero",
-    encabezado: "Tercero",
-    celda: (movimiento) =>
-      movimiento.tercero ? (
-        <Enlace href={rutaContacto(movimiento.tercero.id)}>{movimiento.tercero.nombre}</Enlace>
-      ) : (
-        "—"
-      ),
-  },
-  {
-    clave: "entrada",
-    encabezado: "Entrada",
-    alineacion: "derecha",
-    celda: (movimiento) => (movimiento.entradaCentavos === 0 ? "—" : formatearRd(movimiento.entradaCentavos)),
-  },
-  {
-    clave: "salida",
-    encabezado: "Salida",
-    alineacion: "derecha",
-    celda: (movimiento) => (movimiento.salidaCentavos === 0 ? "—" : formatearRd(movimiento.salidaCentavos)),
-  },
-  {
-    clave: "saldo",
-    encabezado: "Saldo",
-    alineacion: "derecha",
-    celda: (movimiento) => formatearRd(movimiento.saldoCentavos),
-  },
-];
+import { AccionesCuenta } from "./_components/acciones-cuenta";
+import { PanelMovimientos } from "./_components/panel-movimientos";
+import { SeccionAsiento } from "./_components/seccion-asiento";
 
 export default async function Page({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ desde?: string; hasta?: string }>;
+  searchParams: Promise<{ desde?: string; hasta?: string; asiento?: string }>;
 }) {
   const { id } = await params;
   const busqueda = await searchParams;
@@ -90,80 +40,123 @@ export default async function Page({
 
   const desde = normalizarFecha(busqueda.desde);
   const hasta = normalizarFecha(busqueda.hasta);
-  const detalle = await getDetalleCuentaBanco(id, desde, hasta);
+  const [detalle, empresa, opciones, cuentasCajaBanco] = await Promise.all([
+    getDetalleCuentaBanco(id, desde, hasta),
+    getEmpresa(),
+    listarOpcionesCuenta(),
+    getCuentasCajaBanco(),
+  ]);
   if (!detalle) notFound();
 
   const { cuenta } = detalle;
   const puedeEscribir = rol !== "lector";
+
+  // Asiento del movimiento elegido en la tabla (?asiento=) o del último del período.
+  const ultimo = detalle.movimientos[detalle.movimientos.length - 1] ?? null;
+  const asiento = await resolverAsientoCuenta(detalle.movimientos, cuenta.id, busqueda.asiento);
+  const movimientoAsiento = detalle.movimientos.find((movimiento) => movimiento.asientoId === asiento?.id) ?? ultimo;
+
+  const editable: CuentaEditable = {
+    id: cuenta.id,
+    codigo: cuenta.codigo,
+    nombre: cuenta.nombre,
+    tipo: cuenta.tipo,
+    naturaleza: cuenta.naturaleza,
+    padre_id: cuenta.padreId,
+    acepta_movimientos: cuenta.aceptaMovimientos,
+    es_caja_banco: true,
+    activa: cuenta.activa,
+  };
+  const numero = numeroEnmascarado(cuenta.numeroCuenta);
 
   return (
     <ContenedorLista>
       <div className="flex flex-col gap-2">
         <Button variant="ghost" size="sm" className="w-fit" render={<Link href="/dashboard/bancos" prefetch={false} />}>
           <ArrowLeft data-icon="inline-start" />
-          Bancos
+          Bancos y cajas
         </Button>
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-3xl tracking-tight">{cuenta.nombre}</h1>
-              <PillEstado tono="neutro">{tipoCuenta(cuenta.nombre, cuenta.tipoBanco)}</PillEstado>
+              {cuenta.activa ? null : <PillEstado tono="neutro">Inactiva</PillEstado>}
             </div>
             <p className="text-muted-foreground text-sm">
-              <Enlace href={rutaCuenta(cuenta.id)}>Cuenta contable {cuenta.codigo}</Enlace>
-              {cuenta.numeroCuenta ? ` · N.º ${cuenta.numeroCuenta}` : ""}
+              Conoce y administra toda la información de tu cuenta bancaria
             </p>
           </div>
-          <div className="flex flex-col items-end">
-            <span className="text-muted-foreground text-xs">Saldo actual</span>
+          <AccionesCuenta
+            cuenta={editable}
+            cuentasCajaBanco={cuentasCajaBanco}
+            puedeEscribir={puedeEscribir}
+            fechaHoy={hoyRD()}
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="rounded-2xl">
+          <CardContent className="flex flex-col gap-1.5">
+            <div className="flex items-start justify-between gap-2">
+              <span className="font-medium">{cuenta.nombre}</span>
+              {puedeEscribir ? (
+                <EditarCuenta
+                  cuenta={editable}
+                  cuentas={opciones}
+                  bloquearCodigoTipoNaturaleza={detalle.tieneMovimientos}
+                  trigger={
+                    <Button variant="ghost" size="icon-xs" aria-label="Editar cuenta">
+                      <Pencil />
+                    </Button>
+                  }
+                />
+              ) : null}
+            </div>
+            <span className="text-muted-foreground text-sm">
+              Tipo de cuenta: {tipoCuenta(cuenta.nombre, cuenta.tipoBanco)}
+            </span>
+            <span className="text-muted-foreground text-sm tabular-nums">{numero ?? "Sin número"}</span>
+          </CardContent>
+        </Card>
+        <Card className="rounded-2xl">
+          <CardContent className="flex h-full flex-col items-center justify-center gap-1 text-center">
+            <span className="text-muted-foreground text-xs">Saldo en Medoxigas</span>
             <span
               className={`text-2xl font-semibold tabular-nums ${
-                detalle.saldoActualCentavos < 0 ? "text-destructive" : ""
+                detalle.saldoActualCentavos < 0 ? "text-destructive" : "text-primary"
               }`}
             >
               {formatearRd(detalle.saldoActualCentavos)}
             </span>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+        <Card className="rounded-2xl">
+          <CardContent className="flex flex-col gap-1.5">
+            <span className="text-muted-foreground text-xs">Descripción</span>
+            <p className="text-sm whitespace-pre-line">{cuenta.descripcion ?? "—"}</p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <FiltroFechas desde={desde ?? ""} hasta={hasta ?? ""} />
-        {puedeEscribir ? (
-          <Button
-            variant="outline"
-            render={<Link href={`/dashboard/bancos/conciliaciones/nueva?cuenta=${cuenta.id}`} prefetch={false} />}
-          >
-            <Scale />
-            Conciliar
-          </Button>
-        ) : null}
-      </div>
+      <PanelMovimientos
+        cuentaId={cuenta.id}
+        movimientos={detalle.movimientos}
+        desde={desde ?? ""}
+        hasta={hasta ?? ""}
+        puedeEscribir={puedeEscribir}
+        totalEntradasCentavos={detalle.totalEntradasCentavos}
+        totalSalidasCentavos={detalle.totalSalidasCentavos}
+        saldoCentavos={detalle.saldoCentavos}
+      />
 
-      <TarjetaLista data-lista="banco-movimientos">
-        <TablaLista
-          columnas={columnas}
-          filas={detalle.movimientos}
-          claveFila={(movimiento) => movimiento.id}
-          vacio={{
-            filtrada: true,
-            titulo: "Sin movimientos",
-            descripcion: "La cuenta no tiene movimientos en el período seleccionado.",
-          }}
-          pie={
-            <TableRow>
-              <TableCell colSpan={3} className="text-right">
-                Totales
-              </TableCell>
-              <TableCell className="text-right tabular-nums">{formatearRd(detalle.totalEntradasCentavos)}</TableCell>
-              <TableCell className="text-right tabular-nums">{formatearRd(detalle.totalSalidasCentavos)}</TableCell>
-              <TableCell className="text-right tabular-nums">{formatearRd(detalle.saldoCentavos)}</TableCell>
-            </TableRow>
-          }
+      {asiento ? (
+        <SeccionAsiento
+          asiento={asiento}
+          empresa={empresa}
+          origenEtiqueta={movimientoAsiento?.documento.etiqueta ?? "Movimiento"}
         />
-      </TarjetaLista>
-
-      {cuenta.descripcion ? <p className="text-muted-foreground text-sm">{cuenta.descripcion}</p> : null}
+      ) : null}
     </ContenedorLista>
   );
 }
