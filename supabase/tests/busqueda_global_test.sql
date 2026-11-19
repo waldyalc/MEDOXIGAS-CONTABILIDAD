@@ -339,8 +339,8 @@ select is(
 );
 
 select is(
-  (select count(*) from _filas_res where clave = 'amplio'),
-  (select count(distinct entidad || ':' || (resultado->>'id'))
+  (select count(*)::int from _filas_res where clave = 'amplio'),
+  (select count(distinct entidad || ':' || (resultado->>'id'))::int
    from _filas_res where clave = 'amplio'),
   'Prueba 10: ninguna fila se repite (entidad, id único)'
 );
@@ -358,7 +358,8 @@ select is(
   (select resultado->>'rango'
    from _filas_res
    where clave = 'exacto_y_texto'
-     and resultado->>'id' = (select id::text from _ids where clave = 'f_nov')),
+     and resultado->>'id' = (select id::text from _ids where clave = 'f_nov')
+   limit 1),
   '1',
   'Prueba 10: gana el rango del identificador exacto'
 );
@@ -371,7 +372,8 @@ select is(
   (select resultado->>'estado'
    from _filas_res
    where clave = 'nombre_cliente' and entidad = 'factura'
-     and resultado->>'id' = (select id::text from _ids where clave = 'f_anulada')),
+     and resultado->>'id' = (select id::text from _ids where clave = 'f_anulada')
+   limit 1),
   'anulada',
   'Prueba 11: la factura anulada aparece con su estado'
 );
