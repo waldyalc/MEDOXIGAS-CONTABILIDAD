@@ -66,6 +66,7 @@ export function NotasCreditoTabla({ notas, busqueda }: { notas: NotaCreditoLista
       columnas={columnas}
       filas={notas}
       claveFila={(nota) => nota.id}
+      filaHref={(nota) => rutaNotaCreditoVenta(nota.id)}
       vacio={{
         filtrada: Boolean(busqueda),
         titulo: busqueda ? "Sin resultados" : "¡Aún no tienes notas de crédito!",

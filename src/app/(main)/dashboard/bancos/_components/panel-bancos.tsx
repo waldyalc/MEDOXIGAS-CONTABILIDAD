@@ -859,6 +859,7 @@ export function PanelBancos({ cuentas, cuentasCajaBanco, cuentasMovimiento, pued
           columnas={columnas}
           filas={cuentas}
           claveFila={(cuenta) => cuenta.id}
+          filaHref={(cuenta) => rutaBanco(cuenta.id)}
           vacio={{
             titulo: "¡Aún no tienes cuentas de caja o banco!",
             descripcion: "Crea la primera cuenta para llevar sus saldos y conciliaciones.",

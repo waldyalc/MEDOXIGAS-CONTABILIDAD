@@ -100,6 +100,7 @@ async function TablaAsientos({
         columnas={columnas}
         filas={asientos}
         claveFila={(asiento) => asiento.id}
+        filaHref={(asiento) => rutaAsiento(asiento.id)}
         vacio={{
           filtrada: opciones.q !== "" || Boolean(desde) || Boolean(hasta),
           titulo: opciones.q ? "Sin resultados" : "¡Aún no tienes asientos!",

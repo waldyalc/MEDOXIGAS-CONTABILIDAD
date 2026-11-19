@@ -98,6 +98,7 @@ async function TablaActivos({
         columnas={columnas}
         filas={activos}
         claveFila={(activo) => activo.id}
+        filaHref={(activo) => `/dashboard/contabilidad/activos/${activo.id}`}
         vacio={{
           filtrada: Boolean(opciones.q),
           titulo: opciones.q ? "Sin resultados" : "¡Aún no tienes activos fijos!",

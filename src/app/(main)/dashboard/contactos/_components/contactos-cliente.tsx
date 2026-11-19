@@ -163,6 +163,7 @@ export function ContactosCliente({
           columnas={columnasContactos}
           filas={contactos}
           claveFila={(contacto) => contacto.id}
+          filaHref={(contacto) => rutaContacto(contacto.id)}
           acciones={
             puedeEditar
               ? (contacto) => (

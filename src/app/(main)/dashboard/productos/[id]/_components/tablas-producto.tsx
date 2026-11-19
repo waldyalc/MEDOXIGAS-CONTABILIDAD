@@ -205,6 +205,7 @@ export function TablaFacturas({
       columnas={columnas}
       filas={documentos}
       claveFila={(documento) => documento.id}
+      filaHref={(documento) => (esVenta ? rutaFactura(documento.id) : rutaCompra(documento.id))}
       vacio={{
         filtrada: filtrado,
         titulo: filtrado ? "Sin resultados" : "Aún no hay facturas",
@@ -264,6 +265,7 @@ export function TablaComerciales({
       columnas={columnas}
       filas={documentos}
       claveFila={(documento) => documento.id}
+      filaHref={(documento) => (esCotizacion ? rutaCotizacion(documento.id) : rutaConduce(documento.id))}
       vacio={{
         filtrada: filtrado,
         titulo: filtrado ? "Sin resultados" : "Aún no hay documentos",
@@ -347,6 +349,7 @@ export function TablaKardex({
       columnas={columnas}
       filas={filas}
       claveFila={(fila) => `${fila.tipo}:${fila.documentoId}`}
+      filaHref={(fila) => (fila.tipo === "venta" ? rutaFactura(fila.documentoId) : rutaCompra(fila.documentoId))}
       vacio={{
         filtrada: filtrado,
         titulo: filtrado ? "Sin resultados" : "Aún no hay movimientos",

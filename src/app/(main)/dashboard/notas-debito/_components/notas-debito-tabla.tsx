@@ -71,6 +71,7 @@ export function NotasDebitoTabla({ notas, busqueda }: { notas: NotaDebitoLista[]
       columnas={columnas}
       filas={notas}
       claveFila={(nota) => nota.id}
+      filaHref={(nota) => rutaNotaDebitoVenta(nota.id)}
       vacio={{
         filtrada: Boolean(busqueda),
         titulo: busqueda ? "Sin resultados" : "¡Aún no tienes notas de débito!",

@@ -537,6 +537,7 @@ function TablaMovimientos({ filas, unidad }: { readonly filas: readonly FilaUnif
       columnas={columnasMovimientos}
       filas={filas}
       claveFila={(fila) => fila.clave}
+      filaHref={(fila) => fila.href}
       vacio={{
         filtrada: true,
         titulo: "Sin movimientos",

@@ -85,6 +85,7 @@ export function TablaEstadoCuenta({
       columnas={columnas}
       filas={filas}
       claveFila={(fila) => fila.id}
+      filaHref={(fila) => rutaFactura(fila.id)}
       vacio={{
         filtrada: true,
         titulo: "Sin documentos",
