@@ -1,34 +1,48 @@
 import { redirect } from "next/navigation";
 
 import { ContenedorLista } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { getPerfil } from "@/lib/auth/rol";
-import { getDatosBancos } from "@/lib/bancos/consultas";
+import { getDatosBancos, getIngresosGastosMensual } from "@/lib/bancos/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
+import { centavos } from "@/lib/reportes/dinero";
 
+import { AccionesBancos } from "./_components/acciones-bancos";
 import { PanelBancos } from "./_components/panel-bancos";
 
 export default async function Page() {
   const perfil = await getPerfil();
   if (perfil?.rol == null) redirect("/unauthorized");
 
-  const datos = await getDatosBancos();
+  const [datos, serie] = await Promise.all([getDatosBancos(), getIngresosGastosMensual()]);
+
+  const resumen = datos.cuentas.reduce(
+    (total, cuenta) => {
+      const saldo = centavos(cuenta.saldo);
+      if (cuenta.tipoBanco === "tarjeta") total.tarjetasCentavos += saldo;
+      else total.bancoEfectivoCentavos += saldo;
+      return total;
+    },
+    { bancoEfectivoCentavos: 0, tarjetasCentavos: 0 },
+  );
 
   return (
     <ContenedorLista>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl tracking-tight">Bancos y caja</h1>
-        <p className="text-muted-foreground text-sm">
-          Saldos de tus cuentas de caja y banco, transferencias y depósitos.
-        </p>
-      </div>
-
-      <PanelBancos
-        cuentas={datos.cuentas}
-        cuentasCajaBanco={datos.cuentasCajaBanco}
-        cuentasMovimiento={datos.cuentasMovimiento}
-        puedeEscribir={perfil.rol !== "lector"}
-        fechaHoy={hoyRD()}
+      <EncabezadoPagina
+        titulo="Bancos y cajas"
+        subtitulo="Saldos de tus cuentas de caja y banco, transferencias y depósitos."
+        acciones={
+          perfil.rol !== "lector" ? (
+            <AccionesBancos
+              cuentasCajaBanco={datos.cuentasCajaBanco}
+              cuentasMovimiento={datos.cuentasMovimiento}
+              fechaHoy={hoyRD()}
+            />
+          ) : undefined
+        }
       />
+
+      <PanelBancos cuentas={datos.cuentas} serie={serie} resumen={resumen} puedeEscribir={perfil.rol !== "lector"} />
     </ContenedorLista>
   );
 }
