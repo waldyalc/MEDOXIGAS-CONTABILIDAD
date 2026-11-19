@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -113,7 +114,7 @@ export default async function Page({
                 </TableRow>
               ) : (
                 movimientos.map((movimiento) => (
-                  <TableRow key={movimiento.id}>
+                  <FilaNavegable key={movimiento.id} href={rutaAsiento(movimiento.asiento_id)}>
                     <TableCell className="pl-(--card-spacing) tabular-nums">{formatoDia(movimiento.fecha)}</TableCell>
                     <TableCell>
                       <Enlace href={rutaAsiento(movimiento.asiento_id)} className="tabular-nums">
@@ -137,7 +138,7 @@ export default async function Page({
                     <TableCell className="pr-(--card-spacing) text-right tabular-nums">
                       {formatoMoneda(movimiento.saldoCentavos / 100)}
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))
               )}
             </TableBody>

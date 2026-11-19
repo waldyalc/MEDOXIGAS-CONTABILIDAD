@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, BookOpen } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,7 +106,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               </TableHeader>
               <TableBody>
                 {ajuste.lineas.map((linea) => (
-                  <TableRow key={linea.id}>
+                  <FilaNavegable key={linea.id} href={rutaProducto(linea.producto_id)}>
                     <TableCell>
                       <Enlace href={rutaProducto(linea.producto_id)}>{linea.producto_nombre}</Enlace>
                     </TableCell>
@@ -117,7 +118,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                     <TableCell className="text-right tabular-nums">{formatoCantidad(linea.cantidad)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatoMoneda(linea.costo_unitario)}</TableCell>
                     <TableCell className="text-right font-medium tabular-nums">{formatoMoneda(linea.total)}</TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))}
               </TableBody>
             </Table>

@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, BookOpen, FileMinus2 } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -208,7 +209,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 </TableRow>
               ) : (
                 lineas.map((linea) => (
-                  <TableRow key={linea.id}>
+                  <FilaNavegable key={linea.id} href={linea.producto_id ? rutaProducto(linea.producto_id) : null}>
                     <TableCell className="pl-(--card-spacing) whitespace-normal">
                       <div className="flex flex-col">
                         <span>{linea.descripcion || "—"}</span>
@@ -232,7 +233,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                     <TableCell className="pr-(--card-spacing) text-right tabular-nums">
                       {formatoMoneda(linea.total)}
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))
               )}
             </TableBody>
@@ -274,7 +275,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 </TableRow>
               ) : (
                 pagos.map((pago) => (
-                  <TableRow key={pago.id}>
+                  <FilaNavegable key={pago.id} href={rutaPagoProveedor(pago.id)}>
                     <TableCell className="pl-(--card-spacing) font-medium">
                       <Enlace href={rutaPagoProveedor(pago.id)}>#{pago.numero}</Enlace>
                     </TableCell>
@@ -286,7 +287,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                         {pago.estado === "anulado" ? "Anulado" : "Activo"}
                       </Badge>
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))
               )}
             </TableBody>
@@ -328,7 +329,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               </TableHeader>
               <TableBody>
                 {lineasAsiento.map((linea) => (
-                  <TableRow key={linea.id}>
+                  <FilaNavegable key={linea.id} href={linea.cuentas ? rutaCuenta(linea.cuenta_id) : null}>
                     <TableCell className="pl-(--card-spacing) whitespace-normal">
                       {linea.cuentas ? (
                         <Enlace href={rutaCuenta(linea.cuenta_id)}>
@@ -343,7 +344,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                     <TableCell className="pr-(--card-spacing) text-right tabular-nums">
                       {formatoMoneda(linea.credito)}
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))}
               </TableBody>
               <TableFooter>

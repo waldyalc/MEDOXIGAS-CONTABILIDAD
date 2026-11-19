@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, BookOpen } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,7 +121,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 </TableRow>
               ) : (
                 pago.aplicaciones.map((aplicacion) => (
-                  <TableRow key={aplicacion.factura_id}>
+                  <FilaNavegable key={aplicacion.factura_id} href={rutaFactura(aplicacion.factura_id)}>
                     <TableCell className="pl-(--card-spacing) font-medium">
                       <Enlace href={rutaFactura(aplicacion.factura_id)}>#{aplicacion.numero}</Enlace>
                     </TableCell>
@@ -129,7 +130,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                     <TableCell className="pr-(--card-spacing) text-right tabular-nums">
                       {formatoMoneda(aplicacion.retenido)}
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))
               )}
             </TableBody>

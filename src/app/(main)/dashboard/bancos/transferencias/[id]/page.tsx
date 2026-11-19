@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ArrowRightLeft, BookOpen } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -134,7 +135,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             </TableHeader>
             <TableBody>
               {transferencia.lineas.map((linea) => (
-                <TableRow key={linea.id}>
+                <FilaNavegable key={linea.id} href={linea.cuenta ? rutaCuenta(linea.cuenta.id) : null}>
                   <TableCell className="pl-(--card-spacing) whitespace-normal">
                     {linea.cuenta ? (
                       <Enlace href={rutaCuenta(linea.cuenta.id)}>
@@ -151,7 +152,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                   <TableCell className="pr-(--card-spacing) text-right tabular-nums">
                     {linea.credito === 0 ? "—" : formatearRd(valorACentavos(linea.credito))}
                   </TableCell>
-                </TableRow>
+                </FilaNavegable>
               ))}
             </TableBody>
             <TableFooter>
