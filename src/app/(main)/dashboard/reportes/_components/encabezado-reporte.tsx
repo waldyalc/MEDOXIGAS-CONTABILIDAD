@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
 
+import { BotonImprimir } from "@/components/boton-imprimir";
 import type { MigaDePan } from "@/components/migas-de-pan";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { formatoDia } from "@/lib/formato";
-
-import { BotonImprimir } from "./boton-imprimir";
 
 interface Props {
   titulo: string;

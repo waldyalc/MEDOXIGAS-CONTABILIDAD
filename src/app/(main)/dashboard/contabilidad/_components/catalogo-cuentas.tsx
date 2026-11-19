@@ -7,6 +7,7 @@ import Link from "next/link";
 import { cn } from "cn";
 import { BookOpen, ChevronRight, Info, Pencil, Plus, Search } from "lucide-react";
 
+import { EditarCuenta, NuevaCuenta } from "@/components/contabilidad/cuenta-formulario";
 import { BarraLista, type ColumnaLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,8 +38,6 @@ import { rutaCuenta } from "@/lib/enlaces";
 import type { NodoCuenta } from "@/lib/reportes/contabilidad";
 import { formatearRd } from "@/lib/reportes/dinero";
 import type { CuentaContable, FilaConfigContable } from "@/lib/reportes/tipos";
-
-import { EditarCuenta, NuevaCuenta } from "./cuenta-formulario";
 
 const COLOR_TIPO: Record<string, string> = {
   activo: "border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-400/15 dark:text-emerald-300",

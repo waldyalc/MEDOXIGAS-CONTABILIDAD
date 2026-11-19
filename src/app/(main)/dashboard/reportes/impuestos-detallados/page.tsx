@@ -1,3 +1,4 @@
+import { BotonImprimir } from "@/components/boton-imprimir";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatoDia } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
@@ -18,7 +19,6 @@ import type { DetalleImpuesto } from "@/lib/reportes/fiscales/tipos";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
-import { BotonImprimir } from "../_components/boton-imprimir";
 import { FiltrosPeriodo } from "../fiscales/_components/filtros-periodo";
 import { PestanasFiscales } from "../fiscales/_components/pestanas";
 import { TablaResumenTasas } from "../fiscales/_components/resumen-tasas";

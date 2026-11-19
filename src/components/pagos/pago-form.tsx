@@ -93,6 +93,7 @@ interface Props {
   siguienteNumero: number;
   fechaHoy: string;
   initialContacto?: string;
+  initialCuenta?: string;
   rutaCancelar: string;
   accion: (entrada: unknown) => Promise<ResultadoAccionPago>;
 }
@@ -141,6 +142,7 @@ export function PagoForm({
   siguienteNumero,
   fechaHoy,
   initialContacto = "",
+  initialCuenta = "",
   rutaCancelar,
   accion,
 }: Props) {
@@ -151,7 +153,10 @@ export function PagoForm({
   const [contactoId, setContactoId] = useState(initialContacto);
   const [fecha, setFecha] = useState(fechaHoy);
   const [cuentaId, setCuentaId] = useState(
-    cuentas.find((cuenta) => cuenta.codigo === "1101")?.id ?? cuentas[0]?.id ?? "",
+    cuentas.find((cuenta) => cuenta.id === initialCuenta)?.id ??
+      cuentas.find((cuenta) => cuenta.codigo === "1101")?.id ??
+      cuentas[0]?.id ??
+      "",
   );
   const [metodo, setMetodo] = useState<MetodoPago>("efectivo");
   const [centroCostoId, setCentroCostoId] = useState("");

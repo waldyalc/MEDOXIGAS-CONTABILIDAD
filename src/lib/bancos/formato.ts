@@ -11,3 +11,9 @@ export function tipoCuenta(nombre: string, tipoBanco?: string | null): TipoCuent
   if (tipo) return tipo;
   return nombre.toLocaleLowerCase("es").includes("caja") ? "Caja" : "Banco";
 }
+
+/** Número de cuenta enmascarado estilo "**** * 6789"; null si no hay número. */
+export function numeroEnmascarado(numeroCuenta: string | null): string | null {
+  const limpio = (numeroCuenta ?? "").replace(/\s/g, "");
+  return limpio === "" ? null : `**** * ${limpio.slice(-4)}`;
+}

@@ -14,6 +14,7 @@ import {
   rutaPagoRecibido,
   rutaTransferencia,
 } from "@/lib/enlaces";
+import { hoyRD } from "@/lib/facturacion/formato";
 import { obtenerSaldosCajaBanco } from "@/lib/reportes/saldos";
 import { consultarEnLotes } from "@/lib/supabase/lotes";
 import { paginarConsulta } from "@/lib/supabase/paginar";
@@ -349,12 +350,18 @@ export interface DetalleCuentaBanco {
     tipoBanco: string | null;
     numeroCuenta: string | null;
     descripcion: string | null;
+    tipo: string;
+    naturaleza: string;
+    padreId: string | null;
+    aceptaMovimientos: boolean;
+    activa: boolean;
   };
   saldoActualCentavos: number;
   movimientos: MovimientoBanco[];
   saldoCentavos: number;
   totalEntradasCentavos: number;
   totalSalidasCentavos: number;
+  tieneMovimientos: boolean;
 }
 
 function centavosSaldo(valor: number | string | null | undefined): number {
@@ -373,7 +380,9 @@ export async function getDetalleCuentaBanco(
   const cliente = await createClient();
   const { data: cuenta, error } = await cliente
     .from("cuentas")
-    .select("id, codigo, nombre, tipo_banco, numero_cuenta, descripcion, es_caja_banco")
+    .select(
+      "id, codigo, nombre, tipo_banco, numero_cuenta, descripcion, es_caja_banco, tipo, naturaleza, padre_id, acepta_movimientos, activa",
+    )
     .eq("id", id)
     .maybeSingle()
     .returns<{
@@ -384,6 +393,11 @@ export async function getDetalleCuentaBanco(
       numero_cuenta: string | null;
       descripcion: string | null;
       es_caja_banco: boolean;
+      tipo: string;
+      naturaleza: string;
+      padre_id: string | null;
+      acepta_movimientos: boolean;
+      activa: boolean;
     } | null>();
 
   if (error) throw new Error(error.message);
@@ -402,8 +416,14 @@ export async function getDetalleCuentaBanco(
       tipoBanco: cuenta.tipo_banco,
       numeroCuenta: cuenta.numero_cuenta,
       descripcion: cuenta.descripcion,
+      tipo: cuenta.tipo,
+      naturaleza: cuenta.naturaleza,
+      padreId: cuenta.padre_id,
+      aceptaMovimientos: cuenta.acepta_movimientos,
+      activa: cuenta.activa,
     },
     saldoActualCentavos: centavosSaldo(saldoActual?.saldo),
+    tieneMovimientos: lineas.length > 0,
     ...calcularMovimientosBanco(lineas, desde, hasta),
   };
 }
@@ -411,4 +431,178 @@ export async function getDetalleCuentaBanco(
 export function normalizarFecha(valor: string | undefined): string | undefined {
   if (valor == null || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) return undefined;
   return valor;
+}
+
+interface LineaAsientoFila {
+  id: string;
+  descripcion: string | null;
+  debito: number;
+  credito: number;
+  cuentas: { id: string; codigo: string; nombre: string } | null;
+  contactos: { id: string; nombre: string } | null;
+  centros_costo: { nombre: string } | null;
+}
+
+export interface LineaAsientoBanco {
+  id: string;
+  descripcion: string | null;
+  debito: number;
+  credito: number;
+  cuenta: { id: string; codigo: string; nombre: string } | null;
+  contacto: { id: string; nombre: string } | null;
+  centroCosto: string | null;
+}
+
+export interface AsientoBanco {
+  id: string;
+  numero: number;
+  fecha: string;
+  descripcion: string;
+  lineas: LineaAsientoBanco[];
+}
+
+/** Asiento completo de un movimiento de la cuenta, para la sección de la ficha. */
+export async function getAsientoBanco(asientoId: string): Promise<AsientoBanco | null> {
+  if (!z.uuid().safeParse(asientoId).success) return null;
+
+  const cliente = await createClient();
+  const { data: asiento, error } = await cliente
+    .from("asientos")
+    .select("id, numero, fecha, descripcion")
+    .eq("id", asientoId)
+    .maybeSingle()
+    .returns<{ id: string; numero: number; fecha: string; descripcion: string } | null>();
+
+  if (error) throw new Error(error.message);
+  if (!asiento) return null;
+
+  const { data: lineas, error: errorLineas } = await cliente
+    .from("asiento_lineas")
+    .select(
+      "id, descripcion, debito, credito, cuentas(id, codigo, nombre), contactos(id, nombre), centros_costo(nombre)",
+    )
+    .eq("asiento_id", asientoId)
+    .order("id")
+    .returns<LineaAsientoFila[]>();
+
+  if (errorLineas) throw new Error(errorLineas.message);
+
+  return {
+    id: asiento.id,
+    numero: asiento.numero,
+    fecha: asiento.fecha,
+    descripcion: asiento.descripcion,
+    lineas: (lineas ?? []).map((linea) => ({
+      id: linea.id,
+      descripcion: linea.descripcion,
+      debito: linea.debito,
+      credito: linea.credito,
+      cuenta: linea.cuentas,
+      contacto: linea.contactos,
+      centroCosto: linea.centros_costo?.nombre ?? null,
+    })),
+  };
+}
+
+/**
+ * Asiento que muestra la ficha: el del movimiento elegido (?asiento=) si toca
+ * la cuenta, si no el del último movimiento del período.
+ */
+export async function resolverAsientoCuenta(
+  movimientos: MovimientoBanco[],
+  cuentaId: string,
+  asientoParam: string | undefined,
+): Promise<AsientoBanco | null> {
+  const ultimo = movimientos[movimientos.length - 1] ?? null;
+  const elegido = asientoParam != null && z.uuid().safeParse(asientoParam).success ? asientoParam : ultimo?.asientoId;
+  if (!elegido) return null;
+
+  const asiento = await getAsientoBanco(elegido);
+  if (asiento?.lineas.some((linea) => linea.cuenta?.id === cuentaId)) return asiento;
+  if (ultimo && elegido !== ultimo.asientoId) return getAsientoBanco(ultimo.asientoId);
+  return null;
+}
+
+export interface PuntoIngresosGastos {
+  /** "2026-11" */
+  clave: string;
+  /** "Noviembre" */
+  mes: string;
+  ingresosCentavos: number;
+  gastosCentavos: number;
+}
+
+const NOMBRES_MES = [
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
+];
+
+interface LineaIngresoGasto {
+  debito: number;
+  credito: number;
+  asientos: { fecha: string; origen_tipo: string };
+}
+
+/**
+ * Entradas y salidas de las cuentas de caja/banco por mes, últimos 6 meses
+ * (gráfica de la lista de bancos). Las transferencias entre cuentas propias
+ * se excluyen: sumarían la misma plata como ingreso y como gasto.
+ */
+export async function getIngresosGastosMensual(): Promise<PuntoIngresosGastos[]> {
+  const hoy = hoyRD();
+  const anio = Number(hoy.slice(0, 4));
+  const mes = Number(hoy.slice(5, 7));
+
+  const puntos: PuntoIngresosGastos[] = [];
+  for (let atras = 5; atras >= 0; atras--) {
+    const indice = anio * 12 + (mes - 1) - atras;
+    const anioMes = Math.floor(indice / 12);
+    const numeroMes = (indice % 12) + 1;
+    puntos.push({
+      clave: `${anioMes}-${String(numeroMes).padStart(2, "0")}`,
+      mes: NOMBRES_MES[numeroMes - 1] ?? "",
+      ingresosCentavos: 0,
+      gastosCentavos: 0,
+    });
+  }
+
+  const cliente = await createClient();
+  const cuentas = await getCuentas();
+  const ids = cuentas.filter((cuenta) => cuenta.es_caja_banco).map((cuenta) => cuenta.id);
+  if (ids.length === 0) return puntos;
+
+  const desde = `${puntos[0]?.clave}-01`;
+  const { data: lineas, error } = await paginarConsulta((inicio, fin) =>
+    cliente
+      .from("asiento_lineas")
+      .select("debito, credito, asientos!inner(fecha, origen_tipo)")
+      .in("cuenta_id", ids)
+      .gte("asientos.fecha", desde)
+      .order("id")
+      .range(inicio, fin)
+      .returns<LineaIngresoGasto[]>(),
+  );
+
+  if (error) throw new Error(error.message);
+
+  const porMes = new Map(puntos.map((punto) => [punto.clave, punto]));
+  for (const linea of lineas ?? []) {
+    if (linea.asientos.origen_tipo === "transferencia") continue;
+    const punto = porMes.get(linea.asientos.fecha.slice(0, 7));
+    if (!punto) continue;
+    punto.ingresosCentavos += centavosSaldo(linea.debito);
+    punto.gastosCentavos += centavosSaldo(linea.credito);
+  }
+
+  return puntos;
 }

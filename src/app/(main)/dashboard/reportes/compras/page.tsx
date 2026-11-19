@@ -1,3 +1,4 @@
+import { BotonImprimir } from "@/components/boton-imprimir";
 import { BarraLista, ContenedorLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { MigasDePan } from "@/components/migas-de-pan";
 import { formatoDia } from "@/lib/formato";
@@ -9,7 +10,6 @@ import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
-import { BotonImprimir } from "../_components/boton-imprimir";
 import { Paginador } from "../cxc/_components/paginador";
 import { FiltroProveedorCompras, FiltrosCompras } from "./_components/filtros-compras";
 import { TablaCompras } from "./_components/tabla-compras";
