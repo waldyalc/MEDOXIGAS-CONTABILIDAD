@@ -1,5 +1,16 @@
 # Handoff — Medoxigas Contabilidad
 
+## Specs E2E actualizados a la UI actual (rama `fix/e2e-specs-prueba`)
+
+- Tras la integración de los 8 PRs, el job e2e de CI corrió por primera vez con secrets reales: 15/20 pasaban y 5 fallaban por specs desactualizados (no por bugs de la app). Se actualizaron los 5 specs que fallaban.
+- **`tests/e2e/ayudantes.ts` (nuevo):** helpers compartidos — `entrar`, `escucharErrores`, `pesos`, `textoCelda`, `valorJuntoA`, `filaDeLista`, `elegirEnSelect` y `elegirEnCombo`. La clave: los `Select`/`Combobox` de Base UI dejan los popups cerrados montados en el portal (opciones ocultas pero presentes en el DOM), así que buscar `getByRole("option")` a secas puede resolver una opción de un popup viejo. Los helpers leen `aria-controls` del trigger/input recién abierto y scopian la opción al listbox exacto.
+- **`smoke.spec.ts`:** el dashboard ya no titula «Medoxigas Contabilidad»/«Resumen del mes»; ahora se aserta el heading real «Resumen del negocio» y el control «Cambiar periodo». Los asserts de `/login` se conservan (sí dice Medoxigas Contabilidad).
+- **`flujo-venta.spec.ts` / `flujo-compra.spec.ts`:** las filas clicables (`FilaNavegable`, PR #47) exponen `role="link"` y ya no matchean `getByRole("row")` → `filaDeLista` (`tbody tr` + `hasText`). Alta de producto: ya no es diálogo, es página `/dashboard/productos/nuevo` con «Nuevo producto» renderizado como `role="button"` (`Button nativeButton={false}`). El select «Impuesto» viene en «Ninguno» por defecto → se elige la opción `/(18.00%)/` para que el producto lleve ITBIS 18 %. En compra, la tabla de facturas pendientes del pago usa «Por cobrar» (componente compartido con pagos recibidos); la lista de compras sí dice «Por pagar».
+- **`flujo-contable.spec.ts`:** cuentas vía `elegirEnCombo` en `#cuenta-l1`/`#cuenta-l2` (Combobox Base UI con búsqueda). El detalle titula «Asiento contable AC-…» cuando hay `codigo` (la migración `tipos_entrada_diario` ya está aplicada en staging), con `#<número>` solo de fallback → assert `/Asiento contable/`.
+- **`flujo-banco.spec.ts`:** el fallo de CI («option resuelve pero no visible») era la opción del popup de origen que queda montado y en fade-out; `elegirEnSelect` con `aria-controls` lo resuelve determinista.
+- **Verificado local (build de producción + Supabase de prueba, puerto 3003):** cada spec tocado pasa aislado — smoke 3/3, venta, compra, contable y banco 1/1. La suite completa con `fullyParallel` flaquea por contención contra la base compartida (timeouts de login, saldos movidos por tests paralelos); en serie los 6 que fallaron en paralelo pasan. `tsc --noEmit` ✅, `biome check tests/e2e` ✅.
+- **Nota ambiental:** el error `column asientos.codigo does not exist` del primer run de CI ya no aparece — la migración `20261123000000_tipos_entrada_diario` ya está aplicada en la base de prueba.
+
 ## Integración — merge de 8 PRs a `prueba` en serie (24 nov 2026)
 
 - Waldy ordenó fusionar #41–#48 a `prueba` con merge commits (sin squash). Los 8 entraron en orden: #41 `64e23e4`, #42 `565c04f`, #43 `d3a6683`, #44 `2810cfd`, #45 `0d498e9`, #46 `f467a15`, #47 `c05b201`, #48 `b579a25`.
