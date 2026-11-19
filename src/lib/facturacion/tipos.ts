@@ -1,3 +1,4 @@
+import type { AdjuntoItem } from "@/lib/adjuntos/adjuntos";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 
 export type EstadoFactura = "abierta" | "pagada" | "anulada";
@@ -144,4 +145,5 @@ export interface FacturaVista {
   pagos: PagoFacturaVista[];
   notasCredito: NotaVentaResumen[];
   notasDebito: NotaVentaResumen[];
+  adjuntos: AdjuntoItem[];
 }

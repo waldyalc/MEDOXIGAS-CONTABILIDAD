@@ -158,6 +158,45 @@ export type Database = {
           },
         ]
       }
+      adjuntos: {
+        Row: {
+          bytes: number
+          creado_en: string
+          creado_por: string | null
+          creado_por_nombre: string | null
+          entidad_id: string
+          entidad_tipo: string
+          id: string
+          mime: string
+          nombre: string
+          path: string
+        }
+        Insert: {
+          bytes?: number
+          creado_en?: string
+          creado_por?: string | null
+          creado_por_nombre?: string | null
+          entidad_id: string
+          entidad_tipo: string
+          id?: string
+          mime: string
+          nombre: string
+          path: string
+        }
+        Update: {
+          bytes?: number
+          creado_en?: string
+          creado_por?: string | null
+          creado_por_nombre?: string | null
+          entidad_id?: string
+          entidad_tipo?: string
+          id?: string
+          mime?: string
+          nombre?: string
+          path?: string
+        }
+        Relationships: []
+      }
       ajuste_inventario_lineas: {
         Row: {
           ajuste_id: string
@@ -3809,6 +3848,7 @@ export type Database = {
         Args: { p_id: string }
         Returns: string
       }
+      borrar_adjunto: { Args: { p_id: string }; Returns: undefined }
       buscar_global: { Args: { p: Json }; Returns: Json }
       catalogo_saldos: {
         Args: { p_hasta?: string }
@@ -3861,6 +3901,7 @@ export type Database = {
         Args: { p_activo_id: string; p_periodo?: string }
         Returns: string
       }
+      descargar_adjunto: { Args: { p_id: string }; Returns: Json }
       editar_cotizacion: { Args: { p: Json }; Returns: string }
       editar_remision: { Args: { p: Json }; Returns: string }
       generar_factura_recurrente: {
@@ -4059,6 +4100,7 @@ export type Database = {
           saldo: number
         }[]
       }
+      subir_adjunto: { Args: { p: Json }; Returns: string }
       transferir_entre_cuentas: { Args: { p: Json }; Returns: string }
       vincular_orden_compra: {
         Args: { p_orden_id: string; p_factura_proveedor_id: string }

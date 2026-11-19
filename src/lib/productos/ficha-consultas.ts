@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { listarAdjuntos } from "@/lib/adjuntos/consultas";
 import { aNumero } from "@/lib/facturacion/formato";
 import type { ExistenciaAlmacen } from "@/lib/inventario/tipos";
 import { paginarConsulta } from "@/lib/supabase/paginar";
@@ -248,6 +249,7 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
     listasPreciosRes,
     preciosProductoRes,
     configuracion,
+    adjuntosRes,
   ] = await Promise.all([
     paginarConsulta((inicio, fin) =>
       supabase
@@ -310,6 +312,7 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
       .returns<ListaPrecioFila[]>(),
     supabase.from("producto_precios").select("lista_id, precio").eq("producto_id", id).returns<PrecioProductoFila[]>(),
     cargarConfiguracionFicha(),
+    listarAdjuntos(supabase, "producto", id),
   ]);
 
   if (lineasVenta.error) throw new Error(lineasVenta.error.message);
@@ -319,6 +322,7 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
   if (existenciasRes.error) throw new Error(existenciasRes.error.message);
   if (listasPreciosRes.error) throw new Error(listasPreciosRes.error.message);
   if (preciosProductoRes.error) throw new Error(preciosProductoRes.error.message);
+  if (adjuntosRes.error) throw new Error(adjuntosRes.error.message);
 
   const preciosPorLista = new Map((preciosProductoRes.data ?? []).map((fila) => [fila.lista_id, aNumero(fila.precio)]));
   const precios: PrecioListaFicha[] = (listasPreciosRes.data ?? []).map((lista) => ({
@@ -410,5 +414,6 @@ export async function obtenerFichaProducto(id: string): Promise<FichaProducto | 
     conduces: conducesDb,
     existencias,
     kardex: construirKardex(productoFicha.inventariable ? productoFicha.cantidad : 0, movimientos),
+    adjuntos: adjuntosRes.data ?? [],
   };
 }
