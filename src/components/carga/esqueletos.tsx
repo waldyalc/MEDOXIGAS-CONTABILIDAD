@@ -82,9 +82,9 @@ export function EsqueletoTabla({ filas = 8, columnas = 6, className }: Esqueleto
     <div className={cn("overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10", className)}>
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="border-border h-12 border-b bg-slate-200/20 hover:bg-slate-200/20 dark:bg-slate-800/40 dark:hover:bg-slate-800/40">
             {Array.from({ length: columnas }, (_, indice) => (
-              <TableHead key={indice}>
+              <TableHead key={indice} className="h-12">
                 <Skeleton className="h-3 w-16" />
               </TableHead>
             ))}
@@ -92,7 +92,7 @@ export function EsqueletoTabla({ filas = 8, columnas = 6, className }: Esqueleto
         </TableHeader>
         <TableBody>
           {Array.from({ length: filas }, (_, fila) => (
-            <TableRow key={fila}>
+            <TableRow key={fila} className="h-14">
               {Array.from({ length: columnas }, (_, columna) => (
                 <TableCell key={columna}>
                   <Skeleton className={cn("h-4", columna === 0 ? "w-24" : "w-full max-w-32")} />

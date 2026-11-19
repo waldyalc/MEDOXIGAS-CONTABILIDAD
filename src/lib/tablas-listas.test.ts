@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 const SRC = join(process.cwd(), "src");
 const COMPONENTE = join(SRC, "components", "listas", "tabla-lista.tsx");
+const ESQUELETO = join(SRC, "components", "carga", "esqueletos.tsx");
 
 /**
  * Listas ya migradas al patrón Facturas. Al migrar otra, agrégala aquí con su
@@ -57,6 +58,15 @@ function leer(ruta: string): string {
   return readFileSync(join(SRC, ruta), "utf8");
 }
 
+/** Cuerpo de una `export function` hasta la siguiente, para mirar solo ese componente. */
+function cuerpoDeFuncion(contenido: string, nombre: string): string {
+  const inicio = contenido.indexOf(`export function ${nombre}`);
+  expect(inicio, `no se encontró "export function ${nombre}" en el archivo`).toBeGreaterThanOrEqual(0);
+  const resto = contenido.slice(inicio + 1);
+  const fin = resto.indexOf("export function ");
+  return fin === -1 ? resto : resto.slice(0, fin);
+}
+
 describe("tablas de listas unificadas", () => {
   it("cada lista migrada importa TablaLista", () => {
     for (const archivo of LISTAS_MIGRADAS) {
@@ -97,6 +107,37 @@ describe("tablas de listas unificadas", () => {
         `tabla-lista.tsx perdió ${pieza}. Restaura la clase "${clase}" según docs/diseno/tablas-unificadas.md (nota de espaciado 48/56); no cambies la guía para que pase el test.`,
       ).toBe(true);
     }
+  });
+
+  it("cada <TableHead> de TablaLista mide 48 px (h-12)", () => {
+    const contenido = readFileSync(COMPONENTE, "utf8");
+    const cabeceras = contenido.match(/<TableHead\b[^>]*>/g) ?? [];
+
+    expect(
+      cabeceras.length,
+      "TablaLista debe tener sus 3 <TableHead> (selección, columnas y acciones) sobre el <TableRow> de h-12.",
+    ).toBe(3);
+
+    for (const cabecera of cabeceras) {
+      expect(
+        /\bh-12\b/.test(cabecera),
+        `<TableHead> sin "h-12": ${cabecera} → ui/table.tsx le aplica h-10 (40 px) y aplasta la cabecera a 40 px. Agrega "h-12" al className de cada <TableHead> de TablaLista.`,
+      ).toBe(true);
+    }
+  });
+
+  it("EsqueletoTabla conserva 48 px de cabecera y 56 px de fila", () => {
+    const cuerpo = cuerpoDeFuncion(readFileSync(ESQUELETO, "utf8"), "EsqueletoTabla");
+
+    expect(
+      /<TableHead\b[^>]*\bh-12\b/.test(cuerpo),
+      'EsqueletoTabla debe llevar className="h-12" en sus <TableHead>: si no, el esqueleto mide 40 px y el e2e «cabecera de 48 px» puede medir el esqueleto antes de que termine el streaming.',
+    ).toBe(true);
+
+    expect(
+      /<TableRow\b[^>]*\bh-14\b/.test(cuerpo),
+      'EsqueletoTabla debe llevar className="h-14" en las filas del cuerpo (56 px) para no saltar de layout cuando llega TablaLista.',
+    ).toBe(true);
   });
 
   it("las listas migradas usan el contenedor centrado", () => {
