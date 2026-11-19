@@ -19,7 +19,7 @@ export async function BloqueCartera({ desde, hasta }: Props) {
 
   if (!resumen) {
     return (
-      <div className="sm:col-span-2 lg:col-span-4">
+      <div className="sm:col-span-2">
         <AlertaError mensaje={error ?? "No se pudo cargar el resumen del negocio."} />
       </div>
     );
@@ -45,7 +45,7 @@ export async function BloqueMetricas({ desde, hasta }: Props) {
 
   if (!resumen) {
     return (
-      <div className="sm:col-span-2 lg:col-span-4">
+      <div className="sm:col-span-2">
         <AlertaError mensaje={error ?? "No se pudo cargar el resumen del negocio."} />
       </div>
     );
@@ -59,9 +59,9 @@ export async function BloqueMetricas({ desde, hasta }: Props) {
         valor={formatearRd(centavos(resumen.impuestos_venta))}
       />
       <TarjetaMetrica
-        titulo="Productos vendidos"
-        href={urlReporte("/dashboard/reportes/ventas-producto", { desde, hasta })}
-        valor={formatearConteo(resumen.productos_vendidos)}
+        titulo="Clientes con ventas"
+        href={urlReporte("/dashboard/reportes/ventas-cliente", { desde, hasta })}
+        valor={formatearConteo(resumen.clientes_con_ventas)}
       />
       <TarjetaMetrica
         titulo="Devoluciones de clientes"
@@ -70,9 +70,9 @@ export async function BloqueMetricas({ desde, hasta }: Props) {
         detalle="Incluye impuestos"
       />
       <TarjetaMetrica
-        titulo="Clientes con ventas"
-        href={urlReporte("/dashboard/reportes/ventas-cliente", { desde, hasta })}
-        valor={formatearConteo(resumen.clientes_con_ventas)}
+        titulo="Productos vendidos"
+        href={urlReporte("/dashboard/reportes/ventas-producto", { desde, hasta })}
+        valor={formatearConteo(resumen.productos_vendidos)}
       />
     </>
   );

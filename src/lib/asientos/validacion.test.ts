@@ -22,6 +22,11 @@ describe("validación de asiento manual", () => {
     expect(crearAsientoManualSchema.safeParse(asientoBase).success).toBe(true);
   });
 
+  test("acepta un tipo de entrada opcional y rechaza uno inválido", () => {
+    expect(crearAsientoManualSchema.safeParse({ ...asientoBase, tipo_entrada_id: CONTACTO }).success).toBe(true);
+    expect(crearAsientoManualSchema.safeParse({ ...asientoBase, tipo_entrada_id: "no-uuid" }).success).toBe(false);
+  });
+
   test("acepta tercero y descripción opcionales en la línea", () => {
     const resultado = crearAsientoManualSchema.safeParse({
       ...asientoBase,

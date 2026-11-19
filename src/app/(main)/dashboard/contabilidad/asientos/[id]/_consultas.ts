@@ -19,6 +19,8 @@ type Cliente = Awaited<ReturnType<typeof createClient>>;
 interface AsientoFila {
   id: string;
   numero: number;
+  codigo: string | null;
+  tipo_entrada_id: string | null;
   fecha: string;
   descripcion: string;
   origen_tipo: string;
@@ -63,6 +65,8 @@ export interface OrigenAsiento {
 export interface AsientoDetalle {
   id: string;
   numero: number;
+  codigo: string | null;
+  tipoEntrada: string | null;
   fecha: string;
   descripcion: string;
   origen: OrigenAsiento;
@@ -238,7 +242,7 @@ export async function obtenerAsientoDetalle(id: string): Promise<AsientoDetalle 
   const cliente = await createClient();
   const { data: asiento, error } = await cliente
     .from("asientos")
-    .select("id, numero, fecha, descripcion, origen_tipo, origen_id, anula_asiento_id")
+    .select("id, numero, codigo, tipo_entrada_id, fecha, descripcion, origen_tipo, origen_id, anula_asiento_id")
     .eq("id", id)
     .maybeSingle()
     .returns<AsientoFila | null>();
@@ -267,9 +271,21 @@ export async function obtenerAsientoDetalle(id: string): Promise<AsientoDetalle 
     cargarContactos(cliente, contactoIds),
   ]);
 
+  let tipoEntrada: string | null = null;
+  if (asiento.tipo_entrada_id) {
+    const { data: tipo } = await cliente
+      .from("tipos_entrada_diario")
+      .select("nombre")
+      .eq("id", asiento.tipo_entrada_id)
+      .maybeSingle();
+    tipoEntrada = tipo?.nombre ?? null;
+  }
+
   return {
     id: asiento.id,
     numero: asiento.numero,
+    codigo: asiento.codigo,
+    tipoEntrada,
     fecha: asiento.fecha,
     descripcion: asiento.descripcion,
     origen,

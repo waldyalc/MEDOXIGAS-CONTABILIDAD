@@ -32,8 +32,8 @@ function CalendarioDia({ className, ...props }: ComponentProps<typeof CalendarDa
     <CalendarDayButton
       {...props}
       className={cn(
-        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground size-10 rounded-[10px] text-base font-normal text-slate-700 hover:bg-slate-100 hover:text-slate-700 [&>span]:text-base [&>span]:opacity-100",
-        props.modifiers.outside && "text-slate-300",
+        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground text-foreground hover:bg-muted hover:text-foreground size-10 rounded-[10px] text-base font-normal [&>span]:text-base [&>span]:opacity-100",
+        props.modifiers.outside && "text-muted-foreground/50",
         className,
       )}
     />
@@ -69,12 +69,12 @@ export function DatePicker({
             aria-invalid={ariaInvalid}
             aria-describedby={ariaDescribedBy}
             className={cn(
-              "h-10 w-full justify-start gap-2 rounded-[10px] border-slate-300 bg-white px-2 text-base font-normal text-slate-700 hover:border-slate-400 hover:bg-white focus-visible:border-primary focus-visible:ring-0 aria-expanded:border-primary aria-expanded:bg-white aria-expanded:text-slate-700 aria-expanded:ring-0 dark:bg-white dark:hover:bg-white",
+              "border-border bg-background text-foreground hover:border-ring hover:bg-background focus-visible:border-ring aria-expanded:border-ring aria-expanded:bg-background aria-expanded:text-foreground h-10 w-full justify-start gap-2 rounded-[10px] px-2 text-base font-normal focus-visible:ring-0 aria-expanded:ring-0",
               className,
             )}
           >
-            <CalendarIcon className="size-4 shrink-0 text-slate-500" />
-            <span className={cn("truncate", !fecha && "text-slate-400")}>
+            <CalendarIcon className="text-muted-foreground size-4 shrink-0" />
+            <span className={cn("truncate", !fecha && "text-muted-foreground")}>
               {fecha ? format(fecha, "dd/MM/yyyy") : placeholder}
             </span>
           </Button>
@@ -90,14 +90,14 @@ export function DatePicker({
           onSelect={seleccionar}
           className="w-[306px] p-3 [--cell-radius:10px] [--cell-size:40px]"
           classNames={{
-            weekdays: "flex w-full items-center border-b border-slate-200 pb-2",
-            weekday: "flex-1 text-center text-xs font-medium tracking-wide text-slate-500 uppercase",
+            weekdays: "border-border flex w-full items-center border-b pb-2",
+            weekday: "text-muted-foreground flex-1 text-center text-xs font-medium tracking-wide uppercase",
             week: "mt-0 flex h-[45px] w-full items-center",
             day: "relative flex size-10 items-center justify-center rounded-[10px] p-0 text-center select-none",
-            today: "rounded-[10px] bg-slate-100 text-slate-700 data-[selected=true]:rounded-[10px]",
-            caption_label: "text-base font-semibold text-slate-700",
-            button_previous: "rounded-[10px] text-slate-700 hover:bg-slate-100",
-            button_next: "rounded-[10px] text-slate-700 hover:bg-slate-100",
+            today: "bg-muted text-foreground rounded-[10px] data-[selected=true]:rounded-[10px]",
+            caption_label: "text-foreground text-base font-semibold",
+            button_previous: "text-foreground hover:bg-muted rounded-[10px]",
+            button_next: "text-foreground hover:bg-muted rounded-[10px]",
           }}
           components={{ DayButton: CalendarioDia }}
           formatters={{
@@ -110,7 +110,7 @@ export function DatePicker({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-primary"
+            className="text-primary h-7 px-2"
             onClick={() => seleccionar(new Date())}
           >
             Hoy

@@ -1,10 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
-
 import { ContenedorLista } from "@/components/listas/tabla-lista";
-import { Button } from "@/components/ui/button";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { getRol } from "@/lib/auth/rol";
 import { getNumeraciones } from "@/lib/numeraciones/consultas";
 
@@ -18,23 +15,15 @@ export default async function Page() {
 
   return (
     <ContenedorLista>
-      <div className="flex flex-col gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-fit"
-          render={<Link href="/dashboard/contabilidad" prefetch={false} />}
-        >
-          <ArrowLeft data-icon="inline-start" />
-          Contabilidad
-        </Button>
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Numeraciones</h1>
-          <p className="text-muted-foreground text-sm">
-            Secuencias del NCF por tipo de comprobante. El siguiente número se asigna al guardar cada documento.
-          </p>
-        </div>
-      </div>
+      <EncabezadoPagina
+        titulo="Numeraciones"
+        subtitulo="Secuencias del NCF por tipo de comprobante. El siguiente número se asigna al guardar cada documento."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Contabilidad", href: "/dashboard/contabilidad" },
+          { etiqueta: "Numeraciones" },
+        ]}
+      />
 
       <NumeracionesCliente numeraciones={numeraciones} puedeEditar={rol !== "lector"} />
     </ContenedorLista>

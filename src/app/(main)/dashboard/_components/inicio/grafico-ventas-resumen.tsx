@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { Info, TrendingDown, TrendingUp } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart } from "recharts";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,12 +13,9 @@ import { formatoDia } from "@/lib/formato";
 import type { PuntoSerieVentas, ResumenNegocio } from "@/lib/inicio/consultas";
 import { centavos, formatearRd } from "@/lib/reportes/dinero";
 
-const AZUL = "#3b5bdb";
-const VERDE = "#2fd0a0";
-
 const CONFIG: ChartConfig = {
-  actual: { label: "Periodo actual", color: AZUL },
-  anterior: { label: "Año anterior", color: VERDE },
+  actual: { label: "Periodo actual", color: "var(--chart-1)" },
+  anterior: { label: "Año anterior", color: "var(--color-emerald-400)" },
 };
 
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -42,26 +39,10 @@ function restarUnAnio(iso: string): string {
   return `${anio - 1}-${String(mes).padStart(2, "0")}-${String(Math.min(dia, ultimoDia)).padStart(2, "0")}`;
 }
 
-function etiquetaEje(iso: string, diario: boolean): string {
-  const { anio, mes, dia } = partesFecha(iso);
-  const nombreMes = MESES[mes - 1] ?? "";
-
-  return diario ? `${dia} ${nombreMes}` : `${nombreMes} ${anio}`;
-}
-
 function etiquetaTooltip(iso: string, diario: boolean): string {
-  return diario ? formatoDia(iso) : etiquetaEje(iso, false);
-}
-
-function formatoEje(valor: number): string {
-  if (valor === 0) return "RD$0";
-
-  if (Math.abs(valor) >= 1000) {
-    const miles = valor / 1000;
-    return `RD$${miles.toLocaleString("es-DO", { maximumFractionDigits: 1 })} K`;
-  }
-
-  return `RD$${valor.toLocaleString("es-DO", { maximumFractionDigits: 0 })}`;
+  if (diario) return formatoDia(iso);
+  const { anio, mes } = partesFecha(iso);
+  return `${MESES[mes - 1] ?? ""} ${anio}`;
 }
 
 function formatearTooltip(valor: unknown, nombre: unknown) {
@@ -81,68 +62,38 @@ interface GraficoProps {
 }
 
 function Grafico({ datos, esDiario }: GraficoProps) {
-  const comunes = (
-    <>
-      <CartesianGrid vertical={false} stroke="var(--border)" />
-      <XAxis
-        dataKey="etiqueta"
-        tickLine={false}
-        axisLine={false}
-        tickMargin={10}
-        minTickGap={8}
-        tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
-        tickFormatter={(valor: string) => etiquetaEje(valor, esDiario)}
-      />
-      <YAxis
-        tickLine={false}
-        axisLine={false}
-        tickMargin={8}
-        width={82}
-        tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
-        tickFormatter={(valor: number) => formatoEje(valor)}
-      />
-      <ChartTooltip
-        cursor={false}
-        content={
-          <ChartTooltipContent
-            indicator="line"
-            labelFormatter={(valor) => etiquetaTooltip(String(valor), esDiario)}
-            formatter={formatearTooltip}
-          />
-        }
-      />
-    </>
-  );
-
   return (
     <ChartContainer config={CONFIG} className="aspect-auto h-[260px] w-full">
-      {esDiario ? (
-        <LineChart data={datos as PuntoSerieVentas[]} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
-          {comunes}
-          <Line
-            dataKey="actual"
-            type="monotone"
-            stroke="var(--color-actual)"
-            strokeWidth={2}
-            dot={false}
-            activeDot={{ r: 4 }}
-          />
-          <Line
-            dataKey="anterior"
-            type="monotone"
-            stroke="var(--color-anterior)"
-            strokeWidth={2}
-            strokeDasharray="4 3"
-            dot={false}
-            activeDot={{ r: 4 }}
-          />
-        </LineChart>
-      ) : (
-        <BarChart data={datos as PuntoSerieVentas[]} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
-          {comunes}
-          <Bar dataKey="actual" fill="var(--color-actual)" maxBarSize={56} radius={[4, 4, 0, 0]} />
-        </BarChart>
-      )}
+      <LineChart data={datos as PuntoSerieVentas[]} margin={{ top: 8, right: 8, left: 8, bottom: 4 }}>
+        <CartesianGrid vertical={false} stroke="var(--border)" />
+        <ChartTooltip
+          cursor={false}
+          content={
+            <ChartTooltipContent
+              indicator="line"
+              labelFormatter={(valor) => etiquetaTooltip(String(valor), esDiario)}
+              formatter={formatearTooltip}
+            />
+          }
+        />
+        <Line
+          dataKey="actual"
+          type="monotone"
+          stroke="var(--color-actual)"
+          strokeWidth={2}
+          dot={false}
+          activeDot={{ r: 4 }}
+        />
+        <Line
+          dataKey="anterior"
+          type="monotone"
+          stroke="var(--color-anterior)"
+          strokeWidth={2}
+          strokeDasharray="4 3"
+          dot={false}
+          activeDot={{ r: 4 }}
+        />
+      </LineChart>
     </ChartContainer>
   );
 }
@@ -187,15 +138,12 @@ export function GraficoVentasResumen({ resumen, href }: Props) {
     variacion == null ? "—" : `${Math.abs(variacion).toLocaleString("es-DO", { maximumFractionDigits: 1 })}%`;
 
   return (
-    <Card className="gap-4 rounded-[10px] py-5 ring-[#e2e8f0] dark:ring-border">
-      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4 px-5">
+    <Card className="ring-border gap-0 rounded-2xl [--card-spacing:--spacing(6)]">
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-1.5">
-            <CardTitle className="text-[15px] font-medium text-[#3c4257] dark:text-slate-300">
-              <Link
-                href={href}
-                className="hover:text-primary underline decoration-[#b8c2cf] underline-offset-[3px] dark:decoration-slate-600"
-              >
+            <CardTitle className="text-foreground text-sm font-semibold">
+              <Link href={href} className="hover:text-primary decoration-border underline underline-offset-[3px]">
                 Total de ventas
               </Link>
             </CardTitle>
@@ -217,39 +165,35 @@ export function GraficoVentasResumen({ resumen, href }: Props) {
               </TooltipContent>
             </Tooltip>
           </div>
-          <p className="text-muted-foreground text-[13px]">
+          <p className="text-muted-foreground text-xs">
             Comportamiento de tus ventas durante el periodo elegido, impuestos incluidos.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <p className="text-2xl leading-8 font-semibold tracking-tight text-slate-900 tabular-nums dark:text-foreground">
+          <p className="text-foreground text-xl leading-7 font-normal tracking-tight tabular-nums">
             {formatearRd(centavos(ventas.total))}
           </p>
-          {variacion == null ? null : (
-            <span className={`flex items-center gap-0.5 text-xs font-medium ${colorVariacion}`}>
-              {Icono ? <Icono className="size-3.5" aria-hidden="true" /> : null}
-              {textoVariacion}
-              <span className="sr-only">contra el año anterior</span>
-            </span>
-          )}
+          <span className={`flex items-center gap-0.5 text-sm font-normal ${colorVariacion}`}>
+            {Icono ? <Icono className="size-4" aria-hidden="true" /> : null}
+            {textoVariacion}
+            <span className="sr-only">contra el año anterior</span>
+          </span>
         </div>
       </CardHeader>
-      <CardContent className="px-5 pb-0">
+      <CardContent className="pb-0">
         {hayDatos ? (
           <>
             <Grafico datos={ventas.serie} esDiario={es_diario} />
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-4">
-              <ItemLeyenda color={AZUL} texto={`${fechaLarga(desde)} - ${fechaLarga(hasta)}`} />
-              {es_diario ? (
-                <ItemLeyenda
-                  color={VERDE}
-                  texto={`${fechaLarga(restarUnAnio(desde))} - ${fechaLarga(restarUnAnio(hasta))}`}
-                />
-              ) : null}
+              <ItemLeyenda color="var(--chart-1)" texto={`${fechaLarga(desde)} - ${fechaLarga(hasta)}`} />
+              <ItemLeyenda
+                color="var(--color-emerald-400)"
+                texto={`${fechaLarga(restarUnAnio(desde))} - ${fechaLarga(restarUnAnio(hasta))}`}
+              />
             </div>
           </>
         ) : (
-          <div className="text-muted-foreground flex h-[292px] items-center justify-center text-sm">
+          <div className="text-muted-foreground flex h-[260px] items-center justify-center text-sm">
             Sin ventas registradas en el periodo.
           </div>
         )}

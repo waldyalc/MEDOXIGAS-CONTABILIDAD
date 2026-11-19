@@ -14,7 +14,7 @@ import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
-import { BotonImprimir } from "../_components/boton-imprimir";
+import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { FiltrosCartera } from "../cxc/_components/filtros-cartera";
 import { Paginador } from "../cxc/_components/paginador";
 import { PestanasAntiguedad } from "../cxc/_components/pestanas-antiguedad";
@@ -52,21 +52,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Cuentas por pagar</h1>
-          <p className="text-muted-foreground text-sm">
-            Conoce las deudas que tienes registradas y lleva un control de tus pagos pendientes.
-          </p>
-          <p className="text-muted-foreground text-sm">
-            Del {formatoDia(desde)} al {formatoDia(hasta)}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <BotonDescargar tabla={tabla} nombreArchivo={nombreArchivo} />
-          <BotonImprimir />
-        </div>
-      </div>
+      <EncabezadoReporte
+        titulo="Cuentas por pagar"
+        descripcion="Conoce las deudas que tienes registradas y lleva un control de tus pagos pendientes."
+        desde={desde}
+        hasta={hasta}
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Reportes", href: "/dashboard/reportes" },
+          { etiqueta: "Cuentas por pagar" },
+        ]}
+        acciones={<BotonDescargar tabla={tabla} nombreArchivo={nombreArchivo} />}
+      />
 
       <FiltrosCartera
         tipo="pagar"

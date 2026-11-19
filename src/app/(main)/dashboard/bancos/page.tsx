@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { ContenedorLista } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { getPerfil } from "@/lib/auth/rol";
 import { getDatosBancos } from "@/lib/bancos/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
@@ -15,12 +16,11 @@ export default async function Page() {
 
   return (
     <ContenedorLista>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl tracking-tight">Bancos y caja</h1>
-        <p className="text-muted-foreground text-sm">
-          Saldos de tus cuentas de caja y banco, transferencias y depósitos.
-        </p>
-      </div>
+      <EncabezadoPagina
+        titulo="Bancos y caja"
+        subtitulo="Saldos de tus cuentas de caja y banco, transferencias y depósitos."
+        migas={[{ etiqueta: "Inicio", href: "/dashboard" }, { etiqueta: "Bancos" }]}
+      />
 
       <PanelBancos
         cuentas={datos.cuentas}

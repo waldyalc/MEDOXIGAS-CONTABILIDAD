@@ -41,7 +41,7 @@ export function SelectorPeriodo({ periodo, opciones }: Props) {
         render={
           <Button
             variant="outline"
-            className="h-10 min-w-40 justify-between gap-3 px-3 text-sm font-medium"
+            className="h-10 min-w-40 justify-between gap-3 rounded-[10px] px-4 text-sm font-medium"
             disabled={pendiente}
             aria-label="Cambiar periodo"
           />
