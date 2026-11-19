@@ -3920,6 +3920,12 @@ export type Database = {
         Args: { p_encabezado: Json; p_aplicaciones: Json }
         Returns: string
       }
+      registrar_saldos_iniciales: {
+        Args: {
+          p: Json
+        }
+        Returns: string
+      }
       reporte_balance_comprobacion: {
         Args: { p_desde: string; p_hasta: string }
         Returns: {

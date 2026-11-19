@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { valorACentavos } from "@/lib/facturacion/calculo";
+
 export const TIPOS_CUENTA = ["activo", "pasivo", "capital", "ingreso", "costo", "gasto"] as const;
 
 export const NATURALEZAS_CUENTA = ["debito", "credito"] as const;
@@ -97,3 +99,53 @@ export const esquemaActualizarCuenta = z.object({
 export type DatosCuenta = z.infer<typeof esquemaCrearCuenta>;
 
 export type DatosActualizarCuenta = z.infer<typeof esquemaActualizarCuenta>;
+
+const lineaSaldoInicialSchema = z
+  .object({
+    cuenta_id: z.uuid({ message: "Selecciona una cuenta en cada línea" }),
+    descripcion: z.string().trim().max(500).optional(),
+    debito: z.coerce.number().finite().min(0, { message: "El débito no puede ser negativo" }),
+    credito: z.coerce.number().finite().min(0, { message: "El crédito no puede ser negativo" }),
+  })
+  .superRefine((linea, ctx) => {
+    if (linea.debito > 0 === linea.credito > 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Cada línea debe llevar débito o crédito, nunca ambos.",
+      });
+    }
+  });
+
+export const esquemaSaldosIniciales = z
+  .object({
+    fecha: z.iso.date({ message: "La fecha no es válida." }),
+    descripcion: z.string().trim().max(500).optional(),
+    lineas: z.array(lineaSaldoInicialSchema).min(1, { message: "Carga al menos un saldo inicial." }).max(500),
+  })
+  .superRefine((datos, ctx) => {
+    const vistas = new Set<string>();
+    for (const linea of datos.lineas) {
+      if (vistas.has(linea.cuenta_id)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Cada cuenta puede aparecer una sola vez.",
+          path: ["lineas"],
+        });
+        break;
+      }
+      vistas.add(linea.cuenta_id);
+    }
+
+    const debitos = datos.lineas.reduce((total, linea) => total + valorACentavos(linea.debito), 0);
+    const creditos = datos.lineas.reduce((total, linea) => total + valorACentavos(linea.credito), 0);
+
+    if (debitos !== creditos) {
+      ctx.addIssue({
+        code: "custom",
+        message: "El registro está descuadrado: el total de débitos debe ser igual al total de créditos.",
+        path: ["lineas"],
+      });
+    }
+  });
+
+export type DatosSaldosIniciales = z.infer<typeof esquemaSaldosIniciales>;

@@ -10,10 +10,12 @@ import { getRol } from "@/lib/auth/rol";
 import { CONFIGURACION_CONTABLE } from "@/lib/contabilidad/catalogo";
 import { rutaCuenta } from "@/lib/enlaces";
 import { obtenerCatalogoContable } from "@/lib/reportes/consultas";
+import { hoyRd } from "@/lib/reportes/fechas";
 import type { CuentaContable } from "@/lib/reportes/tipos";
 
 import { CatalogoCuentas } from "./_components/catalogo-cuentas";
 import { NuevaCuenta } from "./_components/cuenta-formulario";
+import { SaldosIniciales } from "./_components/saldos-iniciales-dialogo";
 
 interface FilaConfiguracion {
   clave: string;
@@ -67,7 +69,18 @@ export default async function Page() {
         titulo="Contabilidad"
         subtitulo="Catálogo de cuentas y configuración contable del motor. Las cuentas las usa automáticamente cada documento."
         migas={[{ etiqueta: "Inicio", href: "/dashboard" }, { etiqueta: "Contabilidad" }]}
-        acciones={puedeEditar ? <NuevaCuenta cuentas={cuentas} /> : undefined}
+        acciones={
+          puedeEditar ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <SaldosIniciales
+                cuentas={cuentas}
+                cuentaAjustesId={configuracionPorClave.get("ajustes_iniciales")?.cuenta_id ?? null}
+                fechaHoy={hoyRd()}
+              />
+              <NuevaCuenta cuentas={cuentas} />
+            </div>
+          ) : undefined
+        }
       />
 
       {error ? (
