@@ -181,7 +181,7 @@ select is(
 -- ---------------------------------------------------------------------------
 
 select is(
-  (select total_grupo from _filas_res where clave = 'nombre_cliente' and entidad = 'factura'),
+  (select distinct total_grupo from _filas_res where clave = 'nombre_cliente' and entidad = 'factura'),
   5,
   'Prueba 3: encuentra las 5 facturas por el nombre del cliente (join)'
 );
@@ -334,8 +334,8 @@ select is(
 
 select is(
   (select res->>'total' from _res where clave = 'amplio'),
-  '211',
-  'Prueba 10: total exacto (1 contacto + 5 facturas + 205 gastos)'
+  '207',
+  'Prueba 10: total con tope 200+ (1 contacto + 5 facturas + 201 gastos)'
 );
 
 select is(
