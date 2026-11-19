@@ -51,7 +51,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           Contabilidad
         </Button>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Asiento contable #{asiento.numero}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Asiento contable {asiento.codigo ?? `#${asiento.numero}`}
+          </h1>
           <div className="flex flex-wrap items-center gap-2">
             <EstadoAsiento cuadrado={debitos === creditos} />
             <AsientoPapel asiento={asiento} empresa={empresa} />
@@ -65,7 +67,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Número</dt>
+            <dt className="text-muted-foreground">Código</dt>
+            <dd className="tabular-nums">{asiento.codigo ?? `#${asiento.numero}`}</dd>
+            <dt className="text-muted-foreground">Tipo de entrada</dt>
+            <dd>{asiento.tipoEntrada ?? "—"}</dd>
+            <dt className="text-muted-foreground">Número interno</dt>
             <dd className="tabular-nums">#{asiento.numero}</dd>
             <dt className="text-muted-foreground">Fecha</dt>
             <dd>{formatoDia(asiento.fecha)}</dd>

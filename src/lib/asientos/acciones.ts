@@ -25,6 +25,7 @@ export async function crearAsientoManual(entrada: unknown): Promise<ResultadoAsi
   const payload = {
     fecha: datos.fecha,
     descripcion: datos.descripcion,
+    ...(datos.tipo_entrada_id ? { tipo_entrada_id: datos.tipo_entrada_id } : {}),
     lineas: datos.lineas.map((linea) => ({
       cuenta_id: linea.cuenta_id,
       ...(linea.contacto_id ? { contacto_id: linea.contacto_id } : {}),

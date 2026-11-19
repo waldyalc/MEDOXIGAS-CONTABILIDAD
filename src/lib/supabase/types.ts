@@ -346,6 +346,7 @@ export type Database = {
       asientos: {
         Row: {
           anula_asiento_id: string | null
+          codigo: string | null
           creado_en: string
           creado_por: string | null
           descripcion: string
@@ -356,10 +357,12 @@ export type Database = {
           numero: number
           origen_id: string | null
           origen_tipo: string
+          tipo_entrada_id: string | null
           total: number
         }
         Insert: {
           anula_asiento_id?: string | null
+          codigo?: string | null
           creado_en?: string
           creado_por?: string | null
           descripcion: string
@@ -370,10 +373,12 @@ export type Database = {
           numero?: number
           origen_id?: string | null
           origen_tipo: string
+          tipo_entrada_id?: string | null
           total?: number
         }
         Update: {
           anula_asiento_id?: string | null
+          codigo?: string | null
           creado_en?: string
           creado_por?: string | null
           descripcion?: string
@@ -384,6 +389,7 @@ export type Database = {
           numero?: number
           origen_id?: string | null
           origen_tipo?: string
+          tipo_entrada_id?: string | null
           total?: number
         }
         Relationships: [
@@ -392,6 +398,13 @@ export type Database = {
             columns: ["anula_asiento_id"]
             isOneToOne: false
             referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asientos_tipo_entrada_id_fkey"
+            columns: ["tipo_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_entrada_diario"
             referencedColumns: ["id"]
           },
         ]
@@ -3453,6 +3466,33 @@ export type Database = {
         }
         Relationships: []
       }
+      tipos_entrada_diario: {
+        Row: {
+          activo: boolean
+          creado_en: string
+          id: string
+          nombre: string
+          prefijo: string
+          siguiente: number
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string
+          id?: string
+          nombre: string
+          prefijo: string
+          siguiente?: number
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string
+          id?: string
+          nombre?: string
+          prefijo?: string
+          siguiente?: number
+        }
+        Relationships: []
+      }
       transferencia_inventario_lineas: {
         Row: {
           cantidad: number
@@ -3756,6 +3796,10 @@ export type Database = {
       }
       actualizar_producto: { Args: { p_id: string; p: Json }; Returns: string }
       actualizar_retencion: { Args: { p: Json }; Returns: undefined }
+      actualizar_tipo_entrada_diario: {
+        Args: { p_id: string; p: Json }
+        Returns: string
+      }
       actualizar_vendedor: { Args: { p_id: string; p: Json }; Returns: string }
       anular_documento: {
         Args: { p_tipo: string; p_id: string }
@@ -3803,6 +3847,10 @@ export type Database = {
       crear_remision_desde_cotizacion: { Args: { p: Json }; Returns: string }
       crear_retencion: { Args: { p: Json }; Returns: string }
       crear_termino_pago: { Args: { p: Json }; Returns: string }
+      crear_tipo_entrada_diario: {
+        Args: { p: Json }
+        Returns: string
+      }
       crear_transferencia_inventario: { Args: { p: Json }; Returns: string }
       crear_vendedor: { Args: { p: Json }; Returns: string }
       dashboard_resumen: {

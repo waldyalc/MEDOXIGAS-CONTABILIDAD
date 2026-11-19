@@ -30,6 +30,7 @@ export const crearAsientoManualSchema = z
   .object({
     fecha: z.iso.date(),
     descripcion: z.string().trim().min(1, { message: "La descripción es obligatoria" }).max(500),
+    tipo_entrada_id: z.uuid().optional(),
     lineas: z.array(lineaAsientoSchema).min(2, { message: "Un asiento requiere al menos dos líneas." }).max(200),
   })
   .superRefine((datos, ctx) => {

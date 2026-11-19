@@ -1,5 +1,14 @@
 # Handoff — Medoxigas Contabilidad
 
+## Feature — Tipos de entrada de diario configurables (18 nov 2026)
+
+- Rama `t3/tipos-entrada-diario-configurables` (desde `prueba` 2a87266). ALEGRA.md §11.2: los asientos manuales se numeran con el prefijo del tipo elegido y un consecutivo independiente por tipo (AC-1, DTB-1…), en vez del número entero global.
+- Migración `20261123000000_tipos_entrada_diario.sql` (renombrada en el merge: `20261118100000` ya lo usa `busqueda_global` y está aplicada en remoto): tabla `public.tipos_entrada_diario` (`nombre`, `prefijo` único, `siguiente`, `activo`) con la semilla idempotente de los 13 tipos de Alegra; `asientos` gana `tipo_entrada_id` y `codigo` (único cuando no es NULL; los asientos automáticos quedan en NULL). RPCs `crear_tipo_entrada_diario` / `actualizar_tipo_entrada_diario` (admin/contador, prefijo en mayúsculas `[A-Z][A-Z0-9]{0,9}`, sin cambio de prefijo si el tipo ya tiene asientos). `crear_asiento_manual` conserva su firma `(p jsonb)`: con `tipo_entrada_id` valida y numera por ese tipo; sin él cae al tipo activo `AC` (default de Alegra); el `UPDATE` del consecutivo va en la misma transacción, así que no hay códigos repetidos bajo concurrencia. RLS: `authenticated` lee, escritura solo por RPC, `anon` nada.
+- Frontend: el formulario de asiento manual trae el `Select` de «Tipo de entrada de diario» (default Ajuste contable) con la vista previa del código read-only; lista y detalle muestran `codigo` (con `#numero` de respaldo para asientos viejos) y el detalle muestra el tipo. Nueva página Configuración > Contabilidad > «Tipos de entrada de diario» (lista + diálogo nuevo/editar con nombre, prefijo y activo), misma piel que Centros de costo.
+- Candados: `supabase/tests/tipos_entrada_diario_test.sql` (16 asserts: semilla, normalización, duplicados, prefijos inválidos, numeración AC/DTB independiente, tipo inactivo, candado de prefijo con asientos, lector y anon); `src/lib/tipos-entrada-diario/acciones.test.ts` (RPC directo, errores en español, roles); caso `tipo_entrada_id` opcional en `asientos/validacion.test.ts`.
+- `types.ts` editado a mano (Supabase CLI no instalado en esta máquina): mismas adiciones que generaría `pnpm db:types`; CI compara el esquema contra las migraciones. pgTAP no corrió en local (sin Postgres/Docker ni CLI): queda para el job Supabase de CI.
+- Verificado: `pnpm exec tsc --noEmit` ✅, `pnpm exec biome check` en lo tocado ✅, `pnpm test` ✅ (826) y `pnpm build` ✅.
+
 ## Crear numeraciones desde la UI (18 nov 2026)
 
 - Rama `feat/numeracion-crear-f3` (desde `origin/prueba` 2a87266 ; le nom `feat/numeracion-crear` est pris par un autre worktree). Hasta aquí las series solo se sembraban por migración y solo se podían editar; ahora se crean desde Contabilidad → Numeraciones.
