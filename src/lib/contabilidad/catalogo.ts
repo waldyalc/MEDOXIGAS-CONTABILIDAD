@@ -14,6 +14,7 @@ export const CONFIGURACION_CONTABLE = [
   { clave: "ventas_servicios", etiqueta: "Ventas de servicios" },
   { clave: "costo_ventas", etiqueta: "Costo de ventas" },
   { clave: "gastos_generales", etiqueta: "Gastos generales" },
+  { clave: "ajustes_iniciales", etiqueta: "Ajustes iniciales" },
 ] as const;
 
 export const ETIQUETAS_CONFIG: Record<string, string> = Object.fromEntries(

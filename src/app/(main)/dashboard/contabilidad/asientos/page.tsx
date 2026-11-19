@@ -37,6 +37,7 @@ const ORIGENES: Record<string, string> = {
   pago_proveedor: "Pago a proveedor",
   gasto_menor: "Gasto",
   manual: "Manual",
+  saldo_inicial: "Saldos iniciales",
   anulacion: "Anulación",
 };
 
@@ -47,11 +48,11 @@ interface Props {
 const columnas: readonly ColumnaLista<AsientoLista>[] = [
   {
     clave: "numero",
-    encabezado: "Número",
-    className: "w-20",
+    encabezado: "Código",
+    className: "w-24",
     celda: (asiento) => (
       <Link className="hover:underline" href={rutaAsiento(asiento.id)} prefetch={false}>
-        #{asiento.numero}
+        {asiento.codigo ?? `#${asiento.numero}`}
       </Link>
     ),
   },

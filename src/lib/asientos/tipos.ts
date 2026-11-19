@@ -1,6 +1,7 @@
 export interface AsientoLista {
   id: string;
   numero: number;
+  codigo: string | null;
   fecha: string;
   descripcion: string;
   origen_tipo: string;
@@ -25,8 +26,16 @@ export interface CentroCostoAsiento {
   nombre: string;
 }
 
+export interface TipoEntradaAsiento {
+  id: string;
+  nombre: string;
+  prefijo: string;
+  siguiente: number;
+}
+
 export interface DatosFormularioAsiento {
   cuentas: CuentaAsiento[];
   contactos: ContactoAsiento[];
   centrosCosto: CentroCostoAsiento[];
+  tiposEntrada: TipoEntradaAsiento[];
 }

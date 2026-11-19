@@ -34,7 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { crearAsientoManual } from "@/lib/asientos/acciones";
-import type { CentroCostoAsiento, ContactoAsiento, CuentaAsiento } from "@/lib/asientos/tipos";
+import type { CentroCostoAsiento, ContactoAsiento, CuentaAsiento, TipoEntradaAsiento } from "@/lib/asientos/tipos";
 import { rutaAsiento } from "@/lib/enlaces";
 import { centavosAValor, parsearCentavos } from "@/lib/facturacion/calculo";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
@@ -60,6 +60,7 @@ interface Props {
   cuentas: CuentaAsiento[];
   contactos: ContactoAsiento[];
   centrosCosto: CentroCostoAsiento[];
+  tiposEntrada: TipoEntradaAsiento[];
   fechaHoy: string;
 }
 
@@ -116,12 +117,15 @@ function reglasDelAsiento(fecha: string, descripcion: string, lineas: LineaForm[
   ];
 }
 
-export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Props) {
+export function AsientoForm({ cuentas, contactos, centrosCosto, tiposEntrada, fechaHoy }: Props) {
   const router = useRouter();
   const contador = useRef(2);
   const [pendiente, iniciar] = useTransition();
 
   const [fecha, setFecha] = useState(fechaHoy);
+  const [tipoId, setTipoId] = useState(
+    () => tiposEntrada.find((tipo) => tipo.prefijo === "AC")?.id ?? tiposEntrada[0]?.id ?? "",
+  );
   const [descripcion, setDescripcion] = useState("");
   const [lineas, setLineas] = useState<LineaForm[]>([lineaVacia("l1"), lineaVacia("l2")]);
   const [error, setError] = useState<string | null>(null);
@@ -136,6 +140,11 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
     { value: SIN_CENTRO, label: "Sin centro" },
     ...centrosCosto.map((centro) => ({ value: centro.id, label: `${centro.codigo} · ${centro.nombre}` })),
   ];
+  const tiposItems = tiposEntrada.map((tipo) => ({
+    value: tipo.id,
+    label: `${tipo.nombre} (${tipo.prefijo})`,
+  }));
+  const tipoSeleccionado = tiposEntrada.find((tipo) => tipo.id === tipoId);
 
   const debitosCentavos = lineas.reduce((total, linea) => total + montoCentavos(linea.debito), 0);
   const creditosCentavos = lineas.reduce((total, linea) => total + montoCentavos(linea.credito), 0);
@@ -196,6 +205,7 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
       const resultado = await crearAsientoManual({
         fecha,
         descripcion: descripcion.trim(),
+        ...(tipoId ? { tipo_entrada_id: tipoId } : {}),
         lineas: lineas.map((linea) => ({
           cuenta_id: linea.cuentaId,
           ...(linea.contactoId ? { contacto_id: linea.contactoId } : {}),
@@ -240,12 +250,39 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, fechaHoy }: Prop
                 className={FORM_INPUT}
               />
             </CampoFormulario>
+            <CampoFormulario htmlFor="tipo-entrada" label="Tipo de entrada de diario">
+              <Select
+                items={tiposItems}
+                value={tipoId || null}
+                onValueChange={(valor: string | null) => setTipoId(valor ?? "")}
+              >
+                <SelectTrigger id="tipo-entrada" className={FORM_SELECT}>
+                  <SelectValue placeholder="Ajuste contable" />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {tiposItems.map((tipo) => (
+                    <SelectItem key={tipo.value} value={tipo.value}>
+                      {tipo.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CampoFormulario>
+            <CampoFormulario htmlFor="codigo" label="Código">
+              <Input
+                id="codigo"
+                value={tipoSeleccionado ? `${tipoSeleccionado.prefijo}-${tipoSeleccionado.siguiente}` : "—"}
+                disabled
+                readOnly
+                className={FORM_INPUT}
+              />
+            </CampoFormulario>
             <CampoFormulario
               htmlFor="descripcion"
               label="Descripción"
               required
               error={validacion.errorDe("descripcion")}
-              className="md:col-span-2"
+              className="md:col-span-3"
             >
               <Input
                 id="descripcion"
