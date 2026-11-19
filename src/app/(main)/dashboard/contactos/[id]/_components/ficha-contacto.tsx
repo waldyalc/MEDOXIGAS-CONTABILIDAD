@@ -29,6 +29,7 @@ import {
   Search,
   ShoppingCart,
   SquarePen,
+  TriangleAlert,
   Truck,
   Upload,
   User,
@@ -92,7 +93,7 @@ import {
   rutaPagoProveedor,
   rutaPagoRecibido,
 } from "@/lib/enlaces";
-import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
+import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import type { ListaPrecio } from "@/lib/inventario/tipos";
 
@@ -399,10 +400,14 @@ function ContenidoResumen({
   contacto,
   cuentaCxc,
   cuentaCxp,
+  limiteCredito,
+  saldoPendienteCentavos,
 }: {
   readonly contacto: DatosFichaContacto["contacto"];
   readonly cuentaCxc: CuentaFicha | null;
   readonly cuentaCxp: CuentaFicha | null;
+  readonly limiteCredito: number | null;
+  readonly saldoPendienteCentavos: number;
 }) {
   return (
     <div className="flex flex-col gap-8">
@@ -421,6 +426,12 @@ function ContenidoResumen({
           <ItemDato etiqueta="Dirección">
             <span className="whitespace-pre-line">{contacto.direccion ?? "—"}</span>
           </ItemDato>
+          <ItemDato etiqueta="Límite de crédito">
+            <span className="tabular-nums">{limiteCredito == null ? "Sin límite" : formatoMoneda(limiteCredito)}</span>
+          </ItemDato>
+          <ItemDato etiqueta="Saldo pendiente">
+            <span className="tabular-nums">{formatoMonedaCentavos(saldoPendienteCentavos)}</span>
+          </ItemDato>
         </dl>
       </section>
       <section className="flex flex-col gap-4">
@@ -434,6 +445,37 @@ function ContenidoResumen({
           </ItemDato>
         </dl>
       </section>
+    </div>
+  );
+}
+
+/** Aviso informativo: el saldo pendiente del cliente supera su límite de crédito. No bloquea la venta. */
+function AlertaLimiteCredito({
+  limiteCredito,
+  saldoPendienteCentavos,
+}: {
+  readonly limiteCredito: number | null;
+  readonly saldoPendienteCentavos: number;
+}) {
+  if (limiteCredito == null) return null;
+
+  const limiteCentavos = aCentavos(limiteCredito);
+  const excedidoCentavos = saldoPendienteCentavos - limiteCentavos;
+  if (excedidoCentavos <= 0) return null;
+
+  return (
+    <div
+      role="alert"
+      className="flex items-start gap-2.5 rounded-xl border border-amber-700/15 bg-amber-50 px-4 py-3 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
+    >
+      <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <p className="text-sm font-semibold">Este cliente superó su límite de crédito</p>
+        <p className="text-sm tabular-nums">
+          Debe: {formatoMonedaCentavos(saldoPendienteCentavos)} · Límite: {formatoMonedaCentavos(limiteCentavos)} ·
+          Excedido: {formatoMonedaCentavos(excedidoCentavos)}
+        </p>
+      </div>
     </div>
   );
 }
@@ -1055,6 +1097,8 @@ export function FichaContacto({
   readonly listasPrecios: ListaPrecio[];
 }) {
   const { contacto, cuentaCxc, cuentaCxp } = datos;
+  const limiteCredito = contacto.limite_credito;
+  const saldoPendienteCentavos = totalPorCobrar(datos.facturas);
   const router = useRouter();
   const [pestana, setPestana] = useState<PestanaFicha>("resumen");
   const [filtroTipo, setFiltroTipo] = useState("todos");
@@ -1101,7 +1145,8 @@ export function FichaContacto({
           estadoCuentaHref={estadoCuentaHref}
         />
 
-        <div className="px-5 pb-5">
+        <div className="flex flex-col gap-5 px-5 pb-5">
+          <AlertaLimiteCredito limiteCredito={limiteCredito} saldoPendienteCentavos={saldoPendienteCentavos} />
           <GrillaKpis kpis={kpis} />
         </div>
 
@@ -1125,7 +1170,13 @@ export function FichaContacto({
           </div>
 
           <TabsContent value="resumen" className="p-4 sm:p-5">
-            <ContenidoResumen contacto={contacto} cuentaCxc={cuentaCxc} cuentaCxp={cuentaCxp} />
+            <ContenidoResumen
+              contacto={contacto}
+              cuentaCxc={cuentaCxc}
+              cuentaCxp={cuentaCxp}
+              limiteCredito={limiteCredito}
+              saldoPendienteCentavos={saldoPendienteCentavos}
+            />
           </TabsContent>
 
           <TabsContent value="transacciones" className="p-4 sm:p-5">

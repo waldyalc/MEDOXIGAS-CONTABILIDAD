@@ -1,3 +1,5 @@
+import type { PrecioLista } from "@/lib/inventario/tipos";
+
 import type { ProductoTipo } from "./productos";
 
 export type PrecioListaFormulario = {
@@ -5,9 +7,36 @@ export type PrecioListaFormulario = {
   precio: number | null;
 };
 
+export type PreciosListaFormulario = Record<string, string>;
+
+/**
+ * Valores iniciales de los precios por lista para el formulario. Es una
+ * función pura para poder probar el reinicio de «Guardar y crear otro»: sin
+ * lista o sin precio guardado deja el campo vacío, no `undefined`.
+ */
+export function preciosIniciales(
+  precios: readonly PrecioLista[] | null | undefined,
+  listas: readonly { id: string }[],
+): PreciosListaFormulario {
+  const porLista = new Map((precios ?? []).map((precio) => [precio.lista_id, precio.precio]));
+
+  return Object.fromEntries(
+    listas.map((lista) => {
+      const precio = porLista.get(lista.id);
+      return [lista.id, precio === undefined ? "" : String(precio)];
+    }),
+  );
+}
+
 export type PreciosFormulario = {
   precios: PrecioListaFormulario[];
   presente: boolean;
+};
+
+export type ExistenciaFormulario = {
+  almacen_id: string;
+  minimo: number;
+  maximo: number | null;
 };
 
 export type DatosPayloadProducto = {
@@ -26,6 +55,13 @@ export type DatosPayloadProducto = {
   cuenta_ingreso_id?: string | null;
   cuenta_inventario_id?: string | null;
   cuenta_costo_id?: string | null;
+  unidad_medida?: string;
+  almacen_id?: string | null;
+  vende_negativo?: boolean;
+  imagen_path?: string | null;
+  minimo?: number | null;
+  maximo?: number | null;
+  existencias?: ExistenciaFormulario[];
 };
 
 export type PayloadProducto = DatosPayloadProducto & {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft, Scale } from "lucide-react";
+import { Scale } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
 import {
@@ -11,6 +11,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { getRol } from "@/lib/auth/rol";
 import { type ConciliacionLista, getListaConciliaciones } from "@/lib/bancos/conciliaciones";
@@ -81,26 +82,23 @@ export default async function Page() {
 
   return (
     <ContenedorLista>
-      <div className="flex flex-col gap-2">
-        <Button variant="ghost" size="sm" className="w-fit" render={<Link href="/dashboard/bancos" prefetch={false} />}>
-          <ArrowLeft data-icon="inline-start" />
-          Bancos
-        </Button>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-3xl tracking-tight">Conciliaciones</h1>
-            <p className="text-muted-foreground text-sm">
-              Compara los movimientos del sistema con el extracto del banco.
-            </p>
-          </div>
-          {puedeEscribir ? (
+      <EncabezadoPagina
+        titulo="Conciliaciones"
+        subtitulo="Compara los movimientos del sistema con el extracto del banco."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Bancos", href: "/dashboard/bancos" },
+          { etiqueta: "Conciliaciones" },
+        ]}
+        acciones={
+          puedeEscribir ? (
             <Button render={<Link href="/dashboard/bancos/conciliaciones/nueva" prefetch={false} />}>
               <Scale />
               Nueva conciliación
             </Button>
-          ) : null}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       <TarjetaLista data-lista="bancos-conciliaciones">
         <TablaLista

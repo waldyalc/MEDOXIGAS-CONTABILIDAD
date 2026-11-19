@@ -4,12 +4,14 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, BookOpen, ReceiptText } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { NotaDebitoPapel } from "@/components/impresion/nota-debito-papel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getPerfil } from "@/lib/auth/rol";
 import { rutaAsiento, rutaContacto, rutaFactura, rutaProducto } from "@/lib/enlaces";
+import { getEmpresa } from "@/lib/facturacion/consultas";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import { getNotaDebitoVista } from "@/lib/notas-debito/consultas";
@@ -20,7 +22,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (perfil?.rol == null) redirect("/unauthorized");
 
   const { id } = await params;
-  const nota = await getNotaDebitoVista(id);
+  const [nota, empresa] = await Promise.all([getNotaDebitoVista(id), getEmpresa()]);
   if (!nota) notFound();
 
   return (
@@ -43,6 +45,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             </Badge>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <NotaDebitoPapel nota={nota} empresa={empresa} />
             {nota.asiento_id ? (
               <Button variant="outline" render={<Link href={rutaAsiento(nota.asiento_id)} prefetch={false} />}>
                 <BookOpen data-icon="inline-start" />

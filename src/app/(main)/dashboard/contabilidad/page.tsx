@@ -2,6 +2,7 @@ import { BookOpen, TriangleAlert } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
 import { type ColumnaLista, ContenedorLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -62,15 +63,12 @@ export default async function Page() {
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Contabilidad</h1>
-          <p className="text-muted-foreground text-balance">
-            Catálogo de cuentas y configuración contable del motor. Las cuentas las usa automáticamente cada documento.
-          </p>
-        </div>
-        {puedeEditar ? <NuevaCuenta cuentas={cuentas} /> : null}
-      </div>
+      <EncabezadoPagina
+        titulo="Contabilidad"
+        subtitulo="Catálogo de cuentas y configuración contable del motor. Las cuentas las usa automáticamente cada documento."
+        migas={[{ etiqueta: "Inicio", href: "/dashboard" }, { etiqueta: "Contabilidad" }]}
+        acciones={puedeEditar ? <NuevaCuenta cuentas={cuentas} /> : undefined}
+      />
 
       {error ? (
         <Alert variant="destructive">
