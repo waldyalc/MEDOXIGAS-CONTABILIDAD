@@ -202,12 +202,15 @@ export async function listarExistenciasProducto(productoId: string): Promise<Exi
   const supabase = await createClient();
   const { data } = await supabase
     .from("existencias")
-    .select("almacen_id, cantidad, almacenes(nombre, es_principal)")
+    .select("almacen_id, cantidad, cantidad_inicial, minimo, maximo, almacenes(nombre, es_principal)")
     .eq("producto_id", productoId);
 
   const filas = (data ?? []) as unknown as {
     almacen_id: string;
     cantidad: number;
+    cantidad_inicial: number;
+    minimo: number;
+    maximo: number | null;
     almacenes: { nombre: string; es_principal: boolean } | null;
   }[];
 
@@ -217,6 +220,9 @@ export async function listarExistenciasProducto(productoId: string): Promise<Exi
       almacen_nombre: fila.almacenes?.nombre ?? "—",
       es_principal: fila.almacenes?.es_principal ?? false,
       cantidad: fila.cantidad,
+      cantidad_inicial: fila.cantidad_inicial,
+      minimo: fila.minimo,
+      maximo: fila.maximo,
     }))
     .sort(
       (a, b) =>

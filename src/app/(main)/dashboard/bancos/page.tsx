@@ -31,6 +31,7 @@ export default async function Page() {
       <EncabezadoPagina
         titulo="Bancos y cajas"
         subtitulo="Saldos de tus cuentas de caja y banco, transferencias y depósitos."
+        migas={[{ etiqueta: "Inicio", href: "/dashboard" }, { etiqueta: "Bancos" }]}
         acciones={
           perfil.rol !== "lector" ? (
             <AccionesBancos

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { BotonImprimir } from "@/components/boton-imprimir";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto } from "@/lib/enlaces";
@@ -81,7 +82,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                 </TableRow>
               ) : (
                 filas.map((fila) => (
-                  <TableRow key={fila.id}>
+                  <FilaNavegable key={fila.id} href={rutaContacto(fila.contactoId)}>
                     <TableCell className="text-muted-foreground">{fila.rnc ?? "—"}</TableCell>
                     <TableCell className="font-medium">
                       <Link href={rutaContacto(fila.contactoId)} prefetch={false} className="hover:underline">
@@ -94,7 +95,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                     <TableCell>{fila.nombre}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatearRd(fila.base)}</TableCell>
                     <TableCell className="text-right font-medium tabular-nums">{formatearRd(fila.monto)}</TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))
               )}
             </TableBody>

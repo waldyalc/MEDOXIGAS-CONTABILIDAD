@@ -67,6 +67,7 @@ export function FacturasRecurrentesTabla({
       columnas={columnas}
       filas={recurrentes}
       claveFila={(recurrente) => recurrente.id}
+      filaHref={(recurrente) => rutaFacturaRecurrente(recurrente.id)}
       vacio={{
         filtrada: Boolean(busqueda),
         titulo: busqueda ? "Sin resultados" : "¡Aún no tienes facturas recurrentes!",

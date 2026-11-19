@@ -18,6 +18,7 @@ export interface Contacto {
   lista_precio_id: string | null;
   tipo_identificacion?: TipoIdentificacion | null;
   municipio_provincia?: string | null;
+  limite_credito?: number | null;
 }
 
 export const TIPOS_CONTACTO: { valor: ContactoTipo; etiqueta: string }[] = [
@@ -63,6 +64,17 @@ export function normalizarBusqueda(valor: string) {
 const campoTipo = z.enum(["cliente", "proveedor", "ambos"]);
 const campoOpcional = z.string().nullish().transform(textoOpcional);
 const campoTipoIdentificacion = z.enum(["rnc", "cedula", "pasaporte"]);
+const campoLimiteCredito = z
+  .string()
+  .nullish()
+  .transform((valor) => {
+    const monto = textoOpcional(valor);
+    return monto === null ? null : monto.replace(/\s/g, "").replace(/,/g, "");
+  })
+  .refine(
+    (valor) => valor === null || /^\d{1,12}(\.\d{1,2})?$/.test(valor),
+    "El límite de crédito debe ser un monto válido (hasta 2 decimales)",
+  );
 
 export const esquemaContacto = z
   .object({
@@ -86,6 +98,7 @@ export const esquemaContacto = z
       .nullish()
       .transform((valor) => textoOpcional(valor))
       .refine((valor) => valor === null || z.uuid().safeParse(valor).success, "La lista de precios no es válida"),
+    limite_credito: campoLimiteCredito,
   })
   .superRefine((datos, ctx) => {
     const error = errorIdentificacion(datos.tipo_identificacion, datos.rnc_cedula ?? "");

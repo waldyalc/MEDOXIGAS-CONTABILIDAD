@@ -88,6 +88,7 @@ async function TablaOrdenes({
         columnas={columnas}
         filas={ordenes}
         claveFila={(orden) => orden.id}
+        filaHref={(orden) => rutaOrdenCompra(orden.id)}
         vacio={{
           filtrada: Boolean(opciones.q),
           titulo: opciones.q ? "Sin resultados" : "¡Aún no tienes órdenes de compra!",

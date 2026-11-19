@@ -11,9 +11,7 @@ import {
   ArrowLeftRight,
   BookOpen,
   Building2,
-  Download,
   EllipsisVertical,
-  Eye,
   File,
   FileBarChart,
   FileMinus,
@@ -29,13 +27,14 @@ import {
   Search,
   ShoppingCart,
   SquarePen,
+  TriangleAlert,
   Truck,
-  Upload,
   User,
   Users,
   Wallet,
 } from "lucide-react";
 
+import { SeccionAdjuntos } from "@/components/adjuntos/seccion-adjuntos";
 import { FormularioContacto } from "@/components/contactos/formulario-contacto";
 import { Enlace } from "@/components/enlace";
 import {
@@ -63,6 +62,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { etiquetaTipoAdjunto } from "@/lib/adjuntos/adjuntos";
 import { type Contacto, etiquetaTipoContacto } from "@/lib/contactos/contactos";
 import {
   type AsientoFicha,
@@ -92,7 +92,7 @@ import {
   rutaPagoProveedor,
   rutaPagoRecibido,
 } from "@/lib/enlaces";
-import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
+import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import type { ListaPrecio } from "@/lib/inventario/tipos";
 
@@ -160,7 +160,6 @@ interface FilaUnificada {
 
 const TX_POR_PAGINA = 10;
 const PERSONAS_POR_PAGINA = 5;
-const DOCS_POR_PAGINA = 8;
 
 function detalleNota(nota: NotaFicha): string {
   if (nota.tipo === "credito") return "Nota de crédito";
@@ -399,10 +398,14 @@ function ContenidoResumen({
   contacto,
   cuentaCxc,
   cuentaCxp,
+  limiteCredito,
+  saldoPendienteCentavos,
 }: {
   readonly contacto: DatosFichaContacto["contacto"];
   readonly cuentaCxc: CuentaFicha | null;
   readonly cuentaCxp: CuentaFicha | null;
+  readonly limiteCredito: number | null;
+  readonly saldoPendienteCentavos: number;
 }) {
   return (
     <div className="flex flex-col gap-8">
@@ -421,6 +424,12 @@ function ContenidoResumen({
           <ItemDato etiqueta="Dirección">
             <span className="whitespace-pre-line">{contacto.direccion ?? "—"}</span>
           </ItemDato>
+          <ItemDato etiqueta="Límite de crédito">
+            <span className="tabular-nums">{limiteCredito == null ? "Sin límite" : formatoMoneda(limiteCredito)}</span>
+          </ItemDato>
+          <ItemDato etiqueta="Saldo pendiente">
+            <span className="tabular-nums">{formatoMonedaCentavos(saldoPendienteCentavos)}</span>
+          </ItemDato>
         </dl>
       </section>
       <section className="flex flex-col gap-4">
@@ -434,6 +443,37 @@ function ContenidoResumen({
           </ItemDato>
         </dl>
       </section>
+    </div>
+  );
+}
+
+/** Aviso informativo: el saldo pendiente del cliente supera su límite de crédito. No bloquea la venta. */
+function AlertaLimiteCredito({
+  limiteCredito,
+  saldoPendienteCentavos,
+}: {
+  readonly limiteCredito: number | null;
+  readonly saldoPendienteCentavos: number;
+}) {
+  if (limiteCredito == null) return null;
+
+  const limiteCentavos = aCentavos(limiteCredito);
+  const excedidoCentavos = saldoPendienteCentavos - limiteCentavos;
+  if (excedidoCentavos <= 0) return null;
+
+  return (
+    <div
+      role="alert"
+      className="flex items-start gap-2.5 rounded-xl border border-amber-700/15 bg-amber-50 px-4 py-3 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400"
+    >
+      <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <p className="text-sm font-semibold">Este cliente superó su límite de crédito</p>
+        <p className="text-sm tabular-nums">
+          Debe: {formatoMonedaCentavos(saldoPendienteCentavos)} · Límite: {formatoMonedaCentavos(limiteCentavos)} ·
+          Excedido: {formatoMonedaCentavos(excedidoCentavos)}
+        </p>
+      </div>
     </div>
   );
 }
@@ -537,6 +577,7 @@ function TablaMovimientos({ filas, unidad }: { readonly filas: readonly FilaUnif
       columnas={columnasMovimientos}
       filas={filas}
       claveFila={(fila) => fila.clave}
+      filaHref={(fila) => fila.href}
       vacio={{
         filtrada: true,
         titulo: "Sin movimientos",
@@ -776,67 +817,6 @@ function PestanaContactos({ contacto }: { readonly contacto: DatosFichaContacto[
   );
 }
 
-interface AdjuntoEjemplo {
-  nombre: string;
-  tipo: string;
-  tamano: string;
-  subidoPor: string;
-  fecha: string;
-}
-
-// TODO backend: no existe tabla de archivos adjuntos; filas de ejemplo del diseño.
-const ADJUNTOS_EJEMPLO: AdjuntoEjemplo[] = [
-  {
-    nombre: "contrato-servicios.pdf",
-    tipo: "Contrato",
-    tamano: "2.4 MB",
-    subidoPor: "Ana García",
-    fecha: "2026-01-15",
-  },
-  { nombre: "factura-1045.pdf", tipo: "Factura", tamano: "158 KB", subidoPor: "Sistema", fecha: "2026-01-25" },
-  { nombre: "logo-empresa.png", tipo: "Imagen", tamano: "45 KB", subidoPor: "Luis Peña", fecha: "2026-01-10" },
-  {
-    nombre: "inventario-2025.xlsx",
-    tipo: "Hoja de cálculo",
-    tamano: "1.2 MB",
-    subidoPor: "María Santos",
-    fecha: "2025-12-20",
-  },
-  {
-    nombre: "acuerdo-confidencialidad.pdf",
-    tipo: "Legal",
-    tamano: "234 KB",
-    subidoPor: "Rosa Díaz",
-    fecha: "2025-11-15",
-  },
-  {
-    nombre: "declaracion-itbis-2025.pdf",
-    tipo: "Impuestos",
-    tamano: "3.8 MB",
-    subidoPor: "Contabilidad",
-    fecha: "2026-01-05",
-  },
-  {
-    nombre: "cotizacion-anual.pdf",
-    tipo: "Cotización",
-    tamano: "89 KB",
-    subidoPor: "Carlos Núñez",
-    fecha: "2025-12-31",
-  },
-  {
-    nombre: "politica-devoluciones.docx",
-    tipo: "Legal",
-    tamano: "512 KB",
-    subidoPor: "Equipo legal",
-    fecha: "2025-12-15",
-  },
-];
-
-const OPCIONES_DOC: OpcionFiltro[] = [
-  { valor: "todos", etiqueta: "Todos los tipos" },
-  ...[...new Set(ADJUNTOS_EJEMPLO.map((adjunto) => adjunto.tipo))].map((tipo) => ({ valor: tipo, etiqueta: tipo })),
-];
-
 function TarjetaConteoDoc({
   etiqueta,
   cantidad,
@@ -859,45 +839,25 @@ function TarjetaConteoDoc({
   );
 }
 
-const columnasAdjuntos: readonly ColumnaLista<AdjuntoEjemplo>[] = [
-  {
-    clave: "nombre",
-    encabezado: "Nombre",
-    celda: (adjunto) => <span className="font-medium">{adjunto.nombre}</span>,
-  },
-  {
-    clave: "tipo",
-    encabezado: "Tipo",
-    celda: (adjunto) => <PillEstado tono="neutro">{adjunto.tipo}</PillEstado>,
-  },
-  {
-    clave: "tamano",
-    encabezado: "Tamaño",
-    celda: (adjunto) => <span className="text-muted-foreground">{adjunto.tamano}</span>,
-  },
-  {
-    clave: "subidoPor",
-    encabezado: "Subido por",
-    celda: (adjunto) => adjunto.subidoPor,
-  },
-  {
-    clave: "fecha",
-    encabezado: "Fecha",
-    celda: (adjunto) => <span className="text-muted-foreground">{formatoDia(adjunto.fecha)}</span>,
-  },
-];
-
-function PestanaDocumentos({ datos, filtroDoc }: { readonly datos: DatosFichaContacto; readonly filtroDoc: string }) {
-  const adjuntos = ADJUNTOS_EJEMPLO.filter((adjunto) => filtroDoc === "todos" || adjunto.tipo === filtroDoc);
-  const { pagina, setPagina } = usePagina(adjuntos.length, DOCS_POR_PAGINA);
-  const visibles = adjuntos.slice(pagina * DOCS_POR_PAGINA, (pagina + 1) * DOCS_POR_PAGINA);
+function PestanaDocumentos({
+  datos,
+  filtroDoc,
+  puedeCrear,
+}: {
+  readonly datos: DatosFichaContacto;
+  readonly filtroDoc: string;
+  readonly puedeCrear: boolean;
+}) {
+  const adjuntos = datos.adjuntos.filter(
+    (adjunto) => filtroDoc === "todos" || etiquetaTipoAdjunto(adjunto.mime) === filtroDoc,
+  );
   const otros =
     datos.notasVenta.length +
     datos.notasCompra.length +
     datos.pagosRecibidos.length +
     datos.pagosProveedor.length +
     datos.asientos.length +
-    ADJUNTOS_EJEMPLO.length;
+    datos.adjuntos.length;
 
   return (
     <div className="flex flex-col gap-5">
@@ -922,33 +882,12 @@ function PestanaDocumentos({ datos, filtroDoc }: { readonly datos: DatosFichaCon
         />
       </div>
 
-      <TablaLista
-        columnas={columnasAdjuntos}
-        filas={visibles}
-        claveFila={(adjunto) => adjunto.nombre}
-        acciones={(adjunto) => (
-          <span className="flex justify-center gap-1">
-            <Button variant="ghost" size="icon-sm" aria-label={`Ver ${adjunto.nombre}`}>
-              <Eye />
-            </Button>
-            <Button variant="ghost" size="icon-sm" aria-label={`Descargar ${adjunto.nombre}`}>
-              <Download />
-            </Button>
-          </span>
-        )}
-        vacio={{
-          filtrada: filtroDoc !== "todos",
-          titulo: "Sin archivos adjuntos",
-          descripcion: "No hay archivos adjuntos.",
-        }}
-      />
-
-      <PaginadorLocal
-        total={adjuntos.length}
-        porPagina={DOCS_POR_PAGINA}
-        pagina={pagina}
-        setPagina={setPagina}
-        etiqueta="documentos"
+      <SeccionAdjuntos
+        adjuntos={adjuntos}
+        entidadTipo="contacto"
+        entidadId={datos.contacto.id}
+        puedeEscribir={puedeCrear}
+        filtrada={filtroDoc !== "todos"}
       />
     </div>
   );
@@ -1028,17 +967,7 @@ function AccionPestana({
     ) : null;
   }
   if (pestana === "documentos") {
-    return (
-      <div className="flex items-center gap-2">
-        <BotonFiltro valor={filtroDoc.valor} opciones={filtroDoc.opciones} onCambiar={filtroDoc.onCambiar} />
-        {puedeCrear ? (
-          <Button size="sm">
-            <Upload data-icon="inline-start" />
-            Subir documento
-          </Button>
-        ) : null}
-      </div>
-    );
+    return <BotonFiltro valor={filtroDoc.valor} opciones={filtroDoc.opciones} onCambiar={filtroDoc.onCambiar} />;
   }
   return null;
 }
@@ -1055,6 +984,8 @@ export function FichaContacto({
   readonly listasPrecios: ListaPrecio[];
 }) {
   const { contacto, cuentaCxc, cuentaCxp } = datos;
+  const limiteCredito = contacto.limite_credito;
+  const saldoPendienteCentavos = totalPorCobrar(datos.facturas);
   const router = useRouter();
   const [pestana, setPestana] = useState<PestanaFicha>("resumen");
   const [filtroTipo, setFiltroTipo] = useState("todos");
@@ -1069,6 +1000,13 @@ export function FichaContacto({
   const opcionesTipo: OpcionFiltro[] = [
     { valor: "todos", etiqueta: "Todos los tipos" },
     ...tiposPresentes.map((tipo) => ({ valor: tipo, etiqueta: ETIQUETA_TIPO_FILA[tipo] })),
+  ];
+  const opcionesDoc: OpcionFiltro[] = [
+    { valor: "todos", etiqueta: "Todos los tipos" },
+    ...[...new Set(datos.adjuntos.map((adjunto) => etiquetaTipoAdjunto(adjunto.mime)))].map((tipo) => ({
+      valor: tipo,
+      etiqueta: tipo,
+    })),
   ];
 
   const kpis = construirKpis(datos);
@@ -1101,7 +1039,8 @@ export function FichaContacto({
           estadoCuentaHref={estadoCuentaHref}
         />
 
-        <div className="px-5 pb-5">
+        <div className="flex flex-col gap-5 px-5 pb-5">
+          <AlertaLimiteCredito limiteCredito={limiteCredito} saldoPendienteCentavos={saldoPendienteCentavos} />
           <GrillaKpis kpis={kpis} />
         </div>
 
@@ -1119,13 +1058,19 @@ export function FichaContacto({
                 pestana={pestana}
                 puedeCrear={puedeCrear}
                 filtroTx={{ valor: filtroTipo, onCambiar: setFiltroTipo, opciones: opcionesTipo }}
-                filtroDoc={{ valor: filtroDoc, onCambiar: setFiltroDoc, opciones: OPCIONES_DOC }}
+                filtroDoc={{ valor: filtroDoc, onCambiar: setFiltroDoc, opciones: opcionesDoc }}
               />
             </div>
           </div>
 
           <TabsContent value="resumen" className="p-4 sm:p-5">
-            <ContenidoResumen contacto={contacto} cuentaCxc={cuentaCxc} cuentaCxp={cuentaCxp} />
+            <ContenidoResumen
+              contacto={contacto}
+              cuentaCxc={cuentaCxc}
+              cuentaCxp={cuentaCxp}
+              limiteCredito={limiteCredito}
+              saldoPendienteCentavos={saldoPendienteCentavos}
+            />
           </TabsContent>
 
           <TabsContent value="transacciones" className="p-4 sm:p-5">
@@ -1183,7 +1128,7 @@ export function FichaContacto({
           </TabsContent>
 
           <TabsContent value="documentos" className="p-4 sm:p-5">
-            <PestanaDocumentos datos={datos} filtroDoc={filtroDoc} />
+            <PestanaDocumentos datos={datos} filtroDoc={filtroDoc} puedeCrear={puedeCrear} />
           </TabsContent>
         </Tabs>
       </div>

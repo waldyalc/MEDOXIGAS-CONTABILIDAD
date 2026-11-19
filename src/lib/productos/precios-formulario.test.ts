@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { formDataProducto } from "@/app/(main)/dashboard/productos/_components/form-data-producto";
 
 import { calcularEdicionMasiva, validarFilasImportacion } from "./importar";
-import { construirPayloadProducto, leerPreciosFormulario } from "./precios-formulario";
+import { construirPayloadProducto, leerPreciosFormulario, preciosIniciales } from "./precios-formulario";
 import type { DatosProducto, Producto } from "./productos";
 
 const LISTA_GENERAL = "11111111-1111-4111-8111-111111111111";
@@ -23,6 +23,10 @@ function producto(parcial: Partial<Producto> & Pick<Producto, "id" | "nombre">):
     categoria_id: null,
     precios: [],
     activo: true,
+    unidad_medida: "Unidad",
+    almacen_id: null,
+    vende_negativo: false,
+    imagen_path: null,
     ...parcial,
   };
 }
@@ -127,5 +131,32 @@ describe("precios de listas en productos", () => {
     const invalido = new FormData();
     invalido.set(`precio_lista_${LISTA_GENERAL}`, "abc");
     expect(leerPreciosFormulario(invalido)).toBeNull();
+  });
+});
+
+describe("precios iniciales del formulario", () => {
+  test("toma el precio guardado de cada lista activa", () => {
+    expect(
+      preciosIniciales(
+        [
+          { lista_id: LISTA_GENERAL, precio: 120 },
+          { lista_id: LISTA_MAYOREO, precio: 130.5 },
+        ],
+        [{ id: LISTA_GENERAL }, { id: LISTA_MAYOREO }],
+      ),
+    ).toEqual({ [LISTA_GENERAL]: "120", [LISTA_MAYOREO]: "130.5" });
+  });
+
+  test("deja vacías las listas sin precio y descarta precios de listas inactivas", () => {
+    expect(preciosIniciales([{ lista_id: LISTA_MAYOREO, precio: 130 }], [{ id: LISTA_GENERAL }])).toEqual({
+      [LISTA_GENERAL]: "",
+    });
+    expect(preciosIniciales(null, [{ id: LISTA_GENERAL }])).toEqual({ [LISTA_GENERAL]: "" });
+    expect(preciosIniciales(undefined, [])).toEqual({});
+  });
+
+  test("restablecer con listas y sin precios deja todos los campos en blanco", () => {
+    const reiniciado = preciosIniciales(null, [{ id: LISTA_GENERAL }, { id: LISTA_MAYOREO }]);
+    expect(Object.values(reiniciado)).toEqual(["", ""]);
   });
 });

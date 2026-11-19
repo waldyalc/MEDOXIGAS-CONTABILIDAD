@@ -93,6 +93,7 @@ export function DocumentosTabla({ tipo, documentos, busqueda, accion }: Props) {
       columnas={columnas}
       filas={documentos}
       claveFila={(documento) => documento.id}
+      filaHref={(documento) => (tipo === "cotizacion" ? rutaCotizacion(documento.id) : rutaConduce(documento.id))}
       vacio={{
         filtrada: Boolean(busqueda),
         titulo: busqueda ? "Sin resultados" : "Aún no hay documentos",

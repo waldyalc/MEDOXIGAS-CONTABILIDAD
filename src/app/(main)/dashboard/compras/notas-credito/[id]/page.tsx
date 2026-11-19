@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, BookOpen, ReceiptText } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -121,7 +122,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             </TableHeader>
             <TableBody>
               {nota.lineas.map((linea) => (
-                <TableRow key={linea.id}>
+                <FilaNavegable key={linea.id} href={linea.producto_id ? rutaProducto(linea.producto_id) : null}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
                       <span>{linea.descripcion}</span>
@@ -153,7 +154,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                   <TableCell className="text-right tabular-nums">{formatoMoneda(linea.subtotal)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatoMoneda(linea.itbis)}</TableCell>
                   <TableCell className="text-right font-medium tabular-nums">{formatoMoneda(linea.total)}</TableCell>
-                </TableRow>
+                </FilaNavegable>
               ))}
             </TableBody>
           </Table>
@@ -199,7 +200,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               </TableHeader>
               <TableBody>
                 {nota.lineasAsiento.map((linea) => (
-                  <TableRow key={linea.id}>
+                  <FilaNavegable key={linea.id} href={linea.cuentas ? rutaCuenta(linea.cuenta_id) : null}>
                     <TableCell className="pl-(--card-spacing) whitespace-normal">
                       {linea.cuentas ? (
                         <Enlace href={rutaCuenta(linea.cuenta_id)}>
@@ -214,7 +215,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                     <TableCell className="pr-(--card-spacing) text-right tabular-nums">
                       {formatoMoneda(linea.credito)}
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))}
               </TableBody>
               <TableFooter>

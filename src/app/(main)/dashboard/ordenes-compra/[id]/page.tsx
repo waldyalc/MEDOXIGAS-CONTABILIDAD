@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ReceiptText, ShoppingBag } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -120,7 +121,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 </TableRow>
               ) : (
                 orden.lineas.map((linea) => (
-                  <TableRow key={linea.id}>
+                  <FilaNavegable key={linea.id} href={linea.producto_id ? rutaProducto(linea.producto_id) : null}>
                     <TableCell className="pl-(--card-spacing) whitespace-normal">
                       <div className="flex flex-col">
                         <span>{linea.descripcion || "—"}</span>
@@ -154,7 +155,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                     <TableCell className="pr-(--card-spacing) text-right tabular-nums">
                       {formatoMoneda(linea.total)}
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))
               )}
             </TableBody>

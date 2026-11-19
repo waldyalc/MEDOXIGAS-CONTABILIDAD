@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaCompra, rutaContacto, rutaFactura } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
@@ -46,7 +47,7 @@ export function TablaCuentasPorCobrar({ filas, mensajeVacio }: { filas: FilaCart
           </TableRow>
         ) : (
           filas.map((fila) => (
-            <TableRow key={fila.id}>
+            <FilaNavegable key={fila.id} href={rutaFactura(fila.id)}>
               <TableCell>
                 <Referencia fila={fila} href={rutaFactura(fila.id)} />
               </TableCell>
@@ -59,7 +60,7 @@ export function TablaCuentasPorCobrar({ filas, mensajeVacio }: { filas: FilaCart
               <TableCell className="text-right tabular-nums">{formatearRd(fila.total)}</TableCell>
               <TableCell className="text-right tabular-nums">{formatearRd(fila.pagado)}</TableCell>
               <TableCell className="text-right font-medium tabular-nums">{formatearRd(fila.saldo)}</TableCell>
-            </TableRow>
+            </FilaNavegable>
           ))
         )}
       </TableBody>
@@ -91,7 +92,7 @@ export function TablaCuentasPorPagar({ filas, mensajeVacio }: { filas: FilaCarte
           </TableRow>
         ) : (
           filas.map((fila) => (
-            <TableRow key={fila.id}>
+            <FilaNavegable key={fila.id} href={rutaCompra(fila.id)}>
               <TableCell>{fila.tipoDocumento}</TableCell>
               <TableCell>
                 <Referencia fila={fila} href={rutaCompra(fila.id)} />
@@ -104,7 +105,7 @@ export function TablaCuentasPorPagar({ filas, mensajeVacio }: { filas: FilaCarte
               <TableCell className="text-right tabular-nums">{formatearRd(fila.total)}</TableCell>
               <TableCell className="text-right tabular-nums">{formatearRd(fila.pagado)}</TableCell>
               <TableCell className="text-right font-medium tabular-nums">{formatearRd(fila.saldo)}</TableCell>
-            </TableRow>
+            </FilaNavegable>
           ))
         )}
       </TableBody>

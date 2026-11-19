@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FileText } from "lucide-react";
 
 import { BotonImprimir } from "@/components/boton-imprimir";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -184,7 +185,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                 </TableRow>
               ) : (
                 cartas.map((item) => (
-                  <TableRow key={item.contactoId}>
+                  <FilaNavegable key={item.contactoId} href={rutaContacto(item.contactoId)}>
                     <TableCell className="font-medium">
                       <Link href={rutaContacto(item.contactoId)} prefetch={false} className="hover:underline">
                         {item.proveedor}
@@ -206,7 +207,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                         Ver carta
                       </Button>
                     </TableCell>
-                  </TableRow>
+                  </FilaNavegable>
                 ))
               )}
             </TableBody>

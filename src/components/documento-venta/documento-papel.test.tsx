@@ -147,4 +147,60 @@ describe("papel de la cotización", () => {
     expect(html).toContain("RNC:");
     expect(html).toContain("101010101");
   });
+
+  it("lleva el título con número, las columnas de Alegra, el monto en letras y el pie", () => {
+    const html = renderToStaticMarkup(<DocumentoPapel tipo="cotizacion" vista={vistaCotizacion} mostrarLogo={false} />);
+
+    expect(html).toContain("Cotización");
+    expect(html).toContain("No. 1");
+    expect(html).toContain("Fecha de creación:");
+    expect(html).toContain("Fecha de vencimiento:");
+    for (const columna of ["Concepto", "Precio", "Unidad", "Cantidad", "Descuento", "Impuesto", "Subtotal"]) {
+      expect(html).toContain(columna);
+    }
+    expect(html).toContain("con 62/100");
+    expect(html).toContain("RD$423.62");
+    expect(html).toContain("Página 1 de 1");
+  });
+});
+
+describe("papel del conduce", () => {
+  it("lleva el título con número, la grilla del cliente y las columnas de Alegra", () => {
+    const vista: DocumentoVista = {
+      ...vistaCotizacion,
+      contacto: { ...contacto, rnc_cedula: "101010101", telefono: "809-555-0101" },
+    };
+    const html = renderToStaticMarkup(<DocumentoPapel tipo="conduce" vista={vista} mostrarLogo={false} />);
+
+    expect(html).toContain("Conduce");
+    expect(html).toContain("No. 1");
+    for (const etiqueta of [
+      "SEÑOR(ES)",
+      "DIRECCIÓN",
+      "CIUDAD",
+      "TELÉFONO",
+      "RNC",
+      "FECHA DE EXPEDICIÓN",
+      "FECHA DE VENCIMIENTO",
+    ]) {
+      expect(html).toContain(etiqueta);
+    }
+    expect(html).toContain("Cliente de Prueba");
+    expect(html).toContain("101010101");
+    expect(html).toContain("809-555-0101");
+    for (const columna of ["Ítem", "Precio", "Cantidad", "Descuento", "Impuesto", "Subtotal"]) {
+      expect(html).toContain(columna);
+    }
+  });
+
+  it("muestra los totales con impuestos y las líneas de firma", () => {
+    const html = renderToStaticMarkup(<DocumentoPapel tipo="conduce" vista={vistaCotizacion} mostrarLogo={false} />);
+
+    expect(html).toContain("RD$359.00");
+    expect(html).toContain("ITBIS (18.00%)");
+    expect(html).toContain("RD$64.62");
+    expect(html).toContain("RD$423.62");
+    expect(html).toContain("ELABORADO POR");
+    expect(html).toContain("ACEPTADA, FIRMA Y/O SELLO Y FECHA");
+  });
 });

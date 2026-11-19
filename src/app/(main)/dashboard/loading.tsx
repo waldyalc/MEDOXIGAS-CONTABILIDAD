@@ -4,19 +4,18 @@ import { EsqueletoCartera, EsqueletoGraficoInicio, EsqueletoMetricas } from "./_
 
 export default function Loading() {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <h1 className="text-3xl tracking-tight">Resumen del negocio</h1>
-        <Skeleton className="h-11 w-56" />
+    <div className="mx-auto flex w-full max-w-[970px] flex-col gap-4 pb-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold tracking-tight">Resumen del negocio</h1>
+        <div className="flex flex-wrap items-center gap-4">
+          <Skeleton className="h-10 w-40 rounded-[10px]" />
+          <Skeleton className="h-10 w-36 rounded-[10px]" />
+        </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-5">
-        <div className="flex flex-col gap-4 lg:col-span-3">
-          <EsqueletoCartera />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:col-span-2">
-          <EsqueletoMetricas />
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <EsqueletoCartera />
+        <EsqueletoMetricas />
       </div>
 
       <EsqueletoGraficoInicio />

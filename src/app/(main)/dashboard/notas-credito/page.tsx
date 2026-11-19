@@ -6,6 +6,7 @@ import { EsqueletoTabla } from "@/components/carga/esqueletos";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { BarraLista, ContenedorLista, TarjetaLista } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { getPerfil } from "@/lib/auth/rol";
 import { leerOpcionesLista, type OpcionesLista, type ParametrosLista, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import { getNotasCreditoLista } from "@/lib/notas-credito/consultas";
@@ -49,10 +50,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <ContenedorLista>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl tracking-tight">Notas de crédito</h1>
-        <p className="text-muted-foreground text-sm">Devoluciones y créditos sobre facturas de venta (NCF B04).</p>
-      </div>
+      <EncabezadoPagina
+        titulo="Notas de crédito"
+        subtitulo="Devoluciones y créditos sobre facturas de venta (NCF B04)."
+        migas={[{ etiqueta: "Inicio", href: "/dashboard" }, { etiqueta: "Ingresos" }, { etiqueta: "Notas de crédito" }]}
+      />
 
       <TarjetaLista data-lista="notas-credito">
         <BarraLista>

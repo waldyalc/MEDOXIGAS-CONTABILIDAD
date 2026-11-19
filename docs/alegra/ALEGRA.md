@@ -234,7 +234,7 @@ De arriba abajo:
 7. Colores: fondo blanco, texto azul oscuro y franjas grises claras en los encabezados.
 
 Plantillas (`05-plantillas-impresion.png`): hay "Factura de venta estándar" y "Cotización estándar", las dos preferidas. Estilos: Clásico (carta, media carta o tirilla), Simple (carta), Compacto (media carta), Moderno (carta), Clásico FE (carta) y Estándar (carta). El editor deja escoger letra y tamaño, 3 colores, tamaño del logo (pequeño, mediano o grande), datos de empresa y documento, columnas de productos, total en letras, términos, notas, firmas y pie. No se cambió nada.
-Pendiente: cotización y conduce (remisión).
+Hecho en la app: la cotización y el conduce (remisión) imprimen con `DocumentoPapel` (`src/components/documento-venta/documento-papel.tsx`) desde el detalle de cada documento (acciones «Imprimir» y «Descargar PDF»); `plantillas_impresion` ya tiene filas para `cotizacion` y `conduce` y hereda notas/términos/logo de la factura si están vacías.
 
 ### 5.1 Cotización (Ingresos > Cotizaciones)
 

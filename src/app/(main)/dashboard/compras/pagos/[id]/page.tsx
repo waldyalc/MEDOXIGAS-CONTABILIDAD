@@ -1,17 +1,28 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { ArrowLeft, BookOpen } from "lucide-react";
+import { BookOpen } from "lucide-react";
 
+import {
+  type CampoInformacionDocumento,
+  CLASE_BOTON_DOCUMENTO,
+  DocumentoDetalle,
+  type EstadoDetalle,
+  InformacionDocumento,
+  TablaDocumento,
+  TarjetaDocumento,
+  TotalesDocumento,
+} from "@/components/documento/documento-detalle";
 import { Enlace } from "@/components/enlace";
-import { Badge } from "@/components/ui/badge";
+import { ComprobanteEgreso } from "@/components/impresion/comprobante-egreso";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableCell } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
 import { obtenerPagoProveedor } from "@/lib/compras/detalle";
 import type { MetodoPago } from "@/lib/compras/tipos";
 import { rutaAsiento, rutaCompra, rutaContacto, rutaCuenta } from "@/lib/enlaces";
+import { getEmpresa } from "@/lib/facturacion/consultas";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import { puedeAnularDocumento } from "@/lib/pagos/anulacion";
@@ -28,114 +39,98 @@ const ETIQUETAS_METODO: Record<MetodoPago, string> = {
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const rol = await getRol();
+  const [rol, pago, empresa] = await Promise.all([getRol(), obtenerPagoProveedor(id), getEmpresa()]);
   if (rol == null) redirect("/unauthorized");
-
-  const pago = await obtenerPagoProveedor(id);
   if (!pago) notFound();
 
   const puedeAnular = puedeAnularDocumento(rol, pago.estado);
+  const estado: EstadoDetalle =
+    pago.estado === "anulado" ? { etiqueta: "Anulado", tono: "red" } : { etiqueta: "Activo", tono: "green" };
+
+  const informacion: CampoInformacionDocumento[] = [
+    {
+      etiqueta: "Proveedor",
+      valor: <Enlace href={rutaContacto(pago.contacto_id)}>{pago.contacto?.nombre ?? "—"}</Enlace>,
+    },
+    { etiqueta: "RNC", valor: pago.contacto?.rnc_cedula ?? "—" },
+    { etiqueta: "Fecha", valor: formatoDia(pago.fecha) },
+    { etiqueta: "Método", valor: ETIQUETAS_METODO[pago.metodo] },
+    {
+      etiqueta: "Cuenta",
+      valor: pago.cuenta ? (
+        <Enlace href={rutaCuenta(pago.cuenta_id)}>{`${pago.cuenta.codigo} · ${pago.cuenta.nombre}`}</Enlace>
+      ) : (
+        "—"
+      ),
+    },
+    {
+      etiqueta: "Notas",
+      valor: pago.notas ? <span className="whitespace-pre-line">{pago.notas}</span> : "—",
+    },
+  ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-fit"
-          render={<Link href="/dashboard/compras/pagos" prefetch={false} />}
+    <DocumentoDetalle
+      rutaVolver="/dashboard/compras/pagos"
+      etiquetaVolver="Volver a pagos a proveedores"
+      titulo={`Pago a proveedor #${pago.numero}`}
+      estado={estado}
+      acciones={
+        <>
+          <ComprobanteEgreso pago={pago} empresa={empresa} classNameBoton={CLASE_BOTON_DOCUMENTO} />
+          {pago.asiento_id ? (
+            <Button
+              variant="outline"
+              className={CLASE_BOTON_DOCUMENTO}
+              render={<Link href={rutaAsiento(pago.asiento_id)} prefetch={false} />}
+            >
+              <BookOpen data-icon="inline-start" />
+              Ver asiento
+            </Button>
+          ) : null}
+          {puedeAnular ? <AccionesPagoProveedor pagoId={pago.id} numero={pago.numero} /> : null}
+        </>
+      }
+    >
+      <TarjetaDocumento empresa={empresa} numeroDocumento={String(pago.numero)}>
+        <InformacionDocumento titulo="Información del pago" campos={informacion} />
+
+        <TablaDocumento
+          titulo="Facturas aplicadas"
+          columnas={[
+            { titulo: "Número" },
+            { titulo: "NCF" },
+            { titulo: "Monto", alineadaDerecha: true },
+            { titulo: "Retención", alineadaDerecha: true },
+          ]}
+          vacio="Este pago no tiene facturas aplicadas."
+          hayFilas={pago.aplicaciones.length > 0}
         >
-          <ArrowLeft data-icon="inline-start" />
-          Pagos a proveedores
-        </Button>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">Pago a proveedor #{pago.numero}</h1>
-            <Badge variant={pago.estado === "anulado" ? "destructive" : "default"}>
-              {pago.estado === "anulado" ? "Anulado" : "Activo"}
-            </Badge>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {pago.asiento_id ? (
-              <Button variant="outline" render={<Link href={rutaAsiento(pago.asiento_id)} prefetch={false} />}>
-                <BookOpen data-icon="inline-start" />
-                Ver asiento
-              </Button>
-            ) : null}
-            {puedeAnular ? <AccionesPagoProveedor pagoId={pago.id} numero={pago.numero} /> : null}
-          </div>
-        </div>
-      </div>
+          {pago.aplicaciones.map((aplicacion) => (
+            <FilaNavegable key={aplicacion.factura_proveedor_id} href={rutaCompra(aplicacion.factura_proveedor_id)}>
+              <TableCell className="h-12 px-4 text-sm font-medium">
+                <Enlace href={rutaCompra(aplicacion.factura_proveedor_id)}>#{aplicacion.numero}</Enlace>
+              </TableCell>
+              <TableCell className="h-12 px-4 font-mono text-xs">{aplicacion.ncf ?? "—"}</TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
+                {formatoMoneda(aplicacion.monto)}
+              </TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
+                {formatoMoneda(aplicacion.retenido)}
+              </TableCell>
+            </FilaNavegable>
+          ))}
+        </TablaDocumento>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Fecha</dt>
-            <dd>{formatoDia(pago.fecha)}</dd>
-            <dt className="text-muted-foreground">Monto</dt>
-            <dd className="font-medium tabular-nums">{formatoMoneda(pago.monto)}</dd>
-            <dt className="text-muted-foreground">Retención</dt>
-            <dd className="tabular-nums">{formatoMoneda(pago.retenido)}</dd>
-            <dt className="text-muted-foreground">Método</dt>
-            <dd>{ETIQUETAS_METODO[pago.metodo]}</dd>
-            <dt className="text-muted-foreground">Proveedor</dt>
-            <dd>
-              <Enlace href={rutaContacto(pago.contacto_id)}>{pago.contacto?.nombre ?? "—"}</Enlace>
-            </dd>
-            <dt className="text-muted-foreground">Cuenta</dt>
-            <dd>
-              <Enlace href={rutaCuenta(pago.cuenta_id)}>
-                {pago.cuenta ? `${pago.cuenta.codigo} · ${pago.cuenta.nombre}` : "—"}
-              </Enlace>
-            </dd>
-            <dt className="text-muted-foreground">Notas</dt>
-            <dd className="whitespace-pre-line">{pago.notas ?? "—"}</dd>
-          </dl>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Facturas aplicadas</CardTitle>
-        </CardHeader>
-        <CardContent className="px-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-(--card-spacing)">Número</TableHead>
-                <TableHead>NCF</TableHead>
-                <TableHead className="text-right">Monto</TableHead>
-                <TableHead className="pr-(--card-spacing) text-right">Retención</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pago.aplicaciones.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground py-8 text-center">
-                    Este pago no tiene facturas aplicadas.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                pago.aplicaciones.map((aplicacion) => (
-                  <TableRow key={aplicacion.factura_proveedor_id}>
-                    <TableCell className="pl-(--card-spacing) font-medium">
-                      <Enlace href={rutaCompra(aplicacion.factura_proveedor_id)}>#{aplicacion.numero}</Enlace>
-                    </TableCell>
-                    <TableCell>{aplicacion.ncf ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatoMoneda(aplicacion.monto)}</TableCell>
-                    <TableCell className="pr-(--card-spacing) text-right tabular-nums">
-                      {formatoMoneda(aplicacion.retenido)}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+        <TotalesDocumento
+          filas={[
+            { etiqueta: "Monto", valor: formatoMoneda(pago.monto) },
+            { etiqueta: "Retención", valor: formatoMoneda(pago.retenido) },
+          ]}
+          total={formatoMoneda(pago.monto + pago.retenido)}
+          etiquetaTotal="Total aplicado"
+        />
+      </TarjetaDocumento>
+    </DocumentoDetalle>
   );
 }

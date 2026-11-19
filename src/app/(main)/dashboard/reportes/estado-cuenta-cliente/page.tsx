@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FileText, UserRound } from "lucide-react";
 
 import { BotonImprimir } from "@/components/boton-imprimir";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { SelectCampo } from "@/components/select-campo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -231,7 +232,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                   </TableHeader>
                   <TableBody>
                     {filtrados.map((fila) => (
-                      <TableRow key={fila.facturaId}>
+                      <FilaNavegable key={fila.facturaId} href={rutaFactura(fila.facturaId)}>
                         <TableCell>
                           <Link className="font-medium hover:underline" href={rutaFactura(fila.facturaId)}>
                             {fila.documento}
@@ -264,7 +265,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                         <TableCell className="text-right tabular-nums">{formatearRd(fila.retenido)}</TableCell>
                         <TableCell className="text-right tabular-nums">{formatearRd(fila.cobrado)}</TableCell>
                         <TableCell className="text-right font-medium tabular-nums">{formatearRd(fila.saldo)}</TableCell>
-                      </TableRow>
+                      </FilaNavegable>
                     ))}
                   </TableBody>
                 </Table>

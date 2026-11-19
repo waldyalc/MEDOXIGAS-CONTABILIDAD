@@ -8,6 +8,7 @@ export const ETIQUETAS_ORIGEN: Record<string, string> = {
   pago_proveedor: "Pago a proveedor",
   gasto_menor: "Gasto menor",
   manual: "Manual",
+  saldo_inicial: "Saldos iniciales",
   anulacion: "Anulación",
 };
 

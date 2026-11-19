@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, BookOpen } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -196,7 +197,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                   const registrada = registradas.get(periodo.periodo);
 
                   return (
-                    <TableRow key={periodo.periodo}>
+                    <FilaNavegable key={periodo.periodo} href={registrada ? rutaAsiento(registrada.asiento_id) : null}>
                       <TableCell className="pl-(--card-spacing) capitalize">{etiquetaMes(periodo.periodo)}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatearRd(registrada ? centavos(registrada.monto) : periodo.montoCentavos)}
@@ -217,7 +218,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                           <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
-                    </TableRow>
+                    </FilaNavegable>
                   );
                 })}
               </TableBody>

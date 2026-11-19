@@ -168,6 +168,7 @@ export function PanelMovimientos({
         columnas={columnas}
         filas={visibles}
         claveFila={(movimiento) => movimiento.id}
+        filaHref={(movimiento) => movimiento.documento.href ?? enlaceAsiento(movimiento.asientoId)}
         vacio={{
           filtrada: hayFiltro,
           icono: <Landmark className="size-14" strokeWidth={1.25} />,

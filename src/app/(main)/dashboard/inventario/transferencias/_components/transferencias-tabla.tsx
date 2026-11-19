@@ -85,6 +85,7 @@ export function TransferenciasTabla({
           columnas={columnas}
           filas={transferencias}
           claveFila={(transferencia) => transferencia.id}
+          filaHref={(transferencia) => rutaTransferenciaInventario(transferencia.id)}
           vacio={{
             titulo: "¡Aún no tienes transferencias!",
             descripcion: "Mueve existencia de un almacén a otro.",

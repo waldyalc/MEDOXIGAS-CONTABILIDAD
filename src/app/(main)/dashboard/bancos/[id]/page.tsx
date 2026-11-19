@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { ArrowLeft, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 
 import { EditarCuenta } from "@/components/contabilidad/cuenta-formulario";
 import { ContenedorLista, PillEstado } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRol } from "@/lib/auth/rol";
@@ -71,29 +71,28 @@ export default async function Page({
 
   return (
     <ContenedorLista>
-      <div className="flex flex-col gap-2">
-        <Button variant="ghost" size="sm" className="w-fit" render={<Link href="/dashboard/bancos" prefetch={false} />}>
-          <ArrowLeft data-icon="inline-start" />
-          Bancos y cajas
-        </Button>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-3xl tracking-tight">{cuenta.nombre}</h1>
-              {cuenta.activa ? null : <PillEstado tono="neutro">Inactiva</PillEstado>}
-            </div>
-            <p className="text-muted-foreground text-sm">
-              Conoce y administra toda la información de tu cuenta bancaria
-            </p>
-          </div>
+      <EncabezadoPagina
+        titulo={
+          <span className="flex flex-wrap items-center gap-2">
+            {cuenta.nombre}
+            {cuenta.activa ? null : <PillEstado tono="neutro">Inactiva</PillEstado>}
+          </span>
+        }
+        subtitulo="Conoce y administra toda la información de tu cuenta bancaria"
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Bancos", href: "/dashboard/bancos" },
+          { etiqueta: cuenta.nombre },
+        ]}
+        acciones={
           <AccionesCuenta
             cuenta={editable}
             cuentasCajaBanco={cuentasCajaBanco}
             puedeEscribir={puedeEscribir}
             fechaHoy={hoyRD()}
           />
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="rounded-2xl">

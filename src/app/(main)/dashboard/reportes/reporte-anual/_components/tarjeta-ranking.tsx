@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { Bar, BarChart, CartesianGrid, type TooltipValueType, XAxis, YAxis } from "recharts";
 
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -104,7 +105,7 @@ export function TarjetaRanking({ titulo, descripcion, columnaNombre, etiquetaVal
                   </TableHeader>
                   <TableBody>
                     {visibles.map((fila) => (
-                      <TableRow key={fila.id ?? `nombre:${fila.nombre}`}>
+                      <FilaNavegable key={fila.id ?? `nombre:${fila.nombre}`} href={fila.href}>
                         <TableCell>
                           {fila.href ? (
                             <Link href={fila.href} className="hover:underline">
@@ -118,7 +119,7 @@ export function TarjetaRanking({ titulo, descripcion, columnaNombre, etiquetaVal
                         <TableCell className="text-right tabular-nums">
                           {formatearPorcentajeAnual(fila.participacion)}
                         </TableCell>
-                      </TableRow>
+                      </FilaNavegable>
                     ))}
                   </TableBody>
                 </Table>

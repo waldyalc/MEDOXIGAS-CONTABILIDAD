@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ArrowLeftRight } from "lucide-react";
 
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import {
@@ -53,7 +54,7 @@ function urlPagina(pagina: number, filtros: Record<string, string>): string {
 
 function FilaTransaccion({ movimiento }: { movimiento: MovimientoTransaccion }) {
   return (
-    <TableRow>
+    <FilaNavegable href={urlMovimiento(movimiento)}>
       <TableCell>
         <Link href={urlMovimiento(movimiento)} className="font-medium hover:underline">
           {movimiento.comprobante}
@@ -81,7 +82,7 @@ function FilaTransaccion({ movimiento }: { movimiento: MovimientoTransaccion }) 
       <TableCell className="text-right tabular-nums">
         {movimiento.salidas > 0 ? formatearRd(movimiento.salidas) : ""}
       </TableCell>
-    </TableRow>
+    </FilaNavegable>
   );
 }
 

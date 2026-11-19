@@ -1,6 +1,7 @@
 import { cn } from "cn";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaCuenta } from "@/lib/enlaces";
 import { formatoPct } from "@/lib/formato";
@@ -55,8 +56,9 @@ export function TablaComparativa({ filas, rotuloCuenta, rotuloActual, rotuloAnte
           }
 
           return (
-            <TableRow
+            <FilaNavegable
               key={fila.clave}
+              href={fila.cuentaId ? rutaCuenta(fila.cuentaId) : null}
               className={cn(
                 fila.clase === "grupo" && "bg-muted/30 hover:bg-muted/30 font-medium",
                 fila.clase === "total" && "font-semibold",
@@ -76,7 +78,7 @@ export function TablaComparativa({ filas, rotuloCuenta, rotuloActual, rotuloAnte
                 )}
               </TableCell>
               <Montos fila={fila} />
-            </TableRow>
+            </FilaNavegable>
           );
         })}
       </TableBody>

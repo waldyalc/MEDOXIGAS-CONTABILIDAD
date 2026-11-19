@@ -91,6 +91,7 @@ export function PagosTabla({
       columnas={columnas}
       filas={pagos}
       claveFila={(pago) => pago.id}
+      filaHref={(pago) => rutaPagoRecibido(pago.id)}
       vacio={{
         filtrada: Boolean(busqueda),
         titulo: busqueda ? "Sin resultados" : "¡Aún no tienes pagos recibidos!",

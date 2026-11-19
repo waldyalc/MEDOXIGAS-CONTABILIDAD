@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "cn";
 
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export type TonoPill = "exito" | "pendiente" | "peligro" | "neutro" | "info";
@@ -98,22 +99,23 @@ function FilaLista<T>({
   seleccion,
   acciones,
   compacta,
+  href,
 }: {
   fila: T;
   columnas: readonly ColumnaLista<T>[];
   seleccion?: { cabecera: ReactNode; celda: (fila: T) => ReactNode };
   acciones?: (fila: T) => ReactNode;
   compacta: boolean;
+  href?: string | null;
 }) {
   const totalCeldas = columnas.length + (seleccion ? 1 : 0) + (acciones ? 1 : 0);
+  const clasesFila = cn(
+    compacta ? "h-11" : "h-14",
+    "border-border border-b hover:bg-slate-200/45 dark:hover:bg-slate-800/40",
+  );
 
-  return (
-    <TableRow
-      className={cn(
-        compacta ? "h-11" : "h-14",
-        "border-border border-b hover:bg-slate-200/45 dark:hover:bg-slate-800/40",
-      )}
-    >
+  const celdas = (
+    <>
       {seleccion ? (
         <TableCell className={clasesEspaciado(compacta, true, totalCeldas === 1)}>{seleccion.celda(fila)}</TableCell>
       ) : null}
@@ -139,8 +141,18 @@ function FilaLista<T>({
           {acciones(fila)}
         </TableCell>
       ) : null}
-    </TableRow>
+    </>
   );
+
+  if (href) {
+    return (
+      <FilaNavegable href={href} className={clasesFila}>
+        {celdas}
+      </FilaNavegable>
+    );
+  }
+
+  return <TableRow className={clasesFila}>{celdas}</TableRow>;
 }
 
 export function TablaLista<T>({
@@ -151,6 +163,7 @@ export function TablaLista<T>({
   seleccion,
   acciones,
   pie,
+  filaHref,
   densidad = "normal",
   className,
 }: {
@@ -158,6 +171,8 @@ export function TablaLista<T>({
   filas: readonly T[];
   claveFila: (fila: T) => string;
   vacio: VacioLista;
+  /** URL de la ficha de cada fila (la misma del enlace de la primera columna); null/undefined = fila no clicable. */
+  filaHref?: (fila: T) => string | null | undefined;
   /** Checkbox ya renderizado (cabecera y celda). */
   seleccion?: { cabecera: ReactNode; celda: (fila: T) => ReactNode };
   /** Columna final de 88 px con las acciones de la fila. */
@@ -219,6 +234,7 @@ export function TablaLista<T>({
               seleccion={seleccion}
               acciones={acciones}
               compacta={compacta}
+              href={filaHref?.(fila)}
             />
           ))
         )}

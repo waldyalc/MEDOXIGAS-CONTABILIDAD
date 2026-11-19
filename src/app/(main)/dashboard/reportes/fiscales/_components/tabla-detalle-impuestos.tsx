@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
@@ -32,7 +33,7 @@ export function TablaDetalleImpuestos({ filas, vacio }: Props) {
         </TableHeader>
         <TableBody>
           {filas.map((fila) => (
-            <TableRow key={`${fila.documentoId}-${fila.tipo}-${fila.tasa}`}>
+            <FilaNavegable key={`${fila.documentoId}-${fila.tipo}-${fila.tasa}`} href={fila.ruta}>
               <TableCell>
                 {fila.ruta == null ? (
                   <span className="font-medium">{fila.ncf || `#${fila.numero}`}</span>
@@ -56,7 +57,7 @@ export function TablaDetalleImpuestos({ filas, vacio }: Props) {
               <TableCell>{fila.impuestoNombre}</TableCell>
               <TableCell className="text-right tabular-nums">{formatearRd(fila.base)}</TableCell>
               <TableCell className="text-right tabular-nums">{formatearRd(fila.impuesto)}</TableCell>
-            </TableRow>
+            </FilaNavegable>
           ))}
         </TableBody>
       </Table>

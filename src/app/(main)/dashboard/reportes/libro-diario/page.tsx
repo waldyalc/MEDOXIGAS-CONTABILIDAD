@@ -1,6 +1,7 @@
 import { BookOpen } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -74,7 +75,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                 </TableHeader>
                 <TableBody>
                   {libro.filas.map((fila) => (
-                    <TableRow key={fila.clave}>
+                    <FilaNavegable key={fila.clave} href={rutaAsiento(fila.asientoId)}>
                       <TableCell className="tabular-nums">
                         <Enlace href={rutaAsiento(fila.asientoId)}>#{fila.asientoNumero}</Enlace>
                       </TableCell>
@@ -102,7 +103,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                       <TableCell className="text-right tabular-nums">
                         {fila.credito === 0 ? "" : formatearRd(fila.credito)}
                       </TableCell>
-                    </TableRow>
+                    </FilaNavegable>
                   ))}
                 </TableBody>
               </Table>
