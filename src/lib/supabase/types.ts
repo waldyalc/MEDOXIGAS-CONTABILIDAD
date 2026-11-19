@@ -3795,6 +3795,7 @@ export type Database = {
       crear_nota_credito_compra: { Args: { p: Json }; Returns: string }
       crear_nota_credito_venta: { Args: { p: Json }; Returns: string }
       crear_nota_debito_venta: { Args: { p: Json }; Returns: string }
+      crear_numeracion: { Args: { p: Json }; Returns: string }
       crear_orden_compra: { Args: { p: Json }; Returns: string }
       crear_pago_recurrente: { Args: { p: Json }; Returns: string }
       crear_producto: { Args: { p: Json }; Returns: string }
