@@ -12,8 +12,8 @@ Inspirado en Alegra (formas simples, todo enlazado), con **colores y componentes
 Los componentes viven en `src/components/ui/`. Úsalos; no los edites. Personaliza donde los consumes. Guía general: `docs/plantilla-diseno.md`.
 
 - **Prefijos y sufijos (RD$, %)** dentro del recuadro: `InputGroup`, `InputGroupAddon`, `InputGroupText` e `InputGroupInput` de `src/components/ui/input-group.tsx`.
-- **Listas desplegables:** usa `Select`, `SelectTrigger`, `SelectContent`, `SelectItem` y `SelectValue` de `src/components/ui/select.tsx`. No uses `NativeSelect` (la lista nativa del navegador) en formularios nuevos ni al retocar los existentes. Hoy varios formularios todavía usan `NativeSelect`.
-- **Fechas:** si existe `src/components/date-picker.tsx`, úsalo (`DatePicker`). Lo introdujo `feat/fac-ajustes`. Si aún no está en tu rama, copia el patrón Calendar + Popover de abajo (o de `src/components/date-range-picker.tsx`). No pongas `<input type="date">` nativo en pantallas nuevas.
+- **Listas desplegables:** usa `Select`, `SelectTrigger`, `SelectContent`, `SelectItem` y `SelectValue` de `src/components/ui/select.tsx`, o `SelectCampo` de `src/components/select-campo.tsx`. No uses `NativeSelect` (la lista nativa del navegador) fuera de `components/ui`.
+- **Fechas:** usa `DatePicker` de `src/components/date-picker.tsx`. No pongas `<input type="date">` nativo en pantallas nuevas.
 
 **No leas tipos en `node_modules`** (`@base-ui/react`, `react-day-picker`, etc.) para adivinar la API. Copia un uso real del repo, como los de la sección siguiente.
 
@@ -21,7 +21,7 @@ Los componentes viven en `src/components/ui/`. Úsalos; no los edites. Personali
 
 ### InputGroup (prefijo o sufijo dentro del recuadro)
 
-Patrón de `factura-form.tsx` en `feat/fac-ajustes`. `align="inline-start"` pone el texto a la izquierda (RD$); `align="inline-end"` lo pone a la derecha (%).
+Patrón de `src/components/documento-venta/documento-venta-form.tsx`. `align="inline-start"` pone el texto a la izquierda (RD$); `align="inline-end"` lo pone a la derecha (%).
 
 ```tsx
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
@@ -49,16 +49,21 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 </InputGroup>
 ```
 
-### Select (shadcn sobre @base-ui, no NativeSelect)
+### Select (shadcn sobre Base UI, no NativeSelect)
 
-Patrón exacto de `src/app/(main)/dashboard/contactos/_components/contactos-cliente.tsx`. El `Select` lleva `items` (array `{ value, label }`) y los mismos valores en `SelectItem`.
+Patrón de `src/components/contactos/formulario-contacto.tsx`. El `Select` lleva `items` (array `{ value, label }`) y los mismos valores en `SelectItem`.
 
 ```tsx
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const OPCIONES_TIPO = TIPOS_CONTACTO.map((tipo) => ({ value: tipo.valor, label: tipo.etiqueta }));
 
-<Select name="tipo" defaultValue={contacto?.tipo ?? "cliente"} items={OPCIONES_TIPO}>
+<Select
+  name="tipo"
+  defaultValue={contacto?.tipo ?? "cliente"}
+  items={OPCIONES_TIPO}
+  onValueChange={cambiarTipo}
+>
   <SelectTrigger id="tipo" className="w-full">
     <SelectValue />
   </SelectTrigger>
@@ -72,11 +77,11 @@ const OPCIONES_TIPO = TIPOS_CONTACTO.map((tipo) => ({ value: tipo.valor, label: 
 </Select>
 ```
 
-Controlado (como en la factura de `feat/fac-ajustes`): `value={...}` y `onValueChange={(valor: string | null) => { if (valor) ... }}`.
+Controlado: `value={...}` y `onValueChange={(valor: string | null) => { if (valor) ... }}`, como en `formulario-contacto.tsx` y `documento-venta-form.tsx`.
 
 ### DatePicker, Calendar y Popover
 
-Si `src/components/date-picker.tsx` está en tu rama (vino en `feat/fac-ajustes`), úsalo así, como en `factura-form.tsx` de esa rama. `value` y `onChange` van en `yyyy-MM-dd`; la etiqueta se ve en `dd/MM/yyyy`.
+`DatePicker` ya está en `main`: úsalo así, como en `src/components/documento-venta/documento-venta-form.tsx`. `value` y `onChange` van en `yyyy-MM-dd`; la etiqueta se ve en `dd/MM/yyyy`.
 
 ```tsx
 import { DatePicker } from "@/components/date-picker";

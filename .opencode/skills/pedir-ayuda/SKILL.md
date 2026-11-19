@@ -1,11 +1,13 @@
 ---
 name: pedir-ayuda
-description: Cuándo y cómo parar y preguntar a Coder con la herramienta question, en vez de dar vueltas con un error.
+description: Cuándo y cómo parar y preguntar al Orquestador (o a Waldy si eres la sesión principal) con la herramienta question, en vez de dar vueltas con un error.
 ---
 
 # Pedir ayuda
 
-Si te atascas, **pregunta a Coder** (el tech lead que lanza y vigila tu sesión). En T3 Code, la herramienta `question` aparece como una petición pendiente; Coder la lee, responde y tú sigues. No preguntes a Waldy. No sigas probando a ciegas.
+Si eres **subagente** y te atascas, **pregunta al Orquestador** (quien lanzó y vigila tu sesión). En T3 Code, la herramienta `question` aparece como una petición pendiente; el Orquestador la lee, responde y tú sigues. No preguntes a Waldy: él habla con el Orquestador. No sigas probando a ciegas.
+
+Si eres la **sesión principal**, la pregunta va a Waldy directamente.
 
 ## Cuándo preguntar
 
@@ -28,7 +30,7 @@ Nunca pegues claves ni el contenido de `.env`.
 
 ## Mientras esperas
 
-No inventes atajos: rutas temporales, saltarte el login, tocar el middleware, desactivar pruebas, `--no-verify`, convertir archivos en masa. No sigas probando a ciegas. Espera la respuesta.
+No inventes atajos: rutas temporales, saltarte el login, tocar el middleware, desactivar tests, `--no-verify`, convertir archivos en masa. No sigas probando a ciegas. Espera la respuesta.
 
 ## Duda chica
 

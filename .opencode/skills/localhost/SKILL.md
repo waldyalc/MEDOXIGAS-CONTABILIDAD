@@ -5,13 +5,13 @@ description: Cuándo (y cuándo no) levantar el servidor de desarrollo en un wor
 
 # Localhost
 
-**Por defecto no hagas verificación visual.** No tienes credenciales de login; esa revisión la hace Coder. No levantes el dev server, no abras el preview de T3 ni un navegador, salvo que el brief lo pida de forma explícita.
+**Por defecto no hagas verificación visual.** No tienes credenciales de login; esa revisión la hace el Orquestador. No levantes el dev server, no abras el preview de T3 ni un navegador, salvo que el brief lo pida de forma explícita.
 
-Localhost es la app corriendo en la computadora de Waldy con `pnpm dev`. Sirve para ver un cambio antes de subirlo a `prueba`. No es un ambiente aparte: las variables `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` de `.env.local` apuntan al **mismo proyecto Supabase** que producción y prueba. Lo que crees o borres aquí queda en la base real.
+Localhost es la app corriendo en la computadora de Waldy con `pnpm dev`. Sirve para ver un cambio antes de integrarlo a `main`. No es un ambiente aparte: las variables `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` de `.env.local` apuntan al **mismo proyecto Supabase** que producción. Lo que crees o borres aquí queda en la base real.
 
 ## Solo si el brief lo pide
 
-Si el brief no te pide ver la pantalla, termina con typecheck, Biome y los tests (skill `probar-cambios`) y empuja la rama. No intentes "echar un vistazo".
+Si el brief no te pide ver la pantalla, termina con typecheck, Biome y los tests (skill `probar-cambios`) y deja los commits en tu rama. No intentes "echar un vistazo".
 
 ## Dónde corres
 
@@ -37,7 +37,7 @@ Si falta `node_modules`, corre `pnpm install`. Luego usa un puerto libre distint
 pnpm dev -p 3001
 ```
 
-Si 3001 está ocupado, prueba 3002, 3003, etc. Para comprobar que responde:
+Si 3001 está ocupado, usa 3002, 3003, etc. Para comprobar que responde:
 
 ```powershell
 (Invoke-WebRequest -UseBasicParsing http://localhost:3001/login).StatusCode
@@ -50,7 +50,7 @@ Un `200` en `/login` significa que el servidor está arriba.
 `src/proxy.ts` (middleware de Next.js 16) llama a `updateSession` en `src/lib/supabase/proxy.ts`. Sin sesión, cualquier ruta que no sea `/login`, `/auth/callback` o un ícono redirige a `/login`. Si ya hay sesión, `/login` redirige a `/dashboard`.
 
 - No crees rutas temporales ni toques `src/proxy.ts` (ni un `middleware.ts`) para saltarte el login.
-- No inventes usuarios ni uses secretos de `.env.local` para entrar. Si el login te bloquea, para la revisión visual y repórtalo: Coder la hace.
+- No inventes usuarios ni uses secretos de `.env.local` para entrar. Si el login te bloquea, para la revisión visual y repórtalo: el Orquestador la hace.
 
 ## Datos
 
