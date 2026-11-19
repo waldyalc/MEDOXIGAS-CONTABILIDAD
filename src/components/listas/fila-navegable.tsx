@@ -16,11 +16,15 @@ const SELECTOR_INTERACTIVO =
  * ¿El click nació dentro de un elemento interactivo (link, botón, menú, input)?
  * Estructural, no `instanceof HTMLElement`: los iconos lucide son SVGElement
  * (un click en el ícono de un menú o link también debe ganar a la fila).
+ * `closest()` sube por los ancestros y la fila misma lleva `role="link"`: si el
+ * interactivo encontrado ES `fila`, el click va para la fila, no para un control.
  */
-export function dentroDeInteractivo(objetivo: unknown): boolean {
+export function dentroDeInteractivo(objetivo: unknown, fila: unknown): boolean {
   if (typeof objetivo !== "object" || objetivo === null) return false;
   const closest = (objetivo as { closest?: unknown }).closest;
-  return typeof closest === "function" && closest.call(objetivo, SELECTOR_INTERACTIVO) !== null;
+  if (typeof closest !== "function") return false;
+  const interactivo = closest.call(objetivo, SELECTOR_INTERACTIVO);
+  return interactivo !== null && interactivo !== fila;
 }
 
 /**
@@ -53,19 +57,19 @@ export function FilaNavegable({
   };
 
   const alClick = (evento: MouseEvent<HTMLTableRowElement>) => {
-    if (evento.button !== 0 || dentroDeInteractivo(evento.target)) return;
+    if (evento.button !== 0 || dentroDeInteractivo(evento.target, evento.currentTarget)) return;
     if (window.getSelection()?.toString()) return;
     navegar(evento.metaKey || evento.ctrlKey);
   };
 
   const alClickAuxiliar = (evento: MouseEvent<HTMLTableRowElement>) => {
-    if (evento.button !== 1 || dentroDeInteractivo(evento.target)) return;
+    if (evento.button !== 1 || dentroDeInteractivo(evento.target, evento.currentTarget)) return;
     evento.preventDefault();
     navegar(true);
   };
 
   const alTeclar = (evento: KeyboardEvent<HTMLTableRowElement>) => {
-    if (evento.key !== "Enter" || dentroDeInteractivo(evento.target)) return;
+    if (evento.key !== "Enter" || dentroDeInteractivo(evento.target, evento.currentTarget)) return;
     navegar(evento.metaKey || evento.ctrlKey);
   };
 
