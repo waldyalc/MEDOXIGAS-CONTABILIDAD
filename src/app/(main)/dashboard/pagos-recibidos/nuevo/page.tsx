@@ -12,7 +12,7 @@ import { registrarPagoMultifactura } from "@/lib/pagos/acciones";
 import { getDatosFormularioPago, getFacturaPago } from "@/lib/pagos/consultas";
 
 interface Props {
-  searchParams: Promise<{ factura?: string; cliente?: string }>;
+  searchParams: Promise<{ factura?: string; cliente?: string; cuenta?: string }>;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -38,17 +38,26 @@ export default async function Page({ searchParams }: Props) {
           <AlertDescription>Tu rol es de solo lectura. No puedes registrar pagos.</AlertDescription>
         </Alert>
       ) : (
-        <PagoContenido facturaId={params.factura} clienteId={params.cliente} />
+        <PagoContenido facturaId={params.factura} clienteId={params.cliente} cuentaId={params.cuenta} />
       )}
     </div>
   );
 }
 
-async function PagoContenido({ facturaId, clienteId }: { facturaId?: string; clienteId?: string }) {
+async function PagoContenido({
+  facturaId,
+  clienteId,
+  cuentaId,
+}: {
+  facturaId?: string;
+  clienteId?: string;
+  cuentaId?: string;
+}) {
   const datos = await getDatosFormularioPago();
   const factura = facturaId ? await getFacturaPago(facturaId, "recibido") : null;
   const candidato = factura?.contacto_id ?? clienteId ?? "";
   const cliente = UUID.test(candidato) ? candidato : "";
+  const cuenta = cuentaId != null && UUID.test(cuentaId) ? cuentaId : "";
 
   return (
     <PagoForm
@@ -61,6 +70,7 @@ async function PagoContenido({ facturaId, clienteId }: { facturaId?: string; cli
       retenciones={datos.retenciones}
       siguienteNumero={datos.siguienteNumero}
       initialContacto={cliente}
+      initialCuenta={cuenta}
       facturaInicial={factura}
       fechaHoy={hoyRD()}
       rutaCancelar="/dashboard/pagos-recibidos"

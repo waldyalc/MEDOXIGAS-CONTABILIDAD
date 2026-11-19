@@ -11,9 +11,17 @@ import { registrarPagoProveedorMultiple } from "@/lib/compras/acciones";
 import { cargarOpcionesPago } from "@/lib/compras/consultas";
 import { hoyRD } from "@/lib/facturacion/formato";
 
-export default async function Page() {
+interface Props {
+  searchParams: Promise<{ cuenta?: string }>;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export default async function Page({ searchParams }: Props) {
   const perfil = await getPerfil();
   if (perfil?.rol == null) redirect("/unauthorized");
+
+  const params = await searchParams;
 
   return (
     <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
@@ -30,14 +38,15 @@ export default async function Page() {
           <AlertDescription>Tu rol es de solo lectura. No puedes registrar pagos.</AlertDescription>
         </Alert>
       ) : (
-        <PagoProveedorContenido />
+        <PagoProveedorContenido cuentaId={params.cuenta} />
       )}
     </div>
   );
 }
 
-async function PagoProveedorContenido() {
+async function PagoProveedorContenido({ cuentaId }: { cuentaId?: string }) {
   const datos = await cargarOpcionesPago();
+  const cuenta = cuentaId != null && UUID.test(cuentaId) ? cuentaId : "";
 
   return (
     <PagoForm
@@ -49,6 +58,7 @@ async function PagoProveedorContenido() {
       centrosCosto={datos.centrosCosto}
       retenciones={datos.retenciones}
       siguienteNumero={datos.siguienteNumero}
+      initialCuenta={cuenta}
       fechaHoy={hoyRD()}
       rutaCancelar="/dashboard/compras/pagos"
       accion={registrarPagoProveedorMultiple}
