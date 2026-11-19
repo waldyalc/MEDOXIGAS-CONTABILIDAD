@@ -4,15 +4,22 @@ import { type FormEvent, useEffect, useRef, useState, useTransition } from "reac
 
 import { ChevronDown } from "lucide-react";
 
-import { FORM_INPUT, FORM_SELECT, FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
+import {
+  FORM_INPUT,
+  FORM_INPUT_GROUP,
+  FORM_SELECT,
+  FORM_TEXTAREA,
+  FormField,
+} from "@/components/formularios/formulario";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DialogClose, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { actualizarContacto, crearContacto } from "@/lib/contactos/actions";
-import { type Contacto, SIN_LISTA_PRECIO, TIPOS_CONTACTO } from "@/lib/contactos/contactos";
+import { type Contacto, type ContactoTipo, SIN_LISTA_PRECIO, TIPOS_CONTACTO } from "@/lib/contactos/contactos";
 import { completarConDatosDgii } from "@/lib/dgii/completar";
 import type { DatosContribuyenteDgii } from "@/lib/dgii/consulta";
 import type { ListaPrecio } from "@/lib/inventario/tipos";
@@ -40,6 +47,7 @@ export function FormularioContacto({
   const [pendiente, startTransition] = useTransition();
   const [nombre, setNombre] = useState(contacto?.nombre ?? "");
   const [rncCedula, setRncCedula] = useState(contacto?.rnc_cedula ?? "");
+  const [tipo, setTipo] = useState<ContactoTipo>(contacto?.tipo ?? "cliente");
   const { cargando, mensaje, consultar, limpiar } = useConsultaDgii();
   const autoRellenado = useRef({ nombre: "" });
   const valores = useRef({ nombre: "" });
@@ -72,6 +80,10 @@ export function FormularioContacto({
     if (automatica && tipo === null) return;
 
     void consultar(digitos, tipo ?? (digitos.length > 9 ? "cedula" : "rnc"), completarConDgii);
+  }
+
+  function cambiarTipo(valor: string | null) {
+    if (valor === "cliente" || valor === "proveedor" || valor === "ambos") setTipo(valor);
   }
 
   function enviar(event: FormEvent<HTMLFormElement>) {
@@ -108,7 +120,12 @@ export function FormularioContacto({
         </FormField>
 
         <FormField htmlFor="tipo" label="Tipo">
-          <Select name="tipo" defaultValue={contacto?.tipo ?? "cliente"} items={OPCIONES_TIPO}>
+          <Select
+            name="tipo"
+            defaultValue={contacto?.tipo ?? "cliente"}
+            items={OPCIONES_TIPO}
+            onValueChange={cambiarTipo}
+          >
             <SelectTrigger id="tipo" className={FORM_SELECT}>
               <SelectValue />
             </SelectTrigger>
@@ -145,6 +162,22 @@ export function FormularioContacto({
           </div>
           <MensajeDgii mensaje={mensaje} />
         </FormField>
+
+        {tipo === "cliente" || tipo === "ambos" ? (
+          <FormField htmlFor="limite_credito" label="Límite de crédito">
+            <InputGroup className={FORM_INPUT_GROUP}>
+              <InputGroupAddon align="inline-start">RD$</InputGroupAddon>
+              <InputGroupInput
+                id="limite_credito"
+                name="limite_credito"
+                inputMode="decimal"
+                placeholder="Sin límite"
+                defaultValue={contacto?.limite_credito == null ? "" : String(contacto.limite_credito)}
+                className="h-full min-w-0 pl-1 tabular-nums"
+              />
+            </InputGroup>
+          </FormField>
+        ) : null}
 
         <Collapsible
           className="rounded-xl border border-slate-200 sm:col-span-2"

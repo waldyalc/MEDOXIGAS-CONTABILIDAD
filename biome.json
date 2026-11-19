@@ -41,6 +41,7 @@
       "!dist",
       "!out",
       "!docs/alegra",
+      "!docs/reportes",
       "!src/components/ui",
       "!src/components/calendar",
       "!src/lib/supabase/types.ts"

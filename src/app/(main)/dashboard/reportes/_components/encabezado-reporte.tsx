@@ -1,3 +1,7 @@
+import type { ReactNode } from "react";
+
+import type { MigaDePan } from "@/components/migas-de-pan";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { formatoDia } from "@/lib/formato";
 
 import { BotonImprimir } from "./boton-imprimir";
@@ -5,21 +9,28 @@ import { BotonImprimir } from "./boton-imprimir";
 interface Props {
   titulo: string;
   descripcion: string;
-  desde: string;
-  hasta: string;
+  /** Rango ya formateado. Si no llega, se arma con `desde` y `hasta`. */
+  rango?: string;
+  desde?: string;
+  hasta?: string;
+  migas?: readonly MigaDePan[];
+  acciones?: ReactNode;
 }
 
-export function EncabezadoReporte({ titulo, descripcion, desde, hasta }: Props) {
+export function EncabezadoReporte({ titulo, descripcion, rango, desde, hasta, migas, acciones }: Props) {
+  const textoRango = rango ?? (desde && hasta ? `Del ${formatoDia(desde)} al ${formatoDia(hasta)}` : null);
+
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{titulo}</h1>
-        <p className="text-muted-foreground text-sm">{descripcion}</p>
-        <p className="text-muted-foreground text-sm">
-          Del {formatoDia(desde)} al {formatoDia(hasta)}
-        </p>
-      </div>
-      <BotonImprimir />
-    </div>
+    <EncabezadoPagina
+      titulo={titulo}
+      subtitulo={textoRango ? `${descripcion} ${textoRango}` : descripcion}
+      migas={migas}
+      acciones={
+        <>
+          {acciones}
+          <BotonImprimir />
+        </>
+      }
+    />
   );
 }
