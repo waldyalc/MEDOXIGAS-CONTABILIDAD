@@ -80,6 +80,22 @@ test.describe("tablas unificadas", () => {
     expect(Math.abs((medidas?.izquierda ?? 0) - (medidas?.derecha ?? 0))).toBeLessThanOrEqual(2);
   });
 
+  test("Facturas: click en una celda sin link de la fila navega a la ficha", async ({ page }) => {
+    // Regresión: la fila lleva role="link" y closest() la encontraba como
+    // «interactivo», así que el click nunca navegaba fuera de los links.
+    await page.goto("/dashboard/facturacion");
+    const tarjeta = page.locator('[data-lista="facturas"]');
+    const fila = tarjeta.locator('tbody tr[role="link"]');
+    test.skip((await fila.count()) === 0, "la cuenta de prueba no tiene facturas");
+
+    const destino = await fila.first().getAttribute("data-href");
+    expect(destino).toBeTruthy();
+
+    // Una celda plana (Tipo, Fecha…): el click lo toma la fila, no un control.
+    await fila.first().locator("td:not(:has(a)):not(:has(button))").first().click();
+    await expect(page).toHaveURL(destino ?? "");
+  });
+
   test("Facturas: la búsqueda sin resultados muestra el vacío y conserva el pie", async ({ page }) => {
     await page.goto("/dashboard/facturacion?q=zzzznoexiste");
     const tarjeta = page.locator('[data-lista="facturas"]');

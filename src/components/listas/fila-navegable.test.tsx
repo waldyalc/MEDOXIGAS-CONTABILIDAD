@@ -21,6 +21,19 @@ function fila(href?: string | null) {
   );
 }
 
+// closest() de verdad recorre el elemento Y sus ancestros: este nodo falso
+// reproduce ese contrato para pillar que la fila no se trague su propio click.
+type NodoFalso = { closest: (selector: string) => NodoFalso | null };
+
+function nodo(coincide: (selector: string) => boolean, padre?: NodoFalso): NodoFalso {
+  const el: NodoFalso = {
+    closest: (selector) => (coincide(selector) ? el : (padre?.closest(selector) ?? null)),
+  };
+  return el;
+}
+
+const esToken = (token: string) => (selector: string) => selector.split(",").some((parte) => parte.trim() === token);
+
 describe("FilaNavegable", () => {
   it("la fila con destino se marca como link enfocable y lleva su URL", () => {
     const html = fila("/dashboard/facturacion/abc-123");
@@ -43,12 +56,37 @@ describe("FilaNavegable", () => {
     const enLink = { closest: (selector: string) => (selector.includes("a") ? {} : null) };
     const fuera = { closest: () => null };
 
-    expect(dentroDeInteractivo(enLink)).toBe(true);
-    expect(dentroDeInteractivo(fuera)).toBe(false);
-    expect(dentroDeInteractivo(null)).toBe(false);
-    expect(dentroDeInteractivo({})).toBe(false);
+    expect(dentroDeInteractivo(enLink, null)).toBe(true);
+    expect(dentroDeInteractivo(fuera, null)).toBe(false);
+    expect(dentroDeInteractivo(null, null)).toBe(false);
+    expect(dentroDeInteractivo({}, null)).toBe(false);
     // El target puede ser un SVG (ícono dentro de un botón/link): debe contar igual.
-    expect(dentroDeInteractivo({ closest: () => ({ tagName: "BUTTON" }) })).toBe(true);
+    expect(dentroDeInteractivo({ closest: () => ({ tagName: "BUTTON" }) }, null)).toBe(true);
+  });
+
+  it("la fila role=link no se traga su propio click en una celda vacía", () => {
+    // Regresión: la fila lleva role="link", que está en SELECTOR_INTERACTIVO;
+    // como closest() sube por los ancestros, sin excluir la fila todo click
+    // dentro de ella se tragaba y nunca navegaba.
+    const filaEl = nodo(esToken('[role="link"]'));
+    const celda = nodo(() => false, filaEl);
+    const texto = nodo(() => false, celda);
+
+    expect(dentroDeInteractivo(celda, filaEl)).toBe(false);
+    expect(dentroDeInteractivo(texto, filaEl)).toBe(false);
+    // Click en el borde de la propia fila: también navega.
+    expect(dentroDeInteractivo(filaEl, filaEl)).toBe(false);
+  });
+
+  it("un link o botón anidado dentro de la fila sí gana el click", () => {
+    const filaEl = nodo(esToken('[role="link"]'));
+    const link = nodo(esToken("a"), filaEl);
+    const iconoSvg = nodo(() => false, link);
+    const boton = nodo(esToken("button"), filaEl);
+
+    expect(dentroDeInteractivo(link, filaEl)).toBe(true);
+    expect(dentroDeInteractivo(iconoSvg, filaEl)).toBe(true);
+    expect(dentroDeInteractivo(boton, filaEl)).toBe(true);
   });
 });
 
