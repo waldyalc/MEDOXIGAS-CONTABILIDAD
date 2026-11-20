@@ -16,6 +16,23 @@ export interface FormatoDgii {
   nombre: string;
   encabezado: readonly ColumnaDgii[];
   detalle: readonly ColumnaDgii[];
+  /**
+   * Columnas que van al TXT, en orden. Cuando no se indica, van todas las del
+   * detalle. El 607 lo usa para mostrar en pantalla/Excel columnas del archivo
+   * de Alegra que no existen en el TXT (Monto facturado por exportaciones).
+   */
+  columnasTexto?: readonly string[];
+}
+
+/** Columnas del detalle que se escriben en el TXT, en orden. */
+export function columnasTextoDgii(formato: FormatoDgii): ColumnaDgii[] {
+  if (formato.columnasTexto == null) return [...formato.detalle];
+
+  const porClave = new Map(formato.detalle.map((columna) => [columna.clave, columna]));
+  return formato.columnasTexto.flatMap((clave) => {
+    const columna = porClave.get(clave);
+    return columna == null ? [] : [columna];
+  });
 }
 
 export function tablaDgii(formato: FormatoDgii, filas: readonly FilaDgii[], subtitulo?: string): TablaReporte {
