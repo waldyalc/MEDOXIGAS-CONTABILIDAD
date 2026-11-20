@@ -218,9 +218,17 @@ export function MapeoCliente({
       encabezado: "Concepto",
       className: "min-w-56",
       celda: (fila) => (
-        <div className="flex flex-col">
-          <span className="font-medium">{fila.concepto_nombre}</span>
-          <span className="text-muted-foreground font-mono text-xs">{fila.concepto_codigo}</span>
+        <div className="flex items-start gap-2">
+          {estaCambiada(fila) ? (
+            <span className="mt-1.5 inline-flex shrink-0">
+              <span className="bg-amber-500 size-2 rounded-full" aria-hidden="true" />
+              <span className="sr-only">Cambio sin guardar</span>
+            </span>
+          ) : null}
+          <div className="flex flex-col">
+            <span className="font-medium">{fila.concepto_nombre}</span>
+            <span className="text-muted-foreground font-mono text-xs">{fila.concepto_codigo}</span>
+          </div>
         </div>
       ),
     },
