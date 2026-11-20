@@ -28,12 +28,7 @@ export function AppSidebar({ rol, className, ...props }: React.ComponentProps<ty
   const grupos = filtrarItemsPorRol(rol);
 
   return (
-    <Sidebar
-      {...props}
-      variant={variant}
-      collapsible={collapsible}
-      className={cn("dark:border-sidebar-border border-[#e2e8f0]", className)}
-    >
+    <Sidebar {...props} variant={variant} collapsible={collapsible} className={cn("border-sidebar-border", className)}>
       <SidebarHeader className="h-[70px] shrink-0 flex-row items-center justify-between gap-0 px-2 py-[3px]! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
         <Link
           href="/dashboard"

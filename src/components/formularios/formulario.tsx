@@ -5,19 +5,19 @@ import { cn } from "cn";
 import { Label } from "@/components/ui/label";
 
 export const FORM_INPUT =
-  "h-10 rounded-[10px] border-input bg-background px-2 text-base text-foreground placeholder:text-muted-foreground hover:border-ring focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50";
+  "h-10 rounded-[10px] border-input bg-card dark:bg-background px-2 text-base text-foreground placeholder:text-muted-foreground hover:border-ring focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50";
 
 export const FORM_SELECT =
-  "w-full rounded-[10px] border-input bg-background px-2 text-base text-foreground hover:border-ring focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 data-[size=default]:h-10";
+  "w-full rounded-[10px] border-input bg-card dark:bg-background px-2 text-base text-foreground hover:border-ring focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 data-[size=default]:h-10";
 
 export const FORM_COMBO =
-  "h-10 rounded-[10px] border-input bg-background px-2 text-base text-foreground placeholder:text-muted-foreground hover:border-ring focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 [&>input]:text-base";
+  "h-10 rounded-[10px] border-input bg-card dark:bg-background px-2 text-base text-foreground placeholder:text-muted-foreground hover:border-ring focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 [&>input]:text-base";
 
 export const FORM_INPUT_GROUP =
-  "h-10 w-full rounded-[10px] border-input bg-background hover:border-ring has-[[data-slot=input-group-control]:focus-visible]:border-ring has-[[data-slot=input-group-control]:focus-visible]:ring-2 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/50";
+  "h-10 w-full rounded-[10px] border-input bg-card dark:bg-background hover:border-ring has-[[data-slot=input-group-control]:focus-visible]:border-ring has-[[data-slot=input-group-control]:focus-visible]:ring-2 has-[[data-slot=input-group-control]:focus-visible]:ring-ring/50";
 
 export const FORM_TEXTAREA =
-  "min-h-20 rounded-[10px] border-input bg-background text-base text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50";
+  "min-h-20 rounded-[10px] border-input bg-card dark:bg-background text-base text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50";
 
 export const FORM_BUTTON = "h-11 rounded-[12px] px-6 text-base font-medium";
 

@@ -5,7 +5,7 @@ value: medoxigas
 
 :root[data-theme-preset="medoxigas"] {
   --radius: 0.625rem;
-  --background: #ffffff;
+  --background: #f4f7f9;
   --foreground: #12233f;
   --card: #ffffff;
   --card-foreground: #12233f;
@@ -20,7 +20,7 @@ value: medoxigas
   --accent: #eaf0fc;
   --accent-foreground: #0a2352;
   --destructive: #c62f2f;
-  --border: #dbe3f2;
+  --border: #e2e8f0;
   --input: #dbe3f2;
   --ring: #1e56c7;
   --chart-1: #1e56c7;
@@ -32,9 +32,9 @@ value: medoxigas
   --sidebar-foreground: #12233f;
   --sidebar-primary: #1e56c7;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eaf0fc;
-  --sidebar-accent-foreground: #0a2352;
-  --sidebar-border: #dbe3f2;
+  --sidebar-accent: #eff4f6;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
   --sidebar-ring: #1e56c7;
   --brand-dark: #0a2352;
 }

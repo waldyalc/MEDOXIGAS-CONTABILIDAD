@@ -69,7 +69,7 @@ export function DatePicker({
             aria-invalid={ariaInvalid}
             aria-describedby={ariaDescribedBy}
             className={cn(
-              "border-border bg-background text-foreground hover:border-ring hover:bg-background focus-visible:border-ring aria-expanded:border-ring aria-expanded:bg-background aria-expanded:text-foreground h-10 w-full justify-start gap-2 rounded-[10px] px-2 text-base font-normal focus-visible:ring-0 aria-expanded:ring-0",
+              "border-border bg-card dark:bg-background text-foreground hover:border-ring hover:bg-background focus-visible:border-ring aria-expanded:border-ring aria-expanded:bg-background aria-expanded:text-foreground h-10 w-full justify-start gap-2 rounded-[10px] px-2 text-base font-normal focus-visible:ring-0 aria-expanded:ring-0",
               className,
             )}
           >

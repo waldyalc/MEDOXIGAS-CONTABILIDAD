@@ -67,7 +67,7 @@ export function BusquedaGlobal({ rol }: Props) {
         type="button"
         onClick={abrir}
         aria-label={`Buscar en Medoxigas Contabilidad (${atajo}K)`}
-        className="border-input bg-background text-muted-foreground hover:border-ring/60 hover:bg-muted/50 focus-visible:border-ring focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50 hidden h-9 w-full max-w-xl items-center gap-2 rounded-lg border px-3 text-sm transition-colors focus-visible:ring-3 focus-visible:outline-none md:flex"
+        className="border-slate-200 bg-slate-100 text-[#94A3B8] hover:border-ring/60 hover:bg-slate-100 focus-visible:border-ring focus-visible:ring-ring/50 dark:border-input dark:bg-input/30 dark:hover:bg-input/50 hidden h-9 w-full max-w-xl items-center gap-2 rounded-lg border px-3 text-sm transition-colors focus-visible:ring-3 focus-visible:outline-none md:flex"
       >
         <Search className="size-4 shrink-0" />
         <span className="flex-1 truncate text-left">Buscar…</span>

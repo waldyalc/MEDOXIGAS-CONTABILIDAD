@@ -38,7 +38,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
           "[html[data-content-layout=centered]_&>*]:w-full",
           "[html[data-content-layout=centered]_&>*]:max-w-screen-2xl",
           "peer-data-[variant=inset]:border",
-          "bg-muted dark:bg-background",
+          "bg-background",
           "[--dashboard-header-height:70px]",
           "min-w-0 overflow-x-clip",
         )}
@@ -47,7 +47,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
           className={cn(
             "border-border bg-card dark:bg-background flex h-[70px] shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-[70px] print:hidden",
             // Handle sticky navbar style with conditional classes so blur, background, z-index, and rounded corners remain consistent across all SidebarVariant layouts.
-            "[html[data-navbar-style=sticky]_&]:bg-background/50 [html[data-navbar-style=sticky]_&]:sticky [html[data-navbar-style=sticky]_&]:top-0 [html[data-navbar-style=sticky]_&]:z-50 [html[data-navbar-style=sticky]_&]:overflow-hidden [html[data-navbar-style=sticky]_&]:rounded-t-[inherit] [html[data-navbar-style=sticky]_&]:backdrop-blur-md",
+            "[html[data-navbar-style=sticky]_&]:sticky [html[data-navbar-style=sticky]_&]:top-0 [html[data-navbar-style=sticky]_&]:z-50 [html[data-navbar-style=sticky]_&]:overflow-hidden [html[data-navbar-style=sticky]_&]:rounded-t-[inherit]",
           )}
         >
           <div className="flex w-full items-center gap-2 px-4 lg:px-6">
