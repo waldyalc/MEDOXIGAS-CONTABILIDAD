@@ -16,7 +16,8 @@
 --   · public.empresa               → la fila id = 1 se conserva tal cual.
 --   · public.cuentas / public.config_contable → catálogo y configuración.
 --   · Semillas: impuestos, retenciones, monedas, términos de pago,
---     plantillas de impresión, almacén principal y lista de precios general.
+--     plantillas de impresión, motivos de anulación, almacén principal y
+--     lista de precios general.
 --   · Esquema, migraciones, RLS, funciones, triggers y buckets.
 --
 -- CÓMO EJECUTARLO (léelo entero antes)
@@ -66,9 +67,9 @@ begin
 end $$;
 
 -- ===========================================================================
--- 0.1) INVENTARIO DE LAS 64 TABLAS DE public
+-- 0.1) INVENTARIO DE LAS 65 TABLAS DE public
 -- ===========================================================================
--- 51 se vacían (paso 1) y 13 se conservan (paso 3). Los marcadores
+-- 51 se vacían (paso 1) y 14 se conservan (paso 3). Los marcadores
 -- @conservar son el candado: src/lib/supabase/reset-virgen.test.ts compara
 -- esta lista + el TRUNCATE contra TODAS las tablas de supabase/migrations y
 -- falla si una tabla queda sin clasificar.
@@ -86,6 +87,7 @@ end $$;
 -- @conservar public.listas_precios
 -- @conservar public.numeraciones
 -- @conservar public.tipos_entrada_diario
+-- @conservar public.motivos_anulacion
 
 -- ===========================================================================
 -- 1) VACIAR las tablas de documentos, usuario y prueba
