@@ -74,6 +74,14 @@ describe("armarTicketFactura", () => {
     expect(valor(ticket.totales, "Total")).toBe("RD$ 236.00");
   });
 
+  test("si la respuesta no trae creado_en usa la hora de recepción", () => {
+    const venta = ventaEjemplo();
+    const sinHora: VentaPOSResultado = { ...venta, factura: { ...venta.factura, creado_en: null } };
+    const ticket = armarTicketFactura(sinHora, null, { recibido_en: "2026-11-20T15:10:00-04:00" });
+
+    expect(ticket.encabezado.lineas).toContain("Fecha: 20/11/2026 03:10 p. m.");
+  });
+
   test("sin precio unitario no imprime la columna ni la nota de ITBIS incluido", () => {
     const ticket = armarTicketFactura(ventaEjemplo(), plantilla({ mostrar_precio_unitario: false }));
 

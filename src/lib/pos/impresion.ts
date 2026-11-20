@@ -99,6 +99,11 @@ export interface OpcionesCartaPOS {
   pie?: string | null;
 }
 
+export interface OpcionesTicketPOS {
+  /** Hora de recepción cuando la RPC de la venta aún no devuelve `creado_en`. */
+  recibido_en?: string | null;
+}
+
 export interface DocumentoCartaFacturaPOS {
   tipo: "factura";
   empresa: Empresa | null;
@@ -332,12 +337,16 @@ function encabezadoConEmpresa(
 // Tickets
 // ---------------------------------------------------------------------------
 
-export function armarTicketFactura(resultado: VentaPOSResultado, plantilla?: PlantillaTicket | null): TicketPOSPayload {
+export function armarTicketFactura(
+  resultado: VentaPOSResultado,
+  plantilla?: PlantillaTicket | null,
+  opciones: OpcionesTicketPOS = {},
+): TicketPOSPayload {
   const normalizada = normalizarPlantilla(plantilla ?? resultado.terminal.plantilla_ticket);
   const factura = resultado.factura;
   const lineas = [
     ...(factura.ncf ? [`NCF ${factura.ncf}`] : []),
-    `Fecha: ${fechaConHora(factura.fecha, factura.creado_en)}`,
+    `Fecha: ${fechaConHora(factura.fecha, factura.creado_en ?? opciones.recibido_en)}`,
     `Terminal: ${resultado.terminal.nombre}`,
     `Turno No ${resultado.turno.numero}`,
     ...(resultado.cajero ? [`Cajero: ${resultado.cajero}`] : []),
@@ -516,7 +525,11 @@ export function armarTicketCierre(resultado: CierreTurnoPOS, plantilla?: Plantil
     },
     {
       titulo: "Total de movimientos",
-      filas: [fila("Ingresos", String(resumen.ingresos.cantidad)), fila("Retiros", String(resumen.retiros.cantidad))],
+      filas: [
+        fila("Ingresos", String(resumen.ingresos.cantidad)),
+        fila("Retiros", String(resumen.retiros.cantidad)),
+        fila("Total", String(resumen.ingresos.cantidad + resumen.retiros.cantidad)),
+      ],
     },
   ];
 
