@@ -678,7 +678,7 @@ function LateralFormulario({
       <p className="text-muted-foreground flex items-start gap-1.5 text-xs">
         <TriangleAlert className="mt-0.5 size-3.5 shrink-0" />
         {producto
-          ? "Los cambios de cantidad se registran como ajuste de inventario."
+          ? "Al guardar, el asiento de inventario inicial se ajusta automáticamente."
           : "La cantidad inicial entra al almacén elegido al guardar."}
       </p>
     </aside>
@@ -686,12 +686,10 @@ function LateralFormulario({
 }
 
 function CamposCantidadCosto({
-  producto,
   valores,
   controlaInventario,
   cambiar,
 }: {
-  readonly producto: ProductoEditable | null;
   readonly valores: ValoresFormulario;
   readonly controlaInventario: boolean;
   readonly cambiar: (cambios: Partial<ValoresFormulario>) => void;
@@ -700,7 +698,7 @@ function CamposCantidadCosto({
 
   return (
     <>
-      <CampoFormulario htmlFor="cantidad" label={producto ? "Cantidad actual" : "Cantidad inicial"}>
+      <CampoFormulario htmlFor="cantidad" label="Cantidad inicial">
         <Input
           id="cantidad"
           name="cantidad"
@@ -1070,12 +1068,7 @@ export function FormularioProducto({
             </FormSectionTitle>
 
             <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
-              <CamposCantidadCosto
-                producto={producto}
-                valores={valores}
-                controlaInventario={controlaInventario}
-                cambiar={cambiar}
-              />
+              <CamposCantidadCosto valores={valores} controlaInventario={controlaInventario} cambiar={cambiar} />
 
               <CampoFormulario htmlFor="precio" label="Precio base" required error={validacion.errorDe("precio")}>
                 <Input
