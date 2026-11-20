@@ -2653,6 +2653,19 @@ begin
     );
   end if;
 
+  -- La parte reembolsada en efectivo deja de ser crédito a favor de la
+  -- factura: la NC la acreditó a CxC y el asiento anterior la debitó, así que
+  -- el submayor de la factura debe bajar igual para no divergir del mayor.
+  if v_monto_efectivo > 0 then
+    update public.facturas f
+    set credito = round(f.credito - v_monto_efectivo, 2),
+        estado = case
+          when round(f.pagado + (f.credito - v_monto_efectivo), 2) >= f.total then 'pagada'
+          else 'abierta'
+        end
+    where f.id = v_factura_id;
+  end if;
+
   select * into v_nota
   from public.notas_credito_venta n
   where n.id = v_nota_id;
