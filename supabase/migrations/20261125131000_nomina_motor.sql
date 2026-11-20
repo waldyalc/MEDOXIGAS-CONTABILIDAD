@@ -967,6 +967,7 @@ declare
   v_mes_inicio int;
   v_mes_fin int;
   v_meses int;
+  v_periodos_restantes int;
   v_base_mensual_tss numeric;
   v_base_mensual_isr numeric;
   v_ingreso_anual numeric;
@@ -1159,14 +1160,32 @@ begin
     else 12
   end;
   v_meses := greatest(1, v_mes_fin - v_mes_inicio + 1);
-  v_ingreso_anual := v_base_mensual_isr * v_meses;
+  -- Proyección por periodos de pago que faltan en el año (incluido este),
+  -- no por meses completos: un ingreso a mitad de quincena no puede retener
+  -- como si hubiera trabajado el mes entero.
+  v_periodos_restantes := case
+    when v_periodo.frecuencia = 'mensual'
+      then v_mes_fin - extract(month from v_periodo.fecha_fin)::int + 1
+    when extract(day from v_periodo.fecha_fin)::int <= 15
+      then 2 * (v_mes_fin - extract(month from v_periodo.fecha_fin)::int) + 2
+    else 2 * (v_mes_fin - extract(month from v_periodo.fecha_fin)::int) + 1
+  end;
+  v_periodos_restantes := greatest(1, v_periodos_restantes);
+  if v_empleado.fecha_fin is not null
+    and v_empleado.fecha_fin between v_periodo.fecha_inicio and v_periodo.fecha_fin then
+    v_periodos_restantes := 1;
+  end if;
+
+  v_ingreso_anual := v_base_isr
+    + (v_periodos_restantes - 1) * round(v_empleado.salario_mensual / v_periodos_por_mes, 2);
   v_sfs_proy := round(
     least(v_base_mensual_tss, v_params.tope_sfs_mensual) * v_params.tasa_sfs_empleado / 100, 2
   );
   v_afp_proy := round(
     least(v_base_mensual_tss, v_params.tope_afp_mensual) * v_params.tasa_afp_empleado / 100, 2
   );
-  v_tss_anual := (v_sfs_proy + v_afp_proy) * v_meses;
+  v_tss_anual := (v_sfs + v_afp)
+    + (v_periodos_restantes - 1) * (v_sfs_proy + v_afp_proy);
   v_base_gravable := greatest(0, v_ingreso_anual - v_tss_anual);
 
   v_tramo := null;
@@ -1187,7 +1206,7 @@ begin
       + coalesce((v_tramo->>'tasa')::numeric, 0) / 100
         * (v_base_gravable - (v_tramo->>'desde')::numeric);
   end if;
-  v_isr := greatest(0, round(v_isr_anual / (v_meses * v_periodos_por_mes), 2));
+  v_isr := greatest(0, round(v_isr_anual / v_periodos_restantes, 2));
 
   if v_sfs > 0 then
     v_concepto_id := public._nomina_concepto_id('SFS');
