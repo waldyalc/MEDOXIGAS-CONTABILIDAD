@@ -968,6 +968,7 @@ export type Database = {
         Row: {
           acepta_movimientos: boolean
           activa: boolean
+          categoria_dgii: string | null
           codigo: string
           descripcion: string | null
           es_caja_banco: boolean
@@ -978,10 +979,13 @@ export type Database = {
           padre_id: string | null
           tipo: string
           tipo_banco: string | null
+          tipo_compra: string | null
+          tipo_ingreso: string | null
         }
         Insert: {
           acepta_movimientos?: boolean
           activa?: boolean
+          categoria_dgii?: string | null
           codigo: string
           descripcion?: string | null
           es_caja_banco?: boolean
@@ -992,10 +996,13 @@ export type Database = {
           padre_id?: string | null
           tipo: string
           tipo_banco?: string | null
+          tipo_compra?: string | null
+          tipo_ingreso?: string | null
         }
         Update: {
           acepta_movimientos?: boolean
           activa?: boolean
+          categoria_dgii?: string | null
           codigo?: string
           descripcion?: string | null
           es_caja_banco?: boolean
@@ -1006,6 +1013,8 @@ export type Database = {
           padre_id?: string | null
           tipo?: string
           tipo_banco?: string | null
+          tipo_compra?: string | null
+          tipo_ingreso?: string | null
         }
         Relationships: [
           {
@@ -3714,6 +3723,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _actualizar_contacto_limite: { Args: { p_id: string; p: Json }; Returns: string }
       _actualizar_producto_sin_impuestos: {
         Args: { p_id: string; p: Json }
         Returns: string
@@ -3738,6 +3748,7 @@ export type Database = {
         }
         Returns: string
       }
+      _crear_contacto_limite: { Args: { p: Json }; Returns: string }
       _crear_documento_no_contable: {
         Args: { p_tipo: string; p: Json }
         Returns: string
@@ -3860,6 +3871,7 @@ export type Database = {
           tipo: string
         }
       }
+      _rnc_digito_valido: { Args: { p_valor: string }; Returns: boolean }
       _sumar_existencia: {
         Args: {
           p_producto_id: string
@@ -3888,6 +3900,7 @@ export type Database = {
         Args: { p_id: string; p: Json }
         Returns: string
       }
+      actualizar_clasificacion_dgii: { Args: { p: Json }; Returns: string }
       actualizar_contacto: { Args: { p_id: string; p: Json }; Returns: string }
       actualizar_cuenta: { Args: { p: Json }; Returns: string }
       actualizar_empresa: { Args: { p: Json }; Returns: undefined }
