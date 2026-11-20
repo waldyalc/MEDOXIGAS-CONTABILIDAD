@@ -1,5 +1,62 @@
 # Handoff — Medoxigas Contabilidad
 
+## Plan de brechas Alegra completo: motor, tema, reportes DGII y anulación real (20 nov 2026)
+
+Sesión del Orquestador comparando el reporte de investigación real de Alegra
+(`docs/alegra/reporte-investigacion-inventario-fiscal/`) contra el código.
+**F1+F2 completos, 8 PRs mergeados, 4 migraciones NUEVAS aplicadas al remoto vía
+Supabase CLI (login+link de Waldy, `migration repair` del historial desfasado
+43+43 y `db push`; "up to date")**:
+
+- **F1-A (PR #61)** `20261124100000_inventario_inicial_asiento` +
+  `20261124100100_costeo_salida_nc`: asiento `II` vivo al crear/editar producto
+  (mutación en el lugar, `asientos.producto_id`, cuentas "Ajustes iniciales en
+  inventario" ~3402 y "Devoluciones en ventas" ~4104), salidas de ajuste al
+  costo promedio, NC de venta al costo vigente.
+- **F1-B (PR #57)** `20261124110000_anulacion_fecha_motivo`: tabla
+  `motivos_anulacion` (10 motivos DGII oficiales, Devolución=06) +
+  `fecha_anulacion`/`motivo_anulacion_id` en facturas/gastos/notas; wrapper
+  `anular_documento(p_info opcional)`.
+- **F1-C (PR #60)** `20261124120000_config_dgii_rnc`: `cuentas.categoria_dgii`
+  / `tipo_compra` / `tipo_ingreso` con semilla por nombre, RPC
+  `actualizar_clasificacion_dgii`, `_rnc_digito_valido` (casos reales
+  132000013/402123455 ✓, 132000015 ✗) en wrappers de contactos, retenciones
+  faltantes de Alegra.
+- **Tema (PR #63)**: paleta EXACTA del dashboard de Alegra (medida por Waldy:
+  fondo `#F4F7F9`, menú blanco, activo `#EFF4F6`, topbar blanco hairline
+  `#E2E8F0`, búsqueda `#F1F5F9`/texto `#94A3B8`), campos de formulario
+  blancos (`bg-card`), azul `#1E56C7` intacto, oscuro sin cambios.
+- **Estado de resultados (PR #58)**: diseño Alegra (grupos expandibles con
+  chevron, buscador+rótulo en la card, Descargar/Actualizar). Por decisión de
+  Waldy: **montos con texto plano** (candado en `tabla-comparativa.test.tsx`
+  prohíbe `text-emerald|text-destructive`) y fix del `-RD$0.00`
+  (`formatearRd` normaliza el cero).
+- **F2-E (PR #64)**: diálogo de anulación con `DatePickerCampo` + 10 motivos
+  (probado end-to-end: factura real B0200000003 anulada con motivo) y **608
+  con el tipo real** (código sin cero inicial, legado→`4`).
+- **F2-D (PR #65)**: "Cantidad inicial" en edición con nota del asiento
+  automático; costo de salida bloqueado al promedio (UI readOnly + payload +
+  SQL).
+- **F2-F (PR #66)**: página Configuración → Reportes DGII (por cuenta), 606 y
+  607 **fieles al TXT real de Alegra** (encabezados 4 campos, tipoBienes por
+  cuenta, NC positivas, regla 30 días, NC→"Venta a crédito", forma de pago
+  derivada, exclusiones con motivos literales + "Documentos no incluidos"),
+  exportación directa (modal Periodo+Tipo → descarga sin ZIP; Excel con hoja
+  de excluidos; sin RNC bloquea). El TXT del 606 verificado campo por campo
+  contra el renglón real de la investigación.
+- **Reglas de Waldy candadas**: capturas SIEMPRE (el subagente que implementa
+  las toma; el Orquestador revisa código; **Waldy verifica visual y decide**) —
+  en `AGENTS.md` (rol Ejecutor + candados) y `docs/ORQUESTADOR.md` (plantilla
+  de briefs + procedimiento). Credenciales a subagentes por archivo temporal,
+  nunca en briefs.
+- **Datos de verificación en la base** (para limpiar con
+  `docs/pruebas/reset-base-virgen.sql` cuando Waldy quiera la base 100 %
+  virgen): contacto "PRUEBA CAPTURA ER" (RNC 402123455), producto "Producto
+  captura ER" (11 und × RD$145.45), facturas B0200000001/2/3 anuladas, gasto
+  B1300000001/2 anulados, compra B0100000051 abierta (RD$708, renglón del
+  606). NCF consumidos de las series B02/B13/B01.
+- `docs/motor-contable.md` actualizado (20 claves de `config_contable`).
+
 ## Feature — Anulación con fecha y motivo + 608 real (20 nov 2026)
 
 - Rama `feat/anulacion-motivo-608` (desde `main` 31821b1). El diálogo «Anular» de la vista de factura pide **Fecha de anulación** (`DatePickerCampo`, por defecto hoy en RD, sin fechas futuras) y **Motivo de anulación** (`SelectCampo` con los 10 motivos de `public.motivos_anulacion`), con el texto de Alegra «Esta información es necesaria para generar tus reportes correctamente.». Ambos son obligatorios en la app (el RPC sigue aceptando sin `p_info` por compatibilidad): `anularFactura(id, { fecha, motivo })` valida con Zod en español y llama `supabase.rpc("anular_documento", { p_tipo, p_id, p_info })` directo.

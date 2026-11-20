@@ -69,10 +69,14 @@ Cuentas por cobrar clientes 1.534.00.
    - compra de producto no inventariable → `gastos_generales` (6101)
 2. **Contacto**: `cuenta_cxc_id` o `cuenta_cxp_id` reemplazan a `cxc` (1103) y
    `cxp` (2101).
-3. **Configuración**: `config_contable` tiene 12 claves (`caja`, `banco`,
+3. **Configuración**: `config_contable` tiene 20 claves (`caja`, `banco`,
    `caja_chica`, `cxc`, `inventario`, `itbis_adelantado`, `cxp`,
    `itbis_por_pagar`, `ventas`, `ventas_servicios`, `costo_ventas`,
-   `gastos_generales`) y viene sembrada.
+   `gastos_generales`, `ajuste_inventario`, las 4 de retenciones,
+   `ajustes_iniciales` y las nuevas `ajustes_iniciales_inventario` y
+   `devoluciones_ventas`) y viene sembrada.
+   Además, la clasificación DGII por cuenta vive en las columnas
+   `cuentas.categoria_dgii` / `tipo_compra` / `tipo_ingreso` (606/607).
 4. **Caja o banco**: el pago elige una cuenta con `es_caja_banco = true` (1101,
    1102 o 1106 en el catálogo semilla).
 5. **Gasto menor**: usa `cuenta_gasto_id` y `cuenta_pago_id` si se indican; si
