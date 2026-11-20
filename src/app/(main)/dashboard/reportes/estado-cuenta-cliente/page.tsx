@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { FileText, UserRound } from "lucide-react";
 
-import { BotonImprimir } from "@/components/boton-imprimir";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { SelectCampo } from "@/components/select-campo";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +29,7 @@ import type { ClienteOpcion, FiltroVencimiento } from "@/lib/reportes/ventas/v3/
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
+import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { SelectorFechaCorte } from "../_components/selector-fechas";
 
 const OPCIONES_VENCIMIENTO: FiltroVencimiento[] = ["todas", "sin-vencer", "1-30", "31-60", "61-90", "91-mas"];
@@ -92,16 +92,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Estado de cuenta por cliente</h1>
-          <p className="text-muted-foreground text-sm">
-            Facturas y saldos del cliente a la fecha de corte, con antigüedad y días vencidos.
-          </p>
-          <p className="text-muted-foreground text-sm">Corte al {formatoDia(corte)}</p>
-        </div>
-        <BotonImprimir />
-      </div>
+      <EncabezadoReporte
+        titulo="Estado de cuenta por cliente"
+        descripcion="Facturas y saldos del cliente a la fecha de corte, con antigüedad y días vencidos."
+        rango={`Corte al ${formatoDia(corte)}`}
+      />
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <form method="get" className="flex flex-wrap items-end gap-3 print:hidden">

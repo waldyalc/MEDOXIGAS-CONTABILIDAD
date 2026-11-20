@@ -1,4 +1,3 @@
-import { BotonImprimir } from "@/components/boton-imprimir";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatoDia } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
@@ -19,6 +18,7 @@ import type { DetalleImpuesto } from "@/lib/reportes/fiscales/tipos";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
+import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { FiltrosPeriodo } from "../fiscales/_components/filtros-periodo";
 import { PestanasFiscales } from "../fiscales/_components/pestanas";
 import { TablaResumenTasas } from "../fiscales/_components/resumen-tasas";
@@ -91,19 +91,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Reporte detallado de impuestos</h1>
-          <p className="text-muted-foreground text-sm">
-            Base imponible e impuesto por tasa en ventas, compras y devoluciones. El NCF abre el documento.
-          </p>
-          <p className="text-muted-foreground text-sm">{subtitulo}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <BotonDescargar tabla={tabla} nombreArchivo={`impuestos-detallados-${vista}-${desde}-${hasta}`} />
-          <BotonImprimir />
-        </div>
-      </div>
+      <EncabezadoReporte
+        titulo="Reporte detallado de impuestos"
+        descripcion="Base imponible e impuesto por tasa en ventas, compras y devoluciones. El NCF abre el documento."
+        desde={desde}
+        hasta={hasta}
+        acciones={<BotonDescargar tabla={tabla} nombreArchivo={`impuestos-detallados-${vista}-${desde}-${hasta}`} />}
+      />
 
       <FiltrosPeriodo desde={desde} hasta={hasta} />
 

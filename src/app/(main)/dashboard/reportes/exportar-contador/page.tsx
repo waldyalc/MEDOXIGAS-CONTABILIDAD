@@ -7,6 +7,7 @@ import { tablaComprasContador, tablaFacturasContador, tablaLibroContador } from 
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
+import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { FiltrosPeriodo } from "../fiscales/_components/filtros-periodo";
 import { TarjetasResumen } from "../fiscales/_components/tarjetas-resumen";
 
@@ -31,13 +32,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Exportar para el contador</h1>
-        <p className="text-muted-foreground text-sm">
-          Descarga las facturas de venta, las compras y el libro diario del rango de fechas. Por defecto se usa el mes
-          actual.
-        </p>
-      </div>
+      <EncabezadoReporte
+        titulo="Exportar para el contador"
+        descripcion="Descarga las facturas de venta, las compras y el libro diario del rango de fechas. Por defecto se usa el mes actual."
+        desde={desde}
+        hasta={hasta}
+        mostrarImprimir={false}
+      />
 
       <FiltrosPeriodo desde={desde} hasta={hasta} />
 

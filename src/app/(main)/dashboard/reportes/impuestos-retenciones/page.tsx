@@ -14,6 +14,7 @@ import type { DetalleImpuesto } from "@/lib/reportes/fiscales/tipos";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
+import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { DetalleRetencion } from "../fiscales/_components/detalle-retencion";
 import { FiltrosPeriodo } from "../fiscales/_components/filtros-periodo";
 import { PestanasFiscales } from "../fiscales/_components/pestanas";
@@ -64,18 +65,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Impuestos y retenciones</h1>
-          <p className="text-muted-foreground text-sm">
-            ITBIS por tarifa en ventas y compras, con las devoluciones del período y su saldo.
-          </p>
-          <p className="text-muted-foreground text-sm">{subtitulo}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <BotonDescargar tabla={tabla} nombreArchivo={`impuestos-retenciones-${vista}-${desde}-${hasta}`} />
-        </div>
-      </div>
+      <EncabezadoReporte
+        titulo="Impuestos y retenciones"
+        descripcion="ITBIS por tarifa en ventas y compras, con las devoluciones del período y su saldo."
+        desde={desde}
+        hasta={hasta}
+        acciones={<BotonDescargar tabla={tabla} nombreArchivo={`impuestos-retenciones-${vista}-${desde}-${hasta}`} />}
+      />
 
       <FiltrosPeriodo desde={desde} hasta={hasta} />
 

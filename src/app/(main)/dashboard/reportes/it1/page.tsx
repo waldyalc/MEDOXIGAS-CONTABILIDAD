@@ -14,6 +14,7 @@ import { type CasillasIt1, calcularIt1, fechaLimiteIt1, tablaIt1 } from "@/lib/r
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
+import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { FiltrosPeriodo } from "../fiscales/_components/filtros-periodo";
 
 function fila(etiqueta: string, valor: number) {
@@ -91,18 +92,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Reporte IT-1</h1>
-          <p className="text-muted-foreground text-sm">
-            Vista de solo lectura de la declaración mensual de ITBIS. No crea borradores ni envía documentos a la DGII.
-          </p>
-          <p className="text-muted-foreground text-sm">
-            {textoPeriodo(periodo)} · Fecha límite {limite ? formatoDia(limite) : "—"}
-          </p>
-        </div>
-        <BotonDescargar tabla={tabla} nombreArchivo={`it1-${periodo}`} />
-      </div>
+      <EncabezadoReporte
+        titulo="Reporte IT-1"
+        descripcion="Vista de solo lectura de la declaración mensual de ITBIS. No crea borradores ni envía documentos a la DGII."
+        rango={`${textoPeriodo(periodo)} · Fecha límite ${limite ? formatoDia(limite) : "—"}`}
+        acciones={<BotonDescargar tabla={tabla} nombreArchivo={`it1-${periodo}`} />}
+      />
 
       <FiltrosPeriodo desde={desde} hasta={hasta} />
 

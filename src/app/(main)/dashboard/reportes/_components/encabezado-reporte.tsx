@@ -14,22 +14,40 @@ interface Props {
   hasta?: string;
   migas?: readonly MigaDePan[];
   acciones?: ReactNode;
+  /** Falso cuando el reporte no lleva botón de imprimir (exportar, carta con su propio botón…). */
+  mostrarImprimir?: boolean;
 }
 
-export function EncabezadoReporte({ titulo, descripcion, rango, desde, hasta, migas, acciones }: Props) {
+export function EncabezadoReporte({
+  titulo,
+  descripcion,
+  rango,
+  desde,
+  hasta,
+  migas,
+  acciones,
+  mostrarImprimir = true,
+}: Props) {
   const textoRango = rango ?? (desde && hasta ? `Del ${formatoDia(desde)} al ${formatoDia(hasta)}` : null);
+  const navegacion: readonly MigaDePan[] = migas ?? [
+    { etiqueta: "Inicio", href: "/dashboard" },
+    { etiqueta: "Reportes", href: "/dashboard/reportes" },
+    { etiqueta: titulo },
+  ];
+  const accionesCompletas =
+    acciones != null || mostrarImprimir ? (
+      <>
+        {acciones}
+        {mostrarImprimir ? <BotonImprimir /> : null}
+      </>
+    ) : null;
 
   return (
     <EncabezadoPagina
       titulo={titulo}
       subtitulo={textoRango ? `${descripcion} ${textoRango}` : descripcion}
-      migas={migas}
-      acciones={
-        <>
-          {acciones}
-          <BotonImprimir />
-        </>
-      }
+      migas={navegacion}
+      acciones={accionesCompletas}
     />
   );
 }
