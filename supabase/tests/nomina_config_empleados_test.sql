@@ -1070,7 +1070,7 @@ select ok(
     select estado = 'borrador'
       and asiento_id is null
       and cuenta_salarios_por_pagar_id is null
-      and total_neto = 0
+      and neto_pagar = 0
       and salario_base = 22500.00
     from public.nomina_recibos
     where id = (select id from _ids where clave = 'recibo_pasaporte')
