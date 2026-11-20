@@ -1,5 +1,13 @@
 # Handoff — Medoxigas Contabilidad
 
+## Fase 0 — estudios POS y Nómina depurados + plan maestro en repo (20 nov 2026)
+
+- **PR #67** (rama `feat/docs-pos-nomina`, merge `bfad1e0`): estudios de Alegra POS (`docs/alegra/pos/`: `alegra-pos.md`, `design-alegra-pos.md`, 62 capturas `22-*`, `css-pos/GUIA-POS.md` + 2 copias locales) y Nómina (`docs/alegra/nomina/`: `ALEGRA-NOMINA.md`, `DESIGN-ALEGRA-NOMINA.md`, 69 capturas + 18 renders de diseño) entraron **sin HTML/CSS crudos en la historia** (rama nueva desde `main`; nada del PR #59), sin `.procesar.py`, sin `NOTA.md` rota y sin `NOTAS-CRUDAS.md`. También quedó versionado `docs/PLAN-FASE-2-ORQUESTADOR.md` (plan maestro: Inventario Ferretería + POS + Nómina RD).
+- **Encabezados anti-confusión en los 5 .md**: solo tokens Medoxigas (`--primary` azul de `docs/plantilla-diseno.md`, nunca el teal `#00b19d`); POS = Vender/Turnos/Historial/Devoluciones (Inventario y Configuración viven en Contabilidad); Nómina = grupo desplegable dentro de Contabilidad con su configuración en `/dashboard/configuracion`, sin Suscripciones ni Bandeja.
+- **Captura `22-ticket-imprimir.png` censurada** (rectángulos blancos sobre el teléfono y el correo del titular; 0 píxeles distintos fuera de las cajas, verificación por OCR de Windows y visto bueno visual de Waldy; blob git ≠ original del PR #59). PR **#59 cerrado** (su historia contenía HTML/CSS crudos en `1ea896c`) y PR #62 ya estaba cerrado; **pendiente de Waldy: borrar el comentario del bot en #59** (enlace presigned a `alegra-pos-completo.zip`).
+- Verificación: revisión del Orquestador archivo por archivo (159 archivos solo en las 3 rutas nuevas, 0 `.html/.css/.py`, hashes del ticket censurado y del plan idénticos a los aprobados), `typecheck/check/test/build` verde y CI del PR 5/5 success sobre `e1cef2b` (el job `db` no corre por filtro de rutas: PR sin cambios de BD).
+- **En curso (paralelo):** 1A — BD inventario ferretería (worktree `feat/inventario-ferreteria-bd`) + redacción de `docs/dominio-pos.md` y `docs/dominio-nomina.md` como contratos previos a las Fases 2 y 3.
+
 ## Plan de brechas Alegra completo: motor, tema, reportes DGII y anulación real (20 nov 2026)
 
 Sesión del Orquestador comparando el reporte de investigación real de Alegra
