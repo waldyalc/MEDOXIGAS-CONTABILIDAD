@@ -165,7 +165,7 @@ select is(
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'efectivo'->>'efectivo_esperado')::numeric,
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'->'efectivo'->>'efectivo_esperado')::numeric,
   100::numeric,
   'sin movimientos el efectivo esperado es la base inicial'
 );
@@ -239,7 +239,7 @@ select is(
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'efectivo'->>'efectivo_esperado')::numeric,
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'->'efectivo'->>'efectivo_esperado')::numeric,
   200::numeric,
   'la venta en efectivo sube el esperado por lo aplicado'
 );
@@ -326,7 +326,7 @@ select is(
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'
      ->'ventas'->'por_metodo'->>'efectivo')::numeric,
   200::numeric,
   'el esperado suma lo aplicado en efectivo, no lo recibido'
@@ -377,7 +377,7 @@ select throws_ok(
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'efectivo'->>'efectivo_esperado')::numeric,
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'->'efectivo'->>'efectivo_esperado')::numeric,
   300::numeric,
   'una venta a crédito no mueve el efectivo esperado'
 );
@@ -559,7 +559,7 @@ select is(
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'efectivo'->>'efectivo_esperado')::numeric,
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'->'efectivo'->>'efectivo_esperado')::numeric,
   582::numeric,
   'el esperado suma ventas e ingresos y resta retiros'
 );
@@ -668,8 +668,8 @@ select is(
 
 select is(
   (select credito from public.facturas where id = (select id from _ids where clave = 'venta_combo')),
-  118::numeric,
-  'la factura original acumula el crédito de la nota'
+  58::numeric,
+  'la factura original acumula solo la parte a crédito de la nota'
 );
 
 select throws_ok(
@@ -693,58 +693,58 @@ select throws_ok(
 -- ---------------------------------------------------------------------------
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'ventas'->>'total')::numeric,
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'->'ventas'->>'total')::numeric,
   486::numeric,
   'el resumen suma las ventas POS del turno'
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'ventas'->>'cobrado')::numeric,
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'->'ventas'->>'cobrado')::numeric,
   436::numeric,
   'el resumen separa lo cobrado de lo que quedó a crédito'
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'
      ->'ventas'->'por_metodo'->>'tarjeta')::numeric,
   136::numeric,
   'el resumen agrupa los pagos con tarjeta'
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'
      ->'ventas'->'por_metodo'->>'credito')::numeric,
   50::numeric,
   'el resumen informa el saldo a crédito de las ventas'
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'ingresos'->>'total')::numeric,
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'->'ingresos'->>'total')::numeric,
   500::numeric,
   'el resumen suma los ingresos directos'
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'retiros'->>'total')::numeric,
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'->'retiros'->>'total')::numeric,
   318::numeric,
   'el resumen suma los retiros y gastos menores'
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'devoluciones'->>'efectivo')::numeric,
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'->'devoluciones'->>'efectivo')::numeric,
   60::numeric,
   'el resumen informa las devoluciones en efectivo'
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'
      ->'efectivo'->>'efectivo_esperado')::numeric,
   522::numeric,
   'el efectivo esperado aplica base + ventas + ingresos - retiros - devoluciones'
 );
 
 select is(
-  jsonb_array_length((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'movimientos'),
+  jsonb_array_length((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'->'movimientos'),
   3,
   'el resumen lista los tres movimientos del turno'
 );
@@ -784,7 +784,7 @@ select is(
 );
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'
      ->'efectivo'->>'congelado')::boolean,
   true,
   'un turno cerrado devuelve el resumen congelado'
@@ -948,7 +948,7 @@ select ok(
 set local request.jwt.claims = '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}';
 
 select is(
-  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))
+  ((public.pos_resumen_turno((select id from _ids where clave = 'turno')))->'resumen'
      ->'efectivo'->>'efectivo_esperado')::numeric,
   522::numeric,
   'el rol lector consulta el resumen congelado'
