@@ -3719,11 +3719,11 @@ export type Database = {
         Returns: string
       }
       _almacen_principal: { Args: Record<PropertyKey, never>; Returns: string }
-      _anular_documento_base: {
+      _anular_documento_ajustes: {
         Args: { p_tipo: string; p_id: string }
         Returns: string
       }
-      _anular_documento_ajustes: {
+      _anular_documento_base: {
         Args: { p_tipo: string; p_id: string }
         Returns: string
       }
