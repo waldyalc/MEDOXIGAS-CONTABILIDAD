@@ -125,7 +125,8 @@ create table if not exists public.pos_turno_movimientos (
   numero int not null unique default nextval('public.pos_turno_movimientos_numero_seq'),
   turno_id uuid not null references public.pos_turnos (id),
   tipo text not null check (tipo in ('ingreso', 'retiro')),
-  motivo text not null check (motivo in (
+  motivo text not null
+    constraint pos_turno_movimientos_motivo_valores_check check (motivo in (
     'fondo_caja',
     'cobro_factura',
     'retiro_caja',
