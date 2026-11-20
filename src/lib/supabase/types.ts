@@ -577,6 +577,42 @@ export type Database = {
           },
         ]
       }
+      combo_componentes: {
+        Row: {
+          cantidad: number
+          combo_id: string
+          componente_id: string
+          id: string
+        }
+        Insert: {
+          cantidad: number
+          combo_id: string
+          componente_id: string
+          id?: string
+        }
+        Update: {
+          cantidad?: number
+          combo_id?: string
+          componente_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "combo_componentes_combo_id_fkey"
+            columns: ["combo_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "combo_componentes_componente_id_fkey"
+            columns: ["componente_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conciliacion_movimientos: {
         Row: {
           asiento_linea_id: string
@@ -799,12 +835,109 @@ export type Database = {
           },
         ]
       }
+      conteo_inventario_lineas: {
+        Row: {
+          cantidad_contada: number
+          cantidad_sistema: number
+          conteo_id: string
+          diferencia: number
+          id: string
+          notas: string | null
+          producto_id: string
+        }
+        Insert: {
+          cantidad_contada: number
+          cantidad_sistema?: number
+          conteo_id: string
+          diferencia?: number
+          id?: string
+          notas?: string | null
+          producto_id: string
+        }
+        Update: {
+          cantidad_contada?: number
+          cantidad_sistema?: number
+          conteo_id?: string
+          diferencia?: number
+          id?: string
+          notas?: string | null
+          producto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conteo_inventario_lineas_conteo_id_fkey"
+            columns: ["conteo_id"]
+            isOneToOne: false
+            referencedRelation: "conteos_inventario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteo_inventario_lineas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conteos_inventario: {
+        Row: {
+          ajuste_id: string | null
+          almacen_id: string
+          creado_en: string
+          creado_por: string | null
+          estado: string
+          fecha: string
+          id: string
+          notas: string | null
+          numero: number
+        }
+        Insert: {
+          ajuste_id?: string | null
+          almacen_id: string
+          creado_en?: string
+          creado_por?: string | null
+          estado?: string
+          fecha?: string
+          id?: string
+          notas?: string | null
+          numero?: number
+        }
+        Update: {
+          ajuste_id?: string | null
+          almacen_id?: string
+          creado_en?: string
+          creado_por?: string | null
+          estado?: string
+          fecha?: string
+          id?: string
+          notas?: string | null
+          numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conteos_inventario_ajuste_id_fkey"
+            columns: ["ajuste_id"]
+            isOneToOne: false
+            referencedRelation: "ajustes_inventario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conteos_inventario_almacen_id_fkey"
+            columns: ["almacen_id"]
+            isOneToOne: false
+            referencedRelation: "almacenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cotizacion_lineas: {
         Row: {
           cantidad: number
           cotizacion_id: string
           descripcion: string
           descuento_pct: number
+          factor_base: number
           id: string
           impuesto_id: string | null
           itbis: number
@@ -814,12 +947,15 @@ export type Database = {
           producto_id: string | null
           subtotal: number
           total: number
+          unidad_id: string | null
+          unidad_nombre: string | null
         }
         Insert: {
           cantidad: number
           cotizacion_id: string
           descripcion?: string
           descuento_pct?: number
+          factor_base?: number
           id?: string
           impuesto_id?: string | null
           itbis?: number
@@ -829,12 +965,15 @@ export type Database = {
           producto_id?: string | null
           subtotal?: number
           total?: number
+          unidad_id?: string | null
+          unidad_nombre?: string | null
         }
         Update: {
           cantidad?: number
           cotizacion_id?: string
           descripcion?: string
           descuento_pct?: number
+          factor_base?: number
           id?: string
           impuesto_id?: string | null
           itbis?: number
@@ -844,6 +983,8 @@ export type Database = {
           producto_id?: string | null
           subtotal?: number
           total?: number
+          unidad_id?: string | null
+          unidad_nombre?: string | null
         }
         Relationships: [
           {
@@ -865,6 +1006,13 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizacion_lineas_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "producto_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -1074,6 +1222,7 @@ export type Database = {
           maximo: number | null
           minimo: number
           producto_id: string
+          ubicacion: string | null
         }
         Insert: {
           almacen_id: string
@@ -1082,6 +1231,7 @@ export type Database = {
           maximo?: number | null
           minimo?: number
           producto_id: string
+          ubicacion?: string | null
         }
         Update: {
           almacen_id?: string
@@ -1090,6 +1240,7 @@ export type Database = {
           maximo?: number | null
           minimo?: number
           producto_id?: string
+          ubicacion?: string | null
         }
         Relationships: [
           {
@@ -1114,6 +1265,7 @@ export type Database = {
           costo_unitario: number
           descripcion: string
           descuento_pct: number
+          factor_base: number
           factura_id: string
           id: string
           impuesto_id: string | null
@@ -1124,12 +1276,15 @@ export type Database = {
           producto_id: string | null
           subtotal: number
           total: number
+          unidad_id: string | null
+          unidad_nombre: string | null
         }
         Insert: {
           cantidad: number
           costo_unitario?: number
           descripcion?: string
           descuento_pct?: number
+          factor_base?: number
           factura_id: string
           id?: string
           impuesto_id?: string | null
@@ -1140,12 +1295,15 @@ export type Database = {
           producto_id?: string | null
           subtotal?: number
           total?: number
+          unidad_id?: string | null
+          unidad_nombre?: string | null
         }
         Update: {
           cantidad?: number
           costo_unitario?: number
           descripcion?: string
           descuento_pct?: number
+          factor_base?: number
           factura_id?: string
           id?: string
           impuesto_id?: string | null
@@ -1156,6 +1314,8 @@ export type Database = {
           producto_id?: string | null
           subtotal?: number
           total?: number
+          unidad_id?: string | null
+          unidad_nombre?: string | null
         }
         Relationships: [
           {
@@ -1177,6 +1337,13 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factura_lineas_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "producto_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -1524,6 +1691,7 @@ export type Database = {
           costo: number
           cuenta_id: string | null
           descripcion: string
+          factor_base: number
           factura_proveedor_id: string
           id: string
           impuesto_id: string | null
@@ -1533,12 +1701,15 @@ export type Database = {
           producto_id: string | null
           subtotal: number
           total: number
+          unidad_id: string | null
+          unidad_nombre: string | null
         }
         Insert: {
           cantidad: number
           costo?: number
           cuenta_id?: string | null
           descripcion?: string
+          factor_base?: number
           factura_proveedor_id: string
           id?: string
           impuesto_id?: string | null
@@ -1548,12 +1719,15 @@ export type Database = {
           producto_id?: string | null
           subtotal?: number
           total?: number
+          unidad_id?: string | null
+          unidad_nombre?: string | null
         }
         Update: {
           cantidad?: number
           costo?: number
           cuenta_id?: string | null
           descripcion?: string
+          factor_base?: number
           factura_proveedor_id?: string
           id?: string
           impuesto_id?: string | null
@@ -1563,6 +1737,8 @@ export type Database = {
           producto_id?: string | null
           subtotal?: number
           total?: number
+          unidad_id?: string | null
+          unidad_nombre?: string | null
         }
         Relationships: [
           {
@@ -1591,6 +1767,13 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_proveedor_lineas_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "producto_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -1994,6 +2177,7 @@ export type Database = {
           costo_unitario: number
           descripcion: string
           descuento_pct: number
+          factor_base: number
           factura_linea_id: string
           id: string
           impuesto_id: string | null
@@ -2005,12 +2189,15 @@ export type Database = {
           producto_id: string | null
           subtotal: number
           total: number
+          unidad_id: string | null
+          unidad_nombre: string | null
         }
         Insert: {
           cantidad: number
           costo_unitario?: number
           descripcion?: string
           descuento_pct?: number
+          factor_base?: number
           factura_linea_id: string
           id?: string
           impuesto_id?: string | null
@@ -2022,12 +2209,15 @@ export type Database = {
           producto_id?: string | null
           subtotal?: number
           total?: number
+          unidad_id?: string | null
+          unidad_nombre?: string | null
         }
         Update: {
           cantidad?: number
           costo_unitario?: number
           descripcion?: string
           descuento_pct?: number
+          factor_base?: number
           factura_linea_id?: string
           id?: string
           impuesto_id?: string | null
@@ -2039,6 +2229,8 @@ export type Database = {
           producto_id?: string | null
           subtotal?: number
           total?: number
+          unidad_id?: string | null
+          unidad_nombre?: string | null
         }
         Relationships: [
           {
@@ -2067,6 +2259,13 @@ export type Database = {
             columns: ["producto_id"]
             isOneToOne: false
             referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nota_credito_venta_lineas_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "producto_unidades"
             referencedColumns: ["id"]
           },
         ]
@@ -3163,6 +3362,48 @@ export type Database = {
         }
         Relationships: []
       }
+      producto_codigos_barra: {
+        Row: {
+          codigo: string
+          creado_en: string
+          id: string
+          principal: boolean
+          producto_id: string
+          unidad_id: string | null
+        }
+        Insert: {
+          codigo: string
+          creado_en?: string
+          id?: string
+          principal?: boolean
+          producto_id: string
+          unidad_id?: string | null
+        }
+        Update: {
+          codigo?: string
+          creado_en?: string
+          id?: string
+          principal?: boolean
+          producto_id?: string
+          unidad_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producto_codigos_barra_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producto_codigos_barra_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "producto_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       producto_precios: {
         Row: {
           lista_id: string
@@ -3196,6 +3437,50 @@ export type Database = {
           },
         ]
       }
+      producto_unidades: {
+        Row: {
+          activa: boolean
+          creado_en: string
+          es_compra: boolean
+          es_venta: boolean
+          factor_base: number
+          id: string
+          nombre: string
+          precio: number | null
+          producto_id: string
+        }
+        Insert: {
+          activa?: boolean
+          creado_en?: string
+          es_compra?: boolean
+          es_venta?: boolean
+          factor_base: number
+          id?: string
+          nombre: string
+          precio?: number | null
+          producto_id: string
+        }
+        Update: {
+          activa?: boolean
+          creado_en?: string
+          es_compra?: boolean
+          es_venta?: boolean
+          factor_base?: number
+          id?: string
+          nombre?: string
+          precio?: number | null
+          producto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producto_unidades_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       productos: {
         Row: {
           activo: boolean
@@ -3208,15 +3493,18 @@ export type Database = {
           cuenta_ingreso_id: string | null
           cuenta_inventario_id: string | null
           descripcion: string | null
+          favorito_pos: boolean
           id: string
           imagen_path: string | null
           impuesto_id: string | null
           inventariable: boolean
           itbis_tasa: number
+          marca: string | null
           nombre: string
           precio: number
           referencia: string | null
           tipo: string
+          ubicacion: string | null
           unidad_medida: string
           vende_negativo: boolean
         }
@@ -3231,15 +3519,18 @@ export type Database = {
           cuenta_ingreso_id?: string | null
           cuenta_inventario_id?: string | null
           descripcion?: string | null
+          favorito_pos?: boolean
           id?: string
           imagen_path?: string | null
           impuesto_id?: string | null
           inventariable?: boolean
           itbis_tasa?: number
+          marca?: string | null
           nombre: string
           precio?: number
           referencia?: string | null
           tipo?: string
+          ubicacion?: string | null
           unidad_medida?: string
           vende_negativo?: boolean
         }
@@ -3254,15 +3545,18 @@ export type Database = {
           cuenta_ingreso_id?: string | null
           cuenta_inventario_id?: string | null
           descripcion?: string | null
+          favorito_pos?: boolean
           id?: string
           imagen_path?: string | null
           impuesto_id?: string | null
           inventariable?: boolean
           itbis_tasa?: number
+          marca?: string | null
           nombre?: string
           precio?: number
           referencia?: string | null
           tipo?: string
+          ubicacion?: string | null
           unidad_medida?: string
           vende_negativo?: boolean
         }
@@ -3735,6 +4029,10 @@ export type Database = {
     Functions: {
       _actualizar_contacto_limite: { Args: { p_id: string; p: Json }; Returns: string }
       _actualizar_producto_con_impuestos: { Args: { p_id: string; p: Json }; Returns: string }
+      _actualizar_producto_con_inventario_inicial: {
+        Args: { p_id: string; p: Json }
+        Returns: string
+      }
       _actualizar_producto_sin_impuestos: {
         Args: { p_id: string; p: Json }
         Returns: string
@@ -3744,11 +4042,19 @@ export type Database = {
         Args: { p_tipo: string; p_id: string }
         Returns: string
       }
+      _anular_documento_ajustes_base: {
+        Args: { p_tipo: string; p_id: string }
+        Returns: string
+      }
       _anular_documento_base: {
         Args: { p_tipo: string; p_id: string }
         Returns: string
       }
       _conciliacion_lineas: { Args: { p_lineas: Json }; Returns: string[] }
+      _costo_combo: {
+        Args: { p_combo_id: string; p_cantidad_base: number }
+        Returns: number
+      }
       _crear_ajuste_inventario_base: { Args: { p: Json }; Returns: string }
       _crear_asiento: {
         Args: {
@@ -3790,6 +4096,10 @@ export type Database = {
       }
       _crear_orden_compra_sin_impuestos: { Args: { p: Json }; Returns: string }
       _crear_producto_con_impuestos: { Args: { p: Json }; Returns: string }
+      _crear_producto_con_inventario_inicial: {
+        Args: { p: Json }
+        Returns: string
+      }
       _crear_producto_sin_impuestos: { Args: { p: Json }; Returns: string }
       _cuenta_conciliacion: {
         Args: {
@@ -3803,6 +4113,10 @@ export type Database = {
         Returns: string
       }
       _cuenta_config: { Args: { p_clave: string }; Returns: string }
+      _disponibilidad_combo: {
+        Args: { p_combo_id: string; p_almacen_id: string }
+        Returns: number
+      }
       _editar_documento_no_contable: {
         Args: { p_tipo: string; p: Json }
         Returns: string
@@ -3858,12 +4172,32 @@ export type Database = {
         Args: { p_tabla: string; p_clave: string; p_documento_id: string }
         Returns: undefined
       }
+      _mover_combo_existencia: {
+        Args: {
+          p_combo_id: string
+          p_almacen_id: string
+          p_cantidad_base: number
+        }
+        Returns: undefined
+      }
       _mover_existencia: {
         Args: {
           p_producto_id: string
           p_almacen_id: string
           p_cantidad: number
         }
+        Returns: undefined
+      }
+      _precio_lista: {
+        Args: {
+          p_producto_id: string
+          p_precio_base: number
+          p_lista_id: string
+        }
+        Returns: number
+      }
+      _producto_guardar_ferreteria: {
+        Args: { p_producto_id: string; p: Json; p_es_alta: boolean }
         Returns: undefined
       }
       _producto_guardar_minimos: {
@@ -3892,6 +4226,10 @@ export type Database = {
           p_cantidad: number
         }
         Returns: undefined
+      }
+      _unidad_factor: {
+        Args: { p_producto_id: string; p_unidad_id: string }
+        Returns: number
       }
       _validar_movimientos_conciliacion: {
         Args: {
@@ -3933,11 +4271,19 @@ export type Database = {
         Returns: string
       }
       actualizar_vendedor: { Args: { p_id: string; p: Json }; Returns: string }
+      anular_conteo_inventario: {
+        Args: { p_id: string }
+        Returns: string
+      }
       anular_documento: {
         Args: { p_tipo: string; p_id: string; p_info?: Json }
         Returns: string
       }
       anular_transferencia_inventario: {
+        Args: { p_id: string }
+        Returns: string
+      }
+      aplicar_conteo_inventario: {
         Args: { p_id: string }
         Returns: string
       }
@@ -3961,6 +4307,7 @@ export type Database = {
       crear_categoria_producto: { Args: { p: Json }; Returns: string }
       crear_centro_costo: { Args: { p: Json }; Returns: string }
       crear_contacto: { Args: { p: Json }; Returns: string }
+      crear_conteo_inventario: { Args: { p: Json }; Returns: string }
       crear_cotizacion: { Args: { p: Json }; Returns: string }
       crear_cuenta: { Args: { p: Json }; Returns: string }
       crear_cuenta_banco: { Args: { p: Json }; Returns: string }
@@ -4003,6 +4350,10 @@ export type Database = {
       }
       generar_pago_recurrente: { Args: { p_id: string }; Returns: string }
       guardar_borrador_conciliacion: { Args: { p: Json }; Returns: string }
+      guardar_lineas_conteo: {
+        Args: { p_id: string; p: Json }
+        Returns: string
+      }
       guardar_plantilla_impresion: { Args: { p: Json }; Returns: string }
       guardar_tasa_cambio: { Args: { p: Json }; Returns: string }
       listar_perfiles: {
@@ -4042,6 +4393,57 @@ export type Database = {
       }
       normalizar: { Args: { p_texto: string }; Returns: string }
       obtener_auditoria: { Args: { p: Json }; Returns: Json }
+      pos_buscar_por_codigo_barra: {
+        Args: {
+          p_codigo: string
+          p_almacen_id?: string
+          p_lista_precio_id?: string
+        }
+        Returns: {
+          producto_id: string
+          nombre: string
+          referencia: string
+          marca: string
+          tipo: string
+          unidad_id: string
+          unidad_nombre: string
+          factor_base: number
+          precio: number
+          itbis_tasa: number
+          stock: number
+          disponible: number
+          imagen_path: string
+          favorito_pos: boolean
+          codigo: string
+        }[]
+      }
+      pos_catalogo_productos: {
+        Args: {
+          p_almacen_id?: string
+          p_lista_precio_id?: string
+          p_busqueda?: string
+          p_categoria_id?: string
+          p_solo_favoritos?: boolean
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          producto_id: string
+          nombre: string
+          referencia: string
+          marca: string
+          tipo: string
+          categoria_id: string
+          favorito_pos: boolean
+          imagen_path: string
+          unidad_medida: string
+          precio: number
+          itbis_tasa: number
+          stock: number
+          disponible: number
+          unidades: Json
+        }[]
+      }
       reabrir_periodo: { Args: { p_periodo: string }; Returns: string }
       registrar_deposito: { Args: { p: Json }; Returns: string }
       registrar_pago_proveedor: { Args: { p: Json }; Returns: string }
@@ -4181,6 +4583,22 @@ export type Database = {
           saldo_inicial: number
           debitos: number
           creditos: number
+        }[]
+      }
+      reporte_stock_bajo: {
+        Args: { p_almacen_id?: string }
+        Returns: {
+          producto_id: string
+          nombre: string
+          referencia: string
+          marca: string
+          ubicacion: string
+          almacen_id: string
+          cantidad: number
+          minimo: number
+          maximo: number
+          faltante: number
+          sugerido: number
         }[]
       }
       rol_actual: { Args: Record<PropertyKey, never>; Returns: string }
