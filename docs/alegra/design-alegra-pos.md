@@ -57,3 +57,16 @@ Destilado de las copias en `css-pos/` (`vender/` = pantalla de venta, `turno/` =
 - El checkout nunca abandona la pantalla: modal sobre la factura.
 - Badges de estado como pills (ABIERTO teal suave / CERRADO rojo suave).
 - Sin bordes pesados ni sombras duras; el contraste lo dan los montos, no los marcos.
+
+## Componentes de la segunda pasada
+
+- **Checklist onboarding ("Activa tu POS")**: panel lateral derecho, pasos numerados con barra de progreso segmentada verde, sub-ítems tipo accordion con ícono + chevron.
+- **Popovers de barra superior**: tarjeta flotante anclada al icono, fondo oscuro en "Disponible"; el de Terminal lista pares etiqueta→valor (bancos, numeración, almacén) con badge de estado del turno; el de sincronización = checks teal por entidad.
+- **Calculadora "Venta simple"**: modal con input de nombre, display de monto grande a la derecha y grid de teclas — dígitos blancos, operadores teal sólido, utilidades (ce/C/%) en teal claro; CTA "Aplicar a la venta" full-width.
+- **Pestañas de venta paralela**: tabs estilo navegador al pie ("Venta principal", "Venta 1"…) con ⋮ (Renombrar/Eliminar) y botón `+`; tab activa con borde teal inferior.
+- **Wizard de devolución**: paso 1 = tarjetas de método seleccionables (borde teal al elegir, permite combinada); paso 3 = dos columnas lado a lado con encabezados propios y "CAMBIAR MÉTODO" en texto teal.
+- **Confirmaciones destructivas**: modal chico centrado, pregunta en una línea, botones ghost + teal ("Volver"/"Sí, cancelar venta"; "No"/"Sí").
+- **Plantilla de impresión**: editor a la izquierda con 3 tabs (Diseño/Letra/Contenido), opciones como tarjetas seleccionables con borde teal, toggles para campos del ticket; **vista previa del ticket a la derecha** que re-renderiza en vivo.
+- **Registro de pagos**: tabs Ingresos/Egresos como pills en franja gris; detalle con monto grande + icono, pares de datos en 3 columnas, fila de iconos de acción (imprimir/editar/ver/eliminar).
+- **Hub de configuraciones**: tarjetas blancas con título teal, descripción gris y links de navegación; los que salen de la app lleven ⓘ.
+- Movimientos negativos (devoluciones, retiros) siempre en **rojo** dentro de las filas del turno; esperado/efectivo del cierre en caja gris destacada.
