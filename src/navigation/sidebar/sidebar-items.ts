@@ -8,6 +8,7 @@ import {
   Package,
   Settings,
   ShoppingCart,
+  Store,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -67,6 +68,14 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard",
         icon: House,
         separadorDespues: true,
+        roles: TODOS_LOS_ROLES,
+      },
+      {
+        id: "punto-venta",
+        title: "Punto de venta",
+        url: "/pos",
+        icon: Store,
+        newTab: true,
         roles: TODOS_LOS_ROLES,
       },
       {
