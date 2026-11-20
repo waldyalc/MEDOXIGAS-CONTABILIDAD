@@ -4,6 +4,7 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { ChevronDown } from "lucide-react";
 
+import { DatePicker } from "@/components/date-picker";
 import { RetencionesCampo } from "@/components/retenciones/retenciones-campo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -157,14 +158,7 @@ function DialogoPago({ facturaId, numero, saldo, subtotal, itbis, cuentas, reten
         <form onSubmit={enviar} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="pago-fecha">Fecha *</Label>
-            <Input
-              id="pago-fecha"
-              type="date"
-              value={fecha}
-              onChange={(evento) => setFecha(evento.target.value)}
-              required
-              disabled={pendiente}
-            />
+            <DatePicker id="pago-fecha" value={fecha} onChange={setFecha} />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="pago-cuenta">Cuenta *</Label>

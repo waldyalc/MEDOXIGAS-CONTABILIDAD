@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Hash, Loader2, Pencil, Plus } from "lucide-react";
 
-import { DatePicker } from "@/components/date-picker";
+import { DatePicker, DatePickerCampo } from "@/components/date-picker";
 import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
 import { BarraLista, type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
@@ -152,7 +152,13 @@ function FormularioNumeracion({
         </div>
 
         <FormField htmlFor="vence" label="Vencimiento del NCF">
-          <Input id="vence" name="vence" type="date" defaultValue={numeracion.vence ?? ""} className={FORM_INPUT} />
+          <DatePickerCampo
+            id="vence"
+            name="vence"
+            defaultValue={numeracion.vence ?? ""}
+            className={FORM_INPUT}
+            permitirLimpiar
+          />
         </FormField>
 
         <div className="border-border flex items-center justify-between gap-3 rounded-xl border p-3">

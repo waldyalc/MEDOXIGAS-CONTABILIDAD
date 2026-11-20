@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Loader2 } from "lucide-react";
 
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
+import { DatePicker } from "@/components/date-picker";
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
@@ -189,15 +190,14 @@ export function GastoForm({
             </CampoFormulario>
 
             <CampoFormulario htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
-              <Input
+              <DatePicker
                 id="fecha"
-                type="date"
-                required
                 value={fecha}
-                onChange={(evento) => {
-                  setFecha(evento.target.value);
+                onChange={(valor) => {
+                  setFecha(valor);
                   validacion.limpiar("fecha");
                 }}
+                aria-invalid={Boolean(validacion.errorDe("fecha"))}
                 className={FORM_INPUT}
               />
             </CampoFormulario>

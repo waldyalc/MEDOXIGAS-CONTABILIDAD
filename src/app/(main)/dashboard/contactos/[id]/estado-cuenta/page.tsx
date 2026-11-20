@@ -4,10 +4,10 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { BotonImprimir } from "@/components/boton-imprimir";
+import { DatePickerCampo } from "@/components/date-picker";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getRol } from "@/lib/auth/rol";
 import {
@@ -82,7 +82,7 @@ export default async function Page({
       <form method="get" className="flex flex-wrap items-end gap-3 print:hidden">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="corte">Fecha de corte</Label>
-          <Input id="corte" name="corte" type="date" defaultValue={filtros.corte} className="w-40" />
+          <DatePickerCampo id="corte" name="corte" defaultValue={filtros.corte} className="w-40" />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="antiguedad">Antigüedad</Label>

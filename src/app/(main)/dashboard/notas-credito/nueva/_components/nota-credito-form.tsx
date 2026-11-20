@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { Loader2 } from "lucide-react";
 
+import { DatePicker } from "@/components/date-picker";
 import { Enlace } from "@/components/enlace";
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
@@ -182,15 +183,14 @@ export function NotaCreditoForm({ datos, fechaHoy }: Props) {
           <FormSectionTitle className="mb-4">Datos de la nota</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
             <CampoFormulario htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
-              <Input
+              <DatePicker
                 id="fecha"
-                type="date"
-                required
                 value={fecha}
-                onChange={(evento) => {
-                  setFecha(evento.target.value);
+                onChange={(valor) => {
+                  setFecha(valor);
                   validacion.limpiar("fecha");
                 }}
+                aria-invalid={Boolean(validacion.errorDe("fecha"))}
                 className={FORM_INPUT}
               />
             </CampoFormulario>

@@ -1,11 +1,11 @@
 "use client";
 
-import { type ComponentProps, useState } from "react";
+import { type ComponentProps, useEffect, useState } from "react";
 
 import { cn } from "cn";
 import { format, isValid, parse } from "date-fns";
 import { es } from "date-fns/locale";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
@@ -118,5 +118,62 @@ export function DatePicker({
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+interface DatePickerCampoProps {
+  id?: string;
+  name: string;
+  defaultValue?: string;
+  placeholder?: string;
+  className?: string;
+  /** Muestra una X para vaciar la fecha (campos opcionales como desde, hasta o vence). */
+  permitirLimpiar?: boolean;
+}
+
+/**
+ * `DatePicker` para formularios sin estado propio: guarda la fecha en un input
+ * oculto con `name` (GET o FormData) y se sincroniza cuando vuelven los
+ * searchParams con otro `defaultValue`.
+ */
+export function DatePickerCampo({
+  id,
+  name,
+  defaultValue = "",
+  placeholder,
+  className,
+  permitirLimpiar = false,
+}: DatePickerCampoProps) {
+  const [valor, setValor] = useState(defaultValue);
+
+  useEffect(() => {
+    setValor(defaultValue);
+  }, [defaultValue]);
+
+  const mostrarLimpiar = permitirLimpiar && valor !== "";
+
+  return (
+    <div className="relative">
+      <input type="hidden" name={name} value={valor} />
+      <DatePicker
+        id={id}
+        value={valor}
+        onChange={setValor}
+        placeholder={placeholder}
+        className={cn(mostrarLimpiar && "pr-9", className)}
+      />
+      {mostrarLimpiar ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Limpiar fecha"
+          onClick={() => setValor("")}
+          className="text-muted-foreground hover:text-foreground absolute top-1/2 right-1 -translate-y-1/2"
+        >
+          <X />
+        </Button>
+      ) : null}
+    </div>
   );
 }

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Plus } from "lucide-react";
 
 import { EsqueletoTabla } from "@/components/carga/esqueletos";
+import { DatePickerCampo } from "@/components/date-picker";
 import { Enlace } from "@/components/enlace";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
@@ -18,7 +19,6 @@ import {
 } from "@/components/listas/tabla-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getAsientosLista, normalizarFecha } from "@/lib/asientos/consultas";
 import type { AsientoLista } from "@/lib/asientos/tipos";
@@ -159,11 +159,25 @@ export default async function Page({ searchParams }: Props) {
       <form method="get" className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="desde">Desde</Label>
-          <Input id="desde" name="desde" type="date" defaultValue={desde ?? ""} className="w-40" />
+          <DatePickerCampo
+            id="desde"
+            name="desde"
+            defaultValue={desde ?? ""}
+            placeholder="Desde"
+            className="w-40"
+            permitirLimpiar
+          />
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="hasta">Hasta</Label>
-          <Input id="hasta" name="hasta" type="date" defaultValue={hasta ?? ""} className="w-40" />
+          <DatePickerCampo
+            id="hasta"
+            name="hasta"
+            defaultValue={hasta ?? ""}
+            placeholder="Hasta"
+            className="w-40"
+            permitirLimpiar
+          />
         </div>
         {opciones.q ? <input type="hidden" name="q" value={opciones.q} /> : null}
         <Button type="submit" variant="secondary">
