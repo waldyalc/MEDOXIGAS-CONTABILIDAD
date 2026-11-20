@@ -12,7 +12,6 @@ import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
   FORM_INPUT,
-  FORM_INPUT_GROUP,
   FORM_SELECT,
   FORM_TEXTAREA,
   FormActions,
@@ -25,18 +24,20 @@ import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { centavosAValor, parsearCantidad, parsearCentavos } from "@/lib/facturacion/calculo";
+import { centavosAValor, parsearCantidad } from "@/lib/facturacion/calculo";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { requerido } from "@/lib/formularios/validacion";
 import { crearAjusteInventario } from "@/lib/inventario/acciones";
+import { bloqueaCosto, costoCentavosDeLinea, costoDeLinea } from "@/lib/inventario/ajuste-formulario";
 import { calcularTotalAjusteCentavos, totalLineaAjusteCentavos } from "@/lib/inventario/calculo";
 import type { Almacen, ProductoInventario } from "@/lib/inventario/tipos";
 import { TIPOS_AJUSTE, type TipoAjuste, validarAjuste } from "@/lib/inventario/validacion";
 import { formatoCantidad } from "@/lib/productos/productos";
+
+import { CampoCostoLinea, NOTA_COSTO_SALIDA } from "./campo-costo-linea";
 
 const OPCIONES_TIPO = TIPOS_AJUSTE.map((tipo) => ({
   value: tipo,
@@ -84,10 +85,14 @@ export function AjusteForm({
     label: almacen.es_principal ? `${almacen.nombre} (principal)` : almacen.nombre,
   }));
 
+  function productoDeLinea(linea: LineaFormulario): ProductoInventario | null {
+    return productos.find((item) => item.id === linea.productoId) ?? null;
+  }
+
   const totalCentavos = calcularTotalAjusteCentavos(
     lineas.map((linea) => ({
       cantidad: parsearCantidad(linea.cantidad),
-      costoCentavos: parsearCentavos(linea.costo) ?? 0,
+      costoCentavos: costoCentavosDeLinea(linea.tipo, productoDeLinea(linea), linea.costo) ?? 0,
     })),
   );
 
@@ -106,12 +111,25 @@ export function AjusteForm({
   }
 
   function seleccionarProducto(clave: number, productoId: string) {
-    const producto = productos.find((item) => item.id === productoId);
-    actualizarLinea(clave, {
-      productoId,
-      ...(producto ? { costo: String(producto.costo) } : {}),
-    });
+    const producto = productos.find((item) => item.id === productoId) ?? null;
+    setLineas((actuales) =>
+      actuales.map((linea) =>
+        linea.clave === clave
+          ? { ...linea, productoId, costo: costoDeLinea(linea.tipo, producto, linea.costo) }
+          : linea,
+      ),
+    );
     validacion.limpiar(`ajuste-producto-${clave}`);
+  }
+
+  function cambiarTipo(clave: number, tipo: TipoAjuste) {
+    setLineas((actuales) =>
+      actuales.map((linea) =>
+        linea.clave === clave
+          ? { ...linea, tipo, costo: costoDeLinea(tipo, productoDeLinea(linea), linea.costo) }
+          : linea,
+      ),
+    );
   }
 
   function guardar() {
@@ -120,7 +138,7 @@ export function AjusteForm({
     const validables = lineas.map((linea) => ({
       producto_id: linea.productoId,
       cantidad: parsearCantidad(linea.cantidad),
-      costoCentavos: parsearCentavos(linea.costo),
+      costoCentavos: costoCentavosDeLinea(linea.tipo, productoDeLinea(linea), linea.costo),
     }));
 
     const reglas = [
@@ -128,7 +146,7 @@ export function AjusteForm({
       requerido("fecha", fecha, "La fecha es requerida."),
       ...lineas.flatMap((linea) => {
         const cantidad = parsearCantidad(linea.cantidad);
-        const costo = parsearCentavos(linea.costo);
+        const costo = costoCentavosDeLinea(linea.tipo, productoDeLinea(linea), linea.costo);
         return [
           requerido(`ajuste-producto-${linea.clave}`, linea.productoId, "Seleccione un producto."),
           {
@@ -139,7 +157,9 @@ export function AjusteForm({
           {
             campo: `ajuste-costo-${linea.clave}`,
             invalido: costo === null || costo <= 0,
-            mensaje: "El costo debe ser mayor que cero.",
+            mensaje: bloqueaCosto(linea.tipo)
+              ? "El producto no tiene costo promedio; registra una entrada antes de dar salida."
+              : "El costo debe ser mayor que cero.",
           },
         ];
       }),
@@ -162,7 +182,7 @@ export function AjusteForm({
           producto_id: linea.productoId,
           tipo: linea.tipo,
           cantidad: parsearCantidad(linea.cantidad),
-          costo_unitario: centavosAValor(parsearCentavos(linea.costo) ?? 0),
+          costo_unitario: centavosAValor(costoCentavosDeLinea(linea.tipo, productoDeLinea(linea), linea.costo) ?? 0),
         })),
       });
 
@@ -260,9 +280,10 @@ export function AjusteForm({
               </TableHeader>
               <TableBody>
                 {lineas.map((linea, indice) => {
+                  const productoLinea = productoDeLinea(linea);
                   const totalLinea = totalLineaAjusteCentavos({
                     cantidad: parsearCantidad(linea.cantidad),
-                    costoCentavos: parsearCentavos(linea.costo) ?? 0,
+                    costoCentavos: costoCentavosDeLinea(linea.tipo, productoLinea, linea.costo) ?? 0,
                   });
 
                   return (
@@ -301,7 +322,7 @@ export function AjusteForm({
                           items={OPCIONES_TIPO}
                           value={linea.tipo}
                           onValueChange={(valor: string | null) => {
-                            if (valor) actualizarLinea(linea.clave, { tipo: valor as TipoAjuste });
+                            if (valor) cambiarTipo(linea.clave, valor as TipoAjuste);
                           }}
                         >
                           <SelectTrigger
@@ -341,23 +362,19 @@ export function AjusteForm({
                         ) : null}
                       </TableCell>
                       <TableCell>
-                        <InputGroup className={FORM_INPUT_GROUP}>
-                          <InputGroupAddon align="inline-start" className="pr-0 pl-2 text-sm text-slate-500">
-                            RD$
-                          </InputGroupAddon>
-                          <InputGroupInput
-                            id={`ajuste-costo-${linea.clave}`}
-                            inputMode="decimal"
-                            value={linea.costo}
-                            onChange={(evento) => {
-                              actualizarLinea(linea.clave, { costo: evento.target.value });
-                              validacion.limpiar(`ajuste-costo-${linea.clave}`);
-                            }}
-                            aria-label={`Costo unitario de la línea ${indice + 1}`}
-                            aria-invalid={Boolean(validacion.errorDe(`ajuste-costo-${linea.clave}`))}
-                            disabled={pendiente}
-                          />
-                        </InputGroup>
+                        <CampoCostoLinea
+                          id={`ajuste-costo-${linea.clave}`}
+                          indice={indice}
+                          tipo={linea.tipo}
+                          producto={productoLinea}
+                          costo={linea.costo}
+                          error={validacion.errorDe(`ajuste-costo-${linea.clave}`) ?? null}
+                          disabled={pendiente}
+                          onCambiar={(valor) => {
+                            actualizarLinea(linea.clave, { costo: valor });
+                            validacion.limpiar(`ajuste-costo-${linea.clave}`);
+                          }}
+                        />
                         {validacion.errorDe(`ajuste-costo-${linea.clave}`) ? (
                           <p role="alert" className="text-destructive mt-1 text-xs">
                             {validacion.errorDe(`ajuste-costo-${linea.clave}`)}
@@ -385,7 +402,7 @@ export function AjusteForm({
           </div>
 
           <p className="text-muted-foreground mt-2 text-xs">
-            La entrada recalcula el costo promedio del producto; la salida usa el costo indicado.
+            {NOTA_COSTO_SALIDA} y su campo va bloqueado; la entrada recalcula el costo promedio del producto.
           </p>
         </section>
 
@@ -408,6 +425,7 @@ export function AjusteForm({
           type="button"
           variant="outline"
           className={FORM_BUTTON}
+          nativeButton={false}
           render={<Link href="/dashboard/inventario/ajustes" />}
         >
           Cancelar
