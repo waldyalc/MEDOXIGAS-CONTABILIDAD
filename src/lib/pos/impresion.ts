@@ -286,7 +286,8 @@ function lineaDeDevolucion(linea: LineaDevolucionPOS, plantilla: PlantillaTicket
 
 function totalesFactura(resultado: VentaPOSResultado): FilaTicketPOS[] {
   const { factura, totales, lineas } = resultado;
-  const filas: FilaTicketPOS[] = [fila("Subtotal", formatoMoneda(totales.subtotal))];
+  const bruto = sumarMontos([totales.subtotal, totales.descuento]);
+  const filas: FilaTicketPOS[] = [fila("Subtotal", formatoMoneda(bruto))];
 
   if (compararMontos(totales.descuento, "0") > 0) {
     filas.push(fila("Descuento", montoNegativo(totales.descuento)));
@@ -389,7 +390,8 @@ export function armarTicketCotizacion(
     ...(normalizada.mostrar_vendedor && resultado.vendedor ? [`Vendedor: ${resultado.vendedor.nombre}`] : []),
   ];
 
-  const totales: FilaTicketPOS[] = [fila("Subtotal", formatoMoneda(resultado.totales.subtotal))];
+  const bruto = sumarMontos([resultado.totales.subtotal, resultado.totales.descuento]);
+  const totales: FilaTicketPOS[] = [fila("Subtotal", formatoMoneda(bruto))];
   if (compararMontos(resultado.totales.descuento, "0") > 0) {
     totales.push(fila("Descuento", montoNegativo(resultado.totales.descuento)));
   }

@@ -66,6 +66,19 @@ describe("armarTicketFactura", () => {
     expect(ticket.nota).toBe("ITBIS incluido");
   });
 
+  test("el subtotal impreso es el bruto: el descuento no se resta dos veces", () => {
+    const venta = ventaEjemplo();
+    const conDescuento = {
+      ...venta,
+      totales: { ...venta.totales, subtotal: "200.00", descuento: "5.00", total: "236.00" },
+    };
+    const ticket = armarTicketFactura(conDescuento);
+
+    expect(valor(ticket.totales, "Subtotal")).toBe("RD$ 205.00");
+    expect(valor(ticket.totales, "Descuento")).toBe("-RD$ 5.00");
+    expect(valor(ticket.totales, "Total")).toBe("RD$ 236.00");
+  });
+
   test("57 mm apila las columnas y conserva los montos", () => {
     const ticket = armarTicketFactura(ventaEjemplo(), plantilla({ ancho_mm: 57 }));
 

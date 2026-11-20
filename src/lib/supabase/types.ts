@@ -5195,6 +5195,10 @@ export type Database = {
         Returns: undefined
       }
       _nomina_concepto_id: { Args: { p_codigo: string }; Returns: string }
+      _nomina_contacto_empleado: {
+        Args: { p_empleado: Database["public"]["Tables"]["empleados"]["Row"] }
+        Returns: string
+      }
       _nomina_crear_asiento: {
         Args: {
           p_fecha: string
@@ -5220,12 +5224,27 @@ export type Database = {
         }
         Returns: string
       }
+      _nomina_numero: {
+        Args: { p_mensaje: string; p_valor: string }
+        Returns: number
+      }
       _nomina_recalcular_periodo: {
         Args: { p_periodo_id: string }
         Returns: undefined
       }
       _nomina_revertir_asiento: {
         Args: { p_asiento_id: string; p_origen_id: string }
+        Returns: string
+      }
+      _nomina_sincronizar_contacto: {
+        Args: {
+          p_contacto_id: string
+          p_empleado: Database["public"]["Tables"]["empleados"]["Row"]
+        }
+        Returns: undefined
+      }
+      _nomina_uuid: {
+        Args: { p_mensaje: string; p_valor: string }
         Returns: string
       }
       _nomina_validar_cuenta: {
@@ -5235,6 +5254,10 @@ export type Database = {
           p_concepto: string
           p_segmento: string
         }
+        Returns: undefined
+      }
+      _nomina_validar_empleado: {
+        Args: { p_empleado: Database["public"]["Tables"]["empleados"]["Row"] }
         Returns: undefined
       }
       _pos_booleano: {
@@ -5465,15 +5488,29 @@ export type Database = {
           activo: boolean
         }[]
       }
+      nomina_actualizar_concepto: { Args: { p_id: string; p: Json }; Returns: string }
+      nomina_actualizar_empleado: { Args: { p_id: string; p: Json }; Returns: string }
+      nomina_agregar_empleados: { Args: { p_empleado_ids: string[]; p_periodo_id: string }; Returns: number }
       nomina_anular_pago_recibo: { Args: { p_recibo_id: string }; Returns: string }
       nomina_anular_recibo: { Args: { p_recibo_id: string }; Returns: string }
       nomina_calcular_periodo: { Args: { p_periodo_id: string }; Returns: Json }
       nomina_calcular_recibo: { Args: { p_recibo_id: string }; Returns: string }
+      nomina_cambiar_estado_empleado: {
+        Args: { p_fecha_fin?: string; p_id: string; p_estado: string }
+        Returns: string
+      }
       nomina_contabilizar_periodo: { Args: { p_periodo_id: string }; Returns: Json }
       nomina_contabilizar_recibo: { Args: { p_recibo_id: string }; Returns: string }
+      nomina_crear_concepto: { Args: { p: Json }; Returns: string }
+      nomina_crear_empleado: { Args: { p: Json }; Returns: string }
       nomina_crear_periodo: { Args: { p: Json }; Returns: string }
       nomina_eliminar_novedad_recibo: { Args: { p_id: string }; Returns: undefined }
+      nomina_eliminar_novedad_recurrente: { Args: { p_id: string }; Returns: undefined }
+      nomina_guardar_config_empresa: { Args: { p: Json }; Returns: undefined }
+      nomina_guardar_mapeo_contable: { Args: { p: Json }; Returns: number }
       nomina_guardar_novedad_recibo: { Args: { p: Json }; Returns: Json }
+      nomina_guardar_novedad_recurrente: { Args: { p: Json }; Returns: string }
+      nomina_guardar_parametros_rd: { Args: { p: Json }; Returns: undefined }
       nomina_pagar_periodo: { Args: { p: Json }; Returns: Json }
       nomina_pagar_recibo: { Args: { p: Json }; Returns: string }
       nomina_registrar_envio_colillas: { Args: { p: Json }; Returns: number }
