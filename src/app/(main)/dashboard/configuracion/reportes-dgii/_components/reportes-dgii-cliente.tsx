@@ -45,7 +45,6 @@ export function ReportesDgiiCliente({
 
   async function cambiar(cuenta: CuentaDgii, campo: CampoClasificacion, valor: string) {
     const siguiente: CuentaDgii = { ...cuenta, [campo]: valor === "" ? null : valor };
-    const anteriores = filas;
 
     setFilas((actuales) => actuales.map((fila) => (fila.id === cuenta.id ? siguiente : fila)));
     setGuardando(cuenta.id);
@@ -60,7 +59,8 @@ export function ReportesDgiiCliente({
     setGuardando(null);
 
     if (!resultado.ok) {
-      setFilas(anteriores);
+      // Solo se revierte esta fila: otra cuenta pudo guardarse mientras tanto.
+      setFilas((actuales) => actuales.map((fila) => (fila.id === cuenta.id ? cuenta : fila)));
       toast.add({ type: "error", title: "No se pudo guardar la clasificación", description: resultado.error });
       return;
     }
