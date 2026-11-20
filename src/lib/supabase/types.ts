@@ -1184,6 +1184,171 @@ export type Database = {
           },
         ]
       }
+      empleado_novedades_recurrentes: {
+        Row: {
+          activa: boolean
+          concepto_id: string
+          creado_en: string
+          empleado_id: string
+          fecha_fin: string | null
+          fecha_inicio: string
+          id: string
+          monto: number | null
+          notas: string | null
+          porcentaje: number | null
+        }
+        Insert: {
+          activa?: boolean
+          concepto_id: string
+          creado_en?: string
+          empleado_id: string
+          fecha_fin?: string | null
+          fecha_inicio: string
+          id?: string
+          monto?: number | null
+          notas?: string | null
+          porcentaje?: number | null
+        }
+        Update: {
+          activa?: boolean
+          concepto_id?: string
+          creado_en?: string
+          empleado_id?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string
+          id?: string
+          monto?: number | null
+          notas?: string | null
+          porcentaje?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empleado_novedades_recurrentes_concepto_id_fkey"
+            columns: ["concepto_id"]
+            isOneToOne: false
+            referencedRelation: "nomina_conceptos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empleado_novedades_recurrentes_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "empleados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empleados: {
+        Row: {
+          area: string | null
+          banco_nombre: string | null
+          cargo: string | null
+          centro_costo_id: string | null
+          clave_tss: string | null
+          contacto_id: string
+          correo: string | null
+          creado_en: string
+          creado_por: string | null
+          direccion: string | null
+          estado: string
+          fecha_fin: string | null
+          fecha_ingreso: string
+          frecuencia_pago: string
+          id: string
+          identificacion: string
+          metodo_pago: string
+          municipio: string | null
+          numero_cuenta_banco: string | null
+          primer_apellido: string
+          primer_nombre: string
+          salario_mensual: number
+          segundo_apellido: string | null
+          segundo_nombre: string | null
+          segmento_contable: string
+          telefono: string | null
+          tipo_cuenta_banco: string | null
+          tipo_contrato: string
+          tipo_identificacion: string
+        }
+        Insert: {
+          area?: string | null
+          banco_nombre?: string | null
+          cargo?: string | null
+          centro_costo_id?: string | null
+          clave_tss?: string | null
+          contacto_id: string
+          correo?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          direccion?: string | null
+          estado?: string
+          fecha_fin?: string | null
+          fecha_ingreso: string
+          frecuencia_pago: string
+          id?: string
+          identificacion: string
+          metodo_pago?: string
+          municipio?: string | null
+          numero_cuenta_banco?: string | null
+          primer_apellido: string
+          primer_nombre: string
+          salario_mensual: number
+          segundo_apellido?: string | null
+          segundo_nombre?: string | null
+          segmento_contable?: string
+          telefono?: string | null
+          tipo_cuenta_banco?: string | null
+          tipo_contrato?: string
+          tipo_identificacion: string
+        }
+        Update: {
+          area?: string | null
+          banco_nombre?: string | null
+          cargo?: string | null
+          centro_costo_id?: string | null
+          clave_tss?: string | null
+          contacto_id?: string
+          correo?: string | null
+          creado_en?: string
+          creado_por?: string | null
+          direccion?: string | null
+          estado?: string
+          fecha_fin?: string | null
+          fecha_ingreso?: string
+          frecuencia_pago?: string
+          id?: string
+          identificacion?: string
+          metodo_pago?: string
+          municipio?: string | null
+          numero_cuenta_banco?: string | null
+          primer_apellido?: string
+          primer_nombre?: string
+          salario_mensual?: number
+          segundo_apellido?: string | null
+          segundo_nombre?: string | null
+          segmento_contable?: string
+          telefono?: string | null
+          tipo_cuenta_banco?: string | null
+          tipo_contrato?: string
+          tipo_identificacion?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empleados_centro_costo_id_fkey"
+            columns: ["centro_costo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_costo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "empleados_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: true
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresa: {
         Row: {
           correo: string | null
@@ -2081,6 +2246,241 @@ export type Database = {
           created_at?: string
           id?: string
           nombre?: string
+        }
+        Relationships: []
+      }
+      nomina_conceptos: {
+        Row: {
+          activo: boolean
+          clase: string
+          codigo: string
+          creado_en: string
+          es_sistema: boolean
+          grava_infotep: boolean
+          grava_isr: boolean
+          grava_tss: boolean
+          id: string
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          activo?: boolean
+          clase: string
+          codigo: string
+          creado_en?: string
+          es_sistema?: boolean
+          grava_infotep?: boolean
+          grava_isr?: boolean
+          grava_tss?: boolean
+          id?: string
+          nombre: string
+          orden?: number
+        }
+        Update: {
+          activo?: boolean
+          clase?: string
+          codigo?: string
+          creado_en?: string
+          es_sistema?: boolean
+          grava_infotep?: boolean
+          grava_isr?: boolean
+          grava_tss?: boolean
+          id?: string
+          nombre?: string
+          orden?: number
+        }
+        Relationships: []
+      }
+      nomina_config_empresa: {
+        Row: {
+          actualizado_en: string
+          aplica_infotep: boolean
+          categoria_empresa: string
+          contacto_dgii_id: string | null
+          contacto_infotep_id: string | null
+          contacto_tss_id: string | null
+          cuenta_pago_defecto_id: string | null
+          cuenta_salarios_por_pagar_id: string | null
+          frecuencia_defecto: string
+          id: number
+          registrar_provisiones: boolean
+          riesgo_laboral: string
+        }
+        Insert: {
+          actualizado_en?: string
+          aplica_infotep?: boolean
+          categoria_empresa?: string
+          contacto_dgii_id?: string | null
+          contacto_infotep_id?: string | null
+          contacto_tss_id?: string | null
+          cuenta_pago_defecto_id?: string | null
+          cuenta_salarios_por_pagar_id?: string | null
+          frecuencia_defecto?: string
+          id?: number
+          registrar_provisiones?: boolean
+          riesgo_laboral?: string
+        }
+        Update: {
+          actualizado_en?: string
+          aplica_infotep?: boolean
+          categoria_empresa?: string
+          contacto_dgii_id?: string | null
+          contacto_infotep_id?: string | null
+          contacto_tss_id?: string | null
+          cuenta_pago_defecto_id?: string | null
+          cuenta_salarios_por_pagar_id?: string | null
+          frecuencia_defecto?: string
+          id?: number
+          registrar_provisiones?: boolean
+          riesgo_laboral?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nomina_config_empresa_contacto_dgii_id_fkey"
+            columns: ["contacto_dgii_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nomina_config_empresa_contacto_infotep_id_fkey"
+            columns: ["contacto_infotep_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nomina_config_empresa_contacto_tss_id_fkey"
+            columns: ["contacto_tss_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nomina_config_empresa_cuenta_pago_defecto_id_fkey"
+            columns: ["cuenta_pago_defecto_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nomina_config_empresa_cuenta_salarios_por_pagar_id_fkey"
+            columns: ["cuenta_salarios_por_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nomina_mapeo_contable: {
+        Row: {
+          concepto_id: string
+          creado_en: string
+          cuenta_gasto_id: string | null
+          cuenta_pasivo_id: string | null
+          id: string
+          segmento: string
+        }
+        Insert: {
+          concepto_id: string
+          creado_en?: string
+          cuenta_gasto_id?: string | null
+          cuenta_pasivo_id?: string | null
+          id?: string
+          segmento: string
+        }
+        Update: {
+          concepto_id?: string
+          creado_en?: string
+          cuenta_gasto_id?: string | null
+          cuenta_pasivo_id?: string | null
+          id?: string
+          segmento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nomina_mapeo_contable_concepto_id_fkey"
+            columns: ["concepto_id"]
+            isOneToOne: false
+            referencedRelation: "nomina_conceptos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nomina_mapeo_contable_cuenta_gasto_id_fkey"
+            columns: ["cuenta_gasto_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nomina_mapeo_contable_cuenta_pasivo_id_fkey"
+            columns: ["cuenta_pasivo_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nomina_parametros_rd: {
+        Row: {
+          actualizado_en: string
+          anio: number
+          dias_mes_laboral: number
+          escala_isr_anual: Json
+          horas_dia_laboral: number
+          salario_minimo: number
+          tasa_afp_empleado: number
+          tasa_afp_empleador: number
+          tasa_infotep: number
+          tasa_sfs_empleado: number
+          tasa_sfs_empleador: number
+          tasa_srl_tipo_1: number
+          tasa_srl_tipo_2: number
+          tasa_srl_tipo_3: number
+          tasa_srl_tipo_4: number
+          tope_afp_mensual: number
+          tope_sfs_mensual: number
+          tope_srl_mensual: number
+        }
+        Insert: {
+          actualizado_en?: string
+          anio: number
+          dias_mes_laboral: number
+          escala_isr_anual: Json
+          horas_dia_laboral: number
+          salario_minimo: number
+          tasa_afp_empleado: number
+          tasa_afp_empleador: number
+          tasa_infotep: number
+          tasa_sfs_empleado: number
+          tasa_sfs_empleador: number
+          tasa_srl_tipo_1: number
+          tasa_srl_tipo_2: number
+          tasa_srl_tipo_3: number
+          tasa_srl_tipo_4: number
+          tope_afp_mensual: number
+          tope_sfs_mensual: number
+          tope_srl_mensual: number
+        }
+        Update: {
+          actualizado_en?: string
+          anio?: number
+          dias_mes_laboral?: number
+          escala_isr_anual?: Json
+          horas_dia_laboral?: number
+          salario_minimo?: number
+          tasa_afp_empleado?: number
+          tasa_afp_empleador?: number
+          tasa_infotep?: number
+          tasa_sfs_empleado?: number
+          tasa_sfs_empleador?: number
+          tasa_srl_tipo_1?: number
+          tasa_srl_tipo_2?: number
+          tasa_srl_tipo_3?: number
+          tasa_srl_tipo_4?: number
+          tope_afp_mensual?: number
+          tope_sfs_mensual?: number
+          tope_srl_mensual?: number
         }
         Relationships: []
       }
