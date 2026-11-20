@@ -1,6 +1,7 @@
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
+import { obtenerAnulados } from "@/lib/reportes/fiscales/anulados";
 import { libroTexto, periodoDeFecha, rangoMes, textoPeriodo } from "@/lib/reportes/fiscales/comun";
-import { obtenerAnulados, obtenerEmpresa } from "@/lib/reportes/fiscales/consultas";
+import { obtenerEmpresa } from "@/lib/reportes/fiscales/consultas";
 import { encabezado608, FORMATO_608, fila608 } from "@/lib/reportes/fiscales/formatos/608";
 
 import { ReporteDgii } from "../fiscales/_components/reporte-dgii";
