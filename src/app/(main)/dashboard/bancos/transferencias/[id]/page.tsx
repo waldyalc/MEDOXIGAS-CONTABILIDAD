@@ -1,19 +1,27 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { ArrowRightLeft, BookOpen } from "lucide-react";
+import { BookOpen } from "lucide-react";
 
+import {
+  type CampoInformacionDocumento,
+  CLASE_BOTON_DOCUMENTO,
+  InformacionDocumento,
+  TablaDocumento,
+  TarjetaDocumento,
+  TotalesDocumento,
+} from "@/components/documento/documento-detalle";
 import { Enlace } from "@/components/enlace";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { ContenedorDetalle } from "@/components/pagina/contenedor-pagina";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
 import { rutaAsiento, rutaCuenta } from "@/lib/enlaces";
 import { valorACentavos } from "@/lib/facturacion/calculo";
+import { getEmpresa } from "@/lib/facturacion/consultas";
 import { formatoDia } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
 
@@ -25,7 +33,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const rol = await getRol();
   if (rol == null) redirect("/unauthorized");
 
-  const transferencia = await getDetalleTransferencia(id);
+  const [transferencia, empresa] = await Promise.all([getDetalleTransferencia(id), getEmpresa()]);
   if (!transferencia) notFound();
 
   const salida = transferencia.lineas.find((linea) => linea.credito > 0);
@@ -37,6 +45,40 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const debitos = transferencia.lineas.reduce((total, linea) => total + valorACentavos(linea.debito), 0);
   const creditos = transferencia.lineas.reduce((total, linea) => total + valorACentavos(linea.credito), 0);
   const titulo = `${esTransferencia ? "Transferencia" : "Depósito"} #${transferencia.numero}`;
+
+  const informacion: CampoInformacionDocumento[] = [
+    { etiqueta: "Fecha", valor: formatoDia(transferencia.fecha) },
+    {
+      etiqueta: "Descripción",
+      valor: <span className="whitespace-pre-line">{transferencia.descripcion || "—"}</span>,
+    },
+    {
+      etiqueta: esTransferencia ? "Desde" : "Cuenta destino",
+      valor: cuentaOrigen?.cuenta ? (
+        <Enlace href={rutaCuenta(cuentaOrigen.cuenta.id)}>
+          {cuentaOrigen.cuenta.codigo} · {cuentaOrigen.cuenta.nombre}
+        </Enlace>
+      ) : (
+        "—"
+      ),
+    },
+    {
+      etiqueta: esTransferencia ? "Hacia" : "Contrapartida",
+      valor: cuentaDestino?.cuenta ? (
+        <Enlace href={rutaCuenta(cuentaDestino.cuenta.id)}>
+          {cuentaDestino.cuenta.codigo} · {cuentaDestino.cuenta.nombre}
+        </Enlace>
+      ) : (
+        "—"
+      ),
+    },
+    ...(transferencia.numeracionIngreso
+      ? [{ etiqueta: "Numeración ingreso", valor: transferencia.numeracionIngreso }]
+      : []),
+    ...(transferencia.numeracionEgreso
+      ? [{ etiqueta: "Numeración egreso", valor: transferencia.numeracionEgreso }]
+      : []),
+  ];
 
   return (
     <ContenedorDetalle>
@@ -53,124 +95,72 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           { etiqueta: titulo },
         ]}
         acciones={
-          <Button variant="outline" render={<Link href={rutaAsiento(transferencia.id)} prefetch={false} />}>
-            <BookOpen />
+          <Button
+            variant="outline"
+            className={CLASE_BOTON_DOCUMENTO}
+            render={<Link href={rutaAsiento(transferencia.id)} prefetch={false} />}
+          >
+            <BookOpen data-icon="inline-start" />
             Ver asiento
           </Button>
         }
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Fecha</dt>
-            <dd>{formatoDia(transferencia.fecha)}</dd>
-            <dt className="text-muted-foreground">Descripción</dt>
-            <dd className="whitespace-pre-line">{transferencia.descripcion || "—"}</dd>
-            {transferencia.numeracionIngreso ? (
-              <>
-                <dt className="text-muted-foreground">Numeración ingreso</dt>
-                <dd>{transferencia.numeracionIngreso}</dd>
-              </>
-            ) : null}
-            {transferencia.numeracionEgreso ? (
-              <>
-                <dt className="text-muted-foreground">Numeración egreso</dt>
-                <dd>{transferencia.numeracionEgreso}</dd>
-              </>
-            ) : null}
-          </dl>
-        </CardContent>
-      </Card>
+      <TarjetaDocumento empresa={empresa} numeroDocumento={String(transferencia.numero)}>
+        <InformacionDocumento titulo="Información del movimiento" campos={informacion} columnas={2} />
 
-      <div className="grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
-        <Card>
-          <CardHeader>
-            <CardTitle>{esTransferencia ? "Desde" : "Cuenta destino"}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {cuentaOrigen?.cuenta ? (
-              <Enlace href={rutaCuenta(cuentaOrigen.cuenta.id)} className="font-medium">
-                {cuentaOrigen.cuenta.codigo} · {cuentaOrigen.cuenta.nombre}
-              </Enlace>
-            ) : (
-              <span className="text-muted-foreground">—</span>
-            )}
-          </CardContent>
-        </Card>
+        <TablaDocumento
+          titulo="Asiento contable"
+          columnas={[
+            { titulo: "Cuenta" },
+            { titulo: "Descripción" },
+            { titulo: "Débito", alineadaDerecha: true },
+            { titulo: "Crédito", alineadaDerecha: true },
+          ]}
+          vacio="El movimiento no tiene líneas."
+          hayFilas={transferencia.lineas.length > 0}
+          pie={
+            <TableRow>
+              <TableCell colSpan={2} className="h-12 px-4 text-sm font-semibold">
+                Totales
+              </TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm font-semibold tabular-nums">
+                {formatearRd(debitos)}
+              </TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm font-semibold tabular-nums">
+                {formatearRd(creditos)}
+              </TableCell>
+            </TableRow>
+          }
+        >
+          {transferencia.lineas.map((linea) => (
+            <FilaNavegable key={linea.id} href={linea.cuenta ? rutaCuenta(linea.cuenta.id) : null}>
+              <TableCell className="h-12 px-4 text-sm whitespace-normal">
+                {linea.cuenta ? (
+                  <Enlace href={rutaCuenta(linea.cuenta.id)}>
+                    <span className="text-muted-foreground">{linea.cuenta.codigo}</span> {linea.cuenta.nombre}
+                  </Enlace>
+                ) : (
+                  "—"
+                )}
+              </TableCell>
+              <TableCell className="h-12 px-4 text-sm whitespace-normal">{linea.descripcion || "—"}</TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
+                {linea.debito === 0 ? "—" : formatearRd(valorACentavos(linea.debito))}
+              </TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
+                {linea.credito === 0 ? "—" : formatearRd(valorACentavos(linea.credito))}
+              </TableCell>
+            </FilaNavegable>
+          ))}
+        </TablaDocumento>
 
-        <div className="flex flex-col items-center gap-1">
-          <ArrowRightLeft className="text-muted-foreground size-5" />
-          <span className="text-lg font-semibold tabular-nums">{formatearRd(montoCentavos)}</span>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{esTransferencia ? "Hacia" : "Contrapartida"}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {cuentaDestino?.cuenta ? (
-              <Enlace href={rutaCuenta(cuentaDestino.cuenta.id)} className="font-medium">
-                {cuentaDestino.cuenta.codigo} · {cuentaDestino.cuenta.nombre}
-              </Enlace>
-            ) : (
-              <span className="text-muted-foreground">—</span>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Asiento</CardTitle>
-        </CardHeader>
-        <CardContent className="px-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-(--card-spacing)">Cuenta</TableHead>
-                <TableHead>Descripción</TableHead>
-                <TableHead className="text-right">Débito</TableHead>
-                <TableHead className="pr-(--card-spacing) text-right">Crédito</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transferencia.lineas.map((linea) => (
-                <FilaNavegable key={linea.id} href={linea.cuenta ? rutaCuenta(linea.cuenta.id) : null}>
-                  <TableCell className="pl-(--card-spacing) whitespace-normal">
-                    {linea.cuenta ? (
-                      <Enlace href={rutaCuenta(linea.cuenta.id)}>
-                        <span className="text-muted-foreground">{linea.cuenta.codigo}</span> {linea.cuenta.nombre}
-                      </Enlace>
-                    ) : (
-                      "—"
-                    )}
-                  </TableCell>
-                  <TableCell className="whitespace-normal">{linea.descripcion || "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {linea.debito === 0 ? "—" : formatearRd(valorACentavos(linea.debito))}
-                  </TableCell>
-                  <TableCell className="pr-(--card-spacing) text-right tabular-nums">
-                    {linea.credito === 0 ? "—" : formatearRd(valorACentavos(linea.credito))}
-                  </TableCell>
-                </FilaNavegable>
-              ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={2} className="pl-(--card-spacing) text-right">
-                  Totales
-                </TableCell>
-                <TableCell className="text-right tabular-nums">{formatearRd(debitos)}</TableCell>
-                <TableCell className="pr-(--card-spacing) text-right tabular-nums">{formatearRd(creditos)}</TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </CardContent>
-      </Card>
+        <TotalesDocumento
+          total={formatearRd(montoCentavos)}
+          filas={[]}
+          etiquetaTotal={esTransferencia ? "Monto transferido" : "Monto del depósito"}
+        />
+      </TarjetaDocumento>
     </ContenedorDetalle>
   );
 }

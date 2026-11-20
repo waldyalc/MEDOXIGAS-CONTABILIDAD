@@ -1,16 +1,12 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-
-import { ArrowLeft } from "lucide-react";
 
 import { EditarCuenta } from "@/components/contabilidad/cuenta-formulario";
 import { Enlace } from "@/components/enlace";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
+import { ContenedorLista } from "@/components/pagina/contenedor-pagina";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getRol } from "@/lib/auth/rol";
 import { listarOpcionesCuenta } from "@/lib/contabilidad/consultas";
@@ -18,6 +14,7 @@ import { rutaAsiento, rutaContacto } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 
+import { FiltroFechasCuenta } from "./_components/filtro-fechas-cuenta";
 import { normalizarFecha, obtenerCuentaDetalle } from "./_consultas";
 
 export default async function Page({
@@ -40,53 +37,40 @@ export default async function Page({
 
   const { cuenta, movimientos, tieneMovimientos, saldoCentavos, totalDebitoCentavos, totalCreditoCentavos } = detalle;
   const puedeEditar = rol === "admin" || rol === "contador";
+  const titulo = `${cuenta.codigo} · ${cuenta.nombre}`;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-fit"
-          render={<Link href="/dashboard/contabilidad" prefetch={false} />}
-        >
-          <ArrowLeft data-icon="inline-start" />
-          Contabilidad
-        </Button>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {cuenta.codigo} · {cuenta.nombre}
-            </h1>
+    <ContenedorLista>
+      <EncabezadoPagina
+        titulo={
+          <span className="flex flex-wrap items-center gap-2">
+            {titulo}
             <Badge variant="outline" className="capitalize">
               {cuenta.tipo}
             </Badge>
+          </span>
+        }
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Contabilidad", href: "/dashboard/contabilidad" },
+          { etiqueta: titulo },
+        ]}
+        acciones={
+          <>
             {puedeEditar ? (
               <EditarCuenta cuenta={cuenta} cuentas={opciones} bloquearCodigoTipoNaturaleza={tieneMovimientos} />
             ) : null}
-          </div>
-          <div className="flex flex-col items-end">
-            <span className="text-muted-foreground text-xs">Saldo</span>
-            <span className={`text-xl font-semibold tabular-nums ${saldoCentavos < 0 ? "text-destructive" : ""}`}>
-              {formatoMoneda(saldoCentavos / 100)}
-            </span>
-          </div>
-        </div>
-      </div>
+            <div className="flex flex-col items-end">
+              <span className="text-muted-foreground text-xs">Saldo</span>
+              <span className={`text-xl font-semibold tabular-nums ${saldoCentavos < 0 ? "text-destructive" : ""}`}>
+                {formatoMoneda(saldoCentavos / 100)}
+              </span>
+            </div>
+          </>
+        }
+      />
 
-      <form method="get" className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="desde">Desde</Label>
-          <Input id="desde" name="desde" type="date" defaultValue={desde ?? ""} className="w-40" />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="hasta">Hasta</Label>
-          <Input id="hasta" name="hasta" type="date" defaultValue={hasta ?? ""} className="w-40" />
-        </div>
-        <Button type="submit" variant="secondary">
-          Filtrar
-        </Button>
-      </form>
+      <FiltroFechasCuenta desde={desde} hasta={hasta} />
 
       <Card>
         <CardHeader>
@@ -157,6 +141,6 @@ export default async function Page({
           </Table>
         </CardContent>
       </Card>
-    </div>
+    </ContenedorLista>
   );
 }
