@@ -1031,12 +1031,14 @@ export type Database = {
           itbis: number
           notas: string | null
           numero: number
+          origen: string
           otros_impuestos: number
           propina: number
           remision_id: string | null
           subtotal: number
           terminos: string | null
           total: number
+          turno_id: string | null
           vencimiento: string
           vendedor_id: string | null
         }
@@ -1053,12 +1055,14 @@ export type Database = {
           itbis?: number
           notas?: string | null
           numero?: number
+          origen?: string
           otros_impuestos?: number
           propina?: number
           remision_id?: string | null
           subtotal?: number
           terminos?: string | null
           total?: number
+          turno_id?: string | null
           vencimiento: string
           vendedor_id?: string | null
         }
@@ -1075,12 +1079,14 @@ export type Database = {
           itbis?: number
           notas?: string | null
           numero?: number
+          origen?: string
           otros_impuestos?: number
           propina?: number
           remision_id?: string | null
           subtotal?: number
           terminos?: string | null
           total?: number
+          turno_id?: string | null
           vencimiento?: string
           vendedor_id?: string | null
         }
@@ -1111,6 +1117,13 @@ export type Database = {
             columns: ["remision_id"]
             isOneToOne: false
             referencedRelation: "remisiones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "pos_turnos"
             referencedColumns: ["id"]
           },
           {
@@ -1452,6 +1465,7 @@ export type Database = {
         Row: {
           almacen_id: string | null
           asiento_id: string | null
+          cambio: number | null
           centro_costo_id: string | null
           contacto_id: string
           creado_en: string
@@ -1464,9 +1478,11 @@ export type Database = {
           id: string
           itbis: number
           motivo_anulacion_id: string | null
+          monto_recibido: number | null
           ncf: string
           notas: string | null
           numero: number
+          origen: string
           otros_impuestos: number
           pagado: number
           pie: string | null
@@ -1476,12 +1492,14 @@ export type Database = {
           terminos: string | null
           tipo_comprobante: string
           total: number
+          turno_id: string | null
           vencimiento: string
           vendedor_id: string | null
         }
         Insert: {
           almacen_id?: string | null
           asiento_id?: string | null
+          cambio?: number | null
           centro_costo_id?: string | null
           contacto_id: string
           creado_en?: string
@@ -1494,9 +1512,11 @@ export type Database = {
           id?: string
           itbis?: number
           motivo_anulacion_id?: string | null
+          monto_recibido?: number | null
           ncf: string
           notas?: string | null
           numero?: number
+          origen?: string
           otros_impuestos?: number
           pagado?: number
           pie?: string | null
@@ -1506,12 +1526,14 @@ export type Database = {
           terminos?: string | null
           tipo_comprobante: string
           total?: number
+          turno_id?: string | null
           vencimiento: string
           vendedor_id?: string | null
         }
         Update: {
           almacen_id?: string | null
           asiento_id?: string | null
+          cambio?: number | null
           centro_costo_id?: string | null
           contacto_id?: string
           creado_en?: string
@@ -1524,9 +1546,11 @@ export type Database = {
           id?: string
           itbis?: number
           motivo_anulacion_id?: string | null
+          monto_recibido?: number | null
           ncf?: string
           notas?: string | null
           numero?: number
+          origen?: string
           otros_impuestos?: number
           pagado?: number
           pie?: string | null
@@ -1536,6 +1560,7 @@ export type Database = {
           terminos?: string | null
           tipo_comprobante?: string
           total?: number
+          turno_id?: string | null
           vencimiento?: string
           vendedor_id?: string | null
         }
@@ -1573,6 +1598,13 @@ export type Database = {
             columns: ["motivo_anulacion_id"]
             isOneToOne: false
             referencedRelation: "motivos_anulacion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "pos_turnos"
             referencedColumns: ["id"]
           },
           {
@@ -2439,6 +2471,7 @@ export type Database = {
           contacto_id: string
           creado_en: string
           creado_por: string | null
+          cuenta_reembolso_id: string | null
           devuelve_inventario: boolean
           estado: string
           factura_id: string
@@ -2447,13 +2480,16 @@ export type Database = {
           id: string
           itbis: number
           motivo_anulacion_id: string | null
+          monto_reembolso_efectivo: number
           ncf: string
           notas: string | null
           numero: number
           otros_impuestos: number
           propina: number
           subtotal: number
+          tipo_reembolso: string
           total: number
+          turno_id: string | null
         }
         Insert: {
           almacen_id?: string | null
@@ -2461,6 +2497,7 @@ export type Database = {
           contacto_id: string
           creado_en?: string
           creado_por?: string | null
+          cuenta_reembolso_id?: string | null
           devuelve_inventario?: boolean
           estado?: string
           factura_id: string
@@ -2469,13 +2506,16 @@ export type Database = {
           id?: string
           itbis?: number
           motivo_anulacion_id?: string | null
+          monto_reembolso_efectivo?: number
           ncf: string
           notas?: string | null
           numero?: number
           otros_impuestos?: number
           propina?: number
           subtotal?: number
+          tipo_reembolso?: string
           total?: number
+          turno_id?: string | null
         }
         Update: {
           almacen_id?: string | null
@@ -2483,6 +2523,7 @@ export type Database = {
           contacto_id?: string
           creado_en?: string
           creado_por?: string | null
+          cuenta_reembolso_id?: string | null
           devuelve_inventario?: boolean
           estado?: string
           factura_id?: string
@@ -2491,13 +2532,16 @@ export type Database = {
           id?: string
           itbis?: number
           motivo_anulacion_id?: string | null
+          monto_reembolso_efectivo?: number
           ncf?: string
           notas?: string | null
           numero?: number
           otros_impuestos?: number
           propina?: number
           subtotal?: number
+          tipo_reembolso?: string
           total?: number
+          turno_id?: string | null
         }
         Relationships: [
           {
@@ -2522,6 +2566,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "notas_credito_venta_cuenta_reembolso_id_fkey"
+            columns: ["cuenta_reembolso_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "notas_credito_venta_factura_id_fkey"
             columns: ["factura_id"]
             isOneToOne: false
@@ -2533,6 +2584,13 @@ export type Database = {
             columns: ["motivo_anulacion_id"]
             isOneToOne: false
             referencedRelation: "motivos_anulacion"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_credito_venta_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "pos_turnos"
             referencedColumns: ["id"]
           },
         ]
@@ -3146,6 +3204,7 @@ export type Database = {
           notas: string | null
           numero: number
           retenido: number
+          turno_id: string | null
         }
         Insert: {
           asiento_id?: string | null
@@ -3162,6 +3221,7 @@ export type Database = {
           notas?: string | null
           numero?: number
           retenido?: number
+          turno_id?: string | null
         }
         Update: {
           asiento_id?: string | null
@@ -3178,6 +3238,7 @@ export type Database = {
           notas?: string | null
           numero?: number
           retenido?: number
+          turno_id?: string | null
         }
         Relationships: [
           {
@@ -3206,6 +3267,13 @@ export type Database = {
             columns: ["factura_id"]
             isOneToOne: false
             referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_recibidos_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "pos_turnos"
             referencedColumns: ["id"]
           },
         ]
@@ -3361,6 +3429,294 @@ export type Database = {
           tipo_documento?: string
         }
         Relationships: []
+      }
+      pos_terminales: {
+        Row: {
+          activa: boolean
+          actualizado_en: string
+          almacen_id: string
+          centro_costo_id: string | null
+          contacto_defecto_id: string
+          creado_en: string
+          cuenta_efectivo_id: string
+          cuenta_tarjeta_credito_id: string | null
+          cuenta_tarjeta_debito_id: string | null
+          cuenta_transferencia_id: string | null
+          id: string
+          lista_precio_defecto_id: string | null
+          nombre: string
+          numeracion_defecto_id: string
+          plantilla_ticket: Json
+        }
+        Insert: {
+          activa?: boolean
+          actualizado_en?: string
+          almacen_id: string
+          centro_costo_id?: string | null
+          contacto_defecto_id: string
+          creado_en?: string
+          cuenta_efectivo_id: string
+          cuenta_tarjeta_credito_id?: string | null
+          cuenta_tarjeta_debito_id?: string | null
+          cuenta_transferencia_id?: string | null
+          id?: string
+          lista_precio_defecto_id?: string | null
+          nombre: string
+          numeracion_defecto_id: string
+          plantilla_ticket?: Json
+        }
+        Update: {
+          activa?: boolean
+          actualizado_en?: string
+          almacen_id?: string
+          centro_costo_id?: string | null
+          contacto_defecto_id?: string
+          creado_en?: string
+          cuenta_efectivo_id?: string
+          cuenta_tarjeta_credito_id?: string | null
+          cuenta_tarjeta_debito_id?: string | null
+          cuenta_transferencia_id?: string | null
+          id?: string
+          lista_precio_defecto_id?: string | null
+          nombre?: string
+          numeracion_defecto_id?: string
+          plantilla_ticket?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_terminales_almacen_id_fkey"
+            columns: ["almacen_id"]
+            isOneToOne: false
+            referencedRelation: "almacenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_terminales_centro_costo_id_fkey"
+            columns: ["centro_costo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_costo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_terminales_contacto_defecto_id_fkey"
+            columns: ["contacto_defecto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_terminales_cuenta_efectivo_id_fkey"
+            columns: ["cuenta_efectivo_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_terminales_cuenta_tarjeta_credito_id_fkey"
+            columns: ["cuenta_tarjeta_credito_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_terminales_cuenta_tarjeta_debito_id_fkey"
+            columns: ["cuenta_tarjeta_debito_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_terminales_cuenta_transferencia_id_fkey"
+            columns: ["cuenta_transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_terminales_lista_precio_defecto_id_fkey"
+            columns: ["lista_precio_defecto_id"]
+            isOneToOne: false
+            referencedRelation: "listas_precios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_terminales_numeracion_defecto_id_fkey"
+            columns: ["numeracion_defecto_id"]
+            isOneToOne: false
+            referencedRelation: "numeraciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_turno_movimientos: {
+        Row: {
+          asiento_id: string
+          contacto_id: string | null
+          creado_en: string
+          creado_por: string
+          cuenta_contrapartida_id: string
+          factura_id: string | null
+          gasto_menor_id: string | null
+          id: string
+          monto: number
+          motivo: string
+          notas: string | null
+          numero: number
+          pago_recibido_id: string | null
+          tipo: string
+          turno_id: string
+        }
+        Insert: {
+          asiento_id: string
+          contacto_id?: string | null
+          creado_en?: string
+          creado_por?: string
+          cuenta_contrapartida_id: string
+          factura_id?: string | null
+          gasto_menor_id?: string | null
+          id?: string
+          monto: number
+          motivo: string
+          notas?: string | null
+          numero?: number
+          pago_recibido_id?: string | null
+          tipo: string
+          turno_id: string
+        }
+        Update: {
+          asiento_id?: string
+          contacto_id?: string | null
+          creado_en?: string
+          creado_por?: string
+          cuenta_contrapartida_id?: string
+          factura_id?: string | null
+          gasto_menor_id?: string | null
+          id?: string
+          monto?: number
+          motivo?: string
+          notas?: string | null
+          numero?: number
+          pago_recibido_id?: string | null
+          tipo?: string
+          turno_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_turno_movimientos_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_turno_movimientos_contacto_id_fkey"
+            columns: ["contacto_id"]
+            isOneToOne: false
+            referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_turno_movimientos_cuenta_contrapartida_id_fkey"
+            columns: ["cuenta_contrapartida_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_turno_movimientos_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_turno_movimientos_gasto_menor_id_fkey"
+            columns: ["gasto_menor_id"]
+            isOneToOne: false
+            referencedRelation: "gastos_menores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_turno_movimientos_pago_recibido_id_fkey"
+            columns: ["pago_recibido_id"]
+            isOneToOne: false
+            referencedRelation: "pagos_recibidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_turno_movimientos_turno_id_fkey"
+            columns: ["turno_id"]
+            isOneToOne: false
+            referencedRelation: "pos_turnos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_turnos: {
+        Row: {
+          abierto_en: string
+          abierto_por: string
+          asiento_diferencia_id: string | null
+          base_inicial: number
+          cerrado_en: string | null
+          cerrado_por: string | null
+          diferencia: number | null
+          efectivo_esperado: number | null
+          efectivo_real: number | null
+          estado: string
+          id: string
+          numero: number
+          observaciones: string | null
+          terminal_id: string
+        }
+        Insert: {
+          abierto_en?: string
+          abierto_por?: string
+          asiento_diferencia_id?: string | null
+          base_inicial?: number
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          diferencia?: number | null
+          efectivo_esperado?: number | null
+          efectivo_real?: number | null
+          estado?: string
+          id?: string
+          numero?: number
+          observaciones?: string | null
+          terminal_id: string
+        }
+        Update: {
+          abierto_en?: string
+          abierto_por?: string
+          asiento_diferencia_id?: string | null
+          base_inicial?: number
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          diferencia?: number | null
+          efectivo_esperado?: number | null
+          efectivo_real?: number | null
+          estado?: string
+          id?: string
+          numero?: number
+          observaciones?: string | null
+          terminal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_turnos_asiento_diferencia_id_fkey"
+            columns: ["asiento_diferencia_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_turnos_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminales"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       producto_codigos_barra: {
         Row: {

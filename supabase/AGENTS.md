@@ -33,6 +33,10 @@ Flujo contable en corto: `docs/motor-contable.md`. Contrato completo:
 - **Bancos:** no hay tabla `bancos`; los bancos y cajas son filas de `cuentas`
   con `es_caja_banco = true`. Movimientos: `conciliaciones` y
   `conciliacion_movimientos`. Saldos: RPC `saldos_caja_banco`.
+- **Punto de venta:** `pos_terminales` (configuración), `pos_turnos`
+  (+`pos_turno_movimientos`). Las ventas del POS son filas reales de
+  `facturas`/`cotizaciones`/`pagos_recibidos`/`notas_credito_venta` con
+  `turno_id` y `origen = 'pos'`.
 - **Contabilidad:** `tipos_entrada_diario` (+ `asientos.tipo_entrada_id` /
   `asientos.codigo`), `periodos_contables`, `cierres_resultados`,
   `activos_fijos`, `activo_depreciaciones`, `centros_costo`, `vendedores`,

@@ -67,9 +67,9 @@ begin
 end $$;
 
 -- ===========================================================================
--- 0.1) INVENTARIO DE LAS 70 TABLAS DE public
+-- 0.1) INVENTARIO DE LAS 73 TABLAS DE public
 -- ===========================================================================
--- 56 se vacían (paso 1) y 14 se conservan (paso 3). Los marcadores
+-- 58 se vacían (paso 1) y 15 se conservan (paso 3). Los marcadores
 -- @conservar son el candado: src/lib/supabase/reset-virgen.test.ts compara
 -- esta lista + el TRUNCATE contra TODAS las tablas de supabase/migrations y
 -- falla si una tabla queda sin clasificar.
@@ -88,6 +88,7 @@ end $$;
 -- @conservar public.numeraciones
 -- @conservar public.tipos_entrada_diario
 -- @conservar public.motivos_anulacion
+-- @conservar public.pos_terminales
 
 -- ===========================================================================
 -- 1) VACIAR las tablas de documentos, usuario y prueba
@@ -96,6 +97,13 @@ end $$;
 -- secuencias que pertenecen a una columna; las secuencias de numeración se
 -- reinician aparte en el paso 2. CASCADE arrastra las hijas que dependan por
 -- FK (todas están en esta lista).
+
+-- 1.1) POS: respaldo de las terminales antes del TRUNCATE.
+--      pos_terminales es configuración (@conservar), pero el TRUNCATE de
+--      contactos la vaciaría por CASCADE (contacto_defecto_id). Se respalda
+--      aquí y se restaura en el paso 4.1.
+create temp table _pos_terminales_respaldo on commit drop as
+select * from public.pos_terminales;
 
 truncate table
   public.activo_depreciaciones,
@@ -144,6 +152,8 @@ truncate table
   public.pagos_recibidos,
   public.pagos_recurrentes,
   public.periodos_contables,
+  public.pos_turno_movimientos,
+  public.pos_turnos,
   public.producto_codigos_barra,
   public.producto_precios,
   public.producto_unidades,
@@ -357,6 +367,93 @@ select 1, 'MEDOXIGAS ALC, SRL'
 where not exists (select 1 from public.empresa where id = 1);
 
 -- ===========================================================================
+-- 4.1) POS: restaurar las terminales conservadas
+-- ===========================================================================
+-- Se restauran al final (y no antes del paso 3) para que la limpieza de
+-- catálogos no choque con sus llaves foráneas. Si una terminal apuntaba a una
+-- cuenta, almacén, numeración o lista de prueba que el paso 3 borró, la
+-- terminal se omite y se avisa. El contacto por defecto se re-apunta al
+-- «Consumidor Final» re-sembrado (los contactos se vaciaron).
+do $$
+declare
+  v_terminal record;
+  v_contacto_id uuid;
+  v_omitidas int := 0;
+begin
+  if not exists (select 1 from _pos_terminales_respaldo) then
+    return;
+  end if;
+
+  select c.id into v_contacto_id
+  from public.contactos c
+  where lower(btrim(c.nombre)) = 'consumidor final'
+    and c.activo
+  order by c.creado_en, c.id
+  limit 1;
+
+  if v_contacto_id is null then
+    insert into public.contactos (tipo, nombre, rnc_cedula, activo)
+    values ('cliente', 'Consumidor Final', '22222222222', true)
+    returning id into v_contacto_id;
+  end if;
+
+  for v_terminal in select * from _pos_terminales_respaldo loop
+    if not exists (select 1 from public.almacenes a where a.id = v_terminal.almacen_id)
+      or not exists (
+        select 1 from public.numeraciones n where n.id = v_terminal.numeracion_defecto_id
+      )
+      or not exists (
+        select 1 from public.cuentas c where c.id = v_terminal.cuenta_efectivo_id
+      )
+    then
+      v_omitidas := v_omitidas + 1;
+      continue;
+    end if;
+
+    insert into public.pos_terminales (
+      id, nombre, almacen_id, cuenta_efectivo_id, cuenta_tarjeta_debito_id,
+      cuenta_tarjeta_credito_id, cuenta_transferencia_id, numeracion_defecto_id,
+      lista_precio_defecto_id, contacto_defecto_id, centro_costo_id,
+      plantilla_ticket, activa, creado_en, actualizado_en
+    )
+    values (
+      v_terminal.id,
+      v_terminal.nombre,
+      v_terminal.almacen_id,
+      v_terminal.cuenta_efectivo_id,
+      case when exists (
+        select 1 from public.cuentas c where c.id = v_terminal.cuenta_tarjeta_debito_id
+      ) then v_terminal.cuenta_tarjeta_debito_id end,
+      case when exists (
+        select 1 from public.cuentas c where c.id = v_terminal.cuenta_tarjeta_credito_id
+      ) then v_terminal.cuenta_tarjeta_credito_id end,
+      case when exists (
+        select 1 from public.cuentas c where c.id = v_terminal.cuenta_transferencia_id
+      ) then v_terminal.cuenta_transferencia_id end,
+      v_terminal.numeracion_defecto_id,
+      case when exists (
+        select 1 from public.listas_precios l where l.id = v_terminal.lista_precio_defecto_id
+      ) then v_terminal.lista_precio_defecto_id end,
+      v_contacto_id,
+      case when exists (
+        select 1 from public.centros_costo x where x.id = v_terminal.centro_costo_id
+      ) then v_terminal.centro_costo_id end,
+      v_terminal.plantilla_ticket,
+      v_terminal.activa,
+      v_terminal.creado_en,
+      v_terminal.actualizado_en
+    );
+  end loop;
+
+  if v_omitidas > 0 then
+    raise notice
+      'POS: % terminal(es) no se restauraron porque su almacén, numeración o cuenta de efectivo ya no existen.',
+      v_omitidas;
+  end if;
+end;
+$$;
+
+-- ===========================================================================
 -- 5) VERIFICACIÓN DENTRO DE LA TRANSACCIÓN
 -- ===========================================================================
 -- Si algo de esto falla, el COMMIT no ocurre y la base queda como estaba.
@@ -415,6 +512,8 @@ begin
     'pagos_recibidos',
     'pagos_recurrentes',
     'periodos_contables',
+    'pos_turno_movimientos',
+    'pos_turnos',
     'producto_codigos_barra',
     'producto_precios',
     'producto_unidades',
@@ -539,6 +638,8 @@ from (
   union all select 'pagos_recibidos', count(*) from public.pagos_recibidos
   union all select 'pagos_recurrentes', count(*) from public.pagos_recurrentes
   union all select 'periodos_contables', count(*) from public.periodos_contables
+  union all select 'pos_turno_movimientos', count(*) from public.pos_turno_movimientos
+  union all select 'pos_turnos', count(*) from public.pos_turnos
   union all select 'producto_codigos_barra', count(*) from public.producto_codigos_barra
   union all select 'producto_precios', count(*) from public.producto_precios
   union all select 'producto_unidades', count(*) from public.producto_unidades
@@ -566,6 +667,7 @@ union all select 'almacenes', count(*), 'exactamente 1 (principal)' from public.
 union all select 'listas_precios', count(*), 'exactamente 1 (principal)' from public.listas_precios
 union all select 'numeraciones', count(*), 'exactamente 8 (B01…B16)' from public.numeraciones
 union all select 'tipos_entrada_diario', count(*), 'exactamente 13' from public.tipos_entrada_diario
+union all select 'pos_terminales', count(*), 'terminales del POS restauradas' from public.pos_terminales
 order by tabla;
 
 -- 6.3 Series y tipos con su consecutivo (todo debe decir 1).
