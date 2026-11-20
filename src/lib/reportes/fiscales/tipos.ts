@@ -36,6 +36,23 @@ export interface DocumentoFiscal {
   clase: ClaseDocumento;
   ruta: string | null;
   pagos: FormasPago;
+
+  // Clasificación fiscal por cuenta contable (606/607). La llena `consultas.ts`
+  // a partir de `cuentas.categoria_dgii` / `tipo_compra` / `tipo_ingreso`.
+  /** Categoría DGII de la cuenta del renglón (columna "Tipo de bienes" del 606). */
+  tipoBienes?: string | null;
+  /** Tipo de ingreso de la cuenta de ingreso (607, a 1 dígito). */
+  tipoIngreso?: string | null;
+  /** Fecha del primer pago cuando el documento está pagado (fecha de pago del 606). */
+  fechaPago?: string | null;
+  /** ITBIS retenido por terceros (607). */
+  itbisRetenido?: number;
+  /** Retención de renta por terceros (607). */
+  retencionRenta?: number;
+  /** Fecha de la retención (607). */
+  fechaRetencion?: string | null;
+  /** Motivo por el que el documento se excluye del TXT, ya en español. */
+  exclusion?: string | null;
 }
 
 export interface DetalleImpuesto {

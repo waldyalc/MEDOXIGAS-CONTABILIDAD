@@ -1,20 +1,35 @@
 import { describe, expect, test } from "vitest";
 
+import { type CatalogoCuentasDgii, resolverClasificacionCuenta, valorPrincipal } from "./clasificacion";
 import {
+  diasEntreFechas,
   fechaAAAAMM,
   fechaAAAAMMDD,
   formasPagoVenta,
+  itbisNotaCredito,
   libroTexto,
   mismoMes,
   nombreArchivoDgii,
+  nombreArchivoDgiiExcel,
   rangoMes,
   textoPeriodo,
   tipoIdentificacionCompra,
   tipoIdentificacionVenta,
 } from "./comun";
 import { tablaComprasContador, tablaFacturasContador, tablaLibroContador } from "./contador";
+import {
+  digitoVerificadorValido,
+  identificacionValida,
+  MOTIVO_IDENTIFICACION_LONGITUD,
+  MOTIVO_SIN_TIPO_INGRESO,
+  motivoCuentaSinClasificar,
+  motivoDigitoVerificador,
+  motivoIdentificacionInvalida,
+  separarDocumentos,
+} from "./excluidos";
 import { encabezado606, FORMATO_606, fila606 } from "./formatos/606";
 import { encabezado607, FORMATO_607, fila607 } from "./formatos/607";
+import { columnasTextoDgii } from "./formatos/tipos";
 import { diferenciaImpuestos, resumirPorTasa } from "./impuestos";
 import { calcularIt1, fechaLimiteIt1 } from "./it1";
 import { filasRetenciones } from "./retenciones";
@@ -72,7 +87,7 @@ function detalle(overrides: Partial<DetalleImpuesto> = {}): DetalleImpuesto {
 }
 
 describe("formato 606", () => {
-  test("arma la fila completa de una compra de bienes", () => {
+  test("arma la fila completa de una compra de bienes clasificada por su cuenta", () => {
     const fila = fila606(
       documento({
         id: "c1",
@@ -84,6 +99,7 @@ describe("formato 606", () => {
         itbis: 702000,
         total: 4602000,
         clase: "compra",
+        tipoBienes: "09",
       }),
     );
 
@@ -93,8 +109,8 @@ describe("formato 606", () => {
       tipoBienes: "09",
       ncf: "B0100000050",
       ncfModificado: "",
-      fechaComprobante: "202611",
-      fechaComprobanteDia: "13",
+      fechaComprobante: "20261113",
+      fechaComprobanteDia: "",
       fechaPago: "",
       fechaPagoDia: "",
       montoServicios: 0,
@@ -105,18 +121,37 @@ describe("formato 606", () => {
       itbisProporcionalidad: 0,
       itbisCosto: 0,
       itbisPorAdelantar: 702000,
-      itbisPercibido: 0,
+      itbisPercibido: "",
       tipoRetencionIsr: "",
       montoRetencionRenta: 0,
-      isrPercibido: 0,
+      isrPercibido: "",
       impuestoSelectivo: 0,
       otrosImpuestos: 0,
       propina: 0,
-      formaPago: "4",
+      formaPago: "04",
     });
   });
 
-  test("clasifica un gasto menor como servicio y efectivo", () => {
+  test("una compra pagada va al contado (01) con la fecha del primer pago", () => {
+    const fila = fila606(
+      documento({
+        ncf: "B0100000051",
+        base: 60000,
+        baseBienes: 60000,
+        itbis: 10800,
+        total: 70800,
+        clase: "compra",
+        tipoBienes: "09",
+        fechaPago: "2026-11-20",
+      }),
+    );
+
+    expect(fila.formaPago).toBe("01");
+    expect(fila.fechaPago).toBe("20261120");
+    expect(fila.fechaPagoDia).toBe("");
+  });
+
+  test("clasifica un gasto menor como servicio y contado", () => {
     const fila = fila606(
       documento({
         ncf: "B1300000001",
@@ -126,47 +161,53 @@ describe("formato 606", () => {
         itbis: 4500,
         total: 29500,
         clase: "gasto",
+        tipoBienes: "02",
+        fechaPago: "2026-11-13",
       }),
     );
 
     expect(fila.tipoBienes).toBe("02");
     expect(fila.montoServicios).toBe(25000);
     expect(fila.montoBienes).toBe(0);
-    expect(fila.formaPago).toBe("1");
+    expect(fila.formaPago).toBe("01");
   });
 
-  test("arma el encabezado con cantidad y total", () => {
+  test("arma el encabezado de 4 campos sin total ni retención", () => {
     const compras = [documento({ base: 3900000, clase: "compra" }), documento({ base: 100000, clase: "gasto" })];
 
     expect(encabezado606(compras, "101-010101-1", "202611")).toEqual({
+      codigo: "606",
       rnc: "1010101011",
       periodo: "202611",
       cantidad: 2,
-      totalMontoFacturado: 4000000,
-      retencionRenta: 0,
     });
   });
 
-  test("exporta el TXT con encabezado y detalle separados por pipes", () => {
+  test("exporta el TXT con el encabezado y el detalle reales de Alegra", () => {
     const compra = documento({
-      ncf: "B0100000050",
-      base: 3900000,
-      baseBienes: 3900000,
-      itbis: 702000,
+      rnc: "132000013",
+      ncf: "B0100000051",
+      base: 60000,
+      baseBienes: 60000,
+      itbis: 10800,
+      total: 70800,
       clase: "compra",
+      tipoBienes: "09",
+      fecha: "2026-11-20",
     });
     const texto = libroTexto(
       FORMATO_606.encabezado,
-      FORMATO_606.detalle,
-      encabezado606([compra], "101010101", "202611"),
+      columnasTextoDgii(FORMATO_606),
+      encabezado606([compra], "131999999", "202611"),
       [fila606(compra)],
     );
     const lineas = texto.split("\r\n");
 
     expect(lineas).toHaveLength(2);
-    expect(lineas[0]).toBe("101010101|202611|1|39000.00|0.00");
-    expect(lineas[1]).toContain("B0100000050|");
-    expect(lineas[1]).toContain("|39000.00|39000.00|7020.00|");
+    expect(lineas[0]).toBe("606|131999999|202611|1");
+    expect(lineas[1]).toBe(
+      "132000013|1|09|B0100000051||20261120||0.00|600.00|600.00|108.00|0.00|0.00|0.00|108.00|||0.00||0.00|0.00|0.00|04",
+    );
   });
 });
 
@@ -179,13 +220,13 @@ describe("formato 607", () => {
     otras: 0,
   };
 
-  test("arma la fila completa de una venta", () => {
-    expect(fila607(documento({ pagos }))).toEqual({
+  test("arma la fila completa de una venta con tipo de ingreso a 1 dígito", () => {
+    expect(fila607(documento({ pagos, tipoIngreso: "1" }))).toEqual({
       rnc: "101010101",
       tipoId: "1",
       ncf: "B0100000001",
       ncfModificado: "",
-      tipoIngreso: "01",
+      tipoIngreso: "1",
       fechaComprobante: "20261113",
       fechaRetencion: "",
       montoFacturado: 1410000,
@@ -204,10 +245,11 @@ describe("formato 607", () => {
       bonos: 0,
       permuta: 0,
       otras: 0,
+      montoExportaciones: 0,
     });
   });
 
-  test("reporta una nota de crédito en negativo con su NCF modificado", () => {
+  test("reporta una nota de crédito en positivo con su NCF modificado", () => {
     const fila = fila607(
       documento({
         ncf: "B0400000001",
@@ -220,33 +262,142 @@ describe("formato 607", () => {
     );
 
     expect(fila.ncfModificado).toBe("B0100000001");
-    expect(fila.montoFacturado).toBe(-65000);
-    expect(fila.itbisFacturado).toBe(-11700);
+    expect(fila.montoFacturado).toBe(65000);
+    expect(fila.itbisFacturado).toBe(11700);
   });
 
-  test("calcula el encabezado neto de notas", () => {
+  test("reporta la retención de ITBIS y su fecha", () => {
+    const fila = fila607(
+      documento({
+        pagos,
+        itbisRetenido: 4320,
+        fechaRetencion: "2026-11-20",
+        tipoIngreso: "1",
+      }),
+    );
+
+    expect(fila.itbisRetenido).toBe(4320);
+    expect(fila.fechaRetencion).toBe("20261120");
+  });
+
+  test("calcula el encabezado de 4 campos neto en pantalla", () => {
     const ventas = [documento({ pagos }), documento({ base: 65000, clase: "devolucion-venta" })];
 
     expect(encabezado607(ventas, null, "202611")).toMatchObject({
+      codigo: "607",
       rnc: "",
       periodo: "202611",
       cantidad: 2,
-      totalMontoFacturado: 1345000,
     });
   });
 
-  test("exporta el TXT con montos y fecha AAAAMMDD", () => {
+  test("exporta el TXT de 23 campos sin la columna de exportaciones", () => {
     const texto = libroTexto(
       FORMATO_607.encabezado,
-      FORMATO_607.detalle,
+      columnasTextoDgii(FORMATO_607),
       encabezado607([documento({ pagos })], "101010101", "202611"),
       [fila607(documento({ pagos }))],
     );
     const lineas = texto.split("\r\n");
 
-    expect(lineas[0]).toBe("101010101|202611|1|14100.00");
+    expect(lineas[0]).toBe("607|101010101|202611|1");
     expect(lineas[1]).toContain("|20261113|");
     expect(lineas[1]).toContain("|14100.00|2538.00|");
+    expect(lineas[1]?.split("|")).toHaveLength(23);
+  });
+});
+
+describe("exclusiones de los reportes DGII", () => {
+  test("el dígito verificador acepta los RNC reales de Alegra y rechaza el malo", () => {
+    expect(digitoVerificadorValido("132000013")).toBe(true);
+    expect(digitoVerificadorValido("402123455")).toBe(true);
+    expect(digitoVerificadorValido("132000015")).toBe(false);
+    expect(identificacionValida("132000013")).toBe(true);
+    expect(identificacionValida("132000015")).toBe(false);
+  });
+
+  test("usa los motivos literales de Alegra", () => {
+    expect(motivoIdentificacionInvalida("123")).toBe(MOTIVO_IDENTIFICACION_LONGITUD);
+    expect(motivoIdentificacionInvalida("132000015")).toBe(
+      "La comprobación del dígito verificador de la identificación: 132000015 fue erronea",
+    );
+    expect(motivoDigitoVerificador("132-000-015")).toContain("132000015");
+    expect(motivoCuentaSinClasificar("Gastos varios")).toBe(
+      "La cuenta contable Gastos varios o su cuenta contable madre aún no tienen configurada la clasificación de costos y gastos.",
+    );
+  });
+
+  test("separa los incluidos de los excluidos sin tocar el TXT", () => {
+    const { incluidos, excluidos } = separarDocumentos([
+      documento({ id: "ok", ncf: "B0100000051", rnc: "132000013", clase: "compra" }),
+      documento({ id: "malo", ncf: "B0100000050", rnc: "132000015", clase: "compra" }),
+      documento({
+        id: "cuenta",
+        ncf: "B1300000001",
+        rnc: "132000013",
+        clase: "gasto",
+        exclusion: motivoCuentaSinClasificar("Gastos varios"),
+      }),
+    ]);
+
+    expect(incluidos.map((documento) => documento.id)).toEqual(["ok"]);
+    expect(excluidos).toHaveLength(2);
+    expect(excluidos[0]?.numero).toBe("B0100000050");
+    expect(excluidos[0]?.tipo).toBe("Factura de proveedor");
+    expect(excluidos[1]?.motivo).toBe(motivoCuentaSinClasificar("Gastos varios"));
+  });
+
+  test("una nota de crédito emitida después de 30 días no acredita ITBIS", () => {
+    expect(diasEntreFechas("2026-10-15", "2026-11-20")).toBe(36);
+    expect(itbisNotaCredito(14400, "2026-10-15", "2026-11-20")).toBe(0);
+    expect(itbisNotaCredito(14400, "2026-11-20", "2026-11-20")).toBe(14400);
+    expect(itbisNotaCredito(14400, "2026-10-21", "2026-11-20")).toBe(14400);
+    expect(itbisNotaCredito(14400, null, "2026-11-20")).toBe(14400);
+  });
+
+  test("resuelve la clasificación por la cuenta madre", () => {
+    const catalogo: CatalogoCuentasDgii = new Map([
+      [
+        "hija",
+        {
+          id: "hija",
+          codigo: "6101",
+          nombre: "Gastos varios",
+          padre_id: "padre",
+          categoria_dgii: null,
+          tipo_compra: null,
+          tipo_ingreso: null,
+        },
+      ],
+      [
+        "padre",
+        {
+          id: "padre",
+          codigo: "61",
+          nombre: "Gastos",
+          padre_id: null,
+          categoria_dgii: "02",
+          tipo_compra: "servicio",
+          tipo_ingreso: null,
+        },
+      ],
+    ]);
+
+    expect(resolverClasificacionCuenta(catalogo, "hija")).toMatchObject({
+      nombre: "Gastos varios",
+      categoriaDgii: "02",
+      tipoCompra: "servicio",
+    });
+    expect(resolverClasificacionCuenta(catalogo, null)).toBeNull();
+    expect(
+      valorPrincipal(
+        new Map([
+          ["02", 100],
+          ["09", 500],
+        ]),
+      ),
+    ).toBe("09");
+    expect(MOTIVO_SIN_TIPO_INGRESO).toContain("tipo de ingreso");
   });
 });
 
@@ -268,10 +419,11 @@ describe("utilidades fiscales", () => {
     expect(textoPeriodo("202611")).toBe("noviembre de 2026");
     expect(nombreArchivoDgii("606", "101-010101-1", "202611")).toBe("DGII_F_606_1010101011_202611.TXT");
     expect(nombreArchivoDgii("607", null, "202611")).toBe("DGII_F_607_sin-rnc_202611.TXT");
+    expect(nombreArchivoDgiiExcel("607", "101010101", "202611")).toBe("DGII_F_607_101010101_202611.xlsx");
   });
 
-  test("reparte pagos, notas de crédito y saldo pendiente", () => {
-    expect(formasPagoVenta(1663800, 800000, 0, [{ metodo: "transferencia", monto: 800000 }])).toEqual({
+  test("reparte pagos, retenciones y saldo pendiente (la NC queda en venta a crédito)", () => {
+    expect(formasPagoVenta(1663800, 0, 800000, [{ metodo: "transferencia", monto: 800000 }])).toEqual({
       efectivo: 0,
       transferencia: 800000,
       tarjeta: 0,
@@ -279,15 +431,26 @@ describe("utilidades fiscales", () => {
       otras: 0,
     });
 
-    expect(formasPagoVenta(76700, 0, 76700, [])).toEqual({
+    // Saldo cubierto con nota de crédito: Alegra lo deja en "Venta a crédito".
+    expect(formasPagoVenta(76700, 0, 0, [])).toEqual({
       efectivo: 0,
       transferencia: 0,
       tarjeta: 0,
-      credito: 0,
-      otras: 76700,
+      credito: 76700,
+      otras: 0,
     });
 
-    expect(formasPagoVenta(100000, 40000, 0, [])).toEqual({
+    // Factura B0100000002 de la prueba real: 944.00 − retención 43.20 = 900.80;
+    // efectivo 15.80 y venta a crédito 885.00.
+    expect(formasPagoVenta(94400, 4320, 1580, [{ metodo: "efectivo", monto: 1580 }])).toEqual({
+      efectivo: 1580,
+      transferencia: 0,
+      tarjeta: 0,
+      credito: 88500,
+      otras: 0,
+    });
+
+    expect(formasPagoVenta(100000, 0, 40000, [])).toEqual({
       efectivo: 0,
       transferencia: 0,
       tarjeta: 0,

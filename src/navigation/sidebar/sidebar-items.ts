@@ -1,4 +1,5 @@
 import {
+  FileSpreadsheet,
   HandCoins,
   House,
   Landmark,
@@ -258,6 +259,13 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/configuracion",
         icon: Settings,
         roles: TODOS_LOS_ROLES,
+      },
+      {
+        id: "configuracion-reportes-dgii",
+        title: "Reportes DGII",
+        url: "/dashboard/configuracion/reportes-dgii",
+        icon: FileSpreadsheet,
+        roles: ["admin", "contador"],
       },
     ],
   },

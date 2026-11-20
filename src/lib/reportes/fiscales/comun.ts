@@ -67,6 +67,9 @@ export function montoDgii(valorCentavos: number): string {
 }
 
 export function valorTexto(valor: string | number, tipo: "texto" | "dinero"): string {
+  // Los TXT de Alegra dejan columnas vacías (no 0.00) cuando no aplican; el
+  // `""` del FilaDgii tiene que sobrevivir al formateo de dinero.
+  if (valor === "") return "";
   if (tipo === "dinero") return montoDgii(typeof valor === "number" ? valor : centavos(valor));
   return String(valor);
 }
@@ -87,20 +90,25 @@ export function libroTexto(
 
 /**
  * Reparte el total de una venta entre las formas de pago del 607.
- * Lo cobrado sale de los pagos activos; las notas de crédito van a "otras" y
- * el saldo pendiente a "venta a crédito".
+ *
+ * Lo cobrado sale de los pagos activos y el saldo pendiente va a "Venta a
+ * crédito". Las retenciones de terceros no se suman a ninguna columna, así que
+ * se restan del total a cobrar. El saldo cubierto con nota de crédito NO se
+ * reporta como "Otras formas": Alegra lo deja en "Venta a crédito" (Prueba 4,
+ * factura B0100000002: efectivo 15.80 + venta a crédito 885.00).
  */
 export function formasPagoVenta(
   total: number,
+  retenido: number,
   pagado: number,
-  credito: number,
   pagos: readonly PagoFactura[],
 ): FormasPago {
   const formas: FormasPago = { efectivo: 0, transferencia: 0, tarjeta: 0, credito: 0, otras: 0 };
+  const aCobrar = Math.max(0, total - Math.max(0, retenido));
   let aplicado = 0;
 
   for (const pago of pagos) {
-    const monto = Math.min(Math.max(0, pago.monto), Math.max(0, total - aplicado));
+    const monto = Math.min(Math.max(0, pago.monto), Math.max(0, aCobrar - aplicado));
     if (monto <= 0) continue;
 
     if (pago.metodo === "efectivo") formas.efectivo += monto;
@@ -112,20 +120,38 @@ export function formasPagoVenta(
   }
 
   if (pagos.length === 0) {
-    const cobrado = Math.min(Math.max(0, pagado), Math.max(0, total));
+    const cobrado = Math.min(Math.max(0, pagado), aCobrar);
     formas.otras += cobrado;
     aplicado += cobrado;
   }
 
-  const notaCredito = Math.min(Math.max(0, credito), Math.max(0, total - aplicado));
-  formas.otras += notaCredito;
-  aplicado += notaCredito;
-
-  formas.credito += Math.max(0, total - aplicado);
+  formas.credito += Math.max(0, aCobrar - aplicado);
   return formas;
+}
+
+/** Días calendario entre dos fechas ISO (YYYY-MM-DD), sin depender de la zona horaria. */
+export function diasEntreFechas(desde: string, hasta: string): number {
+  const inicio = Date.parse(`${desde.slice(0, 10)}T00:00:00Z`);
+  const fin = Date.parse(`${hasta.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(inicio) || Number.isNaN(fin)) return 0;
+  return Math.round((fin - inicio) / 86_400_000);
+}
+
+/**
+ * Regla DGII que aplica Alegra: el ITBIS de una nota de crédito emitida más de
+ * 30 días después de su factura no se acredita (se reporta 0.00 en el 607).
+ */
+export function itbisNotaCredito(itbis: number, fechaFactura: string | null, fechaNota: string): number {
+  if (fechaFactura == null || fechaFactura === "") return itbis;
+  return diasEntreFechas(fechaFactura, fechaNota) > 30 ? 0 : itbis;
 }
 
 export function nombreArchivoDgii(codigo: string, rnc: string | null | undefined, periodo: string): string {
   const identificacion = soloDigitos(rnc) || "sin-rnc";
   return `DGII_F_${codigo}_${identificacion}_${periodo}.TXT`;
+}
+
+/** Mismo nombre del TXT oficial, cambiando la extensión para el Excel. */
+export function nombreArchivoDgiiExcel(codigo: string, rnc: string | null | undefined, periodo: string): string {
+  return nombreArchivoDgii(codigo, rnc, periodo).replace(/\.TXT$/, ".xlsx");
 }

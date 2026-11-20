@@ -4,7 +4,6 @@ import type { Rol } from "@/lib/auth/rol";
 
 import { filtrarItemsPorRol, sidebarItems } from "./sidebar-items";
 
-const ROLES: Rol[] = ["admin", "contador", "lector"];
 const MODULOS = [
   "inicio",
   "ingresos",
@@ -17,6 +16,8 @@ const MODULOS = [
   "configuracion",
 ];
 
+const MODULOS_CON_DGII = [...MODULOS, "configuracion-reportes-dgii"];
+
 function ids(rol: Rol | null) {
   return filtrarItemsPorRol(rol).flatMap((grupo) => grupo.items.map((item) => item.id));
 }
@@ -26,11 +27,16 @@ function items(rol: Rol) {
 }
 
 describe("filtrarItemsPorRol", () => {
-  for (const rol of ROLES) {
-    test(`${rol} ve todos los módulos`, () => {
-      expect(ids(rol)).toEqual(MODULOS);
+  for (const rol of ["admin", "contador"] as const) {
+    test(`${rol} ve todos los módulos y la clasificación DGII`, () => {
+      expect(ids(rol)).toEqual(MODULOS_CON_DGII);
     });
   }
+
+  test("lector ve los módulos de solo lectura y no la clasificación DGII", () => {
+    expect(ids("lector")).toEqual(MODULOS);
+    expect(ids("lector")).not.toContain("configuracion-reportes-dgii");
+  });
 
   test("sin rol no ve nada", () => {
     expect(filtrarItemsPorRol(null)).toEqual([]);
