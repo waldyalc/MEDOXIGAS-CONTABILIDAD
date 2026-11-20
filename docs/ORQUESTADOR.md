@@ -30,14 +30,12 @@ Tu trabajo no es escribir el código: es **dividirlo, delegarlo, revisarlo e int
 
 ## Verificación visual del Orquestador (regla de Waldy, 20-11-2026)
 
-Todo cambio de UI se entrega **con capturas en el hilo** antes de darlo por listo:
+Todo cambio de UI llega **con capturas en el hilo**, hechas por el propio subagente y verificadas por el Orquestador:
 
-1. Copia `.env.local` de la copia principal al worktree si falta (nunca lo imprimas ni commitees).
-2. Levanta el dev server del worktree: `pnpm dev -p 3001` (puerto 3000 es de Waldy; nunca lo toques).
-3. Pide a Waldy las credenciales de login con `request_secret` (email + contraseña de un perfil admin/contador). No las pidas por chat ni las inventes.
-4. Con el navegador (skill `Browser`): entra, navega a la pantalla del cambio y toma capturas en claro y oscuro (y móvil si el cambio lo amerita). Base virgen: solo lectura, no siembres datos sin su OK.
-5. Guarda los PNG (temp de la sesión) e insértalos en el hilo con Markdown de ruta absoluta. Señala qué revisar: "esto va bien, esto va mal".
-6. Mata el dev server al terminar y borra el `.env.local` del worktree si lo copiaste.
+1. **El brief de toda tarea de UI termina exigiendo capturas**: el subagente copia `.env.local` de la copia principal a su worktree, levanta `pnpm dev -p 300X` (puerto 3000 es de Waldy; nunca lo toques), entra con las credenciales que el Orquestador le pasa **por archivo temporal fuera del repo** (nunca en el brief ni commiteadas), navega a la pantalla del cambio y captura claro, oscuro (y móvil si aplica) con Playwright. Base de producción: solo lectura.
+2. El subagente reporta las rutas de los PNG + checks estructurales del DOM contra la fuente de diseño (p.ej. chevron con `aria-expanded`, montos por signo, textos literales) y mata su dev server.
+3. **El Orquestador verifica**: revisa los checks contra la guía, el diff y los PNG; los **embebe en el hilo para que Waldy los vea** junto a su veredicto ("esto va bien, esto va mal"). Nada de UI se declara "listo" antes de ese paso.
+4. Al terminar, se borran el archivo de credenciales y el `.env.local` del worktree.
 
 ## Cómo redactar briefs de subagentes
 
