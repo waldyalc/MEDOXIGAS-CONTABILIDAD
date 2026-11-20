@@ -44,9 +44,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   try {
     [filas, empresa] = await Promise.all([
       getReporteTSS({ anio, mes }),
-      getEmpresa().then((datos) =>
-        datos ? { nombre: datos.nombre, rnc: datos.rnc, direccion: datos.direccion } : null,
-      ),
+      getEmpresa()
+        .then((datos) => (datos ? { nombre: datos.nombre, rnc: datos.rnc, direccion: datos.direccion } : null))
+        .catch(() => null),
     ]);
   } catch (fallo) {
     error = fallo instanceof Error ? fallo.message : "Intenta de nuevo.";
