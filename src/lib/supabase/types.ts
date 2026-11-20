@@ -1274,8 +1274,10 @@ export type Database = {
           descuento: number
           estado: string
           fecha: string
+          fecha_anulacion: string | null
           id: string
           itbis: number
+          motivo_anulacion_id: string | null
           ncf: string
           notas: string | null
           numero: number
@@ -1302,8 +1304,10 @@ export type Database = {
           descuento?: number
           estado?: string
           fecha?: string
+          fecha_anulacion?: string | null
           id?: string
           itbis?: number
+          motivo_anulacion_id?: string | null
           ncf: string
           notas?: string | null
           numero?: number
@@ -1330,8 +1334,10 @@ export type Database = {
           descuento?: number
           estado?: string
           fecha?: string
+          fecha_anulacion?: string | null
           id?: string
           itbis?: number
+          motivo_anulacion_id?: string | null
           ncf?: string
           notas?: string | null
           numero?: number
@@ -1374,6 +1380,13 @@ export type Database = {
             columns: ["contacto_id"]
             isOneToOne: false
             referencedRelation: "contactos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_motivo_anulacion_id_fkey"
+            columns: ["motivo_anulacion_id"]
+            isOneToOne: false
+            referencedRelation: "motivos_anulacion"
             referencedColumns: ["id"]
           },
           {
@@ -1630,10 +1643,12 @@ export type Database = {
           descripcion: string
           estado: string
           fecha: string
+          fecha_anulacion: string | null
           id: string
           impuesto_id: string | null
           itbis: number
           itbis_tasa: number
+          motivo_anulacion_id: string | null
           ncf: string | null
           numero: number
           otros_impuestos: number
@@ -1653,10 +1668,12 @@ export type Database = {
           descripcion: string
           estado?: string
           fecha?: string
+          fecha_anulacion?: string | null
           id?: string
           impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
+          motivo_anulacion_id?: string | null
           ncf?: string | null
           numero?: number
           otros_impuestos?: number
@@ -1676,10 +1693,12 @@ export type Database = {
           descripcion?: string
           estado?: string
           fecha?: string
+          fecha_anulacion?: string | null
           id?: string
           impuesto_id?: string | null
           itbis?: number
           itbis_tasa?: number
+          motivo_anulacion_id?: string | null
           ncf?: string | null
           numero?: number
           otros_impuestos?: number
@@ -1723,6 +1742,13 @@ export type Database = {
             columns: ["impuesto_id"]
             isOneToOne: false
             referencedRelation: "impuestos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gastos_menores_motivo_anulacion_id_fkey"
+            columns: ["motivo_anulacion_id"]
+            isOneToOne: false
+            referencedRelation: "motivos_anulacion"
             referencedColumns: ["id"]
           },
           {
@@ -1829,6 +1855,30 @@ export type Database = {
           es_base?: boolean
           nombre?: string
           simbolo?: string
+        }
+        Relationships: []
+      }
+      motivos_anulacion: {
+        Row: {
+          activo: boolean
+          codigo_dgii: string
+          created_at: string
+          id: string
+          nombre: string
+        }
+        Insert: {
+          activo?: boolean
+          codigo_dgii: string
+          created_at?: string
+          id?: string
+          nombre: string
+        }
+        Update: {
+          activo?: boolean
+          codigo_dgii?: string
+          created_at?: string
+          id?: string
+          nombre?: string
         }
         Relationships: []
       }
@@ -2175,8 +2225,10 @@ export type Database = {
           estado: string
           factura_id: string
           fecha: string
+          fecha_anulacion: string | null
           id: string
           itbis: number
+          motivo_anulacion_id: string | null
           ncf: string
           notas: string | null
           numero: number
@@ -2195,8 +2247,10 @@ export type Database = {
           estado?: string
           factura_id: string
           fecha?: string
+          fecha_anulacion?: string | null
           id?: string
           itbis?: number
+          motivo_anulacion_id?: string | null
           ncf: string
           notas?: string | null
           numero?: number
@@ -2215,8 +2269,10 @@ export type Database = {
           estado?: string
           factura_id?: string
           fecha?: string
+          fecha_anulacion?: string | null
           id?: string
           itbis?: number
+          motivo_anulacion_id?: string | null
           ncf?: string
           notas?: string | null
           numero?: number
@@ -2252,6 +2308,13 @@ export type Database = {
             columns: ["factura_id"]
             isOneToOne: false
             referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_credito_venta_motivo_anulacion_id_fkey"
+            columns: ["motivo_anulacion_id"]
+            isOneToOne: false
+            referencedRelation: "motivos_anulacion"
             referencedColumns: ["id"]
           },
         ]
@@ -3660,6 +3723,10 @@ export type Database = {
         Args: { p_tipo: string; p_id: string }
         Returns: string
       }
+      _anular_documento_ajustes: {
+        Args: { p_tipo: string; p_id: string }
+        Returns: string
+      }
       _conciliacion_lineas: { Args: { p_lineas: Json }; Returns: string[] }
       _crear_asiento: {
         Args: {
@@ -3841,7 +3908,7 @@ export type Database = {
       }
       actualizar_vendedor: { Args: { p_id: string; p: Json }; Returns: string }
       anular_documento: {
-        Args: { p_tipo: string; p_id: string }
+        Args: { p_tipo: string; p_id: string; p_info?: Json }
         Returns: string
       }
       anular_transferencia_inventario: {
