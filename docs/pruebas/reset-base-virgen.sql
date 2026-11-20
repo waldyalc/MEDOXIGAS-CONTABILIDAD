@@ -167,7 +167,7 @@ begin
     where s.schemaname = 'public'
     order by s.sequencename
   loop
-    execute format('alter sequence public.%I restart with 1', v_secuencia);
+    execute format('alter sequence public.%I start with 1 restart with 1', v_secuencia);
   end loop;
 end $$;
 
@@ -464,7 +464,7 @@ begin
     select 1
     from pg_sequences s
     where s.schemaname = 'public'
-      and (case when s.is_called then s.last_value + 1 else coalesce(s.last_value, 1) end) <> 1
+      and (s.last_value is not null or s.start_value <> 1)
   ) then
     raise exception 'alguna secuencia de public no quedó en 1: se revierte todo.';
   end if;
@@ -559,12 +559,11 @@ select 'tipo_entrada' as clase, prefijo as tipo, prefijo, nombre, siguiente, act
 from public.tipos_entrada_diario
 order by clase, tipo, prefijo;
 
--- 6.4 Secuencias: `proximo_valor` debe ser 1 en todas.
+-- 6.4 Secuencias: `last_value` debe ser NULL y `proximo_valor` = 1 en todas.
 select
   sequencename as secuencia,
   last_value,
-  is_called,
-  case when is_called then last_value + 1 else coalesce(last_value, 1) end as proximo_valor
+  coalesce(last_value + increment_by, start_value) as proximo_valor
 from pg_sequences
 where schemaname = 'public'
 order by sequencename;
