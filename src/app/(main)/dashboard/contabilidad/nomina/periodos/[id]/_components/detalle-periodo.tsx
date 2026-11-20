@@ -79,10 +79,18 @@ export function DetallePeriodoCliente({ periodo, filas, asientos, cuentas, confi
     noAnulados.length > 0 && noAnulados.every((fila) => fila.estado === "contabilizado" || fila.estado === "pagado");
   const periodoBloqueado =
     periodo.estado === "contabilizado" || periodo.estado === "pagado" || periodo.estado === "anulado";
+  const cuentaDefecto = config?.cuenta_pago_defecto_id ?? null;
+  const faltaCuentaSalarios = config != null && config.cuenta_salarios_por_pagar_id == null;
   const puedeCalcular = puedeEscribir && !periodoBloqueado && calculables > 0;
   const puedeContabilizar =
-    puedeEscribir && periodo.estado !== "anulado" && todosAlMenosCalculados && calculados.length > 0;
-  const puedePagar = puedeEscribir && contabilizados.length > 0 && todosContabilizados;
+    puedeEscribir &&
+    periodo.estado !== "anulado" &&
+    todosAlMenosCalculados &&
+    calculados.length > 0 &&
+    config != null &&
+    !faltaCuentaSalarios;
+  const puedePagar =
+    puedeEscribir && contabilizados.length > 0 && todosContabilizados && cuentas.length > 0 && config != null;
   const puedeEnviar = enviables.some((fila) => !fila.colilla_enviada_en);
 
   const totalIngresos = sumarMontos(noAnulados.map((fila) => fila.total_ingresos));
@@ -92,8 +100,6 @@ export function DetallePeriodoCliente({ periodo, filas, asientos, cuentas, confi
   const totalPorPagar = sumarMontos(contabilizados.map((fila) => fila.neto_pagar));
   const totalPorContabilizar = sumarMontos(calculados.map((fila) => fila.costo_total_empresa));
   const conNetoCero = contabilizados.filter((fila) => Number(fila.neto_pagar) === 0).length;
-  const cuentaDefecto = config?.cuenta_pago_defecto_id ?? null;
-  const faltaCuentaSalarios = config != null && config.cuenta_salarios_por_pagar_id == null;
 
   const columnas: readonly ColumnaLista<ResumenPeriodo>[] = [
     {
@@ -308,6 +314,20 @@ export function DetallePeriodoCliente({ periodo, filas, asientos, cuentas, confi
         <AlertTitle>Estado del periodo</AlertTitle>
         <AlertDescription>{mensajeEstado(periodo.estado)}</AlertDescription>
       </Alert>
+
+      {config == null ? (
+        <Alert>
+          <TriangleAlert />
+          <AlertTitle>Falta la configuración de la empresa para la nómina</AlertTitle>
+          <AlertDescription>
+            Sin la fila de configuración no se puede contabilizar ni pagar.{" "}
+            <Link href={RUTA_CONFIG_LABORAL} className="text-primary underline-offset-4 hover:underline">
+              Revisar Configuración · Nómina
+            </Link>
+            .
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {faltaCuentaSalarios ? (
         <Alert>

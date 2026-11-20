@@ -64,7 +64,7 @@ export function LoteCliente({ periodo, recibos, cargos, cuentas, config, puedeEs
   const todosPagados = activos.length > 0 && pagados.length === activos.length;
   const todosListos =
     activos.length > 0 && activos.every((recibo) => recibo.estado === "contabilizado" || recibo.estado === "pagado");
-  const puedePagarTodo = puedeEscribir && pendientes.length > 0 && todosListos;
+  const puedePagarTodo = puedeEscribir && pendientes.length > 0 && todosListos && cuentas.length > 0 && config != null;
   const porcentaje = activos.length === 0 ? 0 : Math.round((pagados.length / activos.length) * 100);
 
   const porPagina = 25;
@@ -197,7 +197,7 @@ export function LoteCliente({ periodo, recibos, cargos, cuentas, config, puedeEs
           acciones={
             puedeEscribir
               ? (recibo) => {
-                  if (recibo.estado === "contabilizado") {
+                  if (recibo.estado === "contabilizado" && cuentas.length > 0 && config != null) {
                     return (
                       <Button
                         type="button"

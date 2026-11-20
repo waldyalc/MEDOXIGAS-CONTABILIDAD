@@ -305,7 +305,7 @@ export function ReciboCliente({
               </Button>
             ) : null}
 
-            {puedeEscribir && esContabilizado ? (
+            {puedeEscribir && esContabilizado && cuentas.length > 0 && config != null ? (
               <Button type="button" onClick={() => setPagarAbierto(true)}>
                 Pagar
               </Button>
@@ -336,6 +336,9 @@ export function ReciboCliente({
                   <DropdownMenuItem variant="destructive" onClick={() => setAnularReciboAbierto(true)}>
                     Anular recibo
                   </DropdownMenuItem>
+                ) : null}
+                {puedeEscribir && esPagado ? (
+                  <DropdownMenuItem disabled>Anular recibo (anula primero el pago)</DropdownMenuItem>
                 ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
