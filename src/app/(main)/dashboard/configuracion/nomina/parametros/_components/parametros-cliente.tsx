@@ -26,13 +26,9 @@ import { toast } from "@/components/ui/toast";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { guardarParametrosNomina } from "@/lib/nomina/acciones";
 import { mensajeValidacion, parametrosNominaSchema } from "@/lib/nomina/esquemas";
-import type { EscalaIsrTramo, ParametrosRD, RiesgoLaboral } from "@/lib/nomina/tipos";
-import { parsearMonto } from "@/lib/productos/productos";
+import type { ParametrosRD, RiesgoLaboral } from "@/lib/nomina/tipos";
 
-interface TramoForm {
-  hasta: string;
-  tasa: string;
-}
+import { calcularTramos, formatearDecimal, numero, type TramoForm, tramosDesde } from "../../_datos/escala";
 
 interface FormParametros {
   salario_minimo: string;
@@ -69,46 +65,23 @@ const ETIQUETA_RIESGO: Record<RiesgoLaboral, string> = {
   tipo_4: "Tipo IV",
 };
 
-function formatear(valor: string | null | undefined, decimales: number): string {
-  if (valor === null || valor === undefined || valor === "") return "";
-  const numero = Number(valor);
-  return Number.isFinite(numero) ? numero.toFixed(decimales) : "";
-}
-
-function numero(valor: string): number {
-  const leido = parsearMonto(valor);
-  return leido ?? 0;
-}
-
-function tramosDesde(parametros: ParametrosRD | null): TramoForm[] {
-  const base = parametros?.escala_isr_anual ?? [];
-
-  return [0, 1, 2, 3].map((indice) => {
-    const tramo = base[indice];
-    return {
-      hasta: indice === 3 ? "" : formatear(tramo?.hasta, 2),
-      tasa: formatear(tramo?.tasa, 3),
-    };
-  });
-}
-
 function formDesde(parametros: ParametrosRD): FormParametros {
   return {
-    salario_minimo: formatear(parametros.salario_minimo, 2),
-    tope_sfs_mensual: formatear(parametros.tope_sfs_mensual, 2),
-    tope_afp_mensual: formatear(parametros.tope_afp_mensual, 2),
-    tope_srl_mensual: formatear(parametros.tope_srl_mensual, 2),
-    tasa_sfs_empleado: formatear(parametros.tasa_sfs_empleado, 3),
-    tasa_sfs_empleador: formatear(parametros.tasa_sfs_empleador, 3),
-    tasa_afp_empleado: formatear(parametros.tasa_afp_empleado, 3),
-    tasa_afp_empleador: formatear(parametros.tasa_afp_empleador, 3),
-    tasa_srl_tipo_1: formatear(parametros.tasa_srl_tipo_1, 3),
-    tasa_srl_tipo_2: formatear(parametros.tasa_srl_tipo_2, 3),
-    tasa_srl_tipo_3: formatear(parametros.tasa_srl_tipo_3, 3),
-    tasa_srl_tipo_4: formatear(parametros.tasa_srl_tipo_4, 3),
-    tasa_infotep: formatear(parametros.tasa_infotep, 3),
-    dias_mes_laboral: formatear(parametros.dias_mes_laboral, 3),
-    horas_dia_laboral: formatear(parametros.horas_dia_laboral, 3),
+    salario_minimo: formatearDecimal(parametros.salario_minimo, 2),
+    tope_sfs_mensual: formatearDecimal(parametros.tope_sfs_mensual, 2),
+    tope_afp_mensual: formatearDecimal(parametros.tope_afp_mensual, 2),
+    tope_srl_mensual: formatearDecimal(parametros.tope_srl_mensual, 2),
+    tasa_sfs_empleado: formatearDecimal(parametros.tasa_sfs_empleado, 3),
+    tasa_sfs_empleador: formatearDecimal(parametros.tasa_sfs_empleador, 3),
+    tasa_afp_empleado: formatearDecimal(parametros.tasa_afp_empleado, 3),
+    tasa_afp_empleador: formatearDecimal(parametros.tasa_afp_empleador, 3),
+    tasa_srl_tipo_1: formatearDecimal(parametros.tasa_srl_tipo_1, 3),
+    tasa_srl_tipo_2: formatearDecimal(parametros.tasa_srl_tipo_2, 3),
+    tasa_srl_tipo_3: formatearDecimal(parametros.tasa_srl_tipo_3, 3),
+    tasa_srl_tipo_4: formatearDecimal(parametros.tasa_srl_tipo_4, 3),
+    tasa_infotep: formatearDecimal(parametros.tasa_infotep, 3),
+    dias_mes_laboral: formatearDecimal(parametros.dias_mes_laboral, 3),
+    horas_dia_laboral: formatearDecimal(parametros.horas_dia_laboral, 3),
     escala: tramosDesde(parametros),
   };
 }
@@ -134,37 +107,12 @@ function formVacio(): FormParametros {
   };
 }
 
-/** Calcula `desde` y `monto_fijo` de la escala (configuración tributaria, no un recibo). */
-function calcularTramos(tramos: TramoForm[]): EscalaIsrTramo[] {
-  let desde = 0;
-  let montoFijo = 0;
-
-  return tramos.map((tramo, indice) => {
-    const esUltimo = indice === tramos.length - 1;
-    const hasta = esUltimo ? null : numero(tramo.hasta);
-    const tasa = tramo.tasa.trim() === "" ? "0" : String(numero(tramo.tasa));
-    const fila: EscalaIsrTramo = {
-      desde: desde.toFixed(2),
-      hasta: hasta === null ? null : hasta.toFixed(2),
-      tasa,
-      monto_fijo: montoFijo.toFixed(2),
-    };
-
-    if (hasta !== null) {
-      montoFijo += (numero(tramo.tasa) / 100) * (hasta - desde);
-      desde = hasta;
-    }
-
-    return fila;
-  });
-}
-
 function mostrarMonto(valor: string): string {
   return valor.trim() === "" ? "—" : formatoMoneda(numero(valor));
 }
 
 function mostrarPct(valor: string): string {
-  return valor.trim() === "" ? "—" : `${formatear(valor, 3)} %`;
+  return valor.trim() === "" ? "—" : `${formatearDecimal(valor, 3)} %`;
 }
 
 function CampoDecimal({
