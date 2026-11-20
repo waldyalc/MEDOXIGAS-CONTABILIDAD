@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 
 import { cn } from "cn";
 
+import { DatePicker } from "@/components/date-picker";
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FORM_INPUT } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
@@ -146,15 +147,14 @@ export function SaldosIniciales({ cuentas, cuentaAjustesId, fechaHoy }: SaldosIn
         <div className="flex min-h-0 flex-col gap-4">
           <div className="grid gap-x-8 gap-y-4 sm:grid-cols-[180px_minmax(0,1fr)]">
             <CampoFormulario htmlFor="si-fecha" label="Fecha" required error={validacion.errorDe("si-fecha")}>
-              <Input
+              <DatePicker
                 id="si-fecha"
-                type="date"
-                required
                 value={fecha}
-                onChange={(event) => {
-                  setFecha(event.target.value);
+                onChange={(valor) => {
+                  setFecha(valor);
                   validacion.limpiar("si-fecha");
                 }}
+                aria-invalid={Boolean(validacion.errorDe("si-fecha"))}
                 className={FORM_INPUT}
               />
             </CampoFormulario>

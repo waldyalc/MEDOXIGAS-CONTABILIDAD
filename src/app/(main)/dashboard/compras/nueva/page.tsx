@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
-
+import { ContenedorFormulario } from "@/components/pagina/contenedor-pagina";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { getRol } from "@/lib/auth/rol";
 import { cargarOpcionesFactura } from "@/lib/compras/consultas";
@@ -28,19 +28,16 @@ export default async function Page({ searchParams }: Props) {
   ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon-sm" render={<Link href="/dashboard/compras" prefetch={false} />}>
-            <ArrowLeft />
-            <span className="sr-only">Volver</span>
+    <ContenedorFormulario>
+      <EncabezadoPagina
+        titulo="Nueva factura de proveedor"
+        migas={[{ etiqueta: "Compras", href: "/dashboard/compras" }, { etiqueta: "Nueva factura de proveedor" }]}
+        acciones={
+          <Button variant="outline" render={<Link href="/dashboard/compras/pagos" prefetch={false} />}>
+            Pagos
           </Button>
-          <h1 className="text-2xl tracking-tight">Nueva factura de proveedor</h1>
-        </div>
-        <Button variant="outline" render={<Link href="/dashboard/compras/pagos" prefetch={false} />}>
-          Pagos
-        </Button>
-      </div>
+        }
+      />
 
       <FormularioFactura
         {...opciones}
@@ -49,6 +46,6 @@ export default async function Page({ searchParams }: Props) {
           ? { inicial: desdeOrden.inicial, ordenId: desdeOrden.ordenId, numeroOrden: desdeOrden.numero }
           : {})}
       />
-    </div>
+    </ContenedorFormulario>
   );
 }

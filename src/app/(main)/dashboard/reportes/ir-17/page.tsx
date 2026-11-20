@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { BotonImprimir } from "@/components/boton-imprimir";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +12,7 @@ import { obtenerRetencionesProveedores } from "@/lib/reportes/fiscales/retencion
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
+import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { FiltrosPeriodo } from "../fiscales/_components/filtros-periodo";
 import { TarjetasResumen } from "../fiscales/_components/tarjetas-resumen";
 
@@ -29,19 +29,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Reporte IR-17</h1>
-          <p className="text-muted-foreground text-sm">
-            Retenciones de ITBIS e ISR que la empresa aplicó a sus proveedores en el período.
-          </p>
-          <p className="text-muted-foreground text-sm">{subtitulo}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <BotonDescargar tabla={tabla} nombreArchivo={`ir-17-${desde}-${hasta}`} />
-          <BotonImprimir />
-        </div>
-      </div>
+      <EncabezadoReporte
+        titulo="Reporte IR-17"
+        descripcion="Retenciones de ITBIS e ISR que la empresa aplicó a sus proveedores en el período."
+        desde={desde}
+        hasta={hasta}
+        acciones={<BotonDescargar tabla={tabla} nombreArchivo={`ir-17-${desde}-${hasta}`} />}
+      />
 
       <FiltrosPeriodo desde={desde} hasta={hasta} />
 

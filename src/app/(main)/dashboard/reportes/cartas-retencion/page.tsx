@@ -16,6 +16,7 @@ import { agruparCartas, type CartaProveedor } from "@/lib/reportes/fiscales/ir17
 import { obtenerRetencionesProveedores } from "@/lib/reportes/fiscales/retenciones-consultas";
 
 import { AlertaError } from "../_components/alerta-error";
+import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { FiltrosPeriodo } from "../fiscales/_components/filtros-periodo";
 import { TarjetasResumen } from "../fiscales/_components/tarjetas-resumen";
 
@@ -136,16 +137,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between print:hidden">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Cartas de retención</h1>
-          <p className="text-muted-foreground text-sm">
-            Retenciones agrupadas por proveedor y período, con su carta imprimible.
-          </p>
-          <p className="text-muted-foreground text-sm">
-            Del {formatoDia(desde)} al {formatoDia(hasta)}
-          </p>
-        </div>
+      <div className="print:hidden">
+        <EncabezadoReporte
+          titulo="Cartas de retención"
+          descripcion="Retenciones agrupadas por proveedor y período, con su carta imprimible."
+          desde={desde}
+          hasta={hasta}
+          mostrarImprimir={false}
+        />
       </div>
 
       <div className="print:hidden">

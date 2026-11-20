@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 
 import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
+import { DatePicker } from "@/components/date-picker";
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
@@ -238,15 +239,14 @@ export function AsientoForm({ cuentas, contactos, centrosCosto, tiposEntrada, fe
           <FormSectionTitle className="mb-4">Datos del asiento</FormSectionTitle>
           <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-3">
             <CampoFormulario htmlFor="fecha" label="Fecha" required error={validacion.errorDe("fecha")}>
-              <Input
+              <DatePicker
                 id="fecha"
-                type="date"
-                required
                 value={fecha}
-                onChange={(evento) => {
-                  setFecha(evento.target.value);
+                onChange={(valor) => {
+                  setFecha(valor);
                   validacion.limpiar("fecha");
                 }}
+                aria-invalid={Boolean(validacion.errorDe("fecha"))}
                 className={FORM_INPUT}
               />
             </CampoFormulario>

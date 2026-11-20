@@ -1,179 +1,163 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { ArrowLeft, ReceiptText, ShoppingBag } from "lucide-react";
+import { ReceiptText, ShoppingBag } from "lucide-react";
 
+import {
+  type CampoInformacionDocumento,
+  CLASE_BOTON_DOCUMENTO,
+  DocumentoDetalle,
+  type EstadoDetalle,
+  InformacionDocumento,
+  TablaDocumento,
+  TarjetaDocumento,
+  TotalesDocumento,
+} from "@/components/documento/documento-detalle";
 import { Enlace } from "@/components/enlace";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableCell } from "@/components/ui/table";
 import { getPerfil } from "@/lib/auth/rol";
 import { aNumero } from "@/lib/compras/calculo";
 import { formatoCantidad, formatoMoneda } from "@/lib/compras/formato";
 import { rutaCompra, rutaContacto, rutaCuenta, rutaProducto } from "@/lib/enlaces";
+import { getEmpresa } from "@/lib/facturacion/consultas";
 import { formatoDia } from "@/lib/formato";
 import { obtenerOrdenCompra } from "@/lib/ordenes-compra/consultas";
+import type { EstadoOrdenCompra } from "@/lib/ordenes-compra/tipos";
 
-import { EstadoOrdenBadge } from "../_components/estado-orden-badge";
+const ESTADOS_ORDEN: Record<EstadoOrdenCompra, EstadoDetalle> = {
+  abierta: { etiqueta: "Abierta", tono: "amber" },
+  convertida: { etiqueta: "Convertida", tono: "green" },
+  anulada: { etiqueta: "Anulada", tono: "red" },
+};
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const perfil = await getPerfil();
   if (perfil?.rol == null) redirect("/unauthorized");
 
   const { id } = await params;
-  const orden = await obtenerOrdenCompra(id);
+  const [orden, empresa] = await Promise.all([obtenerOrdenCompra(id), getEmpresa()]);
   if (!orden) notFound();
 
   const puedeEscribir = perfil.rol === "admin" || perfil.rol === "contador";
 
+  const informacion: CampoInformacionDocumento[] = [
+    {
+      etiqueta: "Proveedor",
+      valor: <Enlace href={rutaContacto(orden.contacto_id)}>{orden.contacto_nombre}</Enlace>,
+    },
+    { etiqueta: "Fecha", valor: formatoDia(orden.fecha) },
+    { etiqueta: "Entrega", valor: formatoDia(orden.fecha_entrega) },
+    {
+      etiqueta: "Notas",
+      valor: orden.notas ? <span className="whitespace-pre-line">{orden.notas}</span> : "—",
+    },
+    {
+      etiqueta: "Términos",
+      valor: orden.terminos ? <span className="whitespace-pre-line">{orden.terminos}</span> : "—",
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-6 pb-10">
-      <div className="flex flex-col gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-fit"
-          render={<Link href="/dashboard/ordenes-compra" prefetch={false} />}
+    <DocumentoDetalle
+      rutaVolver="/dashboard/ordenes-compra"
+      etiquetaVolver="Volver a órdenes de compra"
+      titulo={`Orden de compra #${orden.numero}`}
+      estado={ESTADOS_ORDEN[orden.estado]}
+      acciones={
+        <>
+          {orden.factura_proveedor_id ? (
+            <Button
+              variant="outline"
+              className={CLASE_BOTON_DOCUMENTO}
+              render={<Link href={rutaCompra(orden.factura_proveedor_id)} prefetch={false} />}
+            >
+              <ReceiptText data-icon="inline-start" />
+              Ver factura de proveedor
+            </Button>
+          ) : null}
+          {puedeEscribir && orden.estado === "abierta" ? (
+            <Button render={<Link href={`/dashboard/compras/nueva?orden=${orden.id}`} prefetch={false} />}>
+              <ShoppingBag data-icon="inline-start" />
+              Convertir en factura de proveedor
+            </Button>
+          ) : null}
+        </>
+      }
+    >
+      <TarjetaDocumento empresa={empresa} numeroDocumento={String(orden.numero)}>
+        <InformacionDocumento titulo="Información de la orden" campos={informacion} />
+
+        <p className="text-muted-foreground mt-8 text-sm">
+          Esta orden es un documento de control: no mueve inventario ni genera asiento contable.
+        </p>
+
+        <TablaDocumento
+          titulo="Líneas de la orden"
+          columnas={[
+            { titulo: "Descripción" },
+            { titulo: "Cantidad", alineadaDerecha: true },
+            { titulo: "Costo", alineadaDerecha: true },
+            { titulo: "ITBIS %", alineadaDerecha: true },
+            { titulo: "Subtotal", alineadaDerecha: true },
+            { titulo: "ITBIS", alineadaDerecha: true },
+            { titulo: "Total", alineadaDerecha: true },
+          ]}
+          vacio="La orden no tiene líneas."
+          hayFilas={orden.lineas.length > 0}
         >
-          <ArrowLeft data-icon="inline-start" />
-          Órdenes de compra
-        </Button>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">Orden de compra #{orden.numero}</h1>
-            <EstadoOrdenBadge estado={orden.estado} />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {orden.factura_proveedor_id ? (
-              <Button
-                variant="outline"
-                render={<Link href={rutaCompra(orden.factura_proveedor_id)} prefetch={false} />}
-              >
-                <ReceiptText data-icon="inline-start" />
-                Ver factura de proveedor
-              </Button>
-            ) : null}
-            {puedeEscribir && orden.estado === "abierta" ? (
-              <Button render={<Link href={`/dashboard/compras/nueva?orden=${orden.id}`} prefetch={false} />}>
-                <ShoppingBag data-icon="inline-start" />
-                Convertir en factura de proveedor
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      </div>
+          {orden.lineas.map((linea) => (
+            <FilaNavegable key={linea.id} href={linea.producto_id ? rutaProducto(linea.producto_id) : null}>
+              <TableCell className="h-12 px-4 text-sm whitespace-normal">
+                <div className="flex flex-col">
+                  <span>{linea.descripcion || "—"}</span>
+                  {linea.productos ? (
+                    <span className="text-muted-foreground text-xs">
+                      {linea.producto_id ? (
+                        <Enlace href={rutaProducto(linea.producto_id)}>{linea.productos.nombre}</Enlace>
+                      ) : (
+                        linea.productos.nombre
+                      )}
+                    </span>
+                  ) : null}
+                  {linea.cuentas ? (
+                    <span className="text-muted-foreground text-xs">
+                      {linea.cuenta_id ? (
+                        <Enlace href={rutaCuenta(linea.cuenta_id)}>
+                          {linea.cuentas.codigo} — {linea.cuentas.nombre}
+                        </Enlace>
+                      ) : (
+                        `${linea.cuentas.codigo} — ${linea.cuentas.nombre}`
+                      )}
+                    </span>
+                  ) : null}
+                </div>
+              </TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
+                {formatoCantidad(linea.cantidad)}
+              </TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">{formatoMoneda(linea.costo)}</TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
+                {formatoCantidad(linea.itbis_tasa)}
+              </TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
+                {formatoMoneda(linea.subtotal)}
+              </TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">{formatoMoneda(linea.itbis)}</TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">{formatoMoneda(linea.total)}</TableCell>
+            </FilaNavegable>
+          ))}
+        </TablaDocumento>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-6 sm:grid-cols-2">
-          <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">Proveedor</dt>
-            <dd className="font-medium">
-              <Enlace href={rutaContacto(orden.contacto_id)}>{orden.contacto_nombre}</Enlace>
-            </dd>
-            <dt className="text-muted-foreground">Fecha</dt>
-            <dd>{formatoDia(orden.fecha)}</dd>
-            <dt className="text-muted-foreground">Entrega</dt>
-            <dd>{formatoDia(orden.fecha_entrega)}</dd>
-            <dt className="text-muted-foreground">Notas</dt>
-            <dd className="whitespace-pre-line">{orden.notas ?? "—"}</dd>
-            <dt className="text-muted-foreground">Términos</dt>
-            <dd className="whitespace-pre-line">{orden.terminos ?? "—"}</dd>
-          </dl>
-          <div className="flex flex-col gap-2 rounded-lg border p-4">
-            <p className="text-sm">
-              Esta orden es un documento de control: no mueve inventario ni genera asiento contable.
-            </p>
-            <div className="mt-auto flex items-center justify-between border-t pt-2 font-medium">
-              <span>Total</span>
-              <span className="tabular-nums">{formatoMoneda(aNumero(orden.total))}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Líneas</CardTitle>
-        </CardHeader>
-        <CardContent className="px-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-(--card-spacing)">Descripción</TableHead>
-                <TableHead className="text-right">Cantidad</TableHead>
-                <TableHead className="text-right">Costo</TableHead>
-                <TableHead className="text-right">ITBIS %</TableHead>
-                <TableHead className="text-right">Subtotal</TableHead>
-                <TableHead className="text-right">ITBIS</TableHead>
-                <TableHead className="pr-(--card-spacing) text-right">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orden.lineas.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-muted-foreground py-10 text-center">
-                    La orden no tiene líneas.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                orden.lineas.map((linea) => (
-                  <FilaNavegable key={linea.id} href={linea.producto_id ? rutaProducto(linea.producto_id) : null}>
-                    <TableCell className="pl-(--card-spacing) whitespace-normal">
-                      <div className="flex flex-col">
-                        <span>{linea.descripcion || "—"}</span>
-                        {linea.productos ? (
-                          <span className="text-muted-foreground text-xs">
-                            {linea.producto_id ? (
-                              <Enlace href={rutaProducto(linea.producto_id)}>{linea.productos.nombre}</Enlace>
-                            ) : (
-                              linea.productos.nombre
-                            )}
-                          </span>
-                        ) : null}
-                        {linea.cuentas ? (
-                          <span className="text-muted-foreground text-xs">
-                            {linea.cuenta_id ? (
-                              <Enlace href={rutaCuenta(linea.cuenta_id)}>
-                                {linea.cuentas.codigo} — {linea.cuentas.nombre}
-                              </Enlace>
-                            ) : (
-                              `${linea.cuentas.codigo} — ${linea.cuentas.nombre}`
-                            )}
-                          </span>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{formatoCantidad(linea.cantidad)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatoMoneda(linea.costo)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatoCantidad(linea.itbis_tasa)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatoMoneda(linea.subtotal)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatoMoneda(linea.itbis)}</TableCell>
-                    <TableCell className="pr-(--card-spacing) text-right tabular-nums">
-                      {formatoMoneda(linea.total)}
-                    </TableCell>
-                  </FilaNavegable>
-                ))
-              )}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={4} className="pl-(--card-spacing) text-right">
-                  Totales
-                </TableCell>
-                <TableCell className="text-right tabular-nums">{formatoMoneda(aNumero(orden.subtotal))}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatoMoneda(aNumero(orden.itbis))}</TableCell>
-                <TableCell className="pr-(--card-spacing) text-right tabular-nums">
-                  {formatoMoneda(aNumero(orden.total))}
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+        <TotalesDocumento
+          filas={[
+            { etiqueta: "Subtotal", valor: formatoMoneda(aNumero(orden.subtotal)) },
+            { etiqueta: "ITBIS", valor: formatoMoneda(aNumero(orden.itbis)) },
+          ]}
+          total={formatoMoneda(aNumero(orden.total))}
+        />
+      </TarjetaDocumento>
+    </DocumentoDetalle>
   );
 }

@@ -1,6 +1,4 @@
-import { BotonImprimir } from "@/components/boton-imprimir";
 import { BarraLista, ContenedorLista, TarjetaLista } from "@/components/listas/tabla-lista";
-import { MigasDePan } from "@/components/migas-de-pan";
 import { formatoDia } from "@/lib/formato";
 import { filtrarCompras, totalesCompras } from "@/lib/reportes/administrativos/d/compras";
 import { obtenerCompras } from "@/lib/reportes/administrativos/d/consultas";
@@ -10,6 +8,7 @@ import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
+import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { Paginador } from "../cxc/_components/paginador";
 import { FiltroProveedorCompras, FiltrosCompras } from "./_components/filtros-compras";
 import { TablaCompras } from "./_components/tabla-compras";
@@ -34,29 +33,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <ContenedorLista>
-      <MigasDePan
-        items={[
-          { etiqueta: "Reportes", href: "/dashboard/reportes" },
-          { etiqueta: "Administrativos", href: "/dashboard/reportes?categoria=Administrativos" },
-          { etiqueta: "Compras" },
-        ]}
+      <EncabezadoReporte
+        titulo="Compras"
+        descripcion="Consulta el detalle de las facturas de compra que tienes registradas en tu contabilidad."
+        desde={desde}
+        hasta={hasta}
+        acciones={<BotonDescargar tabla={tabla} nombreArchivo={nombreArchivo} />}
       />
-
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Compras</h1>
-          <p className="text-muted-foreground text-sm">
-            Consulta el detalle de las facturas de compra que tienes registradas en tu contabilidad.
-          </p>
-          <p className="text-muted-foreground text-sm">
-            Del {formatoDia(desde)} al {formatoDia(hasta)}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <BotonDescargar tabla={tabla} nombreArchivo={nombreArchivo} />
-          <BotonImprimir />
-        </div>
-      </div>
 
       <FiltrosCompras desde={desde} hasta={hasta} />
 

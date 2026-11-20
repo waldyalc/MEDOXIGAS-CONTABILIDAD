@@ -1,11 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
-
+import { ContenedorFormulario } from "@/components/pagina/contenedor-pagina";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { PagoForm } from "@/components/pagos/pago-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { registrarPagoProveedorMultiple } from "@/lib/compras/acciones";
 import { cargarOpcionesPago } from "@/lib/compras/consultas";
@@ -24,14 +22,16 @@ export default async function Page({ searchParams }: Props) {
   const params = await searchParams;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" render={<Link href="/dashboard/compras/pagos" />}>
-          <ArrowLeft />
-          <span className="sr-only">Volver</span>
-        </Button>
-        <h1 className="text-xl font-semibold tracking-tight">Nuevo pago a proveedor</h1>
-      </div>
+    <ContenedorFormulario>
+      <EncabezadoPagina
+        titulo="Nuevo pago a proveedor"
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Compras", href: "/dashboard/compras" },
+          { etiqueta: "Pagos a proveedores", href: "/dashboard/compras/pagos" },
+          { etiqueta: "Nuevo pago a proveedor" },
+        ]}
+      />
 
       {perfil.rol === "lector" ? (
         <Alert variant="destructive">
@@ -40,7 +40,7 @@ export default async function Page({ searchParams }: Props) {
       ) : (
         <PagoProveedorContenido cuentaId={params.cuenta} />
       )}
-    </div>
+    </ContenedorFormulario>
   );
 }
 

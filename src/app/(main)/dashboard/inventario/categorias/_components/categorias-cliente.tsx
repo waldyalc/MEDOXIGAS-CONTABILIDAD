@@ -16,6 +16,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -123,18 +124,23 @@ export function CategoriasCliente({
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Categorías</h1>
-          <p className="text-muted-foreground text-sm">Agrupa los productos para encontrarlos y reportarlos mejor.</p>
-        </div>
-        {puedeEditar ? (
-          <Button type="button" onClick={abrirNueva}>
-            <Plus />
-            Nueva categoría
-          </Button>
-        ) : null}
-      </div>
+      <EncabezadoPagina
+        titulo="Categorías"
+        subtitulo="Agrupa los productos para encontrarlos y reportarlos mejor."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Inventario", href: "/dashboard/inventario" },
+          { etiqueta: "Categorías" },
+        ]}
+        acciones={
+          puedeEditar ? (
+            <Button type="button" onClick={abrirNueva}>
+              <Plus />
+              Nueva categoría
+            </Button>
+          ) : null
+        }
+      />
 
       <TarjetaLista data-lista="inventario-categorias">
         <TablaLista

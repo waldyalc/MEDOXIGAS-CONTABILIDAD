@@ -7,6 +7,7 @@ import type { FilaDgii } from "@/lib/reportes/fiscales/tipos";
 
 import { AlertaError } from "../../_components/alerta-error";
 import { BotonDescargar } from "../../_components/boton-descargar";
+import { EncabezadoReporte } from "../../_components/encabezado-reporte";
 import { BotonTexto } from "./boton-texto";
 import { FiltrosPeriodo } from "./filtros-periodo";
 import { TablaFormato } from "./tabla-formato";
@@ -49,21 +50,20 @@ export function ReporteDgii({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{titulo}</h1>
-          <p className="text-muted-foreground text-sm">{descripcion}</p>
-          <p className="text-muted-foreground text-sm">
-            Período {textoPeriodo(periodo)} · Del {formatoDia(desde)} al {formatoDia(hasta)}
-          </p>
-        </div>
-        {puedeExportar ? (
-          <div className="flex flex-wrap gap-2">
-            <BotonDescargar tabla={tabla} nombreArchivo={`${formato.codigo}-${periodo}`} />
-            <BotonTexto contenido={textoPlano} nombreArchivo={nombreArchivo} etiqueta="Archivo plano" />
-          </div>
-        ) : null}
-      </div>
+      <EncabezadoReporte
+        titulo={titulo}
+        descripcion={descripcion}
+        rango={`Período ${subtitulo}`}
+        mostrarImprimir={false}
+        acciones={
+          puedeExportar ? (
+            <>
+              <BotonDescargar tabla={tabla} nombreArchivo={`${formato.codigo}-${periodo}`} />
+              <BotonTexto contenido={textoPlano} nombreArchivo={nombreArchivo} etiqueta="Archivo plano" />
+            </>
+          ) : null
+        }
+      />
 
       <FiltrosPeriodo desde={desde} hasta={hasta} />
 

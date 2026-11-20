@@ -9,21 +9,16 @@ interface EsqueletoEncabezadoProps {
   titulo: string;
   descripcion?: string;
   acciones?: number;
+  /** Ya no cambia el tamaño: el h1 de página es 20 px (EncabezadoPagina). Se conserva por compatibilidad. */
   grande?: boolean;
   className?: string;
 }
 
-export function EsqueletoEncabezado({
-  titulo,
-  descripcion,
-  acciones = 0,
-  grande = false,
-  className,
-}: EsqueletoEncabezadoProps) {
+export function EsqueletoEncabezado({ titulo, descripcion, acciones = 0, className }: EsqueletoEncabezadoProps) {
   return (
     <div className={cn("flex flex-wrap items-end justify-between gap-3", className)}>
       <div className="flex flex-col gap-1">
-        <h1 className={cn("font-semibold tracking-tight", grande ? "text-3xl" : "text-2xl")}>{titulo}</h1>
+        <h1 className="text-xl font-semibold tracking-tight">{titulo}</h1>
         {descripcion ? <p className="text-muted-foreground text-sm">{descripcion}</p> : null}
       </div>
       {acciones > 0 ? (

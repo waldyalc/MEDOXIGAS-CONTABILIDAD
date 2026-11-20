@@ -1,4 +1,3 @@
-import { BotonImprimir } from "@/components/boton-imprimir";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatoDia } from "@/lib/formato";
 import { obtenerInventario } from "@/lib/reportes/administrativos/d/consultas";
@@ -9,6 +8,7 @@ import { hoyRd, type ParametrosFecha } from "@/lib/reportes/fechas";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
+import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { Paginador } from "../cxc/_components/paginador";
 import { TarjetaTotal } from "../cxc/_components/tarjeta-total";
 import { FiltrosInventario } from "./_components/filtros-inventario";
@@ -37,19 +37,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Valor de inventario</h1>
-          <p className="text-muted-foreground text-sm">
-            Consulta el valor actual, cantidad y costo promedio de tu inventario.
-          </p>
-          <p className="text-muted-foreground text-sm">Hasta: {formatoDia(hasta)}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <BotonDescargar tabla={tabla} nombreArchivo={nombreArchivo} />
-          <BotonImprimir />
-        </div>
-      </div>
+      <EncabezadoReporte
+        titulo="Valor de inventario"
+        descripcion="Consulta el valor actual, cantidad y costo promedio de tu inventario."
+        rango={`Hasta: ${formatoDia(hasta)}`}
+        acciones={<BotonDescargar tabla={tabla} nombreArchivo={nombreArchivo} />}
+      />
 
       <FiltrosInventario hasta={hasta} almacen={almacen} producto={producto} referencia={referencia} />
 

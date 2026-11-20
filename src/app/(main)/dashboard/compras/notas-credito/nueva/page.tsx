@@ -1,11 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { ContenedorFormulario } from "@/components/pagina/contenedor-pagina";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { hoyEnRd } from "@/lib/compras/fechas";
 import { getDatosFormularioNotaCompra } from "@/lib/compras/notas-credito/consultas";
@@ -22,7 +20,6 @@ export default async function Page({ searchParams }: Props) {
 
   const params = await searchParams;
   const datos = params.factura ? await getDatosFormularioNotaCompra(params.factura) : null;
-  const volver = datos ? `/dashboard/compras/${datos.factura.id}` : "/dashboard/compras/notas-credito";
 
   let contenido = (
     <Alert>
@@ -60,16 +57,18 @@ export default async function Page({ searchParams }: Props) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" render={<Link href={volver} prefetch={false} />}>
-          <ArrowLeft />
-          <span className="sr-only">Volver</span>
-        </Button>
-        <h1 className="text-2xl tracking-tight">Nueva nota de crédito en compras</h1>
-      </div>
+    <ContenedorFormulario>
+      <EncabezadoPagina
+        titulo="Nueva nota de crédito en compras"
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Compras", href: "/dashboard/compras" },
+          { etiqueta: "Notas de crédito en compras", href: "/dashboard/compras/notas-credito" },
+          { etiqueta: "Nueva nota de crédito en compras" },
+        ]}
+      />
 
       {contenido}
-    </div>
+    </ContenedorFormulario>
   );
 }

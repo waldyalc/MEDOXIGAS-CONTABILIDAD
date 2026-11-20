@@ -1,19 +1,30 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { ArrowLeft, BookOpen, ReceiptText } from "lucide-react";
+import { BookOpen, ReceiptText } from "lucide-react";
 
+import {
+  type CampoInformacionDocumento,
+  CLASE_BOTON_DOCUMENTO,
+  DocumentoDetalle,
+  type EstadoDetalle,
+  InformacionDocumento,
+  type SeccionDocumento,
+  SeccionesDocumento,
+  TablaDocumento,
+  TarjetaDocumento,
+  TotalesDocumento,
+} from "@/components/documento/documento-detalle";
 import { Enlace } from "@/components/enlace";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableCell, TableRow } from "@/components/ui/table";
 import { getPerfil } from "@/lib/auth/rol";
 import { aCentavos, aNumero } from "@/lib/compras/calculo";
 import { formatoCantidad, formatoMoneda } from "@/lib/compras/formato";
 import { getNotaCreditoCompraVista } from "@/lib/compras/notas-credito/consultas";
 import { rutaAsiento, rutaCompra, rutaContacto, rutaCuenta, rutaProducto } from "@/lib/enlaces";
+import { getEmpresa } from "@/lib/facturacion/consultas";
 import { formatoDia } from "@/lib/formato";
 
 import { AccionesNotaCompra } from "../_components/acciones-nota-compra";
@@ -27,7 +38,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (perfil?.rol == null) redirect("/unauthorized");
 
   const { id } = await params;
-  const nota = await getNotaCreditoCompraVista(id);
+  const [nota, empresa] = await Promise.all([getNotaCreditoCompraVista(id), getEmpresa()]);
   if (!nota) notFound();
 
   const puedeEscribir = perfil.rol === "admin" || perfil.rol === "contador";
@@ -35,206 +46,200 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const creditos = nota.lineasAsiento.reduce((suma, linea) => suma + aNumero(linea.credito), 0);
   const cuadrado = aCentavos(debitos) === aCentavos(creditos);
 
-  return (
-    <div className="flex flex-col gap-6 pb-10">
-      <div className="flex flex-col gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-fit"
-          render={<Link href="/dashboard/compras/notas-credito" prefetch={false} />}
-        >
-          <ArrowLeft data-icon="inline-start" />
-          Notas de crédito en compras
-        </Button>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight">Nota de crédito #{nota.numero}</h1>
-            <Badge variant={nota.estado === "anulada" ? "destructive" : "secondary"}>
-              {nota.estado === "anulada" ? "Anulada" : "Activa"}
-            </Badge>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {nota.asiento_id ? (
-              <Button variant="outline" render={<Link href={rutaAsiento(nota.asiento_id)} prefetch={false} />}>
-                <BookOpen data-icon="inline-start" />
-                Ver asiento
-              </Button>
-            ) : null}
-            <Button variant="outline" render={<Link href={rutaCompra(nota.factura_proveedor_id)} prefetch={false} />}>
-              <ReceiptText data-icon="inline-start" />
-              Ver factura de proveedor
-            </Button>
-            {puedeEscribir && nota.estado === "activa" ? (
-              <AccionesNotaCompra notaId={nota.id} numero={nota.numero} />
-            ) : null}
-          </div>
-        </div>
-      </div>
+  const estado: EstadoDetalle =
+    nota.estado === "anulada" ? { etiqueta: "Anulada", tono: "red" } : { etiqueta: "Activa", tono: "green" };
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-[auto_1fr] content-start gap-x-4 gap-y-2 text-sm">
-            <dt className="text-muted-foreground">NCF</dt>
-            <dd className="font-mono font-medium">{ncfVisible(nota.ncf)}</dd>
-            <dt className="text-muted-foreground">Comprobante</dt>
-            <dd>Nota de crédito del proveedor (B04)</dd>
-            <dt className="text-muted-foreground">Fecha</dt>
-            <dd>{formatoDia(nota.fecha)}</dd>
-            <dt className="text-muted-foreground">Proveedor</dt>
-            <dd>
-              <Enlace href={rutaContacto(nota.contacto_id)}>{nota.proveedor_nombre}</Enlace>
-            </dd>
-            <dt className="text-muted-foreground">Factura de proveedor</dt>
-            <dd>
-              <Enlace href={rutaCompra(nota.factura_proveedor_id)}>
-                #{nota.factura_numero}
-                {nota.factura_ncf ? ` — ${nota.factura_ncf}` : ""}
-              </Enlace>
-            </dd>
-            <dt className="text-muted-foreground">Devuelve inventario</dt>
-            <dd>{nota.devuelve_inventario ? "Sí" : "No"}</dd>
-            <dt className="text-muted-foreground">Notas</dt>
-            <dd className="whitespace-pre-line">{nota.notas ?? "—"}</dd>
-          </dl>
-        </CardContent>
-      </Card>
+  const informacion: CampoInformacionDocumento[] = [
+    {
+      etiqueta: "Proveedor",
+      valor: <Enlace href={rutaContacto(nota.contacto_id)}>{nota.proveedor_nombre}</Enlace>,
+    },
+    {
+      etiqueta: "Factura de proveedor",
+      valor: (
+        <Enlace href={rutaCompra(nota.factura_proveedor_id)}>
+          {`#${nota.factura_numero}`}
+          {nota.factura_ncf ? ` — ${nota.factura_ncf}` : ""}
+        </Enlace>
+      ),
+    },
+    { etiqueta: "Comprobante", valor: "Nota de crédito del proveedor (B04)" },
+    { etiqueta: "Fecha", valor: formatoDia(nota.fecha) },
+    { etiqueta: "Devuelve inventario", valor: nota.devuelve_inventario ? "Sí" : "No" },
+    {
+      etiqueta: "Notas",
+      valor: nota.notas ? <span className="whitespace-pre-line">{nota.notas}</span> : "—",
+    },
+  ];
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Líneas</CardTitle>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
+  const secciones: SeccionDocumento[] = [
+    {
+      valor: "contabilidad",
+      etiqueta: "Asiento contable",
+      contenido: nota.asiento ? (
+        <div className="flex flex-col gap-4">
+          <p className="text-muted-foreground text-sm">
+            <Enlace href={rutaAsiento(nota.asiento.id)} className="font-medium">
+              Asiento #{nota.asiento.numero}
+            </Enlace>{" "}
+            · {formatoDia(nota.asiento.fecha)} · {nota.asiento.descripcion}
+          </p>
+
+          <TablaDocumento
+            columnas={[
+              { titulo: "Cuenta" },
+              { titulo: "Descripción" },
+              { titulo: "Débito", alineadaDerecha: true },
+              { titulo: "Crédito", alineadaDerecha: true },
+            ]}
+            vacio="El asiento no tiene líneas."
+            hayFilas={nota.lineasAsiento.length > 0}
+            pie={
               <TableRow>
-                <TableHead>Descripción</TableHead>
-                <TableHead className="text-right">Cantidad</TableHead>
-                <TableHead className="text-right">Costo</TableHead>
-                <TableHead className="text-right">ITBIS %</TableHead>
-                <TableHead className="text-right">Subtotal</TableHead>
-                <TableHead className="text-right">ITBIS</TableHead>
-                <TableHead className="text-right">Total</TableHead>
+                <TableCell colSpan={2} className="h-12 px-4 text-sm font-semibold">
+                  Totales · {cuadrado ? "Cuadrado ✓" : "Descuadrado"}
+                </TableCell>
+                <TableCell className="h-12 px-4 text-right text-sm font-semibold tabular-nums">
+                  {formatoMoneda(debitos)}
+                </TableCell>
+                <TableCell className="h-12 px-4 text-right text-sm font-semibold tabular-nums">
+                  {formatoMoneda(creditos)}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {nota.lineas.map((linea) => (
-                <FilaNavegable key={linea.id} href={linea.producto_id ? rutaProducto(linea.producto_id) : null}>
-                  <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      <span>{linea.descripcion}</span>
-                      {linea.productos ? (
-                        <span className="text-muted-foreground text-xs">
-                          {linea.producto_id ? (
-                            <Enlace href={rutaProducto(linea.producto_id)}>{linea.productos.nombre}</Enlace>
-                          ) : (
-                            linea.productos.nombre
-                          )}
-                        </span>
-                      ) : null}
-                      {linea.cuentas ? (
-                        <span className="text-muted-foreground text-xs">
-                          {linea.cuenta_id ? (
-                            <Enlace href={rutaCuenta(linea.cuenta_id)}>
-                              {linea.cuentas.codigo} · {linea.cuentas.nombre}
-                            </Enlace>
-                          ) : (
-                            `${linea.cuentas.codigo} · ${linea.cuentas.nombre}`
-                          )}
-                        </span>
-                      ) : null}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoCantidad(linea.cantidad)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoMoneda(linea.costo)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoCantidad(linea.itbis_tasa)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoMoneda(linea.subtotal)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoMoneda(linea.itbis)}</TableCell>
-                  <TableCell className="text-right font-medium tabular-nums">{formatoMoneda(linea.total)}</TableCell>
-                </FilaNavegable>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end">
-        <div className="bg-muted/50 flex w-full flex-col gap-2 rounded-xl p-4 text-sm md:w-80">
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span>{formatoMoneda(nota.subtotal)}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">ITBIS</span>
-            <span>{formatoMoneda(nota.itbis)}</span>
-          </div>
-          <div className="flex items-center justify-between border-t pt-2 text-base font-semibold">
-            <span>Total</span>
-            <span>{formatoMoneda(nota.total)}</span>
-          </div>
+            }
+          >
+            {nota.lineasAsiento.map((linea) => (
+              <FilaNavegable key={linea.id} href={linea.cuentas ? rutaCuenta(linea.cuenta_id) : null}>
+                <TableCell className="h-12 px-4 text-sm whitespace-normal">
+                  {linea.cuentas ? (
+                    <Enlace href={rutaCuenta(linea.cuenta_id)}>
+                      {linea.cuentas.codigo} — {linea.cuentas.nombre}
+                    </Enlace>
+                  ) : (
+                    "—"
+                  )}
+                </TableCell>
+                <TableCell className="h-12 px-4 text-sm whitespace-normal">{linea.descripcion || "—"}</TableCell>
+                <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
+                  {formatoMoneda(linea.debito)}
+                </TableCell>
+                <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
+                  {formatoMoneda(linea.credito)}
+                </TableCell>
+              </FilaNavegable>
+            ))}
+          </TablaDocumento>
         </div>
-      </div>
+      ) : (
+        <p className="text-muted-foreground text-sm">La nota no tiene asiento contable.</p>
+      ),
+    },
+  ];
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Asiento contable</CardTitle>
-          {nota.asiento ? (
-            <p className="text-muted-foreground text-sm">
-              #{nota.asiento.numero} — {formatoDia(nota.asiento.fecha)} — {nota.asiento.descripcion}
-            </p>
+  return (
+    <DocumentoDetalle
+      rutaVolver="/dashboard/compras/notas-credito"
+      etiquetaVolver="Volver a notas de crédito en compras"
+      titulo={`Nota de crédito #${nota.numero}`}
+      estado={estado}
+      acciones={
+        <>
+          {nota.asiento_id ? (
+            <Button
+              variant="outline"
+              className={CLASE_BOTON_DOCUMENTO}
+              render={<Link href={rutaAsiento(nota.asiento_id)} prefetch={false} />}
+            >
+              <BookOpen data-icon="inline-start" />
+              Ver asiento
+            </Button>
           ) : null}
-        </CardHeader>
-        <CardContent className="px-0">
-          {nota.asiento ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-(--card-spacing)">Cuenta</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead className="text-right">Débito</TableHead>
-                  <TableHead className="pr-(--card-spacing) text-right">Crédito</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {nota.lineasAsiento.map((linea) => (
-                  <FilaNavegable key={linea.id} href={linea.cuentas ? rutaCuenta(linea.cuenta_id) : null}>
-                    <TableCell className="pl-(--card-spacing) whitespace-normal">
-                      {linea.cuentas ? (
+          <Button
+            variant="outline"
+            className={CLASE_BOTON_DOCUMENTO}
+            render={<Link href={rutaCompra(nota.factura_proveedor_id)} prefetch={false} />}
+          >
+            <ReceiptText data-icon="inline-start" />
+            Ver factura de proveedor
+          </Button>
+          {puedeEscribir && nota.estado === "activa" ? (
+            <AccionesNotaCompra notaId={nota.id} numero={nota.numero} />
+          ) : null}
+        </>
+      }
+    >
+      <TarjetaDocumento empresa={empresa} numeroDocumento={ncfVisible(nota.ncf)}>
+        <InformacionDocumento titulo="Información de la nota" campos={informacion} columnas={2} />
+
+        <TablaDocumento
+          titulo="Líneas de la nota"
+          columnas={[
+            { titulo: "Descripción" },
+            { titulo: "Cantidad", alineadaDerecha: true },
+            { titulo: "Costo", alineadaDerecha: true },
+            { titulo: "ITBIS %", alineadaDerecha: true },
+            { titulo: "Subtotal", alineadaDerecha: true },
+            { titulo: "ITBIS", alineadaDerecha: true },
+            { titulo: "Total", alineadaDerecha: true },
+          ]}
+          vacio="La nota no tiene líneas."
+          hayFilas={nota.lineas.length > 0}
+        >
+          {nota.lineas.map((linea) => (
+            <FilaNavegable key={linea.id} href={linea.producto_id ? rutaProducto(linea.producto_id) : null}>
+              <TableCell className="h-12 px-4 text-sm font-medium whitespace-normal">
+                <div className="flex flex-col">
+                  <span>{linea.descripcion}</span>
+                  {linea.productos ? (
+                    <span className="text-muted-foreground text-xs">
+                      {linea.producto_id ? (
+                        <Enlace href={rutaProducto(linea.producto_id)}>{linea.productos.nombre}</Enlace>
+                      ) : (
+                        linea.productos.nombre
+                      )}
+                    </span>
+                  ) : null}
+                  {linea.cuentas ? (
+                    <span className="text-muted-foreground text-xs">
+                      {linea.cuenta_id ? (
                         <Enlace href={rutaCuenta(linea.cuenta_id)}>
-                          {linea.cuentas.codigo} — {linea.cuentas.nombre}
+                          {linea.cuentas.codigo} · {linea.cuentas.nombre}
                         </Enlace>
                       ) : (
-                        "—"
+                        `${linea.cuentas.codigo} · ${linea.cuentas.nombre}`
                       )}
-                    </TableCell>
-                    <TableCell className="whitespace-normal">{linea.descripcion || "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatoMoneda(linea.debito)}</TableCell>
-                    <TableCell className="pr-(--card-spacing) text-right tabular-nums">
-                      {formatoMoneda(linea.credito)}
-                    </TableCell>
-                  </FilaNavegable>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TableCell colSpan={2} className="pl-(--card-spacing) text-right">
-                    Totales {cuadrado ? "(cuadrado)" : "(descuadrado)"}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">{formatoMoneda(debitos)}</TableCell>
-                  <TableCell className="pr-(--card-spacing) text-right tabular-nums">
-                    {formatoMoneda(creditos)}
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
-          ) : (
-            <p className="text-muted-foreground px-(--card-spacing) text-sm">La nota no tiene asiento contable.</p>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                    </span>
+                  ) : null}
+                </div>
+              </TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
+                {formatoCantidad(linea.cantidad)}
+              </TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">{formatoMoneda(linea.costo)}</TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
+                {formatoCantidad(linea.itbis_tasa)}
+              </TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">
+                {formatoMoneda(linea.subtotal)}
+              </TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm tabular-nums">{formatoMoneda(linea.itbis)}</TableCell>
+              <TableCell className="h-12 px-4 text-right text-sm font-medium tabular-nums">
+                {formatoMoneda(linea.total)}
+              </TableCell>
+            </FilaNavegable>
+          ))}
+        </TablaDocumento>
+
+        <TotalesDocumento
+          filas={[
+            { etiqueta: "Subtotal", valor: formatoMoneda(nota.subtotal) },
+            { etiqueta: "ITBIS", valor: formatoMoneda(nota.itbis) },
+          ]}
+          total={formatoMoneda(nota.total)}
+        />
+      </TarjetaDocumento>
+
+      <SeccionesDocumento secciones={secciones} />
+    </DocumentoDetalle>
   );
 }
