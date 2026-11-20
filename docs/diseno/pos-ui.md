@@ -561,7 +561,7 @@ Seis tiles seleccionables, en grilla 3×2 (2×3 en móvil), cada uno de 72 px de
 
 #### 4.9.7 Confirmar y errores
 
-- CTA: «Cobrar RD$ 236.00» o «Vender a crédito RD$ 236.00». `h-12`, ancho completo en móvil. Durante el envío: `Loader2` + «Procesando venta…», `disabled`.
+- CTA: «Cobrar RD$ 236.00» o «Vender a crédito RD$ 236.00» (llama `pos_completar_venta`). `h-12`, ancho completo en móvil. Durante el envío: `Loader2` + «Procesando venta…», `disabled`.
 - El botón se deshabilita si:
   - la suma aplicada es 0 y el modo no es Crédito;
   - la suma aplicada excede el total;
@@ -634,7 +634,7 @@ La UI arma el payload de `pos_completar_venta` así:
 ### 5.2 Sin turno / abrir turno
 
 - Estado vacío (no es error): icono `LockKeyhole` o `Clock`, título «No hay un turno abierto en Caja 1.», descripción «Abre un turno con la base inicial para empezar a vender.», CTA «Abrir turno» (48 px).
-- `[N] dialogo-abrir-turno.tsx`:
+- `[N] dialogo-abrir-turno.tsx` (llama `pos_abrir_turno`):
   - título «Abrir turno»; subtítulo «Caja 1».
   - «Base inicial» `InputGroup` `RD$`, default `0.00`, ≥ 0, 2 decimales. Helper: «Es el efectivo que ya está en el cajón. No genera asiento contable.»
   - «Observaciones» opcional, máximo 500.
@@ -690,7 +690,7 @@ Se alimenta de `pos_resumen_turno`. No se recalcula en el cliente.
 
 ### 5.5 Registrar ingreso/retiro
 
-`[N] dialogo-movimiento.tsx`, `Dialog` de 640 px, `Tabs` «Ingreso» / «Retiro».
+`[N] dialogo-movimiento.tsx` (llama `pos_registrar_movimiento_turno`), `Dialog` de 640 px, `Tabs` «Ingreso» / «Retiro».
 
 - Motivos por tipo:
   - Ingreso: «Fondo de caja» (`fondo_caja`), «Cobro de factura» (`cobro_factura`), «Otro ingreso» (`otro` con tipo ingreso).
@@ -709,7 +709,7 @@ Se alimenta de `pos_resumen_turno`. No se recalcula en el cliente.
 
 ### 5.6 Cerrar turno
 
-`[N] dialogo-cerrar-turno.tsx`, `Dialog` de 640 px.
+`[N] dialogo-cerrar-turno.tsx` (llama `pos_cerrar_turno`), `Dialog` de 640 px.
 
 - Cabecera: «Cerrar turno No 4» + «Caja 1».
 - Resumen compacto con: base, ventas por método, ingresos, retiros, devoluciones, «Efectivo esperado en caja» (grande).
@@ -915,7 +915,7 @@ Se alimenta de `pos_resumen_turno`. No se recalcula en el cliente.
   - Si el efectivo supera el máximo por pagado o por caja, error con el máximo y CTA deshabilitado.
 - «Notas» opcional, máximo 500, `Textarea`.
 - Resumen final en una caja `bg-muted/40`: Subtotal, ITBIS, Total; «Efectivo», «Crédito», «Cuenta». Es la última revisión antes de crear.
-- CTA «Crear devolución» (48 px). Durante el envío: «Creando devolución…». Errores del servidor arriba, capitalizados:
+- CTA «Crear devolución» (48 px) llama `pos_crear_devolucion`. Durante el envío: «Creando devolución…». Errores del servidor arriba, capitalizados:
   - «El reembolso en efectivo debe ser igual al total de la devolución.»
   - «El reembolso combinado requiere efectivo y crédito mayores a cero.»
   - «El efectivo devuelto no puede exceder lo pagado en la factura.»
