@@ -149,6 +149,41 @@ create trigger auditoria_nomina_recibos
   execute function public._auditar('estado,neto_pagar,fecha_pagado', '', 'nomina_recibo');
 
 -- ---------------------------------------------------------------------------
+-- RLS y permisos
+--
+-- Operativas: todos los perfiles leen; la escritura va exclusivamente por RPC
+-- `security definer` (calcular, contabilizar, pagar, anular).
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  v_tabla text;
+begin
+  foreach v_tabla in array array[
+    'nomina_periodos',
+    'nomina_recibos',
+    'nomina_recibo_lineas'
+  ] loop
+    execute format('alter table public.%I enable row level security', v_tabla);
+    execute format('revoke all on public.%I from anon', v_tabla);
+    execute format('revoke all on public.%I from authenticated', v_tabla);
+    execute format('grant select on public.%I to authenticated', v_tabla);
+
+    execute format(
+      'drop policy if exists %I on public.%I',
+      v_tabla || '_lectura',
+      v_tabla
+    );
+    execute format(
+      'create policy %I on public.%I for select to authenticated using ((select public.rol_actual()) is not null)',
+      v_tabla || '_lectura',
+      v_tabla
+    );
+  end loop;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- Helper: conceptos de nómina por código
 -- ---------------------------------------------------------------------------
 
@@ -968,6 +1003,7 @@ declare
   v_mes_fin int;
   v_meses int;
   v_periodos_restantes int;
+  v_periodos_isr int;
   v_base_mensual_tss numeric;
   v_base_mensual_isr numeric;
   v_ingreso_anual numeric;
@@ -1176,16 +1212,28 @@ begin
     v_periodos_restantes := 1;
   end if;
 
-  v_ingreso_anual := v_base_isr
-    + (v_periodos_restantes - 1) * round(v_empleado.salario_mensual / v_periodos_por_mes, 2);
   v_sfs_proy := round(
     least(v_base_mensual_tss, v_params.tope_sfs_mensual) * v_params.tasa_sfs_empleado / 100, 2
   );
   v_afp_proy := round(
     least(v_base_mensual_tss, v_params.tope_afp_mensual) * v_params.tasa_afp_empleado / 100, 2
   );
-  v_tss_anual := (v_sfs + v_afp)
-    + (v_periodos_restantes - 1) * (v_sfs_proy + v_afp_proy);
+
+  if extract(year from v_empleado.fecha_ingreso)::int < v_periodo.anio_fiscal then
+    -- Empleado con historia en la empresa: se anualiza el salario mensual
+    -- completo (la proyección DGII estándar).
+    v_ingreso_anual := v_base_mensual_isr * v_meses;
+    v_tss_anual := (v_sfs_proy + v_afp_proy) * v_meses;
+    v_periodos_isr := v_meses * v_periodos_por_mes;
+  else
+    -- Ingreso dentro del año fiscal: solo se proyectan los periodos de pago
+    -- que realmente le quedan (incluido este), no meses completos.
+    v_ingreso_anual := v_base_isr
+      + (v_periodos_restantes - 1) * round(v_empleado.salario_mensual / v_periodos_por_mes, 2);
+    v_tss_anual := (v_sfs + v_afp)
+      + (v_periodos_restantes - 1) * (v_sfs_proy + v_afp_proy);
+    v_periodos_isr := v_periodos_restantes;
+  end if;
   v_base_gravable := greatest(0, v_ingreso_anual - v_tss_anual);
 
   v_tramo := null;
@@ -1206,7 +1254,7 @@ begin
       + coalesce((v_tramo->>'tasa')::numeric, 0) / 100
         * (v_base_gravable - (v_tramo->>'desde')::numeric);
   end if;
-  v_isr := greatest(0, round(v_isr_anual / v_periodos_restantes, 2));
+  v_isr := greatest(0, round(v_isr_anual / v_periodos_isr, 2));
 
   if v_sfs > 0 then
     v_concepto_id := public._nomina_concepto_id('SFS');
