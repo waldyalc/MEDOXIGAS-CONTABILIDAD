@@ -29,6 +29,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   if (empresa.datos.rnc == null || empresa.datos.rnc.trim() === "") {
     avisos.push("La empresa no tiene RNC configurado; el archivo se exporta con el RNC en blanco.");
   }
+  const sinMotivo = anulados.datos.filter((documento) => documento.codigoAnulacion == null).length;
+  if (sinMotivo > 0) {
+    avisos.push(
+      `${sinMotivo} comprobante(s) anulado(s) sin motivo registrado: el 608 los exporta con tipo de anulación 4 (corrección de la información).`,
+    );
+  }
 
   return (
     <ReporteDgii

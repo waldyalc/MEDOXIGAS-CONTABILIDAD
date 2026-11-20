@@ -6,12 +6,27 @@ import { z } from "zod";
 
 import { getRol } from "@/lib/auth/rol";
 import { mensajeErrorRpc } from "@/lib/facturacion/errores";
+import { hoyEnRd } from "@/lib/fechas/rangos";
 import { createClient } from "@/lib/supabase/server";
 
 import { calcularFactura, centavosAValor, valorACentavos } from "./calculo";
 import { crearFacturaSchema, mensajeValidacion } from "./validacion";
 
 export type ResultadoAccion = { ok: true; id: string } | { ok: false; error: string };
+
+export interface MotivoAnulacionOpcion {
+  id: string;
+  nombre: string;
+  /** Código oficial del 608 ('01'…'10'). */
+  codigo: string;
+}
+
+export type ResultadoMotivos = { ok: true; motivos: MotivoAnulacionOpcion[] } | { ok: false; error: string };
+
+const anulacionFacturaSchema = z.object({
+  fecha: z.iso.date("La fecha de anulación no es válida."),
+  motivo: z.uuid("Selecciona el motivo de anulación."),
+});
 
 function puedeEscribir(rol: string | null) {
   return rol === "admin" || rol === "contador";
@@ -79,12 +94,46 @@ export async function crearFactura(entrada: unknown): Promise<ResultadoAccion> {
   return { ok: true, id: data };
 }
 
-export async function anularFactura(id: string): Promise<ResultadoAccion> {
+/** Motivos del diálogo de anulación (catálogo `motivos_anulacion`, solo lectura). */
+export async function obtenerMotivosAnulacion(): Promise<ResultadoMotivos> {
+  if (!puedeEscribir(await getRol())) return { ok: false, error: "No tienes permiso para anular facturas." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("motivos_anulacion")
+    .select("id, nombre, codigo_dgii")
+    .eq("activo", true)
+    .order("codigo_dgii");
+
+  if (error) return { ok: false, error: "No se pudieron cargar los motivos de anulación." };
+
+  return {
+    ok: true,
+    motivos: (data ?? []).map((motivo) => ({
+      id: motivo.id,
+      nombre: motivo.nombre,
+      codigo: motivo.codigo_dgii,
+    })),
+  };
+}
+
+export async function anularFactura(id: string, info: unknown): Promise<ResultadoAccion> {
   if (!puedeEscribir(await getRol())) return { ok: false, error: "No tienes permiso para anular facturas." };
   if (!z.uuid().safeParse(id).success) return { ok: false, error: "Factura inválida." };
 
+  const resultado = anulacionFacturaSchema.safeParse(info);
+  if (!resultado.success) return { ok: false, error: mensajeValidacion(resultado.error) };
+
+  if (resultado.data.fecha > hoyEnRd()) {
+    return { ok: false, error: "La fecha de anulación no puede ser futura." };
+  }
+
   const supabase = await createClient();
-  const { error } = await supabase.rpc("anular_documento", { p_tipo: "factura", p_id: id });
+  const { error } = await supabase.rpc("anular_documento", {
+    p_tipo: "factura",
+    p_id: id,
+    p_info: { fecha: resultado.data.fecha, motivo: resultado.data.motivo },
+  });
 
   if (error) return { ok: false, error: mensajeErrorRpc(error) };
 
