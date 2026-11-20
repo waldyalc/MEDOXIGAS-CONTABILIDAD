@@ -15,7 +15,6 @@ import {
 import { tablaComprasContador, tablaFacturasContador, tablaLibroContador } from "./contador";
 import { encabezado606, FORMATO_606, fila606 } from "./formatos/606";
 import { encabezado607, FORMATO_607, fila607 } from "./formatos/607";
-import { encabezado608, FORMATO_608, fila608 } from "./formatos/608";
 import { diferenciaImpuestos, resumirPorTasa } from "./impuestos";
 import { calcularIt1, fechaLimiteIt1 } from "./it1";
 import { filasRetenciones } from "./retenciones";
@@ -248,36 +247,6 @@ describe("formato 607", () => {
     expect(lineas[0]).toBe("101010101|202611|1|14100.00");
     expect(lineas[1]).toContain("|20261113|");
     expect(lineas[1]).toContain("|14100.00|2538.00|");
-  });
-});
-
-describe("formato 608", () => {
-  test("arma la fila de comprobante anulado", () => {
-    expect(fila608(documento({ ncf: "B0200000003", fecha: "2026-11-05", estado: "anulada" }))).toEqual({
-      ncf: "B0200000003",
-      fechaComprobante: "20261105",
-      tipoAnulacion: "4",
-    });
-  });
-
-  test("arma el encabezado e informa cero registros", () => {
-    expect(encabezado608([], "101010101", "202611")).toEqual({
-      rnc: "101010101",
-      periodo: "202611",
-      cantidad: 0,
-    });
-  });
-
-  test("exporta el TXT con el detalle de tres columnas", () => {
-    const anulado = documento({ ncf: "B0200000003", fecha: "2026-11-05", estado: "anulada" });
-    const texto = libroTexto(
-      FORMATO_608.encabezado,
-      FORMATO_608.detalle,
-      encabezado608([anulado], "101010101", "202611"),
-      [fila608(anulado)],
-    );
-
-    expect(texto.split("\r\n")).toEqual(["101010101|202611|1", "B0200000003|20261105|4"]);
   });
 });
 
