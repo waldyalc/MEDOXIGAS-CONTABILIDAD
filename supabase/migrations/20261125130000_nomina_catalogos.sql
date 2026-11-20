@@ -13,7 +13,8 @@
 -- · Las semillas usan `where not exists` / `on conflict do nothing`: nunca
 --   pisan una fila que Waldy haya ajustado.
 -- · El check de `asientos.origen_tipo` se reemplaza con la lista completa
---   (los 16 valores vigentes + 'nomina' + 'pago_nomina').
+--   (los 16 valores vigentes + 'pos_movimiento' + 'pos_diferencia' + 'nomina'
+--   + 'pago_nomina').
 -- ---------------------------------------------------------------------------
 
 -- ---------------------------------------------------------------------------
@@ -512,7 +513,9 @@ create index if not exists empleado_novedades_recurrentes_concepto_id_idx
 -- Asientos: los orígenes de nómina
 --
 -- Se reemplaza el check vigente (20261124100000) con la lista COMPLETA: los
--- 16 valores actuales + 'nomina' + 'pago_nomina'. No se pierde ninguno.
+-- 16 valores actuales + 'pos_movimiento' + 'pos_diferencia' + 'nomina' +
+-- 'pago_nomina'. La lista es la unión completa para que el orden de merge con
+-- la migración POS no importe. No se pierde ninguno.
 -- ---------------------------------------------------------------------------
 
 do $$
@@ -550,6 +553,8 @@ alter table public.asientos
     'ajuste_inventario',
     'saldo_inicial',
     'inventario_inicial',
+    'pos_movimiento',
+    'pos_diferencia',
     'nomina',
     'pago_nomina'
   ));
