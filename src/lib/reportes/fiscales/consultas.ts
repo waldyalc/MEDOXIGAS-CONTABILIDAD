@@ -9,12 +9,12 @@ import { formasPagoVenta } from "./comun";
 import type { DetalleImpuesto, DocumentoFiscal, RespuestaFiscal } from "./tipos";
 import { formasPagoVacias } from "./tipos";
 
-interface ContactoDb {
+export interface ContactoDb {
   nombre: string;
   rnc_cedula: string | null;
 }
 
-type ContactoEmbed = ContactoDb | ContactoDb[] | null;
+export type ContactoEmbed = ContactoDb | ContactoDb[] | null;
 
 interface LineaVentaDb {
   subtotal: number | string;
@@ -118,23 +118,13 @@ interface AplicacionDb {
   pagos_recibidos: { metodo: string; estado: string } | null;
 }
 
-interface AnuladoDb {
-  id: string;
-  numero: number;
-  ncf: string | null;
-  fecha: string;
-  total: number | string;
-  contacto_id: string | null;
-  contactos: ContactoEmbed;
-}
-
-function nombreContacto(valor: ContactoEmbed): string {
+export function nombreContacto(valor: ContactoEmbed): string {
   if (Array.isArray(valor)) return valor[0]?.nombre ?? "";
   if (valor == null) return "";
   return valor.nombre;
 }
 
-function rncContacto(valor: ContactoEmbed): string | null {
+export function rncContacto(valor: ContactoEmbed): string | null {
   if (Array.isArray(valor)) return valor[0]?.rnc_cedula ?? null;
   return valor?.rnc_cedula ?? null;
 }
@@ -584,84 +574,6 @@ export async function obtenerDevolucionesVentas(desde: string, hasta: string): P
 
 export async function obtenerDevolucionesCompras(): Promise<RespuestaFiscal<DatosVentas>> {
   return { datos: { documentos: [], detalles: [] }, error: null };
-}
-
-export async function obtenerAnulados(desde: string, hasta: string): Promise<RespuestaFiscal<DocumentoFiscal[]>> {
-  const supabase = await createClient();
-  const [facturas, gastos, notas] = await Promise.all([
-    paginarConsulta((inicio, fin) =>
-      supabase
-        .from("facturas")
-        .select("id, numero, ncf, fecha, total, contacto_id, contactos(nombre, rnc_cedula)")
-        .eq("estado", "anulada")
-        .gte("fecha", desde)
-        .lte("fecha", hasta)
-        .order("fecha")
-        .order("numero")
-        .range(inicio, fin)
-        .returns<AnuladoDb[]>(),
-    ),
-    paginarConsulta((inicio, fin) =>
-      supabase
-        .from("gastos_menores")
-        .select("id, numero, ncf, fecha, total, contacto_id, contactos(nombre, rnc_cedula)")
-        .eq("estado", "anulada")
-        .gte("fecha", desde)
-        .lte("fecha", hasta)
-        .order("fecha")
-        .order("numero")
-        .range(inicio, fin)
-        .returns<AnuladoDb[]>(),
-    ),
-    paginarConsulta((inicio, fin) =>
-      supabase
-        .from("notas_credito_venta")
-        .select("id, numero, ncf, fecha, total, contacto_id, contactos(nombre, rnc_cedula)")
-        .eq("estado", "anulada")
-        .gte("fecha", desde)
-        .lte("fecha", hasta)
-        .order("fecha")
-        .order("numero")
-        .range(inicio, fin)
-        .returns<AnuladoDb[]>(),
-    ),
-  ]);
-
-  const error = facturas.error?.message ?? gastos.error?.message ?? notas.error?.message ?? null;
-  if (error) return { datos: [], error };
-
-  const convertir = (fila: AnuladoDb, clase: DocumentoFiscal["clase"]): DocumentoFiscal => ({
-    id: fila.id,
-    numero: fila.numero,
-    ncf: fila.ncf ?? "",
-    ncfModificado: null,
-    fecha: fila.fecha,
-    tipoComprobante: "",
-    contactoId: fila.contacto_id,
-    contactoNombre: nombreContacto(fila.contactos),
-    rnc: rncContacto(fila.contactos),
-    base: 0,
-    baseBienes: 0,
-    baseServicios: 0,
-    itbis: 0,
-    otrosImpuestos: 0,
-    propina: 0,
-    total: centavos(fila.total),
-    pagado: 0,
-    credito: 0,
-    estado: "anulada",
-    clase,
-    ruta: null,
-    pagos: formasPagoVacias(),
-  });
-
-  const documentos = [
-    ...(facturas.data ?? []).map((fila) => convertir(fila, "venta")),
-    ...(gastos.data ?? []).map((fila) => convertir(fila, "gasto")),
-    ...(notas.data ?? []).map((fila) => convertir(fila, "devolucion-venta")),
-  ].filter((documento) => documento.ncf.trim() !== "");
-
-  return { datos: documentos, error: null };
 }
 
 export interface DatosEmpresa {
