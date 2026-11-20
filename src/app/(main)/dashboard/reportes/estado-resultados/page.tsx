@@ -7,9 +7,15 @@ import { etiquetaMes, parsearBusqueda, parsearVista, restarAnio } from "@/lib/re
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 
 import { AlertaError } from "../_components/alerta-error";
+import { BotonDescargar } from "../_components/boton-descargar";
 import { EncabezadoReporte } from "../_components/encabezado-reporte";
+import { EncabezadoTablaComparativa, type ParametroOculto } from "../_components/estados/encabezado-tabla-comparativa";
 import { FiltrosEstados } from "../_components/estados/filtros-estados";
 import { TablaComparativa } from "../_components/estados/tabla-comparativa";
+import { tablaEstadoResultados } from "./_components/exportar";
+import { rotuloComparativo } from "./_components/rotulo-comparativo";
+
+const RUTA = "/dashboard/reportes/estado-resultados";
 
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosFecha> }) {
   const params = await searchParams;
@@ -27,6 +33,25 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
     }),
   ]);
 
+  const rotuloActual = etiquetaMes(hasta);
+  const rotuloAnterior = etiquetaMes(restarAnio(hasta));
+  const rotuloPorcentaje = "% de Ingresos";
+  const etiquetaRango = rotuloComparativo(desde, hasta);
+  const parametros: ParametroOculto[] = [
+    { nombre: "desde", valor: desde },
+    { nombre: "hasta", valor: hasta },
+    { nombre: "vista", valor: vista },
+    ...(centroCostoId == null ? [] : [{ nombre: "centro", valor: centroCostoId }]),
+  ];
+  const tabla =
+    reporte == null
+      ? null
+      : tablaEstadoResultados(
+          reporte.filas,
+          { cuenta: "Cuenta contable", actual: rotuloActual, anterior: rotuloAnterior, porcentaje: rotuloPorcentaje },
+          etiquetaRango,
+        );
+
   return (
     <div className="flex flex-col gap-6">
       <EncabezadoReporte
@@ -34,6 +59,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         descripcion="Ingresos, costos y gastos del período comparados con el mismo período del año anterior."
         desde={desde}
         hasta={hasta}
+        acciones={
+          tabla == null ? undefined : (
+            <BotonDescargar tabla={tabla} nombreArchivo={`estado-resultados-${desde}-${hasta}`} />
+          )
+        }
       />
 
       <FiltrosEstados
@@ -44,19 +74,27 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         busqueda={busqueda}
         centrosCosto={centrosCosto}
         centroSeleccionado={centroCostoId ?? ""}
+        ocultarBusqueda
       />
 
       {error ? <AlertaError mensaje={error} /> : null}
 
       {reporte ? (
-        <Card className="py-0">
+        <Card className="gap-0 py-0">
           <CardContent className="p-0">
+            <EncabezadoTablaComparativa
+              accion={RUTA}
+              etiquetaRango={etiquetaRango}
+              busqueda={busqueda}
+              parametros={parametros}
+            />
             <TablaComparativa
               filas={reporte.filas}
               rotuloCuenta="Cuenta contable"
-              rotuloActual={etiquetaMes(hasta)}
-              rotuloAnterior={etiquetaMes(restarAnio(hasta))}
-              rotuloPorcentaje="% de Ingresos"
+              rotuloActual={rotuloActual}
+              rotuloAnterior={rotuloAnterior}
+              rotuloPorcentaje={rotuloPorcentaje}
+              expandible
             />
           </CardContent>
         </Card>
