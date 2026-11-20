@@ -1,5 +1,17 @@
 # Handoff — Medoxigas Contabilidad
 
+## Diseño al 100 %, cero datos falsos, Next 16.4.6 y script de base virgen (19 nov 2026)
+
+Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos disjuntos):
+
+- **A1 — Cero datos falsos y seguridad:** eliminado `PERSONAS_EJEMPLO` de `ficha-contacto.tsx`, quitados los botones/ítems muertos «Próximamente» en `dashboard/page.tsx` y `rail-categorias.tsx`, actualizado `next` de `16.4.3` a `16.4.6` (`GHSA-mfr8-8qww-v76h` / `GHSA-vc7v-qv4w-wrv8`), y agregado candado `src/lib/fichas-sin-datos-ejemplo.test.ts`.
+- **A2 — Cero `<input type="date">` nativos:** nuevo `DatePickerCampo` en `src/components/date-picker.tsx` y migración de los últimos 9 archivos al calendario Alegra (`acciones-factura`, `asiento-form`, `asientos`, `numeraciones-cliente`, `saldos-iniciales-dialogo`, `estado-cuenta`, `gasto-form`, `nota-credito-form` y `cuentas/[id]` vía `FiltroFechasCuenta`), más candado `src/lib/fechas-nativas.test.ts` (0 excepciones).
+- **A3 — Reportes unificados:** `EncabezadoReporte` genera migas por defecto (`Inicio / Reportes / <título>`) y soporta `mostrarImprimir`; migrados los 9 reportes sueltos + `reporte-dgii.tsx` (606/607/608) sin tocar cálculos ni descargas fiscales, más candado `src/lib/reportes-encabezado.test.ts`. Confirmado que «Flujo de caja» ya enlaza a `/dashboard/reportes/flujo-efectivo`.
+- **A4 + A5 — Todos los detalles `[id]` en `DocumentoDetalle`:** migradas las 13 pantallas restantes (pagos recibidos, notas de débito, NC de compras, gastos menores, órdenes de compra, facturas/pagos recurrentes, asientos con `AsientoPapel`, activos fijos, transferencias de banco, ajustes/transferencias de inventario y ficha de cuenta contable), conservando acciones, roles e invariants E2E.
+- **A6 — Fin de `text-3xl` y encabezados unificados:** migrados `EncabezadoConfiguracion` (10 pantallas), `EsqueletoEncabezado`, Contactos, Inventario y listas de Compras/Órdenes/Pagos recurrentes a `EncabezadoPagina` (20 px) + migas (0 `text-3xl` en dashboard/esqueletos).
+- **A7 — 18 formularios a `ContenedorFormulario` (`1040 px`):** unificados todos los `page.tsx` de `nueva`/`nuevo`/`editar` a `1040 px` + `EncabezadoPagina` + migas sin duplicar `h1`.
+- **A8 — Script de base 100 % virgen:** creados `docs/pruebas/reset-base-virgen.sql` (audita las 64 tablas `public.*`: 51 truncadas con `RESTART IDENTITY CASCADE`, 13 semillas/config preservadas, reinicio de secuencias no-owned y verificación transaccional) + `docs/pruebas/RESET-VIRGEN.md` (incluye paso previo de quitar `E2E_EMAIL`/`E2E_PASSWORD` en GitHub Secrets antes de usar el mismo Supabase en producción) + candado `src/lib/supabase/reset-virgen.test.ts`.
+
 ## Estabilidad E2E y limpieza de PRs (19 nov 2026)
 
 - **Cabecera 48 px en listas y esqueleto sin salto (`src/components/listas/tabla-lista.tsx`, `src/components/carga/esqueletos.tsx`, `tests/e2e/tablas.spec.ts`):** los `<TableHead>` de `TablaLista` llevaban implícito `h-10` (40 px) desde `ui/table.tsx` y `EsqueletoTabla` tampoco tenía `h-12`/`h-14`; durante el streaming de `<Suspense>` en `/dashboard/facturacion`, `tablas.spec.ts:34` medía 40 px. Se fijó `h-12` en los 3 `<TableHead>` de `TablaLista`, `h-12`/`h-14` en `EsqueletoTabla`, se filtró la cabecera real (`Número de factura`) en el spec E2E y se sumaron 2 candados en `src/lib/tablas-listas.test.ts`.

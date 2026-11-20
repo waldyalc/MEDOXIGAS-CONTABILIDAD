@@ -135,7 +135,11 @@ Candados que ya existen:
 - `src/lib/tablas-listas.test.ts` — las listas migradas usan `TablaLista` (una sola implementación de tabla/paginación), cada `<TableHead>` mide 48 px (`h-12`) y `EsqueletoTabla` conserva 48/56 px sin salto de layout.
 - `src/lib/bancos/consultas.test.ts` — la gráfica de `/dashboard/bancos` (`getIngresosGastosMensual`) lee `asientos` por índice de fecha y luego sus líneas con `consultarEnLotes`, prohibiendo volver al join `asientos!inner` que agotaba `statement_timeout`.
 - `src/lib/diseno-paginas.test.ts` — las pantallas migradas usan el marco `EncabezadoPagina` + migas, sin `text-3xl` suelto.
+- `src/lib/fichas-sin-datos-ejemplo.test.ts` — prohíbe `*_EJEMPLO` y datos ficticios en las fichas de contacto y producto.
+- `src/lib/fechas-nativas.test.ts` — prohíbe `<input type="date">` fuera de `components/ui`; obliga a usar `DatePicker` / `DatePickerCampo`.
+- `src/lib/reportes-encabezado.test.ts` — todos los reportes usan `EncabezadoReporte` (con migas por defecto) o `EncabezadoPagina`, sin `<h1>` sueltos.
 - `src/lib/supabase/migraciones.test.ts` — exige formato `YYYYMMDDHHMMSS_nombre.sql`, sin duplicados ni archivos vacíos/sueltos, y timestamp UTC real para toda migración nueva posterior a `20261123000000`.
+- `src/lib/supabase/reset-virgen.test.ts` — exige que las 64 tablas `public.*` de las migraciones estén clasificadas una sola vez en `docs/pruebas/reset-base-virgen.sql`, dentro de `BEGIN…COMMIT`, sin tocar `perfiles` ni `auth.users`.
 - `tests/e2e/numeraciones.spec.ts` — guardar B16 sin cambios cierra el diálogo y un nombre en blanco muestra el error en español (requiere `E2E_EMAIL`/`E2E_PASSWORD`, como el humo).
 - `supabase/tests/anular_ajuste_costo_test.sql` — anular un ajuste de inventario de entrada devuelve la cantidad y revierte el costo promedio; anular una compra ya lo hacía (`anular_compra_costo_test.sql`).
 
