@@ -688,6 +688,13 @@ begin
     raise exception 'el nombre de la terminal es obligatorio' using errcode = '22023';
   end if;
 
+  if exists (
+    select 1 from public.pos_terminales t
+    where lower(btrim(t.nombre)) = lower(v_nombre)
+  ) then
+    raise exception 'ya existe una terminal con ese nombre' using errcode = '22023';
+  end if;
+
   v_almacen_id := nullif(p->>'almacen_id', '')::uuid;
   if v_almacen_id is null
      or not exists (select 1 from public.almacenes a where a.id = v_almacen_id and a.activo) then
@@ -863,6 +870,13 @@ begin
   end;
   if v_nombre is null or length(v_nombre) > 80 then
     raise exception 'el nombre de la terminal es obligatorio' using errcode = '22023';
+  end if;
+
+  if exists (
+    select 1 from public.pos_terminales t
+    where lower(btrim(t.nombre)) = lower(v_nombre) and t.id <> p_id
+  ) then
+    raise exception 'ya existe una terminal con ese nombre' using errcode = '22023';
   end if;
 
   v_almacen_id := case
