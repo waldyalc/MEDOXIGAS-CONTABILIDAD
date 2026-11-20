@@ -245,6 +245,20 @@ function camposConMensaje(mensaje: string): Record<string, string> {
   return {};
 }
 
+/** Paso al que pertenece el primer campo con error del servidor. */
+function pasoDeError(campos: Record<string, string>): PasoEmpleado | null {
+  const paso1 = ["identificacion", "correo", "primer_nombre", "primer_apellido"];
+  if (paso1.some((campo) => campo in campos)) return 1;
+
+  const paso2 = ["fecha_ingreso", "fecha_fin", "salario_mensual"];
+  if (paso2.some((campo) => campo in campos)) return 2;
+
+  const paso3 = ["banco_nombre", "tipo_cuenta_banco", "numero_cuenta_banco", "clave_tss"];
+  if (paso3.some((campo) => campo in campos)) return 3;
+
+  return null;
+}
+
 function nombreCompleto(campos: CamposEmpleado): string {
   return [campos.primerNombre, campos.segundoNombre, campos.primerApellido, campos.segundoApellido]
     .map((parte) => parte.trim())
@@ -252,13 +266,14 @@ function nombreCompleto(campos: CamposEmpleado): string {
     .join(" ");
 }
 
-function claseCirculo(numero: PasoEmpleado, paso: PasoEmpleado): string {
+function claseCirculo(numero: PasoEmpleado, paso: PasoEmpleado, conError: boolean): string {
+  if (conError) return "border-destructive text-destructive bg-transparent";
   if (numero === paso) return "border-primary bg-primary text-primary-foreground";
   if (numero < paso) return "border-primary text-primary bg-transparent";
   return "border-border text-muted-foreground bg-transparent";
 }
 
-function IndicadorPasos({ paso }: { paso: PasoEmpleado }) {
+function IndicadorPasos({ paso, conError }: { paso: PasoEmpleado; conError: PasoEmpleado | null }) {
   return (
     <>
       <ol className="hidden items-center gap-2 sm:flex" aria-label="Pasos del formulario">
@@ -269,7 +284,7 @@ function IndicadorPasos({ paso }: { paso: PasoEmpleado }) {
           return (
             <li key={etiqueta} className="flex flex-1 items-center gap-2">
               <span
-                className={`flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${claseCirculo(numero, paso)}`}
+                className={`flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${claseCirculo(numero, paso, numero === conError)}`}
                 aria-hidden="true"
               >
                 {completado ? <Check className="size-4" /> : numero}
@@ -721,6 +736,7 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
   const { limpiarTodo } = validacion;
   const [erroresServidor, setErroresServidor] = useState<Record<string, string>>({});
   const [paso, setPaso] = useState<PasoEmpleado>(1);
+  const [pasoConError, setPasoConError] = useState<PasoEmpleado | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [descartarAbierto, setDescartarAbierto] = useState(false);
   const [campos, setCampos] = useState<CamposEmpleado>(() => camposIniciales(empleado, fechaHoy));
@@ -733,6 +749,7 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
 
   function limpiarServidor() {
     if (Object.keys(erroresServidor).length > 0) setErroresServidor({});
+    if (pasoConError !== null) setPasoConError(null);
     if (error) setError(null);
   }
 
@@ -742,8 +759,13 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
   }
 
   function mostrarError(mensaje: string) {
+    const campos = camposConMensaje(mensaje);
+    const pasoDelError = pasoDeError(campos);
+
     setError(mensaje);
-    setErroresServidor(camposConMensaje(mensaje));
+    setErroresServidor(campos);
+    setPasoConError(pasoDelError);
+    if (pasoDelError !== null) setPaso(pasoDelError);
   }
 
   function reiniciar() {
@@ -751,6 +773,7 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
     setPaso(1);
     setError(null);
     setErroresServidor({});
+    setPasoConError(null);
     limpiarTodo();
     enfocarCampo("tipo_identificacion");
   }
@@ -759,12 +782,14 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
     if (!validacion.validar(reglasDelPaso(paso, valores))) return;
     setError(null);
     setErroresServidor({});
+    setPasoConError(null);
     if (paso < 3) setPaso((paso + 1) as PasoEmpleado);
   }
 
   function atras() {
     setError(null);
     setErroresServidor({});
+    setPasoConError(null);
     limpiarTodo();
     if (paso > 1) setPaso((paso - 1) as PasoEmpleado);
   }
@@ -774,6 +799,7 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
 
     setError(null);
     setErroresServidor({});
+    setPasoConError(null);
 
     iniciar(async () => {
       const entrada = aEntradaEmpleado(campos);
@@ -824,7 +850,7 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
 
       <FormCard className="gap-4">
         <FormSectionTitle descripcion={`Paso ${paso} de 3`}>Progreso del registro</FormSectionTitle>
-        <IndicadorPasos paso={paso} />
+        <IndicadorPasos paso={paso} conError={pasoConError} />
       </FormCard>
 
       {paso === 1 ? (
