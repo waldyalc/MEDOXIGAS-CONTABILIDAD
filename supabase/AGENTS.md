@@ -25,8 +25,10 @@ Flujo contable en corto: `docs/motor-contable.md`. Contrato completo:
   `pago_proveedor_aplicaciones`, sus tablas de retenciones por aplicación,
   `pago_recibido_retenciones`, `pago_proveedor_retenciones`, `retenciones`.
 - **Inventario:** `almacenes`, `categorias_productos`, `existencias`,
+  `producto_unidades`, `producto_codigos_barra`, `combo_componentes`,
   `ajustes_inventario` (+`ajuste_inventario_lineas`),
   `transferencias_inventario` (+`transferencia_inventario_lineas`),
+  `conteos_inventario` (+`conteo_inventario_lineas`),
   `listas_precios`, `producto_precios`.
 - **Bancos:** no hay tabla `bancos`; los bancos y cajas son filas de `cuentas`
   con `es_caja_banco = true`. Movimientos: `conciliaciones` y
@@ -69,7 +71,9 @@ transaccionales; exigen rol `admin` o `contador`):
 - **Bancos:** `transferir_entre_cuentas`, `registrar_deposito`,
   `guardar_borrador_conciliacion`, `conciliar_cuenta`.
 - **Inventario:** `crear_ajuste_inventario`, `crear_transferencia_inventario`,
-  `anular_transferencia_inventario`.
+  `anular_transferencia_inventario`, `crear_conteo_inventario`,
+  `guardar_lineas_conteo`, `aplicar_conteo_inventario`,
+  `anular_conteo_inventario`.
 - **Contabilidad:** `crear_asiento_manual`, `registrar_saldos_iniciales`,
   `crear_activo_fijo`, `depreciar_activo`, `cerrar_periodo`, `reabrir_periodo`,
   `cerrar_resultados_anio`, `anular_documento(p_tipo, p_id)`.
@@ -77,7 +81,9 @@ transaccionales; exigen rol `admin` o `contador`):
 - **Internas (sin permiso para la app):** `rol_actual`, `_crear_asiento`,
   `_cuenta_config`, `_validar_cuenta_movimiento`, `_validar_asiento_cuadrado`,
   `_auditar` (trigger) y los helpers `_impuestos_*`, `_mover_existencia`,
-  `_sumar_existencia`, `_almacen_principal`, `_conciliacion_*`.
+  `_sumar_existencia`, `_almacen_principal`, `_conciliacion_*`,
+  `_unidad_factor`, `_costo_combo`, `_mover_combo_existencia`,
+  `_producto_guardar_ferreteria`.
 
 Reportes y lecturas (`stable`, `security invoker`, respetan RLS):
 `reporte_libro_diario`, `reporte_balance_comprobacion`,
@@ -85,7 +91,9 @@ Reportes y lecturas (`stable`, `security invoker`, respetan RLS):
 `reporte_cxc`, `reporte_movimientos`, `reporte_saldos_tercero`,
 `reporte_saldos_cuentas`, `dashboard_resumen`, `catalogo_saldos`,
 `saldos_caja_banco`, `buscar_global`, `obtener_auditoria`,
-`listar_terminos_pago`, `listar_perfiles`, `listar_retenciones`.
+`listar_terminos_pago`, `listar_perfiles`, `listar_retenciones`,
+`pos_buscar_por_codigo_barra`, `pos_catalogo_productos`,
+`reporte_stock_bajo`, `_precio_lista`, `_disponibilidad_combo`.
 
 ## Comandos (solo local, NUNCA contra producción)
 

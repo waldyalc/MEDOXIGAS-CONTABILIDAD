@@ -67,9 +67,9 @@ begin
 end $$;
 
 -- ===========================================================================
--- 0.1) INVENTARIO DE LAS 65 TABLAS DE public
+-- 0.1) INVENTARIO DE LAS 70 TABLAS DE public
 -- ===========================================================================
--- 51 se vacían (paso 1) y 14 se conservan (paso 3). Los marcadores
+-- 56 se vacían (paso 1) y 14 se conservan (paso 3). Los marcadores
 -- @conservar son el candado: src/lib/supabase/reset-virgen.test.ts compara
 -- esta lista + el TRUNCATE contra TODAS las tablas de supabase/migrations y
 -- falla si una tabla queda sin clasificar.
@@ -109,9 +109,12 @@ truncate table
   public.categorias_productos,
   public.centros_costo,
   public.cierres_resultados,
+  public.combo_componentes,
   public.conciliacion_movimientos,
   public.conciliaciones,
   public.contactos,
+  public.conteo_inventario_lineas,
+  public.conteos_inventario,
   public.cotizacion_lineas,
   public.cotizaciones,
   public.existencias,
@@ -141,7 +144,9 @@ truncate table
   public.pagos_recibidos,
   public.pagos_recurrentes,
   public.periodos_contables,
+  public.producto_codigos_barra,
   public.producto_precios,
+  public.producto_unidades,
   public.productos,
   public.remision_lineas,
   public.remisiones,
@@ -375,9 +380,12 @@ begin
     'categorias_productos',
     'centros_costo',
     'cierres_resultados',
+    'combo_componentes',
     'conciliacion_movimientos',
     'conciliaciones',
     'contactos',
+    'conteo_inventario_lineas',
+    'conteos_inventario',
     'cotizacion_lineas',
     'cotizaciones',
     'existencias',
@@ -407,7 +415,9 @@ begin
     'pagos_recibidos',
     'pagos_recurrentes',
     'periodos_contables',
+    'producto_codigos_barra',
     'producto_precios',
+    'producto_unidades',
     'productos',
     'remision_lineas',
     'remisiones',
@@ -494,9 +504,12 @@ from (
   union all select 'categorias_productos', count(*) from public.categorias_productos
   union all select 'centros_costo', count(*) from public.centros_costo
   union all select 'cierres_resultados', count(*) from public.cierres_resultados
+  union all select 'combo_componentes', count(*) from public.combo_componentes
   union all select 'conciliacion_movimientos', count(*) from public.conciliacion_movimientos
   union all select 'conciliaciones', count(*) from public.conciliaciones
   union all select 'contactos', count(*) from public.contactos
+  union all select 'conteo_inventario_lineas', count(*) from public.conteo_inventario_lineas
+  union all select 'conteos_inventario', count(*) from public.conteos_inventario
   union all select 'cotizacion_lineas', count(*) from public.cotizacion_lineas
   union all select 'cotizaciones', count(*) from public.cotizaciones
   union all select 'existencias', count(*) from public.existencias
@@ -526,7 +539,9 @@ from (
   union all select 'pagos_recibidos', count(*) from public.pagos_recibidos
   union all select 'pagos_recurrentes', count(*) from public.pagos_recurrentes
   union all select 'periodos_contables', count(*) from public.periodos_contables
+  union all select 'producto_codigos_barra', count(*) from public.producto_codigos_barra
   union all select 'producto_precios', count(*) from public.producto_precios
+  union all select 'producto_unidades', count(*) from public.producto_unidades
   union all select 'productos', count(*) from public.productos
   union all select 'remision_lineas', count(*) from public.remision_lineas
   union all select 'remisiones', count(*) from public.remisiones
