@@ -123,6 +123,8 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 
 ## Candados: cada corrección se vuelve un test o una regla
 
+- **Regla de Waldy (20-11-2026) — capturas siempre:** todo cambio de UI (diseño nuevo o ajuste) se entrega al dueño **con capturas de pantalla**: cómo quedó, en claro y oscuro (y móvil si aplica), generadas por el Orquestador con el navegador sobre localhost (`docs/ORQUESTADOR.md`) o producción. "Listo" sin captura no está listo.
+
 - **Regla de oro:** cada vez que Waldy te corrija algo, no lo apuntes solo aquí. Crea un **test** (Vitest, pgTAP o Playwright) o una **regla de Biome** que falle si alguien lo vuelve a hacer, con un mensaje que diga cómo arreglarlo de raíz. Después agrega una línea abajo. Cómo hacerlo: skill `biome`.
 - **Por qué:** este archivo es un consejo y la IA a veces no lo lee, se le olvida o busca una excusa. Un test o una regla es un candado: si se rompe, el commit no entra.
 - **Test** = un programa pequeño que revisa que el sistema funcione (ej.: una factura de 1,000 genera un asiento que cuadra). **Regla de Biome** = revisa cómo está escrito el código (ej.: prohibido `<select>` nativo).

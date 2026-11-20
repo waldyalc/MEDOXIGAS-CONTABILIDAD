@@ -28,6 +28,17 @@ Tu trabajo no es escribir el código: es **dividirlo, delegarlo, revisarlo e int
 
 ---
 
+## Verificación visual del Orquestador (regla de Waldy, 20-11-2026)
+
+Todo cambio de UI se entrega **con capturas en el hilo** antes de darlo por listo:
+
+1. Copia `.env.local` de la copia principal al worktree si falta (nunca lo imprimas ni commitees).
+2. Levanta el dev server del worktree: `pnpm dev -p 3001` (puerto 3000 es de Waldy; nunca lo toques).
+3. Pide a Waldy las credenciales de login con `request_secret` (email + contraseña de un perfil admin/contador). No las pidas por chat ni las inventes.
+4. Con el navegador (skill `Browser`): entra, navega a la pantalla del cambio y toma capturas en claro y oscuro (y móvil si el cambio lo amerita). Base virgen: solo lectura, no siembres datos sin su OK.
+5. Guarda los PNG (temp de la sesión) e insértalos en el hilo con Markdown de ruta absoluta. Señala qué revisar: "esto va bien, esto va mal".
+6. Mata el dev server al terminar y borra el `.env.local` del worktree si lo copiaste.
+
 ## Cómo redactar briefs de subagentes
 
 Un brief malo produce trabajo que hay que rehacer. Cada brief debe incluir:
