@@ -588,8 +588,8 @@ function EncabezadoFormulario({
       titulo={producto ? "Editar producto" : "Nuevo producto"}
       subtitulo={
         producto
-          ? "Cambia la información, el inventario y los precios del producto."
-          : "Crea productos inventariables, servicios y combos para tus ventas."
+          ? "Cambia la información, el inventario, los precios y las presentaciones del producto."
+          : "Crea productos inventariables, servicios y combos con códigos de barra y presentaciones."
       }
       migas={migas}
       acciones={
