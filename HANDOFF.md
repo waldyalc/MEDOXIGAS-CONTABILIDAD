@@ -1,5 +1,20 @@
 # Handoff — Medoxigas Contabilidad
 
+## Fase 2A POS + Fase 3 Nómina (backend) + 1B inventario y especificaciones de UI (20 nov 2026)
+
+Sesión del Orquestador con 10 subagentes DeepSeek V4.1 Flash Max en paralelo (todos con worktree propio). 10/10 terminaron.
+
+- **Contratos primero:** `docs/dominio-nomina.md` (PR #69) y `docs/dominio-pos.md` (PR #70) entraron a `main` antes de escribir SQL, y dos revisiones independientes dejaron `docs/revision-nomina.md` y `docs/revision-pos.md`. Hallazgos aplicados: lock `FOR UPDATE` del recibo, doble conteo del límite de crédito, submayor de la devolución en efectivo, proyección de ISR en periodo parcial, RLS de las tablas del motor.
+- **1A Inventario ferretería (PR #68):** `docs/dominio-inventario-ferreteria.md`, migraciones `20261125100000`/`20261125101000` (códigos de barra, unidades con factor, combos reales, conteos, índices trigrama, RPCs `pos_*` de lectura) + pgTAP de 48 asserts.
+- **1B Capa TS (PR #73):** `src/lib/inventario/ferreteria/` (Zod, consultas paginadas, 8 server actions, 80 tests). Sin UI.
+- **2A POS (PR #75):** `20261125120000_pos_tablas` + `20261125121000_pos_rpc` (17 funciones): terminales, turnos con un solo abierto por terminal, movimientos de caja, `pos_completar_venta` en un round-trip, cotización rápida, devolución B04 con reembolso crédito/efectivo/combinado y cierre con sobrante/faltante. pgTAP de 40 + 91 asserts. Correcciones: constraint de `motivo` sin colisión, `facturas.credito` baja la parte reembolsada en efectivo.
+- **3A Nómina catálogos (PR #71):** `20261125130000_nomina_catalogos` (parámetros RD 2026 sembrados, 40 conceptos, mapeo contable 40×3, 26 cuentas, contactos TSS/INFOTEP/DGII, `empleados` y novedades) + 53 asserts.
+- **3B Nómina motor (PR #72):** `20261125131000_nomina_motor` (periodos, recibos, líneas, cálculo SFS/AFP/ISR/SRL/INFOTEP/provisiones, asientos `NO-*` por empleado, pagos con candado y anulaciones) + 92 asserts. Correcciones: `FOR UPDATE` sobre el recibo antes de validar estado, reversa que copia `asiento_lineas` con centro de costo, RLS/grants de las 3 tablas, ISR que anualiza al empleado con historia y proyecta periodos reales al ingresado en el año.
+- **Diseño:** `docs/diseno/nomina-ui.md` (PR #74, 18 pantallas) y `docs/diseno/pos-ui.md` (PR #76, 1,420 líneas).
+- **Verificación:** `ci`, `db`, `scan` y `e2e` verdes sobre el `headSha` de cada PR; `pnpm typecheck`, `pnpm check` y `pnpm test` en verde en `main`. Los pgTAP nuevos corrieron en el job `db`.
+- **Pendiente de Waldy:** las migraciones `20261125100000`–`20261125131000` **no están aplicadas al remoto**. Aplicarlas (`supabase db push` con su login) antes de que la UI llame esas RPC. También sigue pendiente borrar el comentario del bot en el PR #59.
+- **Siguiente:** 1C UI inventario (sobre 1B), 2B TS POS + 2C/2D UI POS (sobre 2A), 3C TS Nómina + 3D/3E UI Nómina (sobre 3A/3B).
+
 ## Fase 0 — estudios POS y Nómina depurados + plan maestro en repo (20 nov 2026)
 
 - **PR #67** (rama `feat/docs-pos-nomina`, merge `bfad1e0`): estudios de Alegra POS (`docs/alegra/pos/`: `alegra-pos.md`, `design-alegra-pos.md`, 62 capturas `22-*`, `css-pos/GUIA-POS.md` + 2 copias locales) y Nómina (`docs/alegra/nomina/`: `ALEGRA-NOMINA.md`, `DESIGN-ALEGRA-NOMINA.md`, 69 capturas + 18 renders de diseño) entraron **sin HTML/CSS crudos en la historia** (rama nueva desde `main`; nada del PR #59), sin `.procesar.py`, sin `NOTA.md` rota y sin `NOTAS-CRUDAS.md`. También quedó versionado `docs/PLAN-FASE-2-ORQUESTADOR.md` (plan maestro: Inventario Ferretería + POS + Nómina RD).
