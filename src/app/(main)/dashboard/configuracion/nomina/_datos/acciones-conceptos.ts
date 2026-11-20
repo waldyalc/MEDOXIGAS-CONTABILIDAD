@@ -10,7 +10,7 @@ import { idSchema, mensajeValidacion } from "@/lib/nomina/esquemas";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/types";
 
-import { conceptoSchema, type ResultadoConcepto } from "./concepto";
+import { type ConceptoEntrada, conceptoSchema, type ResultadoConcepto } from "./concepto";
 
 /**
  * Acciones locales del catálogo de conceptos.
@@ -46,7 +46,7 @@ function esCodigoDuplicado(error: PostgrestError, mensaje: string): boolean {
   return error.code === "23505" || /ya existe|duplicate|unique/i.test(mensaje);
 }
 
-function payload(datos: ReturnType<typeof conceptoSchema.parse>): Json {
+function payload(datos: ConceptoEntrada): Json {
   return {
     codigo: datos.codigo,
     nombre: datos.nombre,
@@ -72,9 +72,8 @@ export async function crearConcepto(entrada: unknown): Promise<ResultadoConcepto
   const resultado = conceptoSchema.safeParse(entrada);
   if (!resultado.success) return { ok: false, error: mensajeValidacion(resultado.error) };
 
-  const supabase = await createClient();
-  const cliente = clienteConceptos(supabase);
-  const { data, error } = await cliente.rpc("nomina_crear_concepto", { p: payload(resultado.data) });
+  const supabase = clienteConceptos(await createClient());
+  const { data, error } = await supabase.rpc("nomina_crear_concepto", { p: payload(resultado.data) });
 
   if (error) {
     const mensaje = mensajeErrorRpc(error);
@@ -99,9 +98,8 @@ export async function actualizarConcepto(id: string, entrada: unknown): Promise<
   const resultado = conceptoSchema.safeParse(entrada);
   if (!resultado.success) return { ok: false, error: mensajeValidacion(resultado.error) };
 
-  const supabase = await createClient();
-  const cliente = clienteConceptos(supabase);
-  const { data, error } = await cliente.rpc("nomina_actualizar_concepto", {
+  const supabase = clienteConceptos(await createClient());
+  const { data, error } = await supabase.rpc("nomina_actualizar_concepto", {
     p_id: id,
     p: payload(resultado.data),
   });
