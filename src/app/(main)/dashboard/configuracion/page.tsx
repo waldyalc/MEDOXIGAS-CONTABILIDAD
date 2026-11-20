@@ -13,6 +13,7 @@ import {
   Percent,
   Printer,
   ReceiptText,
+  Store,
   UserRound,
   Users,
 } from "lucide-react";
@@ -82,6 +83,13 @@ export default async function Page() {
       id: "facturacion",
       titulo: "Facturación",
       tarjetas: [
+        {
+          id: "punto-venta",
+          titulo: "Punto de venta",
+          descripcion: "Terminales de caja: almacén, cuentas por método y plantilla del ticket.",
+          url: "/dashboard/configuracion/pos",
+          icon: Store,
+        },
         {
           id: "terminos-pago",
           titulo: "Términos de pago",
