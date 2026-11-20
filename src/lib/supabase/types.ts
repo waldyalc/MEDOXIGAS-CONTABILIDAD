@@ -4188,6 +4188,49 @@ export type Database = {
         }
         Returns: undefined
       }
+      _nomina_concepto_id: { Args: { p_codigo: string }; Returns: string }
+      _nomina_crear_asiento: {
+        Args: {
+          p_fecha: string
+          p_descripcion: string
+          p_origen_tipo: string
+          p_origen_id: string
+          p_tipo_entrada_id: string
+          p_codigo: string
+          p_lineas: Json
+        }
+        Returns: string
+      }
+      _nomina_insertar_linea: {
+        Args: {
+          p_recibo_id: string
+          p_concepto_id: string
+          p_clase: string
+          p_cantidad: number
+          p_porcentaje: number
+          p_monto: number
+          p_origen: string
+          p_orden: number
+        }
+        Returns: string
+      }
+      _nomina_recalcular_periodo: {
+        Args: { p_periodo_id: string }
+        Returns: undefined
+      }
+      _nomina_revertir_asiento: {
+        Args: { p_asiento_id: string; p_origen_id: string }
+        Returns: string
+      }
+      _nomina_validar_cuenta: {
+        Args: {
+          p_cuenta_id: string
+          p_tipo: string
+          p_concepto: string
+          p_segmento: string
+        }
+        Returns: undefined
+      }
       _precio_lista: {
         Args: {
           p_producto_id: string
@@ -4389,6 +4432,69 @@ export type Database = {
           nombre: string
           dias: number
           activo: boolean
+        }[]
+      }
+      nomina_anular_pago_recibo: { Args: { p_recibo_id: string }; Returns: string }
+      nomina_anular_recibo: { Args: { p_recibo_id: string }; Returns: string }
+      nomina_calcular_periodo: { Args: { p_periodo_id: string }; Returns: Json }
+      nomina_calcular_recibo: { Args: { p_recibo_id: string }; Returns: string }
+      nomina_contabilizar_periodo: { Args: { p_periodo_id: string }; Returns: Json }
+      nomina_contabilizar_recibo: { Args: { p_recibo_id: string }; Returns: string }
+      nomina_crear_periodo: { Args: { p: Json }; Returns: string }
+      nomina_eliminar_novedad_recibo: { Args: { p_id: string }; Returns: undefined }
+      nomina_guardar_novedad_recibo: { Args: { p: Json }; Returns: Json }
+      nomina_pagar_periodo: { Args: { p: Json }; Returns: Json }
+      nomina_pagar_recibo: { Args: { p: Json }; Returns: string }
+      nomina_registrar_envio_colillas: { Args: { p: Json }; Returns: number }
+      nomina_reporte_tss: {
+        Args: { p_anio: number; p_mes: number }
+        Returns: {
+          anio: number
+          mes: number
+          empleado_id: string
+          empleado_nombre: string
+          identificacion: string
+          clave_tss: string
+          periodos: number
+          dias_trabajados: number
+          salario_base: number
+          base_sfs: number
+          base_afp: number
+          base_srl: number
+          base_infotep: number
+          base_isr: number
+          sfs_empleado: number
+          afp_empleado: number
+          isr: number
+          sfs_empleador: number
+          afp_empleador: number
+          srl: number
+          infotep: number
+          total_deducciones: number
+          neto_pagar: number
+        }[]
+      }
+      nomina_resumen_periodo: {
+        Args: { p_periodo_id: string }
+        Returns: {
+          recibo_id: string
+          empleado_id: string
+          empleado_nombre: string
+          identificacion: string
+          cargo: string
+          segmento_contable: string
+          dias_trabajados: number
+          salario_base: number
+          total_ingresos: number
+          total_deducciones: number
+          total_aportes_empleador: number
+          total_provisiones: number
+          neto_pagar: number
+          costo_total_empresa: number
+          estado: string
+          asiento_codigo: string
+          fecha_pagado: string
+          colilla_enviada_en: string
         }[]
       }
       normalizar: { Args: { p_texto: string }; Returns: string }
