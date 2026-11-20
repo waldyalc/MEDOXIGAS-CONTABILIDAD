@@ -396,6 +396,7 @@ export type Database = {
           numero: number
           origen_id: string | null
           origen_tipo: string
+          producto_id: string | null
           tipo_entrada_id: string | null
           total: number
         }
@@ -412,6 +413,7 @@ export type Database = {
           numero?: number
           origen_id?: string | null
           origen_tipo: string
+          producto_id?: string | null
           tipo_entrada_id?: string | null
           total?: number
         }
@@ -428,6 +430,7 @@ export type Database = {
           numero?: number
           origen_id?: string | null
           origen_tipo?: string
+          producto_id?: string | null
           tipo_entrada_id?: string | null
           total?: number
         }
@@ -437,6 +440,13 @@ export type Database = {
             columns: ["anula_asiento_id"]
             isOneToOne: false
             referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asientos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
             referencedColumns: ["id"]
           },
           {
@@ -3724,6 +3734,7 @@ export type Database = {
     }
     Functions: {
       _actualizar_contacto_limite: { Args: { p_id: string; p: Json }; Returns: string }
+      _actualizar_producto_con_impuestos: { Args: { p_id: string; p: Json }; Returns: string }
       _actualizar_producto_sin_impuestos: {
         Args: { p_id: string; p: Json }
         Returns: string
@@ -3738,6 +3749,7 @@ export type Database = {
         Returns: string
       }
       _conciliacion_lineas: { Args: { p_lineas: Json }; Returns: string[] }
+      _crear_ajuste_inventario_base: { Args: { p: Json }; Returns: string }
       _crear_asiento: {
         Args: {
           p_fecha: string
@@ -3777,6 +3789,7 @@ export type Database = {
         Returns: string
       }
       _crear_orden_compra_sin_impuestos: { Args: { p: Json }; Returns: string }
+      _crear_producto_con_impuestos: { Args: { p: Json }; Returns: string }
       _crear_producto_sin_impuestos: { Args: { p: Json }; Returns: string }
       _cuenta_conciliacion: {
         Args: {

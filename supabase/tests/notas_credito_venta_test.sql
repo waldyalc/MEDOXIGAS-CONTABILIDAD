@@ -138,11 +138,10 @@ select is(
 select is(
   (select coalesce(sum(al.debito), 0)::numeric(14,2)
    from public.asiento_lineas al
-   join public.cuentas c on c.id = al.cuenta_id
-   where al.asiento_id = (select asiento_id from public.notas_credito_venta where id = (select id from _ids where clave = 'nota1'))
-     and c.codigo = '4101'),
+   join public.config_contable cc on cc.cuenta_id = al.cuenta_id and cc.clave = 'devoluciones_ventas'
+   where al.asiento_id = (select asiento_id from public.notas_credito_venta where id = (select id from _ids where clave = 'nota1'))),
   650.00::numeric(14,2),
-  'asiento nota: debe ventas de productos 4101'
+  'asiento nota: debe Devoluciones en ventas'
 );
 
 select is(
