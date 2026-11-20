@@ -24,6 +24,8 @@ describe("dinero en centavos enteros", () => {
     expect(sumarCentavos(["100.10", 20, null])).toBe(12010);
     expect(formatearRd(123456)).toBe("RD$1,234.56");
     expect(formatearRd(-500)).toBe("-RD$5.00");
+    // El cero negativo (p.ej. -1 * 0 en los comparativos) no imprime signo.
+    expect(formatearRd(-0)).toBe("RD$0.00");
   });
 });
 

@@ -1,3 +1,5 @@
+import { RefreshCw } from "lucide-react";
+
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +17,8 @@ interface Props {
   busqueda: string;
   centrosCosto?: CentroCostoOpcion[];
   centroSeleccionado?: string;
+  /** El reporte pone el buscador dentro de la tarjeta de la tabla. */
+  ocultarBusqueda?: boolean;
 }
 
 export function FiltrosEstados({
@@ -25,6 +29,7 @@ export function FiltrosEstados({
   busqueda,
   centrosCosto = [],
   centroSeleccionado = "",
+  ocultarBusqueda = false,
 }: Props) {
   return (
     <form method="get" className="flex flex-wrap items-end gap-3 print:hidden">
@@ -65,12 +70,17 @@ export function FiltrosEstados({
           />
         </div>
       ) : null}
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="q">Buscar cuenta contable</Label>
-        <Input id="q" name="q" type="search" defaultValue={busqueda} placeholder="Cuenta contable" className="w-56" />
-      </div>
-      <Button type="submit" variant="secondary">
-        Aplicar
+      {ocultarBusqueda ? (
+        <input type="hidden" name="q" value={busqueda} />
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="q">Buscar cuenta contable</Label>
+          <Input id="q" name="q" type="search" defaultValue={busqueda} placeholder="Cuenta contable" className="w-56" />
+        </div>
+      )}
+      <Button type="submit" variant="outline" className="ml-auto rounded-full">
+        <RefreshCw />
+        Actualizar
       </Button>
     </form>
   );
