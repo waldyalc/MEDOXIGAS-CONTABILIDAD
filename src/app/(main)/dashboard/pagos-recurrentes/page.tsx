@@ -11,6 +11,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { getRol } from "@/lib/auth/rol";
 import { hoyEnRd } from "@/lib/compras/fechas";
@@ -99,25 +100,23 @@ export default async function Page() {
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Pagos recurrentes</h1>
-          <p className="text-muted-foreground text-sm">
-            Plantillas de gastos fijos (alquiler, luz, internet). Genera el gasto menor de cada periodo.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" render={<Link href="/dashboard/compras" prefetch={false} />}>
-            Compras
-          </Button>
-          {puedeEscribir ? (
+      <EncabezadoPagina
+        titulo="Pagos recurrentes"
+        subtitulo="Plantillas de gastos fijos (alquiler, luz, internet). Genera el gasto menor de cada periodo."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Compras", href: "/dashboard/compras" },
+          { etiqueta: "Pagos recurrentes" },
+        ]}
+        acciones={
+          puedeEscribir ? (
             <Button render={<Link href="/dashboard/pagos-recurrentes/nueva" prefetch={false} />}>
               <Plus data-icon="inline-start" />
               Nueva plantilla
             </Button>
-          ) : null}
-        </div>
-      </div>
+          ) : null
+        }
+      />
 
       <TarjetaLista data-lista="pagos-recurrentes">
         <TablaLista

@@ -16,6 +16,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -112,20 +113,23 @@ export function AlmacenesCliente({ almacenes, puedeEditar }: { almacenes: Almace
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Almacenes</h1>
-          <p className="text-muted-foreground text-sm">
-            Los ajustes de inventario eligen el almacén; el Principal viene por defecto.
-          </p>
-        </div>
-        {puedeEditar ? (
-          <Button type="button" onClick={abrirNuevo}>
-            <Plus />
-            Nuevo almacén
-          </Button>
-        ) : null}
-      </div>
+      <EncabezadoPagina
+        titulo="Almacenes"
+        subtitulo="Los ajustes de inventario eligen el almacén; el Principal viene por defecto."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Inventario", href: "/dashboard/inventario" },
+          { etiqueta: "Almacenes" },
+        ]}
+        acciones={
+          puedeEditar ? (
+            <Button type="button" onClick={abrirNuevo}>
+              <Plus />
+              Nuevo almacén
+            </Button>
+          ) : null
+        }
+      />
 
       <TarjetaLista data-lista="inventario-almacenes">
         <TablaLista

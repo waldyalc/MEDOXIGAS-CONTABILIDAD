@@ -16,6 +16,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { getRol } from "@/lib/auth/rol";
 import { formatoMoneda } from "@/lib/compras/formato";
@@ -121,25 +122,23 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Órdenes de compra</h1>
-          <p className="text-muted-foreground text-sm">
-            Documentos de control para el proveedor. No mueven inventario ni generan asiento.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" render={<Link href="/dashboard/compras" prefetch={false} />}>
-            Compras
-          </Button>
-          {rol !== "lector" ? (
+      <EncabezadoPagina
+        titulo="Órdenes de compra"
+        subtitulo="Documentos de control para el proveedor. No mueven inventario ni generan asiento."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Compras", href: "/dashboard/compras" },
+          { etiqueta: "Órdenes de compra" },
+        ]}
+        acciones={
+          rol !== "lector" ? (
             <Button render={<Link href="/dashboard/ordenes-compra/nueva" prefetch={false} />}>
               <Plus data-icon="inline-start" />
               Nueva orden
             </Button>
-          ) : null}
-        </div>
-      </div>
+          ) : null
+        }
+      />
 
       <TarjetaLista data-lista="ordenes-compra">
         <BarraLista>

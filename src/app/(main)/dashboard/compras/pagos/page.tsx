@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft, Plus, Wallet } from "lucide-react";
+import { Plus, Wallet } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
@@ -14,6 +14,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { getRol } from "@/lib/auth/rol";
 import { aNumero } from "@/lib/compras/calculo";
@@ -124,26 +125,23 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Pagos a proveedores</h1>
-          <p className="text-muted-foreground text-sm">
-            Registra pagos contra facturas abiertas y consulta el historial.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" render={<Link href="/dashboard/compras" prefetch={false} />}>
-            <ArrowLeft data-icon="inline-start" />
-            Compras
-          </Button>
-          {puedeCrear ? (
+      <EncabezadoPagina
+        titulo="Pagos a proveedores"
+        subtitulo="Registra pagos contra facturas abiertas y consulta el historial."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Compras", href: "/dashboard/compras" },
+          { etiqueta: "Pagos a proveedores" },
+        ]}
+        acciones={
+          puedeCrear ? (
             <Button render={<Link href="/dashboard/compras/pagos/nuevo" prefetch={false} />}>
               <Plus data-icon="inline-start" />
               Nuevo pago
             </Button>
-          ) : null}
-        </div>
-      </div>
+          ) : null
+        }
+      />
 
       <TarjetaLista data-lista="compras-pagos">
         <BarraLista>

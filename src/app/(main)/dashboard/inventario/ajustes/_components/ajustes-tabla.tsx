@@ -10,6 +10,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { rutaAjusteInventario } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";
@@ -60,20 +61,23 @@ const columnas: readonly ColumnaLista<AjusteLista>[] = [
 export function AjustesTabla({ ajustes, puedeEscribir }: { ajustes: AjusteLista[]; puedeEscribir: boolean }) {
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Ajustes de inventario</h1>
-          <p className="text-muted-foreground text-sm">
-            Entradas y salidas de productos con su asiento contable automático.
-          </p>
-        </div>
-        {puedeEscribir ? (
-          <Button render={<Link href="/dashboard/inventario/ajustes/nuevo" />}>
-            <Plus />
-            Nuevo ajuste
-          </Button>
-        ) : null}
-      </div>
+      <EncabezadoPagina
+        titulo="Ajustes de inventario"
+        subtitulo="Entradas y salidas de productos con su asiento contable automático."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Inventario", href: "/dashboard/inventario" },
+          { etiqueta: "Ajustes de inventario" },
+        ]}
+        acciones={
+          puedeEscribir ? (
+            <Button render={<Link href="/dashboard/inventario/ajustes/nuevo" />}>
+              <Plus />
+              Nuevo ajuste
+            </Button>
+          ) : null
+        }
+      />
 
       <TarjetaLista data-lista="inventario-ajustes">
         <TablaLista

@@ -10,6 +10,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { rutaTransferenciaInventario } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
@@ -65,20 +66,23 @@ export function TransferenciasTabla({
 }) {
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Transferencias entre almacenes</h1>
-          <p className="text-muted-foreground text-sm">
-            Mueven la existencia de un almacén a otro sin asiento contable.
-          </p>
-        </div>
-        {puedeEscribir ? (
-          <Button render={<Link href="/dashboard/inventario/transferencias/nueva" />}>
-            <Plus />
-            Nueva transferencia
-          </Button>
-        ) : null}
-      </div>
+      <EncabezadoPagina
+        titulo="Transferencias entre almacenes"
+        subtitulo="Mueven la existencia de un almacén a otro sin asiento contable."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Inventario", href: "/dashboard/inventario" },
+          { etiqueta: "Transferencias" },
+        ]}
+        acciones={
+          puedeEscribir ? (
+            <Button render={<Link href="/dashboard/inventario/transferencias/nueva" />}>
+              <Plus />
+              Nueva transferencia
+            </Button>
+          ) : null
+        }
+      />
 
       <TarjetaLista data-lista="inventario-transferencias">
         <TablaLista

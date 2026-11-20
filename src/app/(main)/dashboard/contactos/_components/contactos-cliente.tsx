@@ -19,6 +19,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -126,18 +127,19 @@ export function ContactosCliente({
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Contactos</h1>
-          <p className="text-muted-foreground">Administra tus clientes y proveedores.</p>
-        </div>
-        {puedeEditar ? (
-          <Button type="button" onClick={abrirNuevo}>
-            <Plus />
-            Nuevo contacto
-          </Button>
-        ) : null}
-      </div>
+      <EncabezadoPagina
+        titulo="Contactos"
+        subtitulo="Administra tus clientes y proveedores."
+        migas={[{ etiqueta: "Inicio", href: "/dashboard" }, { etiqueta: "Contactos" }]}
+        acciones={
+          puedeEditar ? (
+            <Button type="button" onClick={abrirNuevo}>
+              <Plus />
+              Nuevo contacto
+            </Button>
+          ) : null
+        }
+      />
 
       <Tabs value={pestana} onValueChange={cambiarPestana}>
         <TabsList>

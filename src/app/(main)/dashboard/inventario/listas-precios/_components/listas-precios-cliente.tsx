@@ -16,6 +16,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -132,20 +133,23 @@ export function ListasPreciosCliente({ listas, puedeEditar }: { listas: ListaPre
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl tracking-tight">Listas de precios</h1>
-          <p className="text-muted-foreground text-sm">
-            Precio fijo o porcentaje sobre el precio del producto. La principal se sugiere en las ventas.
-          </p>
-        </div>
-        {puedeEditar ? (
-          <Button type="button" onClick={abrirNueva}>
-            <Plus />
-            Nueva lista
-          </Button>
-        ) : null}
-      </div>
+      <EncabezadoPagina
+        titulo="Listas de precios"
+        subtitulo="Precio fijo o porcentaje sobre el precio del producto. La principal se sugiere en las ventas."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Inventario", href: "/dashboard/inventario" },
+          { etiqueta: "Listas de precios" },
+        ]}
+        acciones={
+          puedeEditar ? (
+            <Button type="button" onClick={abrirNueva}>
+              <Plus />
+              Nueva lista
+            </Button>
+          ) : null
+        }
+      />
 
       <TarjetaLista data-lista="inventario-listas-precios">
         <TablaLista

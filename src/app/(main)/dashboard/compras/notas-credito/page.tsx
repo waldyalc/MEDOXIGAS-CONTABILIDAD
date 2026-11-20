@@ -14,6 +14,7 @@ import {
   TablaLista,
   TarjetaLista,
 } from "@/components/listas/tabla-lista";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { getRol } from "@/lib/auth/rol";
 import { formatoMoneda } from "@/lib/compras/formato";
@@ -91,25 +92,23 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   return (
     <ContenedorLista>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Notas de crédito en compras</h1>
-          <p className="text-muted-foreground text-sm">
-            Devoluciones a proveedores ligadas a una factura de proveedor (NCF del proveedor, B04).
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" render={<Link href="/dashboard/compras" prefetch={false} />}>
-            Compras
-          </Button>
-          {puedeCrear ? (
+      <EncabezadoPagina
+        titulo="Notas de crédito en compras"
+        subtitulo="Devoluciones a proveedores ligadas a una factura de proveedor (NCF del proveedor, B04)."
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Compras", href: "/dashboard/compras" },
+          { etiqueta: "Notas de crédito" },
+        ]}
+        acciones={
+          puedeCrear ? (
             <Button render={<Link href="/dashboard/compras/notas-credito/nueva" prefetch={false} />}>
               <Plus data-icon="inline-start" />
               Nueva nota de crédito
             </Button>
-          ) : null}
-        </div>
-      </div>
+          ) : null
+        }
+      />
 
       <TarjetaLista data-lista="compras-notas-credito">
         <BarraLista>
