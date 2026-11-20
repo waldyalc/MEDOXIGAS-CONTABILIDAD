@@ -975,7 +975,7 @@ Se alimenta de `pos_resumen_turno`. No se recalcula en el cliente.
   - `RNC: …`, dirección, teléfono, correo: cada uno solo si existe;
   - título según `tituloTipoComprobante(tipo_comprobante)` (Factura de Crédito Fiscal, Factura de Consumo, etc.);
   - `NCF B0200000015` (si `ncf` es null, se omite);
-  - fecha y hora de la venta: `formatoDia(factura.fecha)` + hora de `factura.creado_en` en `America/Santo_Domingo`. El payload de venta y el detalle del historial incluyen `creado_en` (columna existente de `facturas`); no se inventa la hora ni se usa la hora de la reimpresión.
+  - fecha y hora de la venta: `formatoDia(factura.fecha)` + la hora de `factura.creado_en` (columna existente de `facturas`) cuando el payload la trae; en la confirmación inmediata, si no viene, se usa la hora en que se recibió la respuesta. En el historial, 2B incluye `creado_en` en el detalle. No se inventa una fecha ni se usa la hora de la reimpresión.
   - `Terminal: Caja 1`, `Turno No 4`, `Cajero: …` (si viene);
   - `Cliente: …` y `RNC: …` (si existe); no se imprime la dirección del cliente;
   - `Vendedor: …` solo si `mostrar_vendedor` y el vendedor no es null;
