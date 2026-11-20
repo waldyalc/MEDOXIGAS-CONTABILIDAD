@@ -31,5 +31,9 @@ export function sumarCentavos(valores: readonly (number | string | null | undefi
 
 /** Formatea centavos enteros como RD$ con 2 decimales. */
 export function formatearRd(valorCentavos: number): string {
-  return FORMATO_RD.format(valorCentavos / 100);
+  // Multiplicar por -1 un cero produce -0 y Intl lo imprime con signo
+  // ("-RD$0.00" en los comparativos). El cero es cero: se normaliza aquí
+  // para todo el sistema.
+  const monto = valorCentavos === 0 ? 0 : valorCentavos;
+  return FORMATO_RD.format(monto / 100);
 }
