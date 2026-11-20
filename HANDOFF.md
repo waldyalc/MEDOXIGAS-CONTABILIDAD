@@ -1,5 +1,13 @@
 # Handoff — Medoxigas Contabilidad
 
+## Feature — Anulación con fecha y motivo + 608 real (20 nov 2026)
+
+- Rama `feat/anulacion-motivo-608` (desde `main` 31821b1). El diálogo «Anular» de la vista de factura pide **Fecha de anulación** (`DatePickerCampo`, por defecto hoy en RD, sin fechas futuras) y **Motivo de anulación** (`SelectCampo` con los 10 motivos de `public.motivos_anulacion`), con el texto de Alegra «Esta información es necesaria para generar tus reportes correctamente.». Ambos son obligatorios en la app (el RPC sigue aceptando sin `p_info` por compatibilidad): `anularFactura(id, { fecha, motivo })` valida con Zod en español y llama `supabase.rpc("anular_documento", { p_tipo, p_id, p_info })` directo.
+- El catálogo se lee con `obtenerMotivosAnulacion()` en `src/lib/facturacion/acciones.ts` (solo admin/contador, `motivos_anulacion` activos ordenados por código DGII), no dentro del componente.
+- **608 real:** `obtenerAnulados` lee `fecha_anulacion` y el JOIN `motivos_anulacion(codigo_dgii)`, y lista las anulaciones del mes por **fecha de anulación** (las anulaciones viejas sin esa fecha siguen entrando por la fecha del comprobante). `fila608` exporta `NCF | fecha del comprobante | tipo de anulación` con el código del motivo **sin cero inicial** (Alegra: Devolución `06` → `6`); las anulaciones viejas sin motivo usan `4` y la página lo avisa. Encabezado y detalle del TXT no cambian.
+- Candados: `src/lib/reportes/fiscales/formatos/608.test.ts` (motivo dinámico, código sin padding, fecha del comprobante, legado 4) y `src/lib/facturacion/acciones.test.ts` (`p_info` directo, fecha/motivo obligatorios, no futura, errores y permisos).
+- Verificado con `pnpm typecheck`, `pnpm check`, `pnpm test` (1003) y capturas reales en claro/oscuro: factura `B0200000003` al contacto «PRUEBA CAPTURA ER» anulada con «Devolución de productos»; el 608 muestra `B0200000003 | 20261120 | 6` y la base guarda `fecha_anulacion = 2026-11-20`. Capturas en `C:\Users\wardy\AppData\Local\Temp\opencode\capturas-f2-anulacion-fecha-motivo\`.
+
 ## Diseño al 100 %, cero datos falsos, Next 16.4.6 y script de base virgen (19 nov 2026)
 
 Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos disjuntos):

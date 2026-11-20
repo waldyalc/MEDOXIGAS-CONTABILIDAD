@@ -17,16 +17,32 @@ export const FORMATO_608: FormatoDgii = {
   detalle: [
     { clave: "ncf", nombre: "Número de Comprobante Fiscal", largo: 19, tipo: "texto" },
     { clave: "fechaComprobante", nombre: "Fecha de Comprobante (AAAAMMDD)", largo: 8, tipo: "texto" },
-    // VERIFICAR con instructivo DGII: el sistema no guarda el motivo; se usa 4 = corrección de la información.
     { clave: "tipoAnulacion", nombre: "Tipo de Anulación", largo: 2, tipo: "texto" },
   ],
 };
 
-export function fila608(documento: DocumentoFiscal): FilaDgii {
+/** Documento fiscal con el código DGII del motivo de anulación, si se registró. */
+export interface DocumentoAnulacion608 extends DocumentoFiscal {
+  codigoAnulacion?: string | null;
+}
+
+/**
+ * Tipo de anulación del 608. Alegra exporta el código en un solo dígito
+ * ('06' → '6'), así que se quita el cero inicial del catálogo DGII.
+ * Las anulaciones viejas sin motivo conservan 4 = corrección de la información.
+ */
+export function tipoAnulacion608(codigo: string | null | undefined): string {
+  const digitos = (codigo ?? "").replace(/\D/g, "");
+  if (digitos === "") return "4";
+  return String(Number(digitos));
+}
+
+export function fila608(documento: DocumentoAnulacion608): FilaDgii {
   return {
     ncf: documento.ncf,
+    // El 608 reporta la fecha del comprobante anulado, no la de la anulación.
     fechaComprobante: fechaAAAAMMDD(documento.fecha),
-    tipoAnulacion: "4",
+    tipoAnulacion: tipoAnulacion608(documento.codigoAnulacion),
   };
 }
 
