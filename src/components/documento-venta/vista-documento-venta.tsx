@@ -26,11 +26,13 @@ import {
 import { createPortal } from "react-dom";
 
 import { SeccionAdjuntos } from "@/components/adjuntos/seccion-adjuntos";
+import { DatePickerCampo } from "@/components/date-picker";
+import { FormField } from "@/components/formularios/formulario";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
+import { type OpcionSelect, SelectCampo } from "@/components/select-campo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -80,7 +82,7 @@ import {
   rutaPagoRecibido,
   rutaProducto,
 } from "@/lib/enlaces";
-import { anularFactura } from "@/lib/facturacion/acciones";
+import { anularFactura, obtenerMotivosAnulacion } from "@/lib/facturacion/acciones";
 import { tituloTipoComprobante } from "@/lib/facturacion/comprobantes";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
 import type {
@@ -135,6 +137,16 @@ const COMPROBANTES = [
 const BOTON_ICONO = "size-10 rounded-[10px] border-slate-400/40";
 const BOTON_TEXTO = "h-9 rounded-[10px] border-slate-400/40 px-4";
 const PESTANA = "h-auto flex-none rounded-none px-6 py-2 text-sm font-normal after:bottom-0 after:bg-primary";
+
+/** Fecha de hoy (YYYY-MM-DD) en la zona de República Dominicana. */
+function hoyRd(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "America/Santo_Domingo",
+  }).format(new Date());
+}
 
 const RUTAS_VOLVER: Record<TipoVistaDocumento, string> = {
   factura: "/dashboard/facturacion",
@@ -1164,6 +1176,9 @@ function DialogoAnular({
   ncf,
   pendiente,
   error,
+  motivos,
+  cargandoMotivos,
+  errorMotivos,
   onAnular,
 }: {
   abierto: boolean;
@@ -1171,11 +1186,16 @@ function DialogoAnular({
   ncf: string | null;
   pendiente: boolean;
   error: string | null;
-  onAnular: () => void;
+  motivos: readonly OpcionSelect[];
+  cargandoMotivos: boolean;
+  errorMotivos: string | null;
+  onAnular: (evento: FormEvent<HTMLFormElement>) => void;
 }) {
+  const sinMotivos = cargandoMotivos || errorMotivos != null || motivos.length === 0;
+
   return (
     <AlertDialog open={abierto} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle>{ncf ? `¿Anular la factura NCF ${ncf}?` : "¿Anular la factura?"}</AlertDialogTitle>
           <AlertDialogDescription>
@@ -1183,18 +1203,49 @@ function DialogoAnular({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        {error ? (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : null}
+        <form id="formulario-anular-factura" onSubmit={onAnular} className="flex flex-col gap-4">
+          <FormField htmlFor="fecha-anulacion" label="Fecha de anulación" required>
+            <DatePickerCampo id="fecha-anulacion" name="fecha" defaultValue={hoyRd()} />
+          </FormField>
+
+          <FormField htmlFor="motivo-anulacion" label="Motivo de anulación" required>
+            <SelectCampo
+              id="motivo-anulacion"
+              name="motivo"
+              opciones={motivos}
+              etiquetaVacia={cargandoMotivos ? "Cargando motivos…" : "Selecciona el motivo"}
+              requerido
+              deshabilitado={pendiente || sinMotivos}
+            />
+            <p className="text-muted-foreground text-xs">
+              Esta información es necesaria para generar tus reportes correctamente.
+            </p>
+          </FormField>
+
+          {errorMotivos ? (
+            <Alert variant="destructive">
+              <AlertDescription>{errorMotivos}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {error ? (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+        </form>
 
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pendiente}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" disabled={pendiente} onClick={onAnular}>
+          <Button
+            type="submit"
+            form="formulario-anular-factura"
+            variant="destructive"
+            disabled={pendiente || sinMotivos}
+          >
             {pendiente ? <Loader2 className="animate-spin" /> : null}
             Anular factura
-          </AlertDialogAction>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -1321,6 +1372,9 @@ function useAccionesVista({
   const [convertirAbierto, setConvertirAbierto] = useState(false);
   const [anularAbierto, setAnularAbierto] = useState(false);
   const [tipoComprobante, setTipoComprobante] = useState("02");
+  const [motivos, setMotivos] = useState<OpcionSelect[]>([]);
+  const [cargandoMotivos, setCargandoMotivos] = useState(false);
+  const [errorMotivos, setErrorMotivos] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
 
@@ -1383,9 +1437,25 @@ function useAccionesVista({
     setConvertirAbierto(abierto);
   }
 
+  function cargarMotivos() {
+    if (cargandoMotivos) return;
+
+    setCargandoMotivos(true);
+    setErrorMotivos(null);
+    void obtenerMotivosAnulacion().then((resultado) => {
+      if (resultado.ok) {
+        setMotivos(resultado.motivos.map((motivo) => ({ value: motivo.id, label: motivo.nombre })));
+      } else {
+        setErrorMotivos(resultado.error);
+      }
+      setCargandoMotivos(false);
+    });
+  }
+
   function cambiarAnular(abierto: boolean) {
     setError(null);
     setAnularAbierto(abierto);
+    if (abierto && motivos.length === 0) cargarMotivos();
   }
 
   function convertir(evento: FormEvent<HTMLFormElement>) {
@@ -1409,12 +1479,30 @@ function useAccionesVista({
     });
   }
 
-  function anular() {
+  function anular(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
     if (!factura) return;
+
+    const datos = new FormData(evento.currentTarget);
+    const fecha = String(datos.get("fecha") ?? "").trim();
+    const motivo = String(datos.get("motivo") ?? "").trim();
+
+    if (!fecha) {
+      setError("Selecciona la fecha de anulación.");
+      return;
+    }
+    if (fecha > hoyRd()) {
+      setError("La fecha de anulación no puede ser futura.");
+      return;
+    }
+    if (!motivo) {
+      setError("Selecciona el motivo de anulación.");
+      return;
+    }
 
     setError(null);
     iniciar(async () => {
-      const resultado = await anularFactura(factura.id);
+      const resultado = await anularFactura(factura.id, { fecha, motivo });
       if (!resultado.ok) {
         setError(resultado.error);
         return;
@@ -1430,6 +1518,9 @@ function useAccionesVista({
     anularAbierto,
     tipoComprobante,
     setTipoComprobante,
+    motivos,
+    cargandoMotivos,
+    errorMotivos,
     error,
     pendiente,
     imprimir,
@@ -1570,6 +1661,9 @@ export function VistaDocumentoVenta(props: Props) {
         ncf={factura?.ncf ?? null}
         pendiente={acciones.pendiente}
         error={acciones.error}
+        motivos={acciones.motivos}
+        cargandoMotivos={acciones.cargandoMotivos}
+        errorMotivos={acciones.errorMotivos}
         onAnular={acciones.anular}
       />
 
