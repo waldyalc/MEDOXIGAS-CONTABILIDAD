@@ -71,9 +71,9 @@ begin
 end $$;
 
 -- ===========================================================================
--- 0.1) INVENTARIO DE LAS 79 TABLAS DE public
+-- 0.1) INVENTARIO DE LAS 82 TABLAS DE public
 -- ===========================================================================
--- 61 se vacían (paso 1) y 18 se conservan (paso 3). Los marcadores
+-- 63 se vacían (paso 1) y 19 se conservan (paso 3). Los marcadores
 -- @conservar son el candado: src/lib/supabase/reset-virgen.test.ts compara
 -- esta lista + el TRUNCATE contra TODAS las tablas de supabase/migrations y
 -- falla si una tabla queda sin clasificar.
@@ -150,6 +150,9 @@ truncate table
   public.facturas_proveedor_lineas,
   public.facturas_recurrentes,
   public.gastos_menores,
+  public.nomina_periodos,
+  public.nomina_recibo_lineas,
+  public.nomina_recibos,
   public.nota_credito_compra_lineas,
   public.nota_credito_venta_lineas,
   public.nota_debito_venta_lineas,
@@ -512,6 +515,9 @@ begin
     'facturas_proveedor_lineas',
     'facturas_recurrentes',
     'gastos_menores',
+    'nomina_periodos',
+    'nomina_recibo_lineas',
+    'nomina_recibos',
     'nota_credito_compra_lineas',
     'nota_credito_venta_lineas',
     'nota_debito_venta_lineas',
@@ -640,6 +646,9 @@ from (
   union all select 'facturas_proveedor_lineas', count(*) from public.facturas_proveedor_lineas
   union all select 'facturas_recurrentes', count(*) from public.facturas_recurrentes
   union all select 'gastos_menores', count(*) from public.gastos_menores
+  union all select 'nomina_periodos', count(*) from public.nomina_periodos
+  union all select 'nomina_recibo_lineas', count(*) from public.nomina_recibo_lineas
+  union all select 'nomina_recibos', count(*) from public.nomina_recibos
   union all select 'nota_credito_compra_lineas', count(*) from public.nota_credito_compra_lineas
   union all select 'nota_credito_venta_lineas', count(*) from public.nota_credito_venta_lineas
   union all select 'nota_debito_venta_lineas', count(*) from public.nota_debito_venta_lineas
