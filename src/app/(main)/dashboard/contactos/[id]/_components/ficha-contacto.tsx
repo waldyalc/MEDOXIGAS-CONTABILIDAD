@@ -22,14 +22,12 @@ import {
   Mail,
   MapPin,
   Phone,
-  Plus,
   ReceiptText,
   Search,
   ShoppingCart,
   SquarePen,
   TriangleAlert,
   Truck,
-  User,
   Users,
   Wallet,
 } from "lucide-react";
@@ -51,7 +49,6 @@ import {
 } from "@/components/ficha/ficha-ui";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
 import { BarraLista, type ColumnaLista, PillEstado, TablaLista, type TonoPill } from "@/components/listas/tabla-lista";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -60,6 +57,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { etiquetaTipoAdjunto } from "@/lib/adjuntos/adjuntos";
@@ -159,7 +157,6 @@ interface FilaUnificada {
 }
 
 const TX_POR_PAGINA = 10;
-const PERSONAS_POR_PAGINA = 5;
 
 function detalleNota(nota: NotaFicha): string {
   if (nota.tipo === "credito") return "Nota de crédito";
@@ -631,188 +628,28 @@ function PestanaTabla({
   );
 }
 
-interface PersonaContacto {
-  nombre: string;
-  puesto: string;
-  departamento: string;
-  correo: string;
-  telefono: string;
-  principal: boolean;
-}
-
-// TODO backend: no existe tabla de personas de contacto por cliente; datos de ejemplo del diseño.
-const PERSONAS_EJEMPLO: PersonaContacto[] = [
-  {
-    nombre: "Ana García",
-    puesto: "Gerente de compras",
-    departamento: "Compras",
-    correo: "ana.garcia@empresa.com",
-    telefono: "+1 (809) 555-0101",
-    principal: false,
-  },
-  {
-    nombre: "Luis Peña",
-    puesto: "Contador",
-    departamento: "Finanzas",
-    correo: "luis.pena@empresa.com",
-    telefono: "+1 (809) 555-0102",
-    principal: false,
-  },
-  {
-    nombre: "María Santos",
-    puesto: "Asistente administrativa",
-    departamento: "Operaciones",
-    correo: "maria.santos@empresa.com",
-    telefono: "+1 (809) 555-0103",
-    principal: false,
-  },
-  {
-    nombre: "Carlos Núñez",
-    puesto: "Director de TI",
-    departamento: "Tecnología",
-    correo: "carlos.nunez@empresa.com",
-    telefono: "+1 (809) 555-0104",
-    principal: false,
-  },
-  {
-    nombre: "Rosa Díaz",
-    puesto: "Asesora legal",
-    departamento: "Legal",
-    correo: "rosa.diaz@empresa.com",
-    telefono: "+1 (809) 555-0105",
-    principal: false,
-  },
-];
-
-function AvatarPersona({ className }: { readonly className?: string }) {
+/**
+ * Personas de contacto: todavía no existe una tabla que las guarde, así que la
+ * pestaña muestra un estado vacío en vez de inventar personas.
+ */
+function PestanaContactos() {
   return (
-    <Avatar className={className}>
-      <AvatarFallback className="bg-primary/10 text-primary">
-        <User className="size-4" />
-      </AvatarFallback>
-    </Avatar>
-  );
-}
-
-function TarjetaPersona({ persona }: { readonly persona: PersonaContacto }) {
-  return (
-    <div className="ring-foreground/10 bg-card relative flex flex-col gap-3 rounded-xl p-4 ring-1">
-      <Button
-        variant="ghost"
-        size="icon-xs"
-        aria-label={`Opciones de ${persona.nombre}`}
-        className="absolute top-3 right-3"
-      >
-        <EllipsisVertical />
-      </Button>
-      <div className="flex items-start gap-3">
-        <AvatarPersona />
-        <div className="flex min-w-0 flex-col">
-          <p className="flex items-center gap-2 font-medium">
-            <span className="truncate">{persona.nombre}</span>
-            {persona.principal ? <PillEstado tono="info">Principal</PillEstado> : null}
-          </p>
-          <p className="text-muted-foreground text-sm">{persona.puesto}</p>
-          <p className="text-muted-foreground text-sm">{persona.departamento}</p>
-        </div>
-      </div>
-      <div className="flex flex-col gap-1.5 text-sm">
-        <span className="inline-flex items-center gap-2">
-          <Mail className="text-muted-foreground size-3.5" />
-          <span className="text-primary truncate">{persona.correo}</span>
-        </span>
-        <span className="text-muted-foreground inline-flex items-center gap-2">
-          <Phone className="size-3.5" />
-          <span className="tabular-nums">{persona.telefono}</span>
-        </span>
-      </div>
-    </div>
-  );
-}
-
-const columnasPersonas: readonly ColumnaLista<PersonaContacto>[] = [
-  {
-    clave: "nombre",
-    encabezado: "Nombre",
-    celda: (persona) => (
-      <span className="flex items-center gap-2.5">
-        <AvatarPersona className="size-7" />
-        <span className="flex flex-col">
-          <span className="font-medium">{persona.nombre}</span>
-          {persona.principal ? <span className="text-muted-foreground text-xs">Contacto principal</span> : null}
-        </span>
-      </span>
-    ),
-  },
-  {
-    clave: "rol",
-    encabezado: "Rol",
-    celda: (persona) => persona.puesto,
-  },
-  {
-    clave: "departamento",
-    encabezado: "Departamento",
-    celda: (persona) => <span className="text-muted-foreground">{persona.departamento}</span>,
-  },
-  {
-    clave: "correo",
-    encabezado: "Correo",
-    celda: (persona) => <span className="text-primary">{persona.correo}</span>,
-  },
-  {
-    clave: "telefono",
-    encabezado: "Teléfono",
-    celda: (persona) => <span className="text-muted-foreground tabular-nums">{persona.telefono}</span>,
-  },
-];
-
-function PestanaContactos({ contacto }: { readonly contacto: DatosFichaContacto["contacto"] }) {
-  // TODO backend: cuando exista la tabla de personas, reemplazar PERSONAS_EJEMPLO por los datos reales.
-  const personas: PersonaContacto[] = [
-    {
-      nombre: contacto.nombre,
-      puesto: "Contacto principal",
-      departamento: "—",
-      correo: contacto.correo ?? "—",
-      telefono: contacto.telefono ?? "—",
-      principal: true,
-    },
-    ...PERSONAS_EJEMPLO,
-  ];
-  const { pagina, setPagina } = usePagina(personas.length, PERSONAS_POR_PAGINA);
-  const visibles = personas.slice(pagina * PERSONAS_POR_PAGINA, (pagina + 1) * PERSONAS_POR_PAGINA);
-
-  return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-0.5">
         <h2 className="text-base font-semibold">Personas de contacto</h2>
-        <p className="text-muted-foreground text-sm">Administra los contactos clave de este cliente.</p>
+        <p className="text-muted-foreground text-sm">Personas adicionales asociadas a este contacto.</p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {personas.map((persona) => (
-          <TarjetaPersona key={`${persona.nombre}-${persona.correo}`} persona={persona} />
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <h3 className="text-sm font-semibold">Todos los contactos</h3>
-        <TablaLista
-          columnas={columnasPersonas}
-          filas={visibles}
-          claveFila={(persona) => `${persona.nombre}-${persona.correo}`}
-          vacio={{
-            titulo: "Sin contactos",
-            descripcion: "Todavía no hay personas de contacto.",
-          }}
-        />
-        <PaginadorLocal
-          total={personas.length}
-          porPagina={PERSONAS_POR_PAGINA}
-          pagina={pagina}
-          setPagina={setPagina}
-          etiqueta="contactos"
-        />
-      </div>
+      <Empty className="border border-dashed py-12">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Users />
+          </EmptyMedia>
+          <EmptyTitle>Sin personas registradas</EmptyTitle>
+          <EmptyDescription>
+            Este contacto no tiene personas asociadas. Los datos del contacto principal se editan desde «Editar perfil».
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     </div>
   );
 }
@@ -946,25 +783,15 @@ interface FiltroPestana {
 
 function AccionPestana({
   pestana,
-  puedeCrear,
   filtroTx,
   filtroDoc,
 }: {
   readonly pestana: PestanaFicha;
-  readonly puedeCrear: boolean;
   readonly filtroTx: FiltroPestana;
   readonly filtroDoc: FiltroPestana;
 }) {
   if (pestana === "transacciones") {
     return <BotonFiltro valor={filtroTx.valor} opciones={filtroTx.opciones} onCambiar={filtroTx.onCambiar} />;
-  }
-  if (pestana === "contactos") {
-    return puedeCrear ? (
-      <Button size="sm">
-        <Plus data-icon="inline-start" />
-        Agregar contacto
-      </Button>
-    ) : null;
   }
   if (pestana === "documentos") {
     return <BotonFiltro valor={filtroDoc.valor} opciones={filtroDoc.opciones} onCambiar={filtroDoc.onCambiar} />;
@@ -1056,7 +883,6 @@ export function FichaContacto({
             <div className="flex items-center gap-2 pb-1.5 sm:py-1.5">
               <AccionPestana
                 pestana={pestana}
-                puedeCrear={puedeCrear}
                 filtroTx={{ valor: filtroTipo, onCambiar: setFiltroTipo, opciones: opcionesTipo }}
                 filtroDoc={{ valor: filtroDoc, onCambiar: setFiltroDoc, opciones: opcionesDoc }}
               />
@@ -1124,7 +950,7 @@ export function FichaContacto({
           </TabsContent>
 
           <TabsContent value="contactos" className="p-4 sm:p-5">
-            <PestanaContactos contacto={contacto} />
+            <PestanaContactos />
           </TabsContent>
 
           <TabsContent value="documentos" className="p-4 sm:p-5">

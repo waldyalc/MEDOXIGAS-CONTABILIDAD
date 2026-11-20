@@ -6,7 +6,11 @@ import { Clock, FileText, MoreHorizontal, Package, ReceiptText, ShoppingCart, Us
 
 import type { GrupoBusqueda } from "./agrupar";
 
-/** Categorías del rail: los 6 grupos del buscador + Recientes (localStorage, §1.4). */
+/**
+ * Categorías del rail: los grupos del buscador + Recientes (localStorage, §1.4).
+ * «Documentos» sigue en el tipo porque `agrupar` puede devolver ese grupo, pero
+ * no se ofrece en el rail hasta que exista la fase 4.
+ */
 export type CategoriaRail = "recientes" | GrupoBusqueda;
 
 export const NOMBRE_CATEGORIAS: Record<CategoriaRail, string> = {
@@ -29,15 +33,7 @@ export const ICONO_CATEGORIA: Record<CategoriaRail, LucideIcon> = {
   otros: MoreHorizontal,
 };
 
-const ORDEN_CATEGORIAS: CategoriaRail[] = [
-  "recientes",
-  "clientes",
-  "productos",
-  "facturacion",
-  "compras",
-  "documentos",
-  "otros",
-];
+const ORDEN_CATEGORIAS: CategoriaRail[] = ["recientes", "clientes", "productos", "facturacion", "compras", "otros"];
 
 interface Props {
   /** Conteo por categoría: los totales reales de `agrupar` + los recientes. */
@@ -53,9 +49,8 @@ interface Props {
 }
 
 /**
- * Rail izquierdo de categorías (§1.4): 7 ítems con icono, nombre y conteo.
- * Son filtros con `aria-pressed`, no pestañas. «Documentos» queda deshabilitado
- * hasta la fase 4 y enseña «Próximamente».
+ * Rail izquierdo de categorías (§1.4): icono, nombre y conteo por categoría.
+ * Son filtros con `aria-pressed`, no pestañas.
  */
 export function RailCategorias({ conteos, activa, onElegir, variante = "rail", compacta = false, className }: Props) {
   if (variante === "chips") {
@@ -117,13 +112,10 @@ function ItemCategoria({
   chips?: boolean;
 }) {
   const Icono = ICONO_CATEGORIA[categoria];
-  // Contratos y adjuntos llegan en la fase 4: el ítem enseña «Próximamente» (§1.4).
-  const proximamente = categoria === "documentos";
 
   return (
     <button
       type="button"
-      disabled={proximamente}
       aria-pressed={activa}
       onClick={() => onElegir(categoria)}
       className={cn(
@@ -134,18 +126,11 @@ function ItemCategoria({
     >
       <Icono className="size-4 shrink-0" />
       <span className="truncate text-[13px] font-medium">{NOMBRE_CATEGORIAS[categoria]}</span>
-      {proximamente ? (
-        <span className="text-muted-foreground ml-auto shrink-0 text-[11px]">Próximamente</span>
-      ) : (
-        <span
-          className={cn(
-            "text-muted-foreground ml-auto shrink-0 text-[11px] tabular-nums",
-            conteo === 0 && "opacity-50",
-          )}
-        >
-          {conteo}
-        </span>
-      )}
+      <span
+        className={cn("text-muted-foreground ml-auto shrink-0 text-[11px] tabular-nums", conteo === 0 && "opacity-50")}
+      >
+        {conteo}
+      </span>
     </button>
   );
 }
