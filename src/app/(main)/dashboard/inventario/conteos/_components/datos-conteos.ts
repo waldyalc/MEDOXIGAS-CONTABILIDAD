@@ -79,7 +79,7 @@ export async function enriquecerConteos(conteos: readonly ConteoResumen[]): Prom
 /**
  * Nombres que el usuario puede ver: el suyo siempre; los del resto solo si es
  * admin (`listar_perfiles` es de admin, y `perfiles` deja leer solo la fila
- * propia). Para `contador` y `lector` la columna queda en "—".
+ * propia). Para `contador` y `lector` el resto de la columna queda en "—".
  */
 async function nombresDeUsuarios(): Promise<Map<string, string>> {
   const supabase = await createClient();
