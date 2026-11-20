@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
-
+import { ContenedorFormulario } from "@/components/pagina/contenedor-pagina";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { getDatosFormularioAsiento } from "@/lib/asientos/consultas";
 import { getPerfil } from "@/lib/auth/rol";
 import { hoyRD } from "@/lib/facturacion/formato";
@@ -16,14 +14,16 @@ export default async function Page() {
   if (perfil?.rol == null) redirect("/unauthorized");
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" render={<Link href="/dashboard/contabilidad/asientos" />}>
-          <ArrowLeft />
-          <span className="sr-only">Volver</span>
-        </Button>
-        <h1 className="text-2xl tracking-tight">Nuevo asiento</h1>
-      </div>
+    <ContenedorFormulario>
+      <EncabezadoPagina
+        titulo="Nuevo asiento"
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Contabilidad", href: "/dashboard/contabilidad" },
+          { etiqueta: "Asientos contables", href: "/dashboard/contabilidad/asientos" },
+          { etiqueta: "Nuevo asiento" },
+        ]}
+      />
 
       {perfil.rol === "lector" ? (
         <Alert variant="destructive">
@@ -32,7 +32,7 @@ export default async function Page() {
       ) : (
         <AsientoContenido />
       )}
-    </div>
+    </ContenedorFormulario>
   );
 }
 

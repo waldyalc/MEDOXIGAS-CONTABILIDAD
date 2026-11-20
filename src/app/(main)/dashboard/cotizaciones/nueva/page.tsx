@@ -1,12 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-
-import { ArrowLeft } from "lucide-react";
 
 import { DocumentoVentaForm } from "@/components/documento-venta/documento-venta-form";
 import { conContactoActual, prellenarDocumento } from "@/components/documento-venta/prellenado";
+import { ContenedorFormulario } from "@/components/pagina/contenedor-pagina";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { getCentrosCostoActivos } from "@/lib/centros-costo/consultas";
 import { crearCotizacion } from "@/lib/cotizaciones/acciones";
@@ -24,14 +22,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   const { clonar } = await searchParams;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" render={<Link href="/dashboard/cotizaciones" />}>
-          <ArrowLeft />
-          <span className="sr-only">Volver</span>
-        </Button>
-        <h1 className="text-2xl tracking-tight">Nueva cotización</h1>
-      </div>
+    <ContenedorFormulario>
+      <EncabezadoPagina
+        titulo="Nueva cotización"
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Ingresos" },
+          { etiqueta: "Cotizaciones", href: "/dashboard/cotizaciones" },
+          { etiqueta: "Nueva cotización" },
+        ]}
+      />
 
       {perfil.rol === "lector" ? (
         <Alert variant="destructive">
@@ -40,7 +40,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
       ) : (
         <CotizacionContenido clonar={clonar} />
       )}
-    </div>
+    </ContenedorFormulario>
   );
 }
 

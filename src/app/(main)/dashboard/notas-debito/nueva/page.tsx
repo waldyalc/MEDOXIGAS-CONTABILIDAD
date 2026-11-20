@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
-
+import { ContenedorFormulario } from "@/components/pagina/contenedor-pagina";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { hoyRD } from "@/lib/facturacion/formato";
 import { getImpuestosActivos } from "@/lib/impuestos/consultas";
@@ -28,14 +26,16 @@ export default async function Page({ searchParams }: Props) {
   ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" render={<Link href="/dashboard/notas-debito" />}>
-          <ArrowLeft />
-          <span className="sr-only">Volver</span>
-        </Button>
-        <h1 className="text-2xl tracking-tight">Nueva nota de débito</h1>
-      </div>
+    <ContenedorFormulario>
+      <EncabezadoPagina
+        titulo="Nueva nota de débito"
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Ingresos" },
+          { etiqueta: "Notas de débito", href: "/dashboard/notas-debito" },
+          { etiqueta: "Nueva nota de débito" },
+        ]}
+      />
 
       {perfil.rol === "lector" ? (
         <Alert variant="destructive">
@@ -44,6 +44,6 @@ export default async function Page({ searchParams }: Props) {
       ) : (
         <NotaDebitoForm datos={datos} impuestos={impuestos} fechaHoy={hoyRD()} facturaInicial={facturaInicial} />
       )}
-    </div>
+    </ContenedorFormulario>
   );
 }

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { ContenedorFormulario } from "@/components/pagina/contenedor-pagina";
 import { getRol } from "@/lib/auth/rol";
 import { cargarOpcionesOrden } from "@/lib/ordenes-compra/consultas";
 
@@ -12,5 +13,9 @@ export default async function Page() {
 
   const opciones = await cargarOpcionesOrden();
 
-  return <FormularioOrden {...opciones} />;
+  return (
+    <ContenedorFormulario>
+      <FormularioOrden {...opciones} />
+    </ContenedorFormulario>
+  );
 }

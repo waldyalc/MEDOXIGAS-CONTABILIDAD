@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
-
+import { ContenedorFormulario } from "@/components/pagina/contenedor-pagina";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { hoyRD } from "@/lib/facturacion/formato";
 import { getDatosFormularioGasto } from "@/lib/gastos/consultas";
@@ -17,14 +15,16 @@ export default async function Page() {
   if (perfil?.rol == null) redirect("/unauthorized");
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" render={<Link href="/dashboard/gastos" />}>
-          <ArrowLeft />
-          <span className="sr-only">Volver</span>
-        </Button>
-        <h1 className="text-2xl tracking-tight">Nuevo gasto menor</h1>
-      </div>
+    <ContenedorFormulario>
+      <EncabezadoPagina
+        titulo="Nuevo gasto menor"
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Compras", href: "/dashboard/compras" },
+          { etiqueta: "Gastos menores", href: "/dashboard/gastos" },
+          { etiqueta: "Nuevo gasto menor" },
+        ]}
+      />
 
       {perfil.rol === "lector" ? (
         <Alert variant="destructive">
@@ -33,7 +33,7 @@ export default async function Page() {
       ) : (
         <GastoContenido />
       )}
-    </div>
+    </ContenedorFormulario>
   );
 }
 

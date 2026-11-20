@@ -1,11 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
-
+import { ContenedorFormulario } from "@/components/pagina/contenedor-pagina";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { PagoForm } from "@/components/pagos/pago-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { getPerfil } from "@/lib/auth/rol";
 import { hoyRD } from "@/lib/facturacion/formato";
 import { registrarPagoMultifactura } from "@/lib/pagos/acciones";
@@ -24,14 +22,16 @@ export default async function Page({ searchParams }: Props) {
   const params = await searchParams;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-6">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" render={<Link href="/dashboard/pagos-recibidos" />}>
-          <ArrowLeft />
-          <span className="sr-only">Volver</span>
-        </Button>
-        <h1 className="text-xl font-semibold tracking-tight">Nuevo pago recibido</h1>
-      </div>
+    <ContenedorFormulario>
+      <EncabezadoPagina
+        titulo="Nuevo pago recibido"
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Ingresos" },
+          { etiqueta: "Pagos recibidos", href: "/dashboard/pagos-recibidos" },
+          { etiqueta: "Nuevo pago recibido" },
+        ]}
+      />
 
       {perfil.rol === "lector" ? (
         <Alert variant="destructive">
@@ -40,7 +40,7 @@ export default async function Page({ searchParams }: Props) {
       ) : (
         <PagoContenido facturaId={params.factura} clienteId={params.cliente} cuentaId={params.cuenta} />
       )}
-    </div>
+    </ContenedorFormulario>
   );
 }
 

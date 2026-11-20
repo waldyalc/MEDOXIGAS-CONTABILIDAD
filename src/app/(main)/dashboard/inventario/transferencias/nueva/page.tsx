@@ -1,9 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
+import { ContenedorFormulario } from "@/components/pagina/contenedor-pagina";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { getRol } from "@/lib/auth/rol";
 import { hoyRD } from "@/lib/facturacion/formato";
 import { datosFormularioTransferencia } from "@/lib/inventario/consultas";
@@ -18,16 +16,18 @@ export default async function Page() {
   const datos = await datosFormularioTransferencia();
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon-sm" render={<Link href="/dashboard/inventario/transferencias" />}>
-          <ArrowLeft />
-          <span className="sr-only">Volver</span>
-        </Button>
-        <h1 className="text-2xl tracking-tight">Nueva transferencia</h1>
-      </div>
+    <ContenedorFormulario>
+      <EncabezadoPagina
+        titulo="Nueva transferencia"
+        migas={[
+          { etiqueta: "Inicio", href: "/dashboard" },
+          { etiqueta: "Inventario" },
+          { etiqueta: "Transferencias", href: "/dashboard/inventario/transferencias" },
+          { etiqueta: "Nueva transferencia" },
+        ]}
+      />
 
       <TransferenciaForm {...datos} fechaHoy={hoyRD()} />
-    </div>
+    </ContenedorFormulario>
   );
 }
