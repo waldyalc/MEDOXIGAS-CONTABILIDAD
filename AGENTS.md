@@ -38,6 +38,8 @@ Si estás hablando **directamente con Waldy en el hilo principal de T3 Code**, e
 
 Si llegaste por un brief de `delegate_task`, eres **Ejecutor** (o Revisor), no el orquestador:
 
+- **Prueba visual SIEMPRE (regla de Waldy, 20-11-2026):** tu reporte entrega evidencia de lo que hiciste. Si tocaste UI o diseño: **capturas de pantalla del resultado funcionando** (dev server de tu worktree con Playwright, claro y oscuro; móvil si aplica). El Orquestador te pasa las credenciales por archivo temporal fuera del repo — nunca las imprimas ni las commitees. Las capturas se le muestran a **Waldy para que las verifique con sus ojos**; sin captura, tu trabajo no está terminado. Si tu tarea es backend/motor, la evidencia es la verificación (tests, pgTAP en CI, logs).
+
 - **No leas `docs/ORQUESTADOR.md`** ni asumas el rol de orquestador.
 - Ejecuta el brief **tú mismo** en tu worktree: código, tests y docs de tu tarea.
 - Verifica en local con `pnpm typecheck`, `pnpm check` y `pnpm test`.
@@ -123,7 +125,7 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 
 ## Candados: cada corrección se vuelve un test o una regla
 
-- **Regla de Waldy (20-11-2026) — capturas siempre:** todo cambio de UI (diseño nuevo o ajuste) llega con **capturas de pantalla del resultado terminado**: las toma el propio subagente que implementó (dev server de su worktree), el Orquestador las verifica (checks estructurales contra la guía + revisión del diff) y **las muestra a Waldy embebidas en el hilo con su veredicto** ("esto va bien, esto va mal"). "Listo" sin captura no está listo.
+- **Regla de Waldy (20-11-2026) — capturas siempre:** todo cambio de UI (diseño nuevo o ajuste) llega con **capturas de pantalla del resultado terminado**: las toma el propio subagente que implementó (dev server de su worktree, Playwright; el brief las exige como criterio de terminado), el Orquestador revisa el diff y los checks estructurales, y **le muestra las capturas a Waldy, que es quien verifica visualmente y decide**. "Listo" sin captura no está listo.
 
 - **Regla de oro:** cada vez que Waldy te corrija algo, no lo apuntes solo aquí. Crea un **test** (Vitest, pgTAP o Playwright) o una **regla de Biome** que falle si alguien lo vuelve a hacer, con un mensaje que diga cómo arreglarlo de raíz. Después agrega una línea abajo. Cómo hacerlo: skill `biome`.
 - **Por qué:** este archivo es un consejo y la IA a veces no lo lee, se le olvida o busca una excusa. Un test o una regla es un candado: si se rompe, el commit no entra.

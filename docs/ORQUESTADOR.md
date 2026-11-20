@@ -34,7 +34,7 @@ Todo cambio de UI llega **con capturas en el hilo**, hechas por el propio subage
 
 1. **El brief de toda tarea de UI termina exigiendo capturas**: el subagente copia `.env.local` de la copia principal a su worktree, levanta `pnpm dev -p 300X` (puerto 3000 es de Waldy; nunca lo toques), entra con las credenciales que el Orquestador le pasa **por archivo temporal fuera del repo** (nunca en el brief ni commiteadas), navega a la pantalla del cambio y captura claro, oscuro (y móvil si aplica) con Playwright. Base de producción: solo lectura.
 2. El subagente reporta las rutas de los PNG + checks estructurales del DOM contra la fuente de diseño (p.ej. chevron con `aria-expanded`, montos por signo, textos literales) y mata su dev server.
-3. **El Orquestador verifica**: revisa los checks contra la guía, el diff y los PNG; los **embebe en el hilo para que Waldy los vea** junto a su veredicto ("esto va bien, esto va mal"). Nada de UI se declara "listo" antes de ese paso.
+3. **El Orquestador revisa el código** (diff + checks estructurales contra la fuente de diseño) y **le muestra las capturas a Waldy: la verificación visual y la decisión son de Waldy**. Nada de UI se declara "listo" antes de ese paso.
 4. Al terminar, se borran el archivo de credenciales y el `.env.local` del worktree.
 
 ## Cómo redactar briefs de subagentes
@@ -46,6 +46,7 @@ Un brief malo produce trabajo que hay que rehacer. Cada brief debe incluir:
 - **Criterio de terminado:** qué debe funcionar, qué tests correr y qué NO hacer.
 - **Recordatorio obligatorio:**
   > Eres un subagente ejecutor en tu propio worktree. Haz el trabajo tú mismo: **no lances subagentes**, no hagas push ni merge a `main` salvo que este brief lo pida. Verifica con `pnpm typecheck`, `pnpm check` y `pnpm test`. Commitea en tu rama y reporta rama, SHA, archivos y bloqueos.
+  > **Prueba visual siempre (regla de Waldy):** si tocaste UI o diseño, tu reporte incluye capturas de pantalla del resultado funcionando (dev server de tu worktree con Playwright, claro y oscuro; el Orquestador te pasa credenciales por archivo temporal, no las imprimas). Sin captura, el trabajo no está terminado.
 - **Restricciones del proyecto** que apliquen: no `service_role`, no RLS apagado, no editar migraciones aplicadas, no `.env*`, no `--no-verify`, no datos reales.
 - **Formato de reporte:** rama, SHA, archivos creados/modificados, resultado de cada comando y cualquier decisión tomada.
 
