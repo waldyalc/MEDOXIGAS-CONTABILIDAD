@@ -7,14 +7,18 @@
 --   Deja la base sin NINGÚN documento ni dato de usuario/prueba: facturas,
 --   compras, pagos, notas, cotizaciones, conduces, órdenes, recurrentes,
 --   inventario, bancos, activos, periodos, asientos, contactos, productos,
---   adjuntos y auditoría quedan en 0 filas. Reinicia la numeración de los
---   documentos y de las líneas, y deja las series fiscales y los tipos de
---   entrada de diario en `siguiente = 1`.
+--   nómina (empleados y novedades), adjuntos y auditoría quedan en 0 filas.
+--   Reinicia la numeración de los documentos y de las líneas, y deja las
+--   series fiscales y los tipos de entrada de diario en `siguiente = 1`.
 --
 -- QUÉ NO TOCA (nunca)
 --   · auth.users y public.perfiles  → usuarios y roles reales.
 --   · public.empresa               → la fila id = 1 se conserva tal cual.
 --   · public.cuentas / public.config_contable → catálogo y configuración.
+--   · Catálogos de nómina          → nomina_parametros_rd, nomina_conceptos
+--     y nomina_mapeo_contable. `nomina_config_empresa` se recrea con los
+--     defaults al guardar Configuración → Nómina (su FK a contactos la deja
+--     fuera por el CASCADE del paso 1).
 --   · Semillas: impuestos, retenciones, monedas, términos de pago,
 --     plantillas de impresión, motivos de anulación, almacén principal y
 --     lista de precios general.
@@ -67,9 +71,9 @@ begin
 end $$;
 
 -- ===========================================================================
--- 0.1) INVENTARIO DE LAS 73 TABLAS DE public
+-- 0.1) INVENTARIO DE LAS 79 TABLAS DE public
 -- ===========================================================================
--- 58 se vacían (paso 1) y 15 se conservan (paso 3). Los marcadores
+-- 61 se vacían (paso 1) y 18 se conservan (paso 3). Los marcadores
 -- @conservar son el candado: src/lib/supabase/reset-virgen.test.ts compara
 -- esta lista + el TRUNCATE contra TODAS las tablas de supabase/migrations y
 -- falla si una tabla queda sin clasificar.
@@ -89,6 +93,16 @@ end $$;
 -- @conservar public.tipos_entrada_diario
 -- @conservar public.motivos_anulacion
 -- @conservar public.pos_terminales
+-- Nómina: parámetros, conceptos y mapeo contable son catálogos y se
+-- conservan. `nomina_config_empresa` también lleva marcador @conservar, pero
+-- referencia `contactos` (que se vacía en el paso 1): el CASCADE del TRUNCATE
+-- la deja sin fila y vuelve a nacer con los defaults al guardar
+-- Configuración → Nómina (`nomina_guardar_config_empresa` la crea si no
+-- existe).
+-- @conservar public.nomina_parametros_rd
+-- @conservar public.nomina_config_empresa
+-- @conservar public.nomina_conceptos
+-- @conservar public.nomina_mapeo_contable
 
 -- ===========================================================================
 -- 1) VACIAR las tablas de documentos, usuario y prueba
@@ -125,6 +139,8 @@ truncate table
   public.conteos_inventario,
   public.cotizacion_lineas,
   public.cotizaciones,
+  public.empleado_novedades_recurrentes,
+  public.empleados,
   public.existencias,
   public.factura_lineas,
   public.factura_recurrente_generaciones,
@@ -485,6 +501,8 @@ begin
     'conteos_inventario',
     'cotizacion_lineas',
     'cotizaciones',
+    'empleado_novedades_recurrentes',
+    'empleados',
     'existencias',
     'factura_lineas',
     'factura_recurrente_generaciones',
@@ -611,6 +629,8 @@ from (
   union all select 'conteos_inventario', count(*) from public.conteos_inventario
   union all select 'cotizacion_lineas', count(*) from public.cotizacion_lineas
   union all select 'cotizaciones', count(*) from public.cotizaciones
+  union all select 'empleado_novedades_recurrentes', count(*) from public.empleado_novedades_recurrentes
+  union all select 'empleados', count(*) from public.empleados
   union all select 'existencias', count(*) from public.existencias
   union all select 'factura_lineas', count(*) from public.factura_lineas
   union all select 'factura_recurrente_generaciones', count(*) from public.factura_recurrente_generaciones
@@ -668,6 +688,10 @@ union all select 'listas_precios', count(*), 'exactamente 1 (principal)' from pu
 union all select 'numeraciones', count(*), 'exactamente 8 (B01…B16)' from public.numeraciones
 union all select 'tipos_entrada_diario', count(*), 'exactamente 13' from public.tipos_entrada_diario
 union all select 'pos_terminales', count(*), 'terminales del POS restauradas' from public.pos_terminales
+union all select 'nomina_parametros_rd', count(*), '2026 sembrado (>= 1)' from public.nomina_parametros_rd
+union all select 'nomina_config_empresa', count(*), '0 tras el reset (CASCADE de contactos); se recrea al guardar' from public.nomina_config_empresa
+union all select 'nomina_conceptos', count(*), 'semilla = 40' from public.nomina_conceptos
+union all select 'nomina_mapeo_contable', count(*), 'semilla = 120 (40 × 3 segmentos)' from public.nomina_mapeo_contable
 order by tabla;
 
 -- 6.3 Series y tipos con su consecutivo (todo debe decir 1).

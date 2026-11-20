@@ -41,6 +41,10 @@ Flujo contable en corto: `docs/motor-contable.md`. Contrato completo:
   `asientos.codigo`), `periodos_contables`, `cierres_resultados`,
   `activos_fijos`, `activo_depreciaciones`, `centros_costo`, `vendedores`,
   `monedas`, `tasas_cambio`, `plantillas_impresion`, `terminos_pago`.
+- **Nómina:** `nomina_parametros_rd`, `nomina_config_empresa`,
+  `nomina_conceptos` y `nomina_mapeo_contable` (catálogos y configuración);
+  `empleados` (+ `empleado_novedades_recurrentes`), con escritura solo por
+  RPC. Periodos, recibos y pagos llegan en la fase 3B.
 - **Transversales:** `auditoria` (append-only), `adjuntos` (metadatos; los
   archivos viven en el bucket privado `documentos`).
 
