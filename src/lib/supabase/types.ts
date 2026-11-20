@@ -2484,6 +2484,256 @@ export type Database = {
         }
         Relationships: []
       }
+      nomina_periodos: {
+        Row: {
+          anio_fiscal: number
+          codigo: string
+          creado_en: string
+          creado_por: string | null
+          estado: string
+          fecha_fin: string
+          fecha_inicio: string
+          fecha_pago: string | null
+          frecuencia: string
+          id: string
+          observaciones: string | null
+          total_aportes_empleador: number
+          total_costo_empresa: number
+          total_deducciones: number
+          total_ingresos: number
+          total_neto: number
+          total_provisiones: number
+          total_salario: number
+        }
+        Insert: {
+          anio_fiscal: number
+          codigo: string
+          creado_en?: string
+          creado_por?: string | null
+          estado?: string
+          fecha_fin: string
+          fecha_inicio: string
+          fecha_pago?: string | null
+          frecuencia: string
+          id?: string
+          observaciones?: string | null
+          total_aportes_empleador?: number
+          total_costo_empresa?: number
+          total_deducciones?: number
+          total_ingresos?: number
+          total_neto?: number
+          total_provisiones?: number
+          total_salario?: number
+        }
+        Update: {
+          anio_fiscal?: number
+          codigo?: string
+          creado_en?: string
+          creado_por?: string | null
+          estado?: string
+          fecha_fin?: string
+          fecha_inicio?: string
+          fecha_pago?: string | null
+          frecuencia?: string
+          id?: string
+          observaciones?: string | null
+          total_aportes_empleador?: number
+          total_costo_empresa?: number
+          total_deducciones?: number
+          total_ingresos?: number
+          total_neto?: number
+          total_provisiones?: number
+          total_salario?: number
+        }
+        Relationships: []
+      }
+      nomina_recibo_lineas: {
+        Row: {
+          cantidad: number | null
+          clase: string
+          concepto_id: string
+          creado_en: string
+          id: string
+          monto: number
+          notas: string | null
+          orden: number
+          origen: string
+          porcentaje: number | null
+          recibo_id: string
+        }
+        Insert: {
+          cantidad?: number | null
+          clase: string
+          concepto_id: string
+          creado_en?: string
+          id?: string
+          monto: number
+          notas?: string | null
+          orden?: number
+          origen: string
+          porcentaje?: number | null
+          recibo_id: string
+        }
+        Update: {
+          cantidad?: number | null
+          clase?: string
+          concepto_id?: string
+          creado_en?: string
+          id?: string
+          monto?: number
+          notas?: string | null
+          orden?: number
+          origen?: string
+          porcentaje?: number | null
+          recibo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nomina_recibo_lineas_concepto_id_fkey"
+            columns: ["concepto_id"]
+            isOneToOne: false
+            referencedRelation: "nomina_conceptos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nomina_recibo_lineas_recibo_id_fkey"
+            columns: ["recibo_id"]
+            isOneToOne: false
+            referencedRelation: "nomina_recibos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nomina_recibos: {
+        Row: {
+          asiento_id: string | null
+          base_afp: number
+          base_infotep: number
+          base_isr: number
+          base_sfs: number
+          base_srl: number
+          base_tss: number
+          colilla_enviada_a: string | null
+          colilla_enviada_en: string | null
+          costo_total_empresa: number
+          creado_en: string
+          cuenta_pago_id: string | null
+          cuenta_salarios_por_pagar_id: string | null
+          dias_trabajados: number
+          empleado_id: string
+          estado: string
+          fecha_pagado: string | null
+          id: string
+          neto_pagar: number
+          pago_asiento_id: string | null
+          periodo_id: string
+          salario_base: number
+          total_aportes_empleador: number
+          total_deducciones: number
+          total_ingresos: number
+          total_provisiones: number
+        }
+        Insert: {
+          asiento_id?: string | null
+          base_afp?: number
+          base_infotep?: number
+          base_isr?: number
+          base_sfs?: number
+          base_srl?: number
+          base_tss?: number
+          colilla_enviada_a?: string | null
+          colilla_enviada_en?: string | null
+          costo_total_empresa?: number
+          creado_en?: string
+          cuenta_pago_id?: string | null
+          cuenta_salarios_por_pagar_id?: string | null
+          dias_trabajados?: number
+          empleado_id: string
+          estado?: string
+          fecha_pagado?: string | null
+          id?: string
+          neto_pagar?: number
+          pago_asiento_id?: string | null
+          periodo_id: string
+          salario_base?: number
+          total_aportes_empleador?: number
+          total_deducciones?: number
+          total_ingresos?: number
+          total_provisiones?: number
+        }
+        Update: {
+          asiento_id?: string | null
+          base_afp?: number
+          base_infotep?: number
+          base_isr?: number
+          base_sfs?: number
+          base_srl?: number
+          base_tss?: number
+          colilla_enviada_a?: string | null
+          colilla_enviada_en?: string | null
+          costo_total_empresa?: number
+          creado_en?: string
+          cuenta_pago_id?: string | null
+          cuenta_salarios_por_pagar_id?: string | null
+          dias_trabajados?: number
+          empleado_id?: string
+          estado?: string
+          fecha_pagado?: string | null
+          id?: string
+          neto_pagar?: number
+          pago_asiento_id?: string | null
+          periodo_id?: string
+          salario_base?: number
+          total_aportes_empleador?: number
+          total_deducciones?: number
+          total_ingresos?: number
+          total_provisiones?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nomina_recibos_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nomina_recibos_cuenta_pago_id_fkey"
+            columns: ["cuenta_pago_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nomina_recibos_cuenta_salarios_por_pagar_id_fkey"
+            columns: ["cuenta_salarios_por_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nomina_recibos_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "empleados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nomina_recibos_pago_asiento_id_fkey"
+            columns: ["pago_asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nomina_recibos_periodo_id_fkey"
+            columns: ["periodo_id"]
+            isOneToOne: false
+            referencedRelation: "nomina_periodos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nota_credito_compra_lineas: {
         Row: {
           cantidad: number
@@ -4588,6 +4838,49 @@ export type Database = {
         }
         Returns: undefined
       }
+      _nomina_concepto_id: { Args: { p_codigo: string }; Returns: string }
+      _nomina_crear_asiento: {
+        Args: {
+          p_fecha: string
+          p_descripcion: string
+          p_origen_tipo: string
+          p_origen_id: string
+          p_tipo_entrada_id: string
+          p_codigo: string
+          p_lineas: Json
+        }
+        Returns: string
+      }
+      _nomina_insertar_linea: {
+        Args: {
+          p_recibo_id: string
+          p_concepto_id: string
+          p_clase: string
+          p_cantidad: number
+          p_porcentaje: number
+          p_monto: number
+          p_origen: string
+          p_orden: number
+        }
+        Returns: string
+      }
+      _nomina_recalcular_periodo: {
+        Args: { p_periodo_id: string }
+        Returns: undefined
+      }
+      _nomina_revertir_asiento: {
+        Args: { p_asiento_id: string; p_origen_id: string }
+        Returns: string
+      }
+      _nomina_validar_cuenta: {
+        Args: {
+          p_cuenta_id: string
+          p_tipo: string
+          p_concepto: string
+          p_segmento: string
+        }
+        Returns: undefined
+      }
       _precio_lista: {
         Args: {
           p_producto_id: string
@@ -4789,6 +5082,69 @@ export type Database = {
           nombre: string
           dias: number
           activo: boolean
+        }[]
+      }
+      nomina_anular_pago_recibo: { Args: { p_recibo_id: string }; Returns: string }
+      nomina_anular_recibo: { Args: { p_recibo_id: string }; Returns: string }
+      nomina_calcular_periodo: { Args: { p_periodo_id: string }; Returns: Json }
+      nomina_calcular_recibo: { Args: { p_recibo_id: string }; Returns: string }
+      nomina_contabilizar_periodo: { Args: { p_periodo_id: string }; Returns: Json }
+      nomina_contabilizar_recibo: { Args: { p_recibo_id: string }; Returns: string }
+      nomina_crear_periodo: { Args: { p: Json }; Returns: string }
+      nomina_eliminar_novedad_recibo: { Args: { p_id: string }; Returns: undefined }
+      nomina_guardar_novedad_recibo: { Args: { p: Json }; Returns: Json }
+      nomina_pagar_periodo: { Args: { p: Json }; Returns: Json }
+      nomina_pagar_recibo: { Args: { p: Json }; Returns: string }
+      nomina_registrar_envio_colillas: { Args: { p: Json }; Returns: number }
+      nomina_reporte_tss: {
+        Args: { p_anio: number; p_mes: number }
+        Returns: {
+          anio: number
+          mes: number
+          empleado_id: string
+          empleado_nombre: string
+          identificacion: string
+          clave_tss: string
+          periodos: number
+          dias_trabajados: number
+          salario_base: number
+          base_sfs: number
+          base_afp: number
+          base_srl: number
+          base_infotep: number
+          base_isr: number
+          sfs_empleado: number
+          afp_empleado: number
+          isr: number
+          sfs_empleador: number
+          afp_empleador: number
+          srl: number
+          infotep: number
+          total_deducciones: number
+          neto_pagar: number
+        }[]
+      }
+      nomina_resumen_periodo: {
+        Args: { p_periodo_id: string }
+        Returns: {
+          recibo_id: string
+          empleado_id: string
+          empleado_nombre: string
+          identificacion: string
+          cargo: string
+          segmento_contable: string
+          dias_trabajados: number
+          salario_base: number
+          total_ingresos: number
+          total_deducciones: number
+          total_aportes_empleador: number
+          total_provisiones: number
+          neto_pagar: number
+          costo_total_empresa: number
+          estado: string
+          asiento_codigo: string
+          fecha_pagado: string
+          colilla_enviada_en: string
         }[]
       }
       normalizar: { Args: { p_texto: string }; Returns: string }
