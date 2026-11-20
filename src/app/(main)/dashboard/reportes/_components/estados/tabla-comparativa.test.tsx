@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { FilaReporte } from "@/lib/reportes/estados/tipos";
 
+import { readFileSync } from "node:fs";
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
@@ -89,19 +91,23 @@ describe("TablaComparativa", () => {
     }
   });
 
-  it("pinta positivos en verde y negativos en rojo con prefijo -RD$", () => {
+  it("muestra los montos con texto plano y el prefijo -RD$, sin color por signo", () => {
     const html = tabla();
 
     expect(html).toContain("RD$17,600.00");
     expect(html).toContain("-RD$2,200.00");
 
-    const negativos = [...html.matchAll(/<td[^>]*class="([^"]*)"[^>]*>-RD\$2,200\.00<\/td>/g)];
-    expect(negativos.length).toBeGreaterThan(0);
-    for (const [, clases] of negativos) expect(clases).toContain("text-destructive");
+    for (const celda of [...html.matchAll(/<td[^>]*class="([^"]*)"[^>]*>-?RD\$[\d,.]+<\/td>/g)]) {
+      expect(celda[1]).not.toContain("text-destructive");
+      expect(celda[1]).not.toContain("text-emerald");
+    }
+  });
 
-    const positivo = [...html.matchAll(/<td[^>]*class="([^"]*)"[^>]*>RD\$6,236\.15<\/td>/g)];
-    expect(positivo.length).toBeGreaterThan(0);
-    for (const [, clases] of positivo) expect(clases).toContain("text-emerald-600");
+  it("candado: la tabla comparativa no vuelve a colorear montos por signo", () => {
+    // Decisión de Waldy (20-11-2026): Alegra no usa rojo/verde en los montos de
+    // ningún reporte; el comparativo va con texto plano y el prefijo -RD$.
+    const fuente = readFileSync(new URL("./tabla-comparativa.tsx", import.meta.url), "utf8");
+    expect(fuente).not.toMatch(/text-emerald|text-destructive|colorPorSigno/);
   });
 
   it("con expandible, los grupos llevan chevron abierto por defecto", () => {

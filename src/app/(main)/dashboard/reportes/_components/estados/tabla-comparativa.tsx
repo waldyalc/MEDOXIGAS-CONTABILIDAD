@@ -27,12 +27,11 @@ interface Props {
   expandible?: boolean;
 }
 
-/** Verde de éxito del tema para lo que suma; rojo destructivo para lo que resta. */
-function colorPorSigno(valor: number): string {
-  if (valor > 0) return "text-emerald-600 dark:text-emerald-400";
-  if (valor < 0) return "text-destructive";
-  return "text-muted-foreground";
-}
+/**
+ * Montos con texto plano y el signo en el prefijo: Alegra no colorea los
+ * montos de sus reportes (decisión de Waldy, 20-11-2026: el rojo/verde por
+ * signo se ve chillón y no es parte del diseño de Alegra).
+ */
 
 interface Agrupacion {
   /** Cuántas cuentas de detalle cuelgan de cada grupo. */
@@ -84,24 +83,16 @@ function CeldaCuenta({ fila }: { fila: FilaReporte }) {
 function Montos({ fila }: { fila: FilaReporte }) {
   return (
     <>
-      <TableCell className={cn("text-right tabular-nums", colorPorSigno(fila.actual))}>
-        {formatearRd(fila.actual)}
-      </TableCell>
+      <TableCell className="text-right tabular-nums">{formatearRd(fila.actual)}</TableCell>
       <TableCell className="text-muted-foreground text-right tabular-nums">
         {formatoPct(fila.porcentajeActual)}
       </TableCell>
-      <TableCell className={cn("text-right tabular-nums", colorPorSigno(fila.anterior))}>
-        {formatearRd(fila.anterior)}
-      </TableCell>
+      <TableCell className="text-right tabular-nums">{formatearRd(fila.anterior)}</TableCell>
       <TableCell className="text-muted-foreground text-right tabular-nums">
         {formatoPct(fila.porcentajeAnterior)}
       </TableCell>
-      <TableCell className={cn("text-right tabular-nums", colorPorSigno(fila.variacionAbsoluta))}>
-        {formatearRd(fila.variacionAbsoluta)}
-      </TableCell>
-      <TableCell className={cn("text-right tabular-nums", colorPorSigno(fila.variacionRelativa))}>
-        {formatoPct(fila.variacionRelativa)}
-      </TableCell>
+      <TableCell className="text-right tabular-nums">{formatearRd(fila.variacionAbsoluta)}</TableCell>
+      <TableCell className="text-right tabular-nums">{formatoPct(fila.variacionRelativa)}</TableCell>
     </>
   );
 }
