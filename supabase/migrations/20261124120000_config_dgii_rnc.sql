@@ -366,17 +366,24 @@ grant execute on function public.actualizar_contacto(uuid, jsonb) to authenticat
 -- de la semilla de 20261115100000; aquí van las que faltan, sin duplicarlas.
 -- ---------------------------------------------------------------------------
 
+-- Nota: el SELECT va en un WITH a propósito. Un INSERT ... SELECT cuyo SELECT
+-- termina en JOIN ... ON seguido de ON CONFLICT es una ambigüedad sintáctica
+-- conocida del parser de Postgres; separado en CTE no hay ambigüedad posible.
+with faltantes as (
+  select v.nombre, v.tipo, v.porcentaje, cp.id as cuenta_id, ca.id as cuenta_anticipo_id
+  from (values
+    ('ITBIS 75 %', 'itbis', 75, '2103', '1107'),
+    ('ISR 10 % alquileres', 'isr', 10, '2104', '1108'),
+    ('ISR 15 % honorarios', 'isr', 15, '2104', '1108'),
+    ('ISR 15 % alquileres', 'isr', 15, '2104', '1108'),
+    ('ISR 10 % otras rentas', 'isr', 10, '2104', '1108'),
+    ('ISR 15 % otras rentas', 'isr', 15, '2104', '1108'),
+    ('ISR 2 % otras rentas', 'isr', 2, '2104', '1108')
+  ) as v(nombre, tipo, porcentaje, codigo_pasivo, codigo_activo)
+  join public.cuentas cp on cp.codigo = v.codigo_pasivo
+  join public.cuentas ca on ca.codigo = v.codigo_activo
+)
 insert into public.retenciones (nombre, tipo, porcentaje, cuenta_id, cuenta_anticipo_id, activa)
-select v.nombre, v.tipo, v.porcentaje, cp.id, ca.id, true
-from (values
-  ('ITBIS 75 %', 'itbis', 75, '2103', '1107'),
-  ('ISR 10 % alquileres', 'isr', 10, '2104', '1108'),
-  ('ISR 15 % honorarios', 'isr', 15, '2104', '1108'),
-  ('ISR 15 % alquileres', 'isr', 15, '2104', '1108'),
-  ('ISR 10 % otras rentas', 'isr', 10, '2104', '1108'),
-  ('ISR 15 % otras rentas', 'isr', 15, '2104', '1108'),
-  ('ISR 2 % otras rentas', 'isr', 2, '2104', '1108')
-) as v(nombre, tipo, porcentaje, codigo_pasivo, codigo_activo)
-join public.cuentas cp on cp.codigo = v.codigo_pasivo
-join public.cuentas ca on ca.codigo = v.codigo_activo
+select nombre, tipo, porcentaje, cuenta_id, cuenta_anticipo_id, true
+from faltantes
 on conflict (nombre) do nothing;
