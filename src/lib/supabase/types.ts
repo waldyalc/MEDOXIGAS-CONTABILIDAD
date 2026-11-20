@@ -4188,6 +4188,31 @@ export type Database = {
         }
         Returns: undefined
       }
+      _pos_booleano: {
+        Args: { p_valor: string; p_defecto: boolean }
+        Returns: boolean
+      }
+      _pos_empresa: { Args: Record<PropertyKey, never>; Returns: Json }
+      _pos_monto: { Args: { p_valor: string }; Returns: number }
+      _pos_plantilla_ticket: {
+        Args: { p_actual: Json; p_nueva: Json }
+        Returns: Json
+      }
+      _pos_resolver_lineas: {
+        Args: { p_lineas: Json; p_lista_precio_id: string }
+        Returns: Json
+      }
+      _pos_resumen: { Args: { p_turno_id: string }; Returns: Json }
+      _pos_usuario: { Args: { p_user_id: string }; Returns: string }
+      _pos_validar_cuenta_cobro: {
+        Args: {
+          p_cuenta_id: string
+          p_etiqueta: string
+          p_cuenta_efectivo_id: string
+          p_terminal_id: string
+        }
+        Returns: undefined
+      }
       _precio_lista: {
         Args: {
           p_producto_id: string
@@ -4393,6 +4418,8 @@ export type Database = {
       }
       normalizar: { Args: { p_texto: string }; Returns: string }
       obtener_auditoria: { Args: { p: Json }; Returns: Json }
+      pos_abrir_turno: { Args: { p: Json }; Returns: Json }
+      pos_actualizar_terminal: { Args: { p_id: string; p: Json }; Returns: string }
       pos_buscar_por_codigo_barra: {
         Args: {
           p_codigo: string
@@ -4444,6 +4471,13 @@ export type Database = {
           unidades: Json
         }[]
       }
+      pos_cerrar_turno: { Args: { p: Json }; Returns: Json }
+      pos_completar_venta: { Args: { p: Json }; Returns: Json }
+      pos_crear_cotizacion: { Args: { p: Json }; Returns: Json }
+      pos_crear_devolucion: { Args: { p: Json }; Returns: Json }
+      pos_crear_terminal: { Args: { p: Json }; Returns: string }
+      pos_registrar_movimiento_turno: { Args: { p: Json }; Returns: Json }
+      pos_resumen_turno: { Args: { p_turno_id: string }; Returns: Json }
       reabrir_periodo: { Args: { p_periodo: string }; Returns: string }
       registrar_deposito: { Args: { p: Json }; Returns: string }
       registrar_pago_proveedor: { Args: { p: Json }; Returns: string }
