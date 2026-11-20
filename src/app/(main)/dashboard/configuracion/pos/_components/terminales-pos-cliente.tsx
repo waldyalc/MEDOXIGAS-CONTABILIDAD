@@ -42,6 +42,7 @@ export function TerminalesPosCliente({
     {
       clave: "almacen",
       encabezado: "Almacén",
+      className: "hidden md:table-cell",
       celda: (terminal) => (
         <span className="text-muted-foreground">{nombreDeAlmacen(catalogos, terminal.almacen_id)}</span>
       ),
@@ -49,6 +50,7 @@ export function TerminalesPosCliente({
     {
       clave: "efectivo",
       encabezado: "Cuenta de efectivo",
+      className: "hidden md:table-cell",
       celda: (terminal) => (
         <span className="text-muted-foreground">{nombreDeCuenta(catalogos, terminal.cuenta_efectivo_id)}</span>
       ),
@@ -95,38 +97,40 @@ export function TerminalesPosCliente({
       </div>
 
       <TarjetaLista data-lista="configuracion-pos-terminales">
-        <TablaLista
-          columnas={columnas}
-          filas={terminales}
-          claveFila={(terminal) => terminal.id}
-          acciones={
-            puedeEditar
-              ? (terminal) => (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Editar ${terminal.nombre}`}
-                    onClick={() => abrirEdicion(terminal)}
-                  >
-                    <Pencil />
-                  </Button>
-                )
-              : undefined
-          }
-          vacio={{
-            titulo: "Aún no hay terminales de punto de venta",
-            descripcion:
-              "Configura la primera caja con su almacén, su cuenta de efectivo y su numeración para poder vender.",
-            icono: <Store className="size-10" />,
-            accion: puedeEditar ? (
-              <Button type="button" onClick={abrirNueva}>
-                <Plus />
-                Nueva terminal
-              </Button>
-            ) : undefined,
-          }}
-        />
+        <div className="overflow-x-auto">
+          <TablaLista
+            columnas={columnas}
+            filas={terminales}
+            claveFila={(terminal) => terminal.id}
+            acciones={
+              puedeEditar
+                ? (terminal) => (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Editar ${terminal.nombre}`}
+                      onClick={() => abrirEdicion(terminal)}
+                    >
+                      <Pencil />
+                    </Button>
+                  )
+                : undefined
+            }
+            vacio={{
+              titulo: "Aún no hay terminales de punto de venta",
+              descripcion:
+                "Configura la primera caja con su almacén, su cuenta de efectivo y su numeración para poder vender.",
+              icono: <Store className="size-10" />,
+              accion: puedeEditar ? (
+                <Button type="button" onClick={abrirNueva}>
+                  <Plus />
+                  Nueva terminal
+                </Button>
+              ) : undefined,
+            }}
+          />
+        </div>
       </TarjetaLista>
 
       {abierto ? (
