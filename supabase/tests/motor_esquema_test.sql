@@ -54,7 +54,7 @@ select is((select count(*)::int from public.cuentas where codigo in ('1101','110
 
 select is((select es_caja_banco from public.cuentas where codigo = '1106'), true, '1106 Caja chica marcada es_caja_banco');
 
-select is((select count(*)::int from public.config_contable), 20, 'config_contable tiene 20 claves (18 base + ajustes_iniciales_inventario y devoluciones_ventas)');
+select is((select count(*)::int from public.config_contable), 22, 'config_contable tiene 22 claves (18 base + ajustes_iniciales_inventario, devoluciones_ventas, sobrante_caja y faltante_caja)');
 
 select is(
   (select count(*)::int
