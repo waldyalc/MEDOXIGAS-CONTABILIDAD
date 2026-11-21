@@ -85,6 +85,15 @@ const ETIQUETAS_DOCUMENTO: Record<string, string> = {
   transferencia: "Transferencia",
   deposito: "Depósito",
   conciliacion: "Conciliación",
+  ajuste_inventario: "Ajuste de inventario",
+  inventario_inicial: "Inventario inicial",
+  manual: "Manual",
+  anulacion: "Anulación",
+  saldo_inicial: "Saldos iniciales",
+  pos_movimiento: "Movimiento de caja POS",
+  pos_diferencia: "Diferencia de cierre POS",
+  nomina: "Nómina",
+  pago_nomina: "Pago de nómina",
 };
 
 const ETIQUETAS_TIPO: Record<string, string> = {
@@ -99,6 +108,15 @@ const ETIQUETAS_TIPO: Record<string, string> = {
   transferencia: "transferencia",
   deposito: "depósito",
   conciliacion: "conciliación",
+  ajuste_inventario: "ajuste de inventario",
+  inventario_inicial: "inventario inicial",
+  manual: "manual",
+  anulacion: "anulación",
+  saldo_inicial: "saldos iniciales",
+  pos_movimiento: "movimiento de caja POS",
+  pos_diferencia: "diferencia de cierre POS",
+  nomina: "nómina",
+  pago_nomina: "pago de nómina",
 };
 
 function rutaDocumento(tipo: string, id: string): string | null {

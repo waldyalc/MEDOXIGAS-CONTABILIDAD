@@ -10,6 +10,18 @@ export const ETIQUETAS_ORIGEN: Record<string, string> = {
   manual: "Manual",
   saldo_inicial: "Saldos iniciales",
   anulacion: "Anulación",
+  nota_credito_venta: "Nota de crédito de venta",
+  nota_credito_compra: "Nota de crédito de compra",
+  nota_debito: "Nota de débito",
+  transferencia: "Transferencia",
+  deposito: "Depósito",
+  conciliacion: "Conciliación",
+  ajuste_inventario: "Ajuste de inventario",
+  inventario_inicial: "Inventario inicial",
+  pos_movimiento: "Movimiento de caja POS",
+  pos_diferencia: "Diferencia de cierre POS",
+  nomina: "Nómina",
+  pago_nomina: "Pago de nómina",
 };
 
 export interface LineaLibroDiario {
