@@ -4,8 +4,7 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Clock, Loader2, Plus, Printer } from "lucide-react";
-
+import { Clock, Loader2, Plus, Printer } from "@/components/icons";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { ContenedorLista } from "@/components/pagina/contenedor-pagina";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";

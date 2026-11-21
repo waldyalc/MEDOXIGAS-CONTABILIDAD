@@ -5,11 +5,10 @@ import { type FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ChevronDown, Landmark, ListFilter, RefreshCw } from "lucide-react";
-
 import { DatePicker } from "@/components/date-picker";
 import { Enlace } from "@/components/enlace";
 import { usePagina } from "@/components/ficha/ficha-ui";
+import { ChevronDown, Landmark, ListFilter, RefreshCw } from "@/components/icons";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
 import { type ColumnaLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
@@ -171,7 +170,7 @@ export function PanelMovimientos({
         filaHref={(movimiento) => movimiento.documento.href ?? enlaceAsiento(movimiento.asientoId)}
         vacio={{
           filtrada: hayFiltro,
-          icono: <Landmark className="size-14" strokeWidth={1.25} />,
+          icono: <Landmark className="size-14" weight="thin" />,
           titulo: hayFiltro ? "Sin movimientos" : "¡Crea tu primer movimiento!",
           descripcion: hayFiltro
             ? "La cuenta no tiene movimientos en el período seleccionado."

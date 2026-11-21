@@ -4,10 +4,9 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Check, InfoIcon, Loader2, Minus, Pencil, Plus, Search, ShieldAlert } from "lucide-react";
-
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FORM_INPUT } from "@/components/formularios/formulario";
+import { Check, InfoIcon, Loader2, Minus, Pencil, Plus, Search, ShieldAlert } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { type OpcionSelect, SelectCampo } from "@/components/select-campo";
 import { Alert, AlertDescription } from "@/components/ui/alert";

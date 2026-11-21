@@ -4,9 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Mail, Send } from "lucide-react";
-
 import { FORM_INPUT } from "@/components/formularios/formulario";
+import { Loader2, Mail, Send } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {

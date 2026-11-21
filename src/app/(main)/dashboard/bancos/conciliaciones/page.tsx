@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Scale } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { Scale } from "@/components/icons";
 import {
   type ColumnaLista,
   ContenedorLista,

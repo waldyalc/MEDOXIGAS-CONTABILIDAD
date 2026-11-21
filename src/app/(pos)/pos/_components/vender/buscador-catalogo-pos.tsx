@@ -2,8 +2,7 @@
 
 import { type RefObject, useEffect, useState } from "react";
 
-import { Loader2, Search, X } from "lucide-react";
-
+import { Loader2, Search, X } from "@/components/icons";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Kbd } from "@/components/ui/kbd";
 

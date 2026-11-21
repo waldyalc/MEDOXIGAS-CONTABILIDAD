@@ -19,8 +19,7 @@ import {
   Store,
   UserRound,
   Users,
-} from "lucide-react";
-
+} from "@/components/icons";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRol } from "@/lib/auth/rol";

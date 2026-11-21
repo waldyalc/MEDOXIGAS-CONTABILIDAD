@@ -4,12 +4,11 @@ import { useEffect, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2 } from "lucide-react";
-
 import { DatePicker } from "@/components/date-picker";
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FORM_INPUT_GROUP, FORM_TEXTAREA, FormGrid } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { Loader2 } from "@/components/icons";
 import { SelectCampo } from "@/components/select-campo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";

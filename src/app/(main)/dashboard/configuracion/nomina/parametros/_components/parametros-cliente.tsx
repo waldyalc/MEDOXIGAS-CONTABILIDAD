@@ -4,8 +4,6 @@ import { type ReactNode, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
@@ -15,6 +13,7 @@ import {
   FormGrid,
   FormSectionTitle,
 } from "@/components/formularios/formulario";
+import { ChevronLeft, ChevronRight, Loader2 } from "@/components/icons";
 import { PillEstado } from "@/components/listas/tabla-lista";
 import { SelectCampo } from "@/components/select-campo";
 import { Alert, AlertDescription } from "@/components/ui/alert";

@@ -5,10 +5,9 @@ import { useState } from "react";
 
 import Link from "next/link";
 
-import { ArrowLeft, Pencil, Plus } from "lucide-react";
-
 import { AvatarInicial } from "@/components/avatar-inicial";
 import { CLASE_PANEL_FICHA, GrillaKpis, ItemDato, type KpiFicha } from "@/components/ficha/ficha-ui";
+import { ArrowLeft, Pencil, Plus } from "@/components/icons";
 import { PillEstado } from "@/components/listas/tabla-lista";
 import { MigasDePan } from "@/components/migas-de-pan";
 import { ContenedorDetalle } from "@/components/pagina/contenedor-pagina";

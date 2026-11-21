@@ -5,9 +5,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { Package, Pencil, Plus, Upload } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { Package, Pencil, Plus, Upload } from "@/components/icons";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import {

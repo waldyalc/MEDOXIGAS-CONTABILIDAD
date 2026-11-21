@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { Users } from "lucide-react";
-
+import { Users } from "@/components/icons";
 import {
   type ColumnaLista,
   ContenedorLista,

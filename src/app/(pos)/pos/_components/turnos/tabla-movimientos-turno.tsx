@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "cn";
-import { Eye, RotateCcw } from "lucide-react";
 
+import { Eye, RotateCcw } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { formatoMoneda } from "@/lib/facturacion/formato";

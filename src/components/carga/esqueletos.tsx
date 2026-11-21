@@ -1,6 +1,6 @@
 import { cn } from "cn";
-import { Loader2 } from "lucide-react";
 
+import { Loader2 } from "@/components/icons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

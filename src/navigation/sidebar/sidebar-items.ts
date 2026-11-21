@@ -1,18 +1,18 @@
 import {
-  FileSpreadsheet,
-  HandCoins,
+  Bank,
+  Calculator,
+  ChartLine,
+  FileText,
+  Gear,
   House,
-  Landmark,
+  IdentificationCard,
   type LucideIcon,
-  NotebookText,
   Package,
-  Settings,
+  Receipt,
   ShoppingCart,
-  Store,
-  TrendingUp,
+  Storefront,
   Users,
-} from "lucide-react";
-
+} from "@/components/icons";
 import type { Rol } from "@/lib/auth/rol";
 
 export type NavBadge = "new" | "updated" | "soon";
@@ -74,14 +74,14 @@ export const sidebarItems: NavGroup[] = [
         id: "punto-venta",
         title: "Punto de venta",
         url: "/pos",
-        icon: Store,
+        icon: Storefront,
         newTab: true,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "ingresos",
         title: "Ingresos",
-        icon: HandCoins,
+        icon: Receipt,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -207,7 +207,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "bancos",
         title: "Bancos",
-        icon: Landmark,
+        icon: Bank,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -225,7 +225,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "contabilidad",
         title: "Contabilidad",
-        icon: NotebookText,
+        icon: Calculator,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -258,7 +258,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "nomina",
         title: "Nómina",
-        icon: HandCoins,
+        icon: IdentificationCard,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -297,21 +297,21 @@ export const sidebarItems: NavGroup[] = [
         id: "reportes",
         title: "Reportes",
         url: "/dashboard/reportes",
-        icon: TrendingUp,
+        icon: ChartLine,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "configuracion",
         title: "Configuración",
         url: "/dashboard/configuracion",
-        icon: Settings,
+        icon: Gear,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "configuracion-reportes-dgii",
         title: "Reportes DGII",
         url: "/dashboard/configuracion/reportes-dgii",
-        icon: FileSpreadsheet,
+        icon: FileText,
         roles: ["admin", "contador"],
       },
     ],

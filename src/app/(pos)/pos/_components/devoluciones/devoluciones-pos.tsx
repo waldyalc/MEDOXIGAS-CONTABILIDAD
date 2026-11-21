@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { RotateCcw } from "lucide-react";
-
+import { RotateCcw } from "@/components/icons";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { ContenedorLista } from "@/components/pagina/contenedor-pagina";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";

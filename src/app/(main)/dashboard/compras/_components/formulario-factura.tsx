@@ -5,7 +5,6 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 
 import { cn } from "cn";
-import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
@@ -25,6 +24,7 @@ import {
   FormTotal,
 } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { ChevronDown, Loader2, Plus, Trash2 } from "@/components/icons";
 import { type ProductoSeleccionable, SelectorProducto } from "@/components/productos/selector-producto";
 import { SelectCampo } from "@/components/select-campo";
 import { SelectorImpuesto } from "@/components/selector-impuesto";

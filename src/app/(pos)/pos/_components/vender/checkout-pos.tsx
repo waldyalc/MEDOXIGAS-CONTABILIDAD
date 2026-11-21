@@ -5,9 +5,9 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { cn } from "cn";
-import { ArrowLeftRight, Banknote, CalendarClock, CreditCard, Loader2, Plus, Split, Trash2 } from "lucide-react";
 
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
+import { ArrowLeftRight, Banknote, CalendarClock, CreditCard, Loader2, Plus, Split, Trash2 } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";

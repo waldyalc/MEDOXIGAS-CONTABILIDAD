@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { FileMinus2 } from "lucide-react";
-
 import {
   type CampoInformacionDocumento,
   CLASE_BOTON_DOCUMENTO,
@@ -17,6 +15,7 @@ import {
   TotalesDocumento,
 } from "@/components/documento/documento-detalle";
 import { Enlace } from "@/components/enlace";
+import { FileMinus2 } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

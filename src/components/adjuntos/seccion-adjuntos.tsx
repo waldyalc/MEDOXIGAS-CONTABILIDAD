@@ -4,9 +4,8 @@ import { type ChangeEvent, useRef, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Download, FileText, Loader2, Paperclip, Trash2, Upload } from "lucide-react";
-
 import { usePagina } from "@/components/ficha/ficha-ui";
+import { Download, FileText, Loader2, Paperclip, Trash2, Upload } from "@/components/icons";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
 import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";

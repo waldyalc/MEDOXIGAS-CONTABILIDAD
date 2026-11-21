@@ -4,9 +4,8 @@ import { type ReactNode, useState } from "react";
 
 import Link from "next/link";
 
-import { Eye, Undo2, Wallet } from "lucide-react";
-
 import { AvatarInicial } from "@/components/avatar-inicial";
+import { Eye, Undo2, Wallet } from "@/components/icons";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
 import {
   type ColumnaLista,

@@ -3,10 +3,10 @@
 import { useTransition } from "react";
 
 import { cn } from "cn";
-import { Loader2, LogOut } from "lucide-react";
 
 import { salir } from "@/app/login/actions";
 import { AvatarInicial } from "@/components/avatar-inicial";
+import { Loader2, LogOut } from "@/components/icons";
 
 import { claseIconoMenu, itemMenuBase, itemMenuColapsado } from "./menu-pos-estilos";
 

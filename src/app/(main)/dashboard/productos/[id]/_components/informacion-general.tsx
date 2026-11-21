@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 
 import { cn } from "cn";
-import { Boxes, MapPin, Star, TrendingDown } from "lucide-react";
 
 import { SeccionAdjuntos } from "@/components/adjuntos/seccion-adjuntos";
 import { Enlace } from "@/components/enlace";
 import { ItemDato } from "@/components/ficha/ficha-ui";
+import { Boxes, MapPin, Star, TrendingDown } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";

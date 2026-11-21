@@ -3,10 +3,9 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Plus, ShoppingCart } from "lucide-react";
-
 import { EsqueletoTabla } from "@/components/carga/esqueletos";
 import { Enlace } from "@/components/enlace";
+import { Plus, ShoppingCart } from "@/components/icons";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import {

@@ -5,8 +5,8 @@ import { type FormEvent, useEffect, useRef, useState, useTransition } from "reac
 import { usePathname, useRouter } from "next/navigation";
 
 import { cn } from "cn";
-import { Loader2, Search } from "lucide-react";
 
+import { Loader2, Search } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { type ParametrosLista, urlLista } from "@/lib/listas/parametros";
 

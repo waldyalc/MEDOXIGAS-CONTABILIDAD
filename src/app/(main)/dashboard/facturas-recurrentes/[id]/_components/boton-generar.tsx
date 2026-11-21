@@ -4,9 +4,8 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2 } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { Loader2 } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { rutaFactura } from "@/lib/enlaces";

@@ -6,6 +6,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { cn } from "cn";
+import { createPortal } from "react-dom";
+
+import { SeccionAdjuntos } from "@/components/adjuntos/seccion-adjuntos";
+import { DatePickerCampo } from "@/components/date-picker";
+import { FormField } from "@/components/formularios/formulario";
 import {
   ArrowLeft,
   Ban,
@@ -22,12 +27,7 @@ import {
   Printer,
   Share2,
   Truck,
-} from "lucide-react";
-import { createPortal } from "react-dom";
-
-import { SeccionAdjuntos } from "@/components/adjuntos/seccion-adjuntos";
-import { DatePickerCampo } from "@/components/date-picker";
-import { FormField } from "@/components/formularios/formulario";
+} from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { type OpcionSelect, SelectCampo } from "@/components/select-campo";
 import { Alert, AlertDescription } from "@/components/ui/alert";

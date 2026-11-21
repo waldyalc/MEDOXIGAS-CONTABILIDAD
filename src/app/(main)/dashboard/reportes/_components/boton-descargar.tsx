@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 
-import { Download } from "lucide-react";
-
+import { Download } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { Loader2 } from "lucide-react";
-
+import { Loader2 } from "@/components/icons";
 import { SelectCampo } from "@/components/select-campo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";

@@ -6,8 +6,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ChevronDown, Loader2, Plus, Trash2 } from "lucide-react";
-
 import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
@@ -25,6 +23,7 @@ import {
   FormTotal,
 } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { ChevronDown, Loader2, Plus, Trash2 } from "@/components/icons";
 import { type ProductoSeleccionable, SelectorProducto } from "@/components/productos/selector-producto";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";

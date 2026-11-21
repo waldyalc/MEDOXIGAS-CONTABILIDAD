@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { BookOpen } from "lucide-react";
-
 import {
   type CampoInformacionDocumento,
   CLASE_BOTON_DOCUMENTO,
@@ -14,6 +12,7 @@ import {
   TarjetaDocumento,
 } from "@/components/documento/documento-detalle";
 import { Enlace } from "@/components/enlace";
+import { BookOpen } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "cn";
-import { Package, Star } from "lucide-react";
 
+import { Package, Star } from "@/components/icons";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
 import type { ProductoPOS } from "@/lib/pos/tipos";
 

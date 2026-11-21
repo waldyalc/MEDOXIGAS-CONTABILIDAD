@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-import { RefreshCw } from "lucide-react";
-
+import { RefreshCw } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 
 /** Vuelve a pedir los datos de la pantalla sin recargar el navegador. */

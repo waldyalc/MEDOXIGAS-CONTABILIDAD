@@ -2,9 +2,8 @@
 
 import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
 
-import { ArrowUpRight, Check, Loader2 } from "lucide-react";
-
 import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { ArrowUpRight, Check, Loader2 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";

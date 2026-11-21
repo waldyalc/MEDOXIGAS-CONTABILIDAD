@@ -5,8 +5,6 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
-
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
@@ -24,6 +22,7 @@ import {
   FormTotal,
 } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { ArrowLeft, Plus, Trash2 } from "@/components/icons";
 import { type ProductoSeleccionable, SelectorProducto } from "@/components/productos/selector-producto";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";

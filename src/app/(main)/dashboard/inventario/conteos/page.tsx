@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { Plus } from "lucide-react";
-
+import { Plus } from "@/components/icons";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { ContenedorLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";

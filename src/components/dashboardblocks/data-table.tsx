@@ -34,15 +34,6 @@ import {
   useTable,
 } from "@tanstack/react-table";
 import { cn } from "cn";
-import {
-  ArrowDownIcon,
-  ArrowUpDownIcon,
-  ArrowUpIcon,
-  ChevronDownIcon,
-  CirclePlusIcon,
-  Columns3Icon,
-  XIcon,
-} from "lucide-react";
 
 import { BlockStateText, useBlockState } from "@/components/dashboardblocks/block-state";
 import {
@@ -58,6 +49,15 @@ import {
   DataTableStateRows,
 } from "@/components/dashboardblocks/table";
 import { Tag } from "@/components/dashboardblocks/tag";
+import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
+  ChevronDownIcon,
+  CirclePlusIcon,
+  Columns3Icon,
+  XIcon,
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {

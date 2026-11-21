@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 
-import { Receipt } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { Receipt } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { rutaContacto, rutaCuenta, rutaGasto } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";

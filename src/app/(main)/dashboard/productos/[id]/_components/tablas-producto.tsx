@@ -2,10 +2,9 @@
 
 import { type ReactNode, useState } from "react";
 
-import { Search } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
 import { usePagina } from "@/components/ficha/ficha-ui";
+import { Search } from "@/components/icons";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
 import { BarraLista, type ColumnaLista, PillEstado, TablaLista, type TonoPill } from "@/components/listas/tabla-lista";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";

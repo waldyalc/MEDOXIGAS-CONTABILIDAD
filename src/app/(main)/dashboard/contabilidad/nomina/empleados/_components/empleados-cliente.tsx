@@ -5,9 +5,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { Pencil, Plus } from "lucide-react";
-
 import { AvatarInicial } from "@/components/avatar-inicial";
+import { Pencil, Plus } from "@/components/icons";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import {

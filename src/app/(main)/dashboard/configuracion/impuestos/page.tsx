@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { Percent } from "lucide-react";
-
+import { Percent } from "@/components/icons";
 import {
   type ColumnaLista,
   ContenedorLista,

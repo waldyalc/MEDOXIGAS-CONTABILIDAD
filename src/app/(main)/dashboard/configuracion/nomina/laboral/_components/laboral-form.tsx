@@ -5,10 +5,9 @@ import { type ReactNode, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { AlertTriangle, InfoIcon, Loader2 } from "lucide-react";
-
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FORM_BUTTON, FormActions, FormCard, FormGrid, FormSectionTitle } from "@/components/formularios/formulario";
+import { AlertTriangle, InfoIcon, Loader2 } from "@/components/icons";
 import { type OpcionSelect, SelectCampo } from "@/components/select-campo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";

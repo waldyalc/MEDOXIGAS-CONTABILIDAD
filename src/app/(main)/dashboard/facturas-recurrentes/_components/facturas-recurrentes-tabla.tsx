@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 
-import { Repeat } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { Repeat } from "@/components/icons";
 import { type ColumnaLista, TablaLista } from "@/components/listas/tabla-lista";
 import { rutaContacto, rutaFacturaRecurrente } from "@/lib/enlaces";
 import type { FacturaRecurrenteLista } from "@/lib/facturas-recurrentes/tipos";

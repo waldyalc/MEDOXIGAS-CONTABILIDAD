@@ -1,5 +1,4 @@
-import { RefreshCw } from "lucide-react";
-
+import { RefreshCw } from "@/components/icons";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

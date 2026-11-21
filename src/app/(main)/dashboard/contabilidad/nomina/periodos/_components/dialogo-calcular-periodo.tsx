@@ -4,8 +4,7 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Calculator, Loader2 } from "lucide-react";
-
+import { Calculator, Loader2 } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,

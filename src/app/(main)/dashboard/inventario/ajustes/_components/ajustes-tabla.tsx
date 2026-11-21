@@ -1,8 +1,7 @@
 import Link from "next/link";
 
-import { Plus, SlidersHorizontal } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { Plus, SlidersHorizontal } from "@/components/icons";
 import {
   type ColumnaLista,
   ContenedorLista,

@@ -1,5 +1,4 @@
-import { BookOpen, ClipboardList, Landmark, type LucideIcon, ShoppingCart, Wallet, Wrench } from "lucide-react";
-
+import { BookOpen, ClipboardList, Landmark, type LucideIcon, ShoppingCart, Wallet, Wrench } from "@/components/icons";
 import type { CategoriaReporte } from "@/lib/reportes/catalogo-reportes";
 
 interface MetaCategoria {

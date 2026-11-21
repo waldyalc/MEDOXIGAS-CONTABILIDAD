@@ -1,8 +1,7 @@
 import Link from "next/link";
 
-import { FileText } from "lucide-react";
-
 import { BotonImprimir } from "@/components/boton-imprimir";
+import { FileText } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

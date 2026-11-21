@@ -4,11 +4,10 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Pencil, Plus, Tag } from "lucide-react";
-
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FORM_INPUT, FORM_TEXTAREA } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { Loader2, Pencil, Plus, Tag } from "@/components/icons";
 import {
   type ColumnaLista,
   ContenedorLista,

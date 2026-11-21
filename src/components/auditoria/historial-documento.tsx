@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 
 import { cn } from "cn";
-import { Ban, History, Loader2, Pencil, Plus } from "lucide-react";
 
+import { Ban, History, Loader2, Pencil, Plus } from "@/components/icons";
 import { consultarAuditoria, type EntradaAuditoria } from "@/lib/auditoria/consultas";
 import { formatoFechaHora } from "@/lib/formato";
 

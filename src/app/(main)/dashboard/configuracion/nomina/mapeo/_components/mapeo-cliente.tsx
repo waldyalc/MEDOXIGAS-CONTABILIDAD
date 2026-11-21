@@ -4,9 +4,8 @@ import { type ReactNode, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { AlertTriangle, Loader2, Search } from "lucide-react";
-
 import { FORM_COMBO, FormActions } from "@/components/formularios/formulario";
+import { AlertTriangle, Loader2, Search } from "@/components/icons";
 import { type ColumnaLista, EstadoVacioLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { type OpcionSelect, SelectCampo } from "@/components/select-campo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

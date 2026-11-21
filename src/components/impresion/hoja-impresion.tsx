@@ -3,9 +3,9 @@
 import { type ReactNode, useEffect, useState } from "react";
 
 import { cn } from "cn";
-import { Printer } from "lucide-react";
 import { createPortal } from "react-dom";
 
+import { Printer } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import type { Empresa } from "@/lib/facturacion/tipos";
 import { formatoDia, formatoFechaHora } from "@/lib/formato";

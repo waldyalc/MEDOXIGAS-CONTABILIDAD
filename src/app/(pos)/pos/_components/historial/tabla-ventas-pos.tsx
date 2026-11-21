@@ -2,8 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { Eye, Printer } from "lucide-react";
-
+import { Eye, Printer } from "@/components/icons";
 import {
   BarraLista,
   type ColumnaLista,

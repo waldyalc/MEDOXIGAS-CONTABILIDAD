@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 
-import { CircleCheck, FileText, Printer } from "lucide-react";
-
+import { CircleCheck, FileText, Printer } from "@/components/icons";
 import { CartaCotizacionPOS, CartaFacturaPOS } from "@/components/pos/documento-carta-pos";
 import { ImpresionPos } from "@/components/pos/impresion-pos";
 import { TicketPos } from "@/components/pos/ticket-pos";

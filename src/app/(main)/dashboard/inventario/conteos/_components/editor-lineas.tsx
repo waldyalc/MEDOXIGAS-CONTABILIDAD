@@ -3,9 +3,9 @@
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 
 import { cn } from "cn";
-import { Loader2, Plus, Search, Trash2 } from "lucide-react";
 
 import { FORM_INPUT, FORM_INPUT_GROUP } from "@/components/formularios/formulario";
+import { Loader2, Plus, Search, Trash2 } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

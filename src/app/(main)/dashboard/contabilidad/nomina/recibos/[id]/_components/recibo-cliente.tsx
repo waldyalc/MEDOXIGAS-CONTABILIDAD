@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { AvatarInicial } from "@/components/avatar-inicial";
 import {
   Calculator,
   ChevronDown,
@@ -16,9 +17,7 @@ import {
   Printer,
   Trash2,
   TriangleAlert,
-} from "lucide-react";
-
-import { AvatarInicial } from "@/components/avatar-inicial";
+} from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { ContenedorDetalle } from "@/components/pagina/contenedor-pagina";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
