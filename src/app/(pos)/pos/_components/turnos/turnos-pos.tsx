@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -95,6 +95,8 @@ export function TurnosPos({
   const [cerrarAbierto, setCerrarAbierto] = useState(false);
   const [detalle, setDetalle] = useState<ResumenTurnoVista | null>(null);
   const [detalleCargando, setDetalleCargando] = useState<string | null>(null);
+  const [detalleError, setDetalleError] = useState<string | null>(null);
+  const [solicitado, setSolicitado] = useState<string | null>(null);
   const [confirmacion, setConfirmacion] = useState<CierreTurnoPOS | null>(null);
   const [recibo, setRecibo] = useState<MovimientoTurnoPOSResultado | null>(null);
   const [reciboHistorico, setReciboHistorico] = useState<MovimientoTurnoPOS | null>(null);
@@ -117,16 +119,14 @@ export function TurnosPos({
   }
 
   const cargarCierre = useCallback(async (id: string) => {
+    setSolicitado(id);
     setDetalleCargando(id);
     setDetalle(null);
+    setDetalleError(null);
     try {
       const resultado = await resumenTurnoPOS(id);
       if (!resultado.ok || !resultado.data) {
-        toast.add({
-          type: "error",
-          title: "No se pudo cargar el cierre",
-          description: resultado.ok ? "El turno no existe." : resultado.error,
-        });
+        setDetalleError(resultado.ok ? "El turno no existe." : resultado.error);
         return;
       }
       setDetalle(resultado.data);
@@ -138,16 +138,13 @@ export function TurnosPos({
   function seleccionar(clave: string) {
     setSeleccionado(clave);
     setDetalleMovil(true);
-    if (clave !== SELECCION_ACTUAL && detalle?.turno.id !== clave) void cargarCierre(clave);
   }
 
-  // Al montar sin turno vigente se precarga el primer cierre de la lista.
-  const arranque = useRef(false);
+  // La selección de un cierre dispara su detalle una sola vez por id.
   useEffect(() => {
-    if (arranque.current) return;
-    arranque.current = true;
-    if (seleccionado !== SELECCION_ACTUAL && seleccionado !== "") void cargarCierre(seleccionado);
-  }, [seleccionado, cargarCierre]);
+    if (seleccionado === SELECCION_ACTUAL || seleccionado === "" || seleccionado === solicitado) return;
+    void cargarCierre(seleccionado);
+  }, [seleccionado, solicitado, cargarCierre]);
 
   async function imprimirCierre(turnoFila: TurnoPOS) {
     setImprimiendo(true);
@@ -328,10 +325,19 @@ export function TurnosPos({
             </Button>
 
             {seleccionado !== SELECCION_ACTUAL && seleccionado !== "" && !vistaDetalle ? (
-              <div className="text-muted-foreground flex items-center gap-2 py-16 text-sm">
-                <Loader2 className="animate-spin" aria-hidden="true" />
-                Cargando cierre…
-              </div>
+              detalleError ? (
+                <div className="flex flex-col items-start gap-2">
+                  <p className="text-destructive text-sm">{detalleError}</p>
+                  <Button variant="outline" size="sm" onClick={() => void cargarCierre(seleccionado)}>
+                    Reintentar
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-muted-foreground flex items-center gap-2 py-16 text-sm">
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                  Cargando cierre…
+                </div>
+              )
             ) : vistaDetalle ? (
               <>
                 <ResumenTurno vista={vistaDetalle} acciones={accionesDetalle} />

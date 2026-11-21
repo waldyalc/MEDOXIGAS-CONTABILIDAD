@@ -4,14 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { FileText, Loader2, Printer, RotateCcw } from "lucide-react";
+import { FileText, Loader2, Printer, ReceiptText, RotateCcw } from "lucide-react";
 
+import { PillEstado } from "@/components/listas/tabla-lista";
 import { CartaFacturaPOS } from "@/components/pos/documento-carta-pos";
 import { ImpresionPos } from "@/components/pos/impresion-pos";
 import { TicketPos } from "@/components/pos/ticket-pos";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
@@ -95,53 +94,117 @@ export function DetalleVentaPos({
 
   return (
     <>
-      <Sheet open={facturaId !== null} onOpenChange={(abierto) => (abierto ? null : onCerrar())}>
-        <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[560px]">
-          <SheetHeader className="border-border border-b px-4 py-3">
-            <SheetTitle>
-              {detalle ? (detalle.factura.ncf ?? `Factura No ${detalle.factura.numero}`) : "Detalle de la venta"}
-            </SheetTitle>
-            <SheetDescription>
-              {detalle ? `Factura No ${detalle.factura.numero} · ${formatoFechaHora(detalle.factura.creado_en)}` : ""}
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-            {cargando ? (
-              <div className="flex flex-col gap-2">
-                <Skeleton className="h-6 w-1/2" />
-                <Skeleton className="h-24 w-full" />
-                <Skeleton className="h-40 w-full" />
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-start gap-2">
-                <p className="text-destructive text-sm">{error}</p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => facturaId && void cargar(facturaId)}>
-                    Reintentar
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={onCerrar}>
-                    Cerrar
-                  </Button>
-                </div>
-              </div>
-            ) : detalle ? (
-              <div className="flex flex-col gap-4">
+      <div className="flex min-h-full flex-col">
+        {!facturaId ? (
+          <div className="flex flex-col items-center gap-2 px-4 py-16 text-center">
+            <ReceiptText className="text-muted-foreground size-8" aria-hidden="true" />
+            <p className="text-lg font-semibold">Selecciona una venta</p>
+            <p className="text-muted-foreground max-w-sm text-sm">
+              Elige una factura de la lista para ver sus productos, pagos y acciones.
+            </p>
+          </div>
+        ) : cargando ? (
+          <div className="flex flex-col gap-2 p-4 md:p-6">
+            <Skeleton className="h-6 w-1/2" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-start gap-2 p-4 md:p-6">
+            <p className="text-destructive text-sm">{error}</p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => facturaId && void cargar(facturaId)}>
+                Reintentar
+              </Button>
+              <Button variant="ghost" size="sm" onClick={onCerrar}>
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        ) : detalle ? (
+          <div className="flex flex-col gap-5 p-4 md:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={detalle.factura.estado === "anulada" ? "destructive" : "secondary"}>
+                  <h2 className="text-lg font-semibold">
+                    {detalle.factura.ncf ?? `Factura No ${detalle.factura.numero}`}
+                  </h2>
+                  <PillEstado
+                    tono={
+                      detalle.factura.estado === "pagada"
+                        ? "exito"
+                        : detalle.factura.estado === "anulada"
+                          ? "peligro"
+                          : "pendiente"
+                    }
+                  >
                     {detalle.factura.estado === "pagada"
                       ? "Cobrada"
                       : detalle.factura.estado === "anulada"
                         ? "Anulada"
                         : "Por cobrar"}
-                  </Badge>
-                  <span className="text-muted-foreground text-xs">{`Terminal ${detalle.terminal_nombre ?? "—"}`}</span>
-                  <span className="text-muted-foreground text-xs">
-                    {detalle.turno ? `Turno No ${detalle.turno.numero}` : "Sin turno"}
-                  </span>
-                  <span className="text-muted-foreground text-xs">{`Cajero ${detalle.cajero ?? "—"}`}</span>
+                  </PillEstado>
                 </div>
+                <p className="text-muted-foreground text-xs">
+                  {`Factura No ${detalle.factura.numero} · ${formatoFechaHora(detalle.factura.creado_en)} · Terminal ${detalle.terminal_nombre ?? "—"} · `}
+                  {detalle.turno ? `Turno No ${detalle.turno.numero}` : "Sin turno"}
+                  {` · Cajero ${detalle.cajero ?? "—"}`}
+                </p>
+              </div>
 
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  className="h-10 gap-1.5"
+                  disabled={imprimiendo !== null}
+                  onClick={() => void imprimir("ticket")}
+                >
+                  {imprimiendo === "ticket" ? (
+                    <Loader2 className="animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Printer aria-hidden="true" />
+                  )}
+                  Imprimir ticket
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="h-10 gap-1.5"
+                  disabled={imprimiendo !== null || !puedeCarta}
+                  title={puedeCarta ? undefined : "Falta el nombre de la empresa en Configuración."}
+                  onClick={() => void imprimir("carta")}
+                >
+                  {imprimiendo === "carta" ? (
+                    <Loader2 className="animate-spin" aria-hidden="true" />
+                  ) : (
+                    <FileText aria-hidden="true" />
+                  )}
+                  PDF Carta
+                </Button>
+                {detalle.factura.estado !== "anulada" && puedeEscribir ? (
+                  <Button
+                    variant="ghost"
+                    className="h-10 gap-1.5"
+                    onClick={() => {
+                      onCerrar();
+                      router.push(`/pos/devoluciones?factura=${detalle.factura.id}`);
+                    }}
+                  >
+                    <RotateCcw aria-hidden="true" />
+                    Nueva devolución
+                  </Button>
+                ) : null}
+                <Button
+                  variant="ghost"
+                  className="h-10"
+                  render={<a href={`/dashboard/facturacion/${detalle.factura.id}`} target="_blank" rel="noreferrer" />}
+                >
+                  Ver en Contabilidad
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+              <div className="flex min-w-0 flex-col gap-5">
                 <section className="flex flex-col gap-1 text-sm">
                   <p className="font-medium">{detalle.contacto.nombre}</p>
                   {detalle.contacto.rnc_cedula ? (
@@ -193,53 +256,6 @@ export function DetalleVentaPos({
                       </TableBody>
                     </Table>
                   </div>
-                </section>
-
-                <section className="flex flex-col gap-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span className="tabular-nums">{formatoMoneda(detalle.factura.subtotal)}</span>
-                  </div>
-                  {Number(detalle.factura.descuento) > 0 ? (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Descuento</span>
-                      <span className="tabular-nums">−{formatoMoneda(detalle.factura.descuento)}</span>
-                    </div>
-                  ) : null}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">ITBIS</span>
-                    <span className="tabular-nums">{formatoMoneda(detalle.factura.itbis)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total</span>
-                    <span className="font-semibold tabular-nums">{formatoMoneda(detalle.factura.total)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Pagado</span>
-                    <span className="tabular-nums">{formatoMoneda(detalle.factura.pagado)}</span>
-                  </div>
-                  {Number(detalle.factura.credito) > 0 ? (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Crédito</span>
-                      <span className="tabular-nums">{formatoMoneda(detalle.factura.credito)}</span>
-                    </div>
-                  ) : null}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Saldo</span>
-                    <span className="tabular-nums">{formatoMoneda(detalle.factura.saldo)}</span>
-                  </div>
-                  {detalle.factura.monto_recibido ? (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Recibido</span>
-                      <span className="tabular-nums">{formatoMoneda(detalle.factura.monto_recibido)}</span>
-                    </div>
-                  ) : null}
-                  {detalle.factura.cambio && Number(detalle.factura.cambio) > 0 ? (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Cambio</span>
-                      <span className="tabular-nums">{formatoMoneda(detalle.factura.cambio)}</span>
-                    </div>
-                  ) : null}
                 </section>
 
                 <section>
@@ -301,69 +317,70 @@ export function DetalleVentaPos({
                     </div>
                   )}
                 </section>
-
-                <p className="text-muted-foreground text-xs">
-                  Este ticket se genera con los datos actuales de la factura.
-                </p>
               </div>
-            ) : null}
-          </div>
 
-          {detalle ? (
-            <div className="border-border flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3">
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  className="h-10 gap-1.5"
-                  disabled={imprimiendo !== null}
-                  onClick={() => void imprimir("ticket")}
-                >
-                  {imprimiendo === "ticket" ? (
-                    <Loader2 className="animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Printer aria-hidden="true" />
-                  )}
-                  Imprimir ticket
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="h-10 gap-1.5"
-                  disabled={imprimiendo !== null || !puedeCarta}
-                  title={puedeCarta ? undefined : "Falta el nombre de la empresa en Configuración."}
-                  onClick={() => void imprimir("carta")}
-                >
-                  {imprimiendo === "carta" ? (
-                    <Loader2 className="animate-spin" aria-hidden="true" />
-                  ) : (
-                    <FileText aria-hidden="true" />
-                  )}
-                  PDF Carta
-                </Button>
-                {detalle.factura.estado !== "anulada" && puedeEscribir ? (
-                  <Button
-                    variant="ghost"
-                    className="h-10 gap-1.5"
-                    onClick={() => {
-                      onCerrar();
-                      router.push(`/pos/devoluciones?factura=${detalle.factura.id}`);
-                    }}
-                  >
-                    <RotateCcw aria-hidden="true" />
-                    Nueva devolución
-                  </Button>
-                ) : null}
-                <Button
-                  variant="ghost"
-                  className="h-10"
-                  render={<a href={`/dashboard/facturacion/${detalle.factura.id}`} target="_blank" rel="noreferrer" />}
-                >
-                  Ver en Contabilidad
-                </Button>
-              </div>
+              <aside className="h-fit">
+                <div className="bg-muted/50 flex flex-col gap-1 rounded-xl px-4 py-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="tabular-nums">{formatoMoneda(detalle.factura.subtotal)}</span>
+                  </div>
+                  {Number(detalle.factura.descuento) > 0 ? (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Descuento</span>
+                      <span className="tabular-nums">−{formatoMoneda(detalle.factura.descuento)}</span>
+                    </div>
+                  ) : null}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">ITBIS</span>
+                    <span className="tabular-nums">{formatoMoneda(detalle.factura.itbis)}</span>
+                  </div>
+                  <div className="border-border mt-1 flex items-baseline justify-between border-t pt-1">
+                    <span className="font-semibold">Total</span>
+                    <span className="text-xl font-semibold tabular-nums">{formatoMoneda(detalle.factura.total)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Pagado</span>
+                    <span className="tabular-nums">{formatoMoneda(detalle.factura.pagado)}</span>
+                  </div>
+                  {Number(detalle.factura.credito) > 0 ? (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Crédito</span>
+                      <span className="tabular-nums">{formatoMoneda(detalle.factura.credito)}</span>
+                    </div>
+                  ) : null}
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Saldo</span>
+                    <span
+                      className={
+                        Number(detalle.factura.saldo) > 0 && detalle.factura.estado !== "anulada"
+                          ? "text-destructive tabular-nums"
+                          : "tabular-nums"
+                      }
+                    >
+                      {formatoMoneda(detalle.factura.saldo)}
+                    </span>
+                  </div>
+                  {detalle.factura.monto_recibido ? (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Recibido</span>
+                      <span className="tabular-nums">{formatoMoneda(detalle.factura.monto_recibido)}</span>
+                    </div>
+                  ) : null}
+                  {detalle.factura.cambio && Number(detalle.factura.cambio) > 0 ? (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Cambio</span>
+                      <span className="tabular-nums">{formatoMoneda(detalle.factura.cambio)}</span>
+                    </div>
+                  ) : null}
+                </div>
+              </aside>
             </div>
-          ) : null}
-        </SheetContent>
-      </Sheet>
+
+            <p className="text-muted-foreground text-xs">Este ticket se genera con los datos actuales de la factura.</p>
+          </div>
+        ) : null}
+      </div>
 
       {trabajo ? (
         <ImpresionPos

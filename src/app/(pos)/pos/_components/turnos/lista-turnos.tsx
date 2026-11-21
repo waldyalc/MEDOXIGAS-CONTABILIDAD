@@ -31,7 +31,7 @@ function ItemTurno({
       type="button"
       aria-current={seleccionado || undefined}
       className={cn(
-        "hover:bg-slate-200/45 dark:hover:bg-white/[0.06] flex w-full flex-col gap-0.5 px-4 py-2.5 text-left",
+        "flex w-full flex-col gap-0.5 px-4 py-2.5 text-left hover:bg-slate-200/45 dark:hover:bg-white/[0.06]",
         seleccionado && "bg-slate-200/45 dark:bg-white/[0.08]",
       )}
       onClick={onClick}
