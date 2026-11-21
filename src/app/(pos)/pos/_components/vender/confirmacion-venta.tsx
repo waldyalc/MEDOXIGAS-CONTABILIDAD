@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { CircleCheck, FileText, Printer } from "@/components/icons";
+import { Check, FileText, Printer } from "@/components/icons";
 import { CartaCotizacionPOS, CartaFacturaPOS } from "@/components/pos/documento-carta-pos";
 import { ImpresionPos } from "@/components/pos/impresion-pos";
 import { TicketPos } from "@/components/pos/ticket-pos";
@@ -51,6 +51,8 @@ export function ConfirmacionVenta({
 
   const total = venta?.totales.total ?? cotizacion?.totales.total ?? "0";
   const cliente = venta?.contacto.nombre ?? cotizacion?.contacto.nombre ?? "";
+  const cambio = venta?.factura.cambio && Number(venta.factura.cambio) > 0 ? venta.factura.cambio : null;
+  const credito = venta && Number(venta.factura.credito) > 0 ? venta.factura.credito : null;
 
   function imprimirTicket() {
     if (venta) {
@@ -92,85 +94,76 @@ export function ConfirmacionVenta({
   const mostrarLogoFactura = plantillaFactura.mostrarLogo && Boolean(empresa?.logo_url);
   const mostrarLogoCotizacion = plantillaCotizacion.mostrarLogo && Boolean(empresa?.logo_url);
 
+  const botonCarta = (
+    <Button variant="outline" className="h-11 gap-1.5" disabled={!puedeCarta} onClick={imprimirCarta}>
+      <FileText aria-hidden="true" />
+      PDF Carta
+    </Button>
+  );
+
   return (
-    <div className="flex flex-col items-center gap-3 text-center">
-      <div className="bg-primary/10 text-primary flex size-14 items-center justify-center rounded-full">
-        <CircleCheck className="size-7" aria-hidden="true" />
+    <div className="flex flex-col items-center gap-4 text-center">
+      <div className="border-primary text-primary flex size-16 items-center justify-center rounded-full border-2">
+        <Check className="size-8" strokeWidth={2.5} aria-hidden="true" />
       </div>
 
       <div className="flex flex-col gap-1">
-        <h2 className="text-xl font-semibold">{venta ? "Venta registrada" : "Cotización guardada"}</h2>
+        <h2 className="text-xl font-semibold">{venta ? "¡Venta completada!" : "Cotización guardada"}</h2>
+        <p className="text-muted-foreground text-sm">
+          {venta ? "Tu venta se guardó con éxito." : "Tu cotización se guardó con éxito."}
+        </p>
         {venta ? (
           <p className="text-sm">
             <span className="font-medium">{venta.factura.ncf ?? `Factura No ${venta.factura.numero}`}</span>
             {venta.factura.ncf ? ` · Factura No ${venta.factura.numero}` : ""}
           </p>
-        ) : cotizacion ? (
-          <p className="text-sm font-medium">{`Cotización No ${cotizacion.cotizacion.numero}`}</p>
         ) : null}
+        {cotizacion ? <p className="text-sm font-medium">{`Cotización No ${cotizacion.cotizacion.numero}`}</p> : null}
         <p className="text-muted-foreground text-sm">{cliente}</p>
       </div>
 
-      <div className="border-border w-full max-w-sm rounded-lg border px-4 py-3 text-sm">
-        <div className="flex items-baseline justify-between">
-          <span className="text-muted-foreground">Total</span>
-          <span className="text-lg font-semibold tabular-nums">{formatoMoneda(total)}</span>
-        </div>
-        {venta?.factura.monto_recibido && Number(venta.factura.monto_recibido) > 0 ? (
-          <div className="flex items-baseline justify-between">
-            <span className="text-muted-foreground">Recibido</span>
-            <span className="tabular-nums">{formatoMoneda(venta.factura.monto_recibido)}</span>
-          </div>
+      <div className="bg-muted/70 flex flex-col items-center gap-0.5 rounded-lg px-8 py-3">
+        <span className="text-base">
+          Total <span className="font-semibold tabular-nums">{formatoMoneda(total)}</span>
+        </span>
+        {cambio ? (
+          <span className="text-sm">
+            Cambio <span className="text-destructive font-semibold tabular-nums">{formatoMoneda(cambio)}</span>
+          </span>
         ) : null}
-        {venta?.factura.cambio && Number(venta.factura.cambio) > 0 ? (
-          <div className="flex items-baseline justify-between">
-            <span className="text-muted-foreground">Cambio</span>
-            <span className="tabular-nums">{formatoMoneda(venta.factura.cambio)}</span>
-          </div>
-        ) : null}
-        {venta && Number(venta.factura.credito) > 0 ? (
-          <div className="mt-1 flex items-baseline justify-between border-t pt-1">
-            <span className="font-medium">Queda a crédito</span>
-            <span className="font-semibold tabular-nums">{formatoMoneda(venta.factura.credito)}</span>
-          </div>
+        {credito ? (
+          <span className="text-sm">
+            Queda a crédito <span className="font-semibold tabular-nums">{formatoMoneda(credito)}</span>
+          </span>
         ) : null}
       </div>
 
       <div className="flex w-full flex-wrap items-center justify-center gap-2">
-        <Button className="h-12" onClick={onNuevaVenta}>
-          Nueva venta
-        </Button>
-        <Button variant="outline" className="h-12 gap-1.5" onClick={imprimirTicket}>
+        <Button variant="outline" className="h-11 gap-1.5" onClick={imprimirTicket}>
           <Printer aria-hidden="true" />
           Imprimir ticket
         </Button>
-        {puedeCarta ? (
-          <Button variant="ghost" className="h-12 gap-1.5" onClick={imprimirCarta}>
-            <FileText aria-hidden="true" />
-            PDF Carta
-          </Button>
-        ) : (
-          <span title="Falta el nombre de la empresa en Configuración.">
-            <Button variant="ghost" className="h-12 gap-1.5" disabled>
-              <FileText aria-hidden="true" />
-              PDF Carta
-            </Button>
-          </span>
-        )}
+        {puedeCarta ? botonCarta : <span title="Falta el nombre de la empresa en Configuración.">{botonCarta}</span>}
+        <Button className="h-11" onClick={onNuevaVenta}>
+          Nueva venta
+        </Button>
+      </div>
+
+      <div className="flex items-center justify-center gap-2">
         {venta ? (
-          <Button variant="ghost" className="h-12" onClick={() => onVerHistorial(venta.factura.ncf)}>
+          <Button variant="link" className="h-9 px-2" onClick={() => onVerHistorial(venta.factura.ncf)}>
             Ver en el historial
           </Button>
         ) : (
           <Button
-            variant="ghost"
-            className="h-12"
+            variant="link"
+            className="h-9 px-2"
             render={<a href="/dashboard/cotizaciones" target="_blank" rel="noreferrer" />}
           >
             Ver en Contabilidad
           </Button>
         )}
-        <Button variant="link" className="h-12 px-2" onClick={onCerrar}>
+        <Button variant="ghost" className="h-9 px-2" onClick={onCerrar}>
           Cerrar
         </Button>
       </div>

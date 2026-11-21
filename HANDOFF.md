@@ -1,5 +1,6 @@
 # Handoff — Medoxigas Contabilidad
 
+<<<<<<< HEAD
 ## Rediseño POS estilo Alegra: shell con riel lateral C1+C3 (rama `feat/pos-shell-rail-alegra`)
 
 Trabajo de subagente ejecutor sobre `docs/planes/rediseno-alegra/PLAN.md` (partes C1 y C3), pendiente de revisión/integración del Orquestador:
@@ -10,6 +11,16 @@ Trabajo de subagente ejecutor sobre `docs/planes/rediseno-alegra/PLAN.md` (parte
 - **Nueva ruta placeholder:** `src/app/(pos)/pos/pagos/page.tsx` (EncabezadoPagina + ContenedorLista) para que el enlace «Registro de pagos» no caiga en 404; la pantalla completa es C6 del plan.
 - **Sin capturas:** este worktree no tiene `.env.local` ni credenciales E2E ni cache de Playwright; la evidencia visual (claro/oscuro/móvil + medición del borde derecho del panel) la debe generar el Orquestador en su entorno.
 - **Verificación:** `pnpm typecheck` y `pnpm check` (0 errores) verdes; `pnpm test` 1497/1498 con un solo fallo ambiental en `src/lib/pos/impresion.test.ts` («hora de recepción»: el ICU de Node 22.21.1 emite `p.\u00A0m.` con espacio no rompible y el literal del test usa espacio normal; archivo no tocado por esta tarea).
+=======
+## C9-A: Checkout, Confirmación y Venta simple estilo Alegra (rama `feat/pos-checkout-confirmacion-simple`)
+
+- **Checkout «Pagar factura»** (`checkout-pos.tsx`): TOTAL centrado grande, flujo en dos pasos — primero tiles 3+3 con icono (Efectivo, Tarjeta crédito, Transferencia / Tarjeta débito, Combinado, Crédito) con divisor «Otros métodos», luego detalle con «Cambiar método». En efectivo: pills de opciones rápidas (Exacto + redondeos), campo recibido, «Cambio» destacado, observaciones a la derecha. Conservados combinado, pago parcial, crédito y toda la lógica de `completarVenta`.
+- **Confirmación** (`confirmacion-venta.tsx`): círculo primario con check, «¡Venta completada!», chip Total + Cambio, acciones Imprimir ticket / PDF Carta / Nueva venta.
+- **Venta simple F4** (`dialogo-venta-simple.tsx`): layout calculadora (nombre, display grande, grid dígitos/operadores ce/C/%, CTA full-width «Aplicar a la venta»). Sin cambios en `dialogo-cargar-cotizacion.tsx` ni `panel-factura.tsx`.
+- **Verificación:** `pnpm typecheck` ✅, `pnpm check` ✅ (0 errores), `pnpm test` ✅ salvo 1 fallo preexistente/ambiental en `src/lib/pos/impresion.test.ts` (formato ICU de Node 22: `20 nov 2026, 3:10 p. m.` vs esperado `20/11/2026 03:10 p. m.`; no toca los archivos de la tarea).
+- **Capturas** en `/tmp/pos-shots/` (8 PNGs, claro/oscuro): venta simple, tiles de métodos, detalle efectivo con cambio y confirmación. Venta real de prueba cobrada end-to-end (B0200000005, RD$250, contacto PRUEBA CAPTURA ER); el turno 3 de `ZZCAPTURA Caja 1` se abrió y cerró cuadrado (Cierre No 3).
+- **Pendiente:** `git push -u origin HEAD` — el entorno no tiene credenciales GitHub (`gh` no instalado, HTTPS sin token). Commits locales: `bd6ad5f`, `283df63`, `63d2c30`.
+>>>>>>> origin/feat/pos-checkout-confirmacion-simple
 
 > ## ESTADO PARA LA PRÓXIMA SESIÓN (21 nov 2026)
 >

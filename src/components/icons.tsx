@@ -19,6 +19,7 @@ export {
   ArrowUpIcon,
   ArrowUpRightIcon as ArrowUpRight,
   ArrowUUpLeftIcon as Undo2,
+  BackspaceIcon as Delete,
   BankIcon as Bank,
   BankIcon as Landmark,
   BarcodeIcon as Barcode,
