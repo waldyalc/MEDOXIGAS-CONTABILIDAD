@@ -10,15 +10,9 @@ import { cn } from "cn";
 import { ChevronDown } from "@/components/icons";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuBadge,
   SidebarMenuButton,
@@ -50,19 +44,6 @@ interface NavItemProps {
 interface NavLinkItemProps {
   readonly item: NavMainLinkItem;
   readonly isActive: boolean;
-  readonly showIconFallback: boolean;
-  readonly onNavigate: (url: string) => void;
-}
-
-interface NavLinkIconProps {
-  readonly item: NavMainLinkItem;
-  readonly showFallback: boolean;
-}
-
-interface NavDropdownItemProps {
-  readonly item: NavMainParentItem;
-  readonly isActive: boolean;
-  readonly esSubItemActivo: (url: string) => boolean;
   readonly onNavigate: (url: string) => void;
 }
 
@@ -74,18 +55,10 @@ interface NavCollapsibleItemProps {
 }
 
 const estiloItem =
-  "relative h-8 gap-2 rounded-[6px] px-2 py-1.5 font-[family-name:var(--font-inter)] text-sm leading-[21px] font-normal tracking-normal text-slate-700 before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary before:opacity-0 before:content-[''] hover:bg-slate-200/45 hover:text-slate-900 active:bg-slate-200/70 data-active:bg-sidebar-accent data-active:font-normal data-active:text-slate-900 data-active:before:opacity-100 data-active:hover:bg-sidebar-accent data-active:active:bg-sidebar-accent dark:text-sidebar-foreground/85 dark:before:bg-primary dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:active:bg-white/[0.09] dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] dark:data-active:active:bg-white/[0.12] [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-slate-400 [&_svg]:stroke-[1.6] data-active:[&_svg]:text-slate-900 dark:[&_svg]:text-sidebar-foreground/50 dark:data-active:[&_svg]:text-sidebar-foreground";
+  "relative h-8 gap-2 rounded-[6px] px-2 py-1.5 font-[family-name:var(--font-inter)] text-sm leading-[21px] font-normal tracking-normal text-slate-700 before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary before:opacity-0 before:content-[''] group-data-[mobile=true]:before:h-3 hover:bg-slate-200/45 hover:text-slate-900 active:bg-slate-200/70 focus-visible:ring-primary data-active:bg-slate-200/45 data-active:font-normal data-active:text-slate-900 data-active:before:opacity-100 data-active:hover:bg-slate-200/70 data-active:active:bg-slate-200/90 dark:text-sidebar-foreground/85 dark:before:bg-primary dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:active:bg-white/[0.09] dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] dark:data-active:active:bg-white/[0.12] [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-slate-400 [&_svg]:stroke-[1.6] data-active:[&_svg]:text-slate-900 dark:[&_svg]:text-sidebar-foreground/50 dark:data-active:[&_svg]:text-sidebar-foreground";
 
 const estiloSubItem =
-  "relative mb-1 h-8 min-h-8 translate-x-0 gap-2 rounded-[6px] px-2 font-[family-name:var(--font-inter)] text-sm leading-[21px] font-normal tracking-normal text-slate-900 before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary before:opacity-0 before:content-[''] hover:bg-slate-200/45 hover:text-slate-900 active:bg-slate-200/70 data-active:bg-sidebar-accent data-active:font-normal data-active:text-slate-900 data-active:before:opacity-100 data-active:hover:bg-sidebar-accent data-active:active:bg-sidebar-accent dark:text-sidebar-foreground dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:active:bg-white/[0.09] dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] dark:data-active:active:bg-white/[0.12] [&_svg]:hidden";
-
-function CollapsedIconFallback({ title }: { title: string }) {
-  return (
-    <span className="flex size-5 shrink-0 items-center justify-center rounded-xs text-[10px] font-medium outline">
-      {title.slice(0, 1)}
-    </span>
-  );
-}
+  "relative mb-1 h-8 min-h-8 translate-x-0 gap-2 rounded-[6px] px-2 font-[family-name:var(--font-inter)] text-sm leading-[21px] font-normal tracking-normal text-slate-900 before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary before:opacity-0 before:content-[''] group-data-[mobile=true]:before:h-3 hover:bg-slate-200/45 hover:text-slate-900 active:bg-slate-200/70 focus-visible:ring-primary data-active:bg-slate-200/45 data-active:font-normal data-active:text-slate-900 data-active:before:opacity-100 data-active:hover:bg-slate-200/70 data-active:active:bg-slate-200/90 dark:text-sidebar-foreground dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:active:bg-white/[0.09] dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] dark:data-active:active:bg-white/[0.12] [&_svg]:hidden";
 
 function hasSubItems(item: NavMainItem): item is NavMainParentItem {
   return Boolean(item.subItems?.length);
@@ -147,6 +120,11 @@ export function NavMain({ items }: NavMainProps) {
     <>
       {items.map((group) => (
         <SidebarGroup key={group.id} className="p-0">
+          {group.label ? (
+            <SidebarGroupLabel className="h-auto px-2 pt-3 pb-0.5 group-data-[state=collapsed]:hidden">
+              {group.label}
+            </SidebarGroupLabel>
+          ) : null}
           <SidebarGroupContent>
             <SidebarMenu className="gap-0">
               {group.items.map((item) => (
@@ -158,7 +136,7 @@ export function NavMain({ items }: NavMainProps) {
                     onNavigate={onNavigate}
                   />
                   {item.separadorDespues ? (
-                    <li aria-hidden="true" className="flex h-4 items-center py-1 group-data-[collapsible=icon]:hidden">
+                    <li aria-hidden="true" className="flex h-4 items-center py-1">
                       <div className="dark:bg-sidebar-border h-px w-full bg-slate-200" />
                     </li>
                   ) : null}
@@ -173,29 +151,8 @@ export function NavMain({ items }: NavMainProps) {
 }
 
 function NavItem({ item, esEnlaceActivo, esSubItemActivo, onNavigate }: NavItemProps) {
-  const { state, isMobile } = useSidebar();
-  const isCollapsedDesktop = state === "collapsed" && !isMobile;
-
   if (!hasSubItems(item)) {
-    return (
-      <NavLinkItem
-        item={item}
-        isActive={esEnlaceActivo(item.url)}
-        showIconFallback={isCollapsedDesktop}
-        onNavigate={onNavigate}
-      />
-    );
-  }
-
-  if (isCollapsedDesktop) {
-    return (
-      <NavDropdownItem
-        item={item}
-        isActive={item.subItems.some((sub) => esSubItemActivo(sub.url))}
-        esSubItemActivo={esSubItemActivo}
-        onNavigate={onNavigate}
-      />
-    );
+    return <NavLinkItem item={item} isActive={esEnlaceActivo(item.url)} onNavigate={onNavigate} />;
   }
 
   return (
@@ -208,10 +165,11 @@ function NavItem({ item, esEnlaceActivo, esSubItemActivo, onNavigate }: NavItemP
   );
 }
 
-function NavLinkItem({ item, isActive, showIconFallback, onNavigate }: NavLinkItemProps) {
+function NavLinkItem({ item, isActive, onNavigate }: NavLinkItemProps) {
+  const Icon = item.icon;
   const contenido = (
     <>
-      <NavLinkIcon item={item} showFallback={showIconFallback} />
+      {Icon ? <Icon /> : null}
       <span className="truncate">{item.title}</span>
     </>
   );
@@ -245,72 +203,6 @@ function NavLinkItem({ item, isActive, showIconFallback, onNavigate }: NavLinkIt
   );
 }
 
-function NavLinkIcon({ item, showFallback }: NavLinkIconProps) {
-  const Icon = item.icon;
-
-  if (Icon) {
-    return <Icon weight="duotone" size={20} />;
-  }
-
-  if (showFallback) {
-    return <CollapsedIconFallback title={item.title} />;
-  }
-
-  return null;
-}
-
-function NavDropdownItem({ item, isActive, esSubItemActivo, onNavigate }: NavDropdownItemProps) {
-  const Icon = item.icon;
-
-  return (
-    <SidebarMenuItem>
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <SidebarMenuButton
-              tooltip={item.title}
-              isActive={isActive}
-              disabled={item.disabled}
-              className={estiloItem}
-            />
-          }
-        >
-          {Icon ? <Icon weight="duotone" size={20} /> : <CollapsedIconFallback title={item.title} />}
-          <span className="truncate">{item.title}</span>
-        </DropdownMenuTrigger>
-
-        <DropdownMenuContent side="right" align="start" sideOffset={12} className="w-48">
-          <DropdownMenuGroup>
-            {item.subItems.map((subItem) => {
-              const SubIcon = subItem.icon;
-
-              return (
-                <DropdownMenuItem
-                  key={subItem.id}
-                  render={
-                    <Link
-                      href={subItem.url}
-                      target={subItem.newTab ? "_blank" : undefined}
-                      rel={subItem.newTab ? "noreferrer" : undefined}
-                      aria-current={esSubItemActivo(subItem.url) ? "page" : undefined}
-                      className="flex items-center gap-2 font-[family-name:var(--font-inter)] text-sm"
-                      onClick={() => onNavigate(subItem.url)}
-                    />
-                  }
-                  disabled={subItem.disabled}
-                >
-                  {SubIcon && <SubIcon weight="duotone" size={20} />}
-                  <span className="truncate">{subItem.title}</span>
-                </DropdownMenuItem>
-              );
-            })}
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </SidebarMenuItem>
-  );
-}
-
 function NavCollapsibleItem({ item, defaultOpen, esSubItemActivo, onNavigate }: NavCollapsibleItemProps) {
   const Icon = item.icon;
   const subItemActivo = item.subItems.find((sub) => esSubItemActivo(sub.url));
@@ -327,12 +219,12 @@ function NavCollapsibleItem({ item, defaultOpen, esSubItemActivo, onNavigate }: 
       >
         {Icon && <Icon weight="duotone" size={20} />}
         <span className="truncate">{item.title}</span>
-        <ChevronDown className="dark:text-sidebar-foreground/50 ml-auto size-5! shrink-0 text-slate-400 transition-transform duration-200 group-data-panel-open/menu-button:rotate-180" />
+        <ChevronDown className="dark:text-sidebar-foreground/50 ml-auto size-5! shrink-0 text-slate-400 transition-transform duration-200 group-data-[state=collapsed]:hidden group-data-panel-open/menu-button:rotate-180" />
       </CollapsibleTrigger>
       <NavItemBadge badge={item.badge} />
 
       <CollapsibleContent>
-        <SidebarMenuSub className="dark:border-sidebar-border mx-0 my-2 ml-[17px] translate-x-0 gap-0 border-l border-slate-200 px-0 pl-[10px]">
+        <SidebarMenuSub className="dark:border-sidebar-border mx-0 my-2 ml-[17px] translate-x-0 gap-0 border-l border-slate-200 px-0 pl-[10px] group-data-[state=collapsed]:hidden">
           {item.subItems.map((subItem) => {
             const SubIcon = subItem.icon;
 
@@ -372,7 +264,7 @@ function NavItemBadge({ badge }: { badge?: NavBadge }) {
   return (
     <SidebarMenuBadge
       className={cn(
-        "rounded-sm border px-1.5 capitalize",
+        "rounded-sm border px-1.5 capitalize group-data-[state=collapsed]:hidden",
         badge === "new" &&
           "border-emerald-600/20 bg-emerald-500/10 text-emerald-700 peer-hover/menu-button:text-emerald-700 peer-data-active/menu-button:text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-300 dark:peer-hover/menu-button:text-emerald-300 dark:peer-data-active/menu-button:text-emerald-300",
         badge === "soon" &&
