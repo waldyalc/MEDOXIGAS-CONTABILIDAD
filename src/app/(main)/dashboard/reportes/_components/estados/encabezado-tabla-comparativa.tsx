@@ -1,5 +1,4 @@
-import { Search } from "lucide-react";
-
+import { Search } from "@/components/icons";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 
 export interface ParametroOculto {

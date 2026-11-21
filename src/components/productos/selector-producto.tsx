@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { Plus } from "lucide-react";
-
+import { Plus } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   Combobox,

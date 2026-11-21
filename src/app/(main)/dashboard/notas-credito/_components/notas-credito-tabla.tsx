@@ -1,6 +1,5 @@
-import { FileMinus } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { FileMinus } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { rutaContacto, rutaFactura, rutaNotaCreditoVenta } from "@/lib/enlaces";
 import { formatoMoneda } from "@/lib/facturacion/formato";

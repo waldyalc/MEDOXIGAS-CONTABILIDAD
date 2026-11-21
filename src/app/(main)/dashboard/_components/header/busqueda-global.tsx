@@ -2,8 +2,7 @@
 
 import * as React from "react";
 
-import { Search } from "lucide-react";
-
+import { Search } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import type { Rol } from "@/lib/auth/rol";

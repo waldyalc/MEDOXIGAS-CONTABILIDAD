@@ -5,8 +5,8 @@ import { type ReactNode, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { cn } from "cn";
-import { ChevronRight, Search, Star, X } from "lucide-react";
 
+import { ChevronRight, Search, Star, X } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

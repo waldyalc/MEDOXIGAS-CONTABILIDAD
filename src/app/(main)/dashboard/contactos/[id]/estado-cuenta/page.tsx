@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { ArrowLeft } from "lucide-react";
-
 import { BotonImprimir } from "@/components/boton-imprimir";
 import { DatePickerCampo } from "@/components/date-picker";
+import { ArrowLeft } from "@/components/icons";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

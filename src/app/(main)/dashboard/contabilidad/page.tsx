@@ -1,7 +1,6 @@
-import { BookOpen, TriangleAlert } from "lucide-react";
-
 import { NuevaCuenta } from "@/components/contabilidad/cuenta-formulario";
 import { Enlace } from "@/components/enlace";
+import { BookOpen, TriangleAlert } from "@/components/icons";
 import { type ColumnaLista, ContenedorLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

@@ -1,7 +1,6 @@
 "use client";
 
-import { Store } from "lucide-react";
-
+import { Store } from "@/components/icons";
 import { Separator } from "@/components/ui/separator";
 
 import { EstadoTurnoPos } from "./estado-turno-pos";

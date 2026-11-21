@@ -2,11 +2,10 @@
 
 import { type FormEvent, type ReactElement, useState, useTransition } from "react";
 
-import { ChevronDown, Pencil, Plus } from "lucide-react";
-
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FORM_COMBO, FORM_INPUT, FORM_SELECT } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { ChevronDown, Pencil, Plus } from "@/components/icons";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";

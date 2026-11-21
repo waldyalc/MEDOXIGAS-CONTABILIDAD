@@ -1,6 +1,6 @@
 import { cn } from "cn";
-import { PackageCheck } from "lucide-react";
 
+import { PackageCheck } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { formatoCantidad } from "@/lib/productos/productos";
 

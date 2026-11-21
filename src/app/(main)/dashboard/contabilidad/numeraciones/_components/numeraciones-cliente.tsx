@@ -4,10 +4,9 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Hash, Loader2, Pencil, Plus } from "lucide-react";
-
 import { DatePicker, DatePickerCampo } from "@/components/date-picker";
 import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
+import { Hash, Loader2, Pencil, Plus } from "@/components/icons";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
 import { BarraLista, type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { SelectCampo } from "@/components/select-campo";

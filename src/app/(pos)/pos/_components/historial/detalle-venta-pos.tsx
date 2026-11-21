@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { FileText, Loader2, Printer, RotateCcw } from "lucide-react";
-
+import { FileText, Loader2, Printer, RotateCcw } from "@/components/icons";
 import { CartaFacturaPOS } from "@/components/pos/documento-carta-pos";
 import { ImpresionPos } from "@/components/pos/impresion-pos";
 import { TicketPos } from "@/components/pos/ticket-pos";

@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import { DatabaseZap, MonitorCog, Store } from "lucide-react";
-
+import { DatabaseZap, MonitorCog, Store } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 
 /** Pantallas completas cuando el POS no está instalado o no tiene terminales. */

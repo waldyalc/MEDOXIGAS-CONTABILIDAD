@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { TriangleAlert } from "lucide-react";
-
+import { TriangleAlert } from "@/components/icons";
 import { ContenedorLista } from "@/components/listas/tabla-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

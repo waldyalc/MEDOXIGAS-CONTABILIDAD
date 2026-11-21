@@ -2,10 +2,9 @@
 
 import * as React from "react";
 
-import { LogOut, SlidersHorizontal } from "lucide-react";
-
 import { salir } from "@/app/login/actions";
 import { AvatarInicial } from "@/components/avatar-inicial";
+import { LogOut, SlidersHorizontal } from "@/components/icons";
 import { PanelPreferencias } from "@/components/preferencias/panel-preferencias";
 import {
   DropdownMenu,

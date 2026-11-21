@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 import { cn } from "cn";
-import { ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
 
+import { ChevronLeft, ChevronRight, ShoppingCart } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -4,8 +4,6 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Check, Loader2 } from "lucide-react";
-
 import { DatePicker } from "@/components/date-picker";
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
@@ -18,6 +16,7 @@ import {
   FormSectionTitle,
 } from "@/components/formularios/formulario";
 import { enfocarCampo, useValidacionFormulario } from "@/components/formularios/validacion";
+import { Check, Loader2 } from "@/components/icons";
 import type { MigaDePan } from "@/components/migas-de-pan";
 import { ContenedorFormulario } from "@/components/pagina/contenedor-pagina";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";

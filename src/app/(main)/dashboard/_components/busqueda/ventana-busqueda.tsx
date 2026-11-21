@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { cn } from "cn";
+
 import {
   Banknote,
   BookOpen,
@@ -19,8 +20,7 @@ import {
   TrendingUp,
   UserPlus,
   Wallet,
-} from "lucide-react";
-
+} from "@/components/icons";
 import { Dialog, DialogDescription, DialogOverlay, DialogPortal, DialogTitle } from "@/components/ui/dialog";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Kbd } from "@/components/ui/kbd";

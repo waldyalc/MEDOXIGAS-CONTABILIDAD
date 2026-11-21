@@ -2,10 +2,9 @@
 
 import { useTransition } from "react";
 
-import { Loader2, LogOut } from "lucide-react";
-
 import { salir } from "@/app/login/actions";
 import { AvatarInicial } from "@/components/avatar-inicial";
+import { Loader2, LogOut } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

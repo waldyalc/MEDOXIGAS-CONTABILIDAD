@@ -1,5 +1,4 @@
-import { InfoIcon } from "lucide-react";
-
+import { InfoIcon } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 /** Aviso que se muestra al perfil `lector` encima de la configuración. */

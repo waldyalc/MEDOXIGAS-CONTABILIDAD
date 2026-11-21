@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { BookOpen, ReceiptText } from "lucide-react";
-
 import {
   type CampoInformacionDocumento,
   CLASE_BOTON_DOCUMENTO,
@@ -14,6 +12,7 @@ import {
   TotalesDocumento,
 } from "@/components/documento/documento-detalle";
 import { Enlace } from "@/components/enlace";
+import { BookOpen, ReceiptText } from "@/components/icons";
 import { NotaCreditoPapel } from "@/components/impresion/nota-credito-papel";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";

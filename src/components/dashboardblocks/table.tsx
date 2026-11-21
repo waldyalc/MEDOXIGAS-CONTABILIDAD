@@ -6,11 +6,11 @@
 import { type ComponentProps, type ReactNode, useEffect, useId, useRef, useState } from "react";
 
 import { cn } from "cn";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { BlockStateText, SkeletonText, useBlockState } from "@/components/dashboardblocks/block-state";
 import { Details } from "@/components/dashboardblocks/details";
 import { Link, type LinkProps } from "@/components/dashboardblocks/link";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/dashboardblocks/format";
 

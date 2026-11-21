@@ -1,8 +1,7 @@
 import Link from "next/link";
 
-import { ArrowLeftRight, Plus } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { ArrowLeftRight, Plus } from "@/components/icons";
 import {
   type ColumnaLista,
   ContenedorLista,

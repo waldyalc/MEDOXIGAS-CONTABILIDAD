@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import { TrendingUp } from "lucide-react";
-
+import { TrendingUp } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";

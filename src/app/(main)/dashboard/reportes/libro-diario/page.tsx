@@ -1,6 +1,5 @@
-import { BookOpen } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { BookOpen } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";

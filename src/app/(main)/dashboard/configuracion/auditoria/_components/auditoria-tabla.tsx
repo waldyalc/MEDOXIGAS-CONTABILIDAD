@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 
-import { ChevronDown, ChevronRight, History } from "lucide-react";
-
 import {
   etiquetaAccion,
   etiquetaCampo,
@@ -11,6 +9,7 @@ import {
   formatearValorCampo,
   tonoAccion,
 } from "@/components/auditoria/historial-documento";
+import { ChevronDown, ChevronRight, History } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import type { EntradaAuditoria } from "@/lib/auditoria/consultas";

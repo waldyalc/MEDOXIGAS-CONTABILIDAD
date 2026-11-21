@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { Eye } from "lucide-react";
-
+import { Eye } from "@/components/icons";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import {
   BarraLista,

@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 
-import { FileText, FolderOpen, Loader2 } from "lucide-react";
-
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
+import { FileText, FolderOpen, Loader2 } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,

@@ -6,6 +6,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { cn } from "cn";
+
+import { SeccionAdjuntos } from "@/components/adjuntos/seccion-adjuntos";
+import { FormularioContacto } from "@/components/contactos/formulario-contacto";
+import { Enlace } from "@/components/enlace";
+import {
+  BotonFiltro,
+  CLASE_PANEL_FICHA,
+  GrillaKpis,
+  ItemDato,
+  type KpiFicha,
+  MetaItem,
+  type OpcionFiltro,
+  PestanasFicha,
+  type TonoKpi,
+  usePagina,
+} from "@/components/ficha/ficha-ui";
 import {
   ArrowLeft,
   ArrowLeftRight,
@@ -30,23 +46,7 @@ import {
   Truck,
   Users,
   Wallet,
-} from "lucide-react";
-
-import { SeccionAdjuntos } from "@/components/adjuntos/seccion-adjuntos";
-import { FormularioContacto } from "@/components/contactos/formulario-contacto";
-import { Enlace } from "@/components/enlace";
-import {
-  BotonFiltro,
-  CLASE_PANEL_FICHA,
-  GrillaKpis,
-  ItemDato,
-  type KpiFicha,
-  MetaItem,
-  type OpcionFiltro,
-  PestanasFicha,
-  type TonoKpi,
-  usePagina,
-} from "@/components/ficha/ficha-ui";
+} from "@/components/icons";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
 import { BarraLista, type ColumnaLista, PillEstado, TablaLista, type TonoPill } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";

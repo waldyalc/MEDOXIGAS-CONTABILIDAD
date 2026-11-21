@@ -3,9 +3,9 @@
 import { useState } from "react";
 
 import { cn } from "cn";
-import { ChevronDown } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { ChevronDown } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

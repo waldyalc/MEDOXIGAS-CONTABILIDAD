@@ -5,8 +5,8 @@ import { type ComponentProps, useEffect, useState } from "react";
 import { cn } from "cn";
 import { format, isValid, parse } from "date-fns";
 import { es } from "date-fns/locale";
-import { Calendar as CalendarIcon, X } from "lucide-react";
 
+import { Calendar as CalendarIcon, X } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";

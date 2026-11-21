@@ -4,8 +4,7 @@ import { useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Check, ChevronDown } from "lucide-react";
-
+import { Check, ChevronDown } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

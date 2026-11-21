@@ -1,8 +1,7 @@
 import type { ReactNode } from "react";
 
-import { FileText } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { FileText } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista, type TonoPill } from "@/components/listas/tabla-lista";
 import { rutaContacto, rutaFactura } from "@/lib/enlaces";
 import { etiquetaTipoComprobante } from "@/lib/facturacion/comprobantes";

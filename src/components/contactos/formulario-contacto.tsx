@@ -2,8 +2,6 @@
 
 import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
 
-import { ChevronDown } from "lucide-react";
-
 import {
   FORM_INPUT,
   FORM_INPUT_GROUP,
@@ -11,6 +9,7 @@ import {
   FORM_TEXTAREA,
   FormField,
 } from "@/components/formularios/formulario";
+import { ChevronDown } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DialogClose, DialogFooter } from "@/components/ui/dialog";

@@ -4,8 +4,7 @@ import { useMemo, useState } from "react";
 
 import { usePathname, useRouter } from "next/navigation";
 
-import { Download, Search, TriangleAlert } from "lucide-react";
-
+import { Download, Search, TriangleAlert } from "@/components/icons";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
 import { BarraLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { SelectCampo } from "@/components/select-campo";

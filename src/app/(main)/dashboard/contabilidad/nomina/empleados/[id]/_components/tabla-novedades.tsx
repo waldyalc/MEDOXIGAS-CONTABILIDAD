@@ -4,8 +4,7 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Ban, Loader2, Pencil } from "lucide-react";
-
+import { Ban, Loader2, Pencil } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import {
   AlertDialog,

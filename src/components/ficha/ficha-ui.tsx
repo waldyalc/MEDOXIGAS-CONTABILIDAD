@@ -3,8 +3,8 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { cn } from "cn";
-import { ChevronDown, ChevronLeft, ChevronRight, ListFilter } from "lucide-react";
 
+import { ChevronDown, ChevronLeft, ChevronRight, ListFilter } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

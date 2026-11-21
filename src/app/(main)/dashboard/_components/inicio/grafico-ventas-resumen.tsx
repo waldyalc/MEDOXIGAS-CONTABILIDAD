@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 
-import { Info, TrendingDown, TrendingUp } from "lucide-react";
 import { CartesianGrid, Line, LineChart } from "recharts";
 
+import { Info, TrendingDown, TrendingUp } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";

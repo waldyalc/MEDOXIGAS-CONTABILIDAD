@@ -1,6 +1,5 @@
-import { CircleCheck, Scale, TriangleAlert } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { CircleCheck, Scale, TriangleAlert } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";

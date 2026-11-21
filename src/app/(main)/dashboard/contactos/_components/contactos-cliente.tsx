@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Pencil, Plus } from "lucide-react";
-
 import { AvatarInicial } from "@/components/avatar-inicial";
 import { FormularioContacto } from "@/components/contactos/formulario-contacto";
 import { Enlace } from "@/components/enlace";
+import { Pencil, Plus } from "@/components/icons";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import {

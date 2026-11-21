@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 
-import { Download, FileSpreadsheet, FileText } from "lucide-react";
-
+import { Download, FileSpreadsheet, FileText } from "@/components/icons";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";

@@ -5,9 +5,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 
 import { cn } from "cn";
-import { BookOpen, ChevronRight, Info, Pencil, Plus, Search } from "lucide-react";
 
 import { EditarCuenta, NuevaCuenta } from "@/components/contabilidad/cuenta-formulario";
+import { BookOpen, ChevronRight, Info, Pencil, Plus, Search } from "@/components/icons";
 import { BarraLista, type ColumnaLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

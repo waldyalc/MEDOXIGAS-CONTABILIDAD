@@ -2,8 +2,7 @@
 
 import type { ReactNode } from "react";
 
-import { Eye, Printer } from "lucide-react";
-
+import { Eye, Printer } from "@/components/icons";
 import { BarraLista, type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { formatoMoneda } from "@/lib/facturacion/formato";

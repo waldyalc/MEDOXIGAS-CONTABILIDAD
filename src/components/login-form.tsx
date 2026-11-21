@@ -1,7 +1,7 @@
 import { cn } from "cn";
-import { CircleAlert } from "lucide-react";
 
 import { entrar, entrarConGoogle } from "@/app/login/actions";
+import { CircleAlert } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel, FieldSeparator } from "@/components/ui/field";

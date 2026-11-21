@@ -1,8 +1,8 @@
 "use client";
 
-import { Monitor, Moon, Sun } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 
+import { Monitor, Moon, Sun } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 

@@ -1,6 +1,5 @@
-import { FileText } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { FileText } from "@/components/icons";
 import { type ColumnaLista, TablaLista } from "@/components/listas/tabla-lista";
 import { rutaCompra, rutaContacto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";

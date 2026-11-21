@@ -4,8 +4,7 @@ import { useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Play } from "lucide-react";
-
+import { Play } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { generarPagoRecurrente } from "@/lib/pagos-recurrentes/acciones";

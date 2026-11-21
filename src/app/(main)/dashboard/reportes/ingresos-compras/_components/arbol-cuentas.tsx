@@ -4,8 +4,7 @@ import { type ReactNode, useState } from "react";
 
 import Link from "next/link";
 
-import { ChevronDown, ChevronRight } from "lucide-react";
-
+import { ChevronDown, ChevronRight } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { TableBody, TableCell } from "@/components/ui/table";
 import type { NodoIngresoCompra } from "@/lib/reportes/administrativos/e/ingresos-compras";
