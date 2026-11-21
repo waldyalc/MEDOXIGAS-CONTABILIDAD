@@ -1,17 +1,16 @@
 "use client";
 
-import Link from "next/link";
-
 import { CartesianGrid, Line, LineChart } from "recharts";
 
-import { Info, TrendingDown, TrendingUp } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TrendingDown, TrendingUp } from "@/components/icons";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatoDia } from "@/lib/formato";
 import type { PuntoSerieVentas, ResumenNegocio } from "@/lib/inicio/consultas";
 import { centavos, formatearRd } from "@/lib/reportes/dinero";
+
+import { EstadoVacio } from "./estado-vacio";
+import { TituloWidget } from "./titulo-widget";
 
 const CONFIG: ChartConfig = {
   actual: { label: "Periodo actual", color: "var(--chart-1)" },
@@ -141,30 +140,11 @@ export function GraficoVentasResumen({ resumen, href }: Props) {
     <Card className="ring-border gap-0 rounded-2xl [--card-spacing:--spacing(6)]">
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5">
-            <CardTitle className="text-foreground text-sm font-semibold">
-              <Link href={href} className="hover:text-primary decoration-border underline underline-offset-[3px]">
-                Total de ventas
-              </Link>
-            </CardTitle>
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    className="text-muted-foreground"
-                    aria-label="Más información sobre la gráfica de ventas"
-                  />
-                }
-              >
-                <Info aria-hidden="true" />
-              </TooltipTrigger>
-              <TooltipContent>
-                Ventas registradas en el periodo seleccionado, con sus impuestos incluidos.
-              </TooltipContent>
-            </Tooltip>
-          </div>
+          <TituloWidget
+            titulo="Total de ventas"
+            href={href}
+            tooltip="Ventas registradas en el periodo seleccionado, con sus impuestos incluidos."
+          />
           <p className="text-muted-foreground text-xs">
             Comportamiento de tus ventas durante el periodo elegido, impuestos incluidos.
           </p>
@@ -193,9 +173,11 @@ export function GraficoVentasResumen({ resumen, href }: Props) {
             </div>
           </>
         ) : (
-          <div className="text-muted-foreground flex h-[260px] items-center justify-center text-sm">
-            Sin ventas registradas en el periodo.
-          </div>
+          <EstadoVacio
+            className="h-[260px]"
+            titulo="Sin ventas registradas"
+            detalle="No registraste ventas durante este período."
+          />
         )}
       </CardContent>
     </Card>

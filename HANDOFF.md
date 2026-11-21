@@ -1,6 +1,5 @@
 # Handoff — Medoxigas Contabilidad
 
-<<<<<<< HEAD
 ## Rediseño POS estilo Alegra: shell con riel lateral C1+C3 (rama `feat/pos-shell-rail-alegra`)
 
 Trabajo de subagente ejecutor sobre `docs/planes/rediseno-alegra/PLAN.md` (partes C1 y C3), pendiente de revisión/integración del Orquestador:
@@ -11,7 +10,7 @@ Trabajo de subagente ejecutor sobre `docs/planes/rediseno-alegra/PLAN.md` (parte
 - **Nueva ruta placeholder:** `src/app/(pos)/pos/pagos/page.tsx` (EncabezadoPagina + ContenedorLista) para que el enlace «Registro de pagos» no caiga en 404; la pantalla completa es C6 del plan.
 - **Sin capturas:** este worktree no tiene `.env.local` ni credenciales E2E ni cache de Playwright; la evidencia visual (claro/oscuro/móvil + medición del borde derecho del panel) la debe generar el Orquestador en su entorno.
 - **Verificación:** `pnpm typecheck` y `pnpm check` (0 errores) verdes; `pnpm test` 1497/1498 con un solo fallo ambiental en `src/lib/pos/impresion.test.ts` («hora de recepción»: el ICU de Node 22.21.1 emite `p.\u00A0m.` con espacio no rompible y el literal del test usa espacio normal; archivo no tocado por esta tarea).
-=======
+
 ## C9-A: Checkout, Confirmación y Venta simple estilo Alegra (rama `feat/pos-checkout-confirmacion-simple`)
 
 - **Checkout «Pagar factura»** (`checkout-pos.tsx`): TOTAL centrado grande, flujo en dos pasos — primero tiles 3+3 con icono (Efectivo, Tarjeta crédito, Transferencia / Tarjeta débito, Combinado, Crédito) con divisor «Otros métodos», luego detalle con «Cambiar método». En efectivo: pills de opciones rápidas (Exacto + redondeos), campo recibido, «Cambio» destacado, observaciones a la derecha. Conservados combinado, pago parcial, crédito y toda la lógica de `completarVenta`.
@@ -20,7 +19,16 @@ Trabajo de subagente ejecutor sobre `docs/planes/rediseno-alegra/PLAN.md` (parte
 - **Verificación:** `pnpm typecheck` ✅, `pnpm check` ✅ (0 errores), `pnpm test` ✅ salvo 1 fallo preexistente/ambiental en `src/lib/pos/impresion.test.ts` (formato ICU de Node 22: `20 nov 2026, 3:10 p. m.` vs esperado `20/11/2026 03:10 p. m.`; no toca los archivos de la tarea).
 - **Capturas** en `/tmp/pos-shots/` (8 PNGs, claro/oscuro): venta simple, tiles de métodos, detalle efectivo con cambio y confirmación. Venta real de prueba cobrada end-to-end (B0200000005, RD$250, contacto PRUEBA CAPTURA ER); el turno 3 de `ZZCAPTURA Caja 1` se abrió y cerró cuadrado (Cierre No 3).
 - **Pendiente:** `git push -u origin HEAD` — el entorno no tiene credenciales GitHub (`gh` no instalado, HTTPS sin token). Commits locales: `bd6ad5f`, `283df63`, `63d2c30`.
->>>>>>> origin/feat/pos-checkout-confirmacion-simple
+
+## Inicio rediseñado como "Resumen del negocio" (rama `feat/inicio-alegra-resumen`, pendiente de revisión)
+
+El `/dashboard` replica la estructura del Resumen del negocio de Alegra con código propio (guía del ZIP `inicio-resumen-negocio-design`, referencia solo local en `/tmp/inicio-design`). Todo lee datos reales de Supabase; los widgets sin datos muestran el estado vacío "Sin … registrados" (ícono de gráfica gris + texto), nunca números inventados.
+
+- **Datos (`src/lib/inicio/`):** `calculos.ts` (agregaciones puras + tests) y dos lecturas nuevas en `consultas.ts`: `obtenerMovimientoCuentas` (asientos por índice de fecha → líneas por lotes, el patrón de `getIngresosGastosMensual` que evita el join que agotaba `statement_timeout`) para el Flujo de transacciones y la Distribución de gastos; `obtenerTopVentas` para Productos más vendidos y Mejores clientes (desde `factura_lineas`/`facturas` no anuladas). La RPC `dashboard_resumen` existente sigue alimentando CxC/CxP, métricas y ventas — sin tocar backend ni migraciones.
+- **Widgets (`dashboard/_components/inicio/`):** `widget-marco.tsx` (expandir/eliminar), `agregar-grafica.tsx` (menú que reactiva widgets ocultos), `widgets.tsx` (visibilidad en `localStorage["inicio.widgets.visibles"]`), `grafico-gastos.tsx` (donut top-5), `grafico-flujo.tsx` (barras ingresos/egresos), `tabla-top.tsx` (tablas con avatar de iniciales), `bancos-cajas.tsx` (saldos reales, opcional), `estado-vacio.tsx`, `titulo-widget.tsx`.
+- **Layout:** fila KPI = CxC + CxP grandes + 4 métricas en 2×2; luego Ventas, Gastos y Flujo a ancho completo; Productos/Clientes en dos columnas. En móvil todo apila. Tokens Medoxigas (`--chart-1` azul, emerald solo para "año anterior"/ingresos como en el repo); sin teal.
+- **Verificación:** `typecheck`/`check`/`test` en verde excepto `src/lib/pos/impresion.test.ts` que **ya fallaba antes** (formato de fecha dependiente del entorno, ajeno a este cambio). Capturas con sesión ZZTEST en `/tmp/capturas/` (claro, oscuro, móvil) — datos reales: CxP RD$708 vencida, ventas RD$958, flujo 1,958/1,000, top productos/clientes y bancos.
+- **Pendiente:** revisión del Orquestador e integración a `main`.
 
 > ## ESTADO PARA LA PRÓXIMA SESIÓN (21 nov 2026)
 >
