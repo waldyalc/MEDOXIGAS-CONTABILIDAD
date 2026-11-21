@@ -342,14 +342,19 @@ export interface PagoPOSFila {
   tipo: TipoMovimientoPOS;
   motivo: MotivoMovimientoPOS;
   monto: Decimal;
+  cuenta_contrapartida_id: string;
   cuenta_nombre: string | null;
+  contacto_id: string | null;
   contacto_nombre: string | null;
   factura_id: string | null;
   factura_numero: number | null;
   factura_ncf: string | null;
   gasto_menor_id: string | null;
+  pago_recibido_id: string | null;
+  asiento_id: string;
   notas: string | null;
   creado_en: string;
+  creado_por: string;
   /** Los recibos con su pago o gasto anulado quedan fuera de los totales. */
   vigente: boolean;
 }
@@ -361,12 +366,15 @@ interface FilaPagoPOS {
   tipo: string;
   motivo: string;
   monto: number | string;
+  cuenta_contrapartida_id: string;
   contacto_id: string | null;
   factura_id: string | null;
   gasto_menor_id: string | null;
   pago_recibido_id: string | null;
+  asiento_id: string;
   notas: string | null;
   creado_en: string;
+  creado_por: string;
   pos_turnos: { numero: number } | null;
   cuentas: { nombre: string } | null;
   contactos: { nombre: string } | null;
@@ -392,14 +400,19 @@ function mapearPagoPOS(fila: FilaPagoPOS): PagoPOSFila {
     tipo: fila.tipo === "retiro" ? "retiro" : "ingreso",
     motivo: motivoPagoPOS(fila.motivo),
     monto: decimal(fila.monto),
+    cuenta_contrapartida_id: fila.cuenta_contrapartida_id,
     cuenta_nombre: textoONulo(fila.cuentas?.nombre),
+    contacto_id: fila.contacto_id,
     contacto_nombre: textoONulo(fila.contactos?.nombre),
     factura_id: fila.factura_id,
     factura_numero: fila.facturas?.numero ?? null,
     factura_ncf: textoONulo(fila.facturas?.ncf),
     gasto_menor_id: fila.gasto_menor_id,
+    pago_recibido_id: fila.pago_recibido_id,
+    asiento_id: fila.asiento_id,
     notas: textoONulo(fila.notas),
     creado_en: fila.creado_en,
+    creado_por: fila.creado_por,
     vigente,
   };
 }
@@ -424,9 +437,10 @@ export async function getPagosPOS(filtros: FiltrosPagosPOS): Promise<ResultadoPa
   let consulta = supabase
     .from("pos_turno_movimientos")
     .select(
-      "id, numero, turno_id, tipo, motivo, monto, contacto_id, factura_id, pago_recibido_id, " +
-        "gasto_menor_id, notas, creado_en, pos_turnos!inner(numero), cuentas(nombre), contactos(nombre), " +
-        "facturas(numero, ncf), pagos_recibidos(estado), gastos_menores(estado)",
+      "id, numero, turno_id, tipo, motivo, monto, cuenta_contrapartida_id, contacto_id, factura_id, " +
+        "pago_recibido_id, gasto_menor_id, asiento_id, notas, creado_en, creado_por, " +
+        "pos_turnos!inner(numero), cuentas(nombre), contactos(nombre), facturas(numero, ncf), " +
+        "pagos_recibidos(estado), gastos_menores(estado)",
       { count: "exact" },
     )
     .eq("pos_turnos.terminal_id", filtros.terminalId)
