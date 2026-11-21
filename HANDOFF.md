@@ -1,5 +1,16 @@
 # Handoff — Medoxigas Contabilidad
 
+## Rediseño POS estilo Alegra: shell con riel lateral C1+C3 (rama `feat/pos-shell-rail-alegra`)
+
+Trabajo de subagente ejecutor sobre `docs/planes/rediseno-alegra/PLAN.md` (partes C1 y C3), pendiente de revisión/integración del Orquestador:
+
+- **Shell nuevo:** `EncabezadoPos` + `NavegacionPos` (barra superior con tabs) eliminados; la navegación vive en `src/app/(pos)/pos/_components/menu-pos.tsx`: riel de 56 px que expande un panel de 271 px al hover/foco (con pin), cajón móvil de 271 px con velo bajo 1024 px y barra mínima `lg:hidden`. Estructura del menú: Facturar → `/pos`; acordeón Ingresos → Historial de ventas `/pos/historial` + Registro de pagos `/pos/pagos`; acordeón Turnos → `/pos/turnos`; Devoluciones `/pos/devoluciones`; separador; Contactos/Inventario/Configuraciones → `/dashboard/...` en pestaña nueva; pie con selector de terminal, insignia de turno (punto + pill ABIERTO/CERRADO), usuario, «Volver a Contabilidad» (con confirmación si el carrito tiene líneas) y «Salir».
+- **Medidas compartidas en `menu-pos-estilos.ts`:** ítem 32 px, radio 6 px, activo = acento + barra primaria 3×16 px. Clases auxiliares reutilizadas por los componentes del pie (`colapsado`).
+- **C1:** el shell mide `h-dvh` con `overflow-hidden`; `main` es `min-w-0 min-h-0 flex-1 overflow-y-auto`; `vender-pos.tsx` solo suma `overflow-hidden` a su marco → el panel Factura de venta queda pegado al borde derecho del viewport en todos los anchos.
+- **Nueva ruta placeholder:** `src/app/(pos)/pos/pagos/page.tsx` (EncabezadoPagina + ContenedorLista) para que el enlace «Registro de pagos» no caiga en 404; la pantalla completa es C6 del plan.
+- **Sin capturas:** este worktree no tiene `.env.local` ni credenciales E2E ni cache de Playwright; la evidencia visual (claro/oscuro/móvil + medición del borde derecho del panel) la debe generar el Orquestador en su entorno.
+- **Verificación:** `pnpm typecheck` y `pnpm check` (0 errores) verdes; `pnpm test` 1497/1498 con un solo fallo ambiental en `src/lib/pos/impresion.test.ts` («hora de recepción»: el ICU de Node 22.21.1 emite `p.\u00A0m.` con espacio no rompible y el literal del test usa espacio normal; archivo no tocado por esta tarea).
+
 > ## ESTADO PARA LA PRÓXIMA SESIÓN (21 nov 2026)
 >
 > **Fase 2 (Inventario ferretería + POS + Nómina RD) implementada y desplegada.** `main` en `df08712`; Vercel producción: https://medoxigas-contabilidad.vercel.app. Migraciones `20261125100000`–`20261125150000` **aplicadas al remoto**.
