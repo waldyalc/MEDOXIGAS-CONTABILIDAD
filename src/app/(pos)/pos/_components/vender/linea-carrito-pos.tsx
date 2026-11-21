@@ -70,7 +70,7 @@ export function LineaCarritoPos({
 
   return (
     <div className={cn("border-border border-b", expandida && "bg-muted/30")}>
-      <div className="flex flex-col gap-1 px-2 py-2">
+      <div className="flex flex-col gap-1 px-3 py-2">
         <div className="flex items-start gap-2">
           <button
             type="button"
@@ -78,10 +78,10 @@ export function LineaCarritoPos({
             onClick={expandida ? onColapsar : onExpandir}
             disabled={!puedeEditar}
           >
-            <span className="block truncate text-sm font-medium" title={linea.descripcion}>
+            <span className="line-clamp-2 block text-sm leading-snug font-medium" title={linea.descripcion}>
               {linea.descripcion}
             </span>
-            <span className="text-muted-foreground block truncate text-xs">
+            <span className="text-muted-foreground mt-0.5 block truncate text-xs">
               {`${formatoCantidad(linea.cantidad)} × ${formatoMoneda(linea.precio)}`}
               {unidadVisible ? ` · ${unidadVisible}` : ""}
               {Number(linea.descuentoPct) > 0 ? ` · Desc. ${formatoCantidad(linea.descuentoPct)}%` : ""}
@@ -89,15 +89,11 @@ export function LineaCarritoPos({
             </span>
           </button>
 
-          <span className="shrink-0 pt-0.5 text-sm font-semibold tabular-nums">{formatoMoneda(totales.total)}</span>
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center">
+          <div className="flex shrink-0 items-center self-center">
             <Button
               variant="outline"
-              size="icon"
-              className="size-10 rounded-r-none"
+              size="icon-lg"
+              className="rounded-r-none"
               aria-label={`Disminuir cantidad de ${linea.descripcion}`}
               disabled={!puedeEditar}
               onClick={() => paso(-1)}
@@ -115,12 +111,12 @@ export function LineaCarritoPos({
               onKeyDown={(evento) => {
                 if (evento.key === "Enter") fijarCantidad();
               }}
-              className="h-10 w-14 rounded-none border-x-0 text-center tabular-nums"
+              className="h-9 w-12 rounded-none border-x-0 text-center tabular-nums"
             />
             <Button
               variant="outline"
-              size="icon"
-              className="size-10 rounded-l-none"
+              size="icon-lg"
+              className="rounded-l-none"
               aria-label={`Aumentar cantidad de ${linea.descripcion}`}
               disabled={!puedeEditar}
               onClick={() => paso(1)}
@@ -129,30 +125,33 @@ export function LineaCarritoPos({
             </Button>
           </div>
 
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-10"
-              aria-label={expandida ? "Cerrar edición" : "Editar línea"}
-              disabled={!puedeEditar}
-              onClick={expandida ? onColapsar : onExpandir}
-            >
-              <Pencil aria-hidden="true" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-destructive size-10"
-              aria-label={`Quitar ${linea.descripcion}`}
-              disabled={!puedeEditar}
-              onClick={() => {
-                quitarLinea(linea.id);
-                onAnunciar(`${linea.descripcion} quitado.`);
-              }}
-            >
-              <Trash2 aria-hidden="true" />
-            </Button>
+          <div className="flex shrink-0 flex-col items-end gap-0.5">
+            <span className="text-sm font-semibold tabular-nums">{formatoMoneda(totales.total)}</span>
+            <div className="flex items-center gap-0.5">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground size-7"
+                aria-label={expandida ? "Cerrar edición" : "Editar línea"}
+                disabled={!puedeEditar}
+                onClick={expandida ? onColapsar : onExpandir}
+              >
+                <Pencil aria-hidden="true" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive size-7"
+                aria-label={`Quitar ${linea.descripcion}`}
+                disabled={!puedeEditar}
+                onClick={() => {
+                  quitarLinea(linea.id);
+                  onAnunciar(`${linea.descripcion} quitado.`);
+                }}
+              >
+                <Trash2 aria-hidden="true" />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -164,7 +163,7 @@ export function LineaCarritoPos({
       </div>
 
       {expandida ? (
-        <div className="flex flex-col gap-3 px-2 pb-3">
+        <div className="flex flex-col gap-3 px-3 pb-3">
           {linea.productoId === null ? (
             <div className="flex flex-col gap-1">
               <Label htmlFor={`descripcion-${linea.id}`}>Descripción</Label>

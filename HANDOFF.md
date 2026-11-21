@@ -1,5 +1,16 @@
 # Handoff — Medoxigas Contabilidad
 
+## Rediseño POS estilo Alegra: carrito «Factura de venta» C4 (rama `feat/pos-carrito-factura-venta`)
+
+Trabajo de subagente ejecutor sobre `docs/planes/rediseno-alegra/PLAN.md` (parte C4), pendiente de revisión/integración del Orquestador. Parte de `feat/pos-shell-rail-alegra` (872f545); solo UI/UX del panel derecho, lógica del carrito y `CarritoPosProvider` intactos.
+
+- **`panel-factura.tsx`:** encabezado «Factura de venta» a 16 px semibold; fila Cliente en línea (etiqueta + `SelectorContacto` + botón «Nuevo» en primario suave `bg-primary/10 text-primary` que abre el `DialogoNuevoContacto` ya existente — el mismo que usa «Crear nuevo cliente» del combobox — y selecciona el contacto creado con `carrito.setContacto`); bloque de totales igual (Subtotal/Descuento/ITBIS por tasa en gris + Total grande); botón «Vender» h-12 justify-between con el total a la derecha y `F8` como kbd al extremo; debajo «N artículos» y «Cancelar venta» en rojo; las acciones secundarias (Guardar/Cargar cotización, Venta simple F4) pasaron a una fila compacta de iconos ghost `text-xs` que no compite con Vender; pestañas al pie sin cambios.
+- **`linea-carrito-pos.tsx`:** una fila con la jerarquía de Alegra — nombre (line-clamp-2) + meta gris con precio unitario a la izquierda, stepper `− N +` de 36 px centrado, total semibold a la derecha; editar/quitar como iconos ghost de 28 px bajo el total; sección expandible (unidad, precio, descuento, ITBIS) intacta con px-3.
+- **`vender-pos.tsx`:** panel fijo a 400 px en escritorio (se quitó `xl:w-[420px]`); el `Sheet` móvil sigue en `sm:max-w-[420px]`.
+- **Sin capturas:** este worktree no tiene `.env.local` ni credenciales E2E ni Playwright; la evidencia visual (claro/oscuro, 1024/1280/1440 y comparación con `img/02-alegra-pos-carrito.png`) la debe generar el Orquestador en su entorno.
+- **Verificación:** `pnpm typecheck` y `pnpm check` (0 errores; solo las 6 advertencias de complejidad preexistentes en los archivos tocados) verdes; `pnpm test` 1497/1498 con el mismo fallo ambiental de `src/lib/pos/impresion.test.ts` («hora de recepción», ICU de Node 22 con `p.\u00A0m.` no rompible; archivo no tocado).
+- **Pendiente de la 2.ª pasada de C4 (otra tarea):** alinear visualmente el checkout (modal de pago, métodos, confirmación) con este mismo lenguaje.
+
 ## Rediseño POS estilo Alegra: shell con riel lateral C1+C3 (rama `feat/pos-shell-rail-alegra`)
 
 Trabajo de subagente ejecutor sobre `docs/planes/rediseno-alegra/PLAN.md` (partes C1 y C3), pendiente de revisión/integración del Orquestador:

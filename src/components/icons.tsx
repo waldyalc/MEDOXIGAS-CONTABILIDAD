@@ -90,6 +90,7 @@ export {
   ImageIcon as ImagePlus,
   InfoIcon as Info,
   InfoIcon,
+  LightningIcon as Zap,
   ListIcon as Menu,
   ListNumbersIcon as ListOrdered,
   LockIcon as Lock,
