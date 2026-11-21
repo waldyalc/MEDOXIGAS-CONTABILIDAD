@@ -52,6 +52,27 @@ const LISTAS_MIGRADAS = [
   "app/(main)/dashboard/bancos/[id]/_components/panel-movimientos.tsx",
   "app/(main)/dashboard/bancos/conciliaciones/page.tsx",
   "app/(main)/dashboard/bancos/conciliaciones/[id]/_components/panel-conciliacion.tsx",
+  "app/(pos)/pos/_components/turnos/tabla-movimientos-turno.tsx",
+] as const;
+
+/**
+ * Listas del POS rediseñado (maestro-detalle: `/pos/pagos`, `/pos/turnos`,
+ * `/pos/historial`, `/pos/devoluciones`). Sus filas son ítems compactos propios,
+ * no una TablaLista de columnas, pero todas usan el kit compartido
+ * (`TarjetaLista`, `BarraLista`, `PillEstado`) y nunca pills locales.
+ * `/pos` (vender) queda fuera a propósito: es la terminal de venta a pantalla
+ * completa, sin lista.
+ */
+const LISTAS_POS = [
+  "app/(pos)/pos/_components/historial/historial-pos.tsx",
+  "app/(pos)/pos/_components/historial/lista-ventas.tsx",
+  "app/(pos)/pos/_components/pagos/pagos-pos.tsx",
+  "app/(pos)/pos/_components/pagos/lista-pagos.tsx",
+  "app/(pos)/pos/_components/turnos/turnos-pos.tsx",
+  "app/(pos)/pos/_components/turnos/lista-turnos.tsx",
+  "app/(pos)/pos/_components/turnos/resumen-turno.tsx",
+  "app/(pos)/pos/_components/devoluciones/devoluciones-pos.tsx",
+  "app/(pos)/pos/_components/devoluciones/lista-devoluciones.tsx",
 ] as const;
 
 function leer(ruta: string): string {
@@ -88,6 +109,22 @@ describe("tablas de listas unificadas", () => {
       expect(
         /\b(?:function|const)\s+(?:EstadoPill|EstadoBadge)\b/.test(contenido),
         `${archivo} define EstadoPill/EstadoBadge local. Bórralo e importa PillEstado de "@/components/listas/tabla-lista" con el tono del estado.`,
+      ).toBe(false);
+    }
+  });
+
+  it("las listas del POS usan el kit compartido y no definen pills locales", () => {
+    for (const archivo of LISTAS_POS) {
+      const contenido = leer(archivo);
+
+      expect(
+        /import\s*\{[^}]*\}\s*from\s*"@\/components\/listas\/tabla-lista"/.test(contenido),
+        `${archivo} debe usar el kit de "@/components/listas/tabla-lista" (TarjetaLista, BarraLista, PillEstado); no armes la lista ni el pill a mano.`,
+      ).toBe(true);
+
+      expect(
+        /\b(?:function|const)\s+(?:EstadoPill|EstadoBadge|PillEstado)\b/.test(contenido),
+        `${archivo} define un pill local. Bórralo e importa PillEstado de "@/components/listas/tabla-lista" con el tono del estado.`,
       ).toBe(false);
     }
   });

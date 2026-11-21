@@ -61,8 +61,28 @@ const AYUDA_ANCHO =
   "src/components/pagina/contenedor-pagina.tsx, o <ContenedorLista> (1289 px) de src/components/listas/tabla-lista.tsx. " +
   "No pongas max-w-2xl/3xl/4xl/6xl en el contenedor de la page.tsx.";
 
+const POS = join(process.cwd(), "src", "app", "(pos)", "pos");
+
+/**
+ * Pantallas del POS rediseñado (`/pos/pagos`, `/pos/turnos`, `/pos/historial`,
+ * `/pos/devoluciones`): sus `page.tsx` son server components chicos y el marco
+ * `EncabezadoPagina` vive en el componente cliente `*-pos.tsx`. No llevan migas
+ * a propósito: la navegación del POS es el riel lateral de `menu-pos.tsx`.
+ * `/pos` (vender) queda fuera: es la terminal de venta a pantalla completa.
+ */
+const PAGINAS_POS = [
+  "_components/pagos/pagos-pos.tsx",
+  "_components/turnos/turnos-pos.tsx",
+  "_components/historial/historial-pos.tsx",
+  "_components/devoluciones/devoluciones-pos.tsx",
+] as const;
+
 function leer(ruta: string): string {
   return readFileSync(join(DASHBOARD, ruta), "utf8");
+}
+
+function leerPos(ruta: string): string {
+  return readFileSync(join(POS, ruta), "utf8");
 }
 
 describe("marco de las páginas del dashboard", () => {
@@ -97,5 +117,20 @@ describe("marco de las páginas del dashboard", () => {
     expect(yaMigradas, `Estas páginas ya no tienen text-3xl: quítalas de PENDIENTES_TEXT_3XL. ${AYUDA_TITULO}`).toEqual(
       [],
     );
+  });
+
+  it("las pantallas del POS usan EncabezadoPagina sin h1 suelto ni text-3xl", () => {
+    const infractores = PAGINAS_POS.filter((ruta) => {
+      const texto = leerPos(ruta);
+      const usaEncabezado =
+        /from "@\/components\/pagina\/encabezado-pagina"/.test(texto) && /<EncabezadoPagina\b/.test(texto);
+      return !usaEncabezado || /<h1[\s>]/.test(texto) || /text-3xl/.test(texto);
+    });
+
+    expect(
+      infractores,
+      "Las pantallas del POS (/pos/pagos, /pos/turnos, /pos/historial, /pos/devoluciones) usan EncabezadoPagina " +
+        `para el título (20 px / 600) dentro de su *-pos.tsx; no escribas h1 sueltos ni text-3xl. ${AYUDA_TITULO}`,
+    ).toEqual([]);
   });
 });
