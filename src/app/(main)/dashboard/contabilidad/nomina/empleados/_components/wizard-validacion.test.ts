@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { type ValoresEmpleado, validarPasoEmpleado } from "./wizard-validacion";
+import { camposConMensaje, pasoDeError, type ValoresEmpleado, validarPasoEmpleado } from "./wizard-validacion";
 
 const BASE: ValoresEmpleado = {
   tipo_identificacion: "cedula",
-  identificacion: "00112345678",
+  identificacion: "40237721184",
   primer_nombre: "Ana",
   primer_apellido: "Pérez",
   correo: "",
@@ -30,6 +30,16 @@ describe("validación del wizard de empleado", () => {
     const errores = validarPasoEmpleado(1, { ...BASE, identificacion: "0011234567" });
     expect(campos(errores)).toContain("identificacion");
     expect(errores[0]?.mensaje).toBe("La cédula debe tener 11 dígitos.");
+  });
+
+  it("el paso 1 rechaza una cédula con dígito verificador inválido", () => {
+    const errores = validarPasoEmpleado(1, { ...BASE, identificacion: "40237721185" });
+    expect(campos(errores)).toContain("identificacion");
+    expect(errores[0]?.mensaje).toBe("La cédula no es válida: revisa el dígito verificador.");
+  });
+
+  it("el paso 1 acepta una cédula con dígito verificador válido", () => {
+    expect(validarPasoEmpleado(1, { ...BASE, identificacion: "40237721184" })).toEqual([]);
   });
 
   it("un pasaporte no se valida como cédula pero sí exige texto", () => {
@@ -77,5 +87,28 @@ describe("validación del wizard de empleado", () => {
 
   it("el paso 3 revalida los pasos anteriores antes de guardar", () => {
     expect(campos(validarPasoEmpleado(3, { ...BASE, primer_nombre: "" }))).toEqual(["primer_nombre"]);
+  });
+});
+
+describe("mapeo de errores del servidor a campos", () => {
+  it("el dígito verificador que rechaza la RPC cae en identificacion, paso 1", () => {
+    // Mensaje literal de `nomina_crear_empleado` / `_rnc_digito_valido`.
+    const campos = camposConMensaje(
+      "La comprobación del dígito verificador de la identificación: 40237721185 fue errónea.",
+    );
+    expect(campos).toEqual({
+      identificacion: "La comprobación del dígito verificador de la identificación: 40237721185 fue errónea.",
+    });
+    expect(pasoDeError(campos)).toBe(1);
+  });
+
+  it("la cédula duplicada también cae en identificacion", () => {
+    expect(pasoDeError(camposConMensaje("Ya existe un empleado con esa identificación."))).toBe(1);
+  });
+
+  it("los errores de banco caen en el paso 3 y los de salario en el 2", () => {
+    expect(pasoDeError(camposConMensaje("Si el pago es por transferencia, indica el banco."))).toBe(3);
+    expect(pasoDeError(camposConMensaje("El salario mensual debe ser mayor que cero."))).toBe(2);
+    expect(pasoDeError(camposConMensaje("Error inesperado."))).toBeNull();
   });
 });
