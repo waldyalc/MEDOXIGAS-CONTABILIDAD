@@ -13,6 +13,7 @@ const MODULOS = [
   "inventario",
   "bancos",
   "contabilidad",
+  "nomina",
   "reportes",
   "configuracion",
 ];
@@ -115,6 +116,17 @@ describe("filtrarItemsPorRol", () => {
     const bancos = items("admin").find((item) => item.id === "bancos");
     if (bancos?.subItems == null) throw new Error("Bancos debe tener submenú");
     expect(bancos.subItems.map((sub) => sub.url)).toEqual(["/dashboard/bancos", "/dashboard/bancos/conciliaciones"]);
+
+    const nomina = items("admin").find((item) => item.id === "nomina");
+    if (nomina?.subItems == null) throw new Error("Nómina debe tener submenú");
+    expect(nomina.subItems.map((sub) => sub.url)).toEqual([
+      "/dashboard/contabilidad/nomina",
+      "/dashboard/contabilidad/nomina/empleados",
+      "/dashboard/contabilidad/nomina/periodos",
+      "/dashboard/contabilidad/nomina/pagos",
+      "/dashboard/contabilidad/nomina/envios",
+      "/dashboard/contabilidad/nomina/reportes",
+    ]);
   });
 
   test("Productos vive dentro de Inventario como primer subítem", () => {

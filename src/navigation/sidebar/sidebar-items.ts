@@ -256,6 +256,44 @@ export const sidebarItems: NavGroup[] = [
         ],
       },
       {
+        id: "nomina",
+        title: "Nómina",
+        icon: HandCoins,
+        roles: TODOS_LOS_ROLES,
+        subItems: [
+          {
+            id: "nomina-inicio",
+            title: "Inicio",
+            url: "/dashboard/contabilidad/nomina",
+          },
+          {
+            id: "nomina-empleados",
+            title: "Empleados",
+            url: "/dashboard/contabilidad/nomina/empleados",
+          },
+          {
+            id: "nomina-calculo",
+            title: "Cálculo de nómina",
+            url: "/dashboard/contabilidad/nomina/periodos",
+          },
+          {
+            id: "nomina-pagos",
+            title: "Pagos",
+            url: "/dashboard/contabilidad/nomina/pagos",
+          },
+          {
+            id: "nomina-envios",
+            title: "Gestión de envíos",
+            url: "/dashboard/contabilidad/nomina/envios",
+          },
+          {
+            id: "nomina-reportes",
+            title: "Reportes TSS",
+            url: "/dashboard/contabilidad/nomina/reportes",
+          },
+        ],
+      },
+      {
         id: "reportes",
         title: "Reportes",
         url: "/dashboard/reportes",
