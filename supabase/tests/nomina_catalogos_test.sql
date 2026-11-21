@@ -208,6 +208,7 @@ select ok(
   'solo los ingresos pueden gravar TSS, ISR o INFOTEP'
 );
 
+reset role;
 select throws_ok(
   $$insert into public.nomina_conceptos (codigo, nombre, clase)
     values ('SALARIO', 'Salario duplicado', 'ingreso')$$,
@@ -215,6 +216,8 @@ select throws_ok(
   null,
   'el código de concepto es único'
 );
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"91111111-1111-1111-1111-111111111111","role":"authenticated"}';
 
 -- ---------------------------------------------------------------------------
 -- Mapeo contable
@@ -271,6 +274,7 @@ select ok(
   'cada aporte patronal y provisión mapea gasto y pasivo'
 );
 
+reset role;
 select throws_ok(
   format(
     $q$insert into public.nomina_mapeo_contable (
@@ -285,6 +289,8 @@ select throws_ok(
   null,
   'el mapeo no admite dos filas del mismo segmento y concepto'
 );
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"91111111-1111-1111-1111-111111111111","role":"authenticated"}';
 
 -- ---------------------------------------------------------------------------
 -- Cuentas y contactos sembrados
@@ -508,12 +514,15 @@ select throws_ok(
 -- Configuración única y check de asientos
 -- ---------------------------------------------------------------------------
 
+reset role;
 select throws_ok(
   $$insert into public.nomina_config_empresa (id) values (2)$$,
   '23514',
   null,
   'solo puede existir la configuración id = 1'
 );
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"91111111-1111-1111-1111-111111111111","role":"authenticated"}';
 
 insert into public.asientos (fecha, descripcion, origen_tipo, total)
 values
@@ -564,15 +573,15 @@ select ok(
 );
 
 select ok(
-  has_table_privilege('authenticated', 'public.nomina_parametros_rd', 'INSERT')
-  and has_table_privilege('authenticated', 'public.nomina_parametros_rd', 'UPDATE')
-  and has_table_privilege('authenticated', 'public.nomina_config_empresa', 'INSERT')
-  and has_table_privilege('authenticated', 'public.nomina_config_empresa', 'UPDATE')
-  and has_table_privilege('authenticated', 'public.nomina_conceptos', 'INSERT')
-  and has_table_privilege('authenticated', 'public.nomina_conceptos', 'UPDATE')
-  and has_table_privilege('authenticated', 'public.nomina_mapeo_contable', 'INSERT')
-  and has_table_privilege('authenticated', 'public.nomina_mapeo_contable', 'UPDATE'),
-  'los catálogos admiten escritura desde Configuración (policy de admin)'
+  not has_table_privilege('authenticated', 'public.nomina_parametros_rd', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.nomina_parametros_rd', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.nomina_config_empresa', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.nomina_config_empresa', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.nomina_conceptos', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.nomina_conceptos', 'UPDATE')
+  and not has_table_privilege('authenticated', 'public.nomina_mapeo_contable', 'INSERT')
+  and not has_table_privilege('authenticated', 'public.nomina_mapeo_contable', 'UPDATE'),
+  'los catálogos solo se escriben por RPC security definer'
 );
 
 select ok(
@@ -585,9 +594,9 @@ select ok(
   'anon no ve nada de nómina'
 );
 
--- El admin siembra los parámetros de 2027 (policy de escritura del catálogo).
-set local role authenticated;
-set local request.jwt.claims = '{"sub":"91111111-1111-1111-1111-111111111111","role":"authenticated"}';
+-- Los parámetros de 2027 se siembran como dueño: la escritura directa de los
+-- catálogos quedó cerrada en 20261125150000 (el admin usa la RPC).
+reset role;
 
 insert into public.nomina_parametros_rd (
   anio,

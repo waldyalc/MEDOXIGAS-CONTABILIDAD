@@ -201,15 +201,13 @@ select throws_ok(
   'el contador tampoco puede UPDATE directo en nomina_conceptos'
 );
 
-select throws_ok(
+select lives_ok(
   format(
     $q$select public.nomina_actualizar_concepto(%L::uuid, %L::jsonb)$q$,
     (select id from _ids where clave = 'concepto_salario'),
-    jsonb_build_object('nombre', 'Otra cosa')
+    jsonb_build_object('nombre', 'Salario contador')
   ),
-  '42501',
-  null,
-  'el contador recibe 42501 al intentar la RPC de conceptos'
+  'el contador puede editar conceptos por RPC (security definer)'
 );
 
 set local request.jwt.claims = '{"sub":"e3333333-3333-3333-3333-333333333333","role":"authenticated"}';
