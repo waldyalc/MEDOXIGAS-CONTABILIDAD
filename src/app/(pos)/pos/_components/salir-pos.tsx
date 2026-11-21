@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { cn } from "cn";
 import { ArrowLeft } from "lucide-react";
 
 import {
@@ -14,11 +15,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 
 import { useCarritoPOS } from "./carrito-pos-provider";
+import { claseIconoMenu, itemMenuBase, itemMenuColapsado } from "./menu-pos-estilos";
 
-export function SalirPos() {
+/**
+ * Ítem «Volver a Contabilidad» del pie del menú del POS. Si hay ventas sin
+ * cobrar, pide confirmación antes de salir del punto de venta.
+ */
+export function SalirPos({ colapsado = false }: { colapsado?: boolean }) {
   const { hayLineas } = useCarritoPOS();
   const [abierto, setAbierto] = useState(false);
 
@@ -28,11 +33,10 @@ export function SalirPos() {
 
   return (
     <>
-      <Button
-        variant="outline"
-        className="h-10 gap-1.5"
+      <button
+        type="button"
         title="Volver a Contabilidad"
-        aria-label="Volver a Contabilidad"
+        className={cn(itemMenuBase, colapsado && itemMenuColapsado)}
         onClick={() => {
           if (hayLineas) {
             setAbierto(true);
@@ -41,9 +45,9 @@ export function SalirPos() {
           salir();
         }}
       >
-        <ArrowLeft aria-hidden="true" />
-        <span className="hidden xl:inline">Salir</span>
-      </Button>
+        <ArrowLeft aria-hidden="true" className={claseIconoMenu(false)} />
+        <span className={cn("min-w-0 flex-1 truncate", colapsado && "hidden")}>Volver a Contabilidad</span>
+      </button>
 
       <AlertDialog open={abierto} onOpenChange={setAbierto}>
         <AlertDialogContent>
