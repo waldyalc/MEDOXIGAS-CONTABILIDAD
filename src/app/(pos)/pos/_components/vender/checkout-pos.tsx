@@ -5,15 +5,34 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { cn } from "cn";
-import { ArrowLeftRight, Banknote, CalendarClock, CreditCard, Loader2, Plus, Split, Trash2 } from "lucide-react";
+import {
+  ArrowLeftRight,
+  Banknote,
+  CalendarClock,
+  CreditCard,
+  Landmark,
+  Loader2,
+  Plus,
+  Split,
+  Trash2,
+  Wallet,
+} from "lucide-react";
 
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { ContactoBuscado } from "@/lib/contactos/seleccion";
 import { formatoMoneda } from "@/lib/facturacion/formato";
@@ -21,6 +40,7 @@ import type { Empresa } from "@/lib/facturacion/tipos";
 import { completarVenta } from "@/lib/pos/acciones";
 import { centavosATexto, centavosDeDecimal, compararMontos, sumarMontos } from "@/lib/pos/calculo";
 import type { MetodoPOS, PlantillaTicket, VentaPOSResultado } from "@/lib/pos/tipos";
+import { createClient } from "@/lib/supabase/client";
 
 import { useCarritoPOS } from "../carrito-pos-provider";
 import { capitalizar, ETIQUETAS_METODO, hoyRD, textoAMonto } from "../formato-pos";
@@ -36,6 +56,8 @@ interface FilaCombinada {
 }
 
 const METODOS_COMBINADOS: MetodoPOS[] = ["efectivo", "tarjeta_debito", "tarjeta_credito", "transferencia"];
+
+const NINGUNO = "__ninguno";
 
 function nuevoId(): string {
   return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -91,10 +113,13 @@ export function CheckoutPos({
   const router = useRouter();
   const carrito = useCarritoPOS();
   const { activa, totales } = carrito;
+  const [vista, setVista] = useState<"metodos" | "detalle">("metodos");
   const [modo, setModo] = useState<ModoCobro>("efectivo");
   const [recibido, setRecibido] = useState("");
   const [aplicado, setAplicado] = useState("");
   const [filas, setFilas] = useState<FilaCombinada[]>([]);
+  const [notas, setNotas] = useState("");
+  const [vendedores, setVendedores] = useState<{ id: string; nombre: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [lento, setLento] = useState(false);
@@ -117,8 +142,10 @@ export function CheckoutPos({
 
   useEffect(() => {
     if (!abierto) return;
+    setVista("metodos");
     setModo("efectivo");
     setFilas([]);
+    setNotas("");
     setError(null);
     setLento(false);
     setPerdido(false);
@@ -130,6 +157,23 @@ export function CheckoutPos({
     setRecibido(total);
     setAplicado(total);
   }, [abierto, total, venta]);
+
+  useEffect(() => {
+    if (!abierto) return;
+    let activo = true;
+    const supabase = createClient();
+    supabase
+      .from("vendedores")
+      .select("id, nombre")
+      .eq("activo", true)
+      .order("nombre")
+      .then(({ data }) => {
+        if (activo) setVendedores(data ?? []);
+      });
+    return () => {
+      activo = false;
+    };
+  }, [abierto]);
 
   useEffect(() => {
     if (!enviando) {
@@ -230,6 +274,12 @@ export function CheckoutPos({
     return [...opciones].slice(0, 5);
   }, [total]);
 
+  function elegirMetodo(nuevo: ModoCobro) {
+    setModo(nuevo);
+    setVista("detalle");
+    if (nuevo === "combinado" && filas.length === 0) agregarFila();
+  }
+
   function agregarFila() {
     const disponibles = METODOS_COMBINADOS.filter(
       (metodo) => !filas.some((fila) => fila.metodo === metodo) && metodoDisponible(metodo),
@@ -306,6 +356,7 @@ export function CheckoutPos({
       lista_precio_id: cotizacion ? null : activa.listaPrecioId || null,
       numeracion_id: activa.numeracionId || null,
       vendedor_id: cotizacion ? null : activa.vendedorId || null,
+      ...(notas.trim() ? { notas: notas.trim() } : {}),
       fecha: hoyRD(),
       ...(cotizacion ? { cotizacion_id: cotizacion.id } : { lineas: lineasPayload() }),
       pagos: armarPagos(),
@@ -343,6 +394,17 @@ export function CheckoutPos({
     }
   }
 
+  const camposCobro = (
+    <CamposCobro
+      vendedores={vendedores}
+      vendedorId={activa.vendedorId}
+      onVendedor={carrito.setVendedor}
+      notas={notas}
+      onNotas={setNotas}
+      vendedorDeshabilitado={cotizacion !== null}
+    />
+  );
+
   return (
     <>
       <Dialog open={abierto} onOpenChange={cerrar}>
@@ -365,17 +427,44 @@ export function CheckoutPos({
           ) : (
             <>
               <DialogHeader>
-                <DialogTitle>Cobrar venta</DialogTitle>
+                <DialogTitle>Pagar factura</DialogTitle>
                 <DialogDescription>
                   {turno ? `${terminal.nombre} · Turno No ${turno.numero}` : terminal.nombre}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-medium">
+              <div className="relative flex flex-col items-center gap-0.5">
+                {vista === "detalle" ? (
+                  <button
+                    type="button"
+                    className="text-primary hover:text-primary/80 absolute top-0 right-0 flex items-center gap-1 text-sm font-medium transition-colors"
+                    onClick={() => setVista("metodos")}
+                  >
+                    <ArrowLeftRight className="size-3.5" aria-hidden="true" />
+                    Cambiar método
+                  </button>
+                ) : null}
+                <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Total</span>
+                <span className="text-3xl font-semibold tabular-nums">{formatoMoneda(total)}</span>
+                {vista === "detalle" && modo === "efectivo" && centavos(cambioEfectivo) > 0 ? (
+                  <span className="text-sm">
+                    Cambio:{" "}
+                    <span className="text-destructive font-semibold tabular-nums">{formatoMoneda(cambioEfectivo)}</span>
+                  </span>
+                ) : null}
+                {vista === "detalle" && modo === "combinado" ? (
+                  <span className="text-sm">
+                    Total recibido <span className="tabular-nums">{formatoMoneda(sumaCombinada)}</span>
+                    {" · "}
+                    Por cobrar:{" "}
+                    <span className="text-destructive font-semibold tabular-nums">
+                      {formatoMoneda(porCobrarCombinado)}
+                    </span>
+                  </span>
+                ) : null}
+                <span className="text-muted-foreground text-xs">
                   {cotizacion ? `Cotización No ${cotizacion.numero}` : carrito.activa.nombre}
                 </span>
-                <span className="text-2xl font-semibold tabular-nums">{formatoMoneda(total)}</span>
               </div>
 
               {error ? (
@@ -409,323 +498,360 @@ export function CheckoutPos({
                 </Alert>
               ) : null}
 
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <Tile
-                  icono={<Banknote aria-hidden="true" />}
-                  titulo="Efectivo"
-                  cuenta={nombreCuenta(terminal.cuenta_efectivo_id)}
-                  activo={modo === "efectivo"}
-                  onClick={() => setModo("efectivo")}
-                />
-                <Tile
-                  icono={<CreditCard aria-hidden="true" />}
-                  titulo="Tarjeta débito"
-                  cuenta={nombreCuenta(terminal.cuenta_tarjeta_debito_id)}
-                  activo={modo === "tarjeta_debito"}
-                  motivo={motivoDebito}
-                  onClick={() => setModo("tarjeta_debito")}
-                />
-                <Tile
-                  icono={<CreditCard aria-hidden="true" />}
-                  titulo="Tarjeta crédito"
-                  cuenta={nombreCuenta(terminal.cuenta_tarjeta_credito_id)}
-                  activo={modo === "tarjeta_credito"}
-                  motivo={motivoCredito}
-                  onClick={() => setModo("tarjeta_credito")}
-                />
-                <Tile
-                  icono={<ArrowLeftRight aria-hidden="true" />}
-                  titulo="Transferencia"
-                  cuenta={nombreCuenta(terminal.cuenta_transferencia_id)}
-                  activo={modo === "transferencia"}
-                  motivo={motivoTransferencia}
-                  onClick={() => setModo("transferencia")}
-                />
-                <Tile
-                  icono={<Split aria-hidden="true" />}
-                  titulo="Combinado"
-                  cuenta={null}
-                  activo={modo === "combinado"}
-                  motivo={hayCombinado ? null : "No hay un método de pago adicional configurado en la terminal."}
-                  onClick={() => {
-                    setModo("combinado");
-                    if (filas.length === 0) agregarFila();
-                  }}
-                />
-                <Tile
-                  icono={<CalendarClock aria-hidden="true" />}
-                  titulo="Crédito"
-                  cuenta={null}
-                  activo={modo === "credito"}
-                  motivo={motivoCreditoCliente}
-                  onClick={() => setModo("credito")}
-                />
-              </div>
-
-              {modo === "efectivo" ? (
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-col gap-1">
-                    <Label htmlFor="efectivo-recibido">Efectivo recibido</Label>
-                    <InputGroup className="h-10">
-                      <InputGroupAddon>
-                        <InputGroupText>RD$</InputGroupText>
-                      </InputGroupAddon>
-                      <InputGroupInput
-                        id="efectivo-recibido"
-                        value={recibido}
-                        inputMode="decimal"
-                        onChange={(evento) => setRecibido(evento.target.value)}
-                      />
-                    </InputGroup>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {pills.map((pill) => (
-                      <Button
-                        key={pill}
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-9"
-                        onClick={() => setRecibido(pill)}
-                      >
-                        {pill === total ? "Exacto" : formatoMoneda(pill)}
-                      </Button>
-                    ))}
-                  </div>
-                  <div className="flex flex-col gap-1 border-t pt-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Aplicado a la venta</span>
-                      <span className="tabular-nums">{formatoMoneda(aplicadoEfectivo)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Cambio</span>
-                      <span className="tabular-nums">{formatoMoneda(cambioEfectivo)}</span>
-                    </div>
-                  </div>
-                  {!simpleEfectivo ? <p className="text-destructive text-xs">Escribe el efectivo recibido.</p> : null}
-                </div>
-              ) : null}
-
-              {modo === "tarjeta_debito" || modo === "tarjeta_credito" || modo === "transferencia" ? (
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="monto-aplicado">Monto aplicado</Label>
-                  <InputGroup className="h-10">
-                    <InputGroupAddon>
-                      <InputGroupText>RD$</InputGroupText>
-                    </InputGroupAddon>
-                    <InputGroupInput
-                      id="monto-aplicado"
-                      value={aplicado}
-                      inputMode="decimal"
-                      aria-invalid={excedeOtro}
-                      onChange={(evento) => setAplicado(evento.target.value)}
+              {vista === "metodos" ? (
+                <>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Tile
+                      icono={<Banknote aria-hidden="true" />}
+                      titulo="Efectivo"
+                      activo={false}
+                      onClick={() => elegirMetodo("efectivo")}
                     />
-                  </InputGroup>
-                  {excedeOtro ? (
-                    <p className="text-destructive text-xs">
-                      La suma de los pagos no puede exceder el total de la venta.
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {modo === "combinado" ? (
-                <div className="flex flex-col gap-2">
-                  {filas.map((fila) => {
-                    const metodo = fila.metodo;
-                    return (
-                      <div key={fila.id} className="border-border flex flex-col gap-2 rounded-lg border p-2">
-                        <div className="flex items-center gap-2">
-                          <Select
-                            items={METODOS_COMBINADOS.filter(
-                              (candidato) =>
-                                candidato === fila.metodo ||
-                                (!filas.some((otra) => otra.id !== fila.id && otra.metodo === candidato) &&
-                                  metodoDisponible(candidato)),
-                            ).map((candidato) => ({ value: candidato, label: ETIQUETAS_METODO[candidato] }))}
-                            value={metodo}
-                            onValueChange={(valor) => {
-                              if (!valor) return;
-                              setFilas((actuales) =>
-                                actuales.map((actual) =>
-                                  actual.id === fila.id
-                                    ? {
-                                        ...actual,
-                                        metodo: valor,
-                                        recibido: valor === "efectivo" ? actual.monto : "0.00",
-                                      }
-                                    : actual,
-                                ),
-                              );
-                            }}
-                          >
-                            <SelectTrigger className="h-10 flex-1">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent alignItemWithTrigger={false}>
-                              {METODOS_COMBINADOS.filter(
-                                (candidato) =>
-                                  candidato === fila.metodo ||
-                                  (!filas.some((otra) => otra.id !== fila.id && otra.metodo === candidato) &&
-                                    metodoDisponible(candidato)),
-                              ).map((candidato) => (
-                                <SelectItem key={candidato} value={candidato}>
-                                  {ETIQUETAS_METODO[candidato]}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <InputGroup className="h-10 w-36">
+                    <Tile
+                      icono={<CreditCard aria-hidden="true" />}
+                      titulo="Tarjeta crédito"
+                      activo={false}
+                      motivo={motivoCredito}
+                      onClick={() => elegirMetodo("tarjeta_credito")}
+                    />
+                    <Tile
+                      icono={<Landmark aria-hidden="true" />}
+                      titulo="Transferencia"
+                      activo={false}
+                      motivo={motivoTransferencia}
+                      onClick={() => elegirMetodo("transferencia")}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="bg-border h-px flex-1" aria-hidden="true" />
+                    <span className="text-muted-foreground text-xs">Otros métodos</span>
+                    <span className="bg-border h-px flex-1" aria-hidden="true" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Tile
+                      icono={<Wallet aria-hidden="true" />}
+                      titulo="Tarjeta débito"
+                      activo={false}
+                      motivo={motivoDebito}
+                      onClick={() => elegirMetodo("tarjeta_debito")}
+                    />
+                    <Tile
+                      icono={<Split aria-hidden="true" />}
+                      titulo="Combinado"
+                      activo={false}
+                      motivo={hayCombinado ? null : "No hay un método de pago adicional configurado en la terminal."}
+                      onClick={() => elegirMetodo("combinado")}
+                    />
+                    <Tile
+                      icono={<CalendarClock aria-hidden="true" />}
+                      titulo="Crédito"
+                      activo={false}
+                      motivo={motivoCreditoCliente}
+                      onClick={() => elegirMetodo("credito")}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => cerrar(false)}>
+                      Cancelar
+                    </Button>
+                  </DialogFooter>
+                </>
+              ) : (
+                <>
+                  {modo === "efectivo" ? (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-1">
+                          <Label htmlFor="efectivo-recibido">Valor del pago en efectivo *</Label>
+                          <InputGroup className="h-10">
                             <InputGroupAddon>
                               <InputGroupText>RD$</InputGroupText>
                             </InputGroupAddon>
                             <InputGroupInput
-                              value={fila.monto}
+                              id="efectivo-recibido"
+                              value={recibido}
                               inputMode="decimal"
-                              aria-label={`Monto de ${ETIQUETAS_METODO[fila.metodo]}`}
-                              onChange={(evento) =>
-                                setFilas((actuales) =>
-                                  actuales.map((actual) =>
-                                    actual.id === fila.id ? { ...actual, monto: evento.target.value } : actual,
-                                  ),
-                                )
-                              }
+                              onChange={(evento) => setRecibido(evento.target.value)}
                             />
                           </InputGroup>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive size-10"
-                            aria-label="Quitar método"
-                            disabled={filas.length === 1}
-                            onClick={() => setFilas((actuales) => actuales.filter((actual) => actual.id !== fila.id))}
-                          >
-                            <Trash2 aria-hidden="true" />
-                          </Button>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <span className="bg-border h-px flex-1" aria-hidden="true" />
+                          <span className="text-muted-foreground text-xs">Opciones rápidas</span>
+                          <span className="bg-border h-px flex-1" aria-hidden="true" />
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {pills.map((pill) => (
+                            <Button
+                              key={pill}
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                "h-9",
+                                recibido === pill && "border-primary text-primary hover:text-primary",
+                              )}
+                              onClick={() => setRecibido(pill)}
+                            >
+                              {pill === total ? `Exacto ${formatoMoneda(pill)}` : formatoMoneda(pill)}
+                            </Button>
+                          ))}
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Aplicado a la venta</span>
+                          <span className="tabular-nums">{formatoMoneda(aplicadoEfectivo)}</span>
+                        </div>
+                        {!simpleEfectivo ? (
+                          <p className="text-destructive text-xs">Escribe el efectivo recibido.</p>
+                        ) : null}
+                      </div>
+                      {camposCobro}
+                    </div>
+                  ) : null}
 
-                        {fila.metodo === "efectivo" ? (
-                          <div className="flex items-center gap-2">
-                            <Label htmlFor={`recibido-${fila.id}`} className="text-xs">
-                              Efectivo recibido
-                            </Label>
-                            <InputGroup className="h-9 w-36">
-                              <InputGroupAddon>
-                                <InputGroupText>RD$</InputGroupText>
-                              </InputGroupAddon>
-                              <InputGroupInput
-                                id={`recibido-${fila.id}`}
-                                value={hayCreditoCombinado ? fila.monto : fila.recibido}
-                                inputMode="decimal"
-                                disabled={hayCreditoCombinado}
-                                onChange={(evento) =>
+                  {modo === "tarjeta_debito" || modo === "tarjeta_credito" || modo === "transferencia" ? (
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-1">
+                          <Label htmlFor="monto-aplicado">Valor del pago *</Label>
+                          <InputGroup className="h-10">
+                            <InputGroupAddon>
+                              <InputGroupText>RD$</InputGroupText>
+                            </InputGroupAddon>
+                            <InputGroupInput
+                              id="monto-aplicado"
+                              value={aplicado}
+                              inputMode="decimal"
+                              aria-invalid={excedeOtro}
+                              onChange={(evento) => setAplicado(evento.target.value)}
+                            />
+                          </InputGroup>
+                        </div>
+                        {excedeOtro ? (
+                          <p className="text-destructive text-xs">
+                            La suma de los pagos no puede exceder el total de la venta.
+                          </p>
+                        ) : null}
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Aplicado a la venta</span>
+                          <span className="tabular-nums">{formatoMoneda(menor(aplicadoOtro, total))}</span>
+                        </div>
+                      </div>
+                      {camposCobro}
+                    </div>
+                  ) : null}
+
+                  {modo === "combinado" ? (
+                    <div className="flex flex-col gap-2">
+                      {filas.map((fila) => {
+                        const metodo = fila.metodo;
+                        return (
+                          <div key={fila.id} className="border-border flex flex-col gap-2 rounded-lg border p-2">
+                            <div className="flex items-center gap-2">
+                              <Select
+                                items={METODOS_COMBINADOS.filter(
+                                  (candidato) =>
+                                    candidato === fila.metodo ||
+                                    (!filas.some((otra) => otra.id !== fila.id && otra.metodo === candidato) &&
+                                      metodoDisponible(candidato)),
+                                ).map((candidato) => ({ value: candidato, label: ETIQUETAS_METODO[candidato] }))}
+                                value={metodo}
+                                onValueChange={(valor) => {
+                                  if (!valor) return;
                                   setFilas((actuales) =>
                                     actuales.map((actual) =>
-                                      actual.id === fila.id ? { ...actual, recibido: evento.target.value } : actual,
+                                      actual.id === fila.id
+                                        ? {
+                                            ...actual,
+                                            metodo: valor,
+                                            recibido: valor === "efectivo" ? actual.monto : "0.00",
+                                          }
+                                        : actual,
                                     ),
-                                  )
+                                  );
+                                }}
+                              >
+                                <SelectTrigger className="h-10 flex-1" aria-label="Método de pago">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent alignItemWithTrigger={false}>
+                                  {METODOS_COMBINADOS.filter(
+                                    (candidato) =>
+                                      candidato === fila.metodo ||
+                                      (!filas.some((otra) => otra.id !== fila.id && otra.metodo === candidato) &&
+                                        metodoDisponible(candidato)),
+                                  ).map((candidato) => (
+                                    <SelectItem key={candidato} value={candidato}>
+                                      {ETIQUETAS_METODO[candidato]}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <InputGroup className="h-10 w-36">
+                                <InputGroupAddon>
+                                  <InputGroupText>RD$</InputGroupText>
+                                </InputGroupAddon>
+                                <InputGroupInput
+                                  value={fila.monto}
+                                  inputMode="decimal"
+                                  aria-label={`Monto de ${ETIQUETAS_METODO[fila.metodo]}`}
+                                  onChange={(evento) =>
+                                    setFilas((actuales) =>
+                                      actuales.map((actual) =>
+                                        actual.id === fila.id ? { ...actual, monto: evento.target.value } : actual,
+                                      ),
+                                    )
+                                  }
+                                />
+                              </InputGroup>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive size-10"
+                                aria-label="Quitar método"
+                                disabled={filas.length === 1}
+                                onClick={() =>
+                                  setFilas((actuales) => actuales.filter((actual) => actual.id !== fila.id))
                                 }
-                              />
-                            </InputGroup>
-                            <span className="text-muted-foreground text-xs">
-                              {`Cambio ${formatoMoneda(
-                                centavosATexto(
-                                  Math.max(
-                                    0,
-                                    centavos(hayCreditoCombinado ? fila.monto : fila.recibido) - centavos(fila.monto),
-                                  ),
-                                ),
-                              )}`}
-                            </span>
+                              >
+                                <Trash2 aria-hidden="true" />
+                              </Button>
+                            </div>
+
+                            {fila.metodo === "efectivo" ? (
+                              <div className="flex items-center gap-2">
+                                <Label htmlFor={`recibido-${fila.id}`} className="text-xs">
+                                  Efectivo recibido
+                                </Label>
+                                <InputGroup className="h-9 w-36">
+                                  <InputGroupAddon>
+                                    <InputGroupText>RD$</InputGroupText>
+                                  </InputGroupAddon>
+                                  <InputGroupInput
+                                    id={`recibido-${fila.id}`}
+                                    value={hayCreditoCombinado ? fila.monto : fila.recibido}
+                                    inputMode="decimal"
+                                    disabled={hayCreditoCombinado}
+                                    onChange={(evento) =>
+                                      setFilas((actuales) =>
+                                        actuales.map((actual) =>
+                                          actual.id === fila.id ? { ...actual, recibido: evento.target.value } : actual,
+                                        ),
+                                      )
+                                    }
+                                  />
+                                </InputGroup>
+                                <span className="text-muted-foreground text-xs">
+                                  {`Cambio ${formatoMoneda(
+                                    centavosATexto(
+                                      Math.max(
+                                        0,
+                                        centavos(hayCreditoCombinado ? fila.monto : fila.recibido) -
+                                          centavos(fila.monto),
+                                      ),
+                                    ),
+                                  )}`}
+                                </span>
+                              </div>
+                            ) : null}
+
+                            <p className="text-muted-foreground text-xs">
+                              Cuenta: {nombreCuenta(cuentaDeMetodo(fila.metodo, terminal)) ?? "—"}
+                            </p>
                           </div>
-                        ) : null}
+                        );
+                      })}
 
-                        <p className="text-muted-foreground text-xs">
-                          Cuenta: {nombreCuenta(cuentaDeMetodo(fila.metodo, terminal)) ?? "—"}
+                      <Button
+                        variant="outline"
+                        className="h-10 gap-1.5"
+                        disabled={
+                          filas.length >= 4 ||
+                          METODOS_COMBINADOS.every(
+                            (metodo) => filas.some((fila) => fila.metodo === metodo) || !metodoDisponible(metodo),
+                          )
+                        }
+                        onClick={agregarFila}
+                      >
+                        <Plus aria-hidden="true" />
+                        Agregar método
+                      </Button>
+
+                      {excedeCombinado ? (
+                        <p className="text-destructive text-xs">
+                          La suma de los pagos no puede exceder el total de la venta.
                         </p>
+                      ) : null}
+                      {filaCombinadaInvalida ? (
+                        <p className="text-destructive text-xs">Completa cada fila con un monto mayor a cero.</p>
+                      ) : null}
+
+                      <div className="flex flex-col gap-1 border-t pt-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Total recibido</span>
+                          <span className="tabular-nums">{formatoMoneda(sumaCombinada)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Por cobrar</span>
+                          <span className="tabular-nums">{formatoMoneda(porCobrarCombinado)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Cambio</span>
+                          <span className="tabular-nums">{formatoMoneda(cambioCombinado)}</span>
+                        </div>
                       </div>
-                    );
-                  })}
 
-                  <Button
-                    variant="outline"
-                    className="h-10 gap-1.5"
-                    disabled={
-                      filas.length >= 4 ||
-                      METODOS_COMBINADOS.every(
-                        (metodo) => filas.some((fila) => fila.metodo === metodo) || !metodoDisponible(metodo),
-                      )
-                    }
-                    onClick={agregarFila}
-                  >
-                    <Plus aria-hidden="true" />
-                    Agregar método
-                  </Button>
-
-                  {excedeCombinado ? (
-                    <p className="text-destructive text-xs">
-                      La suma de los pagos no puede exceder el total de la venta.
-                    </p>
-                  ) : null}
-                  {filaCombinadaInvalida ? (
-                    <p className="text-destructive text-xs">Completa cada fila con un monto mayor a cero.</p>
-                  ) : null}
-
-                  <div className="flex flex-col gap-1 border-t pt-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total recibido</span>
-                      <span className="tabular-nums">{formatoMoneda(sumaCombinada)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Por cobrar</span>
-                      <span className="tabular-nums">{formatoMoneda(porCobrarCombinado)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Cambio</span>
-                      <span className="tabular-nums">{formatoMoneda(cambioCombinado)}</span>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {hayCredito || modo === "credito" ? (
-                <div className="bg-muted/40 flex flex-col gap-2 rounded-lg p-3">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-sm font-medium">Queda a crédito</span>
-                    <span className="text-lg font-semibold tabular-nums">{formatoMoneda(credito)}</span>
-                  </div>
-                  <p className="text-muted-foreground text-sm">
-                    {`La factura quedará por cobrar a nombre de ${nombreCliente(contactos, activa.contactoId)}.`}
-                  </p>
-                  {esConsumidorFinal ? (
-                    <Alert variant="destructive">
-                      <AlertDescription>
-                        No se puede vender a crédito al Consumidor Final; selecciona un cliente o cobra el total.
-                      </AlertDescription>
-                    </Alert>
-                  ) : null}
-                  {esConsumidorFinal && !cotizacion ? (
-                    <div className="flex flex-col gap-1">
-                      <Label className="text-xs">Cliente para el crédito</Label>
-                      <SelectorContacto
-                        contactos={contactos}
-                        valor={activa.contactoId}
-                        onCambio={(contacto) => carrito.setContacto(contacto?.id ?? "")}
-                        tipoInicial="cliente"
-                        showClear={false}
-                      />
+                      {camposCobro}
                     </div>
                   ) : null}
-                  {esConsumidorFinal && cotizacion ? (
-                    <p className="text-destructive text-xs">Quita la cotización para cambiar de cliente.</p>
-                  ) : null}
-                </div>
-              ) : null}
 
-              <Button className="h-12 w-full text-base" disabled={ctaDeshabilitado} onClick={() => void cobrar()}>
-                {enviando ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
-                {enviando ? "Procesando venta…" : etiquetaCta}
-              </Button>
+                  {modo === "credito" ? <div className="grid gap-3 sm:grid-cols-2">{camposCobro}</div> : null}
+
+                  {hayCredito || modo === "credito" ? (
+                    <div className="bg-muted/40 flex flex-col gap-2 rounded-lg p-3">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-sm font-medium">Queda a crédito</span>
+                        <span className="text-lg font-semibold tabular-nums">{formatoMoneda(credito)}</span>
+                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        {`La factura quedará por cobrar a nombre de ${nombreCliente(contactos, activa.contactoId)}.`}
+                      </p>
+                      {esConsumidorFinal ? (
+                        <Alert variant="destructive">
+                          <AlertDescription>
+                            No se puede vender a crédito al Consumidor Final; selecciona un cliente o cobra el total.
+                          </AlertDescription>
+                        </Alert>
+                      ) : null}
+                      {esConsumidorFinal && !cotizacion ? (
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-xs">Cliente para el crédito</Label>
+                          <SelectorContacto
+                            contactos={contactos}
+                            valor={activa.contactoId}
+                            onCambio={(contacto) => carrito.setContacto(contacto?.id ?? "")}
+                            tipoInicial="cliente"
+                            showClear={false}
+                          />
+                        </div>
+                      ) : null}
+                      {esConsumidorFinal && cotizacion ? (
+                        <p className="text-destructive text-xs">Quita la cotización para cambiar de cliente.</p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <DialogFooter>
+                    <Button variant="outline" disabled={enviando} onClick={() => cerrar(false)}>
+                      Cancelar
+                    </Button>
+                    <Button className="h-11" disabled={ctaDeshabilitado} onClick={() => void cobrar()}>
+                      {enviando ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+                      {enviando ? "Procesando venta…" : etiquetaCta}
+                    </Button>
+                  </DialogFooter>
+                </>
+              )}
             </>
           )}
         </DialogContent>
@@ -776,17 +902,72 @@ function nombreCliente(contactos: ContactoBuscado[], id: string): string {
   return contactos.find((contacto) => contacto.id === id)?.nombre ?? "Consumidor Final";
 }
 
+function CamposCobro({
+  vendedores,
+  vendedorId,
+  onVendedor,
+  notas,
+  onNotas,
+  vendedorDeshabilitado,
+}: {
+  vendedores: { id: string; nombre: string }[];
+  vendedorId: string;
+  onVendedor: (vendedorId: string) => void;
+  notas: string;
+  onNotas: (notas: string) => void;
+  vendedorDeshabilitado: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      {vendedores.length > 0 ? (
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="cobro-vendedor">Vendedor</Label>
+          <Select
+            items={[
+              { value: NINGUNO, label: "Seleccionar" },
+              ...vendedores.map((vendedor) => ({ value: vendedor.id, label: vendedor.nombre })),
+            ]}
+            value={vendedorId === "" ? NINGUNO : vendedorId}
+            onValueChange={(valor) => onVendedor(valor === NINGUNO ? "" : (valor ?? ""))}
+            disabled={vendedorDeshabilitado}
+          >
+            <SelectTrigger id="cobro-vendedor" className="h-10 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectItem value={NINGUNO}>Seleccionar</SelectItem>
+              {vendedores.map((vendedor) => (
+                <SelectItem key={vendedor.id} value={vendedor.id}>
+                  {vendedor.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="cobro-observaciones">Observaciones</Label>
+        <Textarea
+          id="cobro-observaciones"
+          value={notas}
+          maxLength={500}
+          placeholder="Ingresa tu observación"
+          onChange={(evento) => onNotas(evento.target.value)}
+        />
+      </div>
+    </div>
+  );
+}
+
 function Tile({
   icono,
   titulo,
-  cuenta,
   activo,
   motivo,
   onClick,
 }: {
   icono: ReactNode;
   titulo: string;
-  cuenta: string | null;
   activo: boolean;
   motivo?: string | null;
   onClick: () => void;
@@ -799,16 +980,13 @@ function Tile({
       disabled={Boolean(motivo)}
       onClick={onClick}
       className={cn(
-        "border-border flex min-h-[72px] flex-col items-start gap-1 rounded-lg border p-2 text-left transition-colors",
+        "border-border flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-lg border p-3 transition-colors",
         activo ? "border-primary bg-primary/5 text-primary" : "hover:bg-muted",
         motivo && "cursor-not-allowed opacity-50",
       )}
     >
-      <span className="flex items-center gap-1.5 text-sm font-medium">
-        {icono}
-        {titulo}
-      </span>
-      <span className="text-muted-foreground text-xs">{cuenta ?? "—"}</span>
+      <span className="[&_svg]:size-7">{icono}</span>
+      <span className="text-sm font-medium">{titulo}</span>
     </button>
   );
 }
