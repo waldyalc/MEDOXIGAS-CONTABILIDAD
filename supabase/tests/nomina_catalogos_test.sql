@@ -521,8 +521,6 @@ select throws_ok(
   null,
   'solo puede existir la configuración id = 1'
 );
-set local role authenticated;
-set local request.jwt.claims = '{"sub":"91111111-1111-1111-1111-111111111111","role":"authenticated"}';
 
 insert into public.asientos (fecha, descripcion, origen_tipo, total)
 values
@@ -640,7 +638,7 @@ values (
 select is(
   (select count(*)::int from public.nomina_parametros_rd where anio = 2027),
   1,
-  'el admin puede sembrar los parámetros de un año nuevo'
+  'el dueño siembra los parámetros de un año nuevo'
 );
 
 reset role;
