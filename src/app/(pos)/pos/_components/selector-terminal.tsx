@@ -26,9 +26,12 @@ import { useCarritoPOS } from "./carrito-pos-provider";
 export function SelectorTerminal({
   terminales,
   activa,
+  colapsado = false,
 }: {
   terminales: { id: string; nombre: string }[];
   activa: { id: string; nombre: string };
+  /** Riel de 56 px del menú del POS: solo el icono de la terminal. */
+  colapsado?: boolean;
 }) {
   const router = useRouter();
   const { hayLineas } = useCarritoPOS();
@@ -56,11 +59,25 @@ export function SelectorTerminal({
     }
   }
 
+  if (colapsado) {
+    return (
+      <div className="flex h-8 w-full items-center justify-center" title={`Terminal: ${activa.nombre}`}>
+        <Store
+          className="dark:text-sidebar-foreground/50 size-5 shrink-0 stroke-[1.6] text-slate-400"
+          aria-hidden="true"
+        />
+      </div>
+    );
+  }
+
   if (terminales.length <= 1) {
     return (
-      <div className="flex h-10 items-center gap-2 rounded-lg border border-transparent px-1">
-        <Store className="text-muted-foreground size-4" aria-hidden="true" />
-        <span className="max-w-[160px] truncate text-sm font-medium">{activa.nombre}</span>
+      <div className="dark:text-sidebar-foreground/85 flex h-8 items-center gap-2 rounded-[6px] px-2 text-sm text-slate-700">
+        <Store
+          className="dark:text-sidebar-foreground/50 size-5 shrink-0 stroke-[1.6] text-slate-400"
+          aria-hidden="true"
+        />
+        <span className="min-w-0 flex-1 truncate">{activa.nombre}</span>
         <Badge variant="secondary">Terminal</Badge>
       </div>
     );
@@ -82,7 +99,7 @@ export function SelectorTerminal({
           }}
           disabled={pendiente}
         >
-          <SelectTrigger className="h-10 w-[190px]" aria-label="Terminal activa">
+          <SelectTrigger className="h-9 w-full" aria-label="Terminal activa">
             <Store className="text-muted-foreground size-4" aria-hidden="true" />
             <SelectValue />
             {pendiente ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
