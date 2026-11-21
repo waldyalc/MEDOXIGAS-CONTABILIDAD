@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "cn";
+
 import {
   ArrowUpRight,
   ChevronDown,
@@ -24,8 +25,7 @@ import {
   Store,
   Users,
   Wallet,
-} from "lucide-react";
-
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
