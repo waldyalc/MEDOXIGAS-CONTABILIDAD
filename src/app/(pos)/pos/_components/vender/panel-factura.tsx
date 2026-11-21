@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 
-import { FileText, FolderOpen, Loader2 } from "lucide-react";
+import { FileText, FolderOpen, Loader2, UserPlus, Zap } from "lucide-react";
 
+import { DialogoNuevoContacto } from "@/components/contactos/dialogo-nuevo-contacto";
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -79,6 +80,7 @@ export function PanelFactura({
   const { activa, totales } = carrito;
   const [expandida, setExpandida] = useState<string | null>(null);
   const [cancelar, setCancelar] = useState(false);
+  const [nuevoCliente, setNuevoCliente] = useState(false);
 
   const numeracionValida = numeraciones.some((numeracion) => numeracion.id === activa.numeracionId);
   const cotizacion = activa.cotizacion;
@@ -110,7 +112,7 @@ export function PanelFactura({
     >
       <div className="flex shrink-0 flex-col gap-2 border-b p-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">Factura de venta</h2>
+          <h2 className="text-base font-semibold">Factura de venta</h2>
           <span className="text-muted-foreground truncate text-xs">{activa.nombre}</span>
         </div>
 
@@ -168,8 +170,8 @@ export function PanelFactura({
           </div>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <Label htmlFor="cliente-pos" className="text-xs">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="cliente-pos" className="w-12 shrink-0 text-xs">
             Cliente
           </Label>
           <SelectorContacto
@@ -181,7 +183,17 @@ export function PanelFactura({
             showClear={false}
             placeholder="Buscar cliente…"
             disabled={cotizacion !== null}
+            className="min-w-0 flex-1"
           />
+          <Button
+            variant="ghost"
+            className="bg-primary/10 text-primary hover:bg-primary/15 h-10 shrink-0 gap-1 px-3"
+            disabled={cotizacion !== null || !puedeEscribir}
+            onClick={() => setNuevoCliente(true)}
+          >
+            <UserPlus aria-hidden="true" />
+            Nuevo
+          </Button>
         </div>
 
         {vendedores.length > 0 ? (
@@ -330,23 +342,34 @@ export function PanelFactura({
           <span className="text-sm font-medium">Total</span>
           <span className="text-2xl font-semibold tabular-nums">{formatoMoneda(totales.total)}</span>
         </div>
-        <p className="text-muted-foreground text-xs">
-          {Number(articulos) === 1 ? "1 artículo" : `${formatoCantidad(articulos)} artículos`}
-        </p>
 
         <Button
-          className="h-12 w-full text-base"
+          className="h-12 w-full justify-between px-4 text-base font-semibold"
           disabled={activa.lineas.length === 0 || avisoTurno || !numeracionValida || !puedeEscribir || sinCaja}
           onClick={onCobrar}
         >
-          {`Vender ${formatoMoneda(totales.total)}`}
-          <span className="ml-1 text-xs opacity-70">F8</span>
+          <span>Vender</span>
+          <span className="flex items-center gap-2 tabular-nums">
+            {formatoMoneda(totales.total)}
+            <kbd className="bg-primary-foreground/20 rounded px-1.5 py-0.5 text-[10px] font-normal">F8</kbd>
+          </span>
         </Button>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-medium">
+            {Number(articulos) === 1 ? "1 artículo" : `${formatoCantidad(articulos)} artículos`}
+          </span>
+          <Button variant="link" className="text-destructive h-8 px-1" onClick={() => setCancelar(true)}>
+            Cancelar venta
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-1">
           <Button
-            variant="outline"
-            className="h-10 gap-1.5"
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground h-8 min-w-0 flex-1 gap-1 px-1 text-xs"
+            title="Guardar como cotización"
             disabled={activa.lineas.length === 0 || cotizacion !== null || !puedeEscribir || guardandoCotizacion}
             onClick={onGuardarCotizacion}
           >
@@ -355,31 +378,30 @@ export function PanelFactura({
             ) : (
               <FileText aria-hidden="true" />
             )}
-            Guardar cotización
+            <span className="truncate">Guardar cotización</span>
           </Button>
           <Button
             variant="ghost"
-            className="h-10 gap-1.5"
+            size="sm"
+            className="text-muted-foreground h-8 min-w-0 flex-1 gap-1 px-1 text-xs"
+            title="Cargar una cotización abierta"
             disabled={cotizacion !== null || !puedeEscribir}
             onClick={onCargarCotizacion}
           >
             <FolderOpen aria-hidden="true" />
-            Cargar cotización
+            <span className="truncate">Cargar cotización</span>
           </Button>
-        </div>
-
-        <div className="flex items-center justify-between gap-2">
           <Button
             variant="ghost"
-            className="h-10 gap-1.5 px-2"
+            size="sm"
+            className="text-muted-foreground h-8 min-w-0 flex-1 gap-1 px-1 text-xs"
+            title="Venta simple (F4)"
             onClick={onVentaSimple}
             disabled={cotizacion !== null || !puedeEscribir}
           >
-            Venta simple
-            <span className="text-muted-foreground text-xs">F4</span>
-          </Button>
-          <Button variant="link" className="text-destructive h-10 px-2" onClick={() => setCancelar(true)}>
-            Cancelar venta
+            <Zap aria-hidden="true" />
+            <span className="truncate">Venta simple</span>
+            <kbd className="text-muted-foreground/70 text-[10px]">F4</kbd>
           </Button>
         </div>
 
@@ -407,6 +429,17 @@ export function PanelFactura({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DialogoNuevoContacto
+        abierto={nuevoCliente}
+        onOpenChange={setNuevoCliente}
+        tipoInicial="cliente"
+        onCreado={(contacto) => {
+          carrito.setContacto(contacto.id);
+          setNuevoCliente(false);
+          onAnunciar(`Cliente ${contacto.nombre} creado y seleccionado.`);
+        }}
+      />
     </aside>
   );
 }

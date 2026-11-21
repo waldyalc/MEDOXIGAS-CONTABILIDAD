@@ -494,7 +494,7 @@ export function VenderPos({
         </div>
 
         {esEscritorio ? (
-          <div className="flex min-h-0 w-[400px] shrink-0 xl:w-[420px]">
+          <div className="flex min-h-0 w-[400px] shrink-0">
             <PanelFactura
               terminal={terminal}
               turno={turnoActual}
