@@ -9,6 +9,7 @@ const {
   buscarProductoPorCodigo,
   getCotizacionesAbiertas,
   getHistorialPOS,
+  getPagosPOS,
   getProductosPOS,
   getResumenTurno,
   getTerminal,
@@ -214,6 +215,86 @@ describe("getHistorialPOS", () => {
     expect(pagina.filas[0]?.cliente_nombre).toBe("Consumidor Final");
     expect(pagina.filas[0]?.metodos).toEqual(["efectivo"]);
     expect(pagina.filas[0]?.saldo).toBe("0.00");
+  });
+});
+
+describe("getPagosPOS", () => {
+  const filaPago = {
+    id: "99999999-9999-4999-8999-999999999999",
+    numero: 15,
+    turno_id: ID_TURNO,
+    tipo: "ingreso",
+    motivo: "cobro_factura",
+    monto: 236.5,
+    contacto_id: ID_CONTACTO,
+    factura_id: ID_FACTURA,
+    gasto_menor_id: null,
+    pago_recibido_id: "88888888-8888-4888-8888-888888888888",
+    notas: "  Cobro mostrador  ",
+    creado_en: "2026-11-20T15:30:00-04:00",
+    pos_turnos: { numero: 4 },
+    cuentas: { nombre: "Cuentas por cobrar" },
+    contactos: { nombre: "Consumidor Final" },
+    facturas: { numero: 15, ncf: "B0200000015" },
+    pagos_recibidos: { estado: "activo" },
+    gastos_menores: null,
+  };
+
+  test("una terminal inválida o una búsqueda sin dígitos no llegan a la base", async () => {
+    await expect(getPagosPOS({ terminalId: "no-uuid", tipo: "ingreso" })).resolves.toMatchObject({ filas: [] });
+    await expect(getPagosPOS({ terminalId: ID_TERMINAL, tipo: "ingreso", q: "abc" })).resolves.toMatchObject({
+      filas: [],
+      resumen: { total: 0 },
+    });
+    expect(mocks.createClient).not.toHaveBeenCalled();
+  });
+
+  test("filtra por terminal, tipo y número de recibo, y marca la vigencia", async () => {
+    const consulta = cadena({ data: [filaPago], error: null, count: 1 });
+    const from = vi.fn(() => consulta);
+    mocks.createClient.mockResolvedValue({ from });
+
+    const pagina = await getPagosPOS({ terminalId: ID_TERMINAL, tipo: "ingreso", q: "15", pagina: 1, tamano: 25 });
+
+    expect(consulta.eq).toHaveBeenCalledWith("pos_turnos.terminal_id", ID_TERMINAL);
+    expect(consulta.eq).toHaveBeenCalledWith("tipo", "ingreso");
+    expect(consulta.eq).toHaveBeenCalledWith("numero", 15);
+    expect(pagina.resumen).toMatchObject({ total: 1, pagina: 1, totalPaginas: 1 });
+    expect(pagina.filas[0]).toMatchObject({
+      numero: 15,
+      turno_numero: 4,
+      tipo: "ingreso",
+      motivo: "cobro_factura",
+      monto: "236.5",
+      cuenta_nombre: "Cuentas por cobrar",
+      contacto_nombre: "Consumidor Final",
+      factura_numero: 15,
+      factura_ncf: "B0200000015",
+      notas: "Cobro mostrador",
+      vigente: true,
+    });
+  });
+
+  test("un recibo con el pago anulado queda no vigente", async () => {
+    const consulta = cadena({
+      data: [{ ...filaPago, pagos_recibidos: { estado: "anulado" } }],
+      error: null,
+      count: 1,
+    });
+    mocks.createClient.mockResolvedValue({ from: vi.fn(() => consulta) });
+
+    const pagina = await getPagosPOS({ terminalId: ID_TERMINAL, tipo: "ingreso" });
+
+    expect(pagina.filas[0]?.vigente).toBe(false);
+  });
+
+  test("los egresos consultan tipo retiro", async () => {
+    const consulta = cadena({ data: [], error: null, count: 0 });
+    mocks.createClient.mockResolvedValue({ from: vi.fn(() => consulta) });
+
+    await getPagosPOS({ terminalId: ID_TERMINAL, tipo: "retiro" });
+
+    expect(consulta.eq).toHaveBeenCalledWith("tipo", "retiro");
   });
 });
 
