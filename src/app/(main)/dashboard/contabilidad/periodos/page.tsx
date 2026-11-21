@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
-
+import { ChevronLeft, ChevronRight } from "@/components/icons";
 import { ContenedorLista } from "@/components/listas/tabla-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";

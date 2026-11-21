@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import { Users } from "lucide-react";
-
+import { Users } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

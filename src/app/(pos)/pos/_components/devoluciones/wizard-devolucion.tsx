@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { cn } from "cn";
-import { Loader2 } from "lucide-react";
 
+import { Loader2 } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,

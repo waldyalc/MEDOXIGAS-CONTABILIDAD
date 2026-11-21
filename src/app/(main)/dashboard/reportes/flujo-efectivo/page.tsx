@@ -1,5 +1,4 @@
-import { Info } from "lucide-react";
-
+import { Info } from "@/components/icons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { obtenerFlujoEfectivo } from "@/lib/reportes/estados/consultas";

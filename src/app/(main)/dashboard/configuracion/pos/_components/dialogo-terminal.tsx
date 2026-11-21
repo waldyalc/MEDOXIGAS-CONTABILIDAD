@@ -4,11 +4,10 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2 } from "lucide-react";
-
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FormSectionTitle } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { Loader2 } from "@/components/icons";
 import { SelectCampo } from "@/components/select-campo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";

@@ -5,9 +5,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { Download, FileSpreadsheet } from "lucide-react";
-
 import { BotonImprimir } from "@/components/boton-imprimir";
+import { Download, FileSpreadsheet } from "@/components/icons";
 import {
   type ColumnaLista,
   ContenedorLista,

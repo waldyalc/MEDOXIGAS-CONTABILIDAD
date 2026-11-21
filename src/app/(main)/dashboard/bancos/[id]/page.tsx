@@ -1,8 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
-import { Pencil } from "lucide-react";
-
 import { EditarCuenta } from "@/components/contabilidad/cuenta-formulario";
+import { Pencil } from "@/components/icons";
 import { ContenedorLista, PillEstado } from "@/components/listas/tabla-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";

@@ -4,8 +4,6 @@ import { type ChangeEvent, type FormEvent, useEffect, useRef, useState, useTrans
 
 import { useRouter } from "next/navigation";
 
-import { ChevronDown, Loader2, Upload } from "lucide-react";
-
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_BUTTON,
@@ -16,6 +14,7 @@ import {
   FormSectionTitle,
 } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { ChevronDown, Loader2, Upload } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";

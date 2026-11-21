@@ -1,8 +1,7 @@
 "use client";
 
-import { ChevronRight } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { ChevronRight } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";

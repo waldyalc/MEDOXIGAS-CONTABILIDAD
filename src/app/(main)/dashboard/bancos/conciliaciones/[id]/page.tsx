@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { Landmark } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { Landmark } from "@/components/icons";
 import { ContenedorDetalle } from "@/components/pagina/contenedor-pagina";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";

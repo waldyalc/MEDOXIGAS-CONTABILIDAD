@@ -1,5 +1,4 @@
-import { Layers } from "lucide-react";
-
+import { Layers } from "@/components/icons";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 import { type AgruparPor, calcularAgrupado } from "@/lib/reportes/libros/agrupado";

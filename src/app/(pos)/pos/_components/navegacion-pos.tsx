@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "cn";
-import { History, Menu, RotateCcw, ShoppingCart, Wallet } from "lucide-react";
 
+import { History, Menu, RotateCcw, ShoppingCart, Wallet } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

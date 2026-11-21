@@ -1,7 +1,6 @@
 "use client";
 
-import { Eye, Printer } from "lucide-react";
-
+import { Eye, Printer } from "@/components/icons";
 import { type ColumnaLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { formatoMoneda } from "@/lib/facturacion/formato";

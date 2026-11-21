@@ -4,8 +4,6 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { ArrowRightLeft, ChevronDown, Loader2, Plus } from "lucide-react";
-
 import { DatePicker } from "@/components/date-picker";
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
@@ -16,6 +14,7 @@ import {
   FORM_TEXTAREA,
 } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { ArrowRightLeft, ChevronDown, Loader2, Plus } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";

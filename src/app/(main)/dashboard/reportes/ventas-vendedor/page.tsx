@@ -1,6 +1,6 @@
-import { UserRound } from "lucide-react";
 import { z } from "zod";
 
+import { UserRound } from "@/components/icons";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";

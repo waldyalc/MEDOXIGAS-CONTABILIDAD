@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 import { cn } from "cn";
-import { ArrowRight, CalendarPlus, FileSpreadsheet, TriangleAlert, UsersRound } from "lucide-react";
 
+import { ArrowRight, CalendarPlus, FileSpreadsheet, TriangleAlert, UsersRound } from "@/components/icons";
 import { type ColumnaLista, ContenedorLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

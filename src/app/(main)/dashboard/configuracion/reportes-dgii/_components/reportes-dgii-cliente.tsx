@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 
-import { Tags } from "lucide-react";
-
+import { Tags } from "@/components/icons";
 import { type ColumnaLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { SelectCampo } from "@/components/select-campo";
 import { toast } from "@/components/ui/toast";

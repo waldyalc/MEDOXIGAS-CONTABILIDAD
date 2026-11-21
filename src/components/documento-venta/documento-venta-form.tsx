@@ -5,8 +5,6 @@ import { type Dispatch, type ReactNode, type SetStateAction, useRef, useState, u
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ChevronDown, Eye, Loader2, Plus, Settings, Trash2, X } from "lucide-react";
-
 import { type ContactoOpcion, SelectorContacto } from "@/components/contactos/selector-contacto";
 import { DatePicker } from "@/components/date-picker";
 import {
@@ -22,6 +20,7 @@ import {
   FormSectionTitle,
   FormTotal,
 } from "@/components/formularios/formulario";
+import { ChevronDown, Eye, Loader2, Plus, Settings, Trash2, X } from "@/components/icons";
 import { type ProductoSeleccionable, SelectorProducto } from "@/components/productos/selector-producto";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";

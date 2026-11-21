@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 
-import { TrendingUp } from "lucide-react";
-
+import { TrendingUp } from "@/components/icons";
 import { GraficoAreaSerie } from "@/components/reportes/grafico-area-serie";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

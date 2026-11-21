@@ -1,8 +1,9 @@
 "use client";
 
 import { cn } from "cn";
-import type { LucideIcon } from "lucide-react";
-import { Clock, FileText, MoreHorizontal, Package, ReceiptText, ShoppingCart, Users } from "lucide-react";
+
+import type { LucideIcon } from "@/components/icons";
+import { Clock, FileText, MoreHorizontal, Package, ReceiptText, ShoppingCart, Users } from "@/components/icons";
 
 import type { GrupoBusqueda } from "./agrupar";
 

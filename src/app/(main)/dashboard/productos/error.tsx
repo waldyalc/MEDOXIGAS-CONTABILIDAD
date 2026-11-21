@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 
-import { RotateCcw, TriangleAlert } from "lucide-react";
-
+import { RotateCcw, TriangleAlert } from "@/components/icons";
 import { ContenedorLista } from "@/components/listas/tabla-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

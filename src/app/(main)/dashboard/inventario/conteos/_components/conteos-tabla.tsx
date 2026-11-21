@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 import { cn } from "cn";
-import { ClipboardList, Plus } from "lucide-react";
 
 import { Enlace } from "@/components/enlace";
+import { ClipboardList, Plus } from "@/components/icons";
 import { type ColumnaLista, TablaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { formatoDia } from "@/lib/formato";

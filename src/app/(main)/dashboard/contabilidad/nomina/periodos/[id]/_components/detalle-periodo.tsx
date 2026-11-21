@@ -4,10 +4,9 @@ import { useState } from "react";
 
 import Link from "next/link";
 
-import { CircleCheck, CircleSlash, Eye, Info, MoreVertical, Plus, Send, TriangleAlert } from "lucide-react";
-
 import { AvatarInicial } from "@/components/avatar-inicial";
 import { Enlace } from "@/components/enlace";
+import { CircleCheck, CircleSlash, Eye, Info, MoreVertical, Plus, Send, TriangleAlert } from "@/components/icons";
 import { type ColumnaLista, ContenedorLista, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

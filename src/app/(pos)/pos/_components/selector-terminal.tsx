@@ -4,8 +4,7 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Store } from "lucide-react";
-
+import { Loader2, Store } from "@/components/icons";
 import {
   AlertDialog,
   AlertDialogAction,

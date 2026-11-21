@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { FileMinus, Plus } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { FileMinus, Plus } from "@/components/icons";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import {

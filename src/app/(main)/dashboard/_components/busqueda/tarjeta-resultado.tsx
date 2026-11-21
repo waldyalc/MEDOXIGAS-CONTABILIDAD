@@ -3,7 +3,8 @@
 import type { MouseEvent } from "react";
 
 import { cn } from "cn";
-import type { LucideIcon } from "lucide-react";
+
+import type { LucideIcon } from "@/components/icons";
 import {
   Banknote,
   BookOpen,
@@ -23,8 +24,7 @@ import {
   Truck,
   Users,
   Wallet,
-} from "lucide-react";
-
+} from "@/components/icons";
 import { PillEstado } from "@/components/listas/tabla-lista";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";

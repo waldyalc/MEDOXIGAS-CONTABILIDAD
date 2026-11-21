@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 
-import { Pencil, Plus, Store } from "lucide-react";
-
+import { Pencil, Plus, Store } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import type { TerminalPOS } from "@/lib/pos/tipos";

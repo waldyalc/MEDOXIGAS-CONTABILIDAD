@@ -2,8 +2,7 @@
 
 import type { RefObject } from "react";
 
-import { Loader2, PackageSearch, Star } from "lucide-react";
-
+import { Loader2, PackageSearch, Star } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

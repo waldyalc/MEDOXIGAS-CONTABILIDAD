@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 
 import { cn } from "cn";
-import { ArrowLeft } from "lucide-react";
 
+import { ArrowLeft } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";

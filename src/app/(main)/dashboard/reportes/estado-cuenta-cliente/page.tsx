@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import { FileText, UserRound } from "lucide-react";
-
+import { FileText, UserRound } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { SelectCampo } from "@/components/select-campo";
 import { Badge } from "@/components/ui/badge";

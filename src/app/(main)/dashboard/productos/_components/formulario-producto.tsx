@@ -5,8 +5,6 @@ import { type ChangeEvent, type FormEvent, useRef, useState, useTransition } fro
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ChevronDown, ImagePlus, Loader2, MapPin, Package, Trash2, TriangleAlert, Wrench } from "lucide-react";
-
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_COMBO,
@@ -18,6 +16,7 @@ import {
   FormSectionTitle,
 } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { ChevronDown, ImagePlus, Loader2, MapPin, Package, Trash2, TriangleAlert, Wrench } from "@/components/icons";
 import { type ColumnaLista, TablaLista } from "@/components/listas/tabla-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { EditorCodigosBarra } from "@/components/productos/ferreteria/editor-codigos-barra";
@@ -224,7 +223,7 @@ function TarjetaImagen({
             onClick={() => input.current?.click()}
             className="text-muted-foreground hover:text-primary flex size-full flex-col items-center justify-center gap-2 transition-colors"
           >
-            <ImagePlus className="size-9" strokeWidth={1.5} />
+            <ImagePlus className="size-9" weight="light" />
             <span className="text-sm">Subir imagen</span>
           </button>
         )}

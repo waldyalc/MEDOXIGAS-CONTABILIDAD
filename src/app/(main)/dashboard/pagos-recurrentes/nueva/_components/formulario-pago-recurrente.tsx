@@ -5,8 +5,6 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ArrowLeft, X } from "lucide-react";
-
 import { DatePicker } from "@/components/date-picker";
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
@@ -21,6 +19,7 @@ import {
   FormTotal,
 } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { ArrowLeft, X } from "@/components/icons";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 
 import { cn } from "cn";
-import { OctagonAlert, PackageX, TrendingDown } from "lucide-react";
 
+import { OctagonAlert, PackageX, TrendingDown } from "@/components/icons";
 import { Card, CardContent } from "@/components/ui/card";
 
 import type { ResumenStock } from "../_lib/stock-bajo";

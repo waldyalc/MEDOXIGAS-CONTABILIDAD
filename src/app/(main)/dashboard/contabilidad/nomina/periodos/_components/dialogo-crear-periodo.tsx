@@ -4,10 +4,9 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2, Plus } from "lucide-react";
-
 import { DatePicker } from "@/components/date-picker";
 import { FORM_TEXTAREA, FormField } from "@/components/formularios/formulario";
+import { Loader2, Plus } from "@/components/icons";
 import { SelectCampo } from "@/components/select-campo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";

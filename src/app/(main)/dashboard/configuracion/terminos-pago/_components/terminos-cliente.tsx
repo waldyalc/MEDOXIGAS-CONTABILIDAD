@@ -4,11 +4,10 @@ import { type FormEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { CalendarDays, Loader2, Plus } from "lucide-react";
-
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import { FORM_INPUT } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { CalendarDays, Loader2, Plus } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";

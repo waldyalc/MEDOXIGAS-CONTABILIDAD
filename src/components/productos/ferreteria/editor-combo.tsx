@@ -1,8 +1,7 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
-
 import { FormSectionTitle } from "@/components/formularios/formulario";
+import { Plus, Trash2 } from "@/components/icons";
 import { type ColumnaLista, TablaLista } from "@/components/listas/tabla-lista";
 import { SelectCampo } from "@/components/select-campo";
 import { Button } from "@/components/ui/button";

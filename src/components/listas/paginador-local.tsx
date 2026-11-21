@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "cn";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { ChevronLeft, ChevronRight } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 

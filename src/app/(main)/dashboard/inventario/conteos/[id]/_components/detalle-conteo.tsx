@@ -5,10 +5,9 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { Loader2 } from "lucide-react";
-
 import { FORM_BUTTON, FormActions, FormCard, FormDivider } from "@/components/formularios/formulario";
 import { useValidacionFormulario } from "@/components/formularios/validacion";
+import { Loader2 } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,

@@ -5,8 +5,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { BookOpen, Loader2 } from "lucide-react";
-
+import { BookOpen, Loader2 } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,

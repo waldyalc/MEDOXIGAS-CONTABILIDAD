@@ -7,9 +7,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "cn";
 import { format, isValid, parse } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 
+import { CalendarDays } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";

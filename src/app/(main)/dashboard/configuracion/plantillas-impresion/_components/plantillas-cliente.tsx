@@ -4,9 +4,8 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Loader2 } from "lucide-react";
-
 import { FORM_BUTTON, FORM_TEXTAREA, FormCard, FormField, FormSectionTitle } from "@/components/formularios/formulario";
+import { Loader2 } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";

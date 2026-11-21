@@ -13,7 +13,8 @@ import {
 } from "react";
 
 import { cn } from "cn";
-import { LoaderCircleIcon } from "lucide-react";
+
+import { LoaderCircleIcon } from "@/components/icons";
 
 function Skeleton({ className, ...props }: ComponentProps<"div">) {
   return (

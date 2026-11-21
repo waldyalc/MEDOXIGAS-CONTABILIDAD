@@ -4,9 +4,9 @@ import { type ReactNode, useEffect, useRef } from "react";
 
 import { usePathname } from "next/navigation";
 
-import { Monitor, Moon, RotateCcw, Sun } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 
+import { Monitor, Moon, RotateCcw, Sun } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";

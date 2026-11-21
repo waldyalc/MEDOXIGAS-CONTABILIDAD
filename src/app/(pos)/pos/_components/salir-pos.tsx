@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 
-import { ArrowLeft } from "lucide-react";
-
+import { ArrowLeft } from "@/components/icons";
 import {
   AlertDialog,
   AlertDialogAction,

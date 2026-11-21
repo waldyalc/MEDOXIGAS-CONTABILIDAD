@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { CalendarClock, Plus } from "lucide-react";
-
 import { Enlace } from "@/components/enlace";
+import { CalendarClock, Plus } from "@/components/icons";
 import {
   type ColumnaLista,
   ContenedorLista,

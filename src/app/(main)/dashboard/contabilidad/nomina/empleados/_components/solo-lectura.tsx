@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import { ShieldAlert } from "lucide-react";
-
+import { ShieldAlert } from "@/components/icons";
 import { ContenedorFormulario } from "@/components/pagina/contenedor-pagina";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";

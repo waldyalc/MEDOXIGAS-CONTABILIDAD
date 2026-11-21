@@ -6,8 +6,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "cn";
-import { ChevronDown } from "lucide-react";
 
+import { ChevronDown } from "@/components/icons";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
@@ -249,7 +249,7 @@ function NavLinkIcon({ item, showFallback }: NavLinkIconProps) {
   const Icon = item.icon;
 
   if (Icon) {
-    return <Icon />;
+    return <Icon weight="duotone" size={20} />;
   }
 
   if (showFallback) {
@@ -275,7 +275,7 @@ function NavDropdownItem({ item, isActive, esSubItemActivo, onNavigate }: NavDro
             />
           }
         >
-          {Icon ? <Icon /> : <CollapsedIconFallback title={item.title} />}
+          {Icon ? <Icon weight="duotone" size={20} /> : <CollapsedIconFallback title={item.title} />}
           <span className="truncate">{item.title}</span>
         </DropdownMenuTrigger>
 
@@ -299,7 +299,7 @@ function NavDropdownItem({ item, isActive, esSubItemActivo, onNavigate }: NavDro
                   }
                   disabled={subItem.disabled}
                 >
-                  {SubIcon && <SubIcon />}
+                  {SubIcon && <SubIcon weight="duotone" size={20} />}
                   <span className="truncate">{subItem.title}</span>
                 </DropdownMenuItem>
               );
@@ -325,7 +325,7 @@ function NavCollapsibleItem({ item, defaultOpen, esSubItemActivo, onNavigate }: 
       <CollapsibleTrigger
         render={<SidebarMenuButton tooltip={item.title} disabled={item.disabled} className={estiloItem} />}
       >
-        {Icon && <Icon />}
+        {Icon && <Icon weight="duotone" size={20} />}
         <span className="truncate">{item.title}</span>
         <ChevronDown className="dark:text-sidebar-foreground/50 ml-auto size-5! shrink-0 text-slate-400 transition-transform duration-200 group-data-panel-open/menu-button:rotate-180" />
       </CollapsibleTrigger>
@@ -352,7 +352,7 @@ function NavCollapsibleItem({ item, defaultOpen, esSubItemActivo, onNavigate }: 
                   isActive={esSubItemActivo(subItem.url)}
                   className={estiloSubItem}
                 >
-                  {SubIcon && <SubIcon />}
+                  {SubIcon && <SubIcon weight="duotone" size={20} />}
                   <span className="truncate">{subItem.title}</span>
                 </SidebarMenuSubButton>
               </SidebarMenuSubItem>

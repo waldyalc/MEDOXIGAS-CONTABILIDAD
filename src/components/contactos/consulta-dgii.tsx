@@ -2,8 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 
-import { Loader2, Sparkles } from "lucide-react";
-
+import { Loader2, Sparkles } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { buscarContribuyenteDgii } from "@/lib/dgii/acciones";
 import type { DatosContribuyenteDgii, TipoDocumentoDgii } from "@/lib/dgii/consulta";

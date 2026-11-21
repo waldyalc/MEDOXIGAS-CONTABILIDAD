@@ -5,8 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { Eye, Plus } from "lucide-react";
-
+import { Eye, Plus } from "@/components/icons";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import {
   BarraLista,

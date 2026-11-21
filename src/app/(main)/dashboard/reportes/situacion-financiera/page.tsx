@@ -1,5 +1,4 @@
-import { CircleCheck, TriangleAlert } from "lucide-react";
-
+import { CircleCheck, TriangleAlert } from "@/components/icons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatearRd } from "@/lib/reportes/dinero";

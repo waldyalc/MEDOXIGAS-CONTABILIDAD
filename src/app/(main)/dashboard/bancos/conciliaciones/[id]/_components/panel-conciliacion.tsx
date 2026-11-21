@@ -5,8 +5,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { CheckCircle2, ChevronDown, Loader2, Scale } from "lucide-react";
-
+import { CheckCircle2, ChevronDown, Loader2, Scale } from "@/components/icons";
 import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";

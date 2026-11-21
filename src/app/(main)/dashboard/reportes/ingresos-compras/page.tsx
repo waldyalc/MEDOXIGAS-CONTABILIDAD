@@ -1,5 +1,4 @@
-import { ListTree } from "lucide-react";
-
+import { ListTree } from "@/components/icons";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";

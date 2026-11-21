@@ -4,9 +4,8 @@ import { type ChangeEvent, useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Download, Upload } from "lucide-react";
-
 import { FORM_INPUT, FormField } from "@/components/formularios/formulario";
+import { Download, Upload } from "@/components/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

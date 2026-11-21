@@ -5,6 +5,17 @@ import { type ReactNode, useState } from "react";
 import Link from "next/link";
 
 import { cn } from "cn";
+
+import {
+  BotonFiltro,
+  CLASE_PANEL_FICHA,
+  GrillaKpis,
+  ItemPestana,
+  type KpiFicha,
+  MetaItem,
+  type OpcionFiltro,
+  Pildora,
+} from "@/components/ficha/ficha-ui";
 import {
   ArrowLeftRight,
   Barcode,
@@ -29,18 +40,7 @@ import {
   Truck,
   Warehouse,
   Wrench,
-} from "lucide-react";
-
-import {
-  BotonFiltro,
-  CLASE_PANEL_FICHA,
-  GrillaKpis,
-  ItemPestana,
-  type KpiFicha,
-  MetaItem,
-  type OpcionFiltro,
-  Pildora,
-} from "@/components/ficha/ficha-ui";
+} from "@/components/icons";
 import { ContenedorDetalle } from "@/components/pagina/contenedor-pagina";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
