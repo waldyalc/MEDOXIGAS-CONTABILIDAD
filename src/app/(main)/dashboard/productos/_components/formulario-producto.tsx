@@ -5,12 +5,13 @@ import { type ChangeEvent, type FormEvent, useRef, useState, useTransition } fro
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { ChevronDown, ImagePlus, Loader2, Package, Trash2, TriangleAlert, Wrench } from "lucide-react";
+import { ChevronDown, ImagePlus, Loader2, MapPin, Package, Trash2, TriangleAlert, Wrench } from "lucide-react";
 
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
   FORM_COMBO,
   FORM_INPUT,
+  FORM_INPUT_GROUP,
   FORM_SELECT,
   FORM_TEXTAREA,
   FormCard,
@@ -19,12 +20,28 @@ import {
 import { useValidacionFormulario } from "@/components/formularios/validacion";
 import { type ColumnaLista, TablaLista } from "@/components/listas/tabla-lista";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
+import { EditorCodigosBarra } from "@/components/productos/ferreteria/editor-codigos-barra";
+import { EditorCombo, type ProductoParaReceta } from "@/components/productos/ferreteria/editor-combo";
+import { EditorUnidades } from "@/components/productos/ferreteria/editor-unidades";
+import { guardarFerreteriaProducto, vaciarRecetaCombo } from "@/components/productos/ferreteria/guardar";
+import {
+  type CodigoBarraDraft,
+  type ComponenteComboDraft,
+  codigosIniciales,
+  componentesIniciales,
+  DATOS_FERRETERIA_VACIOS,
+  type DatosFerreteriaFormulario,
+  type UnidadDraft,
+  unidadesIniciales,
+} from "@/components/productos/ferreteria/tipos";
+import { erroresDeZod } from "@/components/productos/ferreteria/validacion";
 import { SelectCampo } from "@/components/select-campo";
 import { SelectorImpuesto } from "@/components/selector-impuesto";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,6 +50,13 @@ import { rutaProducto } from "@/lib/enlaces";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
 import { requerido } from "@/lib/formularios/validacion";
 import { etiquetaImpuesto, type Impuesto, impuestoNinguno, impuestoPorTasa } from "@/lib/impuestos/tipos";
+import {
+  codigosBarraProductoSchema,
+  datosFerreteriaProductoSchema,
+  recetaComboSchema,
+  unidadesProductoSchema,
+} from "@/lib/inventario/ferreteria/esquemas";
+import type { CodigoBarra, ComponenteCombo, ProductoParaCombo, UnidadMedida } from "@/lib/inventario/ferreteria/tipos";
 import { etiquetaTipoLista } from "@/lib/inventario/precios";
 import type { Almacen, CategoriaProducto, ExistenciaAlmacen, ListaPrecio } from "@/lib/inventario/tipos";
 import { ACCION_CREAR_OTRO, esAccionCrearOtro } from "@/lib/productos/acciones-formulario";
@@ -564,8 +588,8 @@ function EncabezadoFormulario({
       titulo={producto ? "Editar producto" : "Nuevo producto"}
       subtitulo={
         producto
-          ? "Cambia la información, el inventario y los precios del producto."
-          : "Crea productos inventariables, servicios y combos para tus ventas."
+          ? "Cambia la información, el inventario, los precios y las presentaciones del producto."
+          : "Crea productos inventariables, servicios y combos con códigos de barra y presentaciones."
       }
       migas={migas}
       acciones={
@@ -734,6 +758,11 @@ export function FormularioProducto({
   cuentas,
   existencias,
   imagenUrlInicial,
+  datosFerreteriaIniciales,
+  codigosBarra,
+  unidadesMedida,
+  componentesCombo,
+  productosParaCombo,
 }: {
   readonly producto: ProductoEditable | null;
   readonly categorias: CategoriaProducto[];
@@ -743,11 +772,17 @@ export function FormularioProducto({
   readonly cuentas: CuentaOpcion[];
   readonly existencias: ExistenciaAlmacen[];
   readonly imagenUrlInicial: string | null;
+  readonly datosFerreteriaIniciales?: DatosFerreteriaFormulario;
+  readonly codigosBarra?: readonly CodigoBarra[];
+  readonly unidadesMedida?: readonly UnidadMedida[];
+  readonly componentesCombo?: readonly ComponenteCombo[];
+  readonly productosParaCombo?: readonly ProductoParaCombo[];
 }) {
   const router = useRouter();
   const validacion = useValidacionFormulario();
   const [pendiente, startTransition] = useTransition();
   const almacenPorDefecto = (almacenes.find((almacen) => almacen.es_principal) ?? almacenes[0])?.id ?? "";
+  const ferreteriaInicial = datosFerreteriaIniciales ?? DATOS_FERRETERIA_VACIOS;
 
   const [valores, setValores] = useState<ValoresFormulario>(() =>
     valoresIniciales(producto, almacenPorDefecto, impuestos),
@@ -762,6 +797,18 @@ export function FormularioProducto({
   const [errorImagen, setErrorImagen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [marca, setMarca] = useState(ferreteriaInicial.marca);
+  const [favoritoPos, setFavoritoPos] = useState(ferreteriaInicial.favoritoPos);
+  const [ubicacion, setUbicacion] = useState(ferreteriaInicial.ubicacion);
+  const [filasUnidades, setFilasUnidades] = useState<UnidadDraft[]>(() => unidadesIniciales(unidadesMedida ?? []));
+  const [filasCodigos, setFilasCodigos] = useState<CodigoBarraDraft[]>(() =>
+    codigosIniciales(codigosBarra ?? [], unidadesIniciales(unidadesMedida ?? [])),
+  );
+  const [filasComponentes, setFilasComponentes] = useState<ComponenteComboDraft[]>(() =>
+    componentesIniciales(componentesCombo ?? []),
+  );
+  const [erroresFerreteria, setErroresFerreteria] = useState<Record<string, string>>({});
+  const [idCreado, setIdCreado] = useState<string | null>(null);
 
   const controlaInventario = valores.tipo === "producto" && valores.inventariable;
   const precioNumero = parsearMonto(valores.precio) ?? 0;
@@ -775,6 +822,15 @@ export function FormularioProducto({
   const existenciasPorAlmacen = new Set(existencias.map((existencia) => existencia.almacen_id));
   const opcionesCategoria = categorias.map((categoria) => ({ value: categoria.id, label: categoria.nombre }));
   const opcionesAlmacen = almacenes.map((almacen) => ({ value: almacen.id, label: almacen.nombre }));
+  const opcionesReceta = new Map<string, ProductoParaReceta>();
+  for (const productoCombo of productosParaCombo ?? []) opcionesReceta.set(productoCombo.id, productoCombo);
+  for (const componente of componentesCombo ?? []) {
+    opcionesReceta.set(componente.componente_id, {
+      id: componente.componente_id,
+      nombre: componente.componente_nombre,
+      referencia: null,
+    });
+  }
 
   function cambiar(cambios: Partial<ValoresFormulario>) {
     setValores((previos) => ({ ...previos, ...cambios }));
@@ -801,6 +857,128 @@ export function FormularioProducto({
 
   function errorEnMinimos(): string | null {
     return errorEnMinimosDeFormulario(almacenes, valores.almacenId, minimos, existenciasPorAlmacen, controlaInventario);
+  }
+
+  function limpiarErroresFerreteria() {
+    setErroresFerreteria({});
+  }
+
+  function cambiarUnidad(clave: string, cambios: Partial<UnidadDraft>) {
+    setFilasUnidades((previas) => previas.map((fila) => (fila.clave === clave ? { ...fila, ...cambios } : fila)));
+    limpiarErroresFerreteria();
+  }
+
+  function agregarUnidad() {
+    setFilasUnidades((previas) => [
+      ...previas,
+      {
+        clave: crypto.randomUUID(),
+        id: null,
+        nombre: "",
+        factorBase: "1",
+        precio: "",
+        esCompra: false,
+        esVenta: true,
+        activa: true,
+      },
+    ]);
+    limpiarErroresFerreteria();
+  }
+
+  function quitarUnidad(clave: string) {
+    setFilasUnidades((previas) => previas.filter((fila) => fila.clave !== clave));
+    setFilasCodigos((previas) =>
+      previas.map((fila) => (fila.unidadClave === clave ? { ...fila, unidadClave: "" } : fila)),
+    );
+    limpiarErroresFerreteria();
+  }
+
+  function agregarCodigo() {
+    setFilasCodigos((previas) => [
+      ...previas,
+      { clave: crypto.randomUUID(), codigo: "", unidadClave: "", principal: previas.length === 0 },
+    ]);
+    limpiarErroresFerreteria();
+  }
+
+  function cambiarCodigo(clave: string, cambios: Partial<CodigoBarraDraft>) {
+    setFilasCodigos((previas) => previas.map((fila) => (fila.clave === clave ? { ...fila, ...cambios } : fila)));
+    limpiarErroresFerreteria();
+  }
+
+  function quitarCodigo(clave: string) {
+    setFilasCodigos((previas) => previas.filter((fila) => fila.clave !== clave));
+    limpiarErroresFerreteria();
+  }
+
+  function marcarCodigoPrincipal(clave: string) {
+    setFilasCodigos((previas) =>
+      previas.map((fila) => ({ ...fila, principal: fila.clave === clave ? !fila.principal : false })),
+    );
+    limpiarErroresFerreteria();
+  }
+
+  function agregarComponente() {
+    setFilasComponentes((previas) => [...previas, { clave: crypto.randomUUID(), componenteId: "", cantidad: "1" }]);
+    limpiarErroresFerreteria();
+  }
+
+  function cambiarComponente(clave: string, cambios: Partial<ComponenteComboDraft>) {
+    setFilasComponentes((previas) => previas.map((fila) => (fila.clave === clave ? { ...fila, ...cambios } : fila)));
+    limpiarErroresFerreteria();
+  }
+
+  function quitarComponente(clave: string) {
+    setFilasComponentes((previas) => previas.filter((fila) => fila.clave !== clave));
+    limpiarErroresFerreteria();
+  }
+
+  function problemasDeFerreteria(): Record<string, string> {
+    const problemas: Record<string, string> = {};
+
+    const datos = datosFerreteriaProductoSchema.safeParse({
+      marca,
+      favorito_pos: favoritoPos,
+      ubicacion,
+      almacen_id: valores.almacenId,
+    });
+    if (!datos.success) Object.assign(problemas, erroresDeZod(datos.error));
+
+    const unidades = unidadesProductoSchema.safeParse({
+      unidades: filasUnidades.map((fila) => ({
+        ...(fila.id ? { id: fila.id } : {}),
+        nombre: fila.nombre,
+        factor_base: fila.factorBase,
+        precio: fila.precio.trim() === "" ? null : fila.precio,
+        es_compra: fila.esCompra,
+        es_venta: fila.esVenta,
+        activa: fila.activa,
+      })),
+    });
+    if (!unidades.success) Object.assign(problemas, erroresDeZod(unidades.error));
+
+    const unidadPorClave = new Map(filasUnidades.map((fila) => [fila.clave, fila]));
+    const codigos = codigosBarraProductoSchema.safeParse({
+      codigos: filasCodigos.map((fila) => ({
+        codigo: fila.codigo,
+        unidad_id: unidadPorClave.get(fila.unidadClave)?.id ?? null,
+        principal: fila.principal,
+      })),
+    });
+    if (!codigos.success) Object.assign(problemas, erroresDeZod(codigos.error));
+
+    if (valores.tipo === "combo") {
+      const receta = recetaComboSchema(producto?.id ?? idCreado ?? "").safeParse({
+        componentes: filasComponentes.map((fila) => ({
+          componente_id: fila.componenteId,
+          cantidad: fila.cantidad,
+          tipo: "producto" as const,
+        })),
+      });
+      if (!receta.success) Object.assign(problemas, erroresDeZod(receta.error));
+    }
+
+    return problemas;
   }
 
   async function subirImagen(evento: ChangeEvent<HTMLInputElement>) {
@@ -855,6 +1033,14 @@ export function FormularioProducto({
     setImagenUrl(null);
     setErrorImagen(null);
     setError(null);
+    setMarca("");
+    setFavoritoPos(false);
+    setUbicacion("");
+    setFilasUnidades([]);
+    setFilasCodigos([]);
+    setFilasComponentes([]);
+    setErroresFerreteria({});
+    setIdCreado(null);
     validacion.limpiarTodo();
   }
 
@@ -882,11 +1068,60 @@ export function FormularioProducto({
       return;
     }
 
+    const problemasFerreteria = problemasDeFerreteria();
+    setErroresFerreteria(problemasFerreteria);
+    const primerProblema = Object.values(problemasFerreteria)[0];
+    if (primerProblema) {
+      setError(primerProblema);
+      return;
+    }
+
     startTransition(async () => {
-      const resultado = producto ? await actualizarProducto(producto.id, formData) : await crearProducto(formData);
+      const idActual = producto?.id ?? idCreado;
+
+      // Un combo no puede cambiar a producto o servicio sin vaciar su receta:
+      // la RPC rechaza el cambio de tipo si quedan componentes.
+      if (producto?.tipo === "combo" && valores.tipo !== "combo" && idActual) {
+        const errorLimpieza = await vaciarRecetaCombo(idActual);
+        if (errorLimpieza) {
+          setError(errorLimpieza);
+          return;
+        }
+      }
+
+      const resultado = idActual ? await actualizarProducto(idActual, formData) : await crearProducto(formData);
 
       if (!resultado.ok) {
         setError(resultado.error);
+        return;
+      }
+
+      const idProducto = idActual ?? resultado.id;
+      if (!idProducto) {
+        setError("No se pudo identificar el producto guardado.");
+        return;
+      }
+
+      if (!idActual) setIdCreado(idProducto);
+
+      let problema: string | null = null;
+      try {
+        problema = await guardarFerreteriaProducto(idProducto, {
+          marca,
+          favoritoPos,
+          ubicacion,
+          guardarUbicacion: valores.tipo === "producto" && valores.inventariable,
+          almacenId: valores.almacenId,
+          unidades: filasUnidades,
+          codigos: filasCodigos,
+          componentes: filasComponentes,
+          guardarComponentes: valores.tipo === "combo",
+        });
+      } catch (fallo) {
+        problema = fallo instanceof Error ? fallo.message : "No se pudieron guardar los datos de ferretería.";
+      }
+      if (problema) {
+        setError(problema);
         return;
       }
 
@@ -902,7 +1137,7 @@ export function FormularioProducto({
         return;
       }
 
-      router.push(resultado.id ? rutaProducto(resultado.id) : "/dashboard/productos");
+      router.push(rutaProducto(idProducto));
       router.refresh();
     });
   }
@@ -1107,6 +1342,96 @@ export function FormularioProducto({
               </CampoFormulario>
             </div>
           </FormCard>
+
+          <FormCard>
+            <FormSectionTitle descripcion="Se usa para buscar el producto en el POS y saber dónde está en el almacén.">
+              Catálogo y ubicación
+            </FormSectionTitle>
+
+            <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+              <CampoFormulario htmlFor="marca" label="Marca" error={erroresFerreteria.marca}>
+                <Input
+                  id="marca"
+                  maxLength={120}
+                  placeholder="Ej. Oximat"
+                  value={marca}
+                  onChange={(evento) => {
+                    setMarca(evento.target.value);
+                    limpiarErroresFerreteria();
+                  }}
+                  className={FORM_INPUT}
+                />
+              </CampoFormulario>
+
+              <CampoFormulario htmlFor="ubicacion" label="Ubicación por defecto" error={erroresFerreteria.ubicacion}>
+                <InputGroup className={FORM_INPUT_GROUP}>
+                  <InputGroupAddon align="inline-start">
+                    <MapPin />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    id="ubicacion"
+                    maxLength={120}
+                    placeholder="Ej. Pasillo 3, estante B"
+                    value={ubicacion}
+                    disabled={!controlaInventario}
+                    onChange={(evento) => {
+                      setUbicacion(evento.target.value);
+                      limpiarErroresFerreteria();
+                    }}
+                  />
+                </InputGroup>
+                {controlaInventario ? null : (
+                  <span className="text-muted-foreground text-xs">Solo aplica a productos inventariables.</span>
+                )}
+              </CampoFormulario>
+
+              <div className="dark:bg-card flex items-center justify-between gap-3 self-start rounded-[10px] border border-slate-300 bg-white px-3 py-2 sm:col-span-2 dark:border-slate-700">
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Favorito en el POS</span>
+                  <span className="text-muted-foreground text-xs">
+                    Aparece primero en el catálogo del punto de venta.
+                  </span>
+                </div>
+                <Switch checked={favoritoPos} aria-label="Favorito en el POS" onCheckedChange={setFavoritoPos} />
+              </div>
+            </div>
+          </FormCard>
+
+          <FormCard>
+            <EditorCodigosBarra
+              filas={filasCodigos}
+              unidades={filasUnidades}
+              errores={erroresFerreteria}
+              onCambiar={cambiarCodigo}
+              onAgregar={agregarCodigo}
+              onQuitar={quitarCodigo}
+              onMarcarPrincipal={marcarCodigoPrincipal}
+            />
+          </FormCard>
+
+          <FormCard>
+            <EditorUnidades
+              filas={filasUnidades}
+              errores={erroresFerreteria}
+              onCambiar={cambiarUnidad}
+              onAgregar={agregarUnidad}
+              onQuitar={quitarUnidad}
+            />
+          </FormCard>
+
+          {valores.tipo === "combo" ? (
+            <FormCard>
+              <EditorCombo
+                comboId={producto?.id ?? idCreado}
+                filas={filasComponentes}
+                productos={[...opcionesReceta.values()]}
+                errores={erroresFerreteria}
+                onCambiar={cambiarComponente}
+                onAgregar={agregarComponente}
+                onQuitar={quitarComponente}
+              />
+            </FormCard>
+          ) : null}
 
           <Collapsible className="rounded-xl border border-slate-200 bg-white">
             <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left">

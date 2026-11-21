@@ -7,6 +7,7 @@ import { getPerfil } from "@/lib/auth/rol";
 import { listarCuentasMovimiento } from "@/lib/contabilidad/consultas";
 import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { listarAlmacenesActivos, listarCategorias, listarListasPreciosActivas } from "@/lib/inventario/consultas";
+import { listarProductosParaCombo } from "@/lib/inventario/ferreteria/consultas";
 
 import { FormularioProducto } from "../_components/formulario-producto";
 
@@ -14,12 +15,13 @@ export default async function Page() {
   const perfil = await getPerfil();
   if (perfil?.rol == null) redirect("/unauthorized");
 
-  const [categorias, almacenes, listasPrecios, impuestos, cuentas] = await Promise.all([
+  const [categorias, almacenes, listasPrecios, impuestos, cuentas, productosParaCombo] = await Promise.all([
     listarCategorias(),
     listarAlmacenesActivos(),
     listarListasPreciosActivas(),
     getImpuestosActivos(),
     listarCuentasMovimiento(),
+    listarProductosParaCombo(),
   ]);
 
   if (perfil.rol === "lector") {
@@ -47,6 +49,7 @@ export default async function Page() {
         cuentas={cuentas}
         existencias={[]}
         imagenUrlInicial={null}
+        productosParaCombo={productosParaCombo}
       />
     </ContenedorFormulario>
   );

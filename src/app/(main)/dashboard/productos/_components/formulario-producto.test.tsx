@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+import type { CodigoBarra, ComponenteCombo, UnidadMedida } from "@/lib/inventario/ferreteria/tipos";
 import type { ExistenciaAlmacen } from "@/lib/inventario/tipos";
 import type { ProductoEditable } from "@/lib/productos/consultas";
 
@@ -11,6 +12,13 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/productos/actions", () => ({
   actualizarProducto: vi.fn(),
   crearProducto: vi.fn(),
+}));
+
+vi.mock("@/lib/inventario/ferreteria/acciones", () => ({
+  guardarCodigosBarra: vi.fn(),
+  guardarDatosFerreteriaProducto: vi.fn(),
+  guardarRecetaCombo: vi.fn(),
+  guardarUnidadesProducto: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -50,6 +58,37 @@ const almacen = {
   activo: true,
 };
 
+const unidad: UnidadMedida = {
+  id: "44444444-4444-4444-8444-444444444444",
+  producto_id: producto.id,
+  nombre: "Caja 50 lb",
+  factor_base: "50",
+  precio: "7500.00",
+  es_compra: true,
+  es_venta: true,
+  activa: true,
+  creado_en: "2026-11-20T00:00:00Z",
+};
+
+const codigo: CodigoBarra = {
+  id: "55555555-5555-4555-8555-555555555555",
+  producto_id: producto.id,
+  unidad_id: unidad.id,
+  codigo: "7501234567890",
+  principal: true,
+  creado_en: "2026-11-20T00:00:00Z",
+};
+
+const componente: ComponenteCombo = {
+  id: "66666666-6666-4666-8666-666666666666",
+  combo_id: producto.id,
+  componente_id: "77777777-7777-4777-8777-777777777777",
+  componente_nombre: "Tornillo 2 pulgadas",
+  componente_tipo: "producto",
+  inventariable: true,
+  cantidad: "2",
+};
+
 function formulario(editable: ProductoEditable | null, existencias: ExistenciaAlmacen[] = []) {
   return renderToStaticMarkup(
     <FormularioProducto
@@ -61,6 +100,11 @@ function formulario(editable: ProductoEditable | null, existencias: ExistenciaAl
       cuentas={[]}
       existencias={existencias}
       imagenUrlInicial={null}
+      datosFerreteriaIniciales={{ marca: "Oximat", favoritoPos: true, ubicacion: "Pasillo 3, estante B" }}
+      codigosBarra={[codigo]}
+      unidadesMedida={[unidad]}
+      componentesCombo={[componente]}
+      productosParaCombo={[]}
     />,
   );
 }
@@ -94,5 +138,26 @@ describe("FormularioProducto", () => {
 
     expect(html).toContain("Cantidad inicial");
     expect(html).toContain("La cantidad inicial entra al almacén elegido al guardar.");
+  });
+
+  it("precarga marca, ubicación, códigos de barra y unidades de ferretería", () => {
+    const html = formulario(producto);
+
+    expect(html).toContain('value="Oximat"');
+    expect(html).toContain('value="Pasillo 3, estante B"');
+    expect(html).toContain('value="7501234567890"');
+    expect(html).toContain('value="Caja 50 lb"');
+    expect(html).toContain("Códigos de barra");
+    expect(html).toContain("Unidades de medida");
+  });
+
+  it("solo muestra la receta del combo cuando el producto es un combo", () => {
+    expect(formulario(producto)).not.toContain("Receta del combo");
+
+    const combo: ProductoEditable = { ...producto, tipo: "combo" };
+    const html = formulario(combo);
+
+    expect(html).toContain("Receta del combo");
+    expect(html).toContain('aria-label="Cantidad del componente 1"');
   });
 });

@@ -6,8 +6,8 @@ import Link from "next/link";
 
 import { cn } from "cn";
 import {
-  ArrowLeft,
   ArrowLeftRight,
+  Barcode,
   Boxes,
   ClipboardList,
   ClipboardPen,
@@ -17,13 +17,17 @@ import {
   FileText,
   Hash,
   Info,
+  Layers,
   Package,
   Percent,
   ReceiptText,
+  Ruler,
   ShoppingCart,
   SquarePen,
+  Star,
   Tag,
   Truck,
+  Warehouse,
   Wrench,
 } from "lucide-react";
 
@@ -37,6 +41,8 @@ import {
   type OpcionFiltro,
   Pildora,
 } from "@/components/ficha/ficha-ui";
+import { ContenedorDetalle } from "@/components/pagina/contenedor-pagina";
+import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -48,6 +54,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { etiquetaEstadoDocumento } from "@/lib/contactos/ficha";
 import { rutaEditarProducto } from "@/lib/enlaces";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
+import type { CodigoBarra, ComponenteCombo, UnidadMedida } from "@/lib/inventario/ferreteria/tipos";
 import {
   type FichaProducto as DatosFichaProducto,
   type DocumentoFicha,
@@ -56,11 +63,17 @@ import {
 } from "@/lib/productos/ficha";
 import { etiquetaTasaItbis, etiquetaTipoProducto } from "@/lib/productos/productos";
 
-import { InformacionGeneral } from "./informacion-general";
+import type { DatosFerreteriaProducto, ExistenciaFerreteria } from "../../_components/ferreteria-datos";
+import { InformacionGeneral, TablaExistencias } from "./informacion-general";
 import { ListaBuscable, PendienteBackend, TablaComerciales, TablaFacturas, TablaKardex } from "./tablas-producto";
+import { TablaCodigos, TablaComponentesCombo, TablaUnidades } from "./tabs-ferreteria";
 
 type PestanaProducto =
-  | "informacion"
+  | "datos"
+  | "codigos"
+  | "unidades"
+  | "combo"
+  | "existencias"
   | "facturas-venta"
   | "facturas-proveedor"
   | "notas-credito"
@@ -84,19 +97,16 @@ const PENDIENTES: { valor: PestanaProducto; titulo: string; icono: ReactNode }[]
 function EncabezadoProducto({
   producto,
   puedeEscribir,
-  hrefEditar,
-  onVerHistorial,
+  datosFerreteria,
 }: {
   readonly producto: DatosFichaProducto["producto"];
   readonly puedeEscribir: boolean;
-  readonly hrefEditar: string | null;
-  readonly onVerHistorial: () => void;
+  readonly datosFerreteria: DatosFerreteriaProducto | null;
 }) {
   const Icono = producto.tipo === "servicio" ? Wrench : Package;
-  const id = encodeURIComponent(producto.id);
 
   return (
-    <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-4 p-5">
       <div className="flex items-start gap-3.5">
         <div className="bg-primary text-primary-foreground flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg">
           {producto.imagenUrl ? (
@@ -108,7 +118,6 @@ function EncabezadoProducto({
         </div>
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-lg font-semibold tracking-tight">{producto.nombre}</h1>
             <Pildora className="bg-primary/10 text-primary">{etiquetaTipoProducto(producto.tipo)}</Pildora>
             {producto.inventariable ? (
               <Pildora className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
@@ -118,6 +127,15 @@ function EncabezadoProducto({
             ) : null}
             {producto.vendeNegativo ? (
               <Pildora className="bg-amber-500/10 text-amber-700 dark:text-amber-400">Venta en negativo</Pildora>
+            ) : null}
+            {datosFerreteria?.favorito_pos ? (
+              <Pildora className="bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                <Star className="size-3" />
+                Favorito POS
+              </Pildora>
+            ) : null}
+            {!puedeEscribir ? (
+              <Pildora className="bg-slate-500/10 text-slate-600 dark:text-slate-300">Solo lectura</Pildora>
             ) : null}
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -134,6 +152,12 @@ function EncabezadoProducto({
               texto={`ITBIS ${etiquetaTasaItbis(producto.itbis_tasa)}`}
             />
             <MetaItem icono={<Boxes className="size-3.5" />} texto={`Unidad: ${producto.unidadMedida}`} />
+            {datosFerreteria?.marca?.trim() ? (
+              <MetaItem icono={<Tag className="size-3.5" />} texto={`Marca: ${datosFerreteria.marca}`} />
+            ) : null}
+            {datosFerreteria?.ubicacion?.trim() ? (
+              <MetaItem icono={<Warehouse className="size-3.5" />} texto={`Ubicación: ${datosFerreteria.ubicacion}`} />
+            ) : null}
             {producto.inventariable ? (
               <MetaItem
                 icono={<Boxes className="size-3.5" />}
@@ -142,47 +166,6 @@ function EncabezadoProducto({
             ) : null}
           </div>
         </div>
-      </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        {hrefEditar ? (
-          <Button nativeButton={false} render={<Link href={hrefEditar} prefetch={false} />}>
-            <SquarePen data-icon="inline-start" />
-            Editar producto
-          </Button>
-        ) : null}
-        {puedeEscribir ? (
-          <>
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href={`/dashboard/facturacion/nueva?producto=${id}`} prefetch={false} />}
-            >
-              <ReceiptText data-icon="inline-start" />
-              Facturar este producto
-            </Button>
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href={`/dashboard/compras/nueva?producto=${id}`} prefetch={false} />}
-            >
-              <ShoppingCart data-icon="inline-start" />
-              Comprar este producto
-            </Button>
-          </>
-        ) : null}
-        {producto.inventariable ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="outline" size="icon" aria-label="Más acciones" />}>
-              <EllipsisVertical />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem onClick={onVerHistorial}>
-                <ClipboardList />
-                Historial de operaciones
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
       </div>
     </div>
   );
@@ -232,15 +215,35 @@ function filtrarEstado<T extends { estado: string }>(documentos: readonly T[], e
   return estado === "todos" ? documentos : documentos.filter((documento) => documento.estado === estado);
 }
 
+function subtituloProducto(
+  producto: DatosFichaProducto["producto"],
+  datosFerreteria: DatosFerreteriaProducto | null,
+): string {
+  const partes = [etiquetaTipoProducto(producto.tipo)];
+  if (producto.referencia?.trim()) partes.push(`Ref. ${producto.referencia}`);
+  if (datosFerreteria?.marca?.trim()) partes.push(datosFerreteria.marca);
+  return partes.join(" · ");
+}
+
 export function FichaProducto({
   ficha,
   puedeEscribir,
+  datosFerreteria,
+  existencias,
+  codigosBarra,
+  unidadesMedida,
+  componentesCombo,
 }: {
   readonly ficha: DatosFichaProducto;
   readonly puedeEscribir: boolean;
+  readonly datosFerreteria: DatosFerreteriaProducto | null;
+  readonly existencias: readonly ExistenciaFerreteria[];
+  readonly codigosBarra: readonly CodigoBarra[];
+  readonly unidadesMedida: readonly UnidadMedida[];
+  readonly componentesCombo: readonly ComponenteCombo[];
 }) {
   const { producto, facturasVenta, facturasCompra, cotizaciones, conduces, kardex } = ficha;
-  const [pestana, setPestana] = useState<PestanaProducto>("informacion");
+  const [pestana, setPestana] = useState<PestanaProducto>("datos");
   const [estadoVentas, setEstadoVentas] = useState("todos");
   const [estadoCompras, setEstadoCompras] = useState("todos");
 
@@ -249,7 +252,17 @@ export function FichaProducto({
   const verHistorial = () => setPestana("kardex");
 
   const pestanas: { valor: PestanaProducto; etiqueta: string; icono: ReactNode }[] = [
-    { valor: "informacion", etiqueta: "Información general", icono: <Info className="size-4" /> },
+    { valor: "datos", etiqueta: "Datos", icono: <Info className="size-4" /> },
+    { valor: "codigos", etiqueta: "Códigos", icono: <Barcode className="size-4" /> },
+    { valor: "unidades", etiqueta: "Unidades", icono: <Ruler className="size-4" /> },
+  ];
+  if (producto.tipo === "combo") {
+    pestanas.push({ valor: "combo", etiqueta: "Combo", icono: <Layers className="size-4" /> });
+  }
+  if (producto.inventariable) {
+    pestanas.push({ valor: "existencias", etiqueta: "Existencias", icono: <Warehouse className="size-4" /> });
+  }
+  pestanas.push(
     { valor: "facturas-venta", etiqueta: "Facturas de venta", icono: <ReceiptText className="size-4" /> },
     { valor: "facturas-proveedor", etiqueta: "Facturas de proveedor", icono: <ShoppingCart className="size-4" /> },
     { valor: "notas-credito", etiqueta: "Notas de crédito", icono: <FileMinus className="size-4" /> },
@@ -257,7 +270,7 @@ export function FichaProducto({
     { valor: "cotizaciones", etiqueta: "Cotizaciones", icono: <FileText className="size-4" /> },
     { valor: "conduces", etiqueta: "Conduces", icono: <Truck className="size-4" /> },
     { valor: "ordenes-compra", etiqueta: "Órdenes de compra", icono: <ClipboardPen className="size-4" /> },
-  ];
+  );
   if (producto.inventariable) {
     pestanas.push(
       { valor: "transferencias", etiqueta: "Transferencias", icono: <ArrowLeftRight className="size-4" /> },
@@ -265,26 +278,71 @@ export function FichaProducto({
     );
   }
 
+  const hrefEditar = puedeEscribir ? rutaEditarProducto(producto.id) : null;
+
   return (
-    <div className="flex flex-col gap-6" style={{ fontFamily: "var(--font-inter)" }}>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="w-fit"
-        nativeButton={false}
-        render={<Link href="/dashboard/productos" prefetch={false} />}
-      >
-        <ArrowLeft data-icon="inline-start" />
-        Productos
-      </Button>
+    <ContenedorDetalle>
+      <EncabezadoPagina
+        titulo={producto.nombre}
+        subtitulo={subtituloProducto(producto, datosFerreteria)}
+        migas={[{ etiqueta: "Productos", href: "/dashboard/productos" }, { etiqueta: producto.nombre }]}
+        acciones={
+          <>
+            {hrefEditar ? (
+              <Button nativeButton={false} render={<Link href={hrefEditar} prefetch={false} />}>
+                <SquarePen data-icon="inline-start" />
+                Editar producto
+              </Button>
+            ) : null}
+            {puedeEscribir ? (
+              <>
+                <Button
+                  variant="outline"
+                  nativeButton={false}
+                  render={
+                    <Link
+                      href={`/dashboard/facturacion/nueva?producto=${encodeURIComponent(producto.id)}`}
+                      prefetch={false}
+                    />
+                  }
+                >
+                  <ReceiptText data-icon="inline-start" />
+                  Facturar
+                </Button>
+                <Button
+                  variant="outline"
+                  nativeButton={false}
+                  render={
+                    <Link
+                      href={`/dashboard/compras/nueva?producto=${encodeURIComponent(producto.id)}`}
+                      prefetch={false}
+                    />
+                  }
+                >
+                  <ShoppingCart data-icon="inline-start" />
+                  Comprar
+                </Button>
+              </>
+            ) : null}
+            {producto.inventariable ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="outline" size="icon" aria-label="Más acciones" />}>
+                  <EllipsisVertical />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={verHistorial}>
+                    <ClipboardList />
+                    Historial de operaciones
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+          </>
+        }
+      />
 
       <div className={CLASE_PANEL_FICHA}>
-        <EncabezadoProducto
-          producto={producto}
-          puedeEscribir={puedeEscribir}
-          hrefEditar={puedeEscribir ? rutaEditarProducto(producto.id) : null}
-          onVerHistorial={verHistorial}
-        />
+        <EncabezadoProducto producto={producto} puedeEscribir={puedeEscribir} datosFerreteria={datosFerreteria} />
 
         <div className="px-5 pb-5">
           <GrillaKpis kpis={construirKpis(ficha)} />
@@ -316,9 +374,34 @@ export function FichaProducto({
             </div>
           </div>
 
-          <TabsContent value="informacion" className="p-4 sm:p-5">
-            <InformacionGeneral ficha={ficha} puedeEscribir={puedeEscribir} onVerHistorial={verHistorial} />
+          <TabsContent value="datos" className="p-4 sm:p-5">
+            <InformacionGeneral
+              ficha={ficha}
+              puedeEscribir={puedeEscribir}
+              datosFerreteria={datosFerreteria}
+              onVerExistencias={() => setPestana("existencias")}
+            />
           </TabsContent>
+
+          <TabsContent value="codigos" className="p-4 sm:p-5">
+            <TablaCodigos codigos={codigosBarra} unidades={unidadesMedida} />
+          </TabsContent>
+
+          <TabsContent value="unidades" className="p-4 sm:p-5">
+            <TablaUnidades unidades={unidadesMedida} />
+          </TabsContent>
+
+          {producto.tipo === "combo" ? (
+            <TabsContent value="combo" className="p-4 sm:p-5">
+              <TablaComponentesCombo componentes={componentesCombo} />
+            </TabsContent>
+          ) : null}
+
+          {producto.inventariable ? (
+            <TabsContent value="existencias" className="p-4 sm:p-5">
+              <TablaExistencias existencias={existencias} />
+            </TabsContent>
+          ) : null}
 
           <TabsContent value="facturas-venta" className="p-4 sm:p-5">
             <ListaBuscable filas={filtrarEstado(facturasVenta, estadoVentas)} unidad="facturas">
@@ -367,6 +450,6 @@ export function FichaProducto({
           ) : null}
         </Tabs>
       </div>
-    </div>
+    </ContenedorDetalle>
   );
 }

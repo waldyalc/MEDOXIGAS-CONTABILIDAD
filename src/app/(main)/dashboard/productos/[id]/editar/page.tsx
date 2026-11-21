@@ -10,16 +10,37 @@ import {
   listarExistenciasProducto,
   listarListasPreciosActivas,
 } from "@/lib/inventario/consultas";
+import {
+  listarCodigosBarra,
+  listarComponentesCombo,
+  listarProductosParaCombo,
+  listarUnidadesProducto,
+} from "@/lib/inventario/ferreteria/consultas";
 import { obtenerProductoEditable } from "@/lib/productos/consultas";
 import { urlFirmadaImagenProducto } from "@/lib/productos/imagen";
 import { createClient } from "@/lib/supabase/server";
 
+import { obtenerDatosFerreteriaProducto } from "../../_components/ferreteria-datos";
 import { FormularioProducto } from "../../_components/formulario-producto";
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [rol, producto, categorias, almacenes, listasPrecios, impuestos, cuentas, existencias] = await Promise.all([
+  const [
+    rol,
+    producto,
+    categorias,
+    almacenes,
+    listasPrecios,
+    impuestos,
+    cuentas,
+    existencias,
+    datosFerreteria,
+    codigosBarra,
+    unidadesMedida,
+    componentesCombo,
+    productosParaCombo,
+  ] = await Promise.all([
     getRol(),
     obtenerProductoEditable(id),
     listarCategorias(),
@@ -28,6 +49,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     getImpuestosActivos(),
     listarCuentasMovimiento(),
     listarExistenciasProducto(id),
+    obtenerDatosFerreteriaProducto(id),
+    listarCodigosBarra(id),
+    listarUnidadesProducto(id),
+    listarComponentesCombo(id),
+    listarProductosParaCombo(),
   ]);
 
   if (rol === null) redirect("/unauthorized");
@@ -49,6 +75,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         cuentas={cuentas}
         existencias={existencias}
         imagenUrlInicial={imagenUrl}
+        datosFerreteriaIniciales={{
+          marca: datosFerreteria?.marca ?? "",
+          favoritoPos: datosFerreteria?.favorito_pos ?? false,
+          ubicacion: datosFerreteria?.ubicacion ?? "",
+        }}
+        codigosBarra={codigosBarra}
+        unidadesMedida={unidadesMedida}
+        componentesCombo={componentesCombo}
+        productosParaCombo={productosParaCombo}
       />
     </ContenedorFormulario>
   );
