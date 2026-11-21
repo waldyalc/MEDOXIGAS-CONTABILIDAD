@@ -12,6 +12,7 @@ vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 
 const {
   actualizarEmpleado,
+  agregarEmpleadosPeriodo,
   anularPagoRecibo,
   anularRecibo,
   calcularPeriodo,
@@ -326,6 +327,51 @@ describe("periodos y cálculo", () => {
       ok: false,
       error: "La quincena debe empezar el día 1 o el día 16.",
     });
+  });
+
+  test("agregarEmpleadosPeriodo llama la RPC con el periodo y los empleados", async () => {
+    const rpc = rpcMock({ data: 2 });
+
+    await expect(agregarEmpleadosPeriodo({ periodo_id: PERIODO, empleado_ids: [EMPLEADO, CONCEPTO] })).resolves.toEqual(
+      { ok: true, agregados: 2 },
+    );
+    expect(rpc).toHaveBeenCalledWith("nomina_agregar_empleados", {
+      p_periodo_id: PERIODO,
+      p_empleado_ids: [EMPLEADO, CONCEPTO],
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(`/dashboard/contabilidad/nomina/periodos/${PERIODO}`);
+  });
+
+  test("agregarEmpleadosPeriodo exige al menos un empleado", async () => {
+    await expect(agregarEmpleadosPeriodo({ periodo_id: PERIODO, empleado_ids: [] })).resolves.toEqual({
+      ok: false,
+      error: "Indica al menos un empleado para agregar.",
+    });
+    expect(mocks.createClient).not.toHaveBeenCalled();
+  });
+
+  test("agregarEmpleadosPeriodo devuelve el error de estado de la RPC en español", async () => {
+    rpcMock({
+      error: {
+        message: "El periodo está contabilizado; solo se agregan empleados a un periodo en borrador o calculado.",
+        code: "23514",
+      },
+    });
+
+    await expect(agregarEmpleadosPeriodo({ periodo_id: PERIODO, empleado_ids: [EMPLEADO] })).resolves.toEqual({
+      ok: false,
+      error: "El periodo está contabilizado; solo se agregan empleados a un periodo en borrador o calculado.",
+    });
+  });
+
+  test("un lector no agrega empleados al periodo", async () => {
+    mocks.getRol.mockResolvedValue("lector");
+
+    await expect(agregarEmpleadosPeriodo({ periodo_id: PERIODO, empleado_ids: [EMPLEADO] })).resolves.toEqual({
+      ok: false,
+      error: "No tienes permiso para agregar empleados al periodo.",
+    });
+    expect(mocks.createClient).not.toHaveBeenCalled();
   });
 
   test("calcularPeriodo devuelve los totales del periodo", async () => {

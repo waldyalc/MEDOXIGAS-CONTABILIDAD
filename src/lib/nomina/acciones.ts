@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/types";
 
 import {
+  agregarEmpleadosPeriodoSchema,
   cambioEstadoEmpleadoSchema,
   configNominaSchema,
   type EmpleadoEntrada,
@@ -52,6 +53,8 @@ export type ResultadoPagoRecibo = { ok: true; id: string; asientoId: string | nu
 export type ResultadoEnvioColillas = { ok: true; enviados: number } | { ok: false; error: string };
 
 export type ResultadoGuardarMapeo = { ok: true; guardados: number } | { ok: false; error: string };
+
+export type ResultadoAgregarEmpleados = { ok: true; agregados: number } | { ok: false; error: string };
 
 export type ResultadoCalculoPeriodo =
   | { ok: true; recibos: number; totalNeto: Decimal; totalCostoEmpresa: Decimal }
@@ -338,6 +341,26 @@ export async function crearPeriodo(entrada: unknown): Promise<ResultadoNomina> {
 
   revalidarPeriodo(data);
   return { ok: true, id: data };
+}
+
+export async function agregarEmpleadosPeriodo(entrada: unknown): Promise<ResultadoAgregarEmpleados> {
+  if (!(await puedeEscribir())) return { ok: false, error: "No tienes permiso para agregar empleados al periodo." };
+
+  const resultado = agregarEmpleadosPeriodoSchema.safeParse(entrada);
+  if (!resultado.success) return { ok: false, error: mensajeValidacion(resultado.error) };
+
+  const datos = resultado.data;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("nomina_agregar_empleados", {
+    p_periodo_id: datos.periodo_id,
+    p_empleado_ids: datos.empleado_ids,
+  });
+
+  if (error) return { ok: false, error: mensajeErrorRpc(error) };
+  if (typeof data !== "number") return { ok: false, error: "No se pudo agregar los empleados al periodo." };
+
+  revalidarPeriodo(datos.periodo_id);
+  return { ok: true, agregados: data };
 }
 
 export async function calcularPeriodo(periodoId: string): Promise<ResultadoCalculoPeriodo> {

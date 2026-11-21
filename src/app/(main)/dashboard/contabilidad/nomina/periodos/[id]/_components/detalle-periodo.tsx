@@ -43,6 +43,7 @@ import {
 import { DialogoCalcularPeriodo } from "../../_components/dialogo-calcular-periodo";
 import { DialogoContabilizarPeriodo } from "../../_components/dialogo-contabilizar-periodo";
 import { DialogoPagarPeriodo } from "../../_components/dialogo-pagar-periodo";
+import { DialogoAgregarEmpleados } from "./dialogo-agregar-empleados";
 
 interface Props {
   readonly periodo: PeriodoNomina;
@@ -59,6 +60,7 @@ function porcentaje(parte: number, total: number): number {
 }
 
 export function DetallePeriodoCliente({ periodo, filas, asientos, cuentas, config, puedeEscribir }: Props) {
+  const [agregarAbierto, setAgregarAbierto] = useState(false);
   const [calcularAbierto, setCalcularAbierto] = useState(false);
   const [contabilizarAbierto, setContabilizarAbierto] = useState(false);
   const [pagarAbierto, setPagarAbierto] = useState(false);
@@ -91,6 +93,8 @@ export function DetallePeriodoCliente({ periodo, filas, asientos, cuentas, confi
   const puedePagar =
     puedeEscribir && contabilizados.length > 0 && todosContabilizados && cuentas.length > 0 && config != null;
   const puedeEnviar = enviables.some((fila) => !fila.colilla_enviada_en);
+  // La RPC también acepta el periodo anulado: agregar revive sus recibos a borrador.
+  const puedeAgregarEmpleados = puedeEscribir && periodo.estado !== "contabilizado" && periodo.estado !== "pagado";
 
   const totalIngresos = sumarMontos(noAnulados.map((fila) => fila.total_ingresos));
   const totalDeducciones = sumarMontos(noAnulados.map((fila) => fila.total_deducciones));
@@ -211,13 +215,8 @@ export function DetallePeriodoCliente({ periodo, filas, asientos, cuentas, confi
         ]}
         acciones={
           <div className="flex flex-wrap items-center gap-2">
-            {puedeEscribir ? (
-              <Button
-                type="button"
-                variant="outline"
-                disabled
-                title="Agregar empleados quedó pendiente: por ahora los empleados se incluyen al crear el periodo."
-              >
+            {puedeAgregarEmpleados ? (
+              <Button type="button" variant="outline" onClick={() => setAgregarAbierto(true)}>
                 <Plus />
                 Agregar empleados
               </Button>
@@ -342,13 +341,6 @@ export function DetallePeriodoCliente({ periodo, filas, asientos, cuentas, confi
         </Alert>
       ) : null}
 
-      {puedeEscribir ? (
-        <p className="text-muted-foreground text-xs">
-          Agregar empleados a un periodo existente está pendiente. Los empleados activos de la frecuencia se incluyen al
-          crear el periodo; si falta alguien, anula su recibo y crea un periodo nuevo cuando corresponda.
-        </p>
-      ) : null}
-
       <TarjetaLista data-lista="recibos-periodo">
         <TablaLista
           columnas={columnas}
@@ -368,6 +360,12 @@ export function DetallePeriodoCliente({ periodo, filas, asientos, cuentas, confi
           vacio={{
             titulo: "Sin recibos en este periodo.",
             descripcion: `Agrega empleados activos de la frecuencia ${etiquetaFrecuencia(periodo.frecuencia).toLowerCase()}.`,
+            accion: puedeAgregarEmpleados ? (
+              <Button type="button" variant="outline" onClick={() => setAgregarAbierto(true)}>
+                <Plus />
+                Agregar empleados
+              </Button>
+            ) : undefined,
           }}
           pie={
             filas.length > 0 ? (
@@ -391,6 +389,8 @@ export function DetallePeriodoCliente({ periodo, filas, asientos, cuentas, confi
           }
         />
       </TarjetaLista>
+
+      <DialogoAgregarEmpleados abierto={agregarAbierto} onOpenChange={setAgregarAbierto} periodo={periodo} />
 
       <DialogoCalcularPeriodo
         abierto={calcularAbierto}

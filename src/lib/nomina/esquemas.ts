@@ -425,6 +425,20 @@ export const pagoPeriodoSchema = z.object({
 export type PagoPeriodoEntrada = z.infer<typeof pagoPeriodoSchema>;
 
 // ---------------------------------------------------------------------------
+// Agregar empleados a un periodo
+// ---------------------------------------------------------------------------
+
+export const agregarEmpleadosPeriodoSchema = z.object({
+  periodo_id: z.uuid({ message: "Selecciona un periodo válido." }),
+  empleado_ids: z
+    .array(z.uuid({ message: "Uno de los empleados no es válido." }))
+    .min(1, { message: "Indica al menos un empleado para agregar." })
+    .max(500, { message: "No se agregan más de 500 empleados a la vez." }),
+});
+
+export type AgregarEmpleadosPeriodoEntrada = z.infer<typeof agregarEmpleadosPeriodoSchema>;
+
+// ---------------------------------------------------------------------------
 // Envío de colillas
 // ---------------------------------------------------------------------------
 
