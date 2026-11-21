@@ -1,11 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import {
+  type ChangeEvent,
+  type KeyboardEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import { useRouter } from "next/navigation";
 
 import { Check, Loader2 } from "lucide-react";
 
+import { BotonAutocompletarDgii, MensajeDgii, useConsultaDgii } from "@/components/contactos/consulta-dgii";
 import { DatePicker } from "@/components/date-picker";
 import { CampoFormulario } from "@/components/formularios/campo-formulario";
 import {
@@ -54,9 +63,12 @@ import { parsearMonto } from "@/lib/productos/productos";
 
 import {
   BANCOS_RD,
+  borrarSobreGuion,
+  completarEmpleadoConDgii,
   ETIQUETA_FRECUENCIA,
   ETIQUETA_METODO_PAGO,
   ETIQUETA_SEGMENTO,
+  editarCedula,
   enmascararCuenta,
   formatearCedulaParcial,
   formatearIdentificacion,
@@ -66,9 +78,17 @@ import {
   OPCIONES_TIPO_CONTRATO,
   OPCIONES_TIPO_CUENTA,
   OPCIONES_TIPO_IDENTIFICACION,
+  type PartesNombreDgii,
+  posicionDespuesDeDigitos,
   rutaEmpleado,
 } from "./formato-nomina";
-import { type PasoEmpleado, type ValoresEmpleado, validarPasoEmpleado } from "./wizard-validacion";
+import {
+  camposConMensaje,
+  type PasoEmpleado,
+  pasoDeError,
+  type ValoresEmpleado,
+  validarPasoEmpleado,
+} from "./wizard-validacion";
 
 const PASOS = ["Datos personales", "Contrato y salario", "Banco y TSS"] as const;
 
@@ -231,34 +251,6 @@ function reglasDelPaso(paso: PasoEmpleado, valores: ValoresEmpleado): ReglaCampo
   }));
 }
 
-function camposConMensaje(mensaje: string): Record<string, string> {
-  const texto = mensaje.toLowerCase();
-  if (texto.includes("cédula") || texto.includes("cedula") || texto.includes("identificaci")) {
-    return { identificacion: mensaje };
-  }
-  if (texto.includes("correo")) return { correo: mensaje };
-  if (texto.includes("transferencia")) {
-    return { banco_nombre: mensaje, tipo_cuenta_banco: mensaje, numero_cuenta_banco: mensaje };
-  }
-  if (texto.includes("fecha de fin")) return { fecha_fin: mensaje };
-  if (texto.includes("salario")) return { salario_mensual: mensaje };
-  return {};
-}
-
-/** Paso al que pertenece el primer campo con error del servidor. */
-function pasoDeError(campos: Record<string, string>): PasoEmpleado | null {
-  const paso1 = ["identificacion", "correo", "primer_nombre", "primer_apellido"];
-  if (paso1.some((campo) => campo in campos)) return 1;
-
-  const paso2 = ["fecha_ingreso", "fecha_fin", "salario_mensual"];
-  if (paso2.some((campo) => campo in campos)) return 2;
-
-  const paso3 = ["banco_nombre", "tipo_cuenta_banco", "numero_cuenta_banco", "clave_tss"];
-  if (paso3.some((campo) => campo in campos)) return 3;
-
-  return null;
-}
-
 function nombreCompleto(campos: CamposEmpleado): string {
   return [campos.primerNombre, campos.segundoNombre, campos.primerApellido, campos.segundoApellido]
     .map((parte) => parte.trim())
@@ -316,9 +308,57 @@ interface PropsPaso {
   readonly errorDe: (campo: string) => string | undefined;
 }
 
-function PasoDatosPersonales({ campos, cambiar, errorDe, esEdicion }: PropsPaso & { esEdicion: boolean }) {
-  const idMostrado =
-    campos.tipoIdentificacion === "cedula" ? formatearCedulaParcial(campos.identificacion) : campos.identificacion;
+interface DgiiEmpleado {
+  readonly cargando: boolean;
+  readonly mensaje: MensajeDgii | null;
+  readonly autocompletar: () => void;
+}
+
+function PasoDatosPersonales({
+  campos,
+  cambiar,
+  errorDe,
+  esEdicion,
+  dgii,
+}: PropsPaso & { esEdicion: boolean; dgii: DgiiEmpleado }) {
+  const esCedula = campos.tipoIdentificacion === "cedula";
+  const idMostrado = esCedula ? formatearCedulaParcial(campos.identificacion) : campos.identificacion;
+  const inputIdentificacion = useRef<HTMLInputElement>(null);
+  const cursorPendiente = useRef<number | null>(null);
+
+  // El valor mostrado lleva la máscara; el cursor se guarda en dígitos y se
+  // restaura sobre el texto ya formateado después de cada render.
+  useLayoutEffect(() => {
+    const digitos = cursorPendiente.current;
+    if (digitos === null) return;
+    cursorPendiente.current = null;
+    const input = inputIdentificacion.current;
+    if (input === null) return;
+    const posicion = posicionDespuesDeDigitos(input.value, digitos);
+    input.setSelectionRange(posicion, posicion);
+  });
+
+  function alCambiarIdentificacion(evento: ChangeEvent<HTMLInputElement>) {
+    const valor = evento.target.value;
+    if (!esCedula) {
+      cambiar("identificacion", valor);
+      return;
+    }
+    const edicion = editarCedula(valor, evento.target.selectionStart ?? valor.length);
+    cursorPendiente.current = edicion.cursor;
+    cambiar("identificacion", edicion.digitos);
+  }
+
+  function alPulsarEnIdentificacion(evento: KeyboardEvent<HTMLInputElement>) {
+    if (!esCedula || (evento.key !== "Backspace" && evento.key !== "Delete")) return;
+    const input = evento.currentTarget;
+    if (input.selectionStart !== input.selectionEnd) return;
+    const edicion = borrarSobreGuion(campos.identificacion, input.value, input.selectionStart ?? 0, evento.key);
+    if (edicion === null) return;
+    evento.preventDefault();
+    cursorPendiente.current = edicion.cursor;
+    cambiar("identificacion", edicion.digitos);
+  }
 
   return (
     <FormCard>
@@ -346,20 +386,28 @@ function PasoDatosPersonales({ campos, cambiar, errorDe, esEdicion }: PropsPaso 
           error={errorDe("identificacion")}
         >
           <Input
+            ref={inputIdentificacion}
             id="identificacion"
             value={idMostrado}
-            inputMode={campos.tipoIdentificacion === "cedula" ? "numeric" : "text"}
-            maxLength={campos.tipoIdentificacion === "cedula" ? 13 : 40}
-            placeholder={campos.tipoIdentificacion === "cedula" ? "000-0000000-0" : "Número de documento"}
-            onChange={(evento) => {
-              const valor = evento.target.value;
-              cambiar(
-                "identificacion",
-                campos.tipoIdentificacion === "cedula" ? valor.replace(/\D/g, "").slice(0, 11) : valor,
-              );
-            }}
+            inputMode={esCedula ? "numeric" : "text"}
+            maxLength={esCedula ? 13 : 40}
+            placeholder={esCedula ? "000-0000000-0" : "Número de documento"}
+            onKeyDown={alPulsarEnIdentificacion}
+            onChange={alCambiarIdentificacion}
             className={FORM_INPUT}
           />
+          {esCedula ? (
+            <>
+              <div className="mt-1">
+                <BotonAutocompletarDgii
+                  onClick={dgii.autocompletar}
+                  cargando={dgii.cargando}
+                  disabled={campos.identificacion.length !== 11}
+                />
+              </div>
+              <MensajeDgii mensaje={dgii.mensaje} />
+            </>
+          ) : null}
         </CampoFormulario>
 
         <CampoFormulario htmlFor="primer_nombre" label="Primer nombre" required error={errorDe("primer_nombre")}>
@@ -742,6 +790,21 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
   const [campos, setCampos] = useState<CamposEmpleado>(() => camposIniciales(empleado, fechaHoy));
   const [inicial] = useState(() => JSON.stringify(camposIniciales(empleado, fechaHoy)));
 
+  const dgii = useConsultaDgii();
+  const camposRef = useRef(campos);
+  const rellenosDgii = useRef<PartesNombreDgii>({
+    primerNombre: "",
+    segundoNombre: "",
+    primerApellido: "",
+    segundoApellido: "",
+  });
+
+  // La respuesta de la DGII llega en async: el ref siempre tiene lo último
+  // escrito para decidir qué campos se pueden completar sin pisar al usuario.
+  useEffect(() => {
+    camposRef.current = campos;
+  }, [campos]);
+
   const valores = aValoresValidacion(campos);
   const sucio = JSON.stringify(campos) !== inicial;
 
@@ -755,7 +818,34 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
 
   function cambiar<K extends keyof CamposEmpleado>(clave: K, valor: CamposEmpleado[K]) {
     setCampos((previos) => ({ ...previos, [clave]: valor }));
+    if (clave === "identificacion" || clave === "tipoIdentificacion") {
+      dgii.limpiar();
+      if (clave === "tipoIdentificacion") {
+        rellenosDgii.current = { primerNombre: "", segundoNombre: "", primerApellido: "", segundoApellido: "" };
+      }
+    }
     limpiarServidor();
+  }
+
+  function autocompletarConDgii() {
+    void dgii.consultar(camposRef.current.identificacion, "cedula", (datos) => {
+      const actuales = camposRef.current;
+      const resultado = completarEmpleadoConDgii(
+        datos,
+        {
+          primerNombre: actuales.primerNombre,
+          segundoNombre: actuales.segundoNombre,
+          primerApellido: actuales.primerApellido,
+          segundoApellido: actuales.segundoApellido,
+        },
+        rellenosDgii.current,
+      );
+      if (Object.keys(resultado.campos).length > 0) {
+        setCampos((previos) => ({ ...previos, ...resultado.campos }));
+        Object.assign(rellenosDgii.current, resultado.campos);
+      }
+      return resultado.mensaje;
+    });
   }
 
   function mostrarError(mensaje: string) {
@@ -774,6 +864,8 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
     setError(null);
     setErroresServidor({});
     setPasoConError(null);
+    dgii.limpiar();
+    rellenosDgii.current = { primerNombre: "", segundoNombre: "", primerApellido: "", segundoApellido: "" };
     limpiarTodo();
     enfocarCampo("tipo_identificacion");
   }
@@ -854,7 +946,13 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
       </FormCard>
 
       {paso === 1 ? (
-        <PasoDatosPersonales campos={campos} cambiar={cambiar} errorDe={errorDe} esEdicion={empleado !== null} />
+        <PasoDatosPersonales
+          campos={campos}
+          cambiar={cambiar}
+          errorDe={errorDe}
+          esEdicion={empleado !== null}
+          dgii={{ cargando: dgii.cargando, mensaje: dgii.mensaje, autocompletar: autocompletarConDgii }}
+        />
       ) : null}
       {paso === 2 ? (
         <PasoContrato campos={campos} cambiar={cambiar} errorDe={errorDe} centrosCosto={centrosCosto} />
