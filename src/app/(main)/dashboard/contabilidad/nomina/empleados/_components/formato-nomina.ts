@@ -3,6 +3,7 @@ import { es } from "date-fns/locale";
 
 import type { TonoPill } from "@/components/listas/tabla-lista";
 import type { OpcionSelect } from "@/components/select-campo";
+import type { DatosContribuyenteDgii } from "@/lib/dgii/consulta";
 import type {
   EstadoEmpleado,
   EstadoNomina,
@@ -249,6 +250,207 @@ export function formatearCedulaParcial(valor: string): string {
   if (digitos.length <= 3) return digitos;
   if (digitos.length <= 10) return `${digitos.slice(0, 3)}-${digitos.slice(3)}`;
   return `${digitos.slice(0, 3)}-${digitos.slice(3, 10)}-${digitos.slice(10)}`;
+}
+
+// ---------------------------------------------------------------------------
+// Máscara de la cédula con cursor estable
+// ---------------------------------------------------------------------------
+
+/** Dígitos a la izquierda de una posición del texto mostrado en el input. */
+export function digitosAntesDeCursor(texto: string, posicion: number): number {
+  let cuenta = 0;
+  for (let i = 0; i < posicion && i < texto.length; i += 1) {
+    if (texto.charCodeAt(i) >= 48 && texto.charCodeAt(i) <= 57) cuenta += 1;
+  }
+  return cuenta;
+}
+
+/**
+ * Posición del cursor en el texto formateado cuando hay `digitos` dígitos a
+ * su izquierda. Salta los separadores de la máscara que siguen al dígito:
+ * con «402-» el cursor queda tras el guion, no antes de él.
+ */
+export function posicionDespuesDeDigitos(texto: string, digitos: number): number {
+  if (digitos <= 0) return 0;
+  let cuenta = 0;
+  for (let i = 0; i < texto.length; i += 1) {
+    if (texto.charCodeAt(i) >= 48 && texto.charCodeAt(i) <= 57) {
+      cuenta += 1;
+      if (cuenta === digitos) {
+        let posicion = i + 1;
+        while (texto.charAt(posicion) === "-" || texto.charAt(posicion) === " ") posicion += 1;
+        return posicion;
+      }
+    }
+  }
+  return texto.length;
+}
+
+export interface EdicionCedula {
+  /** Solo dígitos, máximo 11. */
+  digitos: string;
+  /** Dígitos a la izquierda del cursor tras la edición. */
+  cursor: number;
+}
+
+/**
+ * Lee una edición del input con máscara: el texto del navegador se sanea a
+ * dígitos (pegar con guiones o espacios no trunca porque el corte se hace
+ * después de limpiar) y el cursor se mide en dígitos para restaurarlo sobre el
+ * valor ya formateado.
+ */
+export function editarCedula(textoNuevo: string, cursorNuevo: number): EdicionCedula {
+  const digitos = textoNuevo.replace(/\D/g, "").slice(0, 11);
+  return { digitos, cursor: Math.min(digitosAntesDeCursor(textoNuevo, cursorNuevo), digitos.length) };
+}
+
+/**
+ * Backspace/Delete pegado a un guion de la máscara. El navegador borraría solo
+ * el guion, el saneado a dígitos no cambiaría y React volvería a escribir el
+ * mismo texto: parecía que la tecla no hacía nada. Aquí se borra el dígito
+ * vecino del guion y el cursor queda donde el usuario espera.
+ */
+export function borrarSobreGuion(
+  digitos: string,
+  texto: string,
+  cursor: number,
+  tecla: "Backspace" | "Delete",
+): EdicionCedula | null {
+  if (tecla === "Backspace" && texto.charAt(cursor - 1) === "-") {
+    const antes = digitosAntesDeCursor(texto, cursor);
+    return { digitos: digitos.slice(0, antes - 1) + digitos.slice(antes), cursor: antes - 1 };
+  }
+  if (tecla === "Delete" && texto.charAt(cursor) === "-") {
+    const antes = digitosAntesDeCursor(texto, cursor);
+    return { digitos: digitos.slice(0, antes) + digitos.slice(antes + 1), cursor: antes };
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Nombre de la DGII → campos del empleado
+// ---------------------------------------------------------------------------
+
+const PARTICULAS = new Set(["de", "del", "la", "las", "los", "y", "e"]);
+
+function aNombrePropio(texto: string): string {
+  return texto
+    .split(" ")
+    .map((palabra) => {
+      const minuscula = palabra.toLocaleLowerCase("es-DO");
+      if (PARTICULAS.has(minuscula)) return minuscula;
+      return minuscula.charAt(0).toLocaleUpperCase("es-DO") + minuscula.slice(1);
+    })
+    .join(" ");
+}
+
+export interface PartesNombreDgii {
+  primerNombre: string;
+  segundoNombre: string;
+  primerApellido: string;
+  segundoApellido: string;
+}
+
+/**
+ * Reparte el nombre que devuelve la DGII en los cuatro campos del empleado.
+ * El portal la registra en mayúsculas como «NOMBRES APELLIDOS» (la mayoría:
+ * dos nombres y dos apellidos) o «APELLIDOS, NOMBRES». La repartición de casos
+ * ambiguos (un solo nombre, apellidos compuestos) es razonable, no exacta:
+ * queda a revisión del usuario.
+ */
+export function repartirNombreDgii(nombre: string): PartesNombreDgii {
+  const partes: PartesNombreDgii = { primerNombre: "", segundoNombre: "", primerApellido: "", segundoApellido: "" };
+  const limpio = nombre.replace(/\s+/g, " ").trim();
+  if (limpio === "") return partes;
+
+  let nombres: string[] = [];
+  let apellidos: string[] = [];
+  const coma = limpio.indexOf(",");
+
+  if (coma >= 0) {
+    apellidos = limpio.slice(0, coma).trim().split(" ").filter(Boolean);
+    nombres = limpio
+      .slice(coma + 1)
+      .trim()
+      .split(" ")
+      .filter(Boolean);
+  } else {
+    const tokens = limpio.split(" ").filter(Boolean);
+    if (tokens.length <= 2) {
+      nombres = tokens.slice(0, 1);
+      apellidos = tokens.slice(1);
+    } else if (tokens.length === 3) {
+      // Un nombre y los dos apellidos: lo más común en la cédula dominicana.
+      nombres = tokens.slice(0, 1);
+      apellidos = tokens.slice(1);
+    } else {
+      // 4+ tokens: dos nombres; si el segundo empieza con partícula («de los
+      // Angeles», «del Carmen») se extiende hasta su núcleo.
+      let corte = 2;
+      if (PARTICULAS.has(tokens[1]?.toLocaleLowerCase("es-DO") ?? "")) {
+        corte = tokens.length;
+        for (let i = 1; i < tokens.length; i += 1) {
+          const token = tokens[i]?.toLocaleLowerCase("es-DO") ?? "";
+          if (!PARTICULAS.has(token)) {
+            corte = i + 1;
+            break;
+          }
+        }
+      }
+      nombres = tokens.slice(0, corte);
+      apellidos = tokens.slice(corte);
+    }
+  }
+
+  partes.primerNombre = aNombrePropio(nombres[0] ?? "");
+  partes.segundoNombre = aNombrePropio(nombres.slice(1).join(" "));
+
+  if (apellidos.length > 0 && PARTICULAS.has(apellidos[0]?.toLocaleLowerCase("es-DO") ?? "")) {
+    // «de los Santos» completo es el primer apellido.
+    partes.primerApellido = aNombrePropio(apellidos.join(" "));
+  } else {
+    partes.primerApellido = aNombrePropio(apellidos[0] ?? "");
+    partes.segundoApellido = aNombrePropio(apellidos.slice(1).join(" "));
+  }
+
+  return partes;
+}
+
+const CAMPOS_NOMBRE = ["primerNombre", "segundoNombre", "primerApellido", "segundoApellido"] as const;
+
+/**
+ * Decide qué campos del empleado se completan con la respuesta de la DGII.
+ * Nunca pisa lo que el usuario escribió: solo rellena campos vacíos o los que
+ * puso una consulta anterior (`rellenos`), como hace el formulario de
+ * contactos con el RNC.
+ */
+export function completarEmpleadoConDgii(
+  datos: DatosContribuyenteDgii,
+  escritos: PartesNombreDgii,
+  rellenos: PartesNombreDgii,
+): { campos: Partial<PartesNombreDgii>; mensaje: string } {
+  const propuestos = repartirNombreDgii(datos.nombre);
+  const campos: Partial<PartesNombreDgii> = {};
+
+  for (const clave of CAMPOS_NOMBRE) {
+    if (propuestos[clave] === "") continue;
+    if (escritos[clave].trim() === "" || escritos[clave] === rellenos[clave]) {
+      campos[clave] = propuestos[clave];
+    }
+  }
+
+  if (Object.keys(campos).length === 0) {
+    const coincide = CAMPOS_NOMBRE.every((clave) => propuestos[clave] === "" || escritos[clave] === propuestos[clave]);
+    if (coincide) {
+      return { campos, mensaje: "El nombre ya coincide con el de la DGII." };
+    }
+    return {
+      campos,
+      mensaje: `La DGII encontró ${aNombrePropio(datos.nombre)}; no se cambió lo que ya tenías escrito.`,
+    };
+  }
+
+  return { campos, mensaje: "Datos de la DGII: se completó el nombre." };
 }
 
 export interface PeriodoSugerido {
