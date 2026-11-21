@@ -351,7 +351,17 @@ export function WizardDevolucion({
                         )}
                         onClick={() => setTipo(opcion.value)}
                       >
-                        <span className="text-sm font-medium">{opcion.titulo}</span>
+                        <span className="flex w-full items-center justify-between gap-2">
+                          <span className="text-sm font-medium">{opcion.titulo}</span>
+                          <span
+                            className={cn(
+                              "border-border flex size-4 shrink-0 items-center justify-center rounded-full border",
+                              tipo === opcion.value && "border-primary",
+                            )}
+                          >
+                            {tipo === opcion.value ? <span className="bg-primary size-2 rounded-full" /> : null}
+                          </span>
+                        </span>
                         <span className="text-muted-foreground text-xs">{opcion.descripcion}</span>
                       </button>
                     ))}
@@ -475,88 +485,67 @@ export function WizardDevolucion({
               ) : null}
 
               {paso === 3 && datos ? (
-                <div className="flex flex-col gap-3">
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                    {TIPOS.map((opcion) => {
-                      const bloqueado = opcion.value === "efectivo" && !efectivoTotalPermitido;
-                      return (
-                        <button
-                          key={opcion.value}
-                          type="button"
-                          aria-pressed={tipo === opcion.value}
-                          title={
-                            bloqueado
-                              ? "El total supera lo pagado o el efectivo de la caja. Elige Combinado o Crédito a factura."
-                              : undefined
-                          }
-                          disabled={bloqueado}
-                          className={cn(
-                            "border-border hover:bg-muted flex min-h-24 flex-col items-start gap-1 rounded-lg border p-3 text-left",
-                            tipo === opcion.value && "border-primary bg-primary/5",
-                            bloqueado && "cursor-not-allowed opacity-50",
-                          )}
-                          onClick={() => setTipo(opcion.value)}
-                        >
-                          <span className="text-sm font-medium">{opcion.titulo}</span>
-                          <span className="text-muted-foreground text-xs">{opcion.descripcion}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {tipo === "credito_factura" ? (
-                    <div className="bg-muted/40 flex flex-col gap-1 rounded-lg p-3 text-sm">
-                      <p>{`Se acreditarán ${formatoMoneda(totalCalculado)} a la factura ${
-                        datos.factura.ncf ?? `No ${datos.factura.numero}`
-                      }.`}</p>
-                      <p className="text-muted-foreground text-xs">
-                        El cliente quedará con saldo a favor si la factura ya estaba pagada.
-                      </p>
+                <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_300px]">
+                  <div className="flex min-w-0 flex-col gap-3">
+                    <div className="flex flex-col gap-2">
+                      {TIPOS.map((opcion) => {
+                        const bloqueado = opcion.value === "efectivo" && !efectivoTotalPermitido;
+                        return (
+                          <button
+                            key={opcion.value}
+                            type="button"
+                            aria-pressed={tipo === opcion.value}
+                            title={
+                              bloqueado
+                                ? "El total supera lo pagado o el efectivo de la caja. Elige Combinado o Crédito a factura."
+                                : undefined
+                            }
+                            disabled={bloqueado}
+                            className={cn(
+                              "border-border hover:bg-muted flex items-center gap-3 rounded-lg border p-3 text-left",
+                              tipo === opcion.value && "border-primary bg-primary/5",
+                              bloqueado && "cursor-not-allowed opacity-50",
+                            )}
+                            onClick={() => setTipo(opcion.value)}
+                          >
+                            <span
+                              className={cn(
+                                "border-border flex size-4 shrink-0 items-center justify-center rounded-full border",
+                                tipo === opcion.value && "border-primary",
+                              )}
+                            >
+                              {tipo === opcion.value ? <span className="bg-primary size-2 rounded-full" /> : null}
+                            </span>
+                            <span className="flex min-w-0 flex-col gap-0.5">
+                              <span className="text-sm font-medium">{opcion.titulo}</span>
+                              <span className="text-muted-foreground text-xs">{opcion.descripcion}</span>
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
-                  ) : null}
 
-                  {tipo === "efectivo" ? (
-                    <div className="bg-muted/40 flex flex-col gap-1 rounded-lg p-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Monto</span>
-                        <span className="font-semibold tabular-nums">{formatoMoneda(totalCalculado)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Cuenta</span>
-                        <span>{cuentaEfectivoNombre}</span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Máximo por lo pagado</span>
-                        <span className="tabular-nums">{formatoMoneda(maxPagado)}</span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-muted-foreground">Máximo por la caja</span>
-                        <span className="tabular-nums">{formatoMoneda(maxCaja)}</span>
-                      </div>
-                      {!efectivoTotalPermitido ? (
-                        <p className="text-destructive text-xs">
-                          El total supera lo pagado o el efectivo de la caja. Elige Combinado o Crédito a factura.
+                    {tipo === "credito_factura" ? (
+                      <div className="bg-muted/40 flex flex-col gap-1 rounded-lg p-3 text-sm">
+                        <p>{`Se acreditarán ${formatoMoneda(totalCalculado)} a la factura ${
+                          datos.factura.ncf ?? `No ${datos.factura.numero}`
+                        }.`}</p>
+                        <p className="text-muted-foreground text-xs">
+                          El cliente quedará con saldo a favor si la factura ya estaba pagada.
                         </p>
-                      ) : null}
-                    </div>
-                  ) : null}
+                      </div>
+                    ) : null}
 
-                  {tipo === "combinado" ? (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div className="bg-muted/40 flex flex-col gap-2 rounded-lg p-3">
-                        <span className="text-sm font-medium">Efectivo</span>
-                        <InputGroup className="h-10">
-                          <InputGroupAddon>
-                            <InputGroupText>RD$</InputGroupText>
-                          </InputGroupAddon>
-                          <InputGroupInput
-                            value={efectivo}
-                            inputMode="decimal"
-                            aria-label="Efectivo del reembolso combinado"
-                            onChange={(evento) => setEfectivo(evento.target.value)}
-                          />
-                        </InputGroup>
-                        <span className="text-muted-foreground text-xs">Cuenta {cuentaEfectivoNombre}</span>
+                    {tipo === "efectivo" ? (
+                      <div className="bg-muted/40 flex flex-col gap-1 rounded-lg p-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Monto</span>
+                          <span className="font-semibold tabular-nums">{formatoMoneda(totalCalculado)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Cuenta</span>
+                          <span>{cuentaEfectivoNombre}</span>
+                        </div>
                         <div className="flex justify-between text-xs">
                           <span className="text-muted-foreground">Máximo por lo pagado</span>
                           <span className="tabular-nums">{formatoMoneda(maxPagado)}</span>
@@ -565,69 +554,104 @@ export function WizardDevolucion({
                           <span className="text-muted-foreground">Máximo por la caja</span>
                           <span className="tabular-nums">{formatoMoneda(maxCaja)}</span>
                         </div>
+                        {!efectivoTotalPermitido ? (
+                          <p className="text-destructive text-xs">
+                            El total supera lo pagado o el efectivo de la caja. Elige Combinado o Crédito a factura.
+                          </p>
+                        ) : null}
                       </div>
-                      <div className="bg-muted/40 flex flex-col gap-2 rounded-lg p-3">
-                        <span className="text-sm font-medium">Crédito a factura</span>
-                        <span className="text-lg font-semibold tabular-nums">{formatoMoneda(creditoCombinado)}</span>
-                        <span className="text-muted-foreground text-xs">
-                          {`Factura ${datos.factura.ncf ?? `No ${datos.factura.numero}`}`}
-                        </span>
-                        <span className="text-muted-foreground text-xs">
-                          Queda como saldo a favor en la cuenta por cobrar.
-                        </span>
-                      </div>
-                      {!combinadoValido ? (
-                        <p className="text-destructive text-xs sm:col-span-2">
-                          El reembolso combinado requiere efectivo y crédito mayores a cero, sin pasar los máximos.
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
+                    ) : null}
 
-                  <div className="flex flex-col gap-1">
-                    <Label htmlFor="notas-devolucion">Notas</Label>
-                    <Textarea
-                      id="notas-devolucion"
-                      value={notas}
-                      maxLength={500}
-                      onChange={(evento) => setNotas(evento.target.value)}
-                    />
+                    {tipo === "combinado" ? (
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="bg-muted/40 flex flex-col gap-2 rounded-lg p-3">
+                          <span className="text-sm font-medium">Efectivo</span>
+                          <InputGroup className="h-10">
+                            <InputGroupAddon>
+                              <InputGroupText>RD$</InputGroupText>
+                            </InputGroupAddon>
+                            <InputGroupInput
+                              value={efectivo}
+                              inputMode="decimal"
+                              aria-label="Efectivo del reembolso combinado"
+                              onChange={(evento) => setEfectivo(evento.target.value)}
+                            />
+                          </InputGroup>
+                          <span className="text-muted-foreground text-xs">Cuenta {cuentaEfectivoNombre}</span>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Máximo por lo pagado</span>
+                            <span className="tabular-nums">{formatoMoneda(maxPagado)}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Máximo por la caja</span>
+                            <span className="tabular-nums">{formatoMoneda(maxCaja)}</span>
+                          </div>
+                        </div>
+                        <div className="bg-muted/40 flex flex-col gap-2 rounded-lg p-3">
+                          <span className="text-sm font-medium">Crédito a factura</span>
+                          <span className="text-lg font-semibold tabular-nums">{formatoMoneda(creditoCombinado)}</span>
+                          <span className="text-muted-foreground text-xs">
+                            {`Factura ${datos.factura.ncf ?? `No ${datos.factura.numero}`}`}
+                          </span>
+                          <span className="text-muted-foreground text-xs">
+                            Queda como saldo a favor en la cuenta por cobrar.
+                          </span>
+                        </div>
+                        {!combinadoValido ? (
+                          <p className="text-destructive text-xs sm:col-span-2">
+                            El reembolso combinado requiere efectivo y crédito mayores a cero, sin pasar los máximos.
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-col gap-1">
+                      <Label htmlFor="notas-devolucion">Notas</Label>
+                      <Textarea
+                        id="notas-devolucion"
+                        value={notas}
+                        maxLength={500}
+                        onChange={(evento) => setNotas(evento.target.value)}
+                      />
+                    </div>
                   </div>
 
-                  <div className="bg-muted/40 flex flex-col gap-1 rounded-lg p-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Subtotal</span>
-                      <span className="tabular-nums">{formatoMoneda(subtotalCalculado)}</span>
+                  <aside className="h-fit">
+                    <div className="bg-muted/50 flex flex-col gap-1 rounded-xl px-4 py-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="tabular-nums">{formatoMoneda(subtotalCalculado)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">ITBIS</span>
+                        <span className="tabular-nums">{formatoMoneda(itbisCalculado)}</span>
+                      </div>
+                      <div className="border-border mt-1 flex items-baseline justify-between border-t pt-1">
+                        <span className="font-semibold">Total a devolver</span>
+                        <span className="text-lg font-semibold tabular-nums">{formatoMoneda(totalCalculado)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Efectivo</span>
+                        <span className="tabular-nums">
+                          {formatoMoneda(
+                            tipo === "credito_factura" ? "0" : tipo === "efectivo" ? totalCalculado : efectivoCombinado,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Crédito</span>
+                        <span className="tabular-nums">
+                          {formatoMoneda(
+                            tipo === "credito_factura" ? totalCalculado : tipo === "efectivo" ? "0" : creditoCombinado,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground">Cuenta</span>
+                        <span>{tipo === "credito_factura" ? "—" : cuentaEfectivoNombre}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">ITBIS</span>
-                      <span className="tabular-nums">{formatoMoneda(itbisCalculado)}</span>
-                    </div>
-                    <div className="flex justify-between font-semibold">
-                      <span>Total</span>
-                      <span className="tabular-nums">{formatoMoneda(totalCalculado)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Efectivo</span>
-                      <span className="tabular-nums">
-                        {formatoMoneda(
-                          tipo === "credito_factura" ? "0" : tipo === "efectivo" ? totalCalculado : efectivoCombinado,
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Crédito</span>
-                      <span className="tabular-nums">
-                        {formatoMoneda(
-                          tipo === "credito_factura" ? totalCalculado : tipo === "efectivo" ? "0" : creditoCombinado,
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Cuenta</span>
-                      <span>{tipo === "credito_factura" ? "—" : cuentaEfectivoNombre}</span>
-                    </div>
-                  </div>
+                  </aside>
                 </div>
               ) : null}
 
