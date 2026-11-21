@@ -1,5 +1,21 @@
 # Handoff — Medoxigas Contabilidad
 
+## Cierre Fase 3 rediseño Alegra (rama feat/fase3-cierre)
+
+Trabajo de subagente ejecutor sobre `docs/PLAN-FASE-3-REDISENO-ALEGRA.md` (S10), pendiente de revisión/integración del Orquestador. Cierra la deuda técnica anotada en este archivo: exponer `nomina_agregar_empleados`, sumar las pantallas del rediseño POS a los candados y dejar los docs al día.
+
+- **Botón «Agregar empleados» habilitado** (detalle del periodo de nómina):
+  - `src/lib/nomina/esquemas.ts`: nuevo `agregarEmpleadosPeriodoSchema` (`periodo_id` uuid + `empleado_ids` uuid[] de 1 a 500).
+  - `src/lib/nomina/acciones.ts`: nueva acción `agregarEmpleadosPeriodo` — llama `supabase.rpc("nomina_agregar_empleados", { p_periodo_id, p_empleado_ids })` directo (ya está en `types.ts`, no necesita el puente `clienteNominaPendiente`), devuelve `{ agregados }` y revalida el periodo. 4 tests nuevos en `acciones.test.ts` (RPC con el payload, mínimo 1 empleado, error de estado en español, lector bloqueado).
+  - `src/app/(main)/dashboard/contabilidad/nomina/periodos/[id]/_components/acciones-periodo.ts` (nuevo, `"use server"`): `leerEmpleadosAgregables` carga perezosa del diálogo — empleados elegibles con el mismo filtro de la RPC (activos, misma frecuencia, contrato vigente en el rango del periodo) + el estado de su recibo en el periodo.
+  - `src/app/(main)/dashboard/contabilidad/nomina/periodos/[id]/_components/dialogo-agregar-empleados.tsx` (nuevo): diálogo según `docs/diseno/nomina-ui.md` §713-717 — búsqueda por nombre, `TablaLista` compacta con checkboxes, pill de situación «Se agregará» / «Ya tiene recibo» (deshabilitado) / «Se reactivará» (recibo anulado), contador «N seleccionados», botón «Agregar N empleados», toast con el conteo y nota cuando la RPC salta a alguien. El botón del `EncabezadoPagina` y el CTA del estado vacío abren el diálogo; se muestra cuando el periodo no está `contabilizado` ni `pagado` (la RPC también acepta `anulado` y revivir recibos es la vía documentada para desbloquearlo).
+- **Candados POS:**
+  - `src/lib/tablas-listas.test.ts`: `tabla-movimientos-turno.tsx` entra a `LISTAS_MIGRADAS` (única `TablaLista` del POS); nueva lista `LISTAS_POS` con las 9 piezas maestro-detalle del rediseño — verifican que usan el kit compartido (`TarjetaLista`/`BarraLista`/`PillEstado`) y no definen pills locales. `/pos` (vender) queda fuera a propósito: es la terminal a pantalla completa.
+  - `src/lib/diseno-paginas.test.ts`: nueva lista `PAGINAS_POS` — los `*-pos.tsx` de `/pos/pagos`, `/pos/turnos`, `/pos/historial` y `/pos/devoluciones` usan `EncabezadoPagina` sin `<h1>` suelto ni `text-3xl` (sin migas: la navegación es el riel lateral; las `page.tsx` del POS son server components chicos).
+- **Docs:** `docs/dominio-pos.md` §1.2 ahora describe las 5 pantallas (`/pos`, `/pos/pagos`, `/pos/turnos`, `/pos/historial`, `/pos/devoluciones`) y el riel lateral `menu-pos.tsx` (56 px → 271 px hover/pin, cajón móvil); `AGENTS.md` menciona el punto de venta en «Módulos» y resume los dos candados extendidos.
+- **Iconos:** `src/components/icons.tsx` sigue siendo el punto único; no queda ningún import de `lucide-react` en `src/` (solo un comentario del propio adapter).
+- **Verificación:** `pnpm typecheck` ✅, `pnpm check` ✅ (0 errores; warnings de complejidad preexistentes, el nuevo diálogo tiene 21 como los 24 del diálogo de colillas y 24→25 de `DetallePeriodoCliente`) y `pnpm test` ✅ (todos los archivos, incluidos los 4 tests nuevos). Este worktree no tiene `.env.local` ni credenciales: la evidencia visual del diálogo (claro/oscuro) la debe generar el Orquestador.
+
 ## Rediseño POS estilo Alegra: carrito «Factura de venta» C4 (rama `feat/pos-carrito-factura-venta`)
 
 Trabajo de subagente ejecutor sobre `docs/planes/rediseno-alegra/PLAN.md` (parte C4), pendiente de revisión/integración del Orquestador. Parte de `feat/pos-shell-rail-alegra` (872f545); solo UI/UX del panel derecho, lógica del carrito y `CarritoPosProvider` intactos.

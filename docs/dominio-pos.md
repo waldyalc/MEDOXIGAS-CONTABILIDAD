@@ -9,7 +9,7 @@
 > 2. Colores: **solo** los tokens de `docs/plantilla-diseno.md` (shadcn/Base UI, `--primary` azul). **Nunca** el teal `#00b19d` de Alegra ni hex sueltos.
 > 3. Sin multi-empresa: se usa la fila única de `empresa` (`empresa.nombre`, `empresa.rnc`, etc.). No se agrega `empresa_id`.
 > 4. Nada de textos de marca hardcodeados en tablas, RPCs ni tickets. El ticket usa `empresa.*`; si un dato falta, se omite la línea.
-> 5. El POS solo tiene **Vender**, **Turnos**, **Historial de ventas del POS** y **Devoluciones**. Inventario y Configuración viven en Contabilidad.
+> 5. El POS solo tiene **Vender**, **Registro de pagos**, **Turnos**, **Historial de ventas del POS** y **Devoluciones**. Inventario y Configuración viven en Contabilidad.
 > 6. No se copia código, HTML, CSS, textos ni diseño exacto de Alegra. El estudio de `docs/alegra/pos/` es inspiración funcional.
 
 ---
@@ -54,13 +54,14 @@
 
 | Pantalla | Ruta | Qué hace |
 | --- | --- | --- |
-| Vender | `/pos` | Catálogo ultrarrápido + carrito + checkout + venta simple + cotización rápida + cargar cotización. Es la pantalla principal. |
-| Turnos | `/pos/turnos` | Turno en curso, resumen, ingresos/retiros de efectivo, cierre con conteo real, historial de cierres e impresión del cierre. |
-| Historial de ventas | `/pos/historial` | Facturas del POS (`origen = 'pos'`), detalle, pagos, notas de crédito, ticket y PDF Carta. |
+| Vender | `/pos` | Catálogo en tarjetas + carrito «Factura de venta» (panel fijo de 400 px) + checkout en dos pasos + venta simple + cotización rápida + cargar cotización. Es la pantalla principal. |
+| Registro de pagos | `/pos/pagos` | Ingresos y retiros de efectivo de los turnos (`pos_turno_movimientos`), con «Nuevo pago» que exige turno abierto y calcula el efectivo esperado. |
+| Turnos | `/pos/turnos` | Turno en curso, resumen, movimientos de caja, cierre con conteo real, historial de cierres e impresión del cierre. |
+| Historial de ventas | `/pos/historial` | Facturas del POS (`origen = 'pos'`), maestro-detalle, pagos, notas de crédito, ticket y PDF Carta. |
 | Devoluciones | `/pos/devoluciones` | Lista de devoluciones del POS y wizard de 3 pasos para crear una B04 (efectivo, crédito o combinado). |
 | Configuración → POS | `/dashboard/configuracion/pos` | Terminales: almacén, cuentas por método, numeración, lista de precios, contacto por defecto, centro de costo y plantilla del ticket. |
 
-- El POS vive en un **layout propio** `src/app/(pos)/pos/` sin el sidebar de Contabilidad, con encabezado mínimo: marca, selector de terminal, estado del turno, usuario y enlace «Volver a Contabilidad».
+- El POS vive en un **layout propio** `src/app/(pos)/pos/` sin el sidebar de Contabilidad. La navegación es un **riel lateral** (`menu-pos.tsx`): riel de 56 px que expande un panel de 271 px al hover/foco (con pin fijable) y cajón móvil de 271 px bajo 1024 px. Menú: Facturar → `/pos`; acordeón Ingresos → `/pos/historial` y `/pos/pagos`; acordeón Turnos → `/pos/turnos`; Devoluciones → `/pos/devoluciones`; separador; Contactos/Inventario/Configuraciones → `/dashboard/...` en pestaña nueva. El pie lleva el selector de terminal, la insignia de turno (ABIERTO/CERRADO), el usuario, «Volver a Contabilidad» y «Salir».
 - El menú principal agrega **Punto de venta** con `newTab: true` hacia `/pos` (`src/navigation/sidebar/sidebar-items.ts`). No duplica las pantallas de Inventario ni Configuración.
 - La configuración de terminales sí vive en el dashboard (`/dashboard/configuracion/pos`) y se enlaza desde la tarjeta «Punto de venta» del hub de Configuración.
 
