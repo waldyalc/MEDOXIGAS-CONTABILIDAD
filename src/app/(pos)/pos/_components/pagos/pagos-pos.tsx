@@ -5,8 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { Plus, Printer } from "lucide-react";
-
+import { Plus, Printer } from "@/components/icons";
 import { BuscadorLista } from "@/components/listas/buscador-lista";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { BarraLista, TarjetaLista } from "@/components/listas/tabla-lista";

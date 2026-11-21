@@ -4,7 +4,11 @@ import { useState } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { cn } from "cn";
+
+import { ArrowLeft, ReceiptText } from "@/components/icons";
 import { PaginadorLista } from "@/components/listas/paginador-lista";
+import { BarraLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { ContenedorLista } from "@/components/pagina/contenedor-pagina";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { ImpresionPos } from "@/components/pos/impresion-pos";
@@ -21,7 +25,7 @@ import { ticketVentaPOS } from "../acciones-pos";
 import { capitalizar } from "../formato-pos";
 import { DetalleVentaPos } from "./detalle-venta-pos";
 import { FiltrosHistorial } from "./filtros-historial";
-import { TablaVentasPos } from "./tabla-ventas-pos";
+import { ListaVentas } from "./lista-ventas";
 
 export function HistorialPos({
   filas,
@@ -51,7 +55,8 @@ export function HistorialPos({
   error?: string | null;
 }) {
   const router = useRouter();
-  const [detalleId, setDetalleId] = useState<string | null>(null);
+  const [detalleId, setDetalleId] = useState<string | null>(() => filas[0]?.id ?? null);
+  const [detalleMovil, setDetalleMovil] = useState(false);
   const [imprimiendo, setImprimiendo] = useState<string | null>(null);
   const [trabajo, setTrabajo] = useState<VentaPOSResultado | null>(null);
 
@@ -71,6 +76,11 @@ export function HistorialPos({
     } finally {
       setImprimiendo(null);
     }
+  }
+
+  function seleccionar(id: string) {
+    setDetalleId(id);
+    setDetalleMovil(true);
   }
 
   return (
@@ -95,49 +105,88 @@ export function HistorialPos({
           </AlertDescription>
         </Alert>
       ) : (
-        <TablaVentasPos
-          filas={filas}
-          barra={<FiltrosHistorial params={params} desde={desde} hasta={hasta} terminales={terminales} />}
-          vacio={
-            hayFiltros
-              ? {
-                  titulo: "Sin resultados.",
-                  descripcion: "No hay ventas que coincidan con los filtros.",
-                  filtrada: true,
-                }
-              : {
-                  titulo: "Aún no hay ventas del POS.",
-                  descripcion: "Las ventas que cobres en el punto de venta aparecerán aquí.",
-                  accion: (
-                    <Button className="h-10" render={<a href="/pos" />}>
-                      Ir a Vender
-                    </Button>
-                  ),
-                }
-          }
-          onVer={(fila) => setDetalleId(fila.id)}
-          onImprimir={(fila) => void imprimir(fila)}
-        />
+        <TarjetaLista className="flex flex-col" data-lista="pos-historial">
+          <BarraLista className="h-auto flex-wrap py-2">
+            <FiltrosHistorial params={params} desde={desde} hasta={hasta} terminales={terminales} />
+          </BarraLista>
+
+          {filas.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 px-4 py-16 text-center">
+              <ReceiptText className="text-muted-foreground size-8" aria-hidden="true" />
+              {hayFiltros ? (
+                <>
+                  <p className="text-lg font-semibold">Sin resultados.</p>
+                  <p className="text-muted-foreground text-sm">No hay ventas que coincidan con los filtros.</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-lg font-semibold">Aún no hay ventas del POS.</p>
+                  <p className="text-muted-foreground text-sm">
+                    Las ventas que cobres en el punto de venta aparecerán aquí.
+                  </p>
+                  <Button className="mt-2 h-10" render={<a href="/pos" />}>
+                    Ir a Vender
+                  </Button>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="lg:flex">
+              <div
+                className={cn(
+                  "border-border w-full shrink-0 flex-col lg:flex lg:w-[330px] lg:border-r",
+                  detalleMovil ? "hidden" : "flex",
+                )}
+              >
+                <ListaVentas
+                  filas={filas}
+                  seleccionado={detalleId}
+                  imprimiendo={imprimiendo}
+                  onSeleccionar={seleccionar}
+                  onImprimir={(fila) => void imprimir(fila)}
+                />
+                <div className="border-border mt-auto border-t px-3 py-2">
+                  <PaginadorLista
+                    base="/pos/historial"
+                    params={params}
+                    resumen={resumen}
+                    opciones={[25, 50, 100]}
+                    tamano={leerTamano(params)}
+                    botonesExtremos={false}
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className={cn("min-w-0 flex-1", detalleMovil ? "block" : "hidden lg:block")}>
+                <div className="flex flex-col">
+                  <Button
+                    variant="ghost"
+                    className="m-2 h-8 w-fit gap-1 px-2 lg:hidden"
+                    onClick={() => setDetalleMovil(false)}
+                  >
+                    <ArrowLeft aria-hidden="true" />
+                    Ventas
+                  </Button>
+                  <DetalleVentaPos
+                    facturaId={detalleId}
+                    onCerrar={() => {
+                      setDetalleId(null);
+                      setDetalleMovil(false);
+                    }}
+                    empresa={empresa}
+                    plantillaTicket={plantillaTicket}
+                    plantillaFactura={plantillaFactura}
+                    puedeEscribir={puedeEscribir}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </TarjetaLista>
       )}
 
-      <PaginadorLista
-        base="/pos/historial"
-        params={params}
-        resumen={resumen}
-        opciones={[25, 50, 100]}
-        tamano={leerTamano(params)}
-      />
-
       {imprimiendo ? <p className="text-muted-foreground text-xs">Preparando impresión…</p> : null}
-
-      <DetalleVentaPos
-        facturaId={detalleId}
-        onCerrar={() => setDetalleId(null)}
-        empresa={empresa}
-        plantillaTicket={plantillaTicket}
-        plantillaFactura={plantillaFactura}
-        puedeEscribir={puedeEscribir}
-      />
 
       {trabajo ? (
         <ImpresionPos

@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "cn";
-import { ReceiptText } from "lucide-react";
 
+import { ReceiptText } from "@/components/icons";
 import { PillEstado } from "@/components/listas/tabla-lista";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoFechaHora } from "@/lib/formato";

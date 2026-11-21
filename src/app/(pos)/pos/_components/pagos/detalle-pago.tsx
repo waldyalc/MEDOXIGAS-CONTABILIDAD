@@ -3,8 +3,8 @@
 import type { ReactNode } from "react";
 
 import { cn } from "cn";
-import { ArrowUpRight, Loader2, Printer, ReceiptText, RotateCcw, Wallet } from "lucide-react";
 
+import { ArrowUpRight, Loader2, Printer, ReceiptText, RotateCcw, Wallet } from "@/components/icons";
 import { PillEstado } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { formatoMoneda } from "@/lib/facturacion/formato";
