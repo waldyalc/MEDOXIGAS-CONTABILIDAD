@@ -24,6 +24,7 @@ export {
   BankIcon as Bank,
   BankIcon as Landmark,
   BarcodeIcon as Barcode,
+  BarcodeIcon as ScanBarcode,
   BookOpenIcon as BookOpen,
   BuildingsIcon as Building2,
   CalculatorIcon as Calculator,

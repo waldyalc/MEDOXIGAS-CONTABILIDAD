@@ -488,6 +488,7 @@ export function VenderPos({
             onReintentar={() => void cargarCatalogo(true)}
             onVerMas={() => void cargarCatalogo(false)}
             onAgregar={agregar}
+            onVentaSimple={() => setSimpleAbierto(true)}
             limpiarToken={tokenLimpiar}
           />
         </div>

@@ -11,6 +11,18 @@ Trabajo de subagente ejecutor sobre `docs/planes/rediseno-alegra/PLAN.md` (parte
 - **Verificación:** `pnpm typecheck` y `pnpm check` (0 errores; solo las 6 advertencias de complejidad preexistentes en los archivos tocados) verdes; `pnpm test` 1497/1498 con el mismo fallo ambiental de `src/lib/pos/impresion.test.ts` («hora de recepción», ICU de Node 22 con `p.\u00A0m.` no rompible; archivo no tocado).
 - **Pendiente de la 2.ª pasada de C4 (otra tarea):** alinear visualmente el checkout (modal de pago, métodos, confirmación) con este mismo lenguaje.
 
+## Rediseño POS estilo Alegra: catálogo en tarjetas C5 (rama `feat/pos-catalogo-tarjetas`)
+
+Trabajo de subagente ejecutor sobre `docs/planes/rediseno-alegra/PLAN.md` (parte C5), pendiente de revisión/integración del Orquestador. Base: `feat/pos-shell-rail-alegra` (shell C1+C3).
+
+- **Fila superior estilo Alegra** (`catalogo-pos.tsx`): buscador ancho con lupa y hint F2, botón icono de escáner (`ScanBarcode`, enfoca el buscador para leer/escribir el código) y «Nuevo producto» en primario suave (`bg-primary/10`) que abre `/dashboard/productos/nuevo` en pestaña nueva. El Select de categoría, el toggle «Favoritos» y el conteo de productos pasan a una fila discreta debajo — funciones conservadas.
+- **Tarjeta de producto** (`tarjeta-producto-pos.tsx`): blanca, borde fino, radio 10 px; imagen o icono `Tag` centrado (zona 64 px), `Inv. N` en primario (o «⚠ Agotado» ámbar / «Servicio» / «Combo»), nombre en 2 líneas y precio semibold; estrella de favorito en chip primario dentro de la esquina y badge circular con la cantidad solapando el borde; borde primario cuando está en el carrito (`ring-1` sin salto de layout) o resaltada por teclado.
+- **Tarjeta «Venta simple»** (`tarjeta-venta-simple-pos.tsx`, nueva): primera del grid, icono `Zap` en círculo gris; abre el `DialogoVentaSimple` existente (misma acción que F4 y que el botón del panel).
+- **Imágenes** (`imagenes-catalogo-pos.ts`, nueva): hook que firma en lote las URLs del bucket privado `productos` con el cliente del navegador (1 llamada por carga, 1 h de vigencia); sin imagen o con error → icono `Tag`. No se tocaron RPC ni consultas.
+- **Grid**: `repeat(auto-fill, minmax(170px,1fr))` con gap 16 px → ~4 columnas a 1280, ~7 a 1920 (medida real de Alegra ≈ 200 px por tarjeta). Esqueletos a 196 px.
+- **Sin capturas:** este worktree no tiene `.env.local`, credenciales ni cache de Playwright; la evidencia visual (claro/oscuro/móvil + comparación con `img/02`) la debe generar el Orquestador.
+- **Verificación:** `pnpm typecheck` y `pnpm check` (0 errores) verdes; `pnpm test` 1497/1498 con el mismo fallo ambiental ya conocido en `src/lib/pos/impresion.test.ts` (ICU de Node 22 con `p.\u00A0m.`; archivo no tocado).
+
 ## Rediseño POS estilo Alegra: shell con riel lateral C1+C3 (rama `feat/pos-shell-rail-alegra`)
 
 Trabajo de subagente ejecutor sobre `docs/planes/rediseno-alegra/PLAN.md` (partes C1 y C3), pendiente de revisión/integración del Orquestador:
