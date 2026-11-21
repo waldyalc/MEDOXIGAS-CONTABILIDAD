@@ -9,10 +9,10 @@ Ocho PRs de UI integrados a `main` (#77 stock bajo, #79 conteo físico, #80 prod
 - **Bug de 2D corregido en la integración:** `SelectorTerminal` usaba el carrito fuera del provider y `/pos` daba 500 cuando existía una terminal; el `CarritoPosProvider` ahora envuelve el encabezado.
 - **Bug de 2B corregido:** el ticket y la carta imprimían el subtotal neto y además la fila Descuento; ahora el subtotal es el bruto (`subtotal + descuento`) con test.
 - **Auditoría (PRs #88, #89, #90):**
-  - `20261125150000_nomina_catalogos_rls.sql`: revoca INSERT/UPDATE/DELETE de `authenticated` en los 4 catálogos de Nómina y elimina las políticas `*_admin_escritura`; pgTAP de 23 asserts (admin/contador/lector, `42501`, RPC siguen funcionando). **No aplicada al remoto todavía: falta el OK de Waldy.**
+  - `20261125150000_nomina_catalogos_rls.sql`: revoca INSERT/UPDATE/DELETE de `authenticated` en los 4 catálogos de Nómina y elimina las políticas `*_admin_escritura`; pgTAP de 23 asserts (admin/contador/lector, `42501`, RPC siguen funcionando). **Aplicada al remoto el 21 nov** con `supabase db push`; verificado con PostgREST: `SELECT` responde y el `UPDATE` directo devuelve 403.
   - Etiquetas de `origen_tipo` para POS y Nómina en Libro Diario/Asientos + candado que exige etiqueta para **todos** los valores del CHECK.
   - Nómina pasó a **grupo desplegable propio** en el sidebar (Inicio, Empleados, Cálculo, Pagos, Envíos, Reportes TSS), con test y capturas claro/oscuro.
-- **Pendiente:** aplicar `20261125150000` al remoto con aprobación; exponer `nomina_agregar_empleados` en `src/lib/nomina/acciones.ts` (el botón está deshabilitado); sumar las listas nuevas a `LISTAS_MIGRADAS`/`PAGINAS_MIGRADAS`; mover a `src/lib/pos/` las lecturas locales de #87; propagar `unidad_id` en `crear_cotizacion`; cerrar/desactivar la terminal `ZZCAPTURA`.
+- **Pendiente:** exponer `nomina_agregar_empleados` en `src/lib/nomina/acciones.ts` (el botón está deshabilitado); sumar las listas nuevas a `LISTAS_MIGRADAS`/`PAGINAS_MIGRADAS`; mover a `src/lib/pos/` las lecturas locales de #87; propagar `unidad_id` en `crear_cotizacion`. La terminal de captura `ZZCAPTURA Caja 1` quedó cerrada (turno 1, efectivo real 500, diferencia 0) e inactiva.
 
 ## Fase 2A POS + Fase 3 Nómina (backend) + 1B inventario y especificaciones de UI (20 nov 2026)
 
