@@ -4,10 +4,9 @@ import { cookies } from "next/headers";
 
 import { cn } from "cn";
 
-import { AppSidebar } from "@/app/(main)/dashboard/_components/sidebar/app-sidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar, BotonMenuMovil } from "@/app/(main)/dashboard/_components/sidebar/app-sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getPerfil } from "@/lib/auth/rol";
-import { getPreference } from "@/server/server-actions";
 
 import { BusquedaGlobal } from "./_components/header/busqueda-global";
 import { ProfileMenu } from "./_components/header/profile-menu";
@@ -16,22 +15,11 @@ import { ThemeSwitcher } from "./_components/header/theme-switcher";
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
-  const [variant, collapsible] = await Promise.all([
-    getPreference("sidebar_variant"),
-    getPreference("sidebar_collapsible"),
-  ]);
   const perfil = await getPerfil();
 
   return (
-    <SidebarProvider
-      defaultOpen={defaultOpen}
-      style={
-        {
-          "--sidebar-width": "271px",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant={variant} collapsible={collapsible} rol={perfil?.rol ?? null} className="print:hidden" />
+    <SidebarProvider defaultOpen={defaultOpen}>
+      <AppSidebar perfil={perfil} className="print:hidden" />
       <SidebarInset
         className={cn(
           "[html[data-content-layout=centered]_&>*]:mx-auto",
@@ -52,7 +40,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
         >
           <div className="flex w-full items-center gap-2 px-4 lg:px-6">
             <div className="flex flex-1 items-center gap-1 lg:gap-2">
-              <SidebarTrigger className="-ml-1 md:hidden" />
+              <BotonMenuMovil className="-ml-1" />
             </div>
             <div className="flex min-w-0 flex-1 items-center justify-center md:max-w-xl md:flex-[2]">
               <BusquedaGlobal rol={perfil?.rol ?? null} />
