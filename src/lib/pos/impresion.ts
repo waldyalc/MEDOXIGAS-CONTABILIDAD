@@ -10,7 +10,9 @@ import { normalizarPlantilla } from "./mapeo";
 import type {
   AnchoTicket,
   CierreTurnoPOS,
+  ContactoPOS,
   CotizacionPOSResultado,
+  Decimal,
   DevolucionPOSResultado,
   EstiloTicket,
   FuenteTicket,
@@ -59,6 +61,12 @@ export interface EncabezadoTicketPOS {
   anulada: boolean;
 }
 
+/** Bloque del cliente: nombre en fuerte y documento/dirección debajo. */
+export interface ClienteTicketPOS {
+  nombre: string | null;
+  lineas: string[];
+}
+
 export interface LineaTicketPOS {
   descripcion: string;
   referencia: string | null;
@@ -83,10 +91,13 @@ export interface TicketPOSPayload {
   tipo: DocumentoTicketPOS;
   diseno: DisenoTicketPOS;
   encabezado: EncabezadoTicketPOS;
+  cliente: ClienteTicketPOS;
   lineas: LineaTicketPOS[];
   bloques: BloqueTicketPOS[];
   totales: FilaTicketPOS[];
   pagos: FilaTicketPOS[];
+  /** Conteos del pie del documento (líneas y unidades vendidas). */
+  resumen: FilaTicketPOS[];
   nota: string | null;
   pie: string | null;
   anulada: boolean;
@@ -187,7 +198,7 @@ function disenoDe(
     tamano_letra: normalizada.tamano_letra,
     interlineado: normalizada.interlineado,
     columnas: normalizada.ancho_mm === 57 ? "apilada" : "dos",
-    mostrar_logo: Boolean(logo),
+    mostrar_logo: normalizada.mostrar_logo,
     logo_url: logo,
     pie: normalizada.pie_ticket,
   };
@@ -214,7 +225,10 @@ function lineasEmpresa(
   return lineas;
 }
 
-function itbisPorTasa(lineas: readonly LineaVenta[]): { etiqueta: string; total: string }[] {
+function itbisPorTasa(lineas: readonly { itbis_tasa: Decimal; itbis: Decimal }[]): {
+  etiqueta: string;
+  total: string;
+}[] {
   const grupos = new Map<string, string[]>();
 
   for (const linea of lineas) {
@@ -230,6 +244,48 @@ function itbisPorTasa(lineas: readonly LineaVenta[]): { etiqueta: string; total:
       etiqueta: `ITBIS ${formatoCantidad(tasa)}%`,
       total: sumarMontos(montos),
     }));
+}
+
+/**
+ * Base exenta y gravada del documento, como en el ticket de Alegra: suma los
+ * subtotales (ya netos de descuento) según la tasa de ITBIS de cada línea.
+ */
+function exentoGravado(lineas: readonly { subtotal: Decimal; itbis_tasa: Decimal }[]): {
+  exento: Decimal;
+  gravado: Decimal;
+} {
+  const exento: Decimal[] = [];
+  const gravado: Decimal[] = [];
+
+  for (const linea of lineas) {
+    if (compararMontos(linea.itbis_tasa, "0") > 0) gravado.push(linea.subtotal);
+    else exento.push(linea.subtotal);
+  }
+
+  return { exento: sumarMontos(exento), gravado: sumarMontos(gravado) };
+}
+
+/** Conteos del pie del ticket: cantidad de líneas y unidades totales. */
+function resumenLineas(lineas: readonly { cantidad: Decimal }[]): FilaTicketPOS[] {
+  return [
+    fila("Total de líneas", String(lineas.length)),
+    fila("Total de productos", formatoCantidad(sumarMontos(lineas.map((linea) => linea.cantidad)))),
+  ];
+}
+
+/** Bloque del cliente: nombre y documento (cédula o RNC según el contacto). */
+function clienteDe(contacto: ContactoPOS | null | undefined): ClienteTicketPOS {
+  if (!contacto) return { nombre: null, lineas: [] };
+
+  const lineas: string[] = [];
+  const documento = contacto.rnc_cedula?.trim();
+  if (documento) {
+    const etiqueta = contacto.tipo_identificacion === "cedula" ? "Cédula" : "RNC";
+    lineas.push(`${etiqueta}: ${documento}`);
+  }
+  if (contacto.direccion?.trim()) lineas.push(contacto.direccion.trim());
+
+  return { nombre: contacto.nombre?.trim() || null, lineas };
 }
 
 function lineaDeVenta(linea: LineaVenta, plantilla: PlantillaTicket): LineaTicketPOS {
@@ -287,11 +343,16 @@ function lineaDeDevolucion(linea: LineaDevolucionPOS, plantilla: PlantillaTicket
 function totalesFactura(resultado: VentaPOSResultado): FilaTicketPOS[] {
   const { factura, totales, lineas } = resultado;
   const bruto = sumarMontos([totales.subtotal, totales.descuento]);
+  const { exento, gravado } = exentoGravado(lineas);
   const filas: FilaTicketPOS[] = [fila("Subtotal", formatoMoneda(bruto))];
 
   if (compararMontos(totales.descuento, "0") > 0) {
     filas.push(fila("Descuento", montoNegativo(totales.descuento)));
   }
+
+  filas.push(fila("Subtotal Exento", formatoMoneda(exento)));
+  filas.push(fila("Subtotal Gravado", formatoMoneda(gravado)));
+
   for (const itbis of itbisPorTasa(lineas)) {
     filas.push(fila(itbis.etiqueta, formatoMoneda(itbis.total)));
   }
@@ -317,8 +378,10 @@ function totalesFactura(resultado: VentaPOSResultado): FilaTicketPOS[] {
 function pagosFactura(resultado: VentaPOSResultado): FilaTicketPOS[] {
   const filas = resultado.pagos.map((pago) => fila(ETIQUETAS_METODO[pago.metodo_pos], formatoMoneda(pago.monto)));
 
+  if (compararMontos(resultado.factura.monto_recibido, "0") > 0) {
+    filas.push(fila("Recibido", formatoMoneda(resultado.factura.monto_recibido)));
+  }
   if (resultado.factura.cambio && compararMontos(resultado.factura.cambio, "0") > 0) {
-    filas.push(fila("Recibido", formatoMoneda(resultado.factura.monto_recibido ?? "0")));
     filas.push(fila("Cambio", formatoMoneda(resultado.factura.cambio)));
   }
 
@@ -345,14 +408,15 @@ export function armarTicketFactura(
 ): TicketPOSPayload {
   const normalizada = normalizarPlantilla(plantilla ?? resultado.terminal.plantilla_ticket);
   const factura = resultado.factura;
+  const esCredito = compararMontos(factura.saldo, "0") > 0 || compararMontos(factura.credito, "0") > 0;
   const lineas = [
     ...(factura.ncf ? [`NCF ${factura.ncf}`] : []),
     `Fecha: ${fechaConHora(factura.fecha, factura.creado_en ?? opciones.recibido_en)}`,
+    `Tipo de pago: ${esCredito ? "Crédito" : "Contado"}`,
+    ...(factura.vencimiento !== factura.fecha ? [`Vencimiento: ${formatoDia(factura.vencimiento)}`] : []),
     `Terminal: ${resultado.terminal.nombre}`,
     `Turno No ${resultado.turno.numero}`,
     ...(resultado.cajero ? [`Cajero: ${resultado.cajero}`] : []),
-    `Cliente: ${resultado.contacto.nombre}`,
-    ...(resultado.contacto.rnc_cedula ? [`RNC: ${resultado.contacto.rnc_cedula}`] : []),
     ...(normalizada.mostrar_vendedor && resultado.vendedor ? [`Vendedor: ${resultado.vendedor.nombre}`] : []),
     ...(resultado.ncf_vence ? [`Vence NCF: ${formatoDia(resultado.ncf_vence)}`] : []),
   ];
@@ -366,10 +430,12 @@ export function armarTicketFactura(
       lineas,
       factura.estado === "anulada",
     ),
+    cliente: clienteDe(resultado.contacto),
     lineas: resultado.lineas.map((linea) => lineaDeVenta(linea, normalizada)),
     bloques: [],
     totales: totalesFactura(resultado),
     pagos: pagosFactura(resultado),
+    resumen: resumenLineas(resultado.lineas),
     nota: normalizada.precios_con_impuestos && normalizada.mostrar_precio_unitario ? "ITBIS incluido" : null,
     pie: normalizada.pie_ticket,
     anulada: factura.estado === "anulada",
@@ -385,16 +451,17 @@ export function armarTicketCotizacion(
   const lineas = [
     `Fecha: ${formatoDia(cotizacion.fecha)}`,
     `Vence: ${formatoDia(cotizacion.vencimiento)}`,
-    `Cliente: ${resultado.contacto.nombre}`,
-    ...(resultado.contacto.rnc_cedula ? [`RNC: ${resultado.contacto.rnc_cedula}`] : []),
     ...(normalizada.mostrar_vendedor && resultado.vendedor ? [`Vendedor: ${resultado.vendedor.nombre}`] : []),
   ];
 
   const bruto = sumarMontos([resultado.totales.subtotal, resultado.totales.descuento]);
+  const { exento, gravado } = exentoGravado(resultado.lineas);
   const totales: FilaTicketPOS[] = [fila("Subtotal", formatoMoneda(bruto))];
   if (compararMontos(resultado.totales.descuento, "0") > 0) {
     totales.push(fila("Descuento", montoNegativo(resultado.totales.descuento)));
   }
+  totales.push(fila("Subtotal Exento", formatoMoneda(exento)));
+  totales.push(fila("Subtotal Gravado", formatoMoneda(gravado)));
   for (const itbis of itbisPorTasa(resultado.lineas)) {
     totales.push(fila(itbis.etiqueta, formatoMoneda(itbis.total)));
   }
@@ -410,10 +477,12 @@ export function armarTicketCotizacion(
     tipo: "cotizacion",
     diseno: disenoDe(normalizada, resultado.empresa),
     encabezado: encabezadoConEmpresa(resultado.empresa, `Cotización No ${cotizacion.numero}`, lineas),
+    cliente: clienteDe(resultado.contacto),
     lineas: resultado.lineas.map((linea) => lineaDeVenta(linea, normalizada)),
     bloques: [],
     totales,
     pagos: [],
+    resumen: resumenLineas(resultado.lineas),
     nota: "No es una factura.",
     pie: normalizada.pie_ticket,
     anulada: false,
@@ -431,7 +500,6 @@ export function armarTicketDevolucion(
     `NCF ${nota.ncf}`,
     `Fecha: ${formatoDia(nota.fecha)}`,
     `Factura origen: ${origen}`,
-    ...(resultado.contacto ? [`Cliente: ${resultado.contacto.nombre}`] : []),
     `Turno No ${resultado.turno.numero}`,
   ];
 
@@ -441,18 +509,24 @@ export function armarTicketDevolucion(
     ...(resultado.reembolso.cuenta_nombre ? [fila("Cuenta de efectivo", resultado.reembolso.cuenta_nombre)] : []),
   ];
 
+  const { exento, gravado } = exentoGravado(resultado.lineas);
+
   return {
     tipo: "devolucion",
     diseno: disenoDe(normalizada, resultado.empresa),
     encabezado: encabezadoConEmpresa(resultado.empresa, "Nota de Crédito", lineas),
+    cliente: clienteDe(resultado.contacto),
     lineas: resultado.lineas.map((linea) => lineaDeDevolucion(linea, normalizada)),
     bloques: [{ titulo: ETIQUETAS_REEMBOLSO[nota.tipo_reembolso], filas: reembolso }],
     totales: [
       fila("Subtotal", formatoMoneda(resultado.totales.subtotal)),
+      fila("Subtotal Exento", formatoMoneda(exento)),
+      fila("Subtotal Gravado", formatoMoneda(gravado)),
       fila("ITBIS", formatoMoneda(resultado.totales.itbis)),
       fila("Total", formatoMoneda(resultado.totales.total)),
     ],
     pagos: [],
+    resumen: resumenLineas(resultado.lineas),
     nota: null,
     pie: normalizada.pie_ticket,
     anulada: nota.estado === "anulada",
@@ -551,6 +625,7 @@ export function armarTicketCierre(resultado: CierreTurnoPOS, plantilla?: Plantil
     tipo: "cierre",
     diseno: disenoDe(normalizada, resultado.empresa),
     encabezado: encabezadoConEmpresa(resultado.empresa, `Cierre No ${turno.numero}`, lineas),
+    cliente: { nombre: null, lineas: [] },
     lineas: [],
     bloques,
     totales: [
@@ -559,6 +634,7 @@ export function armarTicketCierre(resultado: CierreTurnoPOS, plantilla?: Plantil
       fila("Diferencia", diferenciaTexto),
     ],
     pagos: [],
+    resumen: [],
     nota: null,
     pie: normalizada.pie_ticket,
     anulada: false,
@@ -605,10 +681,12 @@ export function armarTicketMovimiento(
       `Turno No ${resultado.turno.numero}`,
       ...(resultado.movimiento.cajero ? [`Cajero: ${resultado.movimiento.cajero}`] : []),
     ]),
+    cliente: { nombre: null, lineas: [] },
     lineas: [],
     bloques: [{ titulo: "Detalle", filas: detalle }],
     totales,
     pagos: [],
+    resumen: [],
     nota: null,
     pie: normalizada.pie_ticket,
     anulada: false,
