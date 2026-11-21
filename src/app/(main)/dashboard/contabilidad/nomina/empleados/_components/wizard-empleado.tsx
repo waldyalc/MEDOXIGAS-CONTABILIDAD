@@ -92,6 +92,13 @@ import {
 
 const PASOS = ["Datos personales", "Contrato y salario", "Banco y TSS"] as const;
 
+const CAMPO_NOMBRE_A_ID: Record<keyof PartesNombreDgii, string> = {
+  primerNombre: "primer_nombre",
+  segundoNombre: "segundo_nombre",
+  primerApellido: "primer_apellido",
+  segundoApellido: "segundo_apellido",
+};
+
 interface CamposEmpleado {
   tipoIdentificacion: TipoIdentificacion;
   identificacion: string;
@@ -820,6 +827,7 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
     setCampos((previos) => ({ ...previos, [clave]: valor }));
     if (clave === "identificacion" || clave === "tipoIdentificacion") {
       dgii.limpiar();
+      validacion.limpiar("identificacion");
       if (clave === "tipoIdentificacion") {
         rellenosDgii.current = { primerNombre: "", segundoNombre: "", primerApellido: "", segundoApellido: "" };
       }
@@ -843,6 +851,11 @@ export function WizardEmpleado({ empleado, centrosCosto, fechaHoy, titulo, migas
       if (Object.keys(resultado.campos).length > 0) {
         setCampos((previos) => ({ ...previos, ...resultado.campos }));
         Object.assign(rellenosDgii.current, resultado.campos);
+        // Los campos que la DGII rellenó ya no están vacíos: se les quita el
+        // error de «obligatorio» si una validación anterior lo había puesto.
+        for (const clave of Object.keys(resultado.campos) as (keyof PartesNombreDgii)[]) {
+          validacion.limpiar(CAMPO_NOMBRE_A_ID[clave]);
+        }
       }
       return resultado.mensaje;
     });
