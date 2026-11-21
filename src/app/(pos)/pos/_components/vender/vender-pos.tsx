@@ -429,7 +429,7 @@ export function VenderPos({
   }, [carrito.activa.lineas]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <a
         href="#catalogo-pos"
         className="focus:bg-card focus:text-foreground sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:px-2 focus:py-1"

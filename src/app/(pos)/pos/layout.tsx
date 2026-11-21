@@ -5,14 +5,18 @@ import { redirect } from "next/navigation";
 import { getEmpresa } from "@/lib/facturacion/consultas";
 
 import { CarritoPosProvider } from "./_components/carrito-pos-provider";
-import { EncabezadoPos } from "./_components/encabezado-pos";
 import { EstadoPos } from "./_components/estado-pos";
+import { MenuPos } from "./_components/menu-pos";
 import { getContextoPOS } from "./_components/servidor";
 
 /**
- * Shell del POS: layout propio, sin el sidebar de Contabilidad. Aquí viven la
- * sesión, la terminal activa (cookie `pos_terminal_id`), el turno del header y
- * el provider del carrito, que sobrevive a la navegación entre las pestañas.
+ * Shell del POS: layout propio, sin el sidebar de Contabilidad. La navegación
+ * vive en un riel lateral estilo Alegra (`MenuPos`): 56 px con iconos que
+ * expande un panel de 271 px al hover/foco o fijado con el pin; en móvil es un
+ * cajón con velo. El shell mide el viewport (`h-dvh`, sin scroll de página) y
+ * solo scrollea el contenido de cada pantalla. Aquí viven la sesión, la
+ * terminal activa (cookie `pos_terminal_id`), el turno del pie del menú y el
+ * provider del carrito, que sobrevive a la navegación entre las pestañas.
  */
 export const dynamic = "force-dynamic";
 
@@ -38,8 +42,8 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
         numeracionId: terminal.numeracion_defecto_id,
       }}
     >
-      <div className="bg-background flex min-h-dvh flex-col">
-        <EncabezadoPos
+      <div className="bg-background flex h-dvh flex-col overflow-hidden lg:flex-row">
+        <MenuPos
           empresa={{ nombre: empresa?.nombre ?? null, logo_url: empresa?.logo_url ?? null }}
           terminales={contexto.terminales
             .filter((candidata) => candidata.activa)
@@ -57,7 +61,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
           usuario={{ nombre: contexto.perfil.nombre, correo: contexto.perfil.correo }}
         />
 
-        <main className="flex min-h-0 flex-1 flex-col">{children}</main>
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{children}</main>
       </div>
     </CarritoPosProvider>
   );
