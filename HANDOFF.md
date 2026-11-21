@@ -1,5 +1,15 @@
 # Handoff — Medoxigas Contabilidad
 
+## Inicio rediseñado como "Resumen del negocio" (rama `feat/inicio-alegra-resumen`, pendiente de revisión)
+
+El `/dashboard` replica la estructura del Resumen del negocio de Alegra con código propio (guía del ZIP `inicio-resumen-negocio-design`, referencia solo local en `/tmp/inicio-design`). Todo lee datos reales de Supabase; los widgets sin datos muestran el estado vacío "Sin … registrados" (ícono de gráfica gris + texto), nunca números inventados.
+
+- **Datos (`src/lib/inicio/`):** `calculos.ts` (agregaciones puras + tests) y dos lecturas nuevas en `consultas.ts`: `obtenerMovimientoCuentas` (asientos por índice de fecha → líneas por lotes, el patrón de `getIngresosGastosMensual` que evita el join que agotaba `statement_timeout`) para el Flujo de transacciones y la Distribución de gastos; `obtenerTopVentas` para Productos más vendidos y Mejores clientes (desde `factura_lineas`/`facturas` no anuladas). La RPC `dashboard_resumen` existente sigue alimentando CxC/CxP, métricas y ventas — sin tocar backend ni migraciones.
+- **Widgets (`dashboard/_components/inicio/`):** `widget-marco.tsx` (expandir/eliminar), `agregar-grafica.tsx` (menú que reactiva widgets ocultos), `widgets.tsx` (visibilidad en `localStorage["inicio.widgets.visibles"]`), `grafico-gastos.tsx` (donut top-5), `grafico-flujo.tsx` (barras ingresos/egresos), `tabla-top.tsx` (tablas con avatar de iniciales), `bancos-cajas.tsx` (saldos reales, opcional), `estado-vacio.tsx`, `titulo-widget.tsx`.
+- **Layout:** fila KPI = CxC + CxP grandes + 4 métricas en 2×2; luego Ventas, Gastos y Flujo a ancho completo; Productos/Clientes en dos columnas. En móvil todo apila. Tokens Medoxigas (`--chart-1` azul, emerald solo para "año anterior"/ingresos como en el repo); sin teal.
+- **Verificación:** `typecheck`/`check`/`test` en verde excepto `src/lib/pos/impresion.test.ts` que **ya fallaba antes** (formato de fecha dependiente del entorno, ajeno a este cambio). Capturas con sesión ZZTEST en `/tmp/capturas/` (claro, oscuro, móvil) — datos reales: CxP RD$708 vencida, ventas RD$958, flujo 1,958/1,000, top productos/clientes y bancos.
+- **Pendiente:** revisión del Orquestador e integración a `main`.
+
 > ## ESTADO PARA LA PRÓXIMA SESIÓN (21 nov 2026)
 >
 > **Fase 2 (Inventario ferretería + POS + Nómina RD) implementada y desplegada.** `main` en `df08712`; Vercel producción: https://medoxigas-contabilidad.vercel.app. Migraciones `20261125100000`–`20261125150000` **aplicadas al remoto**.

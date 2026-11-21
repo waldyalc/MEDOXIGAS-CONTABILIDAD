@@ -71,3 +71,39 @@ export function EsqueletoGraficoInicio() {
     </Card>
   );
 }
+
+/** Esqueleto de los widgets anchos de la segunda sección (gastos y flujo). */
+export function EsqueletoWidgetAncho() {
+  return (
+    <Card className="ring-border gap-0 rounded-2xl [--card-spacing:--spacing(6)]">
+      <CardHeader className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-3 w-72 max-w-full" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-[220px] w-full rounded-lg" />
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Esqueleto de las tablas del Inicio (top productos/clientes, bancos). */
+export function EsqueletoTablaWidget() {
+  return (
+    <Card className="ring-border h-full gap-0 rounded-2xl [--card-spacing:--spacing(6)]">
+      <CardHeader className="flex flex-col gap-2">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-3 w-56 max-w-full" />
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {[0, 1, 2, 3].map((indice) => (
+          <div key={indice} className="flex items-center gap-3">
+            <Skeleton className="size-8 shrink-0 rounded-full" />
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="ml-auto h-4 w-16" />
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
