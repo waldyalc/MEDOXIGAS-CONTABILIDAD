@@ -1,11 +1,12 @@
 import { parsearMonto } from "@/lib/productos/productos";
+import { digitoVerificadorValido, MENSAJE_CEDULA_INVALIDA } from "@/lib/validacion/cedula";
 
 /**
  * Validación por paso del wizard de empleado (espejo de `empleadoSchema`).
  *
  * La pantalla avisa antes de llamar y marca el paso incompleto; la RPC sigue
- * siendo la autoridad. La cédula se valida aquí por longitud y el dígito
- * verificador lo confirma el servidor.
+ * siendo la autoridad. La cédula se valida aquí por longitud y por el dígito
+ * verificador DGII, con el mismo algoritmo que `_rnc_digito_valido`.
  */
 
 export type PasoEmpleado = 1 | 2 | 3;
@@ -49,6 +50,8 @@ function validarPasoUno(valores: ValoresEmpleado): ErrorPaso[] {
     errores.push({ campo: "identificacion", mensaje: "La identificación es obligatoria." });
   } else if (esCedula && !/^\d{11}$/.test(identificacion)) {
     errores.push({ campo: "identificacion", mensaje: "La cédula debe tener 11 dígitos." });
+  } else if (esCedula && !digitoVerificadorValido(identificacion)) {
+    errores.push({ campo: "identificacion", mensaje: MENSAJE_CEDULA_INVALIDA });
   }
 
   if (vacio(valores.primer_nombre))
@@ -143,4 +146,33 @@ export function validarPasoEmpleado(paso: PasoEmpleado, valores: ValoresEmpleado
   if (paso === 1) return validarPasoUno(valores);
   if (paso === 2) return validarPasoDos(valores);
   return validarPasoCompleto(valores);
+}
+
+/** Campos del formulario a los que pertenece un mensaje de error del servidor. */
+export function camposConMensaje(mensaje: string): Record<string, string> {
+  const texto = mensaje.toLowerCase();
+  if (texto.includes("cédula") || texto.includes("cedula") || texto.includes("identificaci")) {
+    return { identificacion: mensaje };
+  }
+  if (texto.includes("correo")) return { correo: mensaje };
+  if (texto.includes("transferencia")) {
+    return { banco_nombre: mensaje, tipo_cuenta_banco: mensaje, numero_cuenta_banco: mensaje };
+  }
+  if (texto.includes("fecha de fin")) return { fecha_fin: mensaje };
+  if (texto.includes("salario")) return { salario_mensual: mensaje };
+  return {};
+}
+
+/** Paso al que pertenece el primer campo con error del servidor. */
+export function pasoDeError(campos: Record<string, string>): PasoEmpleado | null {
+  const paso1 = ["identificacion", "correo", "primer_nombre", "primer_apellido"];
+  if (paso1.some((campo) => campo in campos)) return 1;
+
+  const paso2 = ["fecha_ingreso", "fecha_fin", "salario_mensual"];
+  if (paso2.some((campo) => campo in campos)) return 2;
+
+  const paso3 = ["banco_nombre", "tipo_cuenta_banco", "numero_cuenta_banco", "clave_tss"];
+  if (paso3.some((campo) => campo in campos)) return 3;
+
+  return null;
 }

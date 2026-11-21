@@ -2,12 +2,16 @@ import type { CSSProperties } from "react";
 
 import { cn } from "cn";
 
-import type { TicketPOSPayload } from "@/lib/pos/impresion";
+import type { FilaTicketPOS, LineaTicketPOS, TicketPOSPayload } from "@/lib/pos/impresion";
 
 /**
  * Ticket térmico del POS (80 mm / 57 mm). Es presentacional: pinta el
  * `TicketPOSPayload` que arma la capa 2B con la plantilla de la terminal.
  * No consulta, no imprime y no navega; `ImpresionPos` monta el portal.
+ *
+ * La jerarquía sigue el orden del ticket de Alegra (`docs/alegra/pos/`):
+ * logo y empresa → comprobante y datos → cliente → ítems → totales →
+ * cobro y resumen → pie. Papel térmico: negro sobre blanco, sin tokens.
  */
 
 const FAMILIAS: Record<TicketPOSPayload["diseno"]["fuente"], string> = {
@@ -69,19 +73,18 @@ const CSS_IMPRESION = `
 }
 `;
 
-function Separador({ estilo }: { estilo: TicketPOSPayload["diseno"]["estilo"] }) {
-  if (estilo === "minimalista") return <div className="my-2 h-px bg-black" />;
-  return <div className="my-2 border-t border-dashed border-black" />;
+function Separador() {
+  return <hr className="my-1.5 border-0 border-t border-black" />;
 }
 
-function Logo({ url, nombre }: { url: string | null; nombre: string }) {
+function Logo({ url, nombre, estrecho }: { url: string | null; nombre: string; estrecho: boolean }) {
   if (!url) return null;
   return (
     // biome-ignore lint/performance/noImgElement: logo configurable de la empresa en el ticket
     <img
       src={url}
       alt={nombre}
-      className="mx-auto max-h-[18mm] w-auto object-contain"
+      className={cn("mx-auto mb-1 w-auto object-contain grayscale", estrecho ? "max-h-[11mm]" : "max-h-[16mm]")}
       onError={(evento) => {
         evento.currentTarget.style.display = "none";
       }}
@@ -89,22 +92,188 @@ function Logo({ url, nombre }: { url: string | null; nombre: string }) {
   );
 }
 
-function FilaTotal({
-  etiqueta,
-  valor,
-  negativo,
-  fuerte,
-}: {
-  etiqueta: string;
-  valor: string;
-  negativo?: boolean;
-  fuerte?: boolean;
-}) {
+function FilaTotal({ etiqueta, valor, fuerte }: { etiqueta: string; valor: string; fuerte?: boolean }) {
   return (
     <div className={cn("flex items-baseline justify-between gap-2", fuerte && "font-bold")}>
       <span className="min-w-0">{etiqueta}</span>
-      <span className={cn("shrink-0 text-right tabular-nums", negativo && "text-black")}>{valor}</span>
+      <span className="shrink-0 text-right tabular-nums">{valor}</span>
     </div>
+  );
+}
+
+function LineaItem({
+  linea,
+  indice,
+  apilada,
+  minimalista,
+  detallado,
+}: {
+  linea: LineaTicketPOS;
+  indice: number;
+  apilada: boolean;
+  minimalista: boolean;
+  detallado: boolean;
+}) {
+  return (
+    <div className="linea flex flex-col py-0.5">
+      <div className="flex items-baseline gap-1.5">
+        <span className="shrink-0">{indice + 1}.</span>
+        <span
+          className={cn(
+            "min-w-0 break-words",
+            minimalista ? "text-[0.85em] font-bold tracking-[0.08em] uppercase" : "font-semibold",
+          )}
+        >
+          {linea.descripcion}
+        </span>
+        {apilada ? null : <span className="ml-auto shrink-0 tabular-nums">{linea.total}</span>}
+      </div>
+      {linea.detalle ? (
+        <div className="flex items-baseline justify-between gap-2 pl-[1.6em]">
+          <span className={cn("min-w-0 text-[0.88em]", minimalista && "tracking-[0.06em] uppercase")}>
+            {linea.detalle}
+          </span>
+          {apilada ? <span className="shrink-0 tabular-nums">{linea.total}</span> : null}
+        </div>
+      ) : null}
+      {apilada && !linea.detalle ? <div className="pl-[1.6em] text-right tabular-nums">{linea.total}</div> : null}
+      {linea.referencia ? <span className="pl-[1.6em] text-[0.85em]">Ref. {linea.referencia}</span> : null}
+      {detallado && linea.descuento ? (
+        <div className="flex items-baseline justify-between gap-2 pl-[1.6em] text-[0.88em]">
+          <span>Descuento</span>
+          <span className="shrink-0 tabular-nums">{linea.descuento}</span>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function SeccionCliente({ cliente, alineacion }: { cliente: TicketPOSPayload["cliente"]; alineacion: string }) {
+  if (!cliente.nombre && cliente.lineas.length === 0) return null;
+
+  return (
+    <>
+      <Separador />
+      <section className={cn("flex flex-col gap-0.5", alineacion)}>
+        {cliente.nombre ? <p className="font-bold">{cliente.nombre}</p> : null}
+        {cliente.lineas.map((linea) => (
+          <p key={linea} className="text-[0.92em]">
+            {linea}
+          </p>
+        ))}
+      </section>
+    </>
+  );
+}
+
+function SeccionItems({
+  lineas,
+  apilada,
+  minimalista,
+  detallado,
+}: {
+  lineas: LineaTicketPOS[];
+  apilada: boolean;
+  minimalista: boolean;
+  detallado: boolean;
+}) {
+  if (lineas.length === 0) return null;
+
+  return (
+    <>
+      <Separador />
+      <section className="flex flex-col">
+        <div className="flex items-baseline justify-between gap-2 text-[0.85em]">
+          <span>Ítem</span>
+          <span>Total</span>
+        </div>
+        <hr className="mt-0.5 mb-1 border-0 border-t border-black" />
+        <div className="flex flex-col">
+          {lineas.map((linea, indice) => (
+            <LineaItem
+              key={`${indice}-${linea.descripcion}`}
+              linea={linea}
+              indice={indice}
+              apilada={apilada}
+              minimalista={minimalista}
+              detallado={detallado}
+            />
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+function SeccionBloques({ bloques, minimalista }: { bloques: TicketPOSPayload["bloques"]; minimalista: boolean }) {
+  if (bloques.length === 0) return null;
+
+  return (
+    <>
+      <Separador />
+      {bloques.map((bloque) => (
+        <section key={bloque.titulo} className="mt-1 flex flex-col">
+          <p className={cn("text-[0.9em] font-bold", minimalista && "uppercase")}>{bloque.titulo}</p>
+          {bloque.filas.map((fila) => (
+            <FilaTotal
+              key={`${bloque.titulo}-${fila.etiqueta || fila.valor}`}
+              etiqueta={fila.etiqueta}
+              valor={fila.valor}
+            />
+          ))}
+        </section>
+      ))}
+    </>
+  );
+}
+
+/** Totales como en Alegra: etiquetas a la derecha del bloque, montos al filo. */
+function SeccionTotales({ totales }: { totales: FilaTicketPOS[] }) {
+  return (
+    <section className="bloque-totales grid grid-cols-[minmax(0,1fr)_auto] gap-x-3">
+      {totales.map((fila) => {
+        const fuerte = fila.etiqueta === "Total" || fila.etiqueta === "Total del recibo";
+        return (
+          <div key={fila.etiqueta} className="contents">
+            <span className={cn("min-w-0 break-words", fuerte ? "font-bold" : "text-right")}>
+              {fila.etiqueta ? `${fila.etiqueta}:` : ""}
+            </span>
+            <span className={cn("text-right tabular-nums", fuerte && "text-[1.15em] font-bold")}>{fila.valor}</span>
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function SeccionPagos({
+  pagos,
+  resumen,
+  minimalista,
+}: {
+  pagos: FilaTicketPOS[];
+  resumen: FilaTicketPOS[];
+  minimalista: boolean;
+}) {
+  if (pagos.length === 0 && resumen.length === 0) return null;
+
+  return (
+    <>
+      <Separador />
+      <section className="bloque-pago flex flex-col">
+        {pagos.length > 0 ? (
+          <>
+            <p className={cn("text-[0.9em] font-bold", minimalista && "uppercase")}>Pagos</p>
+            {pagos.map((pago) => (
+              <FilaTotal key={`${pago.etiqueta}-${pago.valor}`} etiqueta={`${pago.etiqueta}:`} valor={pago.valor} />
+            ))}
+          </>
+        ) : null}
+        {resumen.map((fila) => (
+          <FilaTotal key={fila.etiqueta} etiqueta={`${fila.etiqueta}:`} valor={fila.valor} />
+        ))}
+      </section>
+    </>
   );
 }
 
@@ -117,12 +286,14 @@ export function TicketPos({
   vistaPrevia?: boolean;
   className?: string;
 }) {
-  const { diseno, encabezado } = payload;
+  const { diseno, encabezado, cliente } = payload;
   const ancho = diseno.ancho_mm;
   const estrecho = ancho === 57;
   const minimalista = diseno.estilo === "minimalista";
   const detallado = diseno.estilo === "detallado";
   const nombreEmpresa = encabezado.empresa[0] ?? "";
+  const alineacion = minimalista ? "items-start text-left" : "items-center text-center";
+  const tieneCliente = Boolean(cliente.nombre) || cliente.lineas.length > 0;
 
   const estilo: CSSProperties = {
     width: `${ancho}mm`,
@@ -146,104 +317,49 @@ export function TicketPos({
     >
       <style>{CSS_IMPRESION}</style>
 
-      <header
-        className={cn("flex flex-col gap-0.5", minimalista ? "items-start text-left" : "items-center text-center")}
-      >
-        {diseno.mostrar_logo ? <Logo url={diseno.logo_url} nombre={nombreEmpresa} /> : null}
+      <header className={cn("flex flex-col gap-0.5", alineacion)}>
+        {diseno.mostrar_logo ? <Logo url={diseno.logo_url} nombre={nombreEmpresa} estrecho={estrecho} /> : null}
         {encabezado.empresa.map((linea, indice) => (
           <p key={linea} className={indice === 0 ? "text-[1.15em] font-bold" : "text-[0.92em]"}>
             {linea}
           </p>
         ))}
-        <p className={cn("mt-1 font-bold", minimalista ? "uppercase" : "")}>{encabezado.titulo}</p>
+      </header>
+
+      <div className={cn("mt-2 flex flex-col gap-0.5", alineacion)}>
+        <p className={cn("font-bold", minimalista && "tracking-[0.08em] uppercase")}>{encabezado.titulo}</p>
+        {encabezado.anulada ? <p className="text-[1.2em] font-bold tracking-widest">ANULADA</p> : null}
         {encabezado.lineas.map((linea) => (
           <p key={linea} className="text-[0.92em]">
             {linea}
           </p>
         ))}
-        {encabezado.anulada ? <p className="mt-1 text-[1.2em] font-bold tracking-widest">ANULADA</p> : null}
-      </header>
-
-      <Separador estilo={diseno.estilo} />
-
-      {payload.lineas.length > 0 ? (
-        <div className="flex flex-col gap-1.5">
-          {payload.lineas.map((linea, indice) => (
-            <div key={`${linea.descripcion}-${indice}`} className="linea flex flex-col">
-              {minimalista ? (
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="min-w-0 text-[0.8em] font-bold tracking-[0.08em] uppercase">
-                    {linea.descripcion}
-                  </span>
-                  <span className="shrink-0 tabular-nums">{linea.total}</span>
-                </div>
-              ) : (
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="min-w-0 font-semibold">{linea.descripcion}</span>
-                  <span className="shrink-0 tabular-nums">{linea.total}</span>
-                </div>
-              )}
-              {linea.referencia ? <span className="text-[0.82em]">Ref. {linea.referencia}</span> : null}
-              {linea.detalle ? <span className="text-[0.82em]">{linea.detalle}</span> : null}
-              {detallado && linea.descuento ? <span className="text-[0.82em]">Descuento {linea.descuento}</span> : null}
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {payload.bloques.map((bloque) => (
-        <div key={bloque.titulo} className="mt-1 flex flex-col">
-          <p className={cn("text-[0.9em] font-bold", minimalista ? "uppercase" : "")}>{bloque.titulo}</p>
-          {bloque.filas.map((fila, indice) => (
-            <FilaTotal
-              key={`${bloque.titulo}-${fila.etiqueta}-${indice}`}
-              etiqueta={fila.etiqueta}
-              valor={fila.valor}
-              negativo={fila.negativo}
-            />
-          ))}
-        </div>
-      ))}
-
-      <Separador estilo={diseno.estilo} />
-
-      <div
-        className={cn(
-          "bloque-totales flex flex-col",
-          diseno.estilo === "minimalista" ? "border-t border-black pt-1" : "rounded-sm border border-black px-1.5 py-1",
-        )}
-      >
-        {payload.totales.map((fila, indice) => {
-          const esTotal = fila.etiqueta === "Total" || fila.etiqueta === "Total del recibo";
-          return (
-            <FilaTotal
-              key={`${fila.etiqueta}-${indice}`}
-              etiqueta={fila.etiqueta}
-              valor={fila.valor}
-              negativo={fila.negativo}
-              fuerte={esTotal}
-            />
-          );
-        })}
       </div>
 
-      {payload.pagos.length > 0 ? (
-        <>
-          <Separador estilo={diseno.estilo} />
-          <div className="bloque-pago flex flex-col">
-            <p className={cn("text-[0.9em] font-bold", minimalista ? "uppercase" : "")}>Pagos</p>
-            {payload.pagos.map((pago, indice) => (
-              <FilaTotal key={`${pago.etiqueta}-${indice}`} etiqueta={pago.etiqueta} valor={pago.valor} />
-            ))}
-          </div>
-        </>
-      ) : null}
+      {tieneCliente ? <SeccionCliente cliente={cliente} alineacion={alineacion} /> : null}
 
-      {payload.nota ? <p className="mt-1 text-center text-[0.82em]">{payload.nota}</p> : null}
+      <SeccionItems
+        lineas={payload.lineas}
+        apilada={diseno.columnas === "apilada"}
+        minimalista={minimalista}
+        detallado={detallado}
+      />
+
+      <SeccionBloques bloques={payload.bloques} minimalista={minimalista} />
+
+      <Separador />
+
+      <SeccionTotales totales={payload.totales} />
+
+      <SeccionPagos pagos={payload.pagos} resumen={payload.resumen} minimalista={minimalista} />
+
+      {payload.nota ? (
+        <p className={cn("mt-1 text-[0.82em]", minimalista ? "text-left" : "text-center")}>{payload.nota}</p>
+      ) : null}
 
       {payload.pie ? (
         <>
-          <Separador estilo={diseno.estilo} />
+          <Separador />
           <p className={cn("text-[0.85em] whitespace-pre-line", minimalista ? "text-left" : "text-center")}>
             {payload.pie}
           </p>
