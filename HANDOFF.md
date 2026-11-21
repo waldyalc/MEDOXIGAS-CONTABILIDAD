@@ -1,5 +1,17 @@
 # Handoff — Medoxigas Contabilidad
 
+> ## ESTADO PARA LA PRÓXIMA SESIÓN (21 nov 2026)
+>
+> **Fase 2 (Inventario ferretería + POS + Nómina RD) implementada y desplegada.** `main` en `df08712`; Vercel producción: https://medoxigas-contabilidad.vercel.app. Migraciones `20261125100000`–`20261125150000` **aplicadas al remoto**.
+>
+> **Waldy revisó la UI y tiene observaciones que dará en la próxima sesión.** No dar la fase por cerrada ni abrir la Fase 3 hasta recibirlas y corregirlas.
+>
+> **Pendientes técnicos ya documentados abajo:** exponer `nomina_agregar_empleados` en `src/lib/nomina/acciones.ts`, sumar las listas nuevas a `LISTAS_MIGRADAS`/`PAGINAS_MIGRADAS`, mover a `src/lib/pos/` las lecturas locales de #87, y propagar `unidad_id` en `crear_cotizacion`.
+>
+> **Evidencia visual:** 72 capturas en `C:\Users\wardy\AppData\Local\Temp\opencode\capturas-ui` (claro/oscuro/móvil) y sidebar en `...\capturas-sidebar`.
+>
+> **Para arrancar:** leer este archivo, `docs/PLAN-FASE-2-ORQUESTADOR.md` y `docs/ORQUESTADOR.md`.
+
 ## Fase 2 cerrada: UI de Inventario, POS y Nómina + auditoría (21 nov 2026)
 
 Ocho PRs de UI integrados a `main` (#77 stock bajo, #79 conteo físico, #80 producto ferretería, #83 configuración Nómina, #84 empleados/inicio, #85 operación/pagos/envíos/TSS, #86 configuración POS, #87 pestaña `/pos`). `ci`, `scan`, `e2e` y `db` verdes en cada `headSha`; `typecheck`, `check`, `test` y `build` en verde tras integrar.
