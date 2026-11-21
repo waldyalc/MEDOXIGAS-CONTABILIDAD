@@ -30,35 +30,35 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
   const turno = contexto.turno;
 
   return (
-    <div className="bg-background flex min-h-dvh flex-col">
-      <EncabezadoPos
-        empresa={{ nombre: empresa?.nombre ?? null, logo_url: empresa?.logo_url ?? null }}
-        terminales={contexto.terminales
-          .filter((candidata) => candidata.activa)
-          .map((candidata) => ({ id: candidata.id, nombre: candidata.nombre }))}
-        terminal={{ id: terminal.id, nombre: terminal.nombre }}
-        turno={
-          turno
-            ? {
-                numero: turno.numero,
-                estado: turno.estado,
-                abierto_en: turno.abierto_en,
-              }
-            : null
-        }
-        usuario={{ nombre: contexto.perfil.nombre, correo: contexto.perfil.correo }}
-      />
+    <CarritoPosProvider
+      key={terminal.id}
+      defaults={{
+        contactoId: terminal.contacto_defecto_id,
+        listaPrecioId: terminal.lista_precio_defecto_id ?? "",
+        numeracionId: terminal.numeracion_defecto_id,
+      }}
+    >
+      <div className="bg-background flex min-h-dvh flex-col">
+        <EncabezadoPos
+          empresa={{ nombre: empresa?.nombre ?? null, logo_url: empresa?.logo_url ?? null }}
+          terminales={contexto.terminales
+            .filter((candidata) => candidata.activa)
+            .map((candidata) => ({ id: candidata.id, nombre: candidata.nombre }))}
+          terminal={{ id: terminal.id, nombre: terminal.nombre }}
+          turno={
+            turno
+              ? {
+                  numero: turno.numero,
+                  estado: turno.estado,
+                  abierto_en: turno.abierto_en,
+                }
+              : null
+          }
+          usuario={{ nombre: contexto.perfil.nombre, correo: contexto.perfil.correo }}
+        />
 
-      <CarritoPosProvider
-        key={terminal.id}
-        defaults={{
-          contactoId: terminal.contacto_defecto_id,
-          listaPrecioId: terminal.lista_precio_defecto_id ?? "",
-          numeracionId: terminal.numeracion_defecto_id,
-        }}
-      >
         <main className="flex min-h-0 flex-1 flex-col">{children}</main>
-      </CarritoPosProvider>
-    </div>
+      </div>
+    </CarritoPosProvider>
   );
 }
