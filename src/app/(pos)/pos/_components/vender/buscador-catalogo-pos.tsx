@@ -57,7 +57,7 @@ export function BuscadorCatalogoPos({
   }
 
   return (
-    <div className="relative">
+    <div className="relative min-w-[190px] flex-1">
       <InputGroup className="h-11">
         <InputGroupAddon>
           <Search aria-hidden="true" />
