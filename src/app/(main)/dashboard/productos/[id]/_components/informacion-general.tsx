@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "cn";
-import { Boxes, ClipboardList, TrendingDown } from "lucide-react";
+import { Boxes, MapPin, Star, TrendingDown } from "lucide-react";
 
 import { SeccionAdjuntos } from "@/components/adjuntos/seccion-adjuntos";
 import { Enlace } from "@/components/enlace";
@@ -13,9 +13,11 @@ import { rutaCuenta } from "@/lib/enlaces";
 import { centavosAValor } from "@/lib/facturacion/calculo";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
 import { precioSugeridoCentavos } from "@/lib/inventario/precios";
-import type { ExistenciaAlmacen } from "@/lib/inventario/tipos";
-import { type CuentaFicha, type FichaProducto, type PrecioListaFicha, precioConItbis } from "@/lib/productos/ficha";
+import type { CuentaFicha, FichaProducto, PrecioListaFicha } from "@/lib/productos/ficha";
+import { precioConItbis, sumarCantidades } from "@/lib/productos/ficha";
 import { etiquetaTasaItbis, etiquetaTipoProducto } from "@/lib/productos/productos";
+
+import type { DatosFerreteriaProducto, ExistenciaFerreteria } from "../../_components/ferreteria-datos";
 
 const CLASE_SUBPANEL = "ring-foreground/10 rounded-lg ring-1";
 
@@ -62,7 +64,13 @@ function Opcion({
   );
 }
 
-function DatosProducto({ producto }: { readonly producto: FichaProducto["producto"] }) {
+function DatosProducto({
+  producto,
+  datosFerreteria,
+}: {
+  readonly producto: FichaProducto["producto"];
+  readonly datosFerreteria: DatosFerreteriaProducto | null;
+}) {
   const esServicio = producto.tipo === "servicio";
 
   return (
@@ -74,6 +82,8 @@ function DatosProducto({ producto }: { readonly producto: FichaProducto["product
         <ItemDato etiqueta="Categoría">{producto.categoriaNombre ?? "Sin categoría"}</ItemDato>
         <ItemDato etiqueta="Tipo">{etiquetaTipoProducto(producto.tipo)}</ItemDato>
         <ItemDato etiqueta="Unidad de medida">{producto.unidadMedida || "Unidad"}</ItemDato>
+        <ItemDato etiqueta="Marca">{datosFerreteria?.marca?.trim() || "—"}</ItemDato>
+        <ItemDato etiqueta="Ubicación por defecto">{datosFerreteria?.ubicacion?.trim() || "—"}</ItemDato>
         <ItemDato etiqueta="Estado">{producto.activo ? "Activo" : "Inactivo"}</ItemDato>
         <div className="sm:col-span-2">
           <ItemDato etiqueta="Descripción">
@@ -91,6 +101,11 @@ function DatosProducto({ producto }: { readonly producto: FichaProducto["product
           icono={<TrendingDown className="size-4" />}
           etiqueta="Venta en negativo"
           activa={producto.vendeNegativo}
+        />
+        <Opcion
+          icono={<Star className="size-4" />}
+          etiqueta="Favorito en el POS"
+          activa={datosFerreteria?.favorito_pos ?? false}
         />
       </div>
     </section>
@@ -120,68 +135,21 @@ function TarjetaPrecio({ producto }: { readonly producto: FichaProducto["product
   );
 }
 
-/**
- * La ficha no trae lo comprometido en conduces por almacén (los conduces no
- * guardan almacén); esa columna se queda en guiones.
- */
-const columnasExistencias: readonly ColumnaLista<ExistenciaAlmacen>[] = [
-  {
-    clave: "almacen",
-    encabezado: "Almacén",
-    celda: (existencia) => (
-      <span className="inline-flex items-center gap-2 font-medium">
-        {existencia.almacen_nombre}
-        {existencia.es_principal ? <PillEstado tono="info">Principal</PillEstado> : null}
-      </span>
-    ),
-  },
-  {
-    clave: "inicial",
-    encabezado: "Cant. inicial",
-    alineacion: "derecha",
-    celda: (existencia) => <span className="tabular-nums">{formatoCantidad(existencia.cantidad_inicial)}</span>,
-  },
-  {
-    clave: "actual",
-    encabezado: "Cant. actual",
-    alineacion: "derecha",
-    celda: (existencia) => <span className="font-medium tabular-nums">{formatoCantidad(existencia.cantidad)}</span>,
-  },
-  {
-    clave: "minimo",
-    encabezado: "Mín.",
-    alineacion: "derecha",
-    celda: (existencia) => <span className="tabular-nums">{formatoCantidad(existencia.minimo)}</span>,
-  },
-  {
-    clave: "maximo",
-    encabezado: "Máx.",
-    alineacion: "derecha",
-    celda: (existencia) =>
-      existencia.maximo === null ? (
-        <span className="text-muted-foreground">—</span>
-      ) : (
-        <span className="tabular-nums">{formatoCantidad(existencia.maximo)}</span>
-      ),
-  },
-  {
-    clave: "conduces",
-    encabezado: "En conduces",
-    alineacion: "derecha",
-    // TODO backend: los conduces no guardan almacén, no se puede repartir lo comprometido.
-    celda: () => <span className="text-muted-foreground">—</span>,
-  },
-];
-
-function Inventario({ ficha, onVerHistorial }: { readonly ficha: FichaProducto; readonly onVerHistorial: () => void }) {
-  const { producto, existencias, kardex } = ficha;
+function Inventario({
+  ficha,
+  onVerExistencias,
+}: {
+  readonly ficha: FichaProducto;
+  readonly onVerExistencias: () => void;
+}) {
+  const { producto, kardex } = ficha;
   return (
     <section className="flex flex-col gap-4">
       <TituloSeccion
         accion={
-          <Button variant="outline" size="sm" onClick={onVerHistorial}>
-            <ClipboardList data-icon="inline-start" />
-            Historial de operaciones
+          <Button variant="outline" size="sm" onClick={onVerExistencias}>
+            <MapPin data-icon="inline-start" />
+            Ver existencias por almacén
           </Button>
         }
       >
@@ -201,29 +169,90 @@ function Inventario({ ficha, onVerHistorial }: { readonly ficha: FichaProducto; 
           <span className="font-medium tabular-nums">{formatoCantidad(kardex.existenciaInicial)}</span>
         </span>
       </div>
-      <div className={cn(CLASE_SUBPANEL, "overflow-hidden")}>
-        <TablaLista
-          columnas={columnasExistencias}
-          filas={existencias}
-          claveFila={(existencia) => existencia.almacen_id}
-          vacio={{
-            titulo: "Sin existencias registradas por almacén",
-          }}
-          pie={
-            existencias.length > 1 ? (
-              <TableRow>
-                <TableCell className="pl-4 font-semibold">Total</TableCell>
-                <TableCell />
-                <TableCell className="text-right font-semibold tabular-nums">
-                  {formatoCantidad(producto.cantidad)}
-                </TableCell>
-                <TableCell colSpan={3} />
-              </TableRow>
-            ) : undefined
-          }
-        />
-      </div>
     </section>
+  );
+}
+
+/**
+ * Existencias por almacén (solo lectura). La ubicación del almacén manda; si
+ * está vacía se muestra la que tenga la fila de existencias.
+ */
+export function TablaExistencias({ existencias }: { readonly existencias: readonly ExistenciaFerreteria[] }) {
+  const columnas: readonly ColumnaLista<ExistenciaFerreteria>[] = [
+    {
+      clave: "almacen",
+      encabezado: "Almacén",
+      celda: (existencia) => (
+        <span className="inline-flex items-center gap-2 font-medium">
+          {existencia.almacen_nombre}
+          {existencia.es_principal ? <PillEstado tono="info">Principal</PillEstado> : null}
+        </span>
+      ),
+    },
+    {
+      clave: "ubicacion",
+      encabezado: "Ubicación",
+      celda: (existencia) =>
+        existencia.ubicacion?.trim() ? (
+          <span>{existencia.ubicacion}</span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      clave: "inicial",
+      encabezado: "Cant. inicial",
+      alineacion: "derecha",
+      celda: (existencia) => formatoCantidad(existencia.cantidad_inicial),
+    },
+    {
+      clave: "actual",
+      encabezado: "Cant. actual",
+      alineacion: "derecha",
+      celda: (existencia) => <span className="font-medium">{formatoCantidad(existencia.cantidad)}</span>,
+    },
+    {
+      clave: "minimo",
+      encabezado: "Mín.",
+      alineacion: "derecha",
+      celda: (existencia) => formatoCantidad(existencia.minimo),
+    },
+    {
+      clave: "maximo",
+      encabezado: "Máx.",
+      alineacion: "derecha",
+      celda: (existencia) =>
+        existencia.maximo === null ? (
+          <span className="text-muted-foreground">—</span>
+        ) : (
+          formatoCantidad(existencia.maximo)
+        ),
+    },
+  ];
+
+  return (
+    <TablaLista
+      columnas={columnas}
+      filas={existencias}
+      claveFila={(existencia) => existencia.almacen_id}
+      pie={
+        existencias.length > 1 ? (
+          <TableRow>
+            <TableCell className="pl-4 font-semibold">Total</TableCell>
+            <TableCell />
+            <TableCell />
+            <TableCell className="text-right font-semibold tabular-nums">
+              {formatoCantidad(sumarCantidades(existencias.map((existencia) => existencia.cantidad)))}
+            </TableCell>
+            <TableCell colSpan={2} />
+          </TableRow>
+        ) : undefined
+      }
+      vacio={{
+        titulo: "Sin existencias registradas por almacén",
+        descripcion: "Este producto todavía no tiene una fila de existencia en ningún almacén.",
+      }}
+    />
   );
 }
 
@@ -305,20 +334,22 @@ function Contabilidad({ ficha }: { readonly ficha: FichaProducto }) {
 export function InformacionGeneral({
   ficha,
   puedeEscribir,
-  onVerHistorial,
+  datosFerreteria,
+  onVerExistencias,
 }: {
   readonly ficha: FichaProducto;
   readonly puedeEscribir: boolean;
-  readonly onVerHistorial: () => void;
+  readonly datosFerreteria: DatosFerreteriaProducto | null;
+  readonly onVerExistencias: () => void;
 }) {
   const { producto } = ficha;
   return (
     <div className="flex flex-col gap-8">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <DatosProducto producto={producto} />
+        <DatosProducto producto={producto} datosFerreteria={datosFerreteria} />
         <TarjetaPrecio producto={producto} />
       </div>
-      {producto.inventariable ? <Inventario ficha={ficha} onVerHistorial={onVerHistorial} /> : null}
+      {producto.inventariable ? <Inventario ficha={ficha} onVerExistencias={onVerExistencias} /> : null}
       <div className="grid gap-6 lg:grid-cols-2">
         <ListasPrecios producto={producto} />
         <ArchivosAdjuntos ficha={ficha} puedeEscribir={puedeEscribir} />
