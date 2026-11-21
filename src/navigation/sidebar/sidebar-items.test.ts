@@ -6,6 +6,7 @@ import { filtrarItemsPorRol, sidebarItems } from "./sidebar-items";
 
 const MODULOS = [
   "inicio",
+  "punto-venta",
   "ingresos",
   "compras",
   "contactos",
@@ -136,6 +137,18 @@ describe("filtrarItemsPorRol", () => {
         .filter((item) => item.separadorDespues)
         .map((item) => item.id),
     ).toEqual(["inicio"]);
+  });
+
+  test("Punto de venta abre /pos en otra pestaña y lo ven los tres roles", () => {
+    for (const rol of ["admin", "contador", "lector"] as const) {
+      const puntoVenta = items(rol).find((item) => item.id === "punto-venta");
+      if (puntoVenta == null || !("url" in puntoVenta)) throw new Error("Punto de venta debe ser un enlace");
+
+      expect(puntoVenta.url).toBe("/pos");
+      expect(puntoVenta.title).toBe("Punto de venta");
+      expect(puntoVenta.newTab).toBe(true);
+      expect(puntoVenta.disabled).toBeUndefined();
+    }
   });
 
   test("el grupo se titula Módulos", () => {
