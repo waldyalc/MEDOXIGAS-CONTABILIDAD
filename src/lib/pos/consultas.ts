@@ -1,8 +1,15 @@
 import { mensajeErrorRpc } from "@/lib/facturacion/errores";
 import { buscarProductoPorCodigoBarra, listarCatalogoPos } from "@/lib/inventario/ferreteria/consultas";
+import { decimal, textoONulo } from "@/lib/inventario/ferreteria/mapeo";
 import { numeroDocumento, patronIlike } from "@/lib/listas/busqueda";
 import { contactosQueCoinciden } from "@/lib/listas/coincidencias";
-import { type ResultadoPagina, rangoPagina, resumirPagina, TAMANO_PAGINA_DEFECTO } from "@/lib/listas/parametros";
+import {
+  type ResultadoPagina,
+  rangoPagina,
+  resumirPagina,
+  TAMANO_PAGINA_DEFECTO,
+  TAMANOS_PAGINA,
+} from "@/lib/listas/parametros";
 import { consultarEnLotes } from "@/lib/supabase/lotes";
 import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
@@ -27,15 +34,19 @@ import {
   mapearTurno,
   metodoPagoDB,
 } from "./mapeo";
-import type {
-  CotizacionAbiertaPOS,
-  HistorialPOSFila,
-  MetodoPagoDB,
-  ProductoPOS,
-  ProductoPOSCodigo,
-  ResumenTurnoVista,
-  TerminalPOS,
-  TurnoPOS,
+import {
+  type CotizacionAbiertaPOS,
+  type Decimal,
+  type HistorialPOSFila,
+  type MetodoPagoDB,
+  MOTIVOS_MOVIMIENTO_POS,
+  type MotivoMovimientoPOS,
+  type ProductoPOS,
+  type ProductoPOSCodigo,
+  type ResumenTurnoVista,
+  type TerminalPOS,
+  type TipoMovimientoPOS,
+  type TurnoPOS,
 } from "./tipos";
 
 /**
@@ -305,4 +316,146 @@ export async function buscarProductoPorCodigo(entrada: unknown): Promise<Product
     ...(almacenId ? { almacen_id: almacenId } : {}),
     ...(listaId ? { lista_precio_id: listaId } : {}),
   });
+}
+
+// ---------------------------------------------------------------------------
+// Registro de pagos (v1: recibos de caja de la terminal)
+// ---------------------------------------------------------------------------
+
+/** Filtros del listado paginado de `pos_turno_movimientos` de una terminal. */
+export interface FiltrosPagosPOS {
+  terminalId: string;
+  /** Ingresos = `ingreso`; Egresos = `retiro`. Cualquier otro valor cae a `ingreso`. */
+  tipo: TipoMovimientoPOS;
+  /** Número de recibo; un texto sin dígitos devuelve una página vacía. */
+  q?: string;
+  pagina?: number;
+  tamano?: number;
+}
+
+/** Recibo de ingreso/egreso del turno en el Registro de pagos. */
+export interface PagoPOSFila {
+  id: string;
+  numero: number;
+  turno_id: string;
+  turno_numero: number | null;
+  tipo: TipoMovimientoPOS;
+  motivo: MotivoMovimientoPOS;
+  monto: Decimal;
+  cuenta_contrapartida_id: string;
+  cuenta_nombre: string | null;
+  contacto_id: string | null;
+  contacto_nombre: string | null;
+  factura_id: string | null;
+  factura_numero: number | null;
+  factura_ncf: string | null;
+  gasto_menor_id: string | null;
+  pago_recibido_id: string | null;
+  asiento_id: string;
+  notas: string | null;
+  creado_en: string;
+  creado_por: string;
+  /** Los recibos con su pago o gasto anulado quedan fuera de los totales. */
+  vigente: boolean;
+}
+
+interface FilaPagoPOS {
+  id: string;
+  numero: number;
+  turno_id: string;
+  tipo: string;
+  motivo: string;
+  monto: number | string;
+  cuenta_contrapartida_id: string;
+  contacto_id: string | null;
+  factura_id: string | null;
+  gasto_menor_id: string | null;
+  pago_recibido_id: string | null;
+  asiento_id: string;
+  notas: string | null;
+  creado_en: string;
+  creado_por: string;
+  pos_turnos: { numero: number } | null;
+  cuentas: { nombre: string } | null;
+  contactos: { nombre: string } | null;
+  facturas: { numero: number; ncf: string | null } | null;
+  pagos_recibidos: { estado: string } | null;
+  gastos_menores: { estado: string } | null;
+}
+
+function motivoPagoPOS(valor: string): MotivoMovimientoPOS {
+  return MOTIVOS_MOVIMIENTO_POS.find((motivo) => motivo === valor) ?? "otro";
+}
+
+function mapearPagoPOS(fila: FilaPagoPOS): PagoPOSFila {
+  const vigente =
+    (fila.pago_recibido_id === null || fila.pagos_recibidos?.estado === "activo") &&
+    (fila.gasto_menor_id === null || fila.gastos_menores?.estado === "activo");
+
+  return {
+    id: fila.id,
+    numero: fila.numero,
+    turno_id: fila.turno_id,
+    turno_numero: fila.pos_turnos?.numero ?? null,
+    tipo: fila.tipo === "retiro" ? "retiro" : "ingreso",
+    motivo: motivoPagoPOS(fila.motivo),
+    monto: decimal(fila.monto),
+    cuenta_contrapartida_id: fila.cuenta_contrapartida_id,
+    cuenta_nombre: textoONulo(fila.cuentas?.nombre),
+    contacto_id: fila.contacto_id,
+    contacto_nombre: textoONulo(fila.contactos?.nombre),
+    factura_id: fila.factura_id,
+    factura_numero: fila.facturas?.numero ?? null,
+    factura_ncf: textoONulo(fila.facturas?.ncf),
+    gasto_menor_id: fila.gasto_menor_id,
+    pago_recibido_id: fila.pago_recibido_id,
+    asiento_id: fila.asiento_id,
+    notas: textoONulo(fila.notas),
+    creado_en: fila.creado_en,
+    creado_por: fila.creado_por,
+    vigente,
+  };
+}
+
+/**
+ * Recibos de caja de la terminal (de todos sus turnos), del más nuevo al más
+ * viejo, paginados con conteo exacto como el resto de listas. La vigencia
+ * replica la regla de `pos_resumen_turno`: un recibo ligado a un pago o a un
+ * gasto anulado ya no suma en el efectivo esperado.
+ */
+export async function getPagosPOS(filtros: FiltrosPagosPOS): Promise<ResultadoPagina<PagoPOSFila>> {
+  const pagina = Math.max(1, Math.trunc(filtros.pagina ?? 1));
+  const tamano = TAMANOS_PAGINA.find((opcion) => opcion === filtros.tamano) ?? TAMANO_PAGINA_DEFECTO;
+  const vacia = { filas: [], resumen: resumirPagina(pagina, tamano, 0) };
+
+  if (!idSchema.safeParse(filtros.terminalId).success) return vacia;
+
+  const numero = filtros.q?.trim() ? numeroDocumento(filtros.q) : null;
+  if (filtros.q?.trim() && numero === null) return vacia;
+
+  const supabase = await createClient();
+  let consulta = supabase
+    .from("pos_turno_movimientos")
+    .select(
+      "id, numero, turno_id, tipo, motivo, monto, cuenta_contrapartida_id, contacto_id, factura_id, " +
+        "pago_recibido_id, gasto_menor_id, asiento_id, notas, creado_en, creado_por, " +
+        "pos_turnos!inner(numero), cuentas(nombre), contactos(nombre), facturas(numero, ncf), " +
+        "pagos_recibidos(estado), gastos_menores(estado)",
+      { count: "exact" },
+    )
+    .eq("pos_turnos.terminal_id", filtros.terminalId)
+    .eq("tipo", filtros.tipo === "retiro" ? "retiro" : "ingreso");
+
+  if (numero !== null) consulta = consulta.eq("numero", numero);
+
+  const { desde, hasta } = rangoPagina(pagina, tamano);
+  const { data, error, count } = await consulta
+    .order("numero", { ascending: false })
+    .range(desde, hasta)
+    .returns<FilaPagoPOS[]>();
+
+  if (error) throw new ErrorPOS(mensajeErrorRpc(error), error.code);
+
+  const filas = data ?? [];
+  return { filas: filas.map(mapearPagoPOS), resumen: resumirPagina(pagina, tamano, count ?? filas.length) };
 }

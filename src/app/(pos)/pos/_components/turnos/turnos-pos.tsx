@@ -43,7 +43,6 @@ import { resumenTurnoPOS, ticketCierrePOS } from "../acciones-pos";
 import type { CuentaPOS } from "../servidor";
 import { DialogoAbrirTurno } from "./dialogo-abrir-turno";
 import { DialogoCerrarTurno } from "./dialogo-cerrar-turno";
-import { DialogoMovimiento, type PrellenadoMovimiento } from "./dialogo-movimiento";
 import { ResumenTurno } from "./resumen-turno";
 import { TablaCierres } from "./tabla-cierres";
 import { TablaMovimientosTurno } from "./tabla-movimientos-turno";
@@ -86,14 +85,11 @@ export function TurnosPos({
   const router = useRouter();
   const [vista, setVista] = useState<ResumenTurnoVista | null>(vistaInicial);
   const [abrirAbierto, setAbrirAbierto] = useState(false);
-  const [movimientoAbierto, setMovimientoAbierto] = useState(false);
-  const [prellenado, setPrellenado] = useState<PrellenadoMovimiento | null>(null);
   const [cerrarAbierto, setCerrarAbierto] = useState(false);
   const [detalle, setDetalle] = useState<ResumenTurnoVista | null>(null);
   const [detalleAbierto, setDetalleAbierto] = useState(false);
   const [detalleCargando, setDetalleCargando] = useState(false);
   const [confirmacion, setConfirmacion] = useState<CierreTurnoPOS | null>(null);
-  const [recibo, setRecibo] = useState<MovimientoTurnoPOSResultado | null>(null);
   const [reciboHistorico, setReciboHistorico] = useState<MovimientoTurnoPOS | null>(null);
   const [imprimiendo, setImprimiendo] = useState(false);
   const [trabajo, setTrabajo] = useState<
@@ -106,10 +102,6 @@ export function TurnosPos({
   const abierto = turnoAbierto && turno?.estado === "abierto";
   const plantilla = vista?.terminal.plantilla_ticket ?? terminal.plantilla_ticket;
   const sinCaja = !cuentas.some((cuenta) => cuenta.id === terminal.cuenta_efectivo_id);
-
-  function actualizarResumen(resumen: ResumenTurnoVista["resumen"]) {
-    setVista((actual) => (actual ? { ...actual, resumen } : actual));
-  }
 
   async function verCierre(turnoFila: TurnoPOS) {
     setDetalleAbierto(true);
@@ -154,16 +146,6 @@ export function TurnosPos({
     setReciboHistorico(movimiento);
   }
 
-  function inverso(movimiento: MovimientoTurnoPOS) {
-    setPrellenado({
-      tipo: movimiento.tipo === "ingreso" ? "retiro" : "ingreso",
-      motivo: "otro",
-      monto: movimiento.monto,
-      notas: `Corrección del recibo No ${movimiento.numero}`,
-    });
-    setMovimientoAbierto(true);
-  }
-
   const reciboPseudo: MovimientoTurnoPOSResultado | null =
     reciboHistorico && vista
       ? {
@@ -192,31 +174,16 @@ export function TurnosPos({
         subtitulo="Abre, opera y cierra la caja de esta terminal."
         acciones={
           puedeEscribir ? (
-            <>
-              {abierto ? (
-                <>
-                  <Button
-                    variant="outline"
-                    className="h-10 gap-1.5"
-                    onClick={() => {
-                      setPrellenado(null);
-                      setMovimientoAbierto(true);
-                    }}
-                  >
-                    <Plus aria-hidden="true" />
-                    Registrar movimiento
-                  </Button>
-                  <Button className="h-10" onClick={() => setCerrarAbierto(true)}>
-                    Cerrar turno
-                  </Button>
-                </>
-              ) : (
-                <Button className="h-10 gap-1.5" onClick={() => setAbrirAbierto(true)}>
-                  <Plus aria-hidden="true" />
-                  {turno ? "Abrir nuevo turno" : "Abrir turno"}
-                </Button>
-              )}
-            </>
+            abierto ? (
+              <Button className="h-10" onClick={() => setCerrarAbierto(true)}>
+                Cerrar turno
+              </Button>
+            ) : (
+              <Button className="h-10 gap-1.5" onClick={() => setAbrirAbierto(true)}>
+                <Plus aria-hidden="true" />
+                {turno ? "Abrir nuevo turno" : "Abrir turno"}
+              </Button>
+            )
           ) : null
         }
       />
@@ -297,8 +264,8 @@ export function TurnosPos({
                 <TablaMovimientosTurno
                   movimientos={vista.resumen.movimientos}
                   onVer={verRecibo}
-                  onInverso={inverso}
-                  permitirInverso={puedeEscribir && abierto}
+                  onInverso={() => undefined}
+                  permitirInverso={false}
                 />
               </div>
             </>
@@ -359,27 +326,6 @@ export function TurnosPos({
       />
 
       {turno && vista ? (
-        <DialogoMovimiento
-          abierto={movimientoAbierto}
-          onCerrar={() => {
-            setMovimientoAbierto(false);
-            setPrellenado(null);
-          }}
-          turnoId={turno.id}
-          resumen={vista.resumen}
-          cuentas={cuentas}
-          cuentaEfectivoId={terminal.cuenta_efectivo_id}
-          prellenado={prellenado}
-          onRegistrado={(datos) => {
-            actualizarResumen(datos.resumen);
-            setRecibo(datos);
-            toast.add({ type: "success", title: "Movimiento registrado." });
-            router.refresh();
-          }}
-        />
-      ) : null}
-
-      {turno && vista ? (
         <DialogoCerrarTurno
           abierto={cerrarAbierto}
           onCerrar={() => setCerrarAbierto(false)}
@@ -437,44 +383,6 @@ export function TurnosPos({
               Abrir nuevo turno
             </Button>
             <Button variant="ghost" onClick={() => setConfirmacion(null)}>
-              Cerrar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={recibo !== null} onOpenChange={(nuevo) => (nuevo ? null : setRecibo(null))}>
-        <DialogContent className="sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle>{`Recibo de ${recibo?.movimiento.tipo === "ingreso" ? "ingreso" : "retiro"} No ${recibo?.movimiento.numero ?? ""}`}</DialogTitle>
-            <DialogDescription>{recibo ? formatoFechaHora(recibo.movimiento.creado_en) : ""}</DialogDescription>
-          </DialogHeader>
-          {recibo ? (
-            <div className="flex flex-col gap-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Monto</span>
-                <span className="font-semibold tabular-nums">{formatoMoneda(recibo.movimiento.monto)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Cuenta</span>
-                <span>{recibo.movimiento.cuenta_nombre ?? "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Efectivo esperado después</span>
-                <span className="tabular-nums">{formatoMoneda(recibo.resumen.efectivo.efectivo_esperado)}</span>
-              </div>
-            </div>
-          ) : null}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              className="h-10 gap-1.5"
-              onClick={() => recibo && setTrabajo({ tipo: "recibo", datos: recibo, incluirEsperado: true })}
-            >
-              <Printer aria-hidden="true" />
-              Imprimir recibo
-            </Button>
-            <Button variant="ghost" onClick={() => setRecibo(null)}>
               Cerrar
             </Button>
           </DialogFooter>
