@@ -20,7 +20,7 @@ export function digitoVerificadorValido(valor: string): boolean {
   if (digitos.length === 9) {
     let suma = 0;
     for (let i = 0; i < 7; i += 1) {
-      suma += Number(digitos.charAt(i + 1)) * PESOS_RNC[i];
+      suma += Number(digitos.charAt(i + 1)) * (PESOS_RNC[i] ?? 0);
     }
     return (11 - (suma % 11)) % 11 === Number(digitos.charAt(8));
   }
@@ -28,7 +28,7 @@ export function digitoVerificadorValido(valor: string): boolean {
   if (digitos.length === 11) {
     let suma = 0;
     for (let i = 0; i < 10; i += 1) {
-      let producto = Number(digitos.charAt(i)) * PESOS_CEDULA[i];
+      let producto = Number(digitos.charAt(i)) * (PESOS_CEDULA[i] ?? 0);
       if (producto >= 10) producto -= 9;
       suma += producto;
     }
