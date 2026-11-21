@@ -1,5 +1,19 @@
 # Handoff — Medoxigas Contabilidad
 
+## Fase 2 cerrada: UI de Inventario, POS y Nómina + auditoría (21 nov 2026)
+
+Ocho PRs de UI integrados a `main` (#77 stock bajo, #79 conteo físico, #80 producto ferretería, #83 configuración Nómina, #84 empleados/inicio, #85 operación/pagos/envíos/TSS, #86 configuración POS, #87 pestaña `/pos`). `ci`, `scan`, `e2e` y `db` verdes en cada `headSha`; `typecheck`, `check`, `test` y `build` en verde tras integrar.
+
+- **Migraciones aplicadas al remoto** (aprobadas por Waldy, `supabase db push --remote=ljfdhrnvlsfaweuvnqxz`): `20261125100000`, `101000`, `120000`, `121000`, `130000`, `131000`, `140000`. Verificado con PostgREST: las tablas nuevas responden (401 por RLS, no 404).
+- **Capturas reales con sesión** (contador `zztest1`): 72 PNGs en `C:\Users\wardy\AppData\Local\Temp\opencode\capturas-ui` (23 rutas × claro/oscuro/móvil) y sidebar en `...\capturas-sidebar`. Se creó `ZZCAPTURA Caja 1` con un turno abierto (base RD$500) para poder capturar `/pos`; queda pendiente cerrarlo/desactivarlo.
+- **Bug de 2D corregido en la integración:** `SelectorTerminal` usaba el carrito fuera del provider y `/pos` daba 500 cuando existía una terminal; el `CarritoPosProvider` ahora envuelve el encabezado.
+- **Bug de 2B corregido:** el ticket y la carta imprimían el subtotal neto y además la fila Descuento; ahora el subtotal es el bruto (`subtotal + descuento`) con test.
+- **Auditoría (PRs #88, #89, #90):**
+  - `20261125150000_nomina_catalogos_rls.sql`: revoca INSERT/UPDATE/DELETE de `authenticated` en los 4 catálogos de Nómina y elimina las políticas `*_admin_escritura`; pgTAP de 23 asserts (admin/contador/lector, `42501`, RPC siguen funcionando). **No aplicada al remoto todavía: falta el OK de Waldy.**
+  - Etiquetas de `origen_tipo` para POS y Nómina en Libro Diario/Asientos + candado que exige etiqueta para **todos** los valores del CHECK.
+  - Nómina pasó a **grupo desplegable propio** en el sidebar (Inicio, Empleados, Cálculo, Pagos, Envíos, Reportes TSS), con test y capturas claro/oscuro.
+- **Pendiente:** aplicar `20261125150000` al remoto con aprobación; exponer `nomina_agregar_empleados` en `src/lib/nomina/acciones.ts` (el botón está deshabilitado); sumar las listas nuevas a `LISTAS_MIGRADAS`/`PAGINAS_MIGRADAS`; mover a `src/lib/pos/` las lecturas locales de #87; propagar `unidad_id` en `crear_cotizacion`; cerrar/desactivar la terminal `ZZCAPTURA`.
+
 ## Fase 2A POS + Fase 3 Nómina (backend) + 1B inventario y especificaciones de UI (20 nov 2026)
 
 Sesión del Orquestador con 10 subagentes DeepSeek V4.1 Flash Max en paralelo (todos con worktree propio). 10/10 terminaron.
