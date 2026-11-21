@@ -1,26 +1,15 @@
+import type { ReactNode } from "react";
+
 import { cn } from "cn";
 
+import { PillEstado } from "@/components/listas/tabla-lista";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoFechaHora } from "@/lib/formato";
-import { compararMontos, sumarMontos } from "@/lib/pos/calculo";
+import { centavosATexto, centavosDeDecimal, compararMontos } from "@/lib/pos/calculo";
 import type { ResumenTurnoVista } from "@/lib/pos/tipos";
 
-function Kpi({ titulo, valor, detalle }: { titulo: string; valor: string; detalle?: string }) {
-  return (
-    <Card className="py-3">
-      <CardContent className="flex flex-col gap-0.5 px-3">
-        <span className="text-muted-foreground text-xs">{titulo}</span>
-        <span className="text-lg font-semibold tabular-nums">{valor}</span>
-        {detalle ? <span className="text-muted-foreground text-xs">{detalle}</span> : null}
-      </CardContent>
-    </Card>
-  );
-}
-
-function Fila({
+function FilaMovimiento({
   etiqueta,
   valor,
   tenue,
@@ -31,42 +20,59 @@ function Fila({
   tenue?: boolean;
   negativo?: boolean;
 }) {
+  const montoNegativo = negativo && compararMontos(valor, "0") > 0;
   return (
-    <div className="flex items-baseline justify-between gap-3 py-0.5 text-sm">
+    <div className="border-border flex items-baseline justify-between gap-3 border-b px-4 py-2.5 text-sm last:border-b-0">
       <span className={cn(tenue ? "text-muted-foreground" : "")}>{etiqueta}</span>
-      <span className={cn("tabular-nums", negativo ? "text-destructive" : "", tenue ? "text-muted-foreground" : "")}>
-        {valor}
+      <span
+        className={cn("tabular-nums", montoNegativo ? "text-destructive" : "", tenue ? "text-muted-foreground" : "")}
+      >
+        {montoNegativo ? `−${formatoMoneda(valor)}` : formatoMoneda(valor)}
       </span>
     </div>
   );
 }
 
-export function ResumenTurno({ vista, compacto = false }: { vista: ResumenTurnoVista; compacto?: boolean }) {
+function diferenciaTexto(diferencia: string | null): { texto: string; faltante: boolean } {
+  const centavos = centavosDeDecimal(diferencia ?? "0") ?? 0;
+  if (centavos === 0) return { texto: "La caja cuadra", faltante: false };
+  const monto = formatoMoneda(centavosATexto(Math.abs(centavos)));
+  return centavos > 0
+    ? { texto: `Sobrante ${monto}`, faltante: false }
+    : { texto: `Faltante ${monto}`, faltante: true };
+}
+
+/** Detalle de un turno estilo Alegra: pill, tarjeta de movimientos y caja destacada de efectivo. */
+export function ResumenTurno({ vista, acciones }: { vista: ResumenTurnoVista; acciones?: ReactNode }) {
   const { turno, resumen } = vista;
-  const otros = sumarMontos([resumen.ventas.por_metodo.tarjeta, resumen.ventas.por_metodo.transferencia]);
   const esperadoNegativo = compararMontos(resumen.efectivo.efectivo_esperado, "0") < 0;
   const cerrado = turno.estado === "cerrado" || resumen.efectivo.congelado;
+  const diferencia = diferenciaTexto(resumen.efectivo.diferencia);
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="text-base font-semibold">{`Turno No ${turno.numero}`}</h2>
-        <Badge variant={cerrado ? "destructive" : "secondary"}>{cerrado ? "Cerrado" : "Abierto"}</Badge>
-        <span className="text-muted-foreground text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h2 className="text-lg font-semibold">
+            {cerrado ? `Cierre No ${turno.numero}` : `Turno No ${turno.numero}`}
+          </h2>
+          <PillEstado tono={cerrado ? "peligro" : "exito"}>{cerrado ? "CERRADO" : "ABIERTO"}</PillEstado>
+        </div>
+        {acciones ? <div className="flex flex-wrap items-center gap-2">{acciones}</div> : null}
+      </div>
+
+      <div className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
+        <span>
           {turno.cerrado_en
             ? `Cerrado ${formatoFechaHora(turno.cerrado_en)}`
             : `Abierto desde ${formatoFechaHora(turno.abierto_en)}`}
         </span>
-        <span className="text-muted-foreground text-xs">
+        <span>
           {turno.cerrado_en
             ? `Abierto por ${turno.abierto_por_nombre ?? "—"} · Cerrado por ${turno.cerrado_por_nombre ?? "—"}`
             : `Abierto por ${turno.abierto_por_nombre ?? "—"}`}
         </span>
       </div>
-
-      {cerrado ? (
-        <p className="text-muted-foreground text-xs">El efectivo esperado quedó congelado al cerrar.</p>
-      ) : null}
 
       {esperadoNegativo ? (
         <Alert variant="destructive">
@@ -76,82 +82,78 @@ export function ResumenTurno({ vista, compacto = false }: { vista: ResumenTurnoV
         </Alert>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <Kpi
-          titulo="Ventas"
-          valor={formatoMoneda(resumen.ventas.total)}
-          detalle={resumen.ventas.cantidad === 1 ? "1 venta" : `${resumen.ventas.cantidad} ventas`}
-        />
-        <Kpi titulo="Ventas en efectivo" valor={formatoMoneda(resumen.ventas.por_metodo.efectivo)} />
-        <Kpi
-          titulo="Otros métodos"
-          valor={formatoMoneda(otros)}
-          detalle={`Transferencia ${formatoMoneda(resumen.ventas.por_metodo.transferencia)}`}
-        />
-        <Kpi titulo="Efectivo esperado" valor={formatoMoneda(resumen.efectivo.efectivo_esperado)} />
-      </div>
-
-      {compacto ? null : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <div className="border-border bg-card rounded-xl border p-3">
-            <p className="mb-1 text-sm font-medium">Detalle</p>
-            <Fila etiqueta="Base inicial" valor={formatoMoneda(resumen.efectivo.base_inicial)} />
-            <Fila etiqueta="Ventas en efectivo" valor={formatoMoneda(resumen.ventas.por_metodo.efectivo)} />
-            <Fila
-              etiqueta="Ventas con tarjeta"
-              valor={formatoMoneda(resumen.ventas.por_metodo.tarjeta)}
-              tenue={compararMontos(resumen.ventas.por_metodo.tarjeta, "0") === 0}
-            />
-            <Fila
-              etiqueta="Ventas por transferencia"
-              valor={formatoMoneda(resumen.ventas.por_metodo.transferencia)}
-              tenue={compararMontos(resumen.ventas.por_metodo.transferencia, "0") === 0}
-            />
-            <Fila
-              etiqueta="Ventas a crédito"
-              valor={formatoMoneda(resumen.ventas.por_metodo.credito)}
-              tenue={compararMontos(resumen.ventas.por_metodo.credito, "0") === 0}
-            />
+      <div className="border-border bg-card rounded-xl border">
+        <div className="border-border flex items-start justify-between gap-3 border-b px-4 py-3">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-muted-foreground text-xs">Fecha de inicio</span>
+            <span className="text-sm">{formatoFechaHora(turno.abierto_en)}</span>
           </div>
-
-          <div className="border-border bg-card rounded-xl border p-3">
-            <p className="mb-1 text-sm font-medium">Ingresos y retiros</p>
-            <Fila etiqueta="Ingresos" valor={formatoMoneda(resumen.ingresos.total)} />
-            <Fila etiqueta="Fondo de caja" valor={formatoMoneda(resumen.ingresos.por_motivo.fondo_caja)} tenue />
-            <Fila etiqueta="Cobro de factura" valor={formatoMoneda(resumen.ingresos.por_motivo.cobro_factura)} tenue />
-            <Fila etiqueta="Otro ingreso" valor={formatoMoneda(resumen.ingresos.por_motivo.otro)} tenue />
-            <Fila etiqueta="Retiros" valor={formatoMoneda(resumen.retiros.total)} />
-            <Fila etiqueta="Retiro de caja" valor={formatoMoneda(resumen.retiros.por_motivo.retiro_caja)} tenue />
-            <Fila etiqueta="Gasto menor" valor={formatoMoneda(resumen.retiros.por_motivo.gasto_menor)} tenue />
-            <Fila etiqueta="Depósito al banco" valor={formatoMoneda(resumen.retiros.por_motivo.deposito_banco)} tenue />
-            <Fila etiqueta="Otro retiro" valor={formatoMoneda(resumen.retiros.por_motivo.otro)} tenue />
-          </div>
-
-          <div className="border-border bg-card rounded-xl border p-3">
-            <p className="mb-1 text-sm font-medium">Devoluciones</p>
-            <Fila
-              etiqueta={
-                resumen.devoluciones.cantidad === 1 ? "1 devolución" : `${resumen.devoluciones.cantidad} devoluciones`
-              }
-              valor={formatoMoneda(resumen.devoluciones.total)}
-            />
-            <Fila etiqueta="Efectivo" valor={`−${formatoMoneda(resumen.devoluciones.efectivo)}`} negativo />
-            <Fila etiqueta="Crédito" valor={formatoMoneda(resumen.devoluciones.credito)} />
-          </div>
-
-          <div className="border-border bg-card flex flex-col justify-center rounded-xl border p-3">
-            <p className="text-sm font-medium">Efectivo esperado</p>
-            <p className="text-2xl font-semibold tabular-nums">{formatoMoneda(resumen.efectivo.efectivo_esperado)}</p>
-            <p className="text-muted-foreground mt-2 text-xs">
-              {`Efectivo esperado = base inicial ${formatoMoneda(resumen.efectivo.base_inicial)} + ventas en efectivo ${formatoMoneda(
-                resumen.efectivo.ventas_efectivo,
-              )} + ingresos ${formatoMoneda(resumen.efectivo.ingresos_efectivo)} − retiros ${formatoMoneda(
-                resumen.efectivo.retiros_efectivo,
-              )} − devoluciones en efectivo ${formatoMoneda(resumen.efectivo.devoluciones_efectivo)}.`}
-            </p>
+          <div className="flex flex-col items-end gap-0.5 text-right">
+            <span className="text-muted-foreground text-xs">Total de ventas</span>
+            <span className="text-sm font-semibold tabular-nums">{formatoMoneda(resumen.ventas.total)}</span>
+            <span className="text-muted-foreground text-xs">
+              {resumen.ventas.cantidad === 1 ? "1 venta" : `${resumen.ventas.cantidad} ventas`}
+            </span>
           </div>
         </div>
-      )}
+
+        <FilaMovimiento etiqueta="Base inicial" valor={resumen.efectivo.base_inicial} />
+        <FilaMovimiento etiqueta="Ventas en efectivo" valor={resumen.ventas.por_metodo.efectivo} />
+        <FilaMovimiento
+          etiqueta="Ventas con tarjeta"
+          valor={resumen.ventas.por_metodo.tarjeta}
+          tenue={compararMontos(resumen.ventas.por_metodo.tarjeta, "0") === 0}
+        />
+        <FilaMovimiento
+          etiqueta="Ventas por transferencia"
+          valor={resumen.ventas.por_metodo.transferencia}
+          tenue={compararMontos(resumen.ventas.por_metodo.transferencia, "0") === 0}
+        />
+        <FilaMovimiento etiqueta="Ventas a crédito" valor={resumen.ventas.por_metodo.credito} tenue />
+        <FilaMovimiento etiqueta="Devolución de dinero" valor={resumen.devoluciones.efectivo} negativo />
+        <FilaMovimiento etiqueta="Ingresos en efectivo" valor={resumen.ingresos.total} />
+        <FilaMovimiento etiqueta="Retiros en efectivo" valor={resumen.retiros.total} negativo />
+        <div className="border-border flex items-baseline justify-between gap-3 border-t-2 px-4 py-3 text-sm font-semibold">
+          <span>Total de movimientos del turno</span>
+          <span className="tabular-nums">{formatoMoneda(resumen.efectivo.efectivo_esperado)}</span>
+        </div>
+      </div>
+
+      <div className="bg-muted/50 flex flex-col gap-2 rounded-xl px-4 py-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <span className="text-sm font-semibold">
+            {cerrado ? "Dinero en efectivo del cierre" : "Dinero esperado en caja"}
+          </span>
+          <span className="text-2xl font-semibold tabular-nums">
+            {formatoMoneda(resumen.efectivo.efectivo_esperado)}
+          </span>
+        </div>
+        <p className="text-muted-foreground text-xs">
+          Base inicial más las ventas e ingresos en efectivo, menos las devoluciones y los retiros.
+          {cerrado ? " Quedó congelado al cerrar." : ""}
+        </p>
+        {cerrado && resumen.efectivo.efectivo_real !== null ? (
+          <div className="border-border flex flex-col gap-1 border-t pt-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Efectivo real contado</span>
+              <span className="tabular-nums">{formatoMoneda(resumen.efectivo.efectivo_real)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Diferencia</span>
+              <span className={cn("font-medium", diferencia.faltante ? "text-destructive" : "")}>
+                {diferencia.texto}
+              </span>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {turno.observaciones ? (
+        <div className="border-border bg-card rounded-xl border px-4 py-3 text-sm">
+          <p className="font-medium">Observaciones</p>
+          <p className="text-muted-foreground">{turno.observaciones}</p>
+        </div>
+      ) : null}
     </div>
   );
 }

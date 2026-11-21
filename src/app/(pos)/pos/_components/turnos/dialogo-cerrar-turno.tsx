@@ -113,16 +113,32 @@ export function DialogoCerrarTurno({
               <span className="tabular-nums">{formatoMoneda(vista.resumen.ventas.por_metodo.efectivo)}</span>
             </div>
             <div className="flex justify-between">
+              <span className="text-muted-foreground">Ventas con tarjeta</span>
+              <span className="tabular-nums">{formatoMoneda(vista.resumen.ventas.por_metodo.tarjeta)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Ventas por transferencia</span>
+              <span className="tabular-nums">{formatoMoneda(vista.resumen.ventas.por_metodo.transferencia)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Devoluciones en efectivo</span>
+              <span className="text-destructive tabular-nums">
+                {compararMontos(vista.resumen.devoluciones.efectivo, "0") > 0
+                  ? `−${formatoMoneda(vista.resumen.devoluciones.efectivo)}`
+                  : formatoMoneda(vista.resumen.devoluciones.efectivo)}
+              </span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Ingresos</span>
               <span className="tabular-nums">{formatoMoneda(vista.resumen.ingresos.total)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Retiros</span>
-              <span className="tabular-nums">{formatoMoneda(vista.resumen.retiros.total)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Devoluciones en efectivo</span>
-              <span className="tabular-nums">{formatoMoneda(vista.resumen.devoluciones.efectivo)}</span>
+              <span className="text-destructive tabular-nums">
+                {compararMontos(vista.resumen.retiros.total, "0") > 0
+                  ? `−${formatoMoneda(vista.resumen.retiros.total)}`
+                  : formatoMoneda(vista.resumen.retiros.total)}
+              </span>
             </div>
             <div className="mt-1 flex items-baseline justify-between border-t pt-1">
               <span className="font-medium">Efectivo esperado en caja</span>

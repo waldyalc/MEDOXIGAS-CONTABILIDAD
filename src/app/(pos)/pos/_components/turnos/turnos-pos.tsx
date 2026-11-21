@@ -1,18 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { Clock, Loader2, Plus, Printer } from "lucide-react";
+import { cn } from "cn";
+import { ArrowLeft, Clock, Loader2, Plus, Printer } from "lucide-react";
 
 import { PaginadorLista } from "@/components/listas/paginador-lista";
+import { TarjetaLista } from "@/components/listas/tabla-lista";
 import { ContenedorLista } from "@/components/pagina/contenedor-pagina";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { ImpresionPos } from "@/components/pos/impresion-pos";
 import { TicketPos } from "@/components/pos/ticket-pos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,12 +24,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoFechaHora } from "@/lib/formato";
-import { leerTamano, type ParametrosLista, type ResumenPagina, urlLista } from "@/lib/listas/parametros";
+import { type ParametrosLista, type ResumenPagina, urlLista } from "@/lib/listas/parametros";
 import { compararMontos } from "@/lib/pos/calculo";
 import { armarTicketCierre, armarTicketMovimiento } from "@/lib/pos/impresion";
 import type {
@@ -45,8 +44,8 @@ import type { CuentaPOS } from "../servidor";
 import { DialogoAbrirTurno } from "./dialogo-abrir-turno";
 import { DialogoCerrarTurno } from "./dialogo-cerrar-turno";
 import { DialogoMovimiento, type PrellenadoMovimiento } from "./dialogo-movimiento";
+import { ListaTurnos, SELECCION_ACTUAL } from "./lista-turnos";
 import { ResumenTurno } from "./resumen-turno";
-import { TablaCierres } from "./tabla-cierres";
 import { TablaMovimientosTurno } from "./tabla-movimientos-turno";
 
 const ESTA_TERMINAL = "esta";
@@ -86,13 +85,16 @@ export function TurnosPos({
 }) {
   const router = useRouter();
   const [vista, setVista] = useState<ResumenTurnoVista | null>(vistaInicial);
+  const [seleccionado, setSeleccionado] = useState<string>(() =>
+    vistaInicial ? SELECCION_ACTUAL : (cierres[0]?.id ?? ""),
+  );
+  const [detalleMovil, setDetalleMovil] = useState(false);
   const [abrirAbierto, setAbrirAbierto] = useState(false);
   const [movimientoAbierto, setMovimientoAbierto] = useState(false);
   const [prellenado, setPrellenado] = useState<PrellenadoMovimiento | null>(null);
   const [cerrarAbierto, setCerrarAbierto] = useState(false);
   const [detalle, setDetalle] = useState<ResumenTurnoVista | null>(null);
-  const [detalleAbierto, setDetalleAbierto] = useState(false);
-  const [detalleCargando, setDetalleCargando] = useState(false);
+  const [detalleCargando, setDetalleCargando] = useState<string | null>(null);
   const [confirmacion, setConfirmacion] = useState<CierreTurnoPOS | null>(null);
   const [recibo, setRecibo] = useState<MovimientoTurnoPOSResultado | null>(null);
   const [reciboHistorico, setReciboHistorico] = useState<MovimientoTurnoPOS | null>(null);
@@ -104,20 +106,21 @@ export function TurnosPos({
   >(null);
 
   const turno = vista?.turno ?? null;
-  const abierto = turnoAbierto && turno?.estado === "abierto";
+  const esActual = seleccionado === SELECCION_ACTUAL;
+  const abierto = esActual && turnoAbierto && turno?.estado === "abierto";
   const plantilla = vista?.terminal.plantilla_ticket ?? terminal.plantilla_ticket;
   const sinCaja = !cuentas.some((cuenta) => cuenta.id === terminal.cuenta_efectivo_id);
+  const vistaDetalle = esActual ? vista : detalle && detalle.turno.id === seleccionado ? detalle : null;
 
   function actualizarResumen(resumen: ResumenTurnoVista["resumen"]) {
     setVista((actual) => (actual ? { ...actual, resumen } : actual));
   }
 
-  async function verCierre(turnoFila: TurnoPOS) {
-    setDetalleAbierto(true);
-    setDetalleCargando(true);
+  const cargarCierre = useCallback(async (id: string) => {
+    setDetalleCargando(id);
     setDetalle(null);
     try {
-      const resultado = await resumenTurnoPOS(turnoFila.id);
+      const resultado = await resumenTurnoPOS(id);
       if (!resultado.ok || !resultado.data) {
         toast.add({
           type: "error",
@@ -128,9 +131,23 @@ export function TurnosPos({
       }
       setDetalle(resultado.data);
     } finally {
-      setDetalleCargando(false);
+      setDetalleCargando(null);
     }
+  }, []);
+
+  function seleccionar(clave: string) {
+    setSeleccionado(clave);
+    setDetalleMovil(true);
+    if (clave !== SELECCION_ACTUAL && detalle?.turno.id !== clave) void cargarCierre(clave);
   }
+
+  // Al montar sin turno vigente se precarga el primer cierre de la lista.
+  const arranque = useRef(false);
+  useEffect(() => {
+    if (arranque.current) return;
+    arranque.current = true;
+    if (seleccionado !== SELECCION_ACTUAL && seleccionado !== "") void cargarCierre(seleccionado);
+  }, [seleccionado, cargarCierre]);
 
   async function imprimirCierre(turnoFila: TurnoPOS) {
     setImprimiendo(true);
@@ -151,7 +168,7 @@ export function TurnosPos({
   }
 
   function verRecibo(movimiento: MovimientoTurnoPOS) {
-    if (!vista) return;
+    if (!vistaDetalle) return;
     setReciboHistorico(movimiento);
   }
 
@@ -166,61 +183,64 @@ export function TurnosPos({
   }
 
   const reciboPseudo: MovimientoTurnoPOSResultado | null =
-    reciboHistorico && vista
+    reciboHistorico && vistaDetalle
       ? {
           movimiento: { ...reciboHistorico, factura_ncf: null, cajero: null },
           turno: {
-            id: vista.turno.id,
-            numero: vista.turno.numero,
-            base_inicial: vista.turno.base_inicial,
-            estado: vista.turno.estado,
+            id: vistaDetalle.turno.id,
+            numero: vistaDetalle.turno.numero,
+            base_inicial: vistaDetalle.turno.base_inicial,
+            estado: vistaDetalle.turno.estado,
           },
-          terminal: vista.terminal,
-          empresa: vista.empresa,
+          terminal: vistaDetalle.terminal,
+          empresa: vistaDetalle.empresa,
           asiento: null,
           plantilla_ticket: plantilla,
-          resumen: vista.resumen,
+          resumen: vistaDetalle.resumen,
         }
       : null;
 
   const plantillaTrabajo =
     trabajo?.tipo === "cierre" ? (trabajo.datos.terminal.plantilla_ticket ?? plantilla) : plantilla;
 
+  const accionesDetalle = vistaDetalle ? (
+    <>
+      {abierto && puedeEscribir ? (
+        <>
+          <Button
+            variant="outline"
+            className="h-10 gap-1.5"
+            onClick={() => {
+              setPrellenado(null);
+              setMovimientoAbierto(true);
+            }}
+          >
+            <Plus aria-hidden="true" />
+            Registrar movimiento
+          </Button>
+          <Button className="h-10" onClick={() => setCerrarAbierto(true)}>
+            Cerrar turno
+          </Button>
+        </>
+      ) : null}
+      {esActual && !abierto && puedeEscribir ? (
+        <Button className="h-10 gap-1.5" onClick={() => setAbrirAbierto(true)}>
+          <Plus aria-hidden="true" />
+          Abrir turno
+        </Button>
+      ) : null}
+      {vistaDetalle.turno.estado === "cerrado" ? (
+        <Button variant="outline" className="h-10 gap-1.5" onClick={() => void imprimirCierre(vistaDetalle.turno)}>
+          {imprimiendo ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}
+          Imprimir cierre
+        </Button>
+      ) : null}
+    </>
+  ) : null;
+
   return (
     <ContenedorLista className="p-4 md:p-6">
-      <EncabezadoPagina
-        titulo="Turnos"
-        subtitulo="Abre, opera y cierra la caja de esta terminal."
-        acciones={
-          puedeEscribir ? (
-            <>
-              {abierto ? (
-                <>
-                  <Button
-                    variant="outline"
-                    className="h-10 gap-1.5"
-                    onClick={() => {
-                      setPrellenado(null);
-                      setMovimientoAbierto(true);
-                    }}
-                  >
-                    <Plus aria-hidden="true" />
-                    Registrar movimiento
-                  </Button>
-                  <Button className="h-10" onClick={() => setCerrarAbierto(true)}>
-                    Cerrar turno
-                  </Button>
-                </>
-              ) : (
-                <Button className="h-10 gap-1.5" onClick={() => setAbrirAbierto(true)}>
-                  <Plus aria-hidden="true" />
-                  {turno ? "Abrir nuevo turno" : "Abrir turno"}
-                </Button>
-              )}
-            </>
-          ) : null
-        }
-      />
+      <EncabezadoPagina titulo="Turnos" subtitulo="Abre, opera y cierra la caja de esta terminal." />
 
       {error ? (
         <Alert variant="destructive">
@@ -233,81 +253,30 @@ export function TurnosPos({
         </Alert>
       ) : null}
 
-      <Tabs defaultValue="actual">
-        <TabsList variant="line">
-          <TabsTrigger value="actual">Turno actual</TabsTrigger>
-          <TabsTrigger value="cierres">Cierres</TabsTrigger>
-        </TabsList>
+      {sinCaja ? (
+        <Alert variant="destructive">
+          <AlertDescription className="flex flex-wrap items-center gap-2">
+            {`La terminal ${terminal.nombre} no tiene una cuenta de efectivo activa.`}
+            <span className="text-xs">Corrige la configuración en Contabilidad.</span>
+            <Button
+              variant="outline"
+              size="sm"
+              render={<a href="/dashboard/configuracion/pos" target="_blank" rel="noreferrer" />}
+            >
+              Abrir configuración
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
-        {sinCaja ? (
-          <Alert variant="destructive">
-            <AlertDescription className="flex flex-wrap items-center gap-2">
-              {`La terminal ${terminal.nombre} no tiene una cuenta de efectivo activa.`}
-              <span className="text-xs">Corrige la configuración en Contabilidad.</span>
-              <Button
-                variant="outline"
-                size="sm"
-                render={<a href="/dashboard/configuracion/pos" target="_blank" rel="noreferrer" />}
-              >
-                Abrir configuración
-              </Button>
-            </AlertDescription>
-          </Alert>
-        ) : null}
-
-        <TabsContent value="actual" className="mt-4 flex flex-col gap-4">
-          {vista === null ? (
-            <div className="border-border bg-card flex flex-col items-center gap-2 rounded-2xl border px-6 py-16 text-center">
-              <Clock className="text-muted-foreground size-8" aria-hidden="true" />
-              <p className="text-lg font-semibold">{`No hay un turno abierto en ${terminal.nombre}.`}</p>
-              <p className="text-muted-foreground text-sm">Abre un turno con la base inicial para empezar a vender.</p>
-              {puedeEscribir ? (
-                <Button className="mt-2 h-12" onClick={() => setAbrirAbierto(true)}>
-                  Abrir turno
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <>
-              <ResumenTurno vista={vista} />
-
-              {turno?.estado === "cerrado" ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="destructive">Cerrado</Badge>
-                  <Button variant="outline" className="h-10 gap-1.5" onClick={() => void imprimirCierre(vista.turno)}>
-                    {imprimiendo ? (
-                      <Loader2 className="animate-spin" aria-hidden="true" />
-                    ) : (
-                      <Printer aria-hidden="true" />
-                    )}
-                    Imprimir cierre
-                  </Button>
-                </div>
-              ) : null}
-
-              {compararMontos(vista.resumen.efectivo.efectivo_esperado, "0") < 0 && abierto ? (
-                <Alert variant="destructive">
-                  <AlertDescription>
-                    El efectivo esperado es negativo; revisa los pagos y devoluciones del turno antes de cerrar.
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-
-              <div>
-                <h3 className="mb-2 text-sm font-semibold">Movimientos del turno</h3>
-                <TablaMovimientosTurno
-                  movimientos={vista.resumen.movimientos}
-                  onVer={verRecibo}
-                  onInverso={inverso}
-                  permitirInverso={puedeEscribir && abierto}
-                />
-              </div>
-            </>
+      <TarjetaLista className="lg:flex" data-lista="pos-turnos">
+        <div
+          className={cn(
+            "border-border w-full shrink-0 flex-col lg:flex lg:w-[330px] lg:border-r",
+            detalleMovil ? "hidden" : "flex",
           )}
-        </TabsContent>
-
-        <TabsContent value="cierres" className="mt-4 flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+        >
+          <div className="border-border border-b p-2">
             <Select
               items={[
                 { value: ESTA_TERMINAL, label: "Esta terminal" },
@@ -320,7 +289,7 @@ export function TurnosPos({
                 })
               }
             >
-              <SelectTrigger className="h-10 w-[210px]" aria-label="Filtro de terminal de los cierres">
+              <SelectTrigger className="h-9 w-full" aria-label="Filtro de terminal de los cierres">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
@@ -330,23 +299,70 @@ export function TurnosPos({
             </Select>
           </div>
 
-          <TablaCierres
-            filas={cierres}
+          <ListaTurnos
+            actual={vista?.turno ?? null}
+            cierres={cierres}
             terminales={terminales}
             todas={todas}
-            onVer={(fila) => void verCierre(fila)}
-            onImprimir={(fila) => void imprimirCierre(fila)}
+            seleccionado={seleccionado}
+            cargandoId={detalleCargando}
+            onSeleccionar={seleccionar}
           />
 
-          <PaginadorLista
-            base="/pos/turnos"
-            params={params}
-            resumen={resumenPagina}
-            opciones={[25, 50, 100]}
-            tamano={leerTamano(params)}
-          />
-        </TabsContent>
-      </Tabs>
+          <div className="border-border mt-auto border-t px-3 py-2">
+            <PaginadorLista
+              base="/pos/turnos"
+              params={params}
+              resumen={resumenPagina}
+              botonesExtremos={false}
+              className="text-xs"
+            />
+          </div>
+        </div>
+
+        <div className={cn("min-w-0 flex-1", detalleMovil ? "block" : "hidden lg:block")}>
+          <div className="flex flex-col gap-4 p-4 md:p-6">
+            <Button variant="ghost" className="h-8 w-fit gap-1 px-2 lg:hidden" onClick={() => setDetalleMovil(false)}>
+              <ArrowLeft aria-hidden="true" />
+              Turnos
+            </Button>
+
+            {seleccionado !== SELECCION_ACTUAL && seleccionado !== "" && !vistaDetalle ? (
+              <div className="text-muted-foreground flex items-center gap-2 py-16 text-sm">
+                <Loader2 className="animate-spin" aria-hidden="true" />
+                Cargando cierre…
+              </div>
+            ) : vistaDetalle ? (
+              <>
+                <ResumenTurno vista={vistaDetalle} acciones={accionesDetalle} />
+
+                <section>
+                  <h3 className="mb-2 text-sm font-semibold">Movimientos del turno</h3>
+                  <TablaMovimientosTurno
+                    movimientos={vistaDetalle.resumen.movimientos}
+                    onVer={verRecibo}
+                    onInverso={inverso}
+                    permitirInverso={abierto === true && puedeEscribir}
+                  />
+                </section>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-16 text-center">
+                <Clock className="text-muted-foreground size-8" aria-hidden="true" />
+                <p className="text-lg font-semibold">{`No hay un turno abierto en ${terminal.nombre}.`}</p>
+                <p className="text-muted-foreground text-sm">
+                  Abre un turno con la base inicial para empezar a vender.
+                </p>
+                {puedeEscribir ? (
+                  <Button className="mt-2 h-12" onClick={() => setAbrirAbierto(true)}>
+                    Abrir turno
+                  </Button>
+                ) : null}
+              </div>
+            )}
+          </div>
+        </div>
+      </TarjetaLista>
 
       <DialogoAbrirTurno
         abierto={abrirAbierto}
@@ -355,6 +371,7 @@ export function TurnosPos({
         turnoActual={abierto ? (turno?.numero ?? null) : null}
         onAbierto={(datos) => {
           setVista({ turno: datos.turno, terminal: datos.terminal, empresa: datos.empresa, resumen: datos.resumen });
+          setSeleccionado(SELECCION_ACTUAL);
           router.refresh();
         }}
       />
@@ -387,6 +404,7 @@ export function TurnosPos({
           vista={vista}
           onCerrado={(datos) => {
             setVista({ turno: datos.turno, terminal: datos.terminal, empresa: datos.empresa, resumen: datos.resumen });
+            setSeleccionado(SELECCION_ACTUAL);
             setConfirmacion(datos);
             router.refresh();
           }}
@@ -522,31 +540,6 @@ export function TurnosPos({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Sheet open={detalleAbierto} onOpenChange={setDetalleAbierto}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-[560px]">
-          <SheetHeader>
-            <SheetTitle>{`Cierre No ${detalle?.turno.numero ?? ""}`}</SheetTitle>
-            <SheetDescription>Resumen congelado del turno.</SheetDescription>
-          </SheetHeader>
-          {detalleCargando ? (
-            <div className="flex items-center gap-2 p-4 text-sm">
-              <Loader2 className="animate-spin" aria-hidden="true" />
-              Cargando cierre…
-            </div>
-          ) : detalle ? (
-            <div className="flex flex-col gap-4 p-4">
-              <ResumenTurno vista={detalle} />
-              <TablaMovimientosTurno
-                movimientos={detalle.resumen.movimientos}
-                onVer={(movimiento) => setReciboHistorico(movimiento)}
-                onInverso={() => undefined}
-                permitirInverso={false}
-              />
-            </div>
-          ) : null}
-        </SheetContent>
-      </Sheet>
 
       {trabajo ? (
         <ImpresionPos
