@@ -1,5 +1,14 @@
 # Handoff — Medoxigas Contabilidad
 
+## Regla de capturas al terminar (rama `docs/regla-capturas-preview`)
+
+Solo documentación. `AGENTS.md` gana la sección «Preview y capturas al terminar»
+(22-11-2026): todo agente entrega capturas desde el preview oficial
+`http://127.0.0.1:3010` (ZZTEST, 1440 px, una por punto) guardadas en
+`/root/referencias/capturas-terminadas/`; el Orquestador actualiza el preview al
+juntar (`git pull` de `feat/pos-alegra-exacto`, `pnpm build`,
+`systemctl restart medoxigas-preview`, 200) y reporta cada ruta con una línea.
+
 ## POS 5: «Nuevo pago» como Alegra (rama `feat/pos-nuevo-pago-alegra`)
 
 Rediseño del modal de registrar movimiento del POS sobre la base del PR #107
