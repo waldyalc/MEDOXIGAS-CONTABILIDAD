@@ -128,7 +128,7 @@ export function PestanasVentaPos({ onNuevaVenta }: { onNuevaVenta?: () => void }
                 >
                   <MoreVertical aria-hidden="true" />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-40">
+                <DropdownMenuContent align="start" side="top" sideOffset={8} className="w-40">
                   <DropdownMenuItem
                     onClick={() => {
                       setTexto(pestana.nombre);
