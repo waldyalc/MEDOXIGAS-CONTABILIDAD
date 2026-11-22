@@ -131,9 +131,9 @@ export function PanelFactura({
       id={idPanel}
       role="tabpanel"
       aria-labelledby={`pestana-${activa.id}`}
-      className="border-l border-l-slate-300 text-pos-texto flex h-full min-h-0 w-full flex-col bg-white [font-family:var(--font-inter)] dark:border-l-pos-linea dark:bg-card"
+      className="border-l border-l-slate-300 text-pos-texto bg-pos-panel flex h-full min-h-0 w-full flex-col [font-family:var(--font-inter)] dark:border-l-pos-linea dark:bg-card"
     >
-      <div className="border-pos-linea flex h-[60px] shrink-0 items-center justify-between border-b pl-5 pr-1">
+      <div className="border-pos-linea flex h-[60px] shrink-0 items-center justify-between border-b bg-white pl-5 pr-1 dark:bg-card">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold whitespace-nowrap text-[#334155] dark:text-pos-texto">Factura de venta</h2>
           <span className="flex size-7 items-center justify-center rounded-full bg-[#e2e8f0] dark:bg-white/10">
@@ -202,7 +202,7 @@ export function PanelFactura({
         </div>
       </div>
 
-      <div className="border-pos-linea flex shrink-0 flex-col gap-[10px] border-b px-4 py-3">
+      <div className="border-pos-linea flex shrink-0 flex-col gap-[10px] border-b bg-white px-4 py-3 dark:bg-card">
         <div className="grid grid-cols-2 gap-[10px]">
           <div className="flex flex-col gap-1">
             <Label htmlFor="lista-precio-pos" className="text-pos-texto text-sm font-normal">

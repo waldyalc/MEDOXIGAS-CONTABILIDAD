@@ -42,12 +42,24 @@ Threshold por canal: diferencia máxima RGB > 24. Ancho/alto idénticos por par.
 | --- | --- | --- |
 | Diferencia **estructural** (sobre píxeles comparables) | **1.062 %** (2 918 / 274 651) | **1.404 %** (2 734 / 194 684) |
 | Diferencia sobre el recorte total (incluye zonas excluidas) | 0.340 % (2 918 / 858 240) | 0.543 % (2 734 / 503 808) |
-| Diferencia **cruda** (sin máscaras, con datos y textos) | 8.848 % (75 938 / 858 240) | 13.610 % (68 567 / 503 808) |
+| Diferencia **cruda** (sin máscaras, con datos y textos) | 8.767 % (75 240 / 858 240) | 13.410 % (67 563 / 503 808) |
 | Área comparable tras las máscaras | 32 % del recorte | 39 % del recorte |
 
 La diferencia cruda sube porque compara nombres, precios, fotos, clientes y
 productos distintos —justamente lo que se excluye de la estructural—, además de
-la fila de filtros propia.
+la fila de filtros propia. El cuerpo del panel quedó con el fondo real de Alegra
+(`#f8fafc`) y eso bajó la diferencia cruda respecto de la primera pasada
+(8.848 % / 13.610 %).
+
+Muestras de control del panel (mismo estado, carrito vacío):
+
+| Zona | 1440×900 | 1024×600 |
+| --- | --- | --- |
+| Encabezado | `(255,255,255)` en ambos | `(255,255,255)` en ambos |
+| Bloque superior (Lista/Numeración/Cliente) | `(255,255,255)` en ambos | `(255,255,255)` en ambos |
+| Cuerpo / estado vacío | `(248,250,252)` en ambos | `(248,250,252)` en ambos |
+| Renglón del carrito | `(255,255,255)` | `(255,255,255)` |
+| Pie (Vender / Productos) | `(255,255,255)` | `(255,255,255)` |
 
 ## Por componente (1440×900, recortes anclados a su rectángulo)
 
@@ -75,6 +87,14 @@ Los recortes lado a lado y sus imágenes de diferencias están en
 | `comparacion/componentes/*-diff.png` | Diferencia en rojo de cada recorte. |
 | `referencia/alegra-1440x900.png` | Captura de referencia de Alegra a 1440×900. |
 | `referencia/alegra-1024x600.png` | Captura de referencia de Alegra a 1024×600. |
+
+## Fondo del panel
+
+El hallazgo del Orquestador se corrigió en el `aside`: el cuerpo usa `bg-pos-panel`
+(`#f8fafc`) y quedan blancos el encabezado, el bloque superior, los renglones del
+carrito y el pie, igual que Alegra. La comparación estructural no cambia porque
+el cuerpo del panel está enmascarado (contiene estados y datos variables); la
+diferencia cruda sí bajó y las muestras de control dan el mismo color en ambos.
 
 ## Diferencia residual (por qué no es 0)
 

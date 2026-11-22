@@ -72,6 +72,10 @@ describe("diseño POS estilo Alegra", () => {
     expect(vender, "El velo del Sheet tampoco debe cubrir la barra inferior").toContain(
       'overlayStyle={{ bottom: "2.75rem" }}',
     );
+
+    expect(panel, "El cuerpo del panel debe usar --pos-panel (#f8fafc), no blanco").toContain("bg-pos-panel");
+    const linea = readFileSync(join(POS, "_components", "vender", "linea-carrito-pos.tsx"), "utf8");
+    expect(linea, "Los renglones del carrito van en blanco sobre el cuerpo gris del panel").toContain("bg-white");
   });
 
   it("los archivos del POS no usan --primary ni #1e56c7 salvo los pendientes", () => {

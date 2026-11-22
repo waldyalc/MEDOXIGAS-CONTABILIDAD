@@ -68,7 +68,12 @@ export function LineaCarritoPos({
   const puedeEditar = !bloqueada;
 
   return (
-    <div className={cn("group border-pos-linea border-b", expandida && "bg-pos-panel/60")}>
+    <div
+      className={cn(
+        "group border-pos-linea border-b bg-white dark:bg-card",
+        expandida && "bg-slate-50 dark:bg-white/5",
+      )}
+    >
       <div className="flex items-start gap-2 px-4 py-2.5">
         <button
           type="button"

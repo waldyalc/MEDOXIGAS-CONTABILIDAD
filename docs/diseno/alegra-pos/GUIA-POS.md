@@ -64,7 +64,8 @@ de inventario), `#d1d5db` (foto vacía).
 ## Panel «Factura de venta»
 
 - `aside` de `w-[40%] max-w-[550px]` con borde izquierdo `slate-300`, fondo
-  blanco y `h-full min-h-0 flex-col`.
+  `bg-pos-panel` (`#f8fafc`) y `h-full min-h-0 flex-col`. El encabezado, el
+  bloque superior, los renglones del carrito y el pie van en blanco (`bg-white`).
 - Encabezado de 60 px con título 18/700.
 - Bloque superior `shrink-0`: selects de 40 px (Lista de precio / Numeración),
   fila de Cliente con `SelectorContacto` + «Nuevo», y Vendedor si hay.

@@ -85,7 +85,7 @@ renderizado y `styles.css`. La columna «Medoxigas» es lo que quedó implementa
 | Línea suave | `#e2e8f0` | `--pos-linea` |
 | Borde de controles/panel | `#cbd5e1` | `border-slate-300` (claro) |
 | Fondo de página | `#f1f5f9` | `bg-slate-100` (claro) |
-| Fondo de panel interno | `#f8fafc` | `--pos-panel` |
+| Fondo del cuerpo del panel | `#f8fafc` | `bg-pos-panel` en el `aside` | Encabezado, bloque superior, renglones y pie van en blanco (`bg-white`). |
 | Texto principal | `#212529` / `#0f172a` | `--pos-texto` |
 | Texto secundario | `#707070` / `#334155` / `#474747` | `--pos-texto-suave` / `text-[#334155]` / `text-[#474747]` |
 | Iconos | `#94a3b8` / `#b3b3b3` | `--pos-icono` |
