@@ -11,7 +11,19 @@ Trabajo de subagente ejecutor sobre `feat/pos-alegra-exacto` (PLAN POS 2, puntos
 - **Cerrar cobro directo (`checkout-pos.tsx`):** se eliminó `confirmarCierre` y el diálogo «La venta no se ha cobrado. ¿Cerrar el cobro?». La X y «Cancelar» cierran el modal de inmediato, conservan el carrito y respetan el bloqueo mientras `enviando`. Se conserva el toast de campos obligatorios que trajo el PR #111.
 - **Tests:** `src/lib/pos/cotizaciones-pos.test.ts` (9 pruebas) y `src/lib/pos/checkout-pos.test.ts` (2): payload de guardado, mapeo de carga, filtro por contacto, `cotizacion_id` en la venta, `getCotizacionOrigen` por `factura_id`, pestaña de la factura y candados que prohíben volver a enlazar el botón a `/pos/historial` o mostrar «¿Cerrar el cobro?».
 - **Evidencia:** `docs/diseno/capturas/pos-7/` con `menu-mas-funciones.png`, `cargar-cotizacion-cliente.png`, `cerrar-cobro-directo.png` y `medidas.md`, tomadas con Playwright en el puerto 3027 (el preview 3010 se actualiza al integrar). Solo lectura: no se guardó ninguna cotización ni venta. No existe en la base una factura creada desde cotización, así que la pestaña «Cotización origen» se validó con las pruebas y no con captura (crear ese dato estaba prohibido).
+- **Coordinación con POS 10:** no se agregó «Imprimir cotización» ni se tocó el icono de impresora del header; el acceso al historial quedó como opción del menú.
 - **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` y `pnpm build` en verde. Pendiente revisión visual e integración del Orquestador; sin merge a `main`.
+
+## POS 9 — pestañas de venta con ⋮, renombrar y eliminar (`feat/pos-pestanas-venta`)
+
+Base `feat/pos-alegra-exacto`. Solo presentación y estado en memoria: sin base, migraciones ni ventas nuevas.
+
+- **Reglas puras** en `src/lib/pos/pestanas-venta.ts` (`renombrarPestanaEn`, `eliminarPestanaDe`, `esPestanaPrincipal`) usadas por el provider: la principal (primera) nunca se elimina, el carrito nunca queda sin pestaña y al borrar la activa se activa su vecina anterior. Nombre vacío conserva el anterior; máximo 30 caracteres.
+- **UI:** ⋮ visible siempre en la activa y al hover/foco en las demás; Renombrar/Eliminar en las extra y solo Renombrar en la principal; input inline con Enter/blur que guarda y Escape que cancela; la extra vacía se borra al instante y con productos pide la confirmación corta. La tira hace scroll a la pestaña activa en móvil.
+- **Hidratación:** el id de la primera pestaña es fijo (`ID_PESTANA_PRINCIPAL`) para que SSR y cliente coincidan; se eliminó el warning de hidratación del POS.
+- **Tests:** `src/lib/pos/pestanas-venta.test.ts` (9 casos de comportamiento) + candado en `diseno-pos.test.ts` (⋮, Renombrar/Eliminar, principal sin Eliminar, confirmación solo con productos, 160 px/Basket/teal/dark).
+- **Capturas:** `docs/diseno/capturas/pos-9/` con menú, renombrar y confirmación (claro), detalles, oscuro y móvil + `medidas.md` (pestaña 160 px, barra 44, menú ⋮ 24, input 128×32, diálogo 384).
+- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1,584 aprobados, 3 omitidos) y `pnpm build` en verde; Playwright con 0 errores de consola y sin crear ni editar ventas. Integrado con `origin/feat/pos-alegra-exacto` (PR #113 y POS 5) sin conflictos en código.
 
 ## Regla de capturas al terminar (rama `docs/regla-capturas-preview`)
 

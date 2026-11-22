@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { cn } from "cn";
 
@@ -22,6 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { esPestanaPrincipal, LARGO_MAXIMO_NOMBRE_PESTANA } from "@/lib/pos/pestanas-venta";
 
 import { MAXIMO_PESTANAS, useCarritoPOS } from "../carrito-pos-provider";
 
@@ -30,6 +31,12 @@ export function PestanasVentaPos({ onNuevaVenta }: { onNuevaVenta?: () => void }
   const [renombrando, setRenombrando] = useState<string | null>(null);
   const [texto, setTexto] = useState("");
   const [eliminando, setEliminando] = useState<string | null>(null);
+
+  // En móvil la tira se desplaza: al crear o activar una pestaña, que se vea.
+  useEffect(() => {
+    const visible = document.getElementById(`pestana-${activa.id}`);
+    visible?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activa.id]);
 
   function guardar(id: string) {
     renombrarPestana(id, texto);
@@ -45,14 +52,18 @@ export function PestanasVentaPos({ onNuevaVenta }: { onNuevaVenta?: () => void }
       >
         {pestanas.map((pestana) => {
           const seleccionada = pestana.id === activa.id;
+          const principal = esPestanaPrincipal(pestanas, pestana.id);
 
           if (renombrando === pestana.id) {
             return (
               <input
                 key={pestana.id}
                 value={texto}
-                maxLength={30}
+                maxLength={LARGO_MAXIMO_NOMBRE_PESTANA}
                 aria-label={`Renombrar ${pestana.nombre}`}
+                // biome-ignore lint/a11y/noAutofocus: renombrar es una acción explícita del menú; el foco debe ir al input.
+                autoFocus
+                onFocus={(evento) => evento.currentTarget.select()}
                 className="border-pos-primario bg-background mx-2 my-1.5 h-8 w-32 rounded-md border px-2 text-sm"
                 onChange={(evento) => setTexto(evento.target.value)}
                 onBlur={() => guardar(pestana.id)}
@@ -106,8 +117,10 @@ export function PestanasVentaPos({ onNuevaVenta }: { onNuevaVenta?: () => void }
                       variant="ghost"
                       size="icon-xs"
                       className={cn(
-                        "text-pos-icono absolute top-1/2 right-1 -translate-y-1/2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
-                        seleccionada && "text-pos-primario group-hover:opacity-100",
+                        "absolute top-1/2 right-1 -translate-y-1/2",
+                        seleccionada
+                          ? "text-pos-primario opacity-100"
+                          : "text-pos-icono opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
                       )}
                       aria-label={`Opciones de ${pestana.nombre}`}
                     />
@@ -124,9 +137,20 @@ export function PestanasVentaPos({ onNuevaVenta }: { onNuevaVenta?: () => void }
                   >
                     Renombrar
                   </DropdownMenuItem>
-                  <DropdownMenuItem variant="destructive" onClick={() => setEliminando(pestana.id)}>
-                    Eliminar
-                  </DropdownMenuItem>
+                  {principal ? null : (
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => {
+                        if (pestana.lineas.length === 0) {
+                          eliminarPestana(pestana.id);
+                          return;
+                        }
+                        setEliminando(pestana.id);
+                      }}
+                    >
+                      Eliminar
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
