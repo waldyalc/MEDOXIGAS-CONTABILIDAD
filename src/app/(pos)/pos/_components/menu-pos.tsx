@@ -9,7 +9,6 @@ import { cn } from "cn";
 
 import {
   ArrowUpRight,
-  ChevronDown,
   CircleDollarSign,
   Clock,
   HandCoins,
@@ -27,11 +26,10 @@ import {
   Wallet,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 import { EstadoTurnoPos } from "./estado-turno-pos";
-import { claseIconoMenu, itemMenuActivo, itemMenuBase, itemMenuColapsado } from "./menu-pos-estilos";
+import { claseIconoMenu, itemMenuActivo, itemMenuBase, itemMenuColapsado, itemMenuSeccion } from "./menu-pos-estilos";
 import { SalirPos } from "./salir-pos";
 import { SelectorTerminal } from "./selector-terminal";
 import { UsuarioPos } from "./usuario-pos";
@@ -45,14 +43,14 @@ interface ItemEnlacePOS {
   externo?: boolean;
 }
 
-interface ItemAcordeonPOS {
+interface ItemSeccionPOS {
   id: string;
   etiqueta: string;
   icono: LucideIcon;
   sub: ItemEnlacePOS[];
 }
 
-type ItemPOS = ItemEnlacePOS | ItemAcordeonPOS;
+type ItemPOS = ItemEnlacePOS | ItemSeccionPOS;
 
 const ITEMS_PRINCIPALES: ItemPOS[] = [
   { id: "facturar", etiqueta: "Facturar", icono: House, href: "/pos" },
@@ -90,7 +88,7 @@ function esActivo(pathname: string, href: string): boolean {
   return href === "/pos" ? pathname === "/pos" : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function esAcordeon(item: ItemPOS): item is ItemAcordeonPOS {
+function esSeccion(item: ItemPOS): item is ItemSeccionPOS {
   return "sub" in item;
 }
 
@@ -260,8 +258,8 @@ function ContenidoMenuPos({
       <nav aria-label="Secciones del punto de venta" className="min-h-0 flex-1 overflow-y-auto p-2">
         <ul className="flex flex-col gap-0.5">
           {ITEMS_PRINCIPALES.map((item) =>
-            esAcordeon(item) ? (
-              <ItemAcordeon key={item.id} item={item} expandido={expandido} onNavegar={onNavegar} />
+            esSeccion(item) ? (
+              <ItemSeccion key={item.id} item={item} expandido={expandido} onNavegar={onNavegar} />
             ) : (
               <ItemEnlace
                 key={item.id}
@@ -327,39 +325,29 @@ function ItemEnlace({
   );
 }
 
-function ItemAcordeon({
+/**
+ * Sección del menú (Ingresos, Turnos): el título agrupa sus subitems, que
+ * están siempre visibles al expandir el panel —sin flechitas ni acordeón—
+ * y se ocultan en el riel de 52 px, donde solo cabe el icono.
+ */
+function ItemSeccion({
   item,
   expandido,
   onNavegar,
 }: {
-  item: ItemAcordeonPOS;
+  item: ItemSeccionPOS;
   expandido: boolean;
   onNavegar?: () => void;
 }) {
   const pathname = usePathname();
-  const abiertoInicial = item.sub.some((sub) => esActivo(pathname, sub.href));
 
   return (
-    <Collapsible render={<li />} defaultOpen={abiertoInicial}>
-      <CollapsibleTrigger
-        render={
-          <button
-            type="button"
-            title={item.etiqueta}
-            className={cn(itemMenuBase, "group/col", !expandido && itemMenuColapsado)}
-          />
-        }
-      >
+    <li>
+      <div title={item.etiqueta} className={cn(itemMenuSeccion, !expandido && itemMenuColapsado)}>
         <IconoItem icono={item.icono} />
         <span className={cn("min-w-0 flex-1 truncate", !expandido && "hidden")}>{item.etiqueta}</span>
-        {expandido ? (
-          <ChevronDown
-            className="dark:text-sidebar-foreground/50 ml-auto size-5 shrink-0 text-slate-400 transition-transform duration-200 group-data-panel-open/col:rotate-180"
-            aria-hidden="true"
-          />
-        ) : null}
-      </CollapsibleTrigger>
-      <CollapsibleContent hidden={!expandido}>
+      </div>
+      {expandido ? (
         <ul className="dark:border-sidebar-border my-2 ml-[17px] flex flex-col border-l border-slate-200 pl-[10px]">
           {item.sub.map((sub) => {
             const activo = esActivo(pathname, sub.href);
@@ -379,7 +367,7 @@ function ItemAcordeon({
             );
           })}
         </ul>
-      </CollapsibleContent>
-    </Collapsible>
+      ) : null}
+    </li>
   );
 }
