@@ -35,7 +35,7 @@ no hay migraciones, RPC nuevas ni tablas nuevas.
   «Cobro de factura» y los motivos `fondo_caja`/`retiro_caja`/`deposito_banco`
   quedan como pérdida funcional documentada para una tarea aparte (el ingreso y
   el retiro genérico usan `otro`).
-- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1564 passed)
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1570 passed, 3 skipped)
   y `pnpm build` en verde. Capturas con la sesión ZZTEST, sin registrar ningún
   movimiento real (solo se llenaron formularios).
 
