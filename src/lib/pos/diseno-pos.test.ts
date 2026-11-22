@@ -25,7 +25,6 @@ const PENDIENTES = [
   "_components/menu-pos-estilos.ts",
   "_components/menu-pos.tsx",
   "_components/pagos/lista-pagos.tsx",
-  "_components/vender/checkout-pos.tsx",
   "_components/vender/confirmacion-venta.tsx",
   "_components/vender/dialogo-venta-simple.tsx",
 ];
@@ -172,6 +171,97 @@ describe("diseño POS estilo Alegra", () => {
     );
   });
 
+  it("«Nuevo pago» del POS es el de Alegra (tarjeta de tipo + formulario), no el «Registrar movimiento» viejo", () => {
+    const dialogo = readFileSync(join(POS, "_components", "pagos", "dialogo-movimiento.tsx"), "utf8");
+
+    for (const texto of [
+      "Nuevo pago",
+      "Selecciona el tipo de movimiento",
+      "Gastos generales",
+      "Pago a factura de proveedor",
+      "Cuenta contable",
+      "Total a pagar",
+      "/300",
+    ]) {
+      expect(dialogo, `Falta «${texto}» en el modal «Nuevo pago» (PLAN POS 2, Punto 5)`).toContain(texto);
+    }
+
+    expect(
+      dialogo,
+      "El modal viejo se titulaba «Registrar movimiento»; el diseño de Alegra dice «Nuevo pago»",
+    ).not.toContain("Registrar movimiento");
+    expect(
+      dialogo,
+      "El selector visible de «Motivo» ya no va: el tipo se elige en las tarjetas Ingreso/Egreso",
+    ).not.toContain("motivo-movimiento");
+    expect(dialogo, "Ingreso va en verde (decisión de Waldy), no en blanco como Alegra").toContain("bg-emerald-600");
+    expect(dialogo, "Egreso va en rojo (decisión de Waldy), no en blanco como Alegra").toContain("bg-rose-600");
+    expect(dialogo, "La pestaña de proveedor debe explicar que no está disponible, sin inventar el cobro").toContain(
+      "No disponible en el POS todavía",
+    );
+    expect(
+      dialogo,
+      "El botón «Inverso» llega con `prellenado`: debe abrir directo el formulario sin las tarjetas de tipo",
+    ).toContain("prellenado === null");
+  });
+
+  it("el modal Pagar factura muestra una sola línea «Por cobrar» y el toast de Alegra", () => {
+    const checkout = readFileSync(join(POS, "_components", "vender", "checkout-pos.tsx"), "utf8");
+
+    expect(
+      checkout.match(/Por cobrar:/g)?.length ?? 0,
+      "«Por cobrar» debe aparecer una sola vez, bajo el TOTAL; no repitas el resumen en el modo combinado",
+    ).toBe(1);
+    expect(
+      checkout,
+      "El CTA Cobrar no puede deshabilitarse por Consumidor Final: el aviso sale como toast al pulsar y se intercepta antes de completarVenta",
+    ).toContain("if (porCobrarVisible && esConsumidorFinal)");
+    expect(checkout, "El toast del POS debe ser local y anunciarse con role=alert").toContain('role="alert"');
+    expect(
+      checkout,
+      "El toast debe llevar el título exacto de Alegra: «Algunos campos necesitan tu atención»",
+    ).toContain("Algunos campos necesitan tu atención");
+    expect(checkout, "El toast debe explicar qué revisar antes de guardar").toContain(
+      "Revisa los campos marcados antes de guardar.",
+    );
+
+    const inicioCta = checkout.indexOf("const ctaDeshabilitado");
+    const finCta = checkout.indexOf(";", inicioCta);
+    expect(
+      checkout.slice(inicioCta, finCta),
+      "Quita (hayCredito && esConsumidorFinal) de ctaDeshabilitado: el toast nunca saldría",
+    ).not.toContain("esConsumidorFinal");
+
+    const intercepto = checkout.indexOf("setAviso(true)");
+    const escritura = checkout.indexOf("await completarVenta(entrada)");
+    expect(intercepto, "cobrar() debe mostrar el toast cuando falta el cliente").toBeGreaterThan(-1);
+    expect(
+      intercepto,
+      "El toast debe mostrarse ANTES de llamar a completarVenta: no se escribe nada si falta el cliente",
+    ).toBeLessThan(escritura);
+  });
+
+  it("el modal Pagar factura conserva Vendedor y no revive el bloque de crédito viejo", () => {
+    const checkout = readFileSync(join(POS, "_components", "vender", "checkout-pos.tsx"), "utf8");
+
+    for (const texto of ["Queda a crédito", "Aplicado a la venta", "Cliente para el crédito"]) {
+      expect(
+        checkout,
+        `El modal ya no muestra «${texto}»: usa una sola línea «Por cobrar» bajo el TOTAL y el toast de Alegra`,
+      ).not.toContain(texto);
+    }
+    expect(
+      checkout,
+      "El aviso rojo inline de Consumidor Final se reemplazó por el toast «Algunos campos necesitan tu atención»",
+    ).not.toContain("No se puede vender a crédito al Consumidor Final");
+
+    expect(checkout, "El selector Vendedor debe seguir dentro de CamposCobro").toContain('id="cobro-vendedor"');
+    expect(checkout.indexOf('id="cobro-vendedor"'), "Vendedor va arriba de Observaciones, como Alegra").toBeLessThan(
+      checkout.indexOf("Observaciones"),
+    );
+    expect(checkout, "El placeholder del Vendedor es «Seleccionar»").toContain("Seleccionar");
+  });
+
   it("globals.css define la paleta POS (--pos-*) en claro y oscuro", () => {
     const css = readFileSync(GLOBALS, "utf8");
     const tokens = [
@@ -192,5 +282,46 @@ describe("diseño POS estilo Alegra", () => {
       expect(css, `Falta el alias --color-${token.slice(2)} en @theme`).toContain(`--color-${token.slice(2)}:`);
     }
     expect(css, "El teal de Alegra #00b19d debe estar en globals.css").toContain("#00b19d");
+  });
+
+  it("el ticket de 80 mm usa @page con alto fijo y el orden de Alegra", () => {
+    const ticket = readFileSync(join(SRC, "components", "pos", "ticket-pos.tsx"), "utf8");
+    const impresion = readFileSync(join(SRC, "lib", "pos", "impresion.ts"), "utf8");
+
+    expect(
+      ticket,
+      "Chrome ignora «size: 80mm auto» y cae a Letter: el @page del ticket lleva alto fijo (250 mm)",
+    ).toContain("size: 80mm 250mm");
+    expect(ticket, "El ticket de 57 mm también necesita alto fijo").toContain("size: 57mm 250mm");
+    expect(ticket).not.toContain("size: 80mm auto");
+    expect(ticket).not.toContain("size: 57mm auto");
+
+    for (const archivo of [ticket, impresion]) {
+      expect(archivo, "El ticket no puede llevar la marca de Alegra ni datos de OXYMAT").not.toMatch(
+        /Generado en Alegra POS|OXYMAT/i,
+      );
+    }
+
+    expect(impresion, "El ticket lleva «Total recibido: RD$X» debajo del Total, no un bloque «Pagos»").toContain(
+      "Total recibido",
+    );
+    expect(impresion, "El método de pago va en el encabezado («Método de pago: Efectivo»)").toContain(
+      "Método de pago:",
+    );
+    expect(
+      impresion,
+      "El vencimiento va siempre en el encabezado, como Alegra, aunque coincida con la fecha",
+    ).toContain("Vencimiento:");
+
+    const factura = impresion.slice(
+      impresion.indexOf("export function armarTicketFactura"),
+      impresion.indexOf("export function armarTicketCotizacion"),
+    );
+    for (const linea of ["Terminal:", "Turno No", "Cajero:"]) {
+      expect(
+        factura,
+        `La factura del POS no imprime «${linea}» (Alegra no lo muestra; cierre/recibos sí conservan su contexto)`,
+      ).not.toContain(linea);
+    }
   });
 });
