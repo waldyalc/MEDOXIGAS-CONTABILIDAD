@@ -270,6 +270,10 @@ describe("diseño POS estilo Alegra", () => {
     );
     expect(archivo, "Las pestañas inactivas muestran el ⋮ al hover o al foco").toContain("group-hover:opacity-100");
     expect(archivo, "El menú de la pestaña usa el icono MoreVertical").toContain("MoreVertical");
+    expect(
+      archivo,
+      "El menú ⋮ debe abrir hacia arriba (side=top): la barra de pestañas está al pie y si abre abajo se corta «Eliminar».",
+    ).toContain('side="top"');
     expect(archivo, "El menú debe ofrecer Renombrar").toContain("Renombrar");
     expect(archivo, "El menú debe ofrecer Eliminar en las pestañas extra").toContain("Eliminar");
 
