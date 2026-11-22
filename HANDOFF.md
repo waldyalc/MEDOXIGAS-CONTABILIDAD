@@ -9,7 +9,7 @@ Base `feat/pos-alegra-exacto`. Solo presentación y estado en memoria: sin base,
 - **Hidratación:** el id de la primera pestaña es fijo (`ID_PESTANA_PRINCIPAL`) para que SSR y cliente coincidan; se eliminó el warning de hidratación del POS.
 - **Tests:** `src/lib/pos/pestanas-venta.test.ts` (9 casos de comportamiento) + candado en `diseno-pos.test.ts` (⋮, Renombrar/Eliminar, principal sin Eliminar, confirmación solo con productos, 160 px/Basket/teal/dark).
 - **Capturas:** `docs/diseno/capturas/pos-9/` con menú, renombrar y confirmación (claro), detalles, oscuro y móvil + `medidas.md` (pestaña 160 px, barra 44, menú ⋮ 24, input 128×32, diálogo 384).
-- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1,582 aprobados, 3 omitidos) y `pnpm build` en verde; Playwright con 0 errores de consola y sin crear ni editar ventas.
+- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1,584 aprobados, 3 omitidos) y `pnpm build` en verde; Playwright con 0 errores de consola y sin crear ni editar ventas. Integrado con `origin/feat/pos-alegra-exacto` (PR #113 y POS 5) sin conflictos en código.
 
 ## Regla de capturas al terminar (rama `docs/regla-capturas-preview`)
 
