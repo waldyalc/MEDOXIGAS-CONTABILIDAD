@@ -25,7 +25,6 @@ const PENDIENTES = [
   "_components/menu-pos-estilos.ts",
   "_components/menu-pos.tsx",
   "_components/pagos/lista-pagos.tsx",
-  "_components/vender/checkout-pos.tsx",
   "_components/vender/confirmacion-venta.tsx",
   "_components/vender/dialogo-venta-simple.tsx",
 ];
@@ -98,6 +97,63 @@ describe("diseño POS estilo Alegra", () => {
     expect(infractores, "La lista PENDIENTES tiene archivos de más o alguno ya está migrado: actualízala").toEqual(
       [...PENDIENTES].sort(),
     );
+  });
+
+  it("el modal Pagar factura muestra una sola línea «Por cobrar» y el toast de Alegra", () => {
+    const checkout = readFileSync(join(POS, "_components", "vender", "checkout-pos.tsx"), "utf8");
+
+    expect(
+      checkout.match(/Por cobrar:/g)?.length ?? 0,
+      "«Por cobrar» debe aparecer una sola vez, bajo el TOTAL; no repitas el resumen en el modo combinado",
+    ).toBe(1);
+    expect(
+      checkout,
+      "El CTA Cobrar no puede deshabilitarse por Consumidor Final: el aviso sale como toast al pulsar y se intercepta antes de completarVenta",
+    ).toContain("if (porCobrarVisible && esConsumidorFinal)");
+    expect(checkout, "El toast del POS debe ser local y anunciarse con role=alert").toContain('role="alert"');
+    expect(
+      checkout,
+      "El toast debe llevar el título exacto de Alegra: «Algunos campos necesitan tu atención»",
+    ).toContain("Algunos campos necesitan tu atención");
+    expect(checkout, "El toast debe explicar qué revisar antes de guardar").toContain(
+      "Revisa los campos marcados antes de guardar.",
+    );
+
+    const inicioCta = checkout.indexOf("const ctaDeshabilitado");
+    const finCta = checkout.indexOf(";", inicioCta);
+    expect(
+      checkout.slice(inicioCta, finCta),
+      "Quita (hayCredito && esConsumidorFinal) de ctaDeshabilitado: el toast nunca saldría",
+    ).not.toContain("esConsumidorFinal");
+
+    const intercepto = checkout.indexOf("setAviso(true)");
+    const escritura = checkout.indexOf("await completarVenta(entrada)");
+    expect(intercepto, "cobrar() debe mostrar el toast cuando falta el cliente").toBeGreaterThan(-1);
+    expect(
+      intercepto,
+      "El toast debe mostrarse ANTES de llamar a completarVenta: no se escribe nada si falta el cliente",
+    ).toBeLessThan(escritura);
+  });
+
+  it("el modal Pagar factura conserva Vendedor y no revive el bloque de crédito viejo", () => {
+    const checkout = readFileSync(join(POS, "_components", "vender", "checkout-pos.tsx"), "utf8");
+
+    for (const texto of ["Queda a crédito", "Aplicado a la venta", "Cliente para el crédito"]) {
+      expect(
+        checkout,
+        `El modal ya no muestra «${texto}»: usa una sola línea «Por cobrar» bajo el TOTAL y el toast de Alegra`,
+      ).not.toContain(texto);
+    }
+    expect(
+      checkout,
+      "El aviso rojo inline de Consumidor Final se reemplazó por el toast «Algunos campos necesitan tu atención»",
+    ).not.toContain("No se puede vender a crédito al Consumidor Final");
+
+    expect(checkout, "El selector Vendedor debe seguir dentro de CamposCobro").toContain('id="cobro-vendedor"');
+    expect(checkout.indexOf('id="cobro-vendedor"'), "Vendedor va arriba de Observaciones, como Alegra").toBeLessThan(
+      checkout.indexOf("Observaciones"),
+    );
+    expect(checkout, "El placeholder del Vendedor es «Seleccionar»").toContain("Seleccionar");
   });
 
   it("globals.css define la paleta POS (--pos-*) en claro y oscuro", () => {
