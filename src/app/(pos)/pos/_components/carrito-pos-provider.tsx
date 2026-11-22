@@ -37,7 +37,7 @@ export interface PestanaVenta {
   listaPrecioId: string;
   numeracionId: string;
   vendedorId: string;
-  cotizacion: { id: string; numero: number } | null;
+  cotizacion: { id: string; numero: number; fecha: string | null; vencimiento: string | null } | null;
 }
 
 export interface DefaultsVenta {
@@ -66,6 +66,8 @@ interface ValorCarrito {
   aplicarCotizacion: (entrada: {
     id: string;
     numero: number;
+    fecha: string | null;
+    vencimiento: string | null;
     contactoId: string;
     listaPrecioId: string;
     lineas: {
@@ -360,6 +362,8 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
     (entrada: {
       id: string;
       numero: number;
+      fecha: string | null;
+      vencimiento: string | null;
       contactoId: string;
       listaPrecioId: string;
       lineas: {
@@ -379,7 +383,12 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
         contactoId: entrada.contactoId,
         listaPrecioId: entrada.listaPrecioId,
         vendedorId: "",
-        cotizacion: { id: entrada.id, numero: entrada.numero },
+        cotizacion: {
+          id: entrada.id,
+          numero: entrada.numero,
+          fecha: entrada.fecha,
+          vencimiento: entrada.vencimiento,
+        },
         lineas: entrada.lineas.map((linea) => ({
           id: nuevoId(),
           productoId: linea.productoId,
