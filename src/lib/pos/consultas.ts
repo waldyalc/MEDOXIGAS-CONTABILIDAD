@@ -235,6 +235,8 @@ export async function getCotizacionesAbiertas(filtros: unknown = {}): Promise<Co
     .select("id, numero, contacto_id, fecha, vencimiento, total, estado, vendedor_id, contactos(nombre)")
     .eq("estado", "abierta");
 
+  if (datos.contacto_id) consulta = consulta.eq("contacto_id", datos.contacto_id);
+
   if (datos.q) {
     const numero = numeroDocumento(datos.q);
     const contactos = await contactosQueCoinciden(supabase, datos.q, ["cliente", "ambos"]);

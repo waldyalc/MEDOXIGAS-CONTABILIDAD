@@ -944,6 +944,7 @@ function PanelFactura({
   adjuntos,
   facturaId,
   puedeEscribir,
+  cotizacionOrigen,
 }: {
   pagos: PagoFacturaVista[];
   notasCredito: NotaVentaResumen[];
@@ -952,6 +953,7 @@ function PanelFactura({
   adjuntos: AdjuntoItem[];
   facturaId: string;
   puedeEscribir: boolean;
+  cotizacionOrigen: DocumentoRelacionado | null;
 }) {
   return (
     <Card className="bg-card gap-0 rounded-[12px] border border-slate-400/20 px-2 pt-2 pb-6 shadow-none ring-0 [--card-spacing:0px] sm:px-8 sm:pb-8">
@@ -975,6 +977,11 @@ function PanelFactura({
           <TabsTrigger value="adjuntos" className={PESTANA}>
             Adjuntos
           </TabsTrigger>
+          {cotizacionOrigen ? (
+            <TabsTrigger value="cotizacion-origen" className={PESTANA}>
+              Cotización origen
+            </TabsTrigger>
+          ) : null}
         </TabsList>
 
         <TabsContent value="pagos" className="mt-6">
@@ -997,6 +1004,11 @@ function PanelFactura({
             puedeEscribir={puedeEscribir}
           />
         </TabsContent>
+        {cotizacionOrigen ? (
+          <TabsContent value="cotizacion-origen" className="mt-6">
+            <TablaDocumentoRelacionado documento={cotizacionOrigen} tipo="cotizacion" />
+          </TabsContent>
+        ) : null}
       </Tabs>
     </Card>
   );
@@ -1321,6 +1333,7 @@ function prepararVista(props: Props): VistaPreparada | null {
     notasDebito = props.datos.notasDebito;
     asiento = props.datos.asiento;
     adjuntos = props.datos.adjuntos;
+    cotizacionOrigen = props.datos.cotizacionOrigen;
   } else {
     documento = props.datos.documento;
     facturaRelacionada = props.datos.facturaRelacionada;
@@ -1583,6 +1596,7 @@ export function VistaDocumentoVenta(props: Props) {
         adjuntos={adjuntos}
         facturaId={factura.id}
         puedeEscribir={props.puedeEscribir}
+        cotizacionOrigen={preparado.cotizacionOrigen}
       />
     );
   } else if (tipoDocumento) {

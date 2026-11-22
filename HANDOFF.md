@@ -1,5 +1,19 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 7–8: más funciones con cotizaciones y cerrar cobro directo (rama `feat/pos-cotizaciones-mas-funciones`)
+
+Trabajo de subagente ejecutor sobre `feat/pos-alegra-exacto` (PLAN POS 2, puntos 7 y 8). Sin migraciones ni datos nuevos: solo lectura + carrito en memoria.
+
+- **Botón «más funciones» (`panel-factura.tsx`):** el cuadro oscuro de la barra de cobro deja de ser un enlace a `/pos/historial` y abre un `DropdownMenu` anclado con «Guardar como cotización», «Cargar cotización» e «Historial de ventas» (el antiguo acceso del botón, ahora dentro del menú; icono `MoreHorizontal`). Conserva tamaño (44×45 px), radio de 10 px, fondo `--pos-oscuro` y el punto gris. El menú de sliders de arriba conserva «Venta simple» (F4); las cotizaciones ya no están duplicadas allí.
+- **Guardar:** el payload sale de `src/lib/pos/cotizaciones.ts` (`payloadCotizacionPOS`: cliente, lista, vendedor, líneas, cantidades, precios, descuentos e impuestos) y el `toast` muestra `Cotización No N guardada` con enlace a `/dashboard/cotizaciones/<id>`. Se mantiene el diálogo de confirmación/impresión.
+- **Cargar:** `DialogoCargarCotizacion` recibe el cliente del carrito y filtra por `contacto_id` (nuevo campo opcional en `esquemaCotizacionesAbiertas`; lectura, sin migración). El diálogo avisa «Solo las cotizaciones abiertas de <cliente>» y muestra un estado vacío acorde. Las líneas se mapean con `lineasDeCotizacionPOS`.
+- **Enlace inverso factura → cotización:** `getFacturaVista` incluye `cotizacionOrigen` (consulta `cotizaciones.factura_id`, ya indexada) y el detalle de factura suma la pestaña «Cotización origen» solo cuando existe, reutilizando la tabla de documentos relacionados con enlace al detalle de la cotización.
+- **Cerrar cobro directo (`checkout-pos.tsx`):** se eliminó `confirmarCierre` y el diálogo «La venta no se ha cobrado. ¿Cerrar el cobro?». La X y «Cancelar» cierran el modal de inmediato, conservan el carrito y respetan el bloqueo mientras `enviando`. Se conserva el toast de campos obligatorios que trajo el PR #111.
+- **Tests:** `src/lib/pos/cotizaciones-pos.test.ts` (9 pruebas) y `src/lib/pos/checkout-pos.test.ts` (2): payload de guardado, mapeo de carga, filtro por contacto, `cotizacion_id` en la venta, `getCotizacionOrigen` por `factura_id`, pestaña de la factura y candados que prohíben volver a enlazar el botón a `/pos/historial` o mostrar «¿Cerrar el cobro?».
+- **Evidencia:** `docs/diseno/capturas/pos-7/` con `menu-mas-funciones.png`, `cargar-cotizacion-cliente.png`, `cerrar-cobro-directo.png` y `medidas.md`, tomadas con Playwright en el puerto 3027 (el preview 3010 se actualiza al integrar). Solo lectura: no se guardó ninguna cotización ni venta. No existe en la base una factura creada desde cotización, así que la pestaña «Cotización origen» se validó con las pruebas y no con captura (crear ese dato estaba prohibido).
+- **Coordinación con POS 10:** no se agregó «Imprimir cotización» ni se tocó el icono de impresora del header; el acceso al historial quedó como opción del menú.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` y `pnpm build` en verde. Pendiente revisión visual e integración del Orquestador; sin merge a `main`.
+
 ## POS 10: prefactura, cotización y cierre sobre la plantilla 80 mm (rama `feat/pos-prefactura-cotizacion-pdf`)
 
 Subagente ejecutor sobre `feat/pos-alegra-exacto`. Una sola plantilla
