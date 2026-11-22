@@ -1,5 +1,18 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 2 Punto 3 — modal «Pagar factura» como Alegra (`feat/pos-2-pago-alegra`)
+
+Diseño del checkout del POS, sin tocar cobro, payload ni base. Base: PR #107 (`eae6704`).
+
+- **Fuera el bloque viejo de crédito:** se eliminaron «Aplicado a la venta» (efectivo y tarjeta/transferencia), «Queda a crédito» con su explicación, el aviso rojo de Consumidor Final, el selector «Cliente para el crédito» y el resumen duplicado del modo combinado. La regla de negocio sigue en el servidor.
+- **«Por cobrar» como Alegra:** una sola línea de 16 px bajo el TOTAL, monto en `#E11D48`, cuando el pago es menor; «Cambio» en rojo si sobra; nada si es exacto. Aplica a efectivo, tarjeta/transferencia, combinado y crédito.
+- **CTA clicable y toast local:** se quitó `(hayCredito && esConsumidorFinal)` de `ctaDeshabilitado`; `cobrar()` intercepta antes de `completarVenta`, muestra un toast arriba a la derecha (`role="alert"`, fondo `#FFE4E6`, icono rojo, título «Algunos campos necesitan tu atención», texto «Revisa los campos marcados antes de guardar.» y cierre) y retorna sin escribir. Verificado con Playwright: 0 POST al pulsar Cobrar y el modal sigue abierto.
+- **Medidas de Alegra:** modal 640 px (antes 720), título 24 px/600, total 24 px/600, inputs 48 px radio 5, textarea 100 px radio 5, botones 40 px radio 8 y footer blanco sin banda. Los montos del modal usan `formatoMonedaPOS` (`RD$112.10` sin espacio). Se migró el archivo a tokens `--pos-*` (sale de `PENDIENTES`).
+- **Vendedor:** el selector de `CamposCobro` se conserva (label «Vendedor», placeholder «Seleccionar», mismo ancho que Observaciones), pero no se ve en las capturas porque la base no tiene vendedores activos; no se crearon datos.
+- **Candado:** `src/lib/pos/diseno-pos.test.ts` falla si vuelven «Queda a crédito», «Aplicado a la venta», «Cliente para el crédito», el aviso rojo de Consumidor Final o el azul; exige una sola línea «Por cobrar», el toast y que la validación del cliente ocurra antes de `completarVenta`.
+- **Capturas:** `docs/diseno/capturas/pos-3/` (`antes-pago-credito.png`, `despues-pago-credito.png`, `despues-pago-toast.png`, `despues-pago-exacto.png`, `despues-pago-oscuro.png`, `despues-pago-movil.png`) y `medidas.md`. No hay `despues-pago-combinado.png`: la terminal no tiene cuentas de tarjeta/transferencia configuradas.
+- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1,565) y `pnpm build` en verde; capturas claro/oscuro/móvil tomadas en el puerto 3014.
+
 ## Carrito POS como copia visual exacta de Alegra (rama `feat/pos-carrito-alegra`)
 
 Rehace el carrito/panel de factura del POS para que se vea como Alegra, por decisión de Waldy (22-11-2026): el POS copia el diseño exactamente, incluido el teal `#00b19d`; el resto del sistema mantiene los tokens Medoxigas y sigue prohibido copiar código fuente de Alegra. Se repitió el trabajo de una sesión perdida en un VPS.
