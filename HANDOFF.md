@@ -1,5 +1,16 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 9 — pestañas de venta con ⋮, renombrar y eliminar (`feat/pos-pestanas-venta`)
+
+Base `feat/pos-alegra-exacto`. Solo presentación y estado en memoria: sin base, migraciones ni ventas nuevas.
+
+- **Reglas puras** en `src/lib/pos/pestanas-venta.ts` (`renombrarPestanaEn`, `eliminarPestanaDe`, `esPestanaPrincipal`) usadas por el provider: la principal (primera) nunca se elimina, el carrito nunca queda sin pestaña y al borrar la activa se activa su vecina anterior. Nombre vacío conserva el anterior; máximo 30 caracteres.
+- **UI:** ⋮ visible siempre en la activa y al hover/foco en las demás; Renombrar/Eliminar en las extra y solo Renombrar en la principal; input inline con Enter/blur que guarda y Escape que cancela; la extra vacía se borra al instante y con productos pide la confirmación corta. La tira hace scroll a la pestaña activa en móvil.
+- **Hidratación:** el id de la primera pestaña es fijo (`ID_PESTANA_PRINCIPAL`) para que SSR y cliente coincidan; se eliminó el warning de hidratación del POS.
+- **Tests:** `src/lib/pos/pestanas-venta.test.ts` (9 casos de comportamiento) + candado en `diseno-pos.test.ts` (⋮, Renombrar/Eliminar, principal sin Eliminar, confirmación solo con productos, 160 px/Basket/teal/dark).
+- **Capturas:** `docs/diseno/capturas/pos-9/` con menú, renombrar y confirmación (claro), detalles, oscuro y móvil + `medidas.md` (pestaña 160 px, barra 44, menú ⋮ 24, input 128×32, diálogo 384).
+- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1,582 aprobados, 3 omitidos) y `pnpm build` en verde; Playwright con 0 errores de consola y sin crear ni editar ventas.
+
 ## POS 2 Punto 3 — modal «Pagar factura» como Alegra (`feat/pos-2-pago-alegra`)
 
 Diseño del checkout del POS, sin tocar cobro, payload ni base. Base: PR #107 (`eae6704`).
