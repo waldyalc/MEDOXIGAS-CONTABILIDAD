@@ -1,6 +1,6 @@
 # Handoff — Medoxigas Contabilidad
 
-## POS 2: hojas móviles, carrito táctil y totales largos (rama `fix/pos-2-movil`)
+## POS 2: hojas móviles, carrito táctil y totales largos (rama `fix/pos-2-movil`, PR #113)
 
 Trabajo de subagente ejecutor sobre los puntos 1–5 del ajuste móvil del POS 2, base `feat/pos-alegra-exacto` (merge `cb8eb13` del PR #108). Solo presentación: precios, cantidades, impuestos y el motor del carrito intactos.
 
