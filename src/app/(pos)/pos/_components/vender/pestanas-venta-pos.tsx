@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { cn } from "cn";
 
-import { MoreVertical, Plus } from "@/components/icons";
+import { Basket, MoreVertical, Plus } from "@/components/icons";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,9 +22,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatoMoneda } from "@/lib/facturacion/formato";
 
-import { MAXIMO_PESTANAS, totalesDePestana, useCarritoPOS } from "../carrito-pos-provider";
+import { MAXIMO_PESTANAS, useCarritoPOS } from "../carrito-pos-provider";
 
 export function PestanasVentaPos({ onNuevaVenta }: { onNuevaVenta?: () => void }) {
   const { pestanas, activa, activarPestana, nuevaPestana, renombrarPestana, eliminarPestana } = useCarritoPOS();
@@ -38,15 +37,14 @@ export function PestanasVentaPos({ onNuevaVenta }: { onNuevaVenta?: () => void }
   }
 
   return (
-    <div className="border-border flex items-center gap-1 border-t px-1 pt-1">
+    <div className="border-pos-linea -mx-4 flex items-center gap-0 border-t pr-1">
       <div
         role="tablist"
         aria-label="Ventas abiertas"
-        className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"
+        className="flex min-w-0 flex-1 items-stretch gap-0 overflow-x-auto"
       >
         {pestanas.map((pestana) => {
           const seleccionada = pestana.id === activa.id;
-          const total = totalesDePestana(pestana).total;
 
           if (renombrando === pestana.id) {
             return (
@@ -55,7 +53,7 @@ export function PestanasVentaPos({ onNuevaVenta }: { onNuevaVenta?: () => void }
                 value={texto}
                 maxLength={30}
                 aria-label={`Renombrar ${pestana.nombre}`}
-                className="border-primary bg-background h-10 w-28 rounded-md border px-2 text-sm"
+                className="border-pos-primario bg-background my-1 h-8 w-32 rounded-md border px-2 text-sm"
                 onChange={(evento) => setTexto(evento.target.value)}
                 onBlur={() => guardar(pestana.id)}
                 onKeyDown={(evento) => {
@@ -73,7 +71,13 @@ export function PestanasVentaPos({ onNuevaVenta }: { onNuevaVenta?: () => void }
           }
 
           return (
-            <div key={pestana.id} className="group relative flex shrink-0 items-center">
+            <div
+              key={pestana.id}
+              className={cn(
+                "group flex shrink-0 items-center border-b-2",
+                seleccionada ? "border-pos-primario" : "border-transparent",
+              )}
+            >
               <button
                 type="button"
                 role="tab"
@@ -82,14 +86,12 @@ export function PestanasVentaPos({ onNuevaVenta }: { onNuevaVenta?: () => void }
                 id={`pestana-${pestana.id}`}
                 onClick={() => activarPestana(pestana.id)}
                 className={cn(
-                  "flex h-10 max-w-[150px] items-center gap-1.5 border-b-2 px-2 text-sm",
-                  seleccionada
-                    ? "border-primary text-foreground"
-                    : "text-muted-foreground hover:text-foreground border-transparent",
+                  "flex h-10 max-w-[170px] items-center gap-1.5 px-2.5 text-[13px] font-medium",
+                  seleccionada ? "text-pos-primario" : "text-pos-texto-suave hover:text-pos-texto",
                 )}
               >
+                <Basket className="size-4 shrink-0" aria-hidden="true" />
                 <span className="truncate">{pestana.nombre}</span>
-                <span className="text-muted-foreground shrink-0 text-xs tabular-nums">{formatoMoneda(total)}</span>
               </button>
 
               <DropdownMenu>
@@ -98,7 +100,10 @@ export function PestanasVentaPos({ onNuevaVenta }: { onNuevaVenta?: () => void }
                     <Button
                       variant="ghost"
                       size="icon-xs"
-                      className="opacity-60 group-hover:opacity-100"
+                      className={cn(
+                        "opacity-60 hover:opacity-100 group-hover:opacity-100",
+                        seleccionada ? "text-pos-primario" : "text-pos-texto-suave",
+                      )}
                       aria-label={`Opciones de ${pestana.nombre}`}
                     />
                   }
@@ -127,6 +132,7 @@ export function PestanasVentaPos({ onNuevaVenta }: { onNuevaVenta?: () => void }
       <Button
         variant="ghost"
         size="icon"
+        className="text-pos-icono hover:text-pos-texto size-8"
         aria-label="Nueva venta"
         title={pestanas.length >= MAXIMO_PESTANAS ? "Máximo 8 ventas abiertas." : "Nueva venta"}
         disabled={pestanas.length >= MAXIMO_PESTANAS}

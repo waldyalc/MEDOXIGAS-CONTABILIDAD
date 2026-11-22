@@ -101,7 +101,7 @@ export function CatalogoPos({
         </Button>
 
         <Button
-          className="bg-primary/10 text-primary hover:bg-primary/20 h-11 shrink-0"
+          className="bg-pos-acento text-pos-acento-texto hover:bg-pos-acento/70 hover:text-pos-acento-texto h-11 shrink-0"
           render={<a href="/dashboard/productos/nuevo" target="_blank" rel="noreferrer" />}
         >
           Nuevo producto

@@ -1,16 +1,16 @@
 # POS — Especificación de UI (`/pos`)
 
 **Estado:** especificación cerrada para 2D. Solo documentación: no implementa rutas, componentes ni estilos.
-**Base:** `docs/dominio-pos.md` (contrato de datos, RPC, impresión y errores), `docs/PLAN-FASE-2-ORQUESTADOR.md` (FASE 2, 2D), `docs/alegra/pos/**` (inspiración funcional, nunca copia) y `docs/plantilla-diseno.md` (tokens Medoxigas).
+**Base:** `docs/dominio-pos.md` (contrato de datos, RPC, impresión y errores), `docs/PLAN-FASE-2-ORQUESTADOR.md` (FASE 2, 2D), `docs/alegra/pos/**` (referencia exacta del diseño del POS) y `docs/plantilla-diseno.md` (tokens Medoxigas del resto de la app).
 **Rama:** `t3/diseno-ui-pos`, desde `origin/main`.
 **Archivo que posee esta tarea:** `docs/diseno/pos-ui.md`.
 
 > **Reglas duras (no negociables).**
 > 1. El POS es **la misma contabilidad**: cada venta crea una factura real, descarga inventario y asienta. La UI no inventa totales ni impuestos.
-> 2. Solo tokens de `docs/plantilla-diseno.md` (`--primary` azul, `--background`, `--card`, `--destructive`…). **Nunca** el teal `#00b19d` de Alegra ni hex sueltos en la UI. La única excepción de color es el CSS de impresión del ticket, que fuerza blanco y negro.
+> 2. El POS copia el diseño de Alegra exactamente (decisión de Waldy, 22-11-2026): usa los tokens `--pos-*` de `src/app/globals.css` (`--pos-primario` = teal `#00b19d`, `--pos-linea`, `--pos-texto`…) con aliases Tailwind `pos-*`; nunca `--primary` ni hex sueltos en la UI. La única excepción de color es el CSS de impresión del ticket, que fuerza blanco y negro.
 > 3. Sin multi-empresa ni marca hardcodeada: se usa `empresa.nombre`, `empresa.rnc`, etc. Si un dato de la empresa falta, la línea se omite.
 > 4. El POS solo tiene **Vender**, **Turnos**, **Historial de ventas del POS** y **Devoluciones**. Inventario y Configuración viven en Contabilidad.
-> 5. No se copia código, HTML, CSS, textos ni diseño exacto de Alegra. Este documento traduce el flujo, no la piel.
+> 5. El diseño del POS sí se copia exactamente de Alegra; lo que nunca se copia es su código fuente: HTML, CSS, selectores, textos largos ni logos. Este documento traduce el flujo y fija la piel documentada en `docs/alegra/pos/`.
 > 6. No se agregan dependencias. Se usan los componentes de `src/components/ui/` tal cual y los componentes de negocio existentes que se nombran aquí.
 > 7. Ninguna escritura se hace desde el navegador: la capa 2B expone server actions y estas llaman `supabase.rpc("nombre", args)` directo. La UI no usa `service_role`, no desactiva RLS y no envía `ncf_manual`.
 
@@ -411,12 +411,12 @@ Pie fijo del panel:
   - Vista previa: «Total: RD$ X» (monto + ITBIS) en una caja `bg-muted/40`.
 - «Aplicar a la venta» (primario, 48 px) crea una línea libre `cantidad = 1`, `precio = monto`, `descuento_pct = 0`, `itbis_tasa` elegida. Si el carrito tiene una cotización cargada, la acción está deshabilitada con «Quita la cotización para agregar una venta simple.»
 - «Cancelar» cierra sin cambios. Esc cierra.
-- No hay calculadora de operadores (la de Alegra no se copia): es un formulario directo, más rápido de operar con teclado.
+- No hay calculadora de operadores: es un formulario directo, más rápido de operar con teclado.
 
 ### 4.5 Pestañas de ventas paralelas
 
 - `[N] pestanas-venta-pos.tsx` al pie del panel. Es una tira de pestañas de 40 px, con scroll horizontal si hay muchas.
-- Pestaña: nombre (`Venta 1`, `Venta 2`…) + total de su carrito en `text-xs tabular-nums`. Activa: `border-b-2 border-primary text-foreground`; inactiva: `text-muted-foreground`. La tira usa `role="tablist"`, cada pestaña `role="tab"` con `aria-selected`, y el panel `role="tabpanel"` con `aria-labelledby`.
+- Pestaña: icono cesta + nombre (`Venta principal`, `Venta 1`…). Activa: `border-b-2 border-pos-primario text-pos-primario`; inactiva: `text-pos-texto-suave`. La tira usa `role="tablist"`, cada pestaña `role="tab"` con `aria-selected`, y el panel `role="tabpanel"` con `aria-labelledby`.
 - `+` al final, 40×40, `aria-label="Nueva venta"`. Crea una pestaña con defaults (cliente de la terminal, lista y numeración por defecto) y foco en el buscador. Deshabilitado a las 8 con tooltip «Máximo 8 ventas abiertas.».
 - Menú `⋮` por pestaña (`DropdownMenu`): «Renombrar» y «Eliminar».
   - Renombrar: input inline en la pestaña, máximo 30 caracteres; `Enter` guarda, Esc cancela; vacío vuelve a `Venta N`.
@@ -1415,6 +1415,6 @@ No hay toast para «Producto agregado»: esa confirmación es la región `aria-l
 - No define la anulación de facturas, notas de crédito o pagos: vive en Contabilidad.
 - No define e-CF/DGII, NCF manual, offline, multi-empresa, multi-sucursal, rol cajero, propinas, báscula, promociones ni puntos.
 - No define impresión ESC/POS directa: se usa el diálogo del navegador con `@media print`.
-- No define el contenido de `docs/alegra/pos/`: es inspiración funcional, no se copia.
+- No define el contenido de `docs/alegra/pos/`: es la referencia exacta del diseño del POS (su código nunca se copia).
 
 Si una decisión de este documento choca con `docs/dominio-pos.md`, manda `docs/dominio-pos.md`. Si choca con la realidad del código, se corrige este documento en el mismo PR antes de implementar.

@@ -2,9 +2,22 @@
 
 import { useState } from "react";
 
+import { useRouter } from "next/navigation";
+
 import { DialogoNuevoContacto } from "@/components/contactos/dialogo-nuevo-contacto";
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
-import { FileText, FolderOpen, Loader2, UserPlus, Zap } from "@/components/icons";
+import {
+  Basket,
+  FileText,
+  FolderOpen,
+  Loader2,
+  Percent,
+  Printer,
+  Receipt,
+  SlidersHorizontal,
+  UserPlus,
+  Zap,
+} from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -18,19 +31,31 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { ContactoBuscado } from "@/lib/contactos/seleccion";
-import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
+import { formatoCantidad } from "@/lib/facturacion/formato";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { sumarMontos } from "@/lib/pos/calculo";
 
-import { ivaPorTasa, useCarritoPOS } from "../carrito-pos-provider";
+import { useCarritoPOS } from "../carrito-pos-provider";
+import { formatoMonedaPOS } from "../formato-pos";
 import { LineaCarritoPos } from "./linea-carrito-pos";
 import { PestanasVentaPos } from "./pestanas-venta-pos";
 
 const NINGUNO = "__ninguno";
+
+/** «Crédito fiscal B01» se muestra como en Alegra: «Crédito fiscal (01)». */
+function etiquetaNumeracion(numeracion: Numeracion): string {
+  return `${numeracion.nombre} (${numeracion.prefijo.replace(/^[A-Za-z]+/, "")})`;
+}
 
 export interface PanelFacturaProps {
   terminal: { id: string; nombre: string };
@@ -44,7 +69,6 @@ export interface PanelFacturaProps {
   onCobrar: () => void;
   onVentaSimple: () => void;
   onCargarCotizacion: () => void;
-  onAbrirTurno: () => void;
   onGuardarCotizacion: () => void;
   onCancelarVenta: () => void;
   onAnunciar: (mensaje: string) => void;
@@ -66,7 +90,6 @@ export function PanelFactura({
   onCobrar,
   onVentaSimple,
   onCargarCotizacion,
-  onAbrirTurno,
   onGuardarCotizacion,
   onCancelarVenta,
   onAnunciar,
@@ -75,6 +98,7 @@ export function PanelFactura({
   sinCaja = false,
   idPanel = "panel-factura-pos",
 }: PanelFacturaProps) {
+  const router = useRouter();
   const carrito = useCarritoPOS();
   const { activa, totales } = carrito;
   const [expandida, setExpandida] = useState<string | null>(null);
@@ -101,24 +125,89 @@ export function PanelFactura({
     });
 
   const avisoTurno = turno === null;
+  const cobroBloqueado = activa.lineas.length === 0 || avisoTurno || !numeracionValida || !puedeEscribir || sinCaja;
 
   return (
     <aside
       id={idPanel}
       role="tabpanel"
       aria-labelledby={`pestana-${activa.id}`}
-      className="bg-card border-border flex h-full min-h-0 flex-col border-l"
+      className="border-pos-linea text-pos-texto flex h-full min-h-0 flex-col border-l bg-white [font-family:var(--font-inter)] dark:bg-card"
     >
-      <div className="flex shrink-0 flex-col gap-2 border-b p-3">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-semibold">Factura de venta</h2>
-          <span className="text-muted-foreground truncate text-xs">{activa.nombre}</span>
+      <div className="border-pos-linea flex h-16 shrink-0 items-center justify-between border-b px-4">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold whitespace-nowrap">Factura de venta</h2>
+          <span className="bg-pos-linea/70 text-pos-icono flex size-7 items-center justify-center rounded-full">
+            <Zap className="size-4" weight="fill" aria-hidden="true" />
+          </span>
         </div>
+        <div className="text-pos-icono flex items-center gap-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:text-pos-texto size-8"
+            title="Venta rápida"
+            aria-label="Venta rápida"
+            onClick={onVentaSimple}
+            disabled={cotizacion !== null || !puedeEscribir}
+          >
+            <Percent className="size-[18px]" aria-hidden="true" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:text-pos-texto size-8"
+            title="Historial de ventas"
+            aria-label="Historial de ventas"
+            onClick={() => router.push("/pos/historial")}
+          >
+            <Printer className="size-[18px]" aria-hidden="true" />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:text-pos-texto size-8"
+                  title="Opciones de la venta"
+                  aria-label="Opciones de la venta"
+                />
+              }
+            >
+              <SlidersHorizontal className="size-[18px]" aria-hidden="true" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem
+                disabled={activa.lineas.length === 0 || cotizacion !== null || !puedeEscribir || guardandoCotizacion}
+                onClick={onGuardarCotizacion}
+              >
+                {guardandoCotizacion ? (
+                  <Loader2 className="animate-spin" aria-hidden="true" />
+                ) : (
+                  <FileText aria-hidden="true" />
+                )}
+                Guardar cotización
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={cotizacion !== null || !puedeEscribir} onClick={onCargarCotizacion}>
+                <FolderOpen aria-hidden="true" />
+                Cargar cotización
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={cotizacion !== null || !puedeEscribir} onClick={onVentaSimple}>
+                <Zap aria-hidden="true" />
+                <span className="flex-1">Venta simple</span>
+                <kbd className="text-muted-foreground text-[10px]">F4</kbd>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
 
-        <div className="grid grid-cols-2 gap-2">
+      <div className="border-pos-linea flex shrink-0 flex-col gap-3 border-b px-4 py-3">
+        <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1">
-            <Label htmlFor="lista-precio-pos" className="text-xs">
-              Lista de precios
+            <Label htmlFor="lista-precio-pos" className="text-pos-texto text-sm font-normal">
+              Lista de precio
             </Label>
             <Select
               items={[
@@ -129,7 +218,7 @@ export function PanelFactura({
               onValueChange={(valor) => carrito.setLista(valor === NINGUNO ? "" : (valor ?? ""))}
               disabled={cotizacion !== null}
             >
-              <SelectTrigger id="lista-precio-pos" className="h-10 w-full">
+              <SelectTrigger id="lista-precio-pos" className="border-pos-linea h-10 w-full shadow-none">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
@@ -144,24 +233,28 @@ export function PanelFactura({
           </div>
 
           <div className="flex flex-col gap-1">
-            <Label htmlFor="numeracion-pos" className="text-xs">
+            <Label htmlFor="numeracion-pos" className="text-pos-texto text-sm font-normal">
               Numeración
             </Label>
             <Select
               items={numeraciones.map((numeracion) => ({
                 value: numeracion.id,
-                label: `${numeracion.nombre} · ${numeracion.prefijo}`,
+                label: etiquetaNumeracion(numeracion),
               }))}
               value={numeracionValida ? activa.numeracionId : null}
               onValueChange={(valor) => carrito.setNumeracion(valor ?? "")}
             >
-              <SelectTrigger id="numeracion-pos" className="h-10 w-full" aria-invalid={!numeracionValida}>
+              <SelectTrigger
+                id="numeracion-pos"
+                className="border-pos-linea h-10 w-full shadow-none"
+                aria-invalid={!numeracionValida}
+              >
                 <SelectValue placeholder="Sin numeración" />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
                 {numeraciones.map((numeracion) => (
                   <SelectItem key={numeracion.id} value={numeracion.id}>
-                    {`${numeracion.nombre} · ${numeracion.prefijo}`}
+                    {etiquetaNumeracion(numeracion)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -170,7 +263,7 @@ export function PanelFactura({
         </div>
 
         <div className="flex items-center gap-2">
-          <Label htmlFor="cliente-pos" className="w-12 shrink-0 text-xs">
+          <Label htmlFor="cliente-pos" className="text-pos-texto w-12 shrink-0 text-sm font-normal">
             Cliente
           </Label>
           <SelectorContacto
@@ -186,7 +279,7 @@ export function PanelFactura({
           />
           <Button
             variant="ghost"
-            className="bg-primary/10 text-primary hover:bg-primary/15 h-10 shrink-0 gap-1 px-3"
+            className="bg-pos-acento text-pos-acento-texto hover:bg-pos-acento/70 hover:text-pos-acento-texto h-10 shrink-0 gap-1 px-3 font-medium"
             disabled={cotizacion !== null || !puedeEscribir}
             onClick={() => setNuevoCliente(true)}
           >
@@ -197,7 +290,7 @@ export function PanelFactura({
 
         {vendedores.length > 0 ? (
           <div className="flex flex-col gap-1">
-            <Label htmlFor="vendedor-pos" className="text-xs">
+            <Label htmlFor="vendedor-pos" className="text-pos-texto text-sm font-normal">
               Vendedor
             </Label>
             <Select
@@ -209,7 +302,7 @@ export function PanelFactura({
               onValueChange={(valor) => carrito.setVendedor(valor === NINGUNO ? "" : (valor ?? ""))}
               disabled={cotizacion !== null}
             >
-              <SelectTrigger id="vendedor-pos" className="h-10 w-full">
+              <SelectTrigger id="vendedor-pos" className="border-pos-linea h-10 w-full shadow-none">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
@@ -247,9 +340,9 @@ export function PanelFactura({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {activa.lineas.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-1 px-6 py-10 text-center">
-            <p className="font-medium">El carrito está vacío.</p>
-            <p className="text-muted-foreground text-sm">Busca un producto o escanea un código para empezar.</p>
+          <div className="flex h-full flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+            <Basket className="text-pos-icono size-10" weight="light" aria-hidden="true" />
+            <p className="text-pos-texto-suave text-sm">Aquí verás los productos que elijas en tu próxima venta</p>
           </div>
         ) : (
           activa.lineas.map((linea) => (
@@ -266,31 +359,17 @@ export function PanelFactura({
           ))
         )}
         {activa.lineas.length > 100 ? (
-          <p className="text-muted-foreground px-3 py-2 text-xs">
+          <p className="text-muted-foreground px-4 py-2 text-xs">
             Esta venta tiene más de 100 líneas. Considera dividirla en dos ventas.
           </p>
         ) : null}
       </div>
 
-      <div className="bg-card flex shrink-0 flex-col gap-2 border-t p-3">
+      <div className="border-pos-linea flex shrink-0 flex-col gap-2 border-t bg-white px-4 pt-3 shadow-[0_-10px_18px_-12px_rgba(15,23,42,0.25)] dark:bg-card">
         {sinCaja ? (
           <Alert variant="destructive">
             <AlertDescription>
               {`La terminal ${terminal.nombre} no tiene una cuenta de efectivo activa.`}
-            </AlertDescription>
-          </Alert>
-        ) : null}
-
-        {avisoTurno ? (
-          <Alert>
-            <AlertDescription className="flex flex-col items-start gap-2">
-              <span>{`No hay un turno abierto en ${terminal.nombre}.`}</span>
-              <span className="text-muted-foreground text-xs">
-                Abre un turno para cobrar; puedes seguir armando el carrito.
-              </span>
-              <Button variant="outline" size="sm" className="h-10" onClick={onAbrirTurno}>
-                Abrir turno
-              </Button>
             </AlertDescription>
           </Alert>
         ) : null}
@@ -318,90 +397,37 @@ export function PanelFactura({
           </Alert>
         ) : null}
 
-        <div className="flex flex-col gap-1 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span className="tabular-nums">{formatoMoneda(totales.subtotal)}</span>
-          </div>
-          {Number(totales.descuento) > 0 ? (
-            <div className="text-muted-foreground flex justify-between">
-              <span>Descuento</span>
-              <span className="tabular-nums">−{formatoMoneda(totales.descuento)}</span>
-            </div>
-          ) : null}
-          {ivaPorTasa(activa.lineas).map((itbis) => (
-            <div key={itbis.tasa} className="text-muted-foreground flex justify-between">
-              <span>{`ITBIS ${formatoCantidad(itbis.tasa)}%`}</span>
-              <span className="tabular-nums">{formatoMoneda(itbis.monto)}</span>
-            </div>
-          ))}
+        <div className="flex items-stretch gap-2">
+          <Button
+            className="bg-pos-primario hover:bg-pos-primario-hover disabled:bg-pos-acento h-12 flex-1 justify-between rounded-lg px-4 text-base font-semibold text-white disabled:text-white/80"
+            disabled={cobroBloqueado}
+            onClick={onCobrar}
+          >
+            <span>Vender</span>
+            <span className="tabular-nums">{formatoMonedaPOS(totales.total)}</span>
+          </Button>
+          <Button
+            className="bg-pos-oscuro hover:bg-pos-oscuro/85 relative h-12 w-12 shrink-0 rounded-lg text-white"
+            title="Historial de ventas"
+            aria-label="Historial de ventas"
+            render={<a href="/pos/historial" />}
+          >
+            <Receipt className="size-5" aria-hidden="true" />
+            <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-slate-400 ring-2 ring-white dark:ring-card" />
+          </Button>
         </div>
 
-        <div className="border-border flex items-baseline justify-between border-t pt-2">
-          <span className="text-sm font-medium">Total</span>
-          <span className="text-2xl font-semibold tabular-nums">{formatoMoneda(totales.total)}</span>
-        </div>
-
-        <Button
-          className="h-12 w-full justify-between px-4 text-base font-semibold"
-          disabled={activa.lineas.length === 0 || avisoTurno || !numeracionValida || !puedeEscribir || sinCaja}
-          onClick={onCobrar}
-        >
-          <span>Vender</span>
-          <span className="flex items-center gap-2 tabular-nums">
-            {formatoMoneda(totales.total)}
-            <kbd className="bg-primary-foreground/20 rounded px-1.5 py-0.5 text-[10px] font-normal">F8</kbd>
+        <div className="border-pos-linea flex h-11 items-center justify-between rounded-lg border px-3">
+          <span className="text-sm font-semibold">
+            {Number(articulos) === 1 ? "1 Producto" : `${formatoCantidad(articulos)} Productos`}
           </span>
-        </Button>
-
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-medium">
-            {Number(articulos) === 1 ? "1 artículo" : `${formatoCantidad(articulos)} artículos`}
-          </span>
-          <Button variant="link" className="text-destructive h-8 px-1" onClick={() => setCancelar(true)}>
-            Cancelar venta
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground h-8 min-w-0 flex-1 gap-1 px-1 text-xs"
-            title="Guardar como cotización"
-            disabled={activa.lineas.length === 0 || cotizacion !== null || !puedeEscribir || guardandoCotizacion}
-            onClick={onGuardarCotizacion}
+          <button
+            type="button"
+            className="text-pos-primario hover:text-pos-primario-hover text-sm font-medium"
+            onClick={() => setCancelar(true)}
           >
-            {guardandoCotizacion ? (
-              <Loader2 className="animate-spin" aria-hidden="true" />
-            ) : (
-              <FileText aria-hidden="true" />
-            )}
-            <span className="truncate">Guardar cotización</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground h-8 min-w-0 flex-1 gap-1 px-1 text-xs"
-            title="Cargar una cotización abierta"
-            disabled={cotizacion !== null || !puedeEscribir}
-            onClick={onCargarCotizacion}
-          >
-            <FolderOpen aria-hidden="true" />
-            <span className="truncate">Cargar cotización</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground h-8 min-w-0 flex-1 gap-1 px-1 text-xs"
-            title="Venta simple (F4)"
-            onClick={onVentaSimple}
-            disabled={cotizacion !== null || !puedeEscribir}
-          >
-            <Zap aria-hidden="true" />
-            <span className="truncate">Venta simple</span>
-            <kbd className="text-muted-foreground/70 text-[10px]">F4</kbd>
-          </Button>
+            Cancelar
+          </button>
         </div>
 
         <PestanasVentaPos />

@@ -154,7 +154,7 @@ export function ivaPorTasa(lineas: readonly LineaCarrito[]): { tasa: Decimal; mo
 }
 
 export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsVenta; children: ReactNode }) {
-  const [pestanas, setPestanas] = useState<PestanaVenta[]>(() => [crearPestana("Venta 1", defaults)]);
+  const [pestanas, setPestanas] = useState<PestanaVenta[]>(() => [crearPestana("Venta principal", defaults)]);
   const [activaId, setActivaId] = useState<string>(() => pestanas[0]?.id ?? "");
 
   const activa = pestanas.find((pestana) => pestana.id === activaId) ?? pestanas[0];
@@ -318,7 +318,7 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
   const eliminarPestana = useCallback(
     (id: string) => {
       if (pestanas.length === 1) {
-        const nueva = crearPestana("Venta 1", defaults);
+        const nueva = crearPestana("Venta principal", defaults);
         setPestanas([nueva]);
         setActivaId(nueva.id);
         return;
