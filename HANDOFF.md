@@ -1,5 +1,16 @@
 # Handoff — Medoxigas Contabilidad
 
+## Ticket POS 80 mm igual a Alegra (rama `feat/pos-ticket-80mm-alegra`, PLAN POS 2 Punto 4)
+
+Trabajo de subagente ejecutor sobre `feat/pos-alegra-exacto` (PR #107). Solo diseño de impresión del ticket térmico.
+
+- **Papel 80×250 mm real:** Chrome ignora `size: 80mm auto` en `@page` y cae a Letter. En `ticket-pos.tsx` los `@page` nombrados `pos-ticket-80/57` ahora usan alto fijo (`size: 80mm 250mm` / `57mm 250mm`, margin 0). Verificado con Playwright + pdfinfo: el PDF del ticket sale **1 página de 227.04 × 708.96 pt**, idéntico al PDF real de Alegra (`/root/referencias/plan-pos-2/alegra-ticket-80mm.pdf`). El `@page` letter global de reportes no se tocó.
+- **Orden de Alegra en `impresion.ts`:** empresa → `Cliente: <nombre>` → comprobante (NCF, `Fecha: dd/mm/aaaa h:mm am/pm`, `Tipo de pago`, nuevo `Método de pago` — «Combinado» si hubo varios, se omite sin pagos — `Vendedor`, `Vencimiento`, `Vence NCF`) → ítems → totales → `Total recibido`/`Cambio` a la izquierda → conteos → pie. Quitados `Terminal:`/`Turno No`/`Cajero:` de la factura (cierre/recibos los conservan), el bloque «Pagos» separado, la nota «ITBIS incluido» y la numeración de ítems.
+- **Montos como Alegra:** `RD$` sin espacio en totales/cobro (`moneda()`), totales de ítem y «cant x precio» sin moneda (`numero()`); detalle «2 x 112.10» con `x` simple.
+- **Medidas (`ticket-pos.tsx`):** base mediana 10 pt e interlineado normal 1.35 (paso 13.5 pt, igual a Alegra); empresa y «Cliente:» a 1.5em, ítems 0.8em, detalle 0.72em, encabezado Item/Total 0.9em, Total 1.5em; etiquetas `Etiqueta:` en negrita con valor normal (`LineaDato`); padding 6mm/5mm. 57 mm conserva su escala y columnas apiladas.
+- **Sin datos para Sucursal/Régimen:** se omiten (no existen en la app); pie vacío no imprime nada.
+- **Candado nuevo** en `src/lib/pos/diseno-pos.test.ts`: exige `size: 80mm 250mm`/`57mm 250mm`, prohíbe el alto `auto`, «Generado en Alegra POS», «OXYMAT», y `Terminal:`/`Turno`/`Cajero:` en `armarTicketFactura`; exige `Total recibido` y `Método de pago:`.
+- **Evidencia:** `docs/diseno/capturas/pos-ticket/` — `antes-ticket-80mm.pdf` (612×792 Letter), `despues-ticket-80mm.pdf` (227.04×708.96, 1 pág.), PNGs, `comparacion-80mm.png` (referencia de Alegra con los datos de OXYMAT tapados; el original queda en `/root/referencias/plan-pos-2/` y NO se commitea) y `medidas.md` con la tabla de medidas. Capturado desde `/pos/historial` con la venta B0200000007, sin crear ni tocar datos.
 ## POS 6 — cierre de turno como Alegra (`feat/pos-cierre-turno-alegra`)
 
 - Formulario de cierre con efectivo contado vacío, label «Dinero en efectivo del cierre» y esperado solo como referencia; no presenta diferencias ni switch hasta escribir un monto válido. Validación y payload de cierre intactos.

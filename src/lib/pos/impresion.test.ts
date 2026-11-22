@@ -57,29 +57,33 @@ describe("armarTicketFactura", () => {
     expect(ticket.encabezado.empresa).toContain("RNC: 131234567");
     expect(ticket.encabezado.lineas).toContain("NCF B0200000015");
     expect(ticket.encabezado.lineas).toContain("Tipo de pago: Contado");
-    expect(ticket.encabezado.lineas).toContain("Terminal: Caja 1");
-    expect(ticket.encabezado.lineas).toContain("Turno No 4");
+    expect(ticket.encabezado.lineas).toContain("Método de pago: Efectivo");
+    expect(ticket.encabezado.lineas).toContain("Vencimiento: 20/11/2026");
     expect(ticket.encabezado.lineas).not.toContain("Cliente: Consumidor Final");
     expect(ticket.cliente.nombre).toBe("Consumidor Final");
     expect(ticket.cliente.lineas).toContain("RNC: 22222222222");
-    expect(ticket.lineas[0]?.total).toBe("RD$ 236.00");
-    expect(valor(ticket.totales, "Total")).toBe("RD$ 236.00");
-    expect(ticket.pagos).toContainEqual({ etiqueta: "Efectivo", valor: "RD$ 236.00" });
-    expect(valor(ticket.pagos, "Recibido")).toBe("RD$ 250.00");
-    expect(valor(ticket.pagos, "Cambio")).toBe("RD$ 14.00");
+    expect(ticket.lineas[0]?.total).toBe("236.00");
+    expect(valor(ticket.totales, "Total")).toBe("RD$236.00");
+    expect(ticket.pagos).toEqual([
+      { etiqueta: "Total recibido", valor: "RD$250.00" },
+      { etiqueta: "Cambio", valor: "RD$14.00" },
+    ]);
     expect(valor(ticket.resumen, "Total de líneas")).toBe("1");
     expect(valor(ticket.resumen, "Total de productos")).toBe("2");
-    expect(ticket.nota).toBe("ITBIS incluido");
+    expect(ticket.nota).toBeNull();
   });
 
-  test("el encabezado ordena NCF, fecha, tipo de pago, terminal y turno", () => {
+  test("el encabezado sigue el orden de Alegra y no muestra terminal, turno ni cajero", () => {
     const lineas = armarTicketFactura(ventaEjemplo()).encabezado.lineas;
-    const orden = ["NCF B0200000015", "Tipo de pago: Contado", "Terminal: Caja 1", "Turno No 4"].map((texto) =>
+    const orden = ["NCF B0200000015", "Fecha:", "Tipo de pago: Contado", "Método de pago: Efectivo"].map((texto) =>
       lineas.findIndex((linea) => linea.includes(texto)),
     );
 
     expect(orden.every((indice) => indice >= 0)).toBe(true);
     expect(orden).toEqual([...orden].sort((a, b) => a - b));
+    expect(lineas.some((linea) => linea.startsWith("Terminal:"))).toBe(false);
+    expect(lineas.some((linea) => linea.startsWith("Turno"))).toBe(false);
+    expect(lineas.some((linea) => linea.startsWith("Cajero:"))).toBe(false);
   });
 
   test("el logo sale del logo_url de la empresa y se apaga con mostrar_logo", () => {
@@ -101,9 +105,9 @@ describe("armarTicketFactura", () => {
   test("desglosa la base en Subtotal Exento y Subtotal Gravado", () => {
     const ticket = armarTicketFactura(ventaEjemplo());
 
-    expect(valor(ticket.totales, "Subtotal Exento")).toBe("RD$ 0.00");
-    expect(valor(ticket.totales, "Subtotal Gravado")).toBe("RD$ 200.00");
-    expect(valor(ticket.totales, "ITBIS 18%")).toBe("RD$ 36.00");
+    expect(valor(ticket.totales, "Subtotal Exento")).toBe("RD$0.00");
+    expect(valor(ticket.totales, "Subtotal Gravado")).toBe("RD$200.00");
+    expect(valor(ticket.totales, "ITBIS 18%")).toBe("RD$36.00");
   });
 
   test("una venta a crédito marca el tipo de pago y muestra recibido sin cambio", () => {
@@ -127,7 +131,8 @@ describe("armarTicketFactura", () => {
 
     expect(ticket.encabezado.lineas).toContain("Tipo de pago: Crédito");
     expect(ticket.encabezado.lineas).toContain("Vencimiento: 20/12/2026");
-    expect(valor(ticket.pagos, "Recibido")).toBe("RD$ 100.00");
+    expect(ticket.encabezado.lineas.some((linea) => linea.startsWith("Método de pago:"))).toBe(false);
+    expect(valor(ticket.pagos, "Total recibido")).toBe("RD$100.00");
     expect(valor(ticket.pagos, "Cambio")).toBeUndefined();
   });
 
@@ -139,9 +144,9 @@ describe("armarTicketFactura", () => {
     };
     const ticket = armarTicketFactura(conDescuento);
 
-    expect(valor(ticket.totales, "Subtotal")).toBe("RD$ 205.00");
-    expect(valor(ticket.totales, "Descuento")).toBe("-RD$ 5.00");
-    expect(valor(ticket.totales, "Total")).toBe("RD$ 236.00");
+    expect(valor(ticket.totales, "Subtotal")).toBe("RD$205.00");
+    expect(valor(ticket.totales, "Descuento")).toBe("-RD$5.00");
+    expect(valor(ticket.totales, "Total")).toBe("RD$236.00");
   });
 
   test("57 mm apila las columnas y conserva los montos", () => {
@@ -149,7 +154,7 @@ describe("armarTicketFactura", () => {
 
     expect(ticket.diseno.ancho_mm).toBe(57);
     expect(ticket.diseno.columnas).toBe("apilada");
-    expect(valor(ticket.totales, "Total")).toBe("RD$ 236.00");
+    expect(valor(ticket.totales, "Total")).toBe("RD$236.00");
   });
 
   test("si la respuesta no trae creado_en usa la hora de recepción", () => {
@@ -158,7 +163,7 @@ describe("armarTicketFactura", () => {
     const ticket = armarTicketFactura(sinHora, null, { recibido_en: "2026-11-20T15:10:00-04:00" });
     const legibles = ticket.encabezado.lineas.map((linea) => linea.replace(/\u00A0/g, " "));
 
-    expect(legibles).toContain("Fecha: 20/11/2026 03:10 p. m.");
+    expect(legibles).toContain("Fecha: 20/11/2026 3:10 pm");
   });
 
   test("sin precio unitario no imprime la columna ni la nota de ITBIS incluido", () => {
@@ -166,14 +171,14 @@ describe("armarTicketFactura", () => {
 
     expect(ticket.lineas[0]?.precio_unitario).toBeNull();
     expect(ticket.lineas[0]?.detalle).toBe("2 Unidad");
-    expect(valor(ticket.totales, "ITBIS 18%")).toBe("RD$ 36.00");
+    expect(valor(ticket.totales, "ITBIS 18%")).toBe("RD$36.00");
     expect(ticket.nota).toBeNull();
   });
 
   test("sin unidad imprime solo la cantidad", () => {
     const ticket = armarTicketFactura(ventaEjemplo(), plantilla({ mostrar_unidad: false }));
 
-    expect(ticket.lineas[0]?.detalle).toContain("2 ×");
+    expect(ticket.lineas[0]?.detalle).toContain("2 x");
     expect(ticket.lineas[0]?.detalle).not.toContain("Unidad");
   });
 
@@ -199,8 +204,8 @@ describe("armarTicketFactura", () => {
     const conImpuesto = armarTicketFactura(ventaEjemplo(), plantilla({ precios_con_impuestos: true }));
     const sinImpuesto = armarTicketFactura(ventaEjemplo(), plantilla({ precios_con_impuestos: false }));
 
-    expect(conImpuesto.lineas[0]?.precio_unitario).toBe("RD$ 118.00");
-    expect(sinImpuesto.lineas[0]?.precio_unitario).toBe("RD$ 100.00");
+    expect(conImpuesto.lineas[0]?.precio_unitario).toBe("118.00");
+    expect(sinImpuesto.lineas[0]?.precio_unitario).toBe("100.00");
   });
 
   test("el pie se omite cuando la plantilla no lo define", () => {
@@ -219,7 +224,7 @@ describe("armarTicketFactura", () => {
 
     expect(ticket.anulada).toBe(true);
     expect(ticket.encabezado.anulada).toBe(true);
-    expect(valor(ticket.totales, "Total")).toBe("RD$ 236.00");
+    expect(valor(ticket.totales, "Total")).toBe("RD$236.00");
   });
 
   test("una venta a crédito muestra pagado, crédito y saldo", () => {
@@ -240,9 +245,9 @@ describe("armarTicketFactura", () => {
     };
     const ticket = armarTicketFactura(credito);
 
-    expect(valor(ticket.totales, "Pagado")).toBe("RD$ 100.00");
-    expect(valor(ticket.totales, "Saldo")).toBe("RD$ 136.00");
-    expect(ticket.pagos).toEqual([{ etiqueta: "Recibido", valor: "RD$ 100.00" }]);
+    expect(valor(ticket.totales, "Pagado")).toBe("RD$100.00");
+    expect(valor(ticket.totales, "Saldo")).toBe("RD$136.00");
+    expect(ticket.pagos).toEqual([{ etiqueta: "Total recibido", valor: "RD$100.00" }]);
   });
 });
 
@@ -255,7 +260,7 @@ describe("armarTicketCotizacion", () => {
     expect(ticket.encabezado.lineas).toContain("Vence: 20/12/2026");
     expect(ticket.pagos).toEqual([]);
     expect(ticket.nota).toBe("No es una factura.");
-    expect(valor(ticket.totales, "Total")).toBe("RD$ 236.00");
+    expect(valor(ticket.totales, "Total")).toBe("RD$236.00");
   });
 });
 
@@ -266,9 +271,9 @@ describe("armarTicketDevolucion", () => {
     expect(ticket.encabezado.titulo).toBe("Nota de Crédito");
     expect(ticket.encabezado.lineas).toContain("NCF B0400000004");
     expect(ticket.encabezado.lineas).toContain("Factura origen: B0200000015");
-    expect(valor(ticket.totales, "Total")).toBe("RD$ 59.00");
+    expect(valor(ticket.totales, "Total")).toBe("RD$59.00");
     expect(ticket.bloques[0]?.titulo).toBe("Efectivo");
-    expect(ticket.bloques[0]?.filas).toContainEqual({ etiqueta: "Efectivo", valor: "RD$ 59.00" });
+    expect(ticket.bloques[0]?.filas).toContainEqual({ etiqueta: "Efectivo", valor: "RD$59.00" });
     expect(ticket.bloques[0]?.filas).toContainEqual({ etiqueta: "Cuenta de efectivo", valor: "Caja general" });
   });
 });
@@ -285,9 +290,9 @@ describe("armarTicketCierre", () => {
     expect(titulos).toContain("Devoluciones");
     expect(titulos).toContain("Movimientos");
     expect(titulos).toContain("Observaciones");
-    expect(valor(ticket.totales, "Efectivo esperado en caja")).toBe("RD$ 306.00");
-    expect(valor(ticket.totales, "Efectivo real en caja")).toBe("RD$ 300.00");
-    expect(valor(ticket.totales, "Diferencia")).toBe("Faltante RD$ 6.00");
+    expect(valor(ticket.totales, "Efectivo esperado en caja")).toBe("RD$306.00");
+    expect(valor(ticket.totales, "Efectivo real en caja")).toBe("RD$300.00");
+    expect(valor(ticket.totales, "Diferencia")).toBe("Faltante RD$6.00");
   });
 });
 
@@ -296,8 +301,8 @@ describe("armarTicketMovimiento", () => {
     const ticket = armarTicketMovimiento(movimientoEjemplo());
 
     expect(ticket.encabezado.titulo).toBe("Recibo de ingreso No 10");
-    expect(valor(ticket.totales, "Total del recibo")).toBe("RD$ 100.00");
-    expect(valor(ticket.totales, "Efectivo esperado después")).toBe("RD$ 306.00");
+    expect(valor(ticket.totales, "Total del recibo")).toBe("RD$100.00");
+    expect(valor(ticket.totales, "Efectivo esperado después")).toBe("RD$306.00");
   });
 
   test("al reimprimir omite el esperado posterior", () => {
