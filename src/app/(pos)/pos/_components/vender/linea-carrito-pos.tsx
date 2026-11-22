@@ -116,7 +116,7 @@ export function LineaCarritoPos({
             onKeyDown={(evento) => {
               if (evento.key === "Enter") fijarCantidad();
             }}
-            className="h-9 w-10 border-0 bg-transparent px-0 text-center text-sm font-medium tabular-nums shadow-none focus-visible:ring-1 dark:bg-transparent"
+            className="h-9 w-[60px] border-0 bg-transparent px-0 text-center text-sm font-medium tabular-nums shadow-none focus-visible:ring-1 dark:bg-transparent"
           />
           <button
             type="button"
@@ -129,11 +129,13 @@ export function LineaCarritoPos({
           </button>
         </div>
 
-        <div className="group/precio relative flex h-10 w-[112px] shrink-0 items-center justify-end xl:w-[152px]">
-          <span className="text-pos-texto text-[15px] leading-5 font-bold tabular-nums transition-opacity group-hover/precio:opacity-0 group-focus-within/precio:opacity-0">
+        <div className="group/precio relative flex h-10 min-w-[112px] shrink-0 items-center justify-end xl:min-w-[152px]">
+          <span className="text-pos-texto text-[15px] leading-5 font-bold whitespace-nowrap tabular-nums transition-opacity group-focus-within/precio:opacity-0 group-hover/precio:opacity-0">
             {formatoMonedaPOS(totales.total)}
           </span>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 opacity-0 transition-opacity group-hover/precio:pointer-events-auto group-hover/precio:opacity-100 group-focus-within/precio:pointer-events-auto group-focus-within/precio:opacity-100">
+          {/* En táctil no hay hover real: se oculta para que un tap en el total nunca toque la papelera.
+              Quitar sigue disponible en «Quitar línea» del editor. */}
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 opacity-0 transition-opacity group-focus-within/precio:pointer-events-auto group-focus-within/precio:opacity-100 group-hover/precio:pointer-events-auto group-hover/precio:opacity-100 [@media(hover:none)]:hidden">
             <Button
               variant="ghost"
               size="icon"
