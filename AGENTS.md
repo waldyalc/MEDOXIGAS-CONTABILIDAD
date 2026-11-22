@@ -77,7 +77,7 @@ Viven en `.opencode/skills/<nombre>/SKILL.md`. Cárgalas con la herramienta `ski
 
 Hechos: Inicio, Ingresos (facturas de venta y recurrentes, pagos recibidos, notas de crédito y débito, cotizaciones, conduces), Compras (facturas de proveedor, pagos, gastos menores, notas de crédito, órdenes de compra, pagos recurrentes), Contactos, Inventario (productos, ajustes, transferencias, listas de precios, almacenes, categorías), Bancos (cuentas y conciliaciones), Contabilidad (catálogo de cuentas, asientos, numeraciones, activos fijos, periodos), Reportes y Configuración.
 
-Punto de venta (`src/app/(pos)/pos/`, shell propio con riel lateral `menu-pos.tsx` de 56 px → 271 px, sin el sidebar de Contabilidad): `/pos` (vender), `/pos/pagos` (registro de pagos), `/pos/turnos`, `/pos/historial` (ventas) y `/pos/devoluciones`. La configuración de terminales vive en `/dashboard/configuracion/pos`.
+Punto de venta (`src/app/(pos)/pos/`, shell propio con riel lateral `menu-pos.tsx` de 52 px → 271 px, sin el sidebar de Contabilidad): `/pos` (vender), `/pos/pagos` (registro de pagos), `/pos/turnos`, `/pos/historial` (ventas) y `/pos/devoluciones`. La configuración de terminales vive en `/dashboard/configuracion/pos`.
 
 Transversales: adjuntos por documento/ficha, auditoría de quién creó/modificó/anuló, búsqueda global, saldos iniciales, tipos de entrada de diario, límite de crédito por contacto y control de `vende_negativo` por producto. El motor contable se resume en `docs/motor-contable.md`; tablas y RPC en `supabase/AGENTS.md`.
 
@@ -150,7 +150,7 @@ Candados que ya existen:
 - `src/lib/supabase/reset-virgen.test.ts` — exige que las 64 tablas `public.*` de las migraciones estén clasificadas una sola vez en `docs/pruebas/reset-base-virgen.sql`, dentro de `BEGIN…COMMIT`, sin tocar `perfiles` ni `auth.users`.
 - `tests/e2e/numeraciones.spec.ts` — guardar B16 sin cambios cierra el diálogo y un nombre en blanco muestra el error en español (requiere `E2E_EMAIL`/`E2E_PASSWORD`, como el humo).
 - `supabase/tests/anular_ajuste_costo_test.sql` — anular un ajuste de inventario de entrada devuelve la cantidad y revierte el costo promedio; anular una compra ya lo hacía (`anular_compra_costo_test.sql`).
-- `src/lib/pos/diseno-pos.test.ts` — el POS usa los tokens `--pos-*` (teal `#00b19d`, copia exacta de Alegra); prohíbe `--primary` y `#1e56c7` en `src/app/(pos)/pos/` con una lista de pendientes que solo puede encoger, y exige la paleta en `globals.css`. Además fija el Punto 1: el turno y las pestañas de ventas van en la barra inferior (`barra-inferior-pos.tsx`), no en una línea sobre el buscador ni dentro del panel.
+- `src/lib/pos/diseno-pos.test.ts` — el POS usa los tokens `--pos-*` (teal `#00b19d`, copia exacta de Alegra); prohíbe `--primary` y `#1e56c7` en `src/app/(pos)/pos/` con una lista de pendientes que solo puede encoger, y exige la paleta en `globals.css`. Además fija el Punto 1: el turno y las pestañas de ventas van en la barra inferior (`barra-inferior-pos.tsx`), no en una línea sobre el buscador ni dentro del panel, y el Sheet móvil termina 44 px antes para no tapar la barra.
 
 ## Antes de decir "listo"
 

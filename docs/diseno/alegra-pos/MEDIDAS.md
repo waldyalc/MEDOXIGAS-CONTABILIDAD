@@ -72,6 +72,7 @@ renderizado y `styles.css`. La columna «Medoxigas» es lo que quedó implementa
 | Pestaña activa | 160×43 px, icono 18, texto 14/500 `#474747`, acento teal | 160×43 px, icono 18, texto 14/500 | Subrayado teal abajo (como la captura 03). |
 | Botón «+» | 44×40 px, borde derecho, icono 20 | 44×44 px, borde derecho, icono 20 | Abre otra venta en espera. |
 | Estado del turno | No está en la barra (Alegra lo pone sobre el buscador) | A la derecha: punto + «Turno No N abierto» / «Turno cerrado» + «Cerrar/Abrir turno» | Decisión de Waldy (Punto 1). |
+| Sheet móvil «Ver factura» | No aplica | `calc(100dvh - 44px)`, con el velo también 44 px arriba | Deja la barra visible al pie; el carrito termina encima. |
 
 ## Colores y tipografía
 

@@ -41,14 +41,19 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  overlayClassName,
+  overlayStyle,
   ...props
 }: SheetPrimitive.Popup.Props & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
+  /** Permite dejar una franja del fondo sin velo (p. ej. la barra fija del POS). */
+  overlayClassName?: string
+  overlayStyle?: React.CSSProperties
 }) {
   return (
     <SheetPortal>
-      <SheetOverlay />
+      <SheetOverlay className={overlayClassName} style={overlayStyle} />
       <SheetPrimitive.Popup
         data-slot="sheet-content"
         data-side={side}

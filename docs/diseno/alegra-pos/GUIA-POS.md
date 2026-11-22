@@ -92,7 +92,9 @@ de inventario), `#d1d5db` (foto vacía).
 - Todo color de texto/fondo usa tokens o lleva su variante `dark:`; no hay
   `bg-white` ni grises claros sin pareja oscura.
 - El panel se oculta por debajo de 1024 px y se abre en `Sheet` con el botón
-  «Ver factura» (resumen de total arriba de la barra inferior).
+  «Ver factura» (resumen de total arriba de la barra inferior). El Sheet y su
+  velo terminan 44 px antes del borde inferior (`calc(100dvh - 2.75rem)`): la
+  barra queda visible al pie y el carrito termina justo encima.
 - En móvil la barra conserva pestañas y turno; el botón «Nuevo producto» pasa a
   icono y las tarjetas se apilan centradas sin desbordar.
 

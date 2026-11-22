@@ -537,7 +537,12 @@ export function VenderPos({
           </div>
 
           <Sheet open={sheetAbierto} onOpenChange={setSheetAbierto}>
-            <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-[420px]">
+            <SheetContent
+              side="right"
+              className="w-full gap-0 p-0 sm:max-w-[420px]"
+              overlayStyle={{ bottom: "2.75rem" }}
+              style={{ bottom: "2.75rem", height: "calc(100dvh - 2.75rem)" }}
+            >
               <SheetTitle className="sr-only">Factura de venta</SheetTitle>
               <PanelFactura
                 terminal={terminal}

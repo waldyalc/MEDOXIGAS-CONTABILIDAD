@@ -66,6 +66,12 @@ describe("diseño POS estilo Alegra", () => {
     expect(panel, "Las pestañas no van dentro del panel del carrito; van en la barra inferior").not.toContain(
       "PestanasVentaPos",
     );
+    expect(vender, "El Sheet «Ver factura» debe terminar 44 px antes para no tapar la barra inferior").toContain(
+      'height: "calc(100dvh - 2.75rem)"',
+    );
+    expect(vender, "El velo del Sheet tampoco debe cubrir la barra inferior").toContain(
+      'overlayStyle={{ bottom: "2.75rem" }}',
+    );
   });
 
   it("los archivos del POS no usan --primary ni #1e56c7 salvo los pendientes", () => {
