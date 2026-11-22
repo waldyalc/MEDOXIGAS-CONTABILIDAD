@@ -26,17 +26,23 @@ import { Input } from "@/components/ui/input";
 import type { DocumentoVista } from "@/lib/cotizaciones/tipos";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
-import { centavosATexto } from "@/lib/pos/calculo";
+import { lineasDeCotizacionPOS } from "@/lib/pos/cotizaciones";
 import type { CotizacionAbiertaPOS } from "@/lib/pos/tipos";
 
 import { cargarCotizacionPOS, cotizacionesAbiertasPOS } from "../acciones-pos";
 import { useCarritoPOS } from "../carrito-pos-provider";
 
-function decimalDe(valor: number): string {
-  return centavosATexto(Math.round(valor * 100));
-}
-
-export function DialogoCargarCotizacion({ abierto, onCerrar }: { abierto: boolean; onCerrar: () => void }) {
+export function DialogoCargarCotizacion({
+  abierto,
+  onCerrar,
+  contactoId,
+  contactoNombre = null,
+}: {
+  abierto: boolean;
+  onCerrar: () => void;
+  contactoId?: string;
+  contactoNombre?: string | null;
+}) {
   const carrito = useCarritoPOS();
   const [q, setQ] = useState("");
   const [cotizaciones, setCotizaciones] = useState<CotizacionAbiertaPOS[]>([]);
@@ -52,7 +58,7 @@ export function DialogoCargarCotizacion({ abierto, onCerrar }: { abierto: boolea
     setCargando(true);
     setError(null);
     const temporizador = setTimeout(() => {
-      cotizacionesAbiertasPOS(q.trim())
+      cotizacionesAbiertasPOS(q.trim(), contactoId)
         .then((resultado) => {
           if (!activo) return;
           if (!resultado.ok) {
@@ -74,7 +80,7 @@ export function DialogoCargarCotizacion({ abierto, onCerrar }: { abierto: boolea
       activo = false;
       clearTimeout(temporizador);
     };
-  }, [abierto, q]);
+  }, [abierto, q, contactoId]);
 
   async function elegir(id: string) {
     setAplicando(true);
@@ -103,17 +109,7 @@ export function DialogoCargarCotizacion({ abierto, onCerrar }: { abierto: boolea
       numero: vista.documento.numero,
       contactoId: vista.documento.contacto_id,
       listaPrecioId: carrito.activa.listaPrecioId,
-      lineas: vista.lineas.map((linea) => ({
-        productoId: linea.producto_id,
-        descripcion: linea.descripcion,
-        referencia: null,
-        cantidad: decimalDe(linea.cantidad),
-        unidadId: null,
-        unidadNombre: null,
-        precio: decimalDe(linea.precio),
-        descuentoPct: decimalDe(linea.descuento_pct),
-        itbisTasa: decimalDe(linea.itbis_tasa),
-      })),
+      lineas: lineasDeCotizacionPOS(vista),
     });
     setPendiente(null);
     onCerrar();
@@ -124,7 +120,11 @@ export function DialogoCargarCotizacion({ abierto, onCerrar }: { abierto: boolea
       <DialogContent className="sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle>Cargar cotización</DialogTitle>
-          <DialogDescription>Busca por número de cotización o por cliente.</DialogDescription>
+          <DialogDescription>
+            {contactoId
+              ? `Solo las cotizaciones abiertas de ${contactoNombre ?? "el cliente del carrito"}.`
+              : "Busca por número de cotización o por cliente."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="relative">
@@ -150,8 +150,14 @@ export function DialogoCargarCotizacion({ abierto, onCerrar }: { abierto: boolea
         <div className="max-h-[45vh] overflow-y-auto">
           {cotizaciones.length === 0 && !cargando ? (
             <div className="border-border rounded-lg border px-4 py-8 text-center">
-              <p className="font-medium">No hay cotizaciones abiertas.</p>
-              <p className="text-muted-foreground text-sm">Guarda una cotización desde el carrito para verla aquí.</p>
+              <p className="font-medium">
+                {contactoId ? "No hay cotizaciones abiertas de este cliente." : "No hay cotizaciones abiertas."}
+              </p>
+              <p className="text-muted-foreground text-sm">
+                {contactoId
+                  ? "Elige otro cliente en el carrito o guárdale una cotización para verla aquí."
+                  : "Guarda una cotización desde el carrito para verla aquí."}
+              </p>
             </div>
           ) : (
             <div className="flex flex-col divide-y">

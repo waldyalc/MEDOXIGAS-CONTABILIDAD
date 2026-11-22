@@ -14,6 +14,7 @@ import type { ContactoResumen, Empresa } from "@/lib/facturacion/tipos";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { crearCotizacionPOS } from "@/lib/pos/acciones";
+import { enlaceCotizacionPOS, payloadCotizacionPOS } from "@/lib/pos/cotizaciones";
 import type { CotizacionPOSResultado, PlantillaTicket, ProductoPOS, ProductoPOSCodigo } from "@/lib/pos/tipos";
 
 import { buscarCatalogoPOS, buscarCodigoPOS } from "../acciones-pos";
@@ -145,6 +146,14 @@ export function VenderPos({
     abrirTurnoAbierto ||
     sheetAbierto ||
     confirmacionCotizacion !== null;
+
+  // El carrito siempre tiene un cliente (el de la terminal o el que se elija):
+  // «Cargar cotización» muestra solo las suyas, como Alegra.
+  const contactoDelCarrito = carrito.activa.contactoId;
+  const filtroCotizacionId = contactoDelCarrito === "" ? undefined : contactoDelCarrito;
+  const filtroCotizacionNombre = filtroCotizacionId
+    ? (contactos.find((contacto) => contacto.id === filtroCotizacionId)?.nombre ?? null)
+    : null;
 
   const cargarCatalogo = useCallback(
     async (reiniciar: boolean) => {
@@ -385,32 +394,36 @@ export function VenderPos({
     const hoy = hoyRD();
 
     try {
-      const resultado = await crearCotizacionPOS({
-        terminal_id: terminal.id,
-        contacto_id: activa.contactoId || null,
-        lista_precio_id: activa.listaPrecioId || null,
-        fecha: hoy,
-        vencimiento: sumarDias(hoy, 30),
-        vendedor_id: activa.vendedorId || null,
-        lineas: activa.lineas.map((linea) => ({
-          producto_id: linea.productoId,
-          descripcion: linea.descripcion,
-          cantidad: linea.cantidad,
-          unidad_id: linea.unidadId,
-          precio: linea.precio,
-          descuento_pct: linea.descuentoPct,
-          itbis_tasa: linea.itbisTasa,
-          impuesto_id: linea.impuestoId,
-        })),
-      });
+      const resultado = await crearCotizacionPOS(
+        payloadCotizacionPOS({
+          terminalId: terminal.id,
+          fecha: hoy,
+          vencimiento: sumarDias(hoy, 30),
+          pestana: activa,
+        }),
+      );
 
       if (!resultado.ok) {
         setErrorCotizacion(capitalizar(resultado.error));
         return;
       }
 
+      const cotizacion = resultado.data.cotizacion;
       setConfirmacionCotizacion(resultado.data);
-      toast.add({ type: "success", title: "Cotización guardada." });
+      toast.add({
+        type: "success",
+        title: `Cotización No ${cotizacion.numero} guardada.`,
+        description: (
+          <a
+            href={enlaceCotizacionPOS(cotizacion.id)}
+            target="_blank"
+            rel="noreferrer"
+            className="text-pos-primario font-medium hover:underline"
+          >
+            Ver cotización
+          </a>
+        ),
+      });
     } catch {
       setErrorCotizacion("No sabemos si la cotización se guardó. Revisa Cotizaciones antes de volver a guardarla.");
     } finally {
@@ -612,6 +625,8 @@ export function VenderPos({
 
       <DialogoCargarCotizacion
         abierto={cargarCotizacionAbierto}
+        contactoId={filtroCotizacionId}
+        contactoNombre={filtroCotizacionNombre}
         onCerrar={() => {
           setCargarCotizacionAbierto(false);
           inputRef.current?.focus();

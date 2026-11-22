@@ -11,9 +11,9 @@ import {
   FileText,
   FolderOpen,
   Loader2,
+  MoreHorizontal,
   Percent,
   Printer,
-  Receipt,
   SlidersHorizontal,
   UserPlus,
   Zap,
@@ -54,6 +54,61 @@ const NINGUNO = "__ninguno";
 /** «Crédito fiscal B01» se muestra como en Alegra: «Crédito fiscal (01)». */
 function etiquetaNumeracion(numeracion: Numeracion): string {
   return `${numeracion.nombre} (${numeracion.prefijo.replace(/^[A-Za-z]+/, "")})`;
+}
+
+/**
+ * Botón oscuro cuadrado de la barra de cobro: antes era un enlace al historial
+ * y ahora abre las funciones de la venta. Las opciones son items separados
+ * para sumar más adelante sin tocar el resto del panel.
+ */
+function MenuMasFunciones({
+  hayLineas,
+  cotizacion,
+  puedeEscribir,
+  guardandoCotizacion,
+  onGuardarCotizacion,
+  onCargarCotizacion,
+}: {
+  hayLineas: boolean;
+  cotizacion: boolean;
+  puedeEscribir: boolean;
+  guardandoCotizacion: boolean;
+  onGuardarCotizacion: () => void;
+  onCargarCotizacion: () => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            className="bg-pos-oscuro hover:bg-pos-oscuro/85 relative h-[45px] w-11 shrink-0 rounded-[10px] text-white"
+            title="Más funciones"
+            aria-label="Más funciones"
+          />
+        }
+      >
+        <MoreHorizontal className="size-6" aria-hidden="true" />
+        <span className="absolute -top-1.5 -right-1.5 size-[17px] rounded-full bg-slate-300 ring-2 ring-white dark:ring-card" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" side="top" sideOffset={6} className="w-56">
+        <DropdownMenuItem
+          disabled={!hayLineas || cotizacion || !puedeEscribir || guardandoCotizacion}
+          onClick={onGuardarCotizacion}
+        >
+          {guardandoCotizacion ? (
+            <Loader2 className="animate-spin" aria-hidden="true" />
+          ) : (
+            <FileText aria-hidden="true" />
+          )}
+          Guardar como cotización
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled={cotizacion || !puedeEscribir} onClick={onCargarCotizacion}>
+          <FolderOpen aria-hidden="true" />
+          Cargar cotización
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 export interface PanelFacturaProps {
@@ -177,21 +232,6 @@ export function PanelFactura({
               <SlidersHorizontal className="size-5" aria-hidden="true" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuItem
-                disabled={activa.lineas.length === 0 || cotizacion !== null || !puedeEscribir || guardandoCotizacion}
-                onClick={onGuardarCotizacion}
-              >
-                {guardandoCotizacion ? (
-                  <Loader2 className="animate-spin" aria-hidden="true" />
-                ) : (
-                  <FileText aria-hidden="true" />
-                )}
-                Guardar cotización
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled={cotizacion !== null || !puedeEscribir} onClick={onCargarCotizacion}>
-                <FolderOpen aria-hidden="true" />
-                Cargar cotización
-              </DropdownMenuItem>
               <DropdownMenuItem disabled={cotizacion !== null || !puedeEscribir} onClick={onVentaSimple}>
                 <Zap aria-hidden="true" />
                 <span className="flex-1">Venta simple</span>
@@ -411,15 +451,14 @@ export function PanelFactura({
             <span>Vender</span>
             <span className="tabular-nums">{formatoMonedaPOS(totales.total)}</span>
           </Button>
-          <Button
-            className="bg-pos-oscuro hover:bg-pos-oscuro/85 relative h-[45px] w-11 shrink-0 rounded-[10px] text-white"
-            title="Historial de ventas"
-            aria-label="Historial de ventas"
-            render={<a href="/pos/historial" />}
-          >
-            <Receipt className="size-6" aria-hidden="true" />
-            <span className="absolute -top-1.5 -right-1.5 size-[17px] rounded-full bg-slate-300 ring-2 ring-white dark:ring-card" />
-          </Button>
+          <MenuMasFunciones
+            hayLineas={activa.lineas.length > 0}
+            cotizacion={cotizacion !== null}
+            puedeEscribir={puedeEscribir}
+            guardandoCotizacion={guardandoCotizacion}
+            onGuardarCotizacion={onGuardarCotizacion}
+            onCargarCotizacion={onCargarCotizacion}
+          />
         </div>
 
         <div className="border-pos-linea flex h-[43px] items-center justify-between rounded-[10px] border px-4">

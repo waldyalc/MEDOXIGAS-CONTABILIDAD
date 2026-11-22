@@ -162,9 +162,15 @@ export async function cuentasTurnoPOS() {
 // Cotizaciones
 // ---------------------------------------------------------------------------
 
-export async function cotizacionesAbiertasPOS(q: string) {
+export async function cotizacionesAbiertasPOS(q: string, contactoId?: string) {
   try {
-    return { ok: true as const, data: await getCotizacionesAbiertas({ q }) };
+    return {
+      ok: true as const,
+      data: await getCotizacionesAbiertas({
+        q,
+        ...(contactoId ? { contacto_id: contactoId } : {}),
+      }),
+    };
   } catch (error) {
     return { ok: false as const, error: errorDe(error) };
   }
