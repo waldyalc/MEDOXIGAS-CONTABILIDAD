@@ -100,6 +100,40 @@ describe("diseño POS estilo Alegra", () => {
     );
   });
 
+  it("«Nuevo pago» del POS es el de Alegra (tarjeta de tipo + formulario), no el «Registrar movimiento» viejo", () => {
+    const dialogo = readFileSync(join(POS, "_components", "pagos", "dialogo-movimiento.tsx"), "utf8");
+
+    for (const texto of [
+      "Nuevo pago",
+      "Selecciona el tipo de movimiento",
+      "Gastos generales",
+      "Pago a factura de proveedor",
+      "Cuenta contable",
+      "Total a pagar",
+      "/300",
+    ]) {
+      expect(dialogo, `Falta «${texto}» en el modal «Nuevo pago» (PLAN POS 2, Punto 5)`).toContain(texto);
+    }
+
+    expect(
+      dialogo,
+      "El modal viejo se titulaba «Registrar movimiento»; el diseño de Alegra dice «Nuevo pago»",
+    ).not.toContain("Registrar movimiento");
+    expect(
+      dialogo,
+      "El selector visible de «Motivo» ya no va: el tipo se elige en las tarjetas Ingreso/Egreso",
+    ).not.toContain("motivo-movimiento");
+    expect(dialogo, "Ingreso va en verde (decisión de Waldy), no en blanco como Alegra").toContain("bg-emerald-600");
+    expect(dialogo, "Egreso va en rojo (decisión de Waldy), no en blanco como Alegra").toContain("bg-rose-600");
+    expect(dialogo, "La pestaña de proveedor debe explicar que no está disponible, sin inventar el cobro").toContain(
+      "No disponible en el POS todavía",
+    );
+    expect(
+      dialogo,
+      "El botón «Inverso» llega con `prellenado`: debe abrir directo el formulario sin las tarjetas de tipo",
+    ).toContain("prellenado === null");
+  });
+
   it("globals.css define la paleta POS (--pos-*) en claro y oscuro", () => {
     const css = readFileSync(GLOBALS, "utf8");
     const tokens = [
