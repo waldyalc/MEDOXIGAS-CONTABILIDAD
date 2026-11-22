@@ -447,7 +447,7 @@ export function armarTicketFactura(
     `Tipo de pago: ${esCredito ? "Crédito" : "Contado"}`,
     ...(metodo ? [`Método de pago: ${metodo}`] : []),
     ...(normalizada.mostrar_vendedor && resultado.vendedor ? [`Vendedor: ${resultado.vendedor.nombre}`] : []),
-    ...(factura.vencimiento !== factura.fecha ? [`Vencimiento: ${formatoDia(factura.vencimiento)}`] : []),
+    `Vencimiento: ${formatoDia(factura.vencimiento)}`,
     ...(resultado.ncf_vence ? [`Vence NCF: ${formatoDia(resultado.ncf_vence)}`] : []),
   ];
 

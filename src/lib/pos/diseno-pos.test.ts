@@ -182,6 +182,10 @@ describe("diseño POS estilo Alegra", () => {
     expect(impresion, "El método de pago va en el encabezado («Método de pago: Efectivo»)").toContain(
       "Método de pago:",
     );
+    expect(
+      impresion,
+      "El vencimiento va siempre en el encabezado, como Alegra, aunque coincida con la fecha",
+    ).toContain("Vencimiento:");
 
     const factura = impresion.slice(
       impresion.indexOf("export function armarTicketFactura"),

@@ -58,6 +58,7 @@ describe("armarTicketFactura", () => {
     expect(ticket.encabezado.lineas).toContain("NCF B0200000015");
     expect(ticket.encabezado.lineas).toContain("Tipo de pago: Contado");
     expect(ticket.encabezado.lineas).toContain("Método de pago: Efectivo");
+    expect(ticket.encabezado.lineas).toContain("Vencimiento: 20/11/2026");
     expect(ticket.encabezado.lineas).not.toContain("Cliente: Consumidor Final");
     expect(ticket.cliente.nombre).toBe("Consumidor Final");
     expect(ticket.cliente.lineas).toContain("RNC: 22222222222");
