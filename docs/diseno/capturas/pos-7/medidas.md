@@ -7,7 +7,7 @@ Capturas tomadas en `http://localhost:3027/pos` con `ZZTEST_USER`, viewport 1920
 | Dato | Valor |
 | --- | --- |
 | Ancho × alto | 44 × 45 px |
-| Fondo | `oklab(0.279491 -0.00636676 -0.0362855 / 0.973649)` |
+| Fondo | `oklab(0.279491 -0.00636676 -0.0362855 / 0.931208)` |
 | Radio | `10px` |
 | Texto/icono | `rgb(255, 255, 255)` |
 
@@ -15,14 +15,14 @@ Capturas tomadas en `http://localhost:3027/pos` con `ZZTEST_USER`, viewport 1920
 
 | Dato | Valor |
 | --- | --- |
-| Ancho × alto | 219.262939453125 × 98.86407470703125 px |
+| Ancho × alto | 223.8179931640625 × 100.91796875 px |
 | Opciones | Guardar como cotización · Cargar cotización · Historial de ventas |
 
 | Item | Texto y medida |
 | --- | --- |
-| Item 1 | Guardar como cotización — 211.43212890625 × 27.4078369140625 px, padding `4px 6px` |
-| Item 2 | Cargar cotización — 211.43212890625 × 27.40789794921875 px, padding `4px 6px` |
-| Item 3 | Historial de ventas — 211.43212890625 × 27.40789794921875 px, padding `4px 6px` |
+| Item 1 | Guardar como cotización — 215.8245849609375 × 27.97723388671875 px, padding `4px 6px` |
+| Item 2 | Cargar cotización — 215.8245849609375 × 27.97723388671875 px, padding `4px 6px` |
+| Item 3 | Historial de ventas — 215.8245849609375 × 27.97723388671875 px, padding `4px 6px` |
 
 ## Diálogo «Cargar cotización» filtrado por cliente
 
@@ -62,7 +62,6 @@ Peticiones sin `GET` durante el recorrido (las server actions de lectura del POS
 - `POST http://localhost:3027/pos`
 - `POST https://ljfdhrnvlsfaweuvnqxz.supabase.co/storage/v1/object/sign/productos`
 - `POST https://ljfdhrnvlsfaweuvnqxz.supabase.co/storage/v1/object/sign/productos`
-- `POST http://localhost:3027/__nextjs_original-stack-frames`
 - `POST http://localhost:3027/__nextjs_original-stack-frames`
 - `POST https://ljfdhrnvlsfaweuvnqxz.supabase.co/storage/v1/object/sign/productos`
 - `POST http://localhost:3027/pos`
