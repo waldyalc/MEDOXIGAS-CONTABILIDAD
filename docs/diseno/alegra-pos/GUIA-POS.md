@@ -36,6 +36,9 @@ línea `#e2e8f0`, texto `#212529`, texto suave `#707070`, icono `#94a3b8`, oscur
 `#1e56c7` en `src/app/(pos)/pos/` (salvo la lista de pendientes que solo puede
 encoger).
 
+`layout.tsx` fija `[--ring:var(--pos-primario)]` en el wrapper del POS: buscador,
+selects y botones enfocan en teal sin cambiar el `--ring` azul de Contabilidad.
+
 Colores puntuales que Alegra usa y no tienen token propio se escriben como
 arbitrarios y con su equivalencia en oscuro cuando aplica: `#30aba9` (insignia de
 favorito), `#e85e42` (Agotado), `#c2c9d6` (Vender deshabilitado), `#cff2f1` /

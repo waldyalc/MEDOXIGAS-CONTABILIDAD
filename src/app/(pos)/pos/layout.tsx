@@ -11,7 +11,7 @@ import { getContextoPOS } from "./_components/servidor";
 
 /**
  * Shell del POS: layout propio, sin el sidebar de Contabilidad. La navegación
- * vive en un riel lateral estilo Alegra (`MenuPos`): 56 px con iconos que
+ * vive en un riel lateral estilo Alegra (`MenuPos`): 52 px con iconos que
  * expande un panel de 271 px al hover/foco o fijado con el pin; en móvil es un
  * cajón con velo. El shell mide el viewport (`h-dvh`, sin scroll de página) y
  * solo scrollea el contenido de cada pantalla. Aquí viven la sesión, la
@@ -42,7 +42,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
         numeracionId: terminal.numeracion_defecto_id,
       }}
     >
-      <div className="bg-background flex h-dvh flex-col overflow-hidden [font-family:var(--font-inter)] lg:flex-row">
+      <div className="bg-background flex h-dvh flex-col overflow-hidden [--ring:var(--pos-primario)] [font-family:var(--font-inter)] lg:flex-row">
         <MenuPos
           empresa={{ nombre: empresa?.nombre ?? null, logo_url: empresa?.logo_url ?? null }}
           terminales={contexto.terminales

@@ -78,6 +78,15 @@ describe("diseño POS estilo Alegra", () => {
     expect(linea, "Los renglones del carrito van en blanco sobre el cuerpo gris del panel").toContain("bg-white");
   });
 
+  it("el shell del POS enfoca en teal, no en el azul del sistema", () => {
+    const layout = readFileSync(join(POS, "layout.tsx"), "utf8");
+    expect(
+      layout,
+      "El wrapper del POS debe fijar --ring a --pos-primario para que buscador, selects y botones enfoquen en teal",
+    ).toContain("[--ring:var(--pos-primario)]");
+    expect(layout, "El comentario del riel debe decir 52 px, la medida real de Alegra").not.toContain("56 px");
+  });
+
   it("los archivos del POS no usan --primary ni #1e56c7 salvo los pendientes", () => {
     const infractores = ARCHIVOS.filter((ruta) => MARCA_AZUL.test(readFileSync(ruta, "utf8"))).map(rutaRelativa);
     const nuevos = infractores.filter((archivo) => !PENDIENTES.includes(archivo));

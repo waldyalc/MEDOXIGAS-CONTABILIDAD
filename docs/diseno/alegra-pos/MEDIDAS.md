@@ -89,6 +89,7 @@ renderizado y `styles.css`. La columna «Medoxigas» es lo que quedó implementa
 | Texto principal | `#212529` / `#0f172a` | `--pos-texto` |
 | Texto secundario | `#707070` / `#334155` / `#474747` | `--pos-texto-suave` / `text-[#334155]` / `text-[#474747]` |
 | Iconos | `#94a3b8` / `#b3b3b3` | `--pos-icono` |
+| Anillo de foco | Teal del primario en el POS (la guía pide borde teal al foco) | `[--ring:var(--pos-primario)]` en el shell del POS | No toca el resto del sistema, que conserva su `--ring` azul. |
 | Aviso «Agotado» | `#e85e42` | `text-[#e85e42]` |
 | «Vender» deshabilitado | `#c2c9d6` | `disabled:bg-[#c2c9d6]` |
 | «Nuevo producto» | `#cff2f1` / texto `#1a7e7f` | Igual en claro; `--pos-acento` en oscuro |
