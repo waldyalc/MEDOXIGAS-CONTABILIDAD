@@ -1,5 +1,13 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 6 — cierre de turno como Alegra (`feat/pos-cierre-turno-alegra`)
+
+- Formulario de cierre con efectivo contado vacío, label «Dinero en efectivo del cierre» y esperado solo como referencia; no presenta diferencias ni switch hasta escribir un monto válido. Validación y payload de cierre intactos.
+- Ticket y payload presentacional aislados en `ticket-cierre-pos.tsx` / `impresion-cierre.ts`; cierre fijo 57 × 250 mm, independiente de la plantilla de ventas de 80 mm. Sin cabecera empresarial ni pie. No se tocaron `ticket-pos.tsx`, `impresion.ts`, RPC ni datos.
+- Tarjetas por cuenta de la terminal del turno (incluidas las demás terminales): separa débito/crédito solo con cuentas distintas y suma conciliable. En el cierre No 3 los datos no permiten separar: fallback «Ventas con tarjeta» confirmado por pregunta. Contado null usa esperado; observaciones vacías «-».
+- Evidencia real en `docs/diseno/capturas/pos-cierre/`: formulario claro/oscuro/móvil, PDFs antes/después, comparativo Alegra y tabla de medidas. Playwright solo leyó turnos, abrió/canceló formulario y validó el monto vacío, sin ejecutar cierres. PDF antes Letter 612 × 792 pt; después 1 página de 162 × 708.96 pt. Linux usa Liberation Sans, métricamente equivalente a Arial; la fila única de tarjetas acorta 22.5 pt el bloque inferior respecto a la referencia.
+- Verificación: typecheck, check (sin errores), 1567 tests aprobados / 3 omitidos, build y 4 candados nuevos. Pendiente revisión visual e integración por Orquestador, sin merge a main.
+
 ## Carrito POS como copia visual exacta de Alegra (rama `feat/pos-carrito-alegra`)
 
 Rehace el carrito/panel de factura del POS para que se vea como Alegra, por decisión de Waldy (22-11-2026): el POS copia el diseño exactamente, incluido el teal `#00b19d`; el resto del sistema mantiene los tokens Medoxigas y sigue prohibido copiar código fuente de Alegra. Se repitió el trabajo de una sesión perdida en un VPS.
