@@ -179,10 +179,11 @@ export function MenuPos({ empresa, terminales, terminal, turno, usuario }: MenuP
 
       {/* Cajón móvil */}
       <Sheet open={movilAbierto} onOpenChange={setMovilAbierto}>
+        {/* `w-[271px]!` vence al `data-[side=left]:w-3/4` de sheet.tsx (la variante data-* gana a la clase suelta). */}
         <SheetContent
           side="left"
           showCloseButton={false}
-          className="bg-sidebar w-[271px] gap-0 border-r-0 p-0 sm:max-w-[271px]"
+          className="bg-sidebar w-[271px]! gap-0 border-r-0 p-0 sm:max-w-[271px]"
         >
           <SheetTitle className="sr-only">Menú del punto de venta</SheetTitle>
           <div className="flex h-full flex-col">
