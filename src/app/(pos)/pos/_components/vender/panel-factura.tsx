@@ -14,6 +14,7 @@ import {
   MoreHorizontal,
   Percent,
   Printer,
+  Receipt,
   SlidersHorizontal,
   UserPlus,
   Zap,
@@ -35,6 +36,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
@@ -58,8 +60,9 @@ function etiquetaNumeracion(numeracion: Numeracion): string {
 
 /**
  * Botón oscuro cuadrado de la barra de cobro: antes era un enlace al historial
- * y ahora abre las funciones de la venta. Las opciones son items separados
- * para sumar más adelante sin tocar el resto del panel.
+ * y ahora abre las funciones de la venta, con el historial como una opción.
+ * Las opciones son items separados para sumar más adelante sin tocar el resto
+ * del panel.
  */
 function MenuMasFunciones({
   hayLineas,
@@ -68,6 +71,7 @@ function MenuMasFunciones({
   guardandoCotizacion,
   onGuardarCotizacion,
   onCargarCotizacion,
+  onHistorial,
 }: {
   hayLineas: boolean;
   cotizacion: boolean;
@@ -75,6 +79,7 @@ function MenuMasFunciones({
   guardandoCotizacion: boolean;
   onGuardarCotizacion: () => void;
   onCargarCotizacion: () => void;
+  onHistorial: () => void;
 }) {
   return (
     <DropdownMenu>
@@ -105,6 +110,11 @@ function MenuMasFunciones({
         <DropdownMenuItem disabled={cotizacion || !puedeEscribir} onClick={onCargarCotizacion}>
           <FolderOpen aria-hidden="true" />
           Cargar cotización
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onHistorial}>
+          <Receipt aria-hidden="true" />
+          Historial de ventas
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -458,6 +468,7 @@ export function PanelFactura({
             guardandoCotizacion={guardandoCotizacion}
             onGuardarCotizacion={onGuardarCotizacion}
             onCargarCotizacion={onCargarCotizacion}
+            onHistorial={() => router.push("/pos/historial")}
           />
         </div>
 

@@ -234,10 +234,10 @@ describe("enlace cotización ↔ factura", () => {
 });
 
 describe("candado del botón «más funciones»", () => {
-  test("el botón oscuro ya no navega al historial y conserva su diseño", () => {
+  test("el botón oscuro abre el menú con historial y cotizaciones, y conserva su diseño", () => {
     const panel = readFileSync(join(VENDER, "panel-factura.tsx"), "utf8");
 
-    expect(panel, "El botón de abajo a la derecha ya no navega a /pos/historial").not.toContain(
+    expect(panel, "El botón de abajo a la derecha ya no navega directo al historial").not.toContain(
       'href="/pos/historial"',
     );
     expect(panel, "El botón debe seguir siendo el cuadro oscuro de 45×44 px").toContain(
@@ -248,6 +248,8 @@ describe("candado del botón «más funciones»", () => {
     );
     expect(panel, "Falta la opción de guardar").toContain("Guardar como cotización");
     expect(panel, "Falta la opción de cargar").toContain("Cargar cotización");
+    expect(panel, "El acceso al historial debe seguir dentro del menú").toContain("Historial de ventas");
+    expect(panel, "El historial navega a /pos/historial desde el menú").toContain('router.push("/pos/historial")');
     expect(panel, "Las opciones deben ser items separados del menú").toContain("DropdownMenuItem");
   });
 });
