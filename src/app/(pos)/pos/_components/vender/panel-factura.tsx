@@ -19,6 +19,7 @@ import {
   UserPlus,
   Zap,
 } from "@/components/icons";
+import { TicketPos } from "@/components/pos/ticket-pos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -33,6 +34,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -41,14 +50,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { ContactoBuscado } from "@/lib/contactos/seleccion";
 import { formatoCantidad } from "@/lib/facturacion/formato";
+import type { ContactoResumen, Empresa } from "@/lib/facturacion/tipos";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { sumarMontos } from "@/lib/pos/calculo";
+import { armarTicketCotizacionDocumento, armarTicketPrefactura, type TicketPOSPayload } from "@/lib/pos/impresion";
+import type { LineaVenta, PlantillaTicket } from "@/lib/pos/tipos";
 
-import { useCarritoPOS } from "../carrito-pos-provider";
-import { formatoMonedaPOS } from "../formato-pos";
+import { type LineaCarrito, totalesDeLinea, useCarritoPOS } from "../carrito-pos-provider";
+import { formatoMonedaPOS, hoyRD } from "../formato-pos";
 import { LineaCarritoPos } from "./linea-carrito-pos";
 
 const NINGUNO = "__ninguno";
@@ -124,10 +135,12 @@ function MenuMasFunciones({
 export interface PanelFacturaProps {
   terminal: { id: string; nombre: string };
   turno: { id: string; numero: number } | null;
+  empresa: Empresa | null;
+  plantillaTicket: PlantillaTicket;
   numeraciones: Numeracion[];
   listas: { id: string; nombre: string }[];
   vendedores: { id: string; nombre: string }[];
-  contactos: ContactoBuscado[];
+  contactos: ContactoResumen[];
   impuestos: Impuesto[];
   puedeEscribir: boolean;
   onCobrar: () => void;
@@ -136,6 +149,12 @@ export interface PanelFacturaProps {
   onGuardarCotizacion: () => void;
   onCancelarVenta: () => void;
   onAnunciar: (mensaje: string) => void;
+  /**
+   * La impresión vive en `vender-pos`: este panel se desmonta cuando la
+   * ventana pasa a móvil (y al imprimir el medio «print» usa el ancho del
+   * papel), así que el portal no puede vivir dentro del panel.
+   */
+  onImprimir: (doc: { titulo: string; payload: TicketPOSPayload }) => void;
   guardandoCotizacion: boolean;
   errorCotizacion: string | null;
   sinCaja?: boolean;
@@ -145,6 +164,8 @@ export interface PanelFacturaProps {
 export function PanelFactura({
   terminal,
   turno,
+  empresa,
+  plantillaTicket,
   numeraciones,
   listas,
   vendedores,
@@ -157,6 +178,7 @@ export function PanelFactura({
   onGuardarCotizacion,
   onCancelarVenta,
   onAnunciar,
+  onImprimir,
   guardandoCotizacion,
   errorCotizacion,
   sinCaja = false,
@@ -168,6 +190,7 @@ export function PanelFactura({
   const [expandida, setExpandida] = useState<string | null>(null);
   const [cancelar, setCancelar] = useState(false);
   const [nuevoCliente, setNuevoCliente] = useState(false);
+  const [vistaPrevia, setVistaPrevia] = useState<"prefactura" | "cotizacion" | null>(null);
 
   const numeracionValida = numeraciones.some((numeracion) => numeracion.id === activa.numeracionId);
   const cotizacion = activa.cotizacion;
@@ -190,6 +213,64 @@ export function PanelFactura({
 
   const avisoTurno = turno === null;
   const cobroBloqueado = activa.lineas.length === 0 || avisoTurno || !numeracionValida || !puedeEscribir || sinCaja;
+
+  // Líneas del carrito como LineaVenta: mismo armado que la factura/cotización.
+  const lineasVenta: LineaVenta[] = activa.lineas.map((linea: LineaCarrito) => {
+    const t = totalesDeLinea(linea);
+    return {
+      id: linea.id,
+      producto_id: linea.productoId,
+      producto_nombre: null,
+      referencia: linea.referencia,
+      descripcion: linea.descripcion,
+      cantidad: linea.cantidad,
+      unidad_id: linea.unidadId,
+      unidad_nombre: linea.unidadNombre,
+      factor_base: linea.factorBase,
+      precio: linea.precio,
+      descuento_pct: linea.descuentoPct,
+      itbis_tasa: linea.itbisTasa,
+      impuesto_id: linea.impuestoId,
+      subtotal: t.subtotal,
+      itbis: t.itbis,
+      total: t.total,
+    };
+  });
+
+  const contactoActual = contactos.find((contacto) => contacto.id === activa.contactoId) ?? null;
+  const vendedorActual = vendedores.find((vendedor) => vendedor.id === activa.vendedorId) ?? null;
+
+  const entradaPresentacion = {
+    empresa,
+    contacto: contactoActual
+      ? {
+          nombre: contactoActual.nombre,
+          rnc_cedula: contactoActual.rnc_cedula,
+          direccion: contactoActual.direccion ?? null,
+        }
+      : null,
+    lineas: lineasVenta,
+    totales: { ...totales, otros_impuestos: "0", propina: "0" },
+    vendedor: vendedorActual,
+  };
+
+  const payloadPrevia: TicketPOSPayload | null =
+    vistaPrevia === "prefactura"
+      ? armarTicketPrefactura({ ...entradaPresentacion, fecha: hoyRD() }, plantillaTicket)
+      : vistaPrevia === "cotizacion" && cotizacion
+        ? armarTicketCotizacionDocumento(
+            {
+              ...entradaPresentacion,
+              numero: cotizacion.numero,
+              fecha: cotizacion.fecha ?? hoyRD(),
+              vencimiento: cotizacion.vencimiento,
+            },
+            plantillaTicket,
+          )
+        : null;
+
+  const tituloPrevia =
+    vistaPrevia === "prefactura" ? "prefactura" : cotizacion ? `cotizacion-${cotizacion.numero}` : "cotizacion";
 
   return (
     <aside
@@ -221,9 +302,10 @@ export function PanelFactura({
             variant="ghost"
             size="icon"
             className="hover:text-pos-texto size-10"
-            title="Historial de ventas"
-            aria-label="Historial de ventas"
-            onClick={() => router.push("/pos/historial")}
+            title="Imprimir vista previa"
+            aria-label="Imprimir vista previa"
+            onClick={() => setVistaPrevia("prefactura")}
+            disabled={activa.lineas.length === 0}
           >
             <Printer className="size-5" aria-hidden="true" />
           </Button>
@@ -246,6 +328,10 @@ export function PanelFactura({
                 <Zap aria-hidden="true" />
                 <span className="flex-1">Venta simple</span>
                 <kbd className="text-muted-foreground text-[10px]">F4</kbd>
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={cotizacion === null} onClick={() => setVistaPrevia("cotizacion")}>
+                <Printer aria-hidden="true" />
+                Imprimir cotización
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -507,6 +593,38 @@ export function PanelFactura({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={vistaPrevia !== null} onOpenChange={(nuevo) => (nuevo ? null : setVistaPrevia(null))}>
+        <DialogContent className="sm:max-w-[380px]">
+          <DialogHeader>
+            <DialogTitle>{vistaPrevia === "cotizacion" ? "Cotización" : "Vista previa"}</DialogTitle>
+            <DialogDescription>
+              {vistaPrevia === "cotizacion"
+                ? "Ticket de 80 mm de la cotización cargada. Sin valor fiscal."
+                : "Ticket de 80 mm con lo que hay en el carrito. No cobra ni crea la factura."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60dvh] overflow-y-auto">
+            {payloadPrevia ? <TicketPos payload={payloadPrevia} vistaPrevia /> : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setVistaPrevia(null)}>
+              Cerrar
+            </Button>
+            <Button
+              disabled={!payloadPrevia}
+              onClick={() => {
+                if (!payloadPrevia) return;
+                onImprimir({ titulo: tituloPrevia, payload: payloadPrevia });
+                setVistaPrevia(null);
+              }}
+            >
+              <Printer aria-hidden="true" />
+              Imprimir / PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <DialogoNuevoContacto
         abierto={nuevoCliente}

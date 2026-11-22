@@ -10,10 +10,10 @@ import { normalizarPlantilla } from "./mapeo";
 import type {
   AnchoTicket,
   CierreTurnoPOS,
-  ContactoPOS,
   CotizacionPOSResultado,
   Decimal,
   DevolucionPOSResultado,
+  EmpresaPOS,
   EstiloTicket,
   FuenteTicket,
   ImpuestoPOS,
@@ -26,6 +26,7 @@ import type {
   PlantillaTicket,
   TamanoLetraTicket,
   TipoReembolsoPOS,
+  TotalesPOS,
   VentaPOSResultado,
 } from "./tipos";
 
@@ -40,7 +41,7 @@ import type {
  * Nada de este módulo escribe en la base ni usa la clave de servicio.
  */
 
-export type DocumentoTicketPOS = "factura" | "cotizacion" | "devolucion" | "cierre" | "movimiento";
+export type DocumentoTicketPOS = "factura" | "prefactura" | "cotizacion" | "devolucion" | "cierre" | "movimiento";
 
 export interface DisenoTicketPOS {
   ancho_mm: AnchoTicket;
@@ -109,6 +110,27 @@ export interface OpcionesCartaPOS {
   terminos?: string | null;
   pie?: string | null;
 }
+
+/**
+ * Documento de presentación del POS (prefactura y cotización): sale del
+ * carrito o de una consulta, nunca de una factura. Sin NCF ni cobro.
+ * `contacto` acepta tanto `ContactoPOS` como `ContactoResumen`.
+ */
+export interface PresentacionPOS {
+  empresa: EmpresaPOS | null;
+  contacto: {
+    nombre: string;
+    rnc_cedula: string | null;
+    direccion?: string | null;
+    tipo_identificacion?: string | null;
+  } | null;
+  lineas: LineaVenta[];
+  totales: TotalesPOS;
+  vendedor?: { nombre: string } | null;
+}
+
+/** Pie propio de Medoxigas cuando `pie_ticket` está vacío; nunca texto de Alegra. */
+export const PIE_PRESENTACION = "Precios sujetos a cambio sin previo aviso.";
 
 export interface OpcionesTicketPOS {
   /** Hora de recepción cuando la RPC de la venta aún no devuelve `creado_en`. */
@@ -218,6 +240,13 @@ function disenoDe(
   };
 }
 
+/**
+ * Encabezado de empresa como Alegra: logo, nombre grande y debajo
+ * «Sucursal», «RNC», dirección, «Teléfono», correo y «Régimen», con las
+ * etiquetas en negrita (las arma `LineaDato`). `sucursal` y `regimen` son
+ * opcionales: la tabla empresa aún no los tiene (migración pendiente de OK
+ * de Waldy); la línea solo sale si el dato existe.
+ */
 function lineasEmpresa(
   empresa: {
     nombre: string | null;
@@ -225,16 +254,20 @@ function lineasEmpresa(
     direccion: string | null;
     telefono: string | null;
     correo: string | null;
+    sucursal?: string | null;
+    regimen?: string | null;
   } | null,
 ): string[] {
   if (!empresa) return [];
 
   const lineas: string[] = [];
   if (empresa.nombre?.trim()) lineas.push(empresa.nombre.trim());
+  if (empresa.sucursal?.trim()) lineas.push(`Sucursal: ${empresa.sucursal.trim()}`);
   if (empresa.rnc?.trim()) lineas.push(`RNC: ${empresa.rnc.trim()}`);
   if (empresa.direccion?.trim()) lineas.push(empresa.direccion.trim());
-  if (empresa.telefono?.trim()) lineas.push(`Tel.: ${empresa.telefono.trim()}`);
+  if (empresa.telefono?.trim()) lineas.push(`Teléfono: ${empresa.telefono.trim()}`);
   if (empresa.correo?.trim()) lineas.push(empresa.correo.trim());
+  if (empresa.regimen?.trim()) lineas.push(`Régimen: ${empresa.regimen.trim()}`);
 
   return lineas;
 }
@@ -288,13 +321,27 @@ function resumenLineas(lineas: readonly { cantidad: Decimal }[]): FilaTicketPOS[
 }
 
 /** Bloque del cliente: nombre y documento (cédula o RNC según el contacto). */
-function clienteDe(contacto: ContactoPOS | null | undefined): ClienteTicketPOS {
+function clienteDe(
+  contacto:
+    | {
+        nombre: string | null;
+        rnc_cedula: string | null;
+        direccion?: string | null;
+        tipo_identificacion?: string | null;
+      }
+    | null
+    | undefined,
+): ClienteTicketPOS {
   if (!contacto) return { nombre: null, lineas: [] };
 
   const lineas: string[] = [];
   const documento = contacto.rnc_cedula?.trim();
   if (documento) {
-    const etiqueta = contacto.tipo_identificacion === "cedula" ? "Cédula" : "RNC";
+    const digitos = documento.replace(/\D/g, "");
+    const etiqueta =
+      contacto.tipo_identificacion === "cedula" || (!contacto.tipo_identificacion && digitos.length === 11)
+        ? "Cédula"
+        : "RNC";
     lineas.push(`${etiqueta}: ${documento}`);
   }
   if (contacto.direccion?.trim()) lineas.push(contacto.direccion.trim());
@@ -472,51 +519,166 @@ export function armarTicketFactura(
   };
 }
 
+/**
+ * Totales de los documentos de presentación (prefactura y cotización), como
+ * en Alegra: Subtotal bruto, bases exenta/gravada, «(A) ITBIS» por tasa,
+ * «Total ITBIS» y Total. Sin pagos ni saldos: nada se cobra aquí.
+ */
+function totalesPresentacion(lineas: readonly LineaVenta[], totales: TotalesPOS): FilaTicketPOS[] {
+  const bruto = sumarMontos([totales.subtotal, totales.descuento]);
+  const { exento, gravado } = exentoGravado(lineas);
+  const filas: FilaTicketPOS[] = [fila("Subtotal", moneda(bruto))];
+
+  if (compararMontos(totales.descuento, "0") > 0) {
+    filas.push(fila("Descuento", montoNegativo(totales.descuento)));
+  }
+
+  filas.push(fila("Subtotal Exento", moneda(exento)));
+  filas.push(fila("Subtotal Gravado", moneda(gravado)));
+
+  for (const itbis of itbisPorTasa(lineas)) {
+    filas.push(fila(`(A) ${itbis.etiqueta}`, moneda(itbis.total)));
+  }
+  filas.push(fila("Total ITBIS", moneda(totales.itbis)));
+
+  if (compararMontos(totales.otros_impuestos, "0") > 0) {
+    filas.push(fila("Otros impuestos", moneda(totales.otros_impuestos)));
+  }
+  if (compararMontos(totales.propina, "0") > 0) {
+    filas.push(fila("Propina", moneda(totales.propina)));
+  }
+
+  filas.push(fila("Total", moneda(totales.total)));
+  return filas;
+}
+
+function payloadPresentacion(
+  tipo: "prefactura" | "cotizacion",
+  titulo: string,
+  lineasEncabezado: string[],
+  entrada: PresentacionPOS,
+  normalizada: PlantillaTicket,
+): TicketPOSPayload {
+  return {
+    tipo,
+    diseno: disenoDe(normalizada, entrada.empresa),
+    encabezado: encabezadoConEmpresa(entrada.empresa, titulo, lineasEncabezado),
+    cliente: clienteDe(entrada.contacto),
+    lineas: entrada.lineas.map((linea) => lineaDeVenta(linea, normalizada)),
+    bloques: [],
+    totales: totalesPresentacion(entrada.lineas, entrada.totales),
+    pagos: [],
+    resumen: resumenLineas(entrada.lineas),
+    nota: null,
+    pie: normalizada.pie_ticket?.trim() ? normalizada.pie_ticket : PIE_PRESENTACION,
+    anulada: false,
+  };
+}
+
+/**
+ * Prefactura de Alegra: vista previa del carrito sin cobrar. No crea
+ * factura, no gasta NCF y no toca la base; es solo presentación.
+ */
+export function armarTicketPrefactura(
+  entrada: PresentacionPOS & { fecha: string },
+  plantilla?: PlantillaTicket | null,
+): TicketPOSPayload {
+  const normalizada = normalizarPlantilla(plantilla);
+  const lineas = [
+    "Sin valor fiscal",
+    `Fecha: ${formatoDia(entrada.fecha)}`,
+    ...(normalizada.mostrar_vendedor && entrada.vendedor ? [`Vendedor: ${entrada.vendedor.nombre}`] : []),
+  ];
+
+  return payloadPresentacion("prefactura", "Prefactura", lineas, entrada, normalizada);
+}
+
+/**
+ * Cotización sobre la misma plantilla de 80 mm: «Cotización No. X», fecha,
+ * vencimiento y «Sin valor fiscal», sin NCF.
+ */
+export function armarTicketCotizacionDocumento(
+  entrada: PresentacionPOS & { numero: number; fecha: string; vencimiento: string | null },
+  plantilla?: PlantillaTicket | null,
+): TicketPOSPayload {
+  const normalizada = normalizarPlantilla(plantilla);
+  const lineas = [
+    "Sin valor fiscal",
+    `Fecha: ${formatoDia(entrada.fecha)}`,
+    ...(entrada.vencimiento ? [`Vence: ${formatoDia(entrada.vencimiento)}`] : []),
+    ...(normalizada.mostrar_vendedor && entrada.vendedor ? [`Vendedor: ${entrada.vendedor.nombre}`] : []),
+  ];
+
+  return payloadPresentacion("cotizacion", `Cotización No. ${entrada.numero}`, lineas, entrada, normalizada);
+}
+
+/** Convierte la `DocumentoVista` de Contabilidad en líneas/totales de ticket. */
+function presentacionDeVista(
+  vista: DocumentoVista,
+): PresentacionPOS & { numero: number; fecha: string; vencimiento: string | null } {
+  const lineas: LineaVenta[] = vista.lineas.map((linea) => ({
+    id: linea.id,
+    producto_id: linea.producto_id,
+    producto_nombre: null,
+    referencia: null,
+    descripcion: linea.descripcion,
+    cantidad: String(linea.cantidad),
+    unidad_id: null,
+    unidad_nombre: null,
+    factor_base: null,
+    precio: String(linea.precio),
+    descuento_pct: String(linea.descuento_pct),
+    itbis_tasa: String(linea.itbis_tasa),
+    impuesto_id: linea.impuesto_id,
+    subtotal: String(linea.subtotal),
+    itbis: String(linea.itbis),
+    total: String(linea.total),
+  }));
+
+  return {
+    numero: vista.documento.numero,
+    fecha: vista.documento.fecha,
+    vencimiento: vista.documento.vencimiento || null,
+    empresa: vista.empresa,
+    contacto: vista.contacto,
+    lineas,
+    totales: {
+      subtotal: String(vista.documento.subtotal),
+      descuento: String(vista.documento.descuento),
+      itbis: String(vista.documento.itbis),
+      otros_impuestos: String(vista.documento.otros_impuestos),
+      propina: String(vista.documento.propina),
+      total: String(vista.documento.total),
+    },
+    vendedor: null,
+  };
+}
+
+/** Ticket de 80 mm de una cotización guardada (`/dashboard/cotizaciones/[id]`). */
+export function armarTicketCotizacionVista(
+  vista: DocumentoVista,
+  plantilla?: PlantillaTicket | null,
+): TicketPOSPayload {
+  return armarTicketCotizacionDocumento(presentacionDeVista(vista), plantilla);
+}
+
 export function armarTicketCotizacion(
   resultado: CotizacionPOSResultado,
   plantilla?: PlantillaTicket | null,
 ): TicketPOSPayload {
-  const normalizada = normalizarPlantilla(plantilla ?? resultado.plantilla_ticket);
-  const cotizacion = resultado.cotizacion;
-  const lineas = [
-    `Fecha: ${formatoDia(cotizacion.fecha)}`,
-    `Vence: ${formatoDia(cotizacion.vencimiento)}`,
-    ...(normalizada.mostrar_vendedor && resultado.vendedor ? [`Vendedor: ${resultado.vendedor.nombre}`] : []),
-  ];
-
-  const bruto = sumarMontos([resultado.totales.subtotal, resultado.totales.descuento]);
-  const { exento, gravado } = exentoGravado(resultado.lineas);
-  const totales: FilaTicketPOS[] = [fila("Subtotal", moneda(bruto))];
-  if (compararMontos(resultado.totales.descuento, "0") > 0) {
-    totales.push(fila("Descuento", montoNegativo(resultado.totales.descuento)));
-  }
-  totales.push(fila("Subtotal Exento", moneda(exento)));
-  totales.push(fila("Subtotal Gravado", moneda(gravado)));
-  for (const itbis of itbisPorTasa(resultado.lineas)) {
-    totales.push(fila(itbis.etiqueta, moneda(itbis.total)));
-  }
-  if (compararMontos(resultado.totales.otros_impuestos, "0") > 0) {
-    totales.push(fila("Otros impuestos", moneda(resultado.totales.otros_impuestos)));
-  }
-  if (compararMontos(resultado.totales.propina, "0") > 0) {
-    totales.push(fila("Propina", moneda(resultado.totales.propina)));
-  }
-  totales.push(fila("Total", moneda(resultado.totales.total)));
-
-  return {
-    tipo: "cotizacion",
-    diseno: disenoDe(normalizada, resultado.empresa),
-    encabezado: encabezadoConEmpresa(resultado.empresa, `Cotización No ${cotizacion.numero}`, lineas),
-    cliente: clienteDe(resultado.contacto),
-    lineas: resultado.lineas.map((linea) => lineaDeVenta(linea, normalizada)),
-    bloques: [],
-    totales,
-    pagos: [],
-    resumen: resumenLineas(resultado.lineas),
-    nota: "No es una factura.",
-    pie: normalizada.pie_ticket,
-    anulada: false,
-  };
+  return armarTicketCotizacionDocumento(
+    {
+      numero: resultado.cotizacion.numero,
+      fecha: resultado.cotizacion.fecha,
+      vencimiento: resultado.cotizacion.vencimiento || null,
+      empresa: resultado.empresa,
+      contacto: resultado.contacto,
+      lineas: resultado.lineas,
+      totales: resultado.totales,
+      vendedor: resultado.vendedor,
+    },
+    plantilla ?? resultado.plantilla_ticket,
+  );
 }
 
 export function armarTicketDevolucion(

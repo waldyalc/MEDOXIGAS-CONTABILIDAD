@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ReceiptText } from "@/components/icons";
+import { ImpresionPos } from "@/components/pos/impresion-pos";
+import { TicketPos } from "@/components/pos/ticket-pos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,6 +17,7 @@ import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { crearCotizacionPOS } from "@/lib/pos/acciones";
 import { enlaceCotizacionPOS, payloadCotizacionPOS } from "@/lib/pos/cotizaciones";
+import type { TicketPOSPayload } from "@/lib/pos/impresion";
 import type { CotizacionPOSResultado, PlantillaTicket, ProductoPOS, ProductoPOSCodigo } from "@/lib/pos/tipos";
 
 import { buscarCatalogoPOS, buscarCodigoPOS } from "../acciones-pos";
@@ -109,6 +112,13 @@ export function VenderPos({
   const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
   const [errorCotizacion, setErrorCotizacion] = useState<string | null>(null);
   const [confirmacionCotizacion, setConfirmacionCotizacion] = useState<CotizacionPOSResultado | null>(null);
+  /**
+   * Documento de presentación (prefactura/cotización) a imprimir. Vive aquí
+   * y no en `PanelFactura`: al imprimir, Chromium evalúa el medio «print»
+   * con el ancho del papel (80 mm) y `esEscritorio` pasa a falso, lo que
+   * desmontaría el panel y su portal a mitad de la impresión.
+   */
+  const [impresionDoc, setImpresionDoc] = useState<{ titulo: string; payload: TicketPOSPayload } | null>(null);
   const [esEscritorio, setEsEscritorio] = useState(false);
   const [turnoActual, setTurnoActual] = useState(turno);
 
@@ -511,6 +521,8 @@ export function VenderPos({
             <PanelFactura
               terminal={terminal}
               turno={turnoActual}
+              empresa={empresa}
+              plantillaTicket={terminal.plantilla_ticket}
               numeraciones={numeraciones}
               listas={listas}
               vendedores={vendedores}
@@ -524,6 +536,7 @@ export function VenderPos({
               onGuardarCotizacion={() => void guardarCotizacion()}
               onCancelarVenta={() => inputRef.current?.focus()}
               onAnunciar={setAnuncio}
+              onImprimir={setImpresionDoc}
               guardandoCotizacion={guardandoCotizacion}
               errorCotizacion={errorCotizacion}
             />
@@ -561,6 +574,8 @@ export function VenderPos({
               <PanelFactura
                 terminal={terminal}
                 turno={turnoActual}
+                empresa={empresa}
+                plantillaTicket={terminal.plantilla_ticket}
                 numeraciones={numeraciones}
                 listas={listas}
                 vendedores={vendedores}
@@ -587,6 +602,7 @@ export function VenderPos({
                   inputRef.current?.focus();
                 }}
                 onAnunciar={setAnuncio}
+                onImprimir={setImpresionDoc}
                 guardandoCotizacion={guardandoCotizacion}
                 errorCotizacion={errorCotizacion}
               />
@@ -645,6 +661,16 @@ export function VenderPos({
           router.refresh();
         }}
       />
+
+      {impresionDoc ? (
+        <ImpresionPos
+          titulo={impresionDoc.titulo}
+          ancho={impresionDoc.payload.diseno.ancho_mm}
+          onCerrar={() => setImpresionDoc(null)}
+        >
+          <TicketPos payload={impresionDoc.payload} />
+        </ImpresionPos>
+      ) : null}
 
       <Dialog
         open={confirmacionCotizacion !== null}

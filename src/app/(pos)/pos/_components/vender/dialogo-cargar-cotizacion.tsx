@@ -107,6 +107,8 @@ export function DialogoCargarCotizacion({
     carrito.aplicarCotizacion({
       id: vista.documento.id,
       numero: vista.documento.numero,
+      fecha: vista.documento.fecha,
+      vencimiento: vista.documento.vencimiento,
       contactoId: vista.documento.contacto_id,
       listaPrecioId: carrito.activa.listaPrecioId,
       lineas: lineasDeCotizacionPOS(vista),

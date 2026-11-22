@@ -15,6 +15,9 @@ export interface Empresa {
   telefono: string | null;
   correo: string | null;
   logo_url: string | null;
+  /** Pendiente: la tabla empresa aún no tiene sucursal ni régimen. */
+  sucursal?: string | null;
+  regimen?: string | null;
 }
 
 export interface ContactoResumen {
