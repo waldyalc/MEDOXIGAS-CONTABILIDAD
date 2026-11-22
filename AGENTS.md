@@ -125,6 +125,14 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 - El Orquestador revisa el diff, verifica los checks reales de CI y luego integra a `main`.
 - Nunca force-push, nunca `--no-verify`, nunca reescribir historia publicada. Ver skill `flujo-git`.
 
+## Preview oficial en el VPS
+
+- **Enlace oficial:** https://medoxigas-agentes.tail25e53a.ts.net (solo abre desde equipos con Tailscale). Es donde **Waldy revisa los cambios** en vivo.
+- Por dentro es el servicio systemd `medoxigas-preview.service`: corre `pnpm dev` en el puerto **3010** desde `/root/MEDOXIGAS-CONTABILIDAD`, contra la **base de PRUEBA** con datos falsos (no producción).
+- **Nunca** levantes otro dev server en el puerto 3010 ni mates ese servicio. Si hay que reiniciarlo: `systemctl restart medoxigas-preview`.
+- Un worktree que quiera su propio preview usa otro puerto (**3011 en adelante**).
+- El login es con los usuarios **ZZTEST** de `.env.pruebas` (las claves nunca van en el repo ni en prompts).
+
 ## Candados: cada corrección se vuelve un test o una regla
 
 - **Regla de Waldy (20-11-2026) — capturas siempre:** todo cambio de UI (diseño nuevo o ajuste) llega con **capturas de pantalla del resultado terminado**: las toma el propio subagente que implementó (dev server de su worktree, Playwright; el brief las exige como criterio de terminado), el Orquestador revisa el diff y los checks estructurales, y **le muestra las capturas a Waldy, que es quien verifica visualmente y decide**. "Listo" sin captura no está listo.
