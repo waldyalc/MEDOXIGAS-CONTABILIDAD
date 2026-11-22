@@ -163,17 +163,15 @@ function horaDe(iso: string | null | undefined): string | null {
   const fecha = new Date(iso);
   if (Number.isNaN(fecha.getTime())) return null;
 
-  // «4:40 pm», como el ticket de Alegra: hora sin cero y am/pm pegado.
-  const partes = new Intl.DateTimeFormat("en-US", {
+  // «4:40 pm», como el ticket de Alegra: hora sin cero y am/pm en minúscula.
+  return new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
     timeZone: "America/Santo_Domingo",
   })
     .format(fecha)
-    .toLowerCase()
-    .replace(" ", "");
-  return partes;
+    .toLowerCase();
 }
 
 function fechaConHora(fecha: string, creadoEn: string | null | undefined): string {

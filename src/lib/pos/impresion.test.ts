@@ -162,7 +162,7 @@ describe("armarTicketFactura", () => {
     const ticket = armarTicketFactura(sinHora, null, { recibido_en: "2026-11-20T15:10:00-04:00" });
     const legibles = ticket.encabezado.lineas.map((linea) => linea.replace(/\u00A0/g, " "));
 
-    expect(legibles).toContain("Fecha: 20/11/2026 3:10pm");
+    expect(legibles).toContain("Fecha: 20/11/2026 3:10 pm");
   });
 
   test("sin precio unitario no imprime la columna ni la nota de ITBIS incluido", () => {
