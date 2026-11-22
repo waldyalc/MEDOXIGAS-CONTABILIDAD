@@ -57,7 +57,7 @@ export function BuscadorCatalogoPos({
 
   return (
     <div className="relative min-w-[190px] flex-1">
-      <InputGroup className="h-11">
+      <InputGroup className="h-10 rounded-[10px] border-slate-300 shadow-none dark:border-input">
         <InputGroupAddon>
           <Search aria-hidden="true" />
         </InputGroupAddon>

@@ -46,6 +46,28 @@ const ARCHIVOS = listar(POS);
 const MARCA_AZUL = /#1e56c7|--primary|(?:bg|text|border|ring|fill|stroke|from|to|via|shadow|outline)-primary\b/;
 
 describe("diseño POS estilo Alegra", () => {
+  it("el turno y las ventas pendientes viven en la barra inferior, no sobre el catálogo", () => {
+    const vender = readFileSync(join(POS, "_components", "vender", "vender-pos.tsx"), "utf8");
+    expect(vender, "La barra inferior debe renderizarse fuera del panel, bajo catálogo y carrito").toContain(
+      "<BarraInferiorPos",
+    );
+    expect(
+      vender,
+      "El turno no puede volver a la línea suelta sobre el buscador; va en la barra inferior (decisión de Waldy, Punto 1)",
+    ).not.toMatch(/Turno No \$\{turnoActual\.numero\} abierto/);
+
+    const barra = readFileSync(join(POS, "_components", "vender", "barra-inferior-pos.tsx"), "utf8");
+    expect(barra, "La barra debe contener las pestañas de ventas pendientes").toContain("PestanasVentaPos");
+    expect(barra, "La barra debe mostrar el estado del turno").toContain("Turno No");
+    expect(barra, "La barra debe conservar la acción de cerrar turno").toContain("Cerrar turno");
+    expect(barra, "La barra debe conservar la acción de abrir turno").toContain("Abrir turno");
+
+    const panel = readFileSync(join(POS, "_components", "vender", "panel-factura.tsx"), "utf8");
+    expect(panel, "Las pestañas no van dentro del panel del carrito; van en la barra inferior").not.toContain(
+      "PestanasVentaPos",
+    );
+  });
+
   it("los archivos del POS no usan --primary ni #1e56c7 salvo los pendientes", () => {
     const infractores = ARCHIVOS.filter((ruta) => MARCA_AZUL.test(readFileSync(ruta, "utf8"))).map(rutaRelativa);
     const nuevos = infractores.filter((archivo) => !PENDIENTES.includes(archivo));

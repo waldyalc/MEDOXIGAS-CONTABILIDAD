@@ -48,7 +48,6 @@ import { sumarMontos } from "@/lib/pos/calculo";
 import { useCarritoPOS } from "../carrito-pos-provider";
 import { formatoMonedaPOS } from "../formato-pos";
 import { LineaCarritoPos } from "./linea-carrito-pos";
-import { PestanasVentaPos } from "./pestanas-venta-pos";
 
 const NINGUNO = "__ninguno";
 
@@ -132,36 +131,36 @@ export function PanelFactura({
       id={idPanel}
       role="tabpanel"
       aria-labelledby={`pestana-${activa.id}`}
-      className="border-pos-linea text-pos-texto flex h-full min-h-0 flex-col border-l bg-white [font-family:var(--font-inter)] dark:bg-card"
+      className="border-l border-l-slate-300 text-pos-texto flex h-full min-h-0 w-full flex-col bg-white [font-family:var(--font-inter)] dark:border-l-pos-linea dark:bg-card"
     >
-      <div className="border-pos-linea flex h-16 shrink-0 items-center justify-between border-b px-4">
+      <div className="border-pos-linea flex h-[60px] shrink-0 items-center justify-between border-b pl-5 pr-1">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold whitespace-nowrap">Factura de venta</h2>
-          <span className="bg-pos-linea/70 text-pos-icono flex size-7 items-center justify-center rounded-full">
-            <Zap className="size-4" weight="fill" aria-hidden="true" />
+          <h2 className="text-lg font-bold whitespace-nowrap text-[#334155] dark:text-pos-texto">Factura de venta</h2>
+          <span className="flex size-7 items-center justify-center rounded-full bg-[#e2e8f0] dark:bg-white/10">
+            <Zap className="text-[#64748b] size-4" aria-hidden="true" />
           </span>
         </div>
-        <div className="text-pos-icono flex items-center gap-0.5">
+        <div className="flex items-center text-[#b3b3b3] dark:text-pos-icono">
           <Button
             variant="ghost"
             size="icon"
-            className="hover:text-pos-texto size-8"
+            className="hover:text-pos-texto size-10"
             title="Venta rápida"
             aria-label="Venta rápida"
             onClick={onVentaSimple}
             disabled={cotizacion !== null || !puedeEscribir}
           >
-            <Percent className="size-[18px]" aria-hidden="true" />
+            <Percent className="size-5" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="hover:text-pos-texto size-8"
+            className="hover:text-pos-texto size-10"
             title="Historial de ventas"
             aria-label="Historial de ventas"
             onClick={() => router.push("/pos/historial")}
           >
-            <Printer className="size-[18px]" aria-hidden="true" />
+            <Printer className="size-5" aria-hidden="true" />
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -169,13 +168,13 @@ export function PanelFactura({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="hover:text-pos-texto size-8"
+                  className="hover:text-pos-texto size-10"
                   title="Opciones de la venta"
                   aria-label="Opciones de la venta"
                 />
               }
             >
-              <SlidersHorizontal className="size-[18px]" aria-hidden="true" />
+              <SlidersHorizontal className="size-5" aria-hidden="true" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
               <DropdownMenuItem
@@ -203,8 +202,8 @@ export function PanelFactura({
         </div>
       </div>
 
-      <div className="border-pos-linea flex shrink-0 flex-col gap-3 border-b px-4 py-3">
-        <div className="grid grid-cols-2 gap-3">
+      <div className="border-pos-linea flex shrink-0 flex-col gap-[10px] border-b px-4 py-3">
+        <div className="grid grid-cols-2 gap-[10px]">
           <div className="flex flex-col gap-1">
             <Label htmlFor="lista-precio-pos" className="text-pos-texto text-sm font-normal">
               Lista de precio
@@ -218,7 +217,10 @@ export function PanelFactura({
               onValueChange={(valor) => carrito.setLista(valor === NINGUNO ? "" : (valor ?? ""))}
               disabled={cotizacion !== null}
             >
-              <SelectTrigger id="lista-precio-pos" className="border-pos-linea h-10 w-full shadow-none">
+              <SelectTrigger
+                id="lista-precio-pos"
+                className="h-10 w-full border-slate-300 shadow-none data-[size=default]:h-10 dark:border-input"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
@@ -246,7 +248,7 @@ export function PanelFactura({
             >
               <SelectTrigger
                 id="numeracion-pos"
-                className="border-pos-linea h-10 w-full shadow-none"
+                className="h-10 w-full border-slate-300 shadow-none data-[size=default]:h-10 dark:border-input"
                 aria-invalid={!numeracionValida}
               >
                 <SelectValue placeholder="Sin numeración" />
@@ -302,7 +304,10 @@ export function PanelFactura({
               onValueChange={(valor) => carrito.setVendedor(valor === NINGUNO ? "" : (valor ?? ""))}
               disabled={cotizacion !== null}
             >
-              <SelectTrigger id="vendedor-pos" className="border-pos-linea h-10 w-full shadow-none">
+              <SelectTrigger
+                id="vendedor-pos"
+                className="h-10 w-full border-slate-300 shadow-none data-[size=default]:h-10 dark:border-input"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
@@ -365,7 +370,7 @@ export function PanelFactura({
         ) : null}
       </div>
 
-      <div className="border-pos-linea flex shrink-0 flex-col gap-2 border-t bg-white px-4 pt-3 shadow-[0_-10px_18px_-12px_rgba(15,23,42,0.25)] dark:bg-card">
+      <div className="border-pos-linea flex shrink-0 flex-col gap-2 border-t bg-white px-5 pt-3 pb-1 dark:bg-card">
         {sinCaja ? (
           <Alert variant="destructive">
             <AlertDescription>
@@ -397,9 +402,9 @@ export function PanelFactura({
           </Alert>
         ) : null}
 
-        <div className="flex items-stretch gap-2">
+        <div className="flex items-stretch gap-[10px]">
           <Button
-            className="bg-pos-primario hover:bg-pos-primario-hover disabled:bg-pos-acento h-12 flex-1 justify-between rounded-lg px-4 text-base font-semibold text-white disabled:text-white/80"
+            className="bg-pos-primario hover:bg-pos-primario-hover h-[43px] flex-1 justify-between rounded-[5px] px-4 text-lg font-normal text-white disabled:bg-[#c2c9d6] dark:disabled:bg-white/10"
             disabled={cobroBloqueado}
             onClick={onCobrar}
           >
@@ -407,30 +412,28 @@ export function PanelFactura({
             <span className="tabular-nums">{formatoMonedaPOS(totales.total)}</span>
           </Button>
           <Button
-            className="bg-pos-oscuro hover:bg-pos-oscuro/85 relative h-12 w-12 shrink-0 rounded-lg text-white"
+            className="bg-pos-oscuro hover:bg-pos-oscuro/85 relative h-[45px] w-11 shrink-0 rounded-[10px] text-white"
             title="Historial de ventas"
             aria-label="Historial de ventas"
             render={<a href="/pos/historial" />}
           >
-            <Receipt className="size-5" aria-hidden="true" />
-            <span className="absolute -top-1 -right-1 size-2.5 rounded-full bg-slate-400 ring-2 ring-white dark:ring-card" />
+            <Receipt className="size-6" aria-hidden="true" />
+            <span className="absolute -top-1.5 -right-1.5 size-[17px] rounded-full bg-slate-300 ring-2 ring-white dark:ring-card" />
           </Button>
         </div>
 
-        <div className="border-pos-linea flex h-11 items-center justify-between rounded-lg border px-3">
-          <span className="text-sm font-semibold">
+        <div className="border-pos-linea flex h-[43px] items-center justify-between rounded-[10px] border px-4">
+          <span className="text-sm font-normal">
             {Number(articulos) === 1 ? "1 Producto" : `${formatoCantidad(articulos)} Productos`}
           </span>
           <button
             type="button"
-            className="text-pos-primario hover:text-pos-primario-hover text-sm font-medium"
+            className="text-pos-primario hover:text-pos-primario-hover text-sm font-normal"
             onClick={() => setCancelar(true)}
           >
             Cancelar
           </button>
         </div>
-
-        <PestanasVentaPos />
       </div>
 
       <AlertDialog open={cancelar} onOpenChange={setCancelar}>

@@ -142,14 +142,13 @@ export function MenuPos({ empresa, terminales, terminal, turno, usuario }: MenuP
         <span className="min-w-0 flex-1 truncate text-sm font-semibold" title={nombre}>
           {nombre}
         </span>
-        <EstadoTurnoPos turno={turno} compacto />
       </header>
 
       {/* Riel escritorio: 56 px; el panel de 271 px flota al hover/foco o queda fijo con el pin. */}
       <div
         className={cn(
           "relative hidden shrink-0 transition-[width] duration-300 lg:block print:hidden",
-          fijado ? "w-[271px]" : "w-14",
+          fijado ? "w-[271px]" : "w-[52px]",
         )}
       >
         <aside
@@ -161,8 +160,8 @@ export function MenuPos({ empresa, terminales, terminal, turno, usuario }: MenuP
             if (!evento.currentTarget.contains(evento.relatedTarget as Node | null)) setFocoDentro(false);
           }}
           className={cn(
-            "bg-sidebar border-sidebar-border absolute inset-y-0 left-0 z-40 flex w-14 flex-col overflow-hidden border-r transition-[width,box-shadow] duration-300",
-            expandido ? "w-[271px]" : "w-14",
+            "bg-sidebar border-sidebar-border absolute inset-y-0 left-0 z-40 flex w-[52px] flex-col overflow-hidden border-r transition-[width,box-shadow] duration-300",
+            expandido ? "w-[271px]" : "w-[52px]",
             expandido && !fijado && "shadow-md",
           )}
         >

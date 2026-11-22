@@ -20,6 +20,7 @@ import { buscarCatalogoPOS, buscarCodigoPOS } from "../acciones-pos";
 import { useCarritoPOS } from "../carrito-pos-provider";
 import { capitalizar, formatoMonedaPOS, hoyRD, sumarDias } from "../formato-pos";
 import { DialogoAbrirTurno } from "../turnos/dialogo-abrir-turno";
+import { BarraInferiorPos } from "./barra-inferior-pos";
 import { CatalogoPos } from "./catalogo-pos";
 import { CheckoutPos } from "./checkout-pos";
 import { ConfirmacionVenta } from "./confirmacion-venta";
@@ -444,28 +445,6 @@ export function VenderPos({
         {anuncio}
       </div>
 
-      <p className="text-pos-texto-suave px-3 pt-3 text-xs sm:px-4">
-        {turnoActual ? (
-          <>
-            {`Turno No ${turnoActual.numero} abierto `}
-            <a href="/pos/turnos" className="text-pos-primario hover:text-pos-primario-hover font-medium">
-              Cerrar turno
-            </a>
-          </>
-        ) : (
-          <>
-            {"Turno cerrado "}
-            <button
-              type="button"
-              className="text-pos-primario hover:text-pos-primario-hover font-medium"
-              onClick={() => setAbrirTurnoAbierto(true)}
-            >
-              Abrir turno
-            </button>
-          </>
-        )}
-      </p>
-
       {sinCaja ? (
         <div className="px-3 pt-2 sm:px-4">
           <Alert variant="destructive">
@@ -484,8 +463,8 @@ export function VenderPos({
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col p-3 pt-2 sm:p-4 sm:pt-2">
+      <div className="flex min-h-0 flex-1 bg-slate-100 dark:bg-background">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <CatalogoPos
             inputRef={inputRef}
             productos={catalogo}
@@ -515,7 +494,7 @@ export function VenderPos({
         </div>
 
         {esEscritorio ? (
-          <div className="flex min-h-0 w-[400px] shrink-0">
+          <div className="flex min-h-0 w-[40%] max-w-[550px] shrink-0">
             <PanelFactura
               terminal={terminal}
               turno={turnoActual}
@@ -596,6 +575,8 @@ export function VenderPos({
           </Sheet>
         </>
       ) : null}
+
+      <BarraInferiorPos turno={turnoActual} onAbrirTurno={() => setAbrirTurnoAbierto(true)} />
 
       <CheckoutPos
         abierto={checkoutAbierto}
