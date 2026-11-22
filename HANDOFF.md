@@ -1,5 +1,43 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 5: «Nuevo pago» como Alegra (rama `feat/pos-nuevo-pago-alegra`)
+
+Rediseño del modal de registrar movimiento del POS sobre la base del PR #107
+(`feat/pos-alegra-exacto`, eae6704). Solo diseño y mapeo a la lógica existente:
+no hay migraciones, RPC nuevas ni tablas nuevas.
+
+- **Paso 1 (`dialogo-movimiento.tsx`):** tarjeta «Nuevo pago» con el texto de
+  Alegra y dos tarjetas grandes: **Ingreso en verde** y **Egreso en rojo** (decisión de
+  Waldy; en Alegra son blancas), con foco visible. En móvil se apilan.
+- **Paso 2:** header de 80 px con flecha atrás y X; Egreso lleva segmented
+  control «Gastos generales / Pago a factura de proveedor». Formulario de dos
+  columnas: Proveedor/Cliente opcional (`SelectorContacto` existente),
+  Método de pago como estado «Efectivo · Solo efectivo», Cuenta contable
+  obligatoria, Total a pagar (> 0) y Observaciones con contador 0/300.
+- **Mapeo:** Ingreso → `motivo: "otro"`, `cuenta_contrapartida_id`, contacto y
+  notas. Egreso/Gastos generales → `motivo: "gasto_menor"`,
+  `cuenta_gasto_id`, `subtotal = monto`, `itbis_tasa: "0"` (el formulario de
+  Alegra no muestra ITBIS) y `descripcion` = Observaciones o «Gasto de caja del
+  POS». El retiro prellenado por «Inverso» sigue abriendo directo el formulario
+  con `motivo: "otro"` y deja elegir la cuenta. Validación local: CTA
+  deshabilitado sin cuenta/total y el egreso no puede dejar la caja en negativo
+  (usa `ResumenTurno.efectivo`).
+- **Capturas y medidas:** `docs/diseno/capturas/pos-nuevo-pago/` (antes, tipo,
+  egreso, factura de proveedor, ingreso, oscuro y móvil) + `medidas.md` con la
+  comparación px por px contra las capturas 09/10 de Alegra (modal 800 px,
+  tarjetas 375×250, segmented 48/40, inputs 48, textarea 106, footer 80).
+- **Candado:** `src/lib/pos/diseno-pos.test.ts` exige los textos del diseño,
+  Ingreso/Egreso en verde/rojo, el estado de proveedor y el camino prellenado;
+  falla si vuelve «Registrar movimiento» o el selector de «Motivo».
+- **Pendientes anotados (no se tocó backend):** «Pago a factura de proveedor»
+  no tiene puente al POS (página visible con estado «No disponible en el POS
+  todavía»); se perdió el acceso a «Cobro de factura» y a los motivos
+  `fondo_caja`/`retiro_caja`/`deposito_banco` (quedan como ingreso/retiro
+  genérico «otro»), a la espera de decisión de Waldy.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1564 passed)
+  y `pnpm build` en verde. Capturas con la sesión ZZTEST, sin registrar ningún
+  movimiento real (solo se llenaron formularios).
+
 ## Carrito POS como copia visual exacta de Alegra (rama `feat/pos-carrito-alegra`)
 
 Rehace el carrito/panel de factura del POS para que se vea como Alegra, por decisión de Waldy (22-11-2026): el POS copia el diseño exactamente, incluido el teal `#00b19d`; el resto del sistema mantiene los tokens Medoxigas y sigue prohibido copiar código fuente de Alegra. Se repitió el trabajo de una sesión perdida en un VPS.
