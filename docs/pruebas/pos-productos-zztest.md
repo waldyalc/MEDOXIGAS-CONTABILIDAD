@@ -20,7 +20,9 @@ agotados y al menos 8 con foto real.
   22 productos `ZZTEST` y sus imágenes. El producto «Producto captura ER», el
   contacto «PRUEBA CAPTURA ER», la terminal y el «Turno No 4 abierto» que ya
   estaban en la base se usaron únicamente como lectura/contexto; el turno sigue
-  abierto y no se hizo ninguna venta.
+  abierto y no se hizo ninguna venta. Los productos con cantidad inicial mayor
+  que cero generaron su asiento de inventario inicial por el flujo normal de la
+  app (comportamiento documentado); no se tocó ningún asiento existente.
 - La base configurada en `.env.local` es `ljfdhrnvlsfaweuvnqxz`, la única del
   proyecto y la que también lee el deploy de producción. Por eso todo lo nuevo
   está marcado `ZZTEST` y no se tocó nada más: no existe una base de producción
