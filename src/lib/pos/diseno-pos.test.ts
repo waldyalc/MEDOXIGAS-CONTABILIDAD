@@ -25,7 +25,6 @@ const PENDIENTES = [
   "_components/menu-pos-estilos.ts",
   "_components/menu-pos.tsx",
   "_components/pagos/lista-pagos.tsx",
-  "_components/vender/checkout-pos.tsx",
   "_components/vender/confirmacion-venta.tsx",
   "_components/vender/dialogo-venta-simple.tsx",
 ];
@@ -114,6 +113,42 @@ describe("diseño POS estilo Alegra", () => {
     ).not.toContain("flex w-[86px] shrink-0 flex-col");
   });
 
+  it("las hojas móviles ganan su ancho real y el carrito no borra al tacto", () => {
+    const menu = readFileSync(join(POS, "_components", "menu-pos.tsx"), "utf8");
+    expect(
+      menu,
+      "El cajón del menú debe medir 271 px reales: el w-[271px]! le gana al data-[side=left]:w-3/4 de sheet.tsx",
+    ).toContain("w-[271px]!");
+
+    const vender = readFileSync(join(POS, "_components", "vender", "vender-pos.tsx"), "utf8");
+    expect(
+      vender,
+      "La factura móvil debe ocupar todo el ancho: el w-full! le gana al data-[side=right]:w-3/4 de sheet.tsx",
+    ).toContain("w-full!");
+    expect(vender, "En pantallas sm la factura conserva su max-w de 420 px").toContain("sm:max-w-[420px]!");
+
+    const pagos = readFileSync(join(POS, "_components", "pagos", "pagos-pos.tsx"), "utf8");
+    expect(pagos, "El detalle de pagos móvil debe ocupar todo el ancho, no el 75% de sheet.tsx").toContain("w-full!");
+    expect(pagos, "En pantallas sm el detalle de pagos conserva su max-w de 480 px").toContain("sm:max-w-[480px]!");
+
+    const linea = readFileSync(join(POS, "_components", "vender", "linea-carrito-pos.tsx"), "utf8");
+    expect(
+      linea,
+      "En táctil (hover: none) el lápiz/papelera no debe mostrarse: un tap sobre el total no puede borrar la línea; quitar vive en el editor",
+    ).toContain("[@media(hover:none)]:hidden");
+    expect(
+      linea,
+      "El input de cantidad debe medir 60 px para mostrar 1234.56 completo sin romper el stepper",
+    ).toContain("h-9 w-[60px]");
+    expect(
+      linea,
+      "La columna del total no puede ser fija en 112 px: usa un mínimo y deja que crezca con importes largos",
+    ).toContain("min-w-[112px]");
+    expect(linea, "La fila no vuelve a la columna fija de 112 px que se montaba sobre el +").not.toMatch(
+      /flex h-10 w-\[112px\] shrink-0/,
+    );
+  });
+
   it("el shell del POS enfoca en teal, no en el azul del sistema", () => {
     const layout = readFileSync(join(POS, "layout.tsx"), "utf8");
     expect(
@@ -134,6 +169,97 @@ describe("diseño POS estilo Alegra", () => {
     expect(infractores, "La lista PENDIENTES tiene archivos de más o alguno ya está migrado: actualízala").toEqual(
       [...PENDIENTES].sort(),
     );
+  });
+
+  it("«Nuevo pago» del POS es el de Alegra (tarjeta de tipo + formulario), no el «Registrar movimiento» viejo", () => {
+    const dialogo = readFileSync(join(POS, "_components", "pagos", "dialogo-movimiento.tsx"), "utf8");
+
+    for (const texto of [
+      "Nuevo pago",
+      "Selecciona el tipo de movimiento",
+      "Gastos generales",
+      "Pago a factura de proveedor",
+      "Cuenta contable",
+      "Total a pagar",
+      "/300",
+    ]) {
+      expect(dialogo, `Falta «${texto}» en el modal «Nuevo pago» (PLAN POS 2, Punto 5)`).toContain(texto);
+    }
+
+    expect(
+      dialogo,
+      "El modal viejo se titulaba «Registrar movimiento»; el diseño de Alegra dice «Nuevo pago»",
+    ).not.toContain("Registrar movimiento");
+    expect(
+      dialogo,
+      "El selector visible de «Motivo» ya no va: el tipo se elige en las tarjetas Ingreso/Egreso",
+    ).not.toContain("motivo-movimiento");
+    expect(dialogo, "Ingreso va en verde (decisión de Waldy), no en blanco como Alegra").toContain("bg-emerald-600");
+    expect(dialogo, "Egreso va en rojo (decisión de Waldy), no en blanco como Alegra").toContain("bg-rose-600");
+    expect(dialogo, "La pestaña de proveedor debe explicar que no está disponible, sin inventar el cobro").toContain(
+      "No disponible en el POS todavía",
+    );
+    expect(
+      dialogo,
+      "El botón «Inverso» llega con `prellenado`: debe abrir directo el formulario sin las tarjetas de tipo",
+    ).toContain("prellenado === null");
+  });
+
+  it("el modal Pagar factura muestra una sola línea «Por cobrar» y el toast de Alegra", () => {
+    const checkout = readFileSync(join(POS, "_components", "vender", "checkout-pos.tsx"), "utf8");
+
+    expect(
+      checkout.match(/Por cobrar:/g)?.length ?? 0,
+      "«Por cobrar» debe aparecer una sola vez, bajo el TOTAL; no repitas el resumen en el modo combinado",
+    ).toBe(1);
+    expect(
+      checkout,
+      "El CTA Cobrar no puede deshabilitarse por Consumidor Final: el aviso sale como toast al pulsar y se intercepta antes de completarVenta",
+    ).toContain("if (porCobrarVisible && esConsumidorFinal)");
+    expect(checkout, "El toast del POS debe ser local y anunciarse con role=alert").toContain('role="alert"');
+    expect(
+      checkout,
+      "El toast debe llevar el título exacto de Alegra: «Algunos campos necesitan tu atención»",
+    ).toContain("Algunos campos necesitan tu atención");
+    expect(checkout, "El toast debe explicar qué revisar antes de guardar").toContain(
+      "Revisa los campos marcados antes de guardar.",
+    );
+
+    const inicioCta = checkout.indexOf("const ctaDeshabilitado");
+    const finCta = checkout.indexOf(";", inicioCta);
+    expect(
+      checkout.slice(inicioCta, finCta),
+      "Quita (hayCredito && esConsumidorFinal) de ctaDeshabilitado: el toast nunca saldría",
+    ).not.toContain("esConsumidorFinal");
+
+    const intercepto = checkout.indexOf("setAviso(true)");
+    const escritura = checkout.indexOf("await completarVenta(entrada)");
+    expect(intercepto, "cobrar() debe mostrar el toast cuando falta el cliente").toBeGreaterThan(-1);
+    expect(
+      intercepto,
+      "El toast debe mostrarse ANTES de llamar a completarVenta: no se escribe nada si falta el cliente",
+    ).toBeLessThan(escritura);
+  });
+
+  it("el modal Pagar factura conserva Vendedor y no revive el bloque de crédito viejo", () => {
+    const checkout = readFileSync(join(POS, "_components", "vender", "checkout-pos.tsx"), "utf8");
+
+    for (const texto of ["Queda a crédito", "Aplicado a la venta", "Cliente para el crédito"]) {
+      expect(
+        checkout,
+        `El modal ya no muestra «${texto}»: usa una sola línea «Por cobrar» bajo el TOTAL y el toast de Alegra`,
+      ).not.toContain(texto);
+    }
+    expect(
+      checkout,
+      "El aviso rojo inline de Consumidor Final se reemplazó por el toast «Algunos campos necesitan tu atención»",
+    ).not.toContain("No se puede vender a crédito al Consumidor Final");
+
+    expect(checkout, "El selector Vendedor debe seguir dentro de CamposCobro").toContain('id="cobro-vendedor"');
+    expect(checkout.indexOf('id="cobro-vendedor"'), "Vendedor va arriba de Observaciones, como Alegra").toBeLessThan(
+      checkout.indexOf("Observaciones"),
+    );
+    expect(checkout, "El placeholder del Vendedor es «Seleccionar»").toContain("Seleccionar");
   });
 
   it("globals.css define la paleta POS (--pos-*) en claro y oscuro", () => {

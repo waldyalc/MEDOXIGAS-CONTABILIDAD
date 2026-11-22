@@ -246,7 +246,8 @@ export function PagosPos({
       </TarjetaLista>
 
       <Sheet open={hojaAbierta && seleccionado !== null} onOpenChange={setHojaAbierta}>
-        <SheetContent side="right" className="w-full overflow-y-auto p-0 sm:max-w-[480px] lg:hidden">
+        {/* `w-full!` vence al `data-[side=right]:w-3/4` de sheet.tsx: el detalle ocupa todo el móvil. */}
+        <SheetContent side="right" className="w-full! overflow-y-auto p-0 sm:max-w-[480px]! lg:hidden">
           <SheetTitle className="sr-only">Detalle del recibo</SheetTitle>
           <DetallePago
             pago={seleccionado}
