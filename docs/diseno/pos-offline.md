@@ -3,6 +3,18 @@
 Objetivo: el cajero puede seguir cobrando con internet caído y las ventas suben
 solas cuando vuelve la conexión, sin duplicar facturas ni romper el cuadre.
 
+Fase 2 aprobada: opción A, emisión fiscal al sincronizar, respetar
+`vende_negativo`, service worker mínimo para `/pos`. Ticket offline propuesto:
+**«Folio: POS-LOCAL-<UUID>»**, sin NCF ni leyenda «Comprobante provisional».
+La aprobación funcional no sustituye la validación fiscal del contador.
+
+Avance parcial: núcleo FIFO y almacenamiento IndexedDB separados por ámbito
+usuario/terminal, todavía sin conectar a cobros ni a UI. Borrador SQL en
+`docs/pruebas/pos-offline-pendiente.sql`, con `BEGIN/ROLLBACK`, NO ejecutado.
+El Orquestador validará SQL y regenerará tipos. Se dejó fuera de migraciones
+con autorización: el reloj UTC real (22-11) es anterior a las migraciones
+existentes (25-11); no se inventó un timestamp ni se cambió el candado.
+
 Estado actual (revisado en `feat/pos-alegra-exacto` @ `97b91e9`):
 
 - El carrito vive solo en memoria (`carrito-pos-provider.tsx`); recargar pierde
@@ -92,9 +104,10 @@ El NCF hoy se asigna al insertar la factura, dentro de la RPC. Opciones:
   comprobante hasta que vuelva internet — Waldy vende mucho al detalle con
   comprobante; puede frenar la caja.
 
-**Recomendación: (A).** Es la opción estándar en RD, no toca la lógica de
-numeraciones, cero huecos, y el cambio es mínimo: la RPC ya asigna NCF al
-insert. Lo que NO se puede inventar: un NCF que no venga de la serie
+**Decisión aprobada: (A).** Conserva la asignación central de NCF al insertar
+la factura. No reserva rangos offline; esto evita huecos por reservas no usadas,
+pero no es una certificación de cumplimiento DGII/e-CF. No se implementan firma,
+emisión electrónica ni contingencia e-CF en este alcance. Lo que NO se puede inventar: un NCF que no venga de la serie
 autorizada de `numeraciones` — por eso offline nunca se imprime NCF, solo
 folio provisional, y el ticket real se reimprime tras sincronizar si el
 cliente lo pide.
