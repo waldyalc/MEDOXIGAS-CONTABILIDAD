@@ -50,6 +50,16 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-brand-dark: var(--brand-dark);
+  --color-pos-primario: var(--pos-primario);
+  --color-pos-primario-hover: var(--pos-primario-hover);
+  --color-pos-acento: var(--pos-acento);
+  --color-pos-acento-texto: var(--pos-acento-texto);
+  --color-pos-oscuro: var(--pos-oscuro);
+  --color-pos-linea: var(--pos-linea);
+  --color-pos-panel: var(--pos-panel);
+  --color-pos-texto: var(--pos-texto);
+  --color-pos-texto-suave: var(--pos-texto-suave);
+  --color-pos-icono: var(--pos-icono);
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
 }
@@ -93,6 +103,19 @@ These serve as the fallback; there is no separate default.css file. */
   --font-mono: var(--font-geist-mono);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
+
+  /* POS: paleta exacta de Alegra (solo dentro de /pos; el resto del sistema
+     conserva los tokens Medoxigas). */
+  --pos-primario: #00b19d;
+  --pos-primario-hover: #008e79;
+  --pos-acento: #ccfbf1;
+  --pos-acento-texto: #008e79;
+  --pos-oscuro: #1e293b;
+  --pos-linea: #e2e8f0;
+  --pos-panel: #f8fafc;
+  --pos-texto: #212529;
+  --pos-texto-suave: #707070;
+  --pos-icono: #94a3b8;
 }
 
 .dark {
@@ -127,6 +150,18 @@ These serve as the fallback; there is no separate default.css file. */
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* POS en oscuro: mismo teal, superficies invertidas. */
+  --pos-primario: #00b19d;
+  --pos-primario-hover: #00c9b3;
+  --pos-acento: oklch(0.777 0.152 181.912 / 18%);
+  --pos-acento-texto: #5eead4;
+  --pos-oscuro: #1e293b;
+  --pos-linea: oklch(1 0 0 / 12%);
+  --pos-panel: oklch(0.21 0.034 264.665);
+  --pos-texto: oklch(0.93 0.01 256);
+  --pos-texto-suave: oklch(0.7 0.02 256);
+  --pos-icono: oklch(0.65 0.02 256);
 }
 
 @layer base {

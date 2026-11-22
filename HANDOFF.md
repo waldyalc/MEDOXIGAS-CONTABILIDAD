@@ -1,5 +1,19 @@
 # Handoff — Medoxigas Contabilidad
 
+## Carrito POS como copia visual exacta de Alegra (rama `feat/pos-carrito-alegra`)
+
+Rehace el carrito/panel de factura del POS para que se vea como Alegra, por decisión de Waldy (22-11-2026): el POS copia el diseño exactamente, incluido el teal `#00b19d`; el resto del sistema mantiene los tokens Medoxigas y sigue prohibido copiar código fuente de Alegra. Se repitió el trabajo de una sesión perdida en un VPS.
+
+- **`src/app/globals.css`:** paleta POS `--pos-*` en claro y oscuro (`--pos-primario` #00b19d, `--pos-primario-hover` #008e79, `--pos-oscuro` #1e293b, `--pos-linea` #e2e8f0, `--pos-panel` #f8fafc, textos/iconos de Alegra) + aliases Tailwind `--color-pos-*`. Preset Medoxigas intacto.
+- **`panel-factura.tsx`:** encabezado 64 px «Factura de venta» + rayo en círculo + 3 iconos grises (`%` → venta simple, impresora → `/pos/historial`, sliders → menú Guardar/Cargar cotización + Venta simple F4); selects Lista de precio / Numeración (`Consumo (02)` sin la B del prefijo); Cliente + «Nuevo» agua; fuera el bloque Subtotal/ITBIS del cuerpo y el aviso «sin turno» (ahora vive una línea «Turno No N abierto · Cerrar turno» / «Turno cerrado · Abrir turno» sobre el catálogo, como en Alegra); pie fijo con «Vender» teal a lo ancho (total a la derecha), botón oscuro de ticket con punto gris, caja «N Producto(s) / Cancelar» y las pestañas al pie.
+- **`linea-carrito-pos.tsx`:** nombre en mayúsculas + precio unitario, stepper `− N +` sin bordes, total arriba a la derecha, lápiz/papelera solo en hover/foco; editor expandible intacto.
+- **`pestanas-venta-pos.tsx`:** barra al pie estilo Alegra — cesta + «Venta principal», borde teal en la activa, `+` y menú ⋮ (Renombrar/Eliminar). La primera pestaña pasa a llamarse «Venta principal»; en móvil sigue dentro del `Sheet`.
+- **`formato-pos.ts`:** `formatoMonedaPOS` → `RD$10.00` sin espacio; aplicado en el panel, las líneas, la tarjeta de producto y la barra móvil.
+- **Tokens POS aplicados** también en `catalogo-pos.tsx` («Nuevo producto» agua), `tarjeta-producto-pos.tsx` (borde/badge/`Inv. N` teal), `tarjeta-venta-simple-pos.tsx`, el «Ver factura» móvil y el shell con fuente Inter (`layout.tsx`).
+- **Candado nuevo `src/lib/pos/diseno-pos.test.ts`:** prohíbe `--primary`/`#1e56c7` en `src/app/(pos)/pos/` con una lista de 10 pendientes que solo puede encoger (checkout, confirmación, venta simple, menú, historial, devoluciones, pagos…) y exige la paleta en `globals.css`.
+- **Docs:** se quitó la regla «inspiración, no copia» y la prohibición del teal de `docs/alegra/pos/alegra-pos.md`, `design-alegra-pos.md`, `css-pos/GUIA-POS.md`, `docs/diseno/pos-ui.md`, `AGENTS.md` y la skill `diseno-ui`, sustituidas por la regla de copia exacta en el POS.
+- **Capturas:** `docs/diseno/capturas/pos-carrito-alegra/` con `antes.png` (referencia), `despues.png` + `despues-panel.png` + `despues-oscuro.png` + `despues-movil.png` y `comparacion.png` (Alegra vs implementado, lado a lado). Diferencias residuales con Alegra: la cantidad se muestra con decimales («2.00», el POS admite fracciones) y en la captura el botón Vender sale deshabilitado por «Turno cerrado».
+
 ## Cierre Fase 3 rediseño Alegra (rama feat/fase3-cierre)
 
 Trabajo de subagente ejecutor sobre `docs/PLAN-FASE-3-REDISENO-ALEGRA.md` (S10), pendiente de revisión/integración del Orquestador. Cierra la deuda técnica anotada en este archivo: exponer `nomina_agregar_empleados`, sumar las pantallas del rediseño POS a los candados y dejar los docs al día.

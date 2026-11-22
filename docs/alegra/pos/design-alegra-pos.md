@@ -1,16 +1,16 @@
 # Guía de diseño — Alegra POS
 
-> **Reglas Medoxigas (anti-confusión):** Este documento es un ESTUDIO de Alegra, inspiración, no copia. En nuestro sistema: (1) Colores: usar ÚNICAMENTE los tokens de docs/plantilla-diseno.md (--primary azul, shadcn/Base UI); NUNCA el teal #00b19d de Alegra. (2) Alcance del POS: solo Vender (facturas y cotizaciones rápidas), Turnos (entradas/salidas de efectivo), Historial de ventas del POS y Devoluciones; Inventario y Configuración viven en Contabilidad. (3) Sin multi-empresa; usa siempre empresa.nombre / empresa.rnc, sin textos hardcodeados de Medoxigas.
+> **Reglas Medoxigas (anti-confusión):** Este documento es un ESTUDIO de Alegra. (1) **El punto de venta copia el diseño de Alegra exactamente** (decisión de Waldy, 22-11-2026), incluido el teal `#00b19d`, a través de los tokens `--pos-*` de `src/app/globals.css`; el resto del sistema usa los tokens de `docs/plantilla-diseno.md` (`--primary` azul). Sigue prohibido copiar código fuente de Alegra: nada de su HTML, CSS, selectores, textos largos ni logos. (2) Alcance del POS: solo Vender (facturas y cotizaciones rápidas), Turnos (entradas/salidas de efectivo), Historial de ventas del POS y Devoluciones; Inventario y Configuración viven en Contabilidad. (3) Sin multi-empresa; usa siempre empresa.nombre / empresa.rnc, sin textos hardcodeados de Medoxigas.
 
-Destilado de las copias en `css-pos/` (`vender/` = pantalla de venta, `turno/` = cierre de turno) y las capturas `capturas/22-*.png`. Usar como referencia de estilo para el POS de Medoxigas — **sin copiar** el HTML/CSS (ver `../README.md`).
+Destilado de las copias en `css-pos/` (`vender/` = pantalla de venta, `turno/` = cierre de turno) y las capturas `capturas/22-*.png`. Es la referencia de estilo exacta del POS de Medoxigas — **sin copiar** su HTML/CSS fuente (ver `../README.md`).
 
 ## Tokens (paleta de Alegra — referencia)
 
-Los valores de abajo son cómo pinta **Alegra** su POS. En Medoxigas el primario es el token `--primary` (azul) de `docs/plantilla-diseno.md`, con shadcn/Base UI; el teal `#00b19d` **nunca** se usa como color de marca propio.
+Los valores de abajo son cómo pinta **Alegra** su POS — y cómo se ve el POS de Medoxigas, que los copia a través de los tokens `--pos-*` (`--pos-primario: #00b19d`, `--pos-primario-hover: #008e79`, …) en `src/app/globals.css`. El resto de la app sigue con el `--primary` azul de `docs/plantilla-diseno.md`.
 
 | Token | Valor | Uso (en Alegra) |
 |---|---|---|
-| Primario teal | `#00b19d` | Botón Vender, Guardar, tabs activos, checkmarks — en Medoxigas: token `--primary` |
+| Primario teal | `#00b19d` | Botón Vender, Guardar, tabs activos, checkmarks — en el POS: token `--pos-primario` |
 | Teal hover/oscuro | `#008e79` | Estado hover/pressed de primario |
 | Teal secundario | `#30aba9` | Acentos, iconos activos del rail |
 | Borde | `#e2e8f0` / `#cbd5e1` | Bordes de tarjetas, inputs, separadores |
@@ -56,10 +56,10 @@ Los valores de abajo son cómo pinta **Alegra** su POS. En Medoxigas el primario
 
 ## Reglas que llevamos a Medoxigas
 
-- Primario único de acción: un solo color para "Vender", "Guardar", "Nuevo", confirmaciones — el token `--primary` azul de `docs/plantilla-diseno.md` (shadcn/Base UI), nunca el teal de Alegra.
+- Primario único de acción: un solo color para "Vender", "Guardar", "Nuevo", confirmaciones — en el POS, el token `--pos-primario` (teal `#00b19d`, igual que Alegra); en el resto de la app, `--primary` azul.
 - Montos siempre alineados a la derecha y en semibold; el total de la venta vive dentro del botón Vender.
 - El checkout nunca abandona la pantalla: modal sobre la factura.
-- Badges de estado como pills (ABIERTO con `--primary` suave / CERRADO rojo suave).
+- Badges de estado como pills (ABIERTO con el primario suave / CERRADO rojo suave).
 - Sin bordes pesados ni sombras duras; el contraste lo dan los montos, no los marcos.
 
 ## Componentes de la segunda pasada

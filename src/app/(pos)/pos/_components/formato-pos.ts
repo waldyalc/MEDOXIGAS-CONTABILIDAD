@@ -1,6 +1,19 @@
 import { centavosATexto } from "@/lib/pos/calculo";
 import type { Decimal, MetodoPOS } from "@/lib/pos/tipos";
 
+const dineroPOS = new Intl.NumberFormat("es-DO", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** Moneda del POS como la muestra Alegra: «RD$10.00» sin espacio. */
+export function formatoMonedaPOS(valor: number | string | null | undefined): string {
+  if (valor == null) return "—";
+  const numero = typeof valor === "number" ? valor : Number(valor);
+  if (!Number.isFinite(numero)) return "—";
+  return `RD$${dineroPOS.format(numero)}`;
+}
+
 /** Convierte lo que escribe el cajero a un decimal de 2 posiciones; null si no es válido. */
 export function textoAMonto(texto: string): Decimal | null {
   const limpio = texto.replace(/RD\$/gi, "").replace(/\s/g, "").replace(/,/g, "").trim();

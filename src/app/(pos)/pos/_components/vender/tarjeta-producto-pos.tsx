@@ -5,8 +5,10 @@ import type { ReactNode } from "react";
 import { cn } from "cn";
 
 import { Star, Tag, TriangleAlert } from "@/components/icons";
-import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
+import { formatoCantidad } from "@/lib/facturacion/formato";
 import type { ProductoPOS } from "@/lib/pos/tipos";
+
+import { formatoMonedaPOS } from "../formato-pos";
 
 export function TarjetaProductoPos({
   producto,
@@ -42,7 +44,7 @@ export function TarjetaProductoPos({
     );
   } else {
     etiquetaInventario = (
-      <span className="text-primary text-[11px] font-medium tabular-nums">Inv. {formatoCantidad(disponible)}</span>
+      <span className="text-pos-primario text-[11px] font-medium tabular-nums">Inv. {formatoCantidad(disponible)}</span>
     );
   }
 
@@ -52,20 +54,20 @@ export function TarjetaProductoPos({
       onClick={() => onAgregar(producto)}
       aria-label={`Agregar ${producto.nombre}`}
       className={cn(
-        "border-border bg-card hover:border-primary/60 hover:bg-primary/[0.03] group relative flex flex-col items-center gap-1 rounded-[10px] border p-3 text-center transition-colors",
+        "border-border bg-card hover:border-pos-primario/60 hover:bg-pos-primario/[0.03] group relative flex flex-col items-center gap-1 rounded-[10px] border p-3 text-center transition-colors",
         "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2 focus-visible:outline-none",
-        cantidad > 0 && "border-primary ring-primary/40 ring-1",
-        resaltado && "border-primary bg-primary/5",
+        cantidad > 0 && "border-pos-primario ring-pos-primario/40 ring-1",
+        resaltado && "border-pos-primario bg-pos-primario/5",
       )}
     >
       {cantidad > 0 ? (
-        <span className="bg-primary text-primary-foreground absolute -top-1.5 -right-1.5 z-10 flex size-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums shadow-sm">
+        <span className="bg-pos-primario absolute -top-1.5 -right-1.5 z-10 flex size-6 items-center justify-center rounded-full text-xs font-semibold text-white tabular-nums shadow-sm">
           {formatoCantidad(cantidad)}
         </span>
       ) : null}
 
       {producto.favorito_pos ? (
-        <span className="bg-primary text-primary-foreground absolute top-2 right-2 flex size-5 items-center justify-center rounded-md">
+        <span className="bg-pos-primario absolute top-2 right-2 flex size-5 items-center justify-center rounded-md text-white">
           <Star className="size-3 fill-current" aria-label="Favorito" />
         </span>
       ) : (
@@ -83,9 +85,9 @@ export function TarjetaProductoPos({
       {etiquetaInventario}
 
       <span className="line-clamp-2 min-h-8 text-[13px] leading-4">{producto.nombre}</span>
-      <span className="mt-auto text-[15px] font-semibold tabular-nums">{formatoMoneda(producto.precio)}</span>
+      <span className="mt-auto text-[15px] font-semibold tabular-nums">{formatoMonedaPOS(producto.precio)}</span>
 
-      <span className="sr-only">{`${producto.nombre}. ${formatoMoneda(producto.precio)}.`}</span>
+      <span className="sr-only">{`${producto.nombre}. ${formatoMonedaPOS(producto.precio)}.`}</span>
     </button>
   );
 }

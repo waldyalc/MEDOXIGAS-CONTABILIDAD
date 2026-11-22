@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # AGENTS.md — Medoxigas Contabilidad
 
-Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y Oxymat), República Dominicana. Dueño: Waldy Alcántara. **Inspirado** en Alegra (alegra.com), **no es una copia**: nada de su código, textos, logos ni diseño exacto; no se hace ingeniería inversa (sus términos lo prohíben). El estudio de cómo trabaja Waldy en Alegra vive en `docs/alegra/`.
+Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y Oxymat), República Dominicana. Dueño: Waldy Alcántara. **Inspirado** en Alegra (alegra.com): **el punto de venta copia su diseño exactamente** (decisión de Waldy, 22-11-2026 — teal `#00b19d` vía tokens `--pos-*` de `src/app/globals.css`), el resto del sistema solo se inspira. Sigue prohibido copiar código fuente de Alegra: nada de su código, HTML, CSS, selectores, textos largos ni logos, y no se hace ingeniería inversa (sus términos lo prohíben). El estudio de cómo trabaja Waldy en Alegra vive en `docs/alegra/`.
 
 - **Exports crudos de Alegra (HTML/CSS capturados de la cuenta de Waldy):** sirven como regla de medición **local** del Orquestador — verificar px, colores y espaciados al revisar un diff — pero **nunca se commitean al repo** (es público), no se copian de ellos selectores, clases ni textos, y los subagentes solo trabajan con las guías destiladas y capturas de `docs/alegra/`.
 
@@ -150,6 +150,7 @@ Candados que ya existen:
 - `src/lib/supabase/reset-virgen.test.ts` — exige que las 64 tablas `public.*` de las migraciones estén clasificadas una sola vez en `docs/pruebas/reset-base-virgen.sql`, dentro de `BEGIN…COMMIT`, sin tocar `perfiles` ni `auth.users`.
 - `tests/e2e/numeraciones.spec.ts` — guardar B16 sin cambios cierra el diálogo y un nombre en blanco muestra el error en español (requiere `E2E_EMAIL`/`E2E_PASSWORD`, como el humo).
 - `supabase/tests/anular_ajuste_costo_test.sql` — anular un ajuste de inventario de entrada devuelve la cantidad y revierte el costo promedio; anular una compra ya lo hacía (`anular_compra_costo_test.sql`).
+- `src/lib/pos/diseno-pos.test.ts` — el POS usa los tokens `--pos-*` (teal `#00b19d`, copia exacta de Alegra); prohíbe `--primary` y `#1e56c7` en `src/app/(pos)/pos/` con una lista de pendientes que solo puede encoger, y exige la paleta en `globals.css`.
 
 ## Antes de decir "listo"
 

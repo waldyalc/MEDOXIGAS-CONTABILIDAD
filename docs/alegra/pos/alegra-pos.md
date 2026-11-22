@@ -1,8 +1,8 @@
 # Alegra POS — Punto de Venta (estudio de flujo)
 
-> **Reglas Medoxigas (anti-confusión):** Este documento es un ESTUDIO de Alegra, inspiración, no copia. En nuestro sistema: (1) Colores: usar ÚNICAMENTE los tokens de docs/plantilla-diseno.md (--primary azul, shadcn/Base UI); NUNCA el teal #00b19d de Alegra. (2) Alcance del POS: solo Vender (facturas y cotizaciones rápidas), Turnos (entradas/salidas de efectivo), Historial de ventas del POS y Devoluciones; Inventario y Configuración viven en Contabilidad. (3) Sin multi-empresa; usa siempre empresa.nombre / empresa.rnc, sin textos hardcodeados de Medoxigas.
+> **Reglas Medoxigas (anti-confusión):** Este documento es un ESTUDIO de Alegra. (1) **El punto de venta copia el diseño de Alegra exactamente** (decisión de Waldy, 22-11-2026), incluido el teal `#00b19d`, a través de los tokens `--pos-*` de `src/app/globals.css`; el resto del sistema usa los tokens de `docs/plantilla-diseno.md` (`--primary` azul). Sigue prohibido copiar código fuente de Alegra: nada de su HTML, CSS, selectores, textos largos ni logos. (2) Alcance del POS: solo Vender (facturas y cotizaciones rápidas), Turnos (entradas/salidas de efectivo), Historial de ventas del POS y Devoluciones; Inventario y Configuración viven en Contabilidad. (3) Sin multi-empresa; usa siempre empresa.nombre / empresa.rnc, sin textos hardcodeados de Medoxigas.
 
-Cómo funciona **pos.alegra.com**, documentado en vivo con la cuenta de prueba "Fiel Ferreteria" (Plan Demo). Inspiración, no copia: ver `../README.md`.
+Cómo funciona **pos.alegra.com**, documentado en vivo con la cuenta de prueba "Fiel Ferreteria" (Plan Demo). Referencia exacta del diseño del POS; su código nunca se copia: ver `../README.md`.
 
 Capturas: `capturas/22-*.png`. Guía de diseño y copias locales: `design-alegra-pos.md` y `css-pos/`.
 

@@ -4,16 +4,16 @@ import { useEffect, useState } from "react";
 
 import { cn } from "cn";
 
-import { Pencil, Trash2 } from "@/components/icons";
+import { Minus, Pencil, Plus, Trash2 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
+import { formatoCantidad } from "@/lib/facturacion/formato";
 
 import { type LineaCarrito, totalesDeLinea, useCarritoPOS } from "../carrito-pos-provider";
-import { textoAMonto } from "../formato-pos";
+import { formatoMonedaPOS, textoAMonto } from "../formato-pos";
 
 export function LineaCarritoPos({
   linea,
@@ -64,103 +64,100 @@ export function LineaCarritoPos({
     cambiarCantidad(linea.id, siguiente.toFixed(2));
   }
 
-  const itbisEtiqueta = Number(linea.itbisTasa) > 0 ? `ITBIS ${formatoCantidad(linea.itbisTasa)}%` : "Exento";
   const unidadVisible = linea.unidadId !== null && linea.unidadNombre ? linea.unidadNombre : null;
   const puedeEditar = !bloqueada;
 
   return (
-    <div className={cn("border-border border-b", expandida && "bg-muted/30")}>
-      <div className="flex flex-col gap-1 px-3 py-2">
-        <div className="flex items-start gap-2">
+    <div className={cn("group border-pos-linea border-b", expandida && "bg-pos-panel/60")}>
+      <div className="flex items-start gap-2 px-4 py-2.5">
+        <button
+          type="button"
+          className="min-w-0 flex-1 text-left"
+          onClick={expandida ? onColapsar : onExpandir}
+          disabled={!puedeEditar}
+        >
+          <span
+            className="text-pos-texto block truncate text-[13px] leading-snug font-semibold uppercase"
+            title={linea.descripcion}
+          >
+            {linea.descripcion}
+          </span>
+          <span className="text-pos-texto-suave mt-0.5 block truncate text-xs">
+            {formatoMonedaPOS(linea.precio)}
+            {unidadVisible ? ` · ${unidadVisible}` : ""}
+            {Number(linea.descuentoPct) > 0 ? ` · Desc. ${formatoCantidad(linea.descuentoPct)}%` : ""}
+          </span>
+        </button>
+
+        <div className="text-pos-texto flex shrink-0 items-center gap-0.5 self-center">
           <button
             type="button"
-            className="min-w-0 flex-1 text-left"
-            onClick={expandida ? onColapsar : onExpandir}
+            className="text-pos-icono hover:text-pos-texto flex size-6 items-center justify-center disabled:opacity-40"
+            aria-label={`Disminuir cantidad de ${linea.descripcion}`}
             disabled={!puedeEditar}
+            onClick={() => paso(-1)}
           >
-            <span className="line-clamp-2 block text-sm leading-snug font-medium" title={linea.descripcion}>
-              {linea.descripcion}
-            </span>
-            <span className="text-muted-foreground mt-0.5 block truncate text-xs">
-              {`${formatoCantidad(linea.cantidad)} × ${formatoMoneda(linea.precio)}`}
-              {unidadVisible ? ` · ${unidadVisible}` : ""}
-              {Number(linea.descuentoPct) > 0 ? ` · Desc. ${formatoCantidad(linea.descuentoPct)}%` : ""}
-              {` · ${itbisEtiqueta}`}
-            </span>
+            <Minus className="size-4" aria-hidden="true" />
           </button>
-
-          <div className="flex shrink-0 items-center self-center">
-            <Button
-              variant="outline"
-              size="icon-lg"
-              className="rounded-r-none"
-              aria-label={`Disminuir cantidad de ${linea.descripcion}`}
-              disabled={!puedeEditar}
-              onClick={() => paso(-1)}
-            >
-              −
-            </Button>
-            <Input
-              value={cantidadTexto}
-              inputMode="decimal"
-              aria-label={`Cantidad de ${linea.descripcion}`}
-              aria-invalid={errorCantidad !== null}
-              disabled={!puedeEditar}
-              onChange={(evento) => setCantidadTexto(evento.target.value)}
-              onBlur={fijarCantidad}
-              onKeyDown={(evento) => {
-                if (evento.key === "Enter") fijarCantidad();
-              }}
-              className="h-9 w-12 rounded-none border-x-0 text-center tabular-nums"
-            />
-            <Button
-              variant="outline"
-              size="icon-lg"
-              className="rounded-l-none"
-              aria-label={`Aumentar cantidad de ${linea.descripcion}`}
-              disabled={!puedeEditar}
-              onClick={() => paso(1)}
-            >
-              +
-            </Button>
-          </div>
-
-          <div className="flex shrink-0 flex-col items-end gap-0.5">
-            <span className="text-sm font-semibold tabular-nums">{formatoMoneda(totales.total)}</span>
-            <div className="flex items-center gap-0.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground size-7"
-                aria-label={expandida ? "Cerrar edición" : "Editar línea"}
-                disabled={!puedeEditar}
-                onClick={expandida ? onColapsar : onExpandir}
-              >
-                <Pencil aria-hidden="true" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-destructive size-7"
-                aria-label={`Quitar ${linea.descripcion}`}
-                disabled={!puedeEditar}
-                onClick={() => {
-                  quitarLinea(linea.id);
-                  onAnunciar(`${linea.descripcion} quitado.`);
-                }}
-              >
-                <Trash2 aria-hidden="true" />
-              </Button>
-            </div>
-          </div>
+          <Input
+            value={cantidadTexto}
+            inputMode="decimal"
+            aria-label={`Cantidad de ${linea.descripcion}`}
+            aria-invalid={errorCantidad !== null}
+            disabled={!puedeEditar}
+            onChange={(evento) => setCantidadTexto(evento.target.value)}
+            onBlur={fijarCantidad}
+            onKeyDown={(evento) => {
+              if (evento.key === "Enter") fijarCantidad();
+            }}
+            className="h-7 w-9 border-0 px-0 text-center text-sm tabular-nums shadow-none focus-visible:ring-1"
+          />
+          <button
+            type="button"
+            className="text-pos-icono hover:text-pos-texto flex size-6 items-center justify-center disabled:opacity-40"
+            aria-label={`Aumentar cantidad de ${linea.descripcion}`}
+            disabled={!puedeEditar}
+            onClick={() => paso(1)}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+          </button>
         </div>
 
-        {errorCantidad ? (
-          <p role="alert" className="text-destructive text-xs">
-            {errorCantidad}
-          </p>
-        ) : null}
+        <div className="flex w-[86px] shrink-0 flex-col items-end">
+          <span className="text-pos-texto text-sm font-bold tabular-nums">{formatoMonedaPOS(totales.total)}</span>
+          <div className="text-pos-icono flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:text-pos-texto size-6"
+              aria-label={expandida ? "Cerrar edición" : "Editar línea"}
+              disabled={!puedeEditar}
+              onClick={expandida ? onColapsar : onExpandir}
+            >
+              <Pencil className="size-3.5" aria-hidden="true" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:text-destructive size-6"
+              aria-label={`Quitar ${linea.descripcion}`}
+              disabled={!puedeEditar}
+              onClick={() => {
+                quitarLinea(linea.id);
+                onAnunciar(`${linea.descripcion} quitado.`);
+              }}
+            >
+              <Trash2 className="size-3.5" aria-hidden="true" />
+            </Button>
+          </div>
+        </div>
       </div>
+
+      {errorCantidad ? (
+        <p role="alert" className="text-destructive px-4 pb-2 text-xs">
+          {errorCantidad}
+        </p>
+      ) : null}
 
       {expandida ? (
         <div className="flex flex-col gap-3 px-3 pb-3">

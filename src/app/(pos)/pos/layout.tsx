@@ -42,7 +42,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
         numeracionId: terminal.numeracion_defecto_id,
       }}
     >
-      <div className="bg-background flex h-dvh flex-col overflow-hidden lg:flex-row">
+      <div className="bg-background flex h-dvh flex-col overflow-hidden [font-family:var(--font-inter)] lg:flex-row">
         <MenuPos
           empresa={{ nombre: empresa?.nombre ?? null, logo_url: empresa?.logo_url ?? null }}
           terminales={contexto.terminales

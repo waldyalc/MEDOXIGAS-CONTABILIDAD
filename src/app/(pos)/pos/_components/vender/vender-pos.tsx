@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toast";
-import { formatoMoneda } from "@/lib/facturacion/formato";
 import type { ContactoResumen, Empresa } from "@/lib/facturacion/tipos";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
@@ -19,7 +18,7 @@ import type { CotizacionPOSResultado, PlantillaTicket, ProductoPOS, ProductoPOSC
 
 import { buscarCatalogoPOS, buscarCodigoPOS } from "../acciones-pos";
 import { useCarritoPOS } from "../carrito-pos-provider";
-import { capitalizar, hoyRD, sumarDias } from "../formato-pos";
+import { capitalizar, formatoMonedaPOS, hoyRD, sumarDias } from "../formato-pos";
 import { DialogoAbrirTurno } from "../turnos/dialogo-abrir-turno";
 import { CatalogoPos } from "./catalogo-pos";
 import { CheckoutPos } from "./checkout-pos";
@@ -253,7 +252,7 @@ export function VenderPos({
     setAnuncio(
       `${ultimoAgregado.current} agregado. ${carrito.activa.lineas.length} ${
         carrito.activa.lineas.length === 1 ? "artículo" : "artículos"
-      }. Total ${formatoMoneda(carrito.totales.total)}.`,
+      }. Total ${formatoMonedaPOS(carrito.totales.total)}.`,
     );
     ultimoAgregado.current = null;
   }, [carrito.activa.lineas.length, carrito.totales.total]);
@@ -445,8 +444,30 @@ export function VenderPos({
         {anuncio}
       </div>
 
+      <p className="text-pos-texto-suave px-3 pt-3 text-xs sm:px-4">
+        {turnoActual ? (
+          <>
+            {`Turno No ${turnoActual.numero} abierto `}
+            <a href="/pos/turnos" className="text-pos-primario hover:text-pos-primario-hover font-medium">
+              Cerrar turno
+            </a>
+          </>
+        ) : (
+          <>
+            {"Turno cerrado "}
+            <button
+              type="button"
+              className="text-pos-primario hover:text-pos-primario-hover font-medium"
+              onClick={() => setAbrirTurnoAbierto(true)}
+            >
+              Abrir turno
+            </button>
+          </>
+        )}
+      </p>
+
       {sinCaja ? (
-        <div className="px-3 pt-3 sm:px-4">
+        <div className="px-3 pt-2 sm:px-4">
           <Alert variant="destructive">
             <AlertDescription className="flex flex-wrap items-center gap-2">
               {`La terminal ${terminal.nombre} no tiene una cuenta de efectivo activa.`}
@@ -464,7 +485,7 @@ export function VenderPos({
       ) : null}
 
       <div className="flex min-h-0 flex-1">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col p-3 sm:p-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col p-3 pt-2 sm:p-4 sm:pt-2">
           <CatalogoPos
             inputRef={inputRef}
             productos={catalogo}
@@ -508,7 +529,6 @@ export function VenderPos({
               onCobrar={() => setCheckoutAbierto(true)}
               onVentaSimple={() => setSimpleAbierto(true)}
               onCargarCotizacion={() => setCargarCotizacionAbierto(true)}
-              onAbrirTurno={() => setAbrirTurnoAbierto(true)}
               onGuardarCotizacion={() => void guardarCotizacion()}
               onCancelarVenta={() => inputRef.current?.focus()}
               onAnunciar={setAnuncio}
@@ -526,9 +546,12 @@ export function VenderPos({
               <span className="text-muted-foreground text-xs">
                 {carrito.activa.lineas.length === 1 ? "1 artículo" : `${carrito.activa.lineas.length} artículos`}
               </span>
-              <span className="text-lg font-semibold tabular-nums">{formatoMoneda(carrito.totales.total)}</span>
+              <span className="text-lg font-semibold tabular-nums">{formatoMonedaPOS(carrito.totales.total)}</span>
             </div>
-            <Button className="h-11 gap-1.5" onClick={() => setSheetAbierto(true)}>
+            <Button
+              className="bg-pos-primario hover:bg-pos-primario-hover h-11 gap-1.5 text-white"
+              onClick={() => setSheetAbierto(true)}
+            >
               <ReceiptText aria-hidden="true" />
               Ver factura
             </Button>
@@ -559,10 +582,6 @@ export function VenderPos({
                 onCargarCotizacion={() => {
                   setSheetAbierto(false);
                   setCargarCotizacionAbierto(true);
-                }}
-                onAbrirTurno={() => {
-                  setSheetAbierto(false);
-                  setAbrirTurnoAbierto(true);
                 }}
                 onGuardarCotizacion={() => void guardarCotizacion()}
                 onCancelarVenta={() => {
