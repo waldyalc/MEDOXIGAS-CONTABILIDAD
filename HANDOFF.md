@@ -11,6 +11,64 @@ Base `feat/pos-alegra-exacto`. Solo presentación y estado en memoria: sin base,
 - **Capturas:** `docs/diseno/capturas/pos-9/` con menú, renombrar y confirmación (claro), detalles, oscuro y móvil + `medidas.md` (pestaña 160 px, barra 44, menú ⋮ 24, input 128×32, diálogo 384).
 - **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1,582 aprobados, 3 omitidos) y `pnpm build` en verde; Playwright con 0 errores de consola y sin crear ni editar ventas.
 
+## Regla de capturas al terminar (rama `docs/regla-capturas-preview`)
+
+Solo documentación. `AGENTS.md` gana la sección «Preview y capturas al terminar»
+(22-11-2026): todo agente entrega capturas desde el preview oficial
+`http://127.0.0.1:3010` (ZZTEST, 1440 px, una por punto) guardadas en
+`/root/referencias/capturas-terminadas/`; el Orquestador actualiza el preview al
+juntar (`git pull` de `feat/pos-alegra-exacto`, `pnpm build`,
+`systemctl restart medoxigas-preview`, 200) y reporta cada ruta con una línea.
+
+## POS 2: hojas móviles, carrito táctil y totales largos (rama `fix/pos-2-movil`, PR #113)
+
+Trabajo de subagente ejecutor sobre los puntos 1–5 del ajuste móvil del POS 2, base `feat/pos-alegra-exacto` (merge `cb8eb13` del PR #108). Solo presentación: precios, cantidades, impuestos y el motor del carrito intactos.
+
+- **Hojas móviles:** `w-[271px]!` en `menu-pos.tsx` y `w-full!` en `vender-pos.tsx` / `pagos-pos.tsx` vencen al `data-[side=*]:w-3/4` de `sheet.tsx` (que no se tocó). Menú 292.5 → **271 px**; factura 292.5 → **390 px** (420 en `sm`); detalle de pagos con la misma corrección (480 en `sm`; la terminal no tiene pagos para abrirlo en vivo).
+- **Carrito táctil:** las acciones lápiz/papelera llevan `[@media(hover:none)]:hidden`, así que un tap sobre el total no toca nada; quitar sigue en «Quitar línea» del editor. Verificado con `hasTouch`: 1 línea antes y después del tap.
+- **Cantidad y total:** input de cantidad 40 → **60 px** (muestra `1234.56` completo); la columna del total pasa de `w-[112px]` a `min-w-[112px]` (`min-w-[152px]` en xl) con `whitespace-nowrap`: `RD$12,980.00` deja 16 px al `+` a 1024 y 56 px a 1280/1440, sin solape. Fila de 76 px, tipografías y stepper de 36/18 de #108 intactos.
+- **Candado:** `src/lib/pos/diseno-pos.test.ts` exige los anchos con `!`, el input de 60 px, el `min-w` del total y las acciones ocultas en `hover: none`.
+- **Evidencia:** `docs/diseno/capturas/pos-2-movil/` (antes/después de menú y factura, cantidad 1234.56, total largo a 1024/1280 y táctil) + `medidas.md`.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1566) y `pnpm build` en verde; capturas con Playwright en el puerto 3026.
+## POS 5: «Nuevo pago» como Alegra (rama `feat/pos-nuevo-pago-alegra`)
+
+Rediseño del modal de registrar movimiento del POS sobre la base del PR #107
+(`feat/pos-alegra-exacto`, eae6704). Solo diseño y mapeo a la lógica existente:
+no hay migraciones, RPC nuevas ni tablas nuevas.
+
+- **Paso 1 (`dialogo-movimiento.tsx`):** tarjeta «Nuevo pago» con el texto de
+  Alegra y dos tarjetas grandes: **Ingreso en verde** y **Egreso en rojo** (decisión de
+  Waldy; en Alegra son blancas), con foco visible. En móvil se apilan.
+- **Paso 2:** header de 80 px con flecha atrás y X; Egreso lleva segmented
+  control «Gastos generales / Pago a factura de proveedor». Formulario de dos
+  columnas: Proveedor/Cliente opcional (`SelectorContacto` existente),
+  Método de pago como estado «Efectivo · Solo efectivo», Cuenta contable
+  obligatoria, Total a pagar (> 0) y Observaciones con contador 0/300.
+- **Mapeo:** Ingreso → `motivo: "otro"`, `cuenta_contrapartida_id`, contacto y
+  notas. Egreso/Gastos generales → `motivo: "gasto_menor"`,
+  `cuenta_gasto_id`, `subtotal = monto`, `itbis_tasa: "0"` (el formulario de
+  Alegra no muestra ITBIS) y `descripcion` = Observaciones o «Gasto de caja del
+  POS». El retiro prellenado por «Inverso» sigue abriendo directo el formulario
+  con `motivo: "otro"` y deja elegir la cuenta. Validación local: CTA
+  deshabilitado sin cuenta/total y el egreso no puede dejar la caja en negativo
+  (usa `ResumenTurno.efectivo`).
+- **Capturas y medidas:** `docs/diseno/capturas/pos-nuevo-pago/` (antes, tipo,
+  egreso, factura de proveedor, ingreso, oscuro y móvil) + `medidas.md` con la
+  comparación px por px contra las capturas 09/10 de Alegra (modal 800 px,
+  tarjetas 375×250, segmented 48/40, inputs 48, textarea 106, footer 80).
+- **Candado:** `src/lib/pos/diseno-pos.test.ts` exige los textos del diseño,
+  Ingreso/Egreso en verde/rojo, el estado de proveedor y el camino prellenado;
+  falla si vuelve «Registrar movimiento» o el selector de «Motivo».
+- **Pendientes anotados (no se tocó backend):** «Pago a factura de proveedor»
+  no tiene puente al POS (pestaña visible con estado «No disponible en el POS
+  todavía»). Decisión de Waldy: se dejan solo las dos tarjetas de Alegra; el
+  «Cobro de factura» y los motivos `fondo_caja`/`retiro_caja`/`deposito_banco`
+  quedan como pérdida funcional documentada para una tarea aparte (el ingreso y
+  el retiro genérico usan `otro`).
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1570 passed, 3 skipped)
+  y `pnpm build` en verde. Capturas con la sesión ZZTEST, sin registrar ningún
+  movimiento real (solo se llenaron formularios).
+
 ## POS 2 Punto 3 — modal «Pagar factura» como Alegra (`feat/pos-2-pago-alegra`)
 
 Diseño del checkout del POS, sin tocar cobro, payload ni base. Base: PR #107 (`eae6704`).
@@ -34,6 +92,7 @@ Trabajo de subagente ejecutor sobre `feat/pos-alegra-exacto` (PR #107). Solo dis
 - **Sin datos para Sucursal/Régimen:** se omiten (no existen en la app); pie vacío no imprime nada.
 - **Candado nuevo** en `src/lib/pos/diseno-pos.test.ts`: exige `size: 80mm 250mm`/`57mm 250mm`, prohíbe el alto `auto`, «Generado en Alegra POS», «OXYMAT», y `Terminal:`/`Turno`/`Cajero:` en `armarTicketFactura`; exige `Total recibido` y `Método de pago:`.
 - **Evidencia:** `docs/diseno/capturas/pos-ticket/` — `antes-ticket-80mm.pdf` (612×792 Letter), `despues-ticket-80mm.pdf` (227.04×708.96, 1 pág.), PNGs, `comparacion-80mm.png` (referencia de Alegra con los datos de OXYMAT tapados; el original queda en `/root/referencias/plan-pos-2/` y NO se commitea) y `medidas.md` con la tabla de medidas. Capturado desde `/pos/historial` con la venta B0200000007, sin crear ni tocar datos.
+
 ## POS 6 — cierre de turno como Alegra (`feat/pos-cierre-turno-alegra`)
 
 - Formulario de cierre con efectivo contado vacío, label «Dinero en efectivo del cierre» y esperado solo como referencia; no presenta diferencias ni switch hasta escribir un monto válido. Validación y payload de cierre intactos.
@@ -41,6 +100,7 @@ Trabajo de subagente ejecutor sobre `feat/pos-alegra-exacto` (PR #107). Solo dis
 - Tarjetas por cuenta de la terminal del turno (incluidas las demás terminales): separa débito/crédito solo con cuentas distintas y suma conciliable. En el cierre No 3 los datos no permiten separar: fallback «Ventas con tarjeta» confirmado por pregunta. Contado null usa esperado; observaciones vacías «-».
 - Evidencia real en `docs/diseno/capturas/pos-cierre/`: formulario claro/oscuro/móvil, PDFs antes/después, comparativo Alegra y tabla de medidas. Playwright solo leyó turnos, abrió/canceló formulario y validó el monto vacío, sin ejecutar cierres. PDF antes Letter 612 × 792 pt; después 1 página de 162 × 708.96 pt. Linux usa Liberation Sans, métricamente equivalente a Arial; la fila única de tarjetas acorta 22.5 pt el bloque inferior respecto a la referencia.
 - Verificación: typecheck, check (sin errores), 1567 tests aprobados / 3 omitidos, build y 4 candados nuevos. Pendiente revisión visual e integración por Orquestador, sin merge a main.
+
 ## POS 2: menú sin toggle y línea de carrito como Alegra (rama `feat/pos-2-menu-carrito`)
 
 Trabajo de subagente ejecutor sobre el PLAN POS 2 (puntos 1 y 2), base `feat/pos-alegra-exacto` (`eae6704`). Solo presentación: no se tocaron precios, cantidades, impuestos ni el motor del carrito.
@@ -919,6 +979,7 @@ Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos d
   pgTAP no se pudo correr aquí (sin Docker/Supabase CLI); lo corre el integrador.
 - Quedó fuera: anular notas de crédito de venta y revertir el costo promedio al
   anular ajustes (pendientes ya conocidos). Nada se aplicó a Supabase.
+
 ## Clonar, editar y convertir documentos de venta (15 nov 2026)
 
 - La ficha de factura, cotización y conduce tiene «Clonar»: abre el formulario
@@ -960,6 +1021,7 @@ Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos d
 - **Índices**: migración **aditiva** `20261115900000_indices_rendimiento.sql` (`CREATE INDEX IF NOT EXISTS`): contacto+fecha en facturas/compras/cotizaciones/remisiones/pagos, fecha+número en listados, facturas abiertas de proveedor, notas por factura+fecha, nombre de contactos/productos y asientos por fecha+número. **No aplicada** al remoto.
 - **Medición local** (`pnpm build && pnpm start`, sin sesión): shell liviano por el proxy p50 59–81 ms; RTT a Supabase p50 151 ms (n=15). No se pudieron medir las rutas autenticadas: no hay credenciales de prueba en este worktree (la solicitud de credencial expiró). Rondas de red secuenciales antes → después: Inicio 4→2, Facturas 5→2, Ficha de factura 6→3, Compras 4→2, Ficha de compra 5→3, Contactos 4→2, Productos 4→2, Ficha de contacto 5→3, Ficha de producto 7→5, Ventas generales 3→1.
 - Verificado: `pnpm typecheck`, `pnpm test` (577), Biome sobre lo tocado y `pnpm build` en verde. Sin cambios de lógica contable ni de apariencia (los esqueletos son nuevos estados de carga).
+
 ## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
 
 - El saldo por pagar ahora es `total - pagado - credito` en el reporte Cuentas
@@ -1021,6 +1083,7 @@ Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos d
 - Migraciones aditivas `20261114900000_inventario_existencias_precios.sql` y `20261114901000_transferencias_inventario.sql` (NO aplicadas al remoto). pgTAP `supabase/tests/inventario_almacenes_test.sql` (36 asserts, aislado). Tipos de las tablas nuevas a mano en `types.ts`.
 - `typecheck`, `test` (503), Biome y `build` en verde. pgTAP no se pudo correr aquí (sin Docker/Supabase CLI).
 - Pendiente/fuera: conduces no mueven stock; anular una nota de crédito de venta sigue sin soporte; la anulación de ajustes no revierte el costo promedio.
+
 ## Retenciones de ITBIS e ISR (15 nov 2026)
 
 - Configuración > Retenciones: catálogo con nombre, tipo (ITBIS/ISR), porcentaje,
@@ -1070,6 +1133,7 @@ Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos d
 - Pendiente: transferencias entre almacenes, anulación de ajustes y stock por
   almacén (hoy la existencia sigue global en `productos`).
 - Limpieza: se borró `cotizaciones/_components/documento-form.tsx` (sin uso).
+
 ## Configuración (13 nov 2026)
 
 - Nuevo módulo `/dashboard/configuracion` con portada por grupos (Empresa, Facturación, Impuestos, Contabilidad) y menú lateral propio: Empresa (nombre, RNC, dirección, teléfono, correo y logo), Términos de pago (lista y crear), Impuestos (ITBIS 18/16/0/exento, solo lectura), Usuarios (solo admin, solo lectura) y enlaces a Numeraciones y Configuraciones contables.
@@ -1118,6 +1182,7 @@ Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos d
 - Pagos recurrentes (`/dashboard/pagos-recurrentes`): plantilla + `generar_pago_recurrente` idempotente por periodo; el botón «Generar ahora» crea el gasto menor B13 del último periodo vencido, sin cron.
 - Migraciones aditivas `20261114200000_notas_credito_compra.sql`, `20261114201000_ordenes_compra.sql` y `20261114202000_pagos_recurrentes.sql`. pgTAP nuevos: 24 + 11 + 21 asserts. Tipos de las tablas nuevas a mano en `types.ts` y `facturas_proveedor.credito` agregado.
 - Pendiente: aplicar la migración y regenerar `types.ts`; el reporte Cuentas por pagar debe restar `facturas_proveedor.credito` (no se tocó por ser de otra sesión). pgTAP no se pudo correr localmente (sin Docker/Supabase CLI en esta máquina).
+
 ## Ajustes de diseño del formulario de factura (13 nov 2026)
 
 - Logo a 96 px en escritorio y 72 px en móvil; RD$ y % van dentro del campo con `InputGroup`; los `NativeSelect` (NCF, cuenta, método e ITBIS) pasan al `Select` de shadcn.
@@ -1209,6 +1274,7 @@ Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos d
 - Periodos en `/dashboard/contabilidad/periodos`: cerrar y reabrir meses; el trigger `asientos_periodo_abierto` bloquea crear o anular asientos con fecha en un mes cerrado. El cierre de resultados del año lleva ingresos, costos y gastos a 3202 Utilidad del ejercicio y es idempotente por año.
 - Migraciones aditivas `20261114300000_activos_fijos.sql` y `20261114300100_periodos_cierre.sql` (pendientes de aplicar por Coder). Cuentas nuevas: 12, 1210, 1211, 6109 y 3202. pgTAP: `activos_fijos_test.sql` y `periodos_cierre_test.sql`.
 - Verificado: `pnpm typecheck`, Biome de los archivos nuevos, `pnpm test` (400) y `pnpm build`. pgTAP no se pudo correr aquí (sin Docker/Supabase local).
+
 ## Corrección de carga multiusuario (17 nov 2026)
 
 Tras las pruebas de carga (32k docs) y concurrencia (C1–C8, todas sanas), se corrigieron las lecturas — el motor de escritura no se tocó. Ramas desde `prueba`, una por paquete, listas para revisión de Coder:
