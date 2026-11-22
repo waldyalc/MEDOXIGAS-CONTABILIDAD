@@ -69,7 +69,12 @@ export default async function Page({
       cuentas={cuentas}
       cierres={cierres.filas}
       resumenPagina={cierres.resumen}
-      terminales={terminales.map((candidata) => ({ id: candidata.id, nombre: candidata.nombre }))}
+      terminales={terminales.map((candidata) => ({
+        id: candidata.id,
+        nombre: candidata.nombre,
+        cuenta_tarjeta_debito_id: candidata.cuenta_tarjeta_debito_id,
+        cuenta_tarjeta_credito_id: candidata.cuenta_tarjeta_credito_id,
+      }))}
       todas={todas}
       params={params}
       puedeEscribir={contexto.perfil.rol !== "lector"}
