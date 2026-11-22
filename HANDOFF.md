@@ -30,10 +30,11 @@ no hay migraciones, RPC nuevas ni tablas nuevas.
   Ingreso/Egreso en verde/rojo, el estado de proveedor y el camino prellenado;
   falla si vuelve «Registrar movimiento» o el selector de «Motivo».
 - **Pendientes anotados (no se tocó backend):** «Pago a factura de proveedor»
-  no tiene puente al POS (página visible con estado «No disponible en el POS
-  todavía»); se perdió el acceso a «Cobro de factura» y a los motivos
-  `fondo_caja`/`retiro_caja`/`deposito_banco` (quedan como ingreso/retiro
-  genérico «otro»), a la espera de decisión de Waldy.
+  no tiene puente al POS (pestaña visible con estado «No disponible en el POS
+  todavía»). Decisión de Waldy: se dejan solo las dos tarjetas de Alegra; el
+  «Cobro de factura» y los motivos `fondo_caja`/`retiro_caja`/`deposito_banco`
+  quedan como pérdida funcional documentada para una tarea aparte (el ingreso y
+  el retiro genérico usan `otro`).
 - **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1564 passed)
   y `pnpm build` en verde. Capturas con la sesión ZZTEST, sin registrar ningún
   movimiento real (solo se llenaron formularios).
