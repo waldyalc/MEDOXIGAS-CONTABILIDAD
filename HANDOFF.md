@@ -37,6 +37,36 @@ cierre sigue siendo su variante de 57 mm.
   cotización a **1 página, 227.04 × 708.96 pt** y cierre a 162 × 708.96;
   `comparacion.png` y `medidas.md` con el análisis por partes.
 
+## POS 9 — pestañas de venta con ⋮, renombrar y eliminar (`feat/pos-pestanas-venta`)
+
+Base `feat/pos-alegra-exacto`. Solo presentación y estado en memoria: sin base, migraciones ni ventas nuevas.
+
+- **Reglas puras** en `src/lib/pos/pestanas-venta.ts` (`renombrarPestanaEn`, `eliminarPestanaDe`, `esPestanaPrincipal`) usadas por el provider: la principal (primera) nunca se elimina, el carrito nunca queda sin pestaña y al borrar la activa se activa su vecina anterior. Nombre vacío conserva el anterior; máximo 30 caracteres.
+- **UI:** ⋮ visible siempre en la activa y al hover/foco en las demás; Renombrar/Eliminar en las extra y solo Renombrar en la principal; input inline con Enter/blur que guarda y Escape que cancela; la extra vacía se borra al instante y con productos pide la confirmación corta. La tira hace scroll a la pestaña activa en móvil.
+- **Hidratación:** el id de la primera pestaña es fijo (`ID_PESTANA_PRINCIPAL`) para que SSR y cliente coincidan; se eliminó el warning de hidratación del POS.
+- **Tests:** `src/lib/pos/pestanas-venta.test.ts` (9 casos de comportamiento) + candado en `diseno-pos.test.ts` (⋮, Renombrar/Eliminar, principal sin Eliminar, confirmación solo con productos, 160 px/Basket/teal/dark).
+- **Capturas:** `docs/diseno/capturas/pos-9/` con menú, renombrar y confirmación (claro), detalles, oscuro y móvil + `medidas.md` (pestaña 160 px, barra 44, menú ⋮ 24, input 128×32, diálogo 384).
+- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1,584 aprobados, 3 omitidos) y `pnpm build` en verde; Playwright con 0 errores de consola y sin crear ni editar ventas. Integrado con `origin/feat/pos-alegra-exacto` (PR #113 y POS 5) sin conflictos en código.
+
+## Regla de capturas al terminar (rama `docs/regla-capturas-preview`)
+
+Solo documentación. `AGENTS.md` gana la sección «Preview y capturas al terminar»
+(22-11-2026): todo agente entrega capturas desde el preview oficial
+`http://127.0.0.1:3010` (ZZTEST, 1440 px, una por punto) guardadas en
+`/root/referencias/capturas-terminadas/`; el Orquestador actualiza el preview al
+juntar (`git pull` de `feat/pos-alegra-exacto`, `pnpm build`,
+`systemctl restart medoxigas-preview`, 200) y reporta cada ruta con una línea.
+
+## POS 2: hojas móviles, carrito táctil y totales largos (rama `fix/pos-2-movil`, PR #113)
+
+Trabajo de subagente ejecutor sobre los puntos 1–5 del ajuste móvil del POS 2, base `feat/pos-alegra-exacto` (merge `cb8eb13` del PR #108). Solo presentación: precios, cantidades, impuestos y el motor del carrito intactos.
+
+- **Hojas móviles:** `w-[271px]!` en `menu-pos.tsx` y `w-full!` en `vender-pos.tsx` / `pagos-pos.tsx` vencen al `data-[side=*]:w-3/4` de `sheet.tsx` (que no se tocó). Menú 292.5 → **271 px**; factura 292.5 → **390 px** (420 en `sm`); detalle de pagos con la misma corrección (480 en `sm`; la terminal no tiene pagos para abrirlo en vivo).
+- **Carrito táctil:** las acciones lápiz/papelera llevan `[@media(hover:none)]:hidden`, así que un tap sobre el total no toca nada; quitar sigue en «Quitar línea» del editor. Verificado con `hasTouch`: 1 línea antes y después del tap.
+- **Cantidad y total:** input de cantidad 40 → **60 px** (muestra `1234.56` completo); la columna del total pasa de `w-[112px]` a `min-w-[112px]` (`min-w-[152px]` en xl) con `whitespace-nowrap`: `RD$12,980.00` deja 16 px al `+` a 1024 y 56 px a 1280/1440, sin solape. Fila de 76 px, tipografías y stepper de 36/18 de #108 intactos.
+- **Candado:** `src/lib/pos/diseno-pos.test.ts` exige los anchos con `!`, el input de 60 px, el `min-w` del total y las acciones ocultas en `hover: none`.
+- **Evidencia:** `docs/diseno/capturas/pos-2-movil/` (antes/después de menú y factura, cantidad 1234.56, total largo a 1024/1280 y táctil) + `medidas.md`.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1566) y `pnpm build` en verde; capturas con Playwright en el puerto 3026.
 ## POS 5: «Nuevo pago» como Alegra (rama `feat/pos-nuevo-pago-alegra`)
 
 Rediseño del modal de registrar movimiento del POS sobre la base del PR #107
