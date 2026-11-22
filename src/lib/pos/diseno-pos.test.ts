@@ -121,4 +121,41 @@ describe("diseño POS estilo Alegra", () => {
     }
     expect(css, "El teal de Alegra #00b19d debe estar en globals.css").toContain("#00b19d");
   });
+
+  it("el ticket de 80 mm usa @page con alto fijo y el orden de Alegra", () => {
+    const ticket = readFileSync(join(SRC, "components", "pos", "ticket-pos.tsx"), "utf8");
+    const impresion = readFileSync(join(SRC, "lib", "pos", "impresion.ts"), "utf8");
+
+    expect(
+      ticket,
+      "Chrome ignora «size: 80mm auto» y cae a Letter: el @page del ticket lleva alto fijo (250 mm)",
+    ).toContain("size: 80mm 250mm");
+    expect(ticket, "El ticket de 57 mm también necesita alto fijo").toContain("size: 57mm 250mm");
+    expect(ticket).not.toContain("size: 80mm auto");
+    expect(ticket).not.toContain("size: 57mm auto");
+
+    for (const archivo of [ticket, impresion]) {
+      expect(archivo, "El ticket no puede llevar la marca de Alegra ni datos de OXYMAT").not.toMatch(
+        /Generado en Alegra POS|OXYMAT/i,
+      );
+    }
+
+    expect(impresion, "El ticket lleva «Total recibido: RD$X» debajo del Total, no un bloque «Pagos»").toContain(
+      "Total recibido",
+    );
+    expect(impresion, "El método de pago va en el encabezado («Método de pago: Efectivo»)").toContain(
+      "Método de pago:",
+    );
+
+    const factura = impresion.slice(
+      impresion.indexOf("export function armarTicketFactura"),
+      impresion.indexOf("export function armarTicketCotizacion"),
+    );
+    for (const linea of ["Terminal:", "Turno No", "Cajero:"]) {
+      expect(
+        factura,
+        `La factura del POS no imprime «${linea}» (Alegra no lo muestra; cierre/recibos sí conservan su contexto)`,
+      ).not.toContain(linea);
+    }
+  });
 });
