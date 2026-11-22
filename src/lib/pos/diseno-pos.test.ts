@@ -192,6 +192,51 @@ describe("diseño POS estilo Alegra", () => {
     expect(checkout, "El placeholder del Vendedor es «Seleccionar»").toContain("Seleccionar");
   });
 
+  it("las pestañas de venta muestran ⋮ en las extra, renombran y nunca eliminan la principal", () => {
+    const archivo = readFileSync(join(POS, "_components", "vender", "pestanas-venta-pos.tsx"), "utf8");
+
+    expect(archivo, "La pestaña activa debe mostrar siempre el ⋮ (opacity-100), y las demás al hover/foco").toMatch(
+      /seleccionada\s*\?\s*"[^"]*opacity-100/,
+    );
+    expect(archivo, "Las pestañas inactivas muestran el ⋮ al hover o al foco").toContain("group-hover:opacity-100");
+    expect(archivo, "El menú de la pestaña usa el icono MoreVertical").toContain("MoreVertical");
+    expect(archivo, "El menú debe ofrecer Renombrar").toContain("Renombrar");
+    expect(archivo, "El menú debe ofrecer Eliminar en las pestañas extra").toContain("Eliminar");
+
+    const bloqueMenu = archivo.slice(
+      archivo.indexOf("<DropdownMenuContent"),
+      archivo.indexOf("</DropdownMenuContent>"),
+    );
+    expect(
+      bloqueMenu,
+      "«Venta principal» nunca puede eliminar: envuelve «Eliminar» en {principal ? null : (...)}",
+    ).toMatch(/\{principal \? null : \([\s\S]*Eliminar[\s\S]*\)\}/);
+    expect(archivo, "La principal se detecta con esPestanaPrincipal, no comparando el texto del nombre").toContain(
+      "esPestanaPrincipal",
+    );
+
+    const inicioClick = archivo.indexOf("onClick={() => {", archivo.indexOf('variant="destructive"'));
+    const clickEliminar = archivo.slice(inicioClick, archivo.indexOf("}}", inicioClick));
+    expect(clickEliminar, "Una pestaña extra sin productos se elimina de inmediato").toContain(
+      "pestana.lineas.length === 0",
+    );
+    expect(clickEliminar, "Una pestaña extra sin productos se elimina de inmediato").toContain(
+      "eliminarPestana(pestana.id)",
+    );
+    expect(clickEliminar, "Una pestaña extra con productos pide confirmación").toContain("setEliminando(pestana.id)");
+    expect(
+      clickEliminar.indexOf("eliminarPestana(pestana.id)"),
+      "La confirmación solo se abre cuando la pestaña extra tiene productos: primero el borrado inmediato",
+    ).toBeLessThan(clickEliminar.indexOf("setEliminando(pestana.id)"));
+
+    expect(archivo, "La pestaña mide 160 px como Alegra").toContain("w-[160px]");
+    expect(archivo, "La pestaña conserva el icono Basket").toContain("Basket");
+    expect(archivo, "La pestaña activa conserva el borde teal").toContain("border-b-pos-primario");
+    expect(archivo, "La pestaña conserva el fondo blanco").toContain("bg-white");
+    expect(archivo, "La pestaña conserva el dark mode").toContain("dark:bg-card");
+    expect(archivo, "La barra conserva el botón + de nueva venta").toContain('aria-label="Nueva venta"');
+  });
+
   it("globals.css define la paleta POS (--pos-*) en claro y oscuro", () => {
     const css = readFileSync(GLOBALS, "utf8");
     const tokens = [
