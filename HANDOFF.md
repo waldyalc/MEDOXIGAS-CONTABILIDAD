@@ -38,6 +38,23 @@ no hay migraciones, RPC nuevas ni tablas nuevas.
   y `pnpm build` en verde. Capturas con la sesión ZZTEST, sin registrar ningún
   movimiento real (solo se llenaron formularios).
 
+## POS 6 — cierre de turno como Alegra (`feat/pos-cierre-turno-alegra`)
+
+- Formulario de cierre con efectivo contado vacío, label «Dinero en efectivo del cierre» y esperado solo como referencia; no presenta diferencias ni switch hasta escribir un monto válido. Validación y payload de cierre intactos.
+- Ticket y payload presentacional aislados en `ticket-cierre-pos.tsx` / `impresion-cierre.ts`; cierre fijo 57 × 250 mm, independiente de la plantilla de ventas de 80 mm. Sin cabecera empresarial ni pie. No se tocaron `ticket-pos.tsx`, `impresion.ts`, RPC ni datos.
+- Tarjetas por cuenta de la terminal del turno (incluidas las demás terminales): separa débito/crédito solo con cuentas distintas y suma conciliable. En el cierre No 3 los datos no permiten separar: fallback «Ventas con tarjeta» confirmado por pregunta. Contado null usa esperado; observaciones vacías «-».
+- Evidencia real en `docs/diseno/capturas/pos-cierre/`: formulario claro/oscuro/móvil, PDFs antes/después, comparativo Alegra y tabla de medidas. Playwright solo leyó turnos, abrió/canceló formulario y validó el monto vacío, sin ejecutar cierres. PDF antes Letter 612 × 792 pt; después 1 página de 162 × 708.96 pt. Linux usa Liberation Sans, métricamente equivalente a Arial; la fila única de tarjetas acorta 22.5 pt el bloque inferior respecto a la referencia.
+- Verificación: typecheck, check (sin errores), 1567 tests aprobados / 3 omitidos, build y 4 candados nuevos. Pendiente revisión visual e integración por Orquestador, sin merge a main.
+
+## POS 2: menú sin toggle y línea de carrito como Alegra (rama `feat/pos-2-menu-carrito`)
+
+Trabajo de subagente ejecutor sobre el PLAN POS 2 (puntos 1 y 2), base `feat/pos-alegra-exacto` (`eae6704`). Solo presentación: no se tocaron precios, cantidades, impuestos ni el motor del carrito.
+
+- **Menú (`menu-pos.tsx`, `menu-pos-estilos.ts`):** fuera el `Collapsible` y las flechitas de «Ingresos» y «Turnos». Los títulos pasan a `itemMenuSeccion` (mismo alto, tipografía y padding, sin hover de enlace) y sus subitems —Historial de ventas, Registro de pagos e Historial de turnos— quedan siempre visibles al expandir, con la misma línea vertical; en el riel de 52 px sigue solo el icono de la sección. Pin, cajón móvil, `aria-current` y `title` intactos.
+- **Línea del carrito (`linea-carrito-pos.tsx`):** fila única de 76 px con nombre 14 px bold y precio unitario 12 px gris a la izquierda; stepper `− 1 +` de botones 36 px con iconos de 18 px en el centro (57 % del ancho, como Alegra) y total 15 px bold aislado a la derecha; lápiz y papelera dejan de apilarse bajo el total y aparecen flotando sobre él solo al hover/foco, sin cambiar la altura. El editor expandible conserva todo y suma «Quitar línea» para móvil/touch.
+- **Candado (`src/lib/pos/diseno-pos.test.ts`):** prohíbe `Collapsible`/`ChevronDown` en el menú, exige los 3 subitems, la fila de 76 px, la tipografía, el stepper de 36 px y las acciones `absolute` + hover/foco (sin el bloque apilado anterior).
+- **Medidas y capturas:** `docs/diseno/capturas/pos-2/` con los pares antes/después del menú y la fila, panel, oscuro y móvil; `medidas.md` compara Alegra (captura 04, escala ~1.25×) contra el antes y el después parte por parte.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test`, `pnpm build` y capturas con Playwright en el puerto 3013.
 ## Carrito POS como copia visual exacta de Alegra (rama `feat/pos-carrito-alegra`)
 
 Rehace el carrito/panel de factura del POS para que se vea como Alegra, por decisión de Waldy (22-11-2026): el POS copia el diseño exactamente, incluido el teal `#00b19d`; el resto del sistema mantiene los tokens Medoxigas y sigue prohibido copiar código fuente de Alegra. Se repitió el trabajo de una sesión perdida en un VPS.
