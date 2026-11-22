@@ -64,17 +64,18 @@ export function LineaCarritoPos({
     cambiarCantidad(linea.id, siguiente.toFixed(2));
   }
 
+  function quitar() {
+    quitarLinea(linea.id);
+    onAnunciar(`${linea.descripcion} quitado.`);
+  }
+
   const unidadVisible = linea.unidadId !== null && linea.unidadNombre ? linea.unidadNombre : null;
   const puedeEditar = !bloqueada;
+  const etiquetaEdicion = expandida ? "Cerrar edición" : "Editar línea";
 
   return (
-    <div
-      className={cn(
-        "group border-pos-linea border-b bg-white dark:bg-card",
-        expandida && "bg-slate-50 dark:bg-white/5",
-      )}
-    >
-      <div className="flex items-start gap-2 px-4 py-2.5">
+    <div className={cn("border-pos-linea border-b bg-white dark:bg-card", expandida && "bg-slate-50 dark:bg-white/5")}>
+      <div className="flex min-h-[76px] items-center gap-3 px-4 py-2">
         <button
           type="button"
           className="min-w-0 flex-1 text-left"
@@ -82,27 +83,27 @@ export function LineaCarritoPos({
           disabled={!puedeEditar}
         >
           <span
-            className="text-pos-texto block truncate text-[13px] leading-snug font-semibold uppercase"
+            className="text-pos-texto block truncate text-sm leading-5 font-bold uppercase"
             title={linea.descripcion}
           >
             {linea.descripcion}
           </span>
-          <span className="text-pos-texto-suave mt-0.5 block truncate text-xs">
+          <span className="text-pos-texto-suave mt-1 block truncate text-xs leading-4">
             {formatoMonedaPOS(linea.precio)}
             {unidadVisible ? ` · ${unidadVisible}` : ""}
             {Number(linea.descuentoPct) > 0 ? ` · Desc. ${formatoCantidad(linea.descuentoPct)}%` : ""}
           </span>
         </button>
 
-        <div className="text-pos-texto flex shrink-0 items-center gap-0.5 self-center">
+        <div className="text-pos-texto flex shrink-0 items-center">
           <button
             type="button"
-            className="text-pos-icono hover:text-pos-texto flex size-6 items-center justify-center disabled:opacity-40"
+            className="text-pos-icono hover:text-pos-texto flex size-9 items-center justify-center rounded-md transition-colors hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-white/10"
             aria-label={`Disminuir cantidad de ${linea.descripcion}`}
             disabled={!puedeEditar}
             onClick={() => paso(-1)}
           >
-            <Minus className="size-4" aria-hidden="true" />
+            <Minus className="size-[18px]" strokeWidth={1.75} aria-hidden="true" />
           </button>
           <Input
             value={cantidadTexto}
@@ -115,44 +116,45 @@ export function LineaCarritoPos({
             onKeyDown={(evento) => {
               if (evento.key === "Enter") fijarCantidad();
             }}
-            className="h-7 w-9 border-0 px-0 text-center text-sm tabular-nums shadow-none focus-visible:ring-1"
+            className="h-9 w-10 border-0 bg-transparent px-0 text-center text-sm font-medium tabular-nums shadow-none focus-visible:ring-1 dark:bg-transparent"
           />
           <button
             type="button"
-            className="text-pos-icono hover:text-pos-texto flex size-6 items-center justify-center disabled:opacity-40"
+            className="text-pos-icono hover:text-pos-texto flex size-9 items-center justify-center rounded-md transition-colors hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-white/10"
             aria-label={`Aumentar cantidad de ${linea.descripcion}`}
             disabled={!puedeEditar}
             onClick={() => paso(1)}
           >
-            <Plus className="size-4" aria-hidden="true" />
+            <Plus className="size-[18px]" strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
 
-        <div className="flex w-[86px] shrink-0 flex-col items-end">
-          <span className="text-pos-texto text-sm font-bold tabular-nums">{formatoMonedaPOS(totales.total)}</span>
-          <div className="text-pos-icono flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="group/precio relative flex h-10 w-[112px] shrink-0 items-center justify-end xl:w-[152px]">
+          <span className="text-pos-texto text-[15px] leading-5 font-bold tabular-nums transition-opacity group-hover/precio:opacity-0 group-focus-within/precio:opacity-0">
+            {formatoMonedaPOS(totales.total)}
+          </span>
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 opacity-0 transition-opacity group-hover/precio:pointer-events-auto group-hover/precio:opacity-100 group-focus-within/precio:pointer-events-auto group-focus-within/precio:opacity-100">
             <Button
               variant="ghost"
               size="icon"
-              className="hover:text-pos-texto size-6"
-              aria-label={expandida ? "Cerrar edición" : "Editar línea"}
+              className="hover:text-pos-texto size-8"
+              aria-label={etiquetaEdicion}
+              title={etiquetaEdicion}
               disabled={!puedeEditar}
               onClick={expandida ? onColapsar : onExpandir}
             >
-              <Pencil className="size-3.5" aria-hidden="true" />
+              <Pencil className="size-4" aria-hidden="true" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="hover:text-destructive size-6"
+              className="hover:text-destructive size-8"
               aria-label={`Quitar ${linea.descripcion}`}
+              title={`Quitar ${linea.descripcion}`}
               disabled={!puedeEditar}
-              onClick={() => {
-                quitarLinea(linea.id);
-                onAnunciar(`${linea.descripcion} quitado.`);
-              }}
+              onClick={quitar}
             >
-              <Trash2 className="size-3.5" aria-hidden="true" />
+              <Trash2 className="size-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -300,7 +302,16 @@ export function LineaCarritoPos({
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              variant="ghost"
+              className="text-destructive hover:text-destructive h-10 gap-1.5"
+              disabled={!puedeEditar}
+              onClick={quitar}
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+              Quitar línea
+            </Button>
             <Button variant="outline" className="h-10" onClick={onColapsar}>
               Listo
             </Button>
