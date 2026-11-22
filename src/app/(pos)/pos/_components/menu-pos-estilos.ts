@@ -25,5 +25,14 @@ export function claseIconoMenu(activo: boolean): string {
   );
 }
 
+/**
+ * Título de sección del menú (Ingresos, Turnos): mismo tamaño, color y
+ * padding que un ítem, pero sin estados de hover/foco porque no es clicable;
+ * los subitems que agrupa viven debajo, siempre visibles al expandir.
+ */
+export const itemMenuSeccion =
+  "relative flex h-8 w-full items-center gap-2 rounded-[6px] px-2 py-1.5 text-left text-sm leading-[21px] font-normal " +
+  "text-slate-700 dark:text-sidebar-foreground/85";
+
 /** Versión del ítem colapsada al riel de 52 px: solo el icono, centrado. */
 export const itemMenuColapsado = "justify-center px-0";

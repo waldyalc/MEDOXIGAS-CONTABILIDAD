@@ -1,5 +1,15 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 2: menú sin toggle y línea de carrito como Alegra (rama `feat/pos-2-menu-carrito`)
+
+Trabajo de subagente ejecutor sobre el PLAN POS 2 (puntos 1 y 2), base `feat/pos-alegra-exacto` (`eae6704`). Solo presentación: no se tocaron precios, cantidades, impuestos ni el motor del carrito.
+
+- **Menú (`menu-pos.tsx`, `menu-pos-estilos.ts`):** fuera el `Collapsible` y las flechitas de «Ingresos» y «Turnos». Los títulos pasan a `itemMenuSeccion` (mismo alto, tipografía y padding, sin hover de enlace) y sus subitems —Historial de ventas, Registro de pagos e Historial de turnos— quedan siempre visibles al expandir, con la misma línea vertical; en el riel de 52 px sigue solo el icono de la sección. Pin, cajón móvil, `aria-current` y `title` intactos.
+- **Línea del carrito (`linea-carrito-pos.tsx`):** fila única de 76 px con nombre 14 px bold y precio unitario 12 px gris a la izquierda; stepper `− 1 +` de botones 36 px con iconos de 18 px en el centro (57 % del ancho, como Alegra) y total 15 px bold aislado a la derecha; lápiz y papelera dejan de apilarse bajo el total y aparecen flotando sobre él solo al hover/foco, sin cambiar la altura. El editor expandible conserva todo y suma «Quitar línea» para móvil/touch.
+- **Candado (`src/lib/pos/diseno-pos.test.ts`):** prohíbe `Collapsible`/`ChevronDown` en el menú, exige los 3 subitems, la fila de 76 px, la tipografía, el stepper de 36 px y las acciones `absolute` + hover/foco (sin el bloque apilado anterior).
+- **Medidas y capturas:** `docs/diseno/capturas/pos-2/` con los pares antes/después del menú y la fila, panel, oscuro y móvil; `medidas.md` compara Alegra (captura 04, escala ~1.25×) contra el antes y el después parte por parte.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test`, `pnpm build` y capturas con Playwright en el puerto 3013.
+
 ## Carrito POS como copia visual exacta de Alegra (rama `feat/pos-carrito-alegra`)
 
 Rehace el carrito/panel de factura del POS para que se vea como Alegra, por decisión de Waldy (22-11-2026): el POS copia el diseño exactamente, incluido el teal `#00b19d`; el resto del sistema mantiene los tokens Medoxigas y sigue prohibido copiar código fuente de Alegra. Se repitió el trabajo de una sesión perdida en un VPS.
