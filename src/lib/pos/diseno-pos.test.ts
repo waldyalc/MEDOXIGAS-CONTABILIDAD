@@ -77,6 +77,42 @@ describe("diseño POS estilo Alegra", () => {
     expect(linea, "Los renglones del carrito van en blanco sobre el cuerpo gris del panel").toContain("bg-white");
   });
 
+  it("el menú del POS no vuelve a las flechitas: los subitems quedan siempre visibles", () => {
+    const menu = readFileSync(join(POS, "_components", "menu-pos.tsx"), "utf8");
+    expect(
+      menu,
+      "El menú no usa Collapsible: Ingresos y Turnos son secciones con sus subitems siempre visibles al expandir (decisión de Waldy, POS 2). Quita el acordeón y deja los enlaces bajo su sección.",
+    ).not.toContain("Collapsible");
+    expect(
+      menu,
+      "No vuelvas a poner la flecha de abrir/cerrar: el menú muestra Historial de ventas, Registro de pagos e Historial de turnos sin un clic extra.",
+    ).not.toContain("ChevronDown");
+    expect(menu, "Falta la sección Ingresos con Historial de ventas y Registro de pagos").toContain(
+      "Historial de ventas",
+    );
+    expect(menu, "Falta la sección Turnos con Historial de turnos").toContain("Historial de turnos");
+    expect(menu, "El título de sección debe usar itemMenuSeccion (sin hover de enlace)").toContain("itemMenuSeccion");
+  });
+
+  it("la línea del carrito es una sola fila: stepper grande, total solo y acciones flotantes", () => {
+    const linea = readFileSync(join(POS, "_components", "vender", "linea-carrito-pos.tsx"), "utf8");
+    expect(
+      linea,
+      "La fila del carrito debe medir 76 px de alto (min-h-[76px]); no vuelvas a apilar el lápiz y la papelera bajo el total.",
+    ).toContain("min-h-[76px]");
+    expect(linea, "El nombre del producto va en 14 px negrita").toContain("text-sm leading-5 font-bold");
+    expect(linea, "El total va en 15 px negrita").toContain("text-[15px] leading-5 font-bold");
+    expect(linea, "El stepper usa botones de 36 px (size-9) con iconos de 18 px").toMatch(/size-9/);
+    expect(
+      linea,
+      "Lápiz y papelera deben aparecer flotando sobre el total al hover/foco (absolute + group-hover/precio:opacity-100), sin agregar renglones ni altura a la fila.",
+    ).toMatch(/absolute[^"]*group-hover\/precio:opacity-100/);
+    expect(
+      linea,
+      "La fila no puede volver al bloque apilado del total con las acciones debajo (w-[86px] flex-col).",
+    ).not.toContain("flex w-[86px] shrink-0 flex-col");
+  });
+
   it("el shell del POS enfoca en teal, no en el azul del sistema", () => {
     const layout = readFileSync(join(POS, "layout.tsx"), "utf8");
     expect(
