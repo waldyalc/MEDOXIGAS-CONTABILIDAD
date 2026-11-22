@@ -1,5 +1,15 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 11: plan POS sin internet (rama `feat/pos-offline`)
+
+Solo plan, fase 1. `docs/diseno/pos-offline.md`: cola en IndexedDB con
+`client_uuid` idempotente, aviso de conexión en la barra inferior, cierre de
+turno bloqueado con pendientes, y migración aditiva propuesta
+(`client_uuid unique` en `facturas` y `pos_turno_movimientos`).
+**Decisión NCF recomendada: (A)** folio provisional `POS-LOCAL-xxxx` y NCF real
+al sincronizar (la RPC ya lo asigna al insert; cero huecos). Esperando OK de
+Waldy antes de implementar.
+
 ## Regla de capturas al terminar (rama `docs/regla-capturas-preview`)
 
 Solo documentación. `AGENTS.md` gana la sección «Preview y capturas al terminar»
