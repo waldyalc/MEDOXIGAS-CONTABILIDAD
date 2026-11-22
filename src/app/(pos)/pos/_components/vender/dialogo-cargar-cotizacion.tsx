@@ -101,6 +101,8 @@ export function DialogoCargarCotizacion({ abierto, onCerrar }: { abierto: boolea
     carrito.aplicarCotizacion({
       id: vista.documento.id,
       numero: vista.documento.numero,
+      fecha: vista.documento.fecha,
+      vencimiento: vista.documento.vencimiento,
       contactoId: vista.documento.contacto_id,
       listaPrecioId: carrito.activa.listaPrecioId,
       lineas: vista.lineas.map((linea) => ({

@@ -1,5 +1,42 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 10: prefactura, cotización y cierre sobre la plantilla 80 mm (rama `feat/pos-prefactura-cotizacion-pdf`)
+
+Subagente ejecutor sobre `feat/pos-alegra-exacto`. Una sola plantilla
+(`TicketPos` + `impresion.ts`) cubre factura, prefactura y cotización; el
+cierre sigue siendo su variante de 57 mm.
+
+- **Prefactura (solo presentación):** el icono de impresora del panel abre
+  «Imprimir vista previa» del carrito en memoria: título «Prefactura» +
+  «Sin valor fiscal», sin NCF, sin venta ni escritura en base. El menú
+  «más funciones» ofrece «Imprimir cotización» (habilitado solo con
+  cotización cargada).
+- **Cotización 80 mm:** «Cotización No. N», fecha, «Vence», «Sin valor
+  fiscal», totales compartidos `(A) ITBIS`/`Total ITBIS`. Desde el POS y
+  desde `/dashboard/cotizaciones/[id]` (acción nueva junto a la Carta).
+- **Encabezado orden Alegra:** nombre → `Sucursal` (opcional) → `RNC:` →
+  dirección → `Teléfono:` → correo → `Régimen` (opcional); se omite lo
+  que no exista. La tabla `empresa` **no tiene** `sucursal`/`regimen`
+  (verificado en los tipos generados): quedaron como campos opcionales
+  en `Empresa`/`EmpresaPOS`; la migración aditiva + campos de
+  Configuración quedan pendientes del OK de Waldy.
+- **Cierre:** `Cierre No N` en una sola línea (17.25 pt negrita, nowrap),
+  sin marco; filas como Alegra.
+- **Bug real corregido:** el portal de impresión vivía dentro de
+  `PanelFactura`, que `vender-pos` desmonta cuando
+  `matchMedia("(min-width:1024px)")` es falso. Al imprimir, Chromium
+  evalúa esa media query con el ancho del papel (80 mm) → panel desmontado
+  a mitad del `window.print()` → hoja en blanco. El estado `impresionDoc`
+  y `ImpresionPos` ahora viven en `vender-pos` (el panel delega con
+  `onImprimir`); candado en `prefactura-cotizacion.test.ts`.
+- **Candados:** `prefactura-cotizacion.test.ts` (acciones del panel,
+  portal en `vender-pos`, prohibidos «Generado en Alegra POS», OXYMAT y
+  Fiel Ferreteria) + `impresion.test.ts` (payloads).
+- **Verificación:** typecheck/check/test (1,582 passed) /build verdes;
+  PDFs en `docs/diseno/capturas/pos-10/`: factura, prefactura y
+  cotización a **1 página, 227.04 × 708.96 pt** y cierre a 162 × 708.96;
+  `comparacion.png` y `medidas.md` con el análisis por partes.
+
 ## POS 9 — pestañas de venta con ⋮, renombrar y eliminar (`feat/pos-pestanas-venta`)
 
 Base `feat/pos-alegra-exacto`. Solo presentación y estado en memoria: sin base, migraciones ni ventas nuevas.
