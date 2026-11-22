@@ -163,11 +163,15 @@ function horaDe(iso: string | null | undefined): string | null {
   const fecha = new Date(iso);
   if (Number.isNaN(fecha.getTime())) return null;
 
-  return new Intl.DateTimeFormat("es-DO", {
-    hour: "2-digit",
+  // «4:40 pm», como el ticket de Alegra: hora sin cero y am/pm en minúscula.
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
     minute: "2-digit",
+    hour12: true,
     timeZone: "America/Santo_Domingo",
-  }).format(fecha);
+  })
+    .format(fecha)
+    .toLowerCase();
 }
 
 function fechaConHora(fecha: string, creadoEn: string | null | undefined): string {
@@ -180,8 +184,18 @@ function fila(etiqueta: string, valor: string, negativo = false): FilaTicketPOS 
   return negativo ? { etiqueta, valor, negativo: true } : { etiqueta, valor };
 }
 
+/** «RD$50.00» sin espacio, como el ticket de Alegra. */
+function moneda(valor: string): string {
+  return formatoMoneda(valor).replace(/^RD\$ /, "RD$");
+}
+
+/** «50.00» sin símbolo: los totales de cada ítem del ticket van sin moneda. */
+function numero(valor: string): string {
+  return moneda(valor).replace(/^RD\$/, "");
+}
+
 function montoNegativo(valor: string): string {
-  return `-${formatoMoneda(valor)}`;
+  return `-${moneda(valor)}`;
 }
 
 function disenoDe(
@@ -302,7 +316,8 @@ function lineaDeVenta(linea: LineaVenta, plantilla: PlantillaTicket): LineaTicke
 
   const partes: string[] = [];
   if (plantilla.mostrar_precio_unitario) {
-    partes.push(`${formatoCantidad(linea.cantidad)}${unidad} × ${formatoMoneda(precioMostrado)}`);
+    // «1 x 50.00»: cantidad por precio sin símbolo de moneda, como Alegra.
+    partes.push(`${formatoCantidad(linea.cantidad)}${unidad} x ${numero(precioMostrado)}`);
   } else {
     partes.push(`${formatoCantidad(linea.cantidad)}${unidad}`);
   }
@@ -312,9 +327,9 @@ function lineaDeVenta(linea: LineaVenta, plantilla: PlantillaTicket): LineaTicke
     descripcion: plantilla.mostrar_descripcion || !linea.producto_nombre ? linea.descripcion : linea.producto_nombre,
     referencia: plantilla.mostrar_referencia ? linea.referencia : null,
     detalle: partes.join(" · "),
-    precio_unitario: plantilla.mostrar_precio_unitario ? formatoMoneda(precioMostrado) : null,
+    precio_unitario: plantilla.mostrar_precio_unitario ? numero(precioMostrado) : null,
     descuento: compararMontos(descuento, "0") > 0 ? montoNegativo(descuento) : null,
-    total: formatoMoneda(linea.total),
+    total: numero(linea.total),
   };
 }
 
@@ -325,7 +340,7 @@ function lineaDeDevolucion(linea: LineaDevolucionPOS, plantilla: PlantillaTicket
   const unidad = plantilla.mostrar_unidad && linea.unidad_nombre ? ` ${linea.unidad_nombre}` : "";
   const partes: string[] = [];
   if (plantilla.mostrar_precio_unitario) {
-    partes.push(`${formatoCantidad(linea.cantidad)}${unidad} × ${formatoMoneda(precioMostrado)}`);
+    partes.push(`${formatoCantidad(linea.cantidad)}${unidad} x ${numero(precioMostrado)}`);
   } else {
     partes.push(`${formatoCantidad(linea.cantidad)}${unidad}`);
   }
@@ -334,9 +349,9 @@ function lineaDeDevolucion(linea: LineaDevolucionPOS, plantilla: PlantillaTicket
     descripcion: linea.descripcion,
     referencia: null,
     detalle: partes.join(" · "),
-    precio_unitario: plantilla.mostrar_precio_unitario ? formatoMoneda(precioMostrado) : null,
+    precio_unitario: plantilla.mostrar_precio_unitario ? numero(precioMostrado) : null,
     descuento: compararMontos(linea.descuento_pct, "0") > 0 ? `Desc. ${formatoCantidad(linea.descuento_pct)}%` : null,
-    total: formatoMoneda(linea.total),
+    total: numero(linea.total),
   };
 }
 
@@ -344,45 +359,61 @@ function totalesFactura(resultado: VentaPOSResultado): FilaTicketPOS[] {
   const { factura, totales, lineas } = resultado;
   const bruto = sumarMontos([totales.subtotal, totales.descuento]);
   const { exento, gravado } = exentoGravado(lineas);
-  const filas: FilaTicketPOS[] = [fila("Subtotal", formatoMoneda(bruto))];
+  const filas: FilaTicketPOS[] = [fila("Subtotal", moneda(bruto))];
 
   if (compararMontos(totales.descuento, "0") > 0) {
     filas.push(fila("Descuento", montoNegativo(totales.descuento)));
   }
 
-  filas.push(fila("Subtotal Exento", formatoMoneda(exento)));
-  filas.push(fila("Subtotal Gravado", formatoMoneda(gravado)));
+  filas.push(fila("Subtotal Exento", moneda(exento)));
+  filas.push(fila("Subtotal Gravado", moneda(gravado)));
 
   for (const itbis of itbisPorTasa(lineas)) {
-    filas.push(fila(itbis.etiqueta, formatoMoneda(itbis.total)));
+    filas.push(fila(itbis.etiqueta, moneda(itbis.total)));
   }
 
   if (compararMontos(totales.otros_impuestos, "0") > 0) {
-    filas.push(fila("Otros impuestos", formatoMoneda(totales.otros_impuestos)));
+    filas.push(fila("Otros impuestos", moneda(totales.otros_impuestos)));
   }
   if (compararMontos(totales.propina, "0") > 0) {
-    filas.push(fila("Propina", formatoMoneda(totales.propina)));
+    filas.push(fila("Propina", moneda(totales.propina)));
   }
 
-  filas.push(fila("Total", formatoMoneda(totales.total)));
+  filas.push(fila("Total", moneda(totales.total)));
 
   if (compararMontos(factura.saldo, "0") > 0 || compararMontos(factura.credito, "0") > 0) {
-    filas.push(fila("Pagado", formatoMoneda(factura.pagado)));
-    if (compararMontos(factura.credito, "0") > 0) filas.push(fila("Crédito", formatoMoneda(factura.credito)));
-    filas.push(fila("Saldo", formatoMoneda(factura.saldo)));
+    filas.push(fila("Pagado", moneda(factura.pagado)));
+    if (compararMontos(factura.credito, "0") > 0) filas.push(fila("Crédito", moneda(factura.credito)));
+    filas.push(fila("Saldo", moneda(factura.saldo)));
   }
 
   return filas;
 }
 
-function pagosFactura(resultado: VentaPOSResultado): FilaTicketPOS[] {
-  const filas = resultado.pagos.map((pago) => fila(ETIQUETAS_METODO[pago.metodo_pos], formatoMoneda(pago.monto)));
+/** «Método de pago: Efectivo» del encabezado; «Combinado» si hubo varios. */
+function metodoPago(resultado: VentaPOSResultado): string | null {
+  const metodos = [...new Set(resultado.pagos.map((pago) => pago.metodo_pos))];
+  if (metodos.length === 0) return null;
+  if (metodos.length > 1) return "Combinado";
+  const unico = metodos[0];
+  return unico ? ETIQUETAS_METODO[unico] : null;
+}
 
-  if (compararMontos(resultado.factura.monto_recibido, "0") > 0) {
-    filas.push(fila("Recibido", formatoMoneda(resultado.factura.monto_recibido)));
+/**
+ * Cobro debajo del Total, como Alegra: «Total recibido: RD$X» y «Cambio: RD$X».
+ * Ya no es un bloque «Pagos» aparte: el método va en el encabezado.
+ */
+function cobroFactura(resultado: VentaPOSResultado): FilaTicketPOS[] {
+  const filas: FilaTicketPOS[] = [];
+  const montoRecibido = resultado.factura.monto_recibido ?? "0";
+  const recibido =
+    compararMontos(montoRecibido, "0") > 0 ? montoRecibido : sumarMontos(resultado.pagos.map((pago) => pago.monto));
+
+  if (compararMontos(recibido, "0") > 0) {
+    filas.push(fila("Total recibido", moneda(recibido)));
   }
   if (resultado.factura.cambio && compararMontos(resultado.factura.cambio, "0") > 0) {
-    filas.push(fila("Cambio", formatoMoneda(resultado.factura.cambio)));
+    filas.push(fila("Cambio", moneda(resultado.factura.cambio)));
   }
 
   return filas;
@@ -409,15 +440,14 @@ export function armarTicketFactura(
   const normalizada = normalizarPlantilla(plantilla ?? resultado.terminal.plantilla_ticket);
   const factura = resultado.factura;
   const esCredito = compararMontos(factura.saldo, "0") > 0 || compararMontos(factura.credito, "0") > 0;
+  const metodo = metodoPago(resultado);
   const lineas = [
     ...(factura.ncf ? [`NCF ${factura.ncf}`] : []),
     `Fecha: ${fechaConHora(factura.fecha, factura.creado_en ?? opciones.recibido_en)}`,
     `Tipo de pago: ${esCredito ? "Crédito" : "Contado"}`,
-    ...(factura.vencimiento !== factura.fecha ? [`Vencimiento: ${formatoDia(factura.vencimiento)}`] : []),
-    `Terminal: ${resultado.terminal.nombre}`,
-    `Turno No ${resultado.turno.numero}`,
-    ...(resultado.cajero ? [`Cajero: ${resultado.cajero}`] : []),
+    ...(metodo ? [`Método de pago: ${metodo}`] : []),
     ...(normalizada.mostrar_vendedor && resultado.vendedor ? [`Vendedor: ${resultado.vendedor.nombre}`] : []),
+    `Vencimiento: ${formatoDia(factura.vencimiento)}`,
     ...(resultado.ncf_vence ? [`Vence NCF: ${formatoDia(resultado.ncf_vence)}`] : []),
   ];
 
@@ -434,9 +464,9 @@ export function armarTicketFactura(
     lineas: resultado.lineas.map((linea) => lineaDeVenta(linea, normalizada)),
     bloques: [],
     totales: totalesFactura(resultado),
-    pagos: pagosFactura(resultado),
+    pagos: cobroFactura(resultado),
     resumen: resumenLineas(resultado.lineas),
-    nota: normalizada.precios_con_impuestos && normalizada.mostrar_precio_unitario ? "ITBIS incluido" : null,
+    nota: null,
     pie: normalizada.pie_ticket,
     anulada: factura.estado === "anulada",
   };
@@ -456,22 +486,22 @@ export function armarTicketCotizacion(
 
   const bruto = sumarMontos([resultado.totales.subtotal, resultado.totales.descuento]);
   const { exento, gravado } = exentoGravado(resultado.lineas);
-  const totales: FilaTicketPOS[] = [fila("Subtotal", formatoMoneda(bruto))];
+  const totales: FilaTicketPOS[] = [fila("Subtotal", moneda(bruto))];
   if (compararMontos(resultado.totales.descuento, "0") > 0) {
     totales.push(fila("Descuento", montoNegativo(resultado.totales.descuento)));
   }
-  totales.push(fila("Subtotal Exento", formatoMoneda(exento)));
-  totales.push(fila("Subtotal Gravado", formatoMoneda(gravado)));
+  totales.push(fila("Subtotal Exento", moneda(exento)));
+  totales.push(fila("Subtotal Gravado", moneda(gravado)));
   for (const itbis of itbisPorTasa(resultado.lineas)) {
-    totales.push(fila(itbis.etiqueta, formatoMoneda(itbis.total)));
+    totales.push(fila(itbis.etiqueta, moneda(itbis.total)));
   }
   if (compararMontos(resultado.totales.otros_impuestos, "0") > 0) {
-    totales.push(fila("Otros impuestos", formatoMoneda(resultado.totales.otros_impuestos)));
+    totales.push(fila("Otros impuestos", moneda(resultado.totales.otros_impuestos)));
   }
   if (compararMontos(resultado.totales.propina, "0") > 0) {
-    totales.push(fila("Propina", formatoMoneda(resultado.totales.propina)));
+    totales.push(fila("Propina", moneda(resultado.totales.propina)));
   }
-  totales.push(fila("Total", formatoMoneda(resultado.totales.total)));
+  totales.push(fila("Total", moneda(resultado.totales.total)));
 
   return {
     tipo: "cotizacion",
@@ -496,16 +526,11 @@ export function armarTicketDevolucion(
   const normalizada = normalizarPlantilla(plantilla ?? resultado.terminal.plantilla_ticket);
   const nota = resultado.nota;
   const origen = resultado.factura.ncf ?? `No ${resultado.factura.numero}`;
-  const lineas = [
-    `NCF ${nota.ncf}`,
-    `Fecha: ${formatoDia(nota.fecha)}`,
-    `Factura origen: ${origen}`,
-    `Turno No ${resultado.turno.numero}`,
-  ];
+  const lineas = [`NCF ${nota.ncf}`, `Fecha: ${formatoDia(nota.fecha)}`, `Factura origen: ${origen}`];
 
   const reembolso: FilaTicketPOS[] = [
-    fila("Efectivo", formatoMoneda(resultado.reembolso.efectivo)),
-    fila("Crédito a factura", formatoMoneda(resultado.reembolso.credito)),
+    fila("Efectivo", moneda(resultado.reembolso.efectivo)),
+    fila("Crédito a factura", moneda(resultado.reembolso.credito)),
     ...(resultado.reembolso.cuenta_nombre ? [fila("Cuenta de efectivo", resultado.reembolso.cuenta_nombre)] : []),
   ];
 
@@ -519,11 +544,11 @@ export function armarTicketDevolucion(
     lineas: resultado.lineas.map((linea) => lineaDeDevolucion(linea, normalizada)),
     bloques: [{ titulo: ETIQUETAS_REEMBOLSO[nota.tipo_reembolso], filas: reembolso }],
     totales: [
-      fila("Subtotal", formatoMoneda(resultado.totales.subtotal)),
-      fila("Subtotal Exento", formatoMoneda(exento)),
-      fila("Subtotal Gravado", formatoMoneda(gravado)),
-      fila("ITBIS", formatoMoneda(resultado.totales.itbis)),
-      fila("Total", formatoMoneda(resultado.totales.total)),
+      fila("Subtotal", moneda(resultado.totales.subtotal)),
+      fila("Subtotal Exento", moneda(exento)),
+      fila("Subtotal Gravado", moneda(gravado)),
+      fila("ITBIS", moneda(resultado.totales.itbis)),
+      fila("Total", moneda(resultado.totales.total)),
     ],
     pagos: [],
     resumen: resumenLineas(resultado.lineas),
@@ -547,34 +572,34 @@ export function armarTicketCierre(resultado: CierreTurnoPOS, plantilla?: Plantil
   const bloques: BloqueTicketPOS[] = [
     {
       titulo: "Base inicial",
-      filas: [fila("Base", formatoMoneda(resumen.efectivo.base_inicial))],
+      filas: [fila("Base", moneda(resumen.efectivo.base_inicial))],
     },
     {
       titulo: "Ventas por método",
       filas: [
-        fila("Efectivo", formatoMoneda(resumen.ventas.por_metodo.efectivo)),
-        fila("Tarjeta", formatoMoneda(resumen.ventas.por_metodo.tarjeta)),
-        fila("Transferencia", formatoMoneda(resumen.ventas.por_metodo.transferencia)),
-        fila("Crédito", formatoMoneda(resumen.ventas.por_metodo.credito)),
+        fila("Efectivo", moneda(resumen.ventas.por_metodo.efectivo)),
+        fila("Tarjeta", moneda(resumen.ventas.por_metodo.tarjeta)),
+        fila("Transferencia", moneda(resumen.ventas.por_metodo.transferencia)),
+        fila("Crédito", moneda(resumen.ventas.por_metodo.credito)),
       ],
     },
     {
       titulo: "Ingresos",
       filas: [
-        fila("Fondo de caja", formatoMoneda(resumen.ingresos.por_motivo.fondo_caja)),
-        fila("Cobro de factura", formatoMoneda(resumen.ingresos.por_motivo.cobro_factura)),
-        fila("Otro ingreso", formatoMoneda(resumen.ingresos.por_motivo.otro)),
-        fila("Total ingresos", formatoMoneda(resumen.ingresos.total)),
+        fila("Fondo de caja", moneda(resumen.ingresos.por_motivo.fondo_caja)),
+        fila("Cobro de factura", moneda(resumen.ingresos.por_motivo.cobro_factura)),
+        fila("Otro ingreso", moneda(resumen.ingresos.por_motivo.otro)),
+        fila("Total ingresos", moneda(resumen.ingresos.total)),
       ],
     },
     {
       titulo: "Retiros",
       filas: [
-        fila("Retiro de caja", formatoMoneda(resumen.retiros.por_motivo.retiro_caja)),
-        fila("Gasto menor", formatoMoneda(resumen.retiros.por_motivo.gasto_menor)),
-        fila("Depósito al banco", formatoMoneda(resumen.retiros.por_motivo.deposito_banco)),
-        fila("Otro retiro", formatoMoneda(resumen.retiros.por_motivo.otro)),
-        fila("Total retiros", formatoMoneda(resumen.retiros.total)),
+        fila("Retiro de caja", moneda(resumen.retiros.por_motivo.retiro_caja)),
+        fila("Gasto menor", moneda(resumen.retiros.por_motivo.gasto_menor)),
+        fila("Depósito al banco", moneda(resumen.retiros.por_motivo.deposito_banco)),
+        fila("Otro retiro", moneda(resumen.retiros.por_motivo.otro)),
+        fila("Total retiros", moneda(resumen.retiros.total)),
       ],
     },
     {
@@ -582,8 +607,8 @@ export function armarTicketCierre(resultado: CierreTurnoPOS, plantilla?: Plantil
       filas: [
         fila("Cantidad", String(resumen.devoluciones.cantidad)),
         fila("Efectivo", montoNegativo(resumen.devoluciones.efectivo), true),
-        fila("Crédito", formatoMoneda(resumen.devoluciones.credito)),
-        fila("Total", formatoMoneda(resumen.devoluciones.total)),
+        fila("Crédito", moneda(resumen.devoluciones.credito)),
+        fila("Total", moneda(resumen.devoluciones.total)),
       ],
     },
     {
@@ -594,7 +619,7 @@ export function armarTicketCierre(resultado: CierreTurnoPOS, plantilla?: Plantil
         const hora = horaDe(movimiento.creado_en);
         return fila(
           `#${movimiento.numero}${hora ? ` ${hora}` : ""} · ${signo} · ${ETIQUETAS_MOTIVO_MOVIMIENTO[movimiento.motivo]}${vigencia}`,
-          movimiento.tipo === "retiro" ? montoNegativo(movimiento.monto) : formatoMoneda(movimiento.monto),
+          movimiento.tipo === "retiro" ? montoNegativo(movimiento.monto) : moneda(movimiento.monto),
           movimiento.tipo === "retiro",
         );
       }),
@@ -615,10 +640,10 @@ export function armarTicketCierre(resultado: CierreTurnoPOS, plantilla?: Plantil
 
   const diferencia = resumen.efectivo.diferencia;
   let diferenciaTexto = "Cuadra";
-  if (diferencia && compararMontos(diferencia, "0") > 0) diferenciaTexto = `Sobrante ${formatoMoneda(diferencia)}`;
+  if (diferencia && compararMontos(diferencia, "0") > 0) diferenciaTexto = `Sobrante ${moneda(diferencia)}`;
   if (diferencia && compararMontos(diferencia, "0") < 0) {
     const absoluto = diferencia.startsWith("-") ? diferencia.slice(1) : diferencia;
-    diferenciaTexto = `Faltante ${formatoMoneda(absoluto)}`;
+    diferenciaTexto = `Faltante ${moneda(absoluto)}`;
   }
 
   return {
@@ -629,8 +654,8 @@ export function armarTicketCierre(resultado: CierreTurnoPOS, plantilla?: Plantil
     lineas: [],
     bloques,
     totales: [
-      fila("Efectivo esperado en caja", formatoMoneda(resumen.efectivo.efectivo_esperado)),
-      fila("Efectivo real en caja", formatoMoneda(resumen.efectivo.efectivo_real ?? "0")),
+      fila("Efectivo esperado en caja", moneda(resumen.efectivo.efectivo_esperado)),
+      fila("Efectivo real en caja", moneda(resumen.efectivo.efectivo_real ?? "0")),
       fila("Diferencia", diferenciaTexto),
     ],
     pagos: [],
@@ -655,7 +680,7 @@ export function armarTicketMovimiento(
 
   const detalle: FilaTicketPOS[] = [
     fila("Motivo", ETIQUETAS_MOTIVO_MOVIMIENTO[movimiento.motivo]),
-    fila("Monto", formatoMoneda(movimiento.monto)),
+    fila("Monto", moneda(movimiento.monto)),
     ...(movimiento.cuenta_nombre ? [fila("Cuenta", movimiento.cuenta_nombre)] : []),
     ...(movimiento.factura_numero
       ? [
@@ -668,9 +693,9 @@ export function armarTicketMovimiento(
     ...(movimiento.notas ? [fila("Notas", movimiento.notas)] : []),
   ];
 
-  const totales: FilaTicketPOS[] = [fila("Total del recibo", formatoMoneda(movimiento.monto))];
+  const totales: FilaTicketPOS[] = [fila("Total del recibo", moneda(movimiento.monto))];
   if (opciones.incluirEfectivoEsperado !== false) {
-    totales.push(fila("Efectivo esperado después", formatoMoneda(resultado.resumen.efectivo.efectivo_esperado)));
+    totales.push(fila("Efectivo esperado después", moneda(resultado.resumen.efectivo.efectivo_esperado)));
   }
 
   return {

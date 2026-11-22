@@ -66,9 +66,9 @@ describe("vista previa del ticket", () => {
     const conItbis = ticket();
     const sinItbis = ticket({ precios_con_impuestos: false });
 
-    expect(conItbis.lineas[0]?.precio_unitario).toBe("RD$ 295.00");
-    expect(sinItbis.lineas[0]?.precio_unitario).toBe("RD$ 250.00");
-    expect(conItbis.nota).toBe("ITBIS incluido");
+    expect(conItbis.lineas[0]?.precio_unitario).toBe("295.00");
+    expect(sinItbis.lineas[0]?.precio_unitario).toBe("250.00");
+    expect(conItbis.nota).toBeNull();
     expect(sinItbis.nota).toBeNull();
   });
 
@@ -81,7 +81,7 @@ describe("vista previa del ticket", () => {
     const payload = ticket();
 
     expect(payload.encabezado.empresa[0]).toBe("Empresa de prueba");
-    expect(payload.encabezado.lineas).toContain("Terminal: Caja 1");
+    expect(payload.encabezado.lineas.some((linea) => linea.startsWith("Terminal:"))).toBe(false);
     expect(payload.encabezado.titulo).toBe("Factura de Consumo");
     expect(payload.anulada).toBe(false);
   });

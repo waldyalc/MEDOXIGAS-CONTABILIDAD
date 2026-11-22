@@ -38,6 +38,18 @@ no hay migraciones, RPC nuevas ni tablas nuevas.
   y `pnpm build` en verde. Capturas con la sesión ZZTEST, sin registrar ningún
   movimiento real (solo se llenaron formularios).
 
+## Ticket POS 80 mm igual a Alegra (rama `feat/pos-ticket-80mm-alegra`, PLAN POS 2 Punto 4)
+
+Trabajo de subagente ejecutor sobre `feat/pos-alegra-exacto` (PR #107). Solo diseño de impresión del ticket térmico.
+
+- **Papel 80×250 mm real:** Chrome ignora `size: 80mm auto` en `@page` y cae a Letter. En `ticket-pos.tsx` los `@page` nombrados `pos-ticket-80/57` ahora usan alto fijo (`size: 80mm 250mm` / `57mm 250mm`, margin 0). Verificado con Playwright + pdfinfo: el PDF del ticket sale **1 página de 227.04 × 708.96 pt**, idéntico al PDF real de Alegra (`/root/referencias/plan-pos-2/alegra-ticket-80mm.pdf`). El `@page` letter global de reportes no se tocó.
+- **Orden de Alegra en `impresion.ts`:** empresa → `Cliente: <nombre>` → comprobante (NCF, `Fecha: dd/mm/aaaa h:mm am/pm`, `Tipo de pago`, nuevo `Método de pago` — «Combinado» si hubo varios, se omite sin pagos — `Vendedor`, `Vencimiento`, `Vence NCF`) → ítems → totales → `Total recibido`/`Cambio` a la izquierda → conteos → pie. Quitados `Terminal:`/`Turno No`/`Cajero:` de la factura (cierre/recibos los conservan), el bloque «Pagos» separado, la nota «ITBIS incluido» y la numeración de ítems.
+- **Montos como Alegra:** `RD$` sin espacio en totales/cobro (`moneda()`), totales de ítem y «cant x precio» sin moneda (`numero()`); detalle «2 x 112.10» con `x` simple.
+- **Medidas (`ticket-pos.tsx`):** base mediana 10 pt e interlineado normal 1.35 (paso 13.5 pt, igual a Alegra); empresa y «Cliente:» a 1.5em, ítems 0.8em, detalle 0.72em, encabezado Item/Total 0.9em, Total 1.5em; etiquetas `Etiqueta:` en negrita con valor normal (`LineaDato`); padding 6mm/5mm. 57 mm conserva su escala y columnas apiladas.
+- **Sin datos para Sucursal/Régimen:** se omiten (no existen en la app); pie vacío no imprime nada.
+- **Candado nuevo** en `src/lib/pos/diseno-pos.test.ts`: exige `size: 80mm 250mm`/`57mm 250mm`, prohíbe el alto `auto`, «Generado en Alegra POS», «OXYMAT», y `Terminal:`/`Turno`/`Cajero:` en `armarTicketFactura`; exige `Total recibido` y `Método de pago:`.
+- **Evidencia:** `docs/diseno/capturas/pos-ticket/` — `antes-ticket-80mm.pdf` (612×792 Letter), `despues-ticket-80mm.pdf` (227.04×708.96, 1 pág.), PNGs, `comparacion-80mm.png` (referencia de Alegra con los datos de OXYMAT tapados; el original queda en `/root/referencias/plan-pos-2/` y NO se commitea) y `medidas.md` con la tabla de medidas. Capturado desde `/pos/historial` con la venta B0200000007, sin crear ni tocar datos.
+
 ## POS 6 — cierre de turno como Alegra (`feat/pos-cierre-turno-alegra`)
 
 - Formulario de cierre con efectivo contado vacío, label «Dinero en efectivo del cierre» y esperado solo como referencia; no presenta diferencias ni switch hasta escribir un monto válido. Validación y payload de cierre intactos.
@@ -55,6 +67,7 @@ Trabajo de subagente ejecutor sobre el PLAN POS 2 (puntos 1 y 2), base `feat/pos
 - **Candado (`src/lib/pos/diseno-pos.test.ts`):** prohíbe `Collapsible`/`ChevronDown` en el menú, exige los 3 subitems, la fila de 76 px, la tipografía, el stepper de 36 px y las acciones `absolute` + hover/foco (sin el bloque apilado anterior).
 - **Medidas y capturas:** `docs/diseno/capturas/pos-2/` con los pares antes/después del menú y la fila, panel, oscuro y móvil; `medidas.md` compara Alegra (captura 04, escala ~1.25×) contra el antes y el después parte por parte.
 - **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test`, `pnpm build` y capturas con Playwright en el puerto 3013.
+
 ## Carrito POS como copia visual exacta de Alegra (rama `feat/pos-carrito-alegra`)
 
 Rehace el carrito/panel de factura del POS para que se vea como Alegra, por decisión de Waldy (22-11-2026): el POS copia el diseño exactamente, incluido el teal `#00b19d`; el resto del sistema mantiene los tokens Medoxigas y sigue prohibido copiar código fuente de Alegra. Se repitió el trabajo de una sesión perdida en un VPS.
@@ -923,6 +936,7 @@ Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos d
   pgTAP no se pudo correr aquí (sin Docker/Supabase CLI); lo corre el integrador.
 - Quedó fuera: anular notas de crédito de venta y revertir el costo promedio al
   anular ajustes (pendientes ya conocidos). Nada se aplicó a Supabase.
+
 ## Clonar, editar y convertir documentos de venta (15 nov 2026)
 
 - La ficha de factura, cotización y conduce tiene «Clonar»: abre el formulario
@@ -964,6 +978,7 @@ Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos d
 - **Índices**: migración **aditiva** `20261115900000_indices_rendimiento.sql` (`CREATE INDEX IF NOT EXISTS`): contacto+fecha en facturas/compras/cotizaciones/remisiones/pagos, fecha+número en listados, facturas abiertas de proveedor, notas por factura+fecha, nombre de contactos/productos y asientos por fecha+número. **No aplicada** al remoto.
 - **Medición local** (`pnpm build && pnpm start`, sin sesión): shell liviano por el proxy p50 59–81 ms; RTT a Supabase p50 151 ms (n=15). No se pudieron medir las rutas autenticadas: no hay credenciales de prueba en este worktree (la solicitud de credencial expiró). Rondas de red secuenciales antes → después: Inicio 4→2, Facturas 5→2, Ficha de factura 6→3, Compras 4→2, Ficha de compra 5→3, Contactos 4→2, Productos 4→2, Ficha de contacto 5→3, Ficha de producto 7→5, Ventas generales 3→1.
 - Verificado: `pnpm typecheck`, `pnpm test` (577), Biome sobre lo tocado y `pnpm build` en verde. Sin cambios de lógica contable ni de apariencia (los esqueletos son nuevos estados de carga).
+
 ## CxP con créditos y NCF del proveedor en notas de crédito (14 nov 2026)
 
 - El saldo por pagar ahora es `total - pagado - credito` en el reporte Cuentas
@@ -1025,6 +1040,7 @@ Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos d
 - Migraciones aditivas `20261114900000_inventario_existencias_precios.sql` y `20261114901000_transferencias_inventario.sql` (NO aplicadas al remoto). pgTAP `supabase/tests/inventario_almacenes_test.sql` (36 asserts, aislado). Tipos de las tablas nuevas a mano en `types.ts`.
 - `typecheck`, `test` (503), Biome y `build` en verde. pgTAP no se pudo correr aquí (sin Docker/Supabase CLI).
 - Pendiente/fuera: conduces no mueven stock; anular una nota de crédito de venta sigue sin soporte; la anulación de ajustes no revierte el costo promedio.
+
 ## Retenciones de ITBIS e ISR (15 nov 2026)
 
 - Configuración > Retenciones: catálogo con nombre, tipo (ITBIS/ISR), porcentaje,
@@ -1074,6 +1090,7 @@ Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos d
 - Pendiente: transferencias entre almacenes, anulación de ajustes y stock por
   almacén (hoy la existencia sigue global en `productos`).
 - Limpieza: se borró `cotizaciones/_components/documento-form.tsx` (sin uso).
+
 ## Configuración (13 nov 2026)
 
 - Nuevo módulo `/dashboard/configuracion` con portada por grupos (Empresa, Facturación, Impuestos, Contabilidad) y menú lateral propio: Empresa (nombre, RNC, dirección, teléfono, correo y logo), Términos de pago (lista y crear), Impuestos (ITBIS 18/16/0/exento, solo lectura), Usuarios (solo admin, solo lectura) y enlaces a Numeraciones y Configuraciones contables.
@@ -1122,6 +1139,7 @@ Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos d
 - Pagos recurrentes (`/dashboard/pagos-recurrentes`): plantilla + `generar_pago_recurrente` idempotente por periodo; el botón «Generar ahora» crea el gasto menor B13 del último periodo vencido, sin cron.
 - Migraciones aditivas `20261114200000_notas_credito_compra.sql`, `20261114201000_ordenes_compra.sql` y `20261114202000_pagos_recurrentes.sql`. pgTAP nuevos: 24 + 11 + 21 asserts. Tipos de las tablas nuevas a mano en `types.ts` y `facturas_proveedor.credito` agregado.
 - Pendiente: aplicar la migración y regenerar `types.ts`; el reporte Cuentas por pagar debe restar `facturas_proveedor.credito` (no se tocó por ser de otra sesión). pgTAP no se pudo correr localmente (sin Docker/Supabase CLI en esta máquina).
+
 ## Ajustes de diseño del formulario de factura (13 nov 2026)
 
 - Logo a 96 px en escritorio y 72 px en móvil; RD$ y % van dentro del campo con `InputGroup`; los `NativeSelect` (NCF, cuenta, método e ITBIS) pasan al `Select` de shadcn.
@@ -1213,6 +1231,7 @@ Integración de 8 subagentes en paralelo (`DeepSeek V4.1 Flash 1017`, archivos d
 - Periodos en `/dashboard/contabilidad/periodos`: cerrar y reabrir meses; el trigger `asientos_periodo_abierto` bloquea crear o anular asientos con fecha en un mes cerrado. El cierre de resultados del año lleva ingresos, costos y gastos a 3202 Utilidad del ejercicio y es idempotente por año.
 - Migraciones aditivas `20261114300000_activos_fijos.sql` y `20261114300100_periodos_cierre.sql` (pendientes de aplicar por Coder). Cuentas nuevas: 12, 1210, 1211, 6109 y 3202. pgTAP: `activos_fijos_test.sql` y `periodos_cierre_test.sql`.
 - Verificado: `pnpm typecheck`, Biome de los archivos nuevos, `pnpm test` (400) y `pnpm build`. pgTAP no se pudo correr aquí (sin Docker/Supabase local).
+
 ## Corrección de carga multiusuario (17 nov 2026)
 
 Tras las pruebas de carga (32k docs) y concurrencia (C1–C8, todas sanas), se corrigieron las lecturas — el motor de escritura no se tocó. Ramas desde `prueba`, una por paquete, listas para revisión de Coder:
