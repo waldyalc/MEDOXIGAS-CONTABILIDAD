@@ -11,6 +11,13 @@ Trabajo de subagente ejecutor sobre `feat/pos-alegra-exacto` (PR #107). Solo dis
 - **Sin datos para Sucursal/Régimen:** se omiten (no existen en la app); pie vacío no imprime nada.
 - **Candado nuevo** en `src/lib/pos/diseno-pos.test.ts`: exige `size: 80mm 250mm`/`57mm 250mm`, prohíbe el alto `auto`, «Generado en Alegra POS», «OXYMAT», y `Terminal:`/`Turno`/`Cajero:` en `armarTicketFactura`; exige `Total recibido` y `Método de pago:`.
 - **Evidencia:** `docs/diseno/capturas/pos-ticket/` — `antes-ticket-80mm.pdf` (612×792 Letter), `despues-ticket-80mm.pdf` (227.04×708.96, 1 pág.), PNGs, `comparacion-80mm.png` (referencia de Alegra con los datos de OXYMAT tapados; el original queda en `/root/referencias/plan-pos-2/` y NO se commitea) y `medidas.md` con la tabla de medidas. Capturado desde `/pos/historial` con la venta B0200000007, sin crear ni tocar datos.
+## POS 6 — cierre de turno como Alegra (`feat/pos-cierre-turno-alegra`)
+
+- Formulario de cierre con efectivo contado vacío, label «Dinero en efectivo del cierre» y esperado solo como referencia; no presenta diferencias ni switch hasta escribir un monto válido. Validación y payload de cierre intactos.
+- Ticket y payload presentacional aislados en `ticket-cierre-pos.tsx` / `impresion-cierre.ts`; cierre fijo 57 × 250 mm, independiente de la plantilla de ventas de 80 mm. Sin cabecera empresarial ni pie. No se tocaron `ticket-pos.tsx`, `impresion.ts`, RPC ni datos.
+- Tarjetas por cuenta de la terminal del turno (incluidas las demás terminales): separa débito/crédito solo con cuentas distintas y suma conciliable. En el cierre No 3 los datos no permiten separar: fallback «Ventas con tarjeta» confirmado por pregunta. Contado null usa esperado; observaciones vacías «-».
+- Evidencia real en `docs/diseno/capturas/pos-cierre/`: formulario claro/oscuro/móvil, PDFs antes/después, comparativo Alegra y tabla de medidas. Playwright solo leyó turnos, abrió/canceló formulario y validó el monto vacío, sin ejecutar cierres. PDF antes Letter 612 × 792 pt; después 1 página de 162 × 708.96 pt. Linux usa Liberation Sans, métricamente equivalente a Arial; la fila única de tarjetas acorta 22.5 pt el bloque inferior respecto a la referencia.
+- Verificación: typecheck, check (sin errores), 1567 tests aprobados / 3 omitidos, build y 4 candados nuevos. Pendiente revisión visual e integración por Orquestador, sin merge a main.
 ## POS 2: menú sin toggle y línea de carrito como Alegra (rama `feat/pos-2-menu-carrito`)
 
 Trabajo de subagente ejecutor sobre el PLAN POS 2 (puntos 1 y 2), base `feat/pos-alegra-exacto` (`eae6704`). Solo presentación: no se tocaron precios, cantidades, impuestos ni el motor del carrito.

@@ -12,6 +12,7 @@ import { TarjetaLista } from "@/components/listas/tabla-lista";
 import { ContenedorLista } from "@/components/pagina/contenedor-pagina";
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { ImpresionPos } from "@/components/pos/impresion-pos";
+import { TicketCierrePos } from "@/components/pos/ticket-cierre-pos";
 import { TicketPos } from "@/components/pos/ticket-pos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,8 @@ import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoFechaHora } from "@/lib/formato";
 import { type ParametrosLista, type ResumenPagina, urlLista } from "@/lib/listas/parametros";
 import { compararMontos } from "@/lib/pos/calculo";
-import { armarTicketCierre, armarTicketMovimiento } from "@/lib/pos/impresion";
+import { armarTicketMovimiento } from "@/lib/pos/impresion";
+import { type CuentasTarjetaCierre, prepararCierre } from "@/lib/pos/impresion-cierre";
 import type {
   CierreTurnoPOS,
   MovimientoTurnoPOS,
@@ -77,7 +79,7 @@ export function TurnosPos({
   cuentas: CuentaPOS[];
   cierres: TurnoPOS[];
   resumenPagina: ResumenPagina;
-  terminales: { id: string; nombre: string }[];
+  terminales: (CuentasTarjetaCierre & { nombre: string })[];
   todas: boolean;
   params: ParametrosLista;
   puedeEscribir: boolean;
@@ -554,18 +556,18 @@ export function TurnosPos({
               ? `cierre-${trabajo.datos.turno.numero}`
               : `recibo-${trabajo.datos.movimiento.numero}`
           }
-          ancho={plantillaTrabajo.ancho_mm}
+          ancho={trabajo.tipo === "cierre" ? 57 : plantillaTrabajo.ancho_mm}
           onCerrar={() => setTrabajo(null)}
         >
-          <TicketPos
-            payload={
-              trabajo.tipo === "cierre"
-                ? armarTicketCierre(trabajo.datos, plantillaTrabajo)
-                : armarTicketMovimiento(trabajo.datos, plantillaTrabajo, {
-                    incluirEfectivoEsperado: trabajo.incluirEsperado,
-                  })
-            }
-          />
+          {trabajo.tipo === "cierre" ? (
+            <TicketCierrePos datos={prepararCierre(trabajo.datos, terminales)} />
+          ) : (
+            <TicketPos
+              payload={armarTicketMovimiento(trabajo.datos, plantillaTrabajo, {
+                incluirEfectivoEsperado: trabajo.incluirEsperado,
+              })}
+            />
+          )}
         </ImpresionPos>
       ) : null}
     </ContenedorLista>
