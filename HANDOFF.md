@@ -1,5 +1,18 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 7–8: más funciones con cotizaciones y cerrar cobro directo (rama `feat/pos-cotizaciones-mas-funciones`)
+
+Trabajo de subagente ejecutor sobre `feat/pos-alegra-exacto` (PLAN POS 2, puntos 7 y 8). Sin migraciones ni datos nuevos: solo lectura + carrito en memoria.
+
+- **Botón «más funciones» (`panel-factura.tsx`):** el cuadro oscuro de la barra de cobro deja de ser un enlace a `/pos/historial` y abre un `DropdownMenu` anclado con «Guardar como cotización» y «Cargar cotización» (icono `MoreHorizontal`). Conserva tamaño (44×45 px), radio de 10 px, fondo `--pos-oscuro` y el punto gris. El menú de sliders de arriba conserva «Venta simple» (F4); las cotizaciones ya no están duplicadas allí.
+- **Guardar:** el payload sale de `src/lib/pos/cotizaciones.ts` (`payloadCotizacionPOS`: cliente, lista, vendedor, líneas, cantidades, precios, descuentos e impuestos) y el `toast` muestra `Cotización No N guardada` con enlace a `/dashboard/cotizaciones/<id>`. Se mantiene el diálogo de confirmación/impresión.
+- **Cargar:** `DialogoCargarCotizacion` recibe el cliente del carrito y filtra por `contacto_id` (nuevo campo opcional en `esquemaCotizacionesAbiertas`; lectura, sin migración). El diálogo avisa «Solo las cotizaciones abiertas de <cliente>» y muestra un estado vacío acorde. Las líneas se mapean con `lineasDeCotizacionPOS`.
+- **Enlace inverso factura → cotización:** `getFacturaVista` incluye `cotizacionOrigen` (consulta `cotizaciones.factura_id`, ya indexada) y el detalle de factura suma la pestaña «Cotización origen» solo cuando existe, reutilizando la tabla de documentos relacionados con enlace al detalle de la cotización.
+- **Cerrar cobro directo (`checkout-pos.tsx`):** se eliminó `confirmarCierre` y el diálogo «La venta no se ha cobrado. ¿Cerrar el cobro?». La X y «Cancelar» cierran el modal de inmediato, conservan el carrito y respetan el bloqueo mientras `enviando`.
+- **Tests:** `src/lib/pos/cotizaciones-pos.test.ts` (11 pruebas): payload de guardado, mapeo de carga, filtro por contacto, `cotizacion_id` en la venta, `getCotizacionOrigen` por `factura_id`, pestaña de la factura y candados que prohíben volver a enlazar el botón a `/pos/historial` o mostrar «¿Cerrar el cobro?».
+- **Evidencia:** `docs/diseno/capturas/pos-7/` con `menu-mas-funciones.png`, `cargar-cotizacion-cliente.png`, `cerrar-cobro-directo.png` y `medidas.md`. Playwright en el puerto 3027, solo lectura: no se guardó ninguna cotización ni venta. No existe en la base una factura creada desde cotización, así que la pestaña «Cotización origen» se validó con las pruebas y no con captura (crear ese dato estaba prohibido).
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` y `pnpm build` en verde. Pendiente revisión visual e integración del Orquestador; sin merge a `main`.
+
 ## Ticket POS 80 mm igual a Alegra (rama `feat/pos-ticket-80mm-alegra`, PLAN POS 2 Punto 4)
 
 Trabajo de subagente ejecutor sobre `feat/pos-alegra-exacto` (PR #107). Solo diseño de impresión del ticket térmico.
