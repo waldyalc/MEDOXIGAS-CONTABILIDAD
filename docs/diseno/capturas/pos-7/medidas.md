@@ -7,7 +7,7 @@ Capturas tomadas en `http://localhost:3027/pos` con `ZZTEST_USER`, viewport 1920
 | Dato | Valor |
 | --- | --- |
 | Ancho × alto | 44 × 45 px |
-| Fondo | `oklab(0.279491 -0.00636676 -0.0362855 / 0.973576)` |
+| Fondo | `oklab(0.279491 -0.00636676 -0.0362855 / 0.931181)` |
 | Radio | `10px` |
 | Texto/icono | `rgb(255, 255, 255)` |
 
@@ -15,13 +15,13 @@ Capturas tomadas en `http://localhost:3027/pos` con `ZZTEST_USER`, viewport 1920
 
 | Dato | Valor |
 | --- | --- |
-| Ancho × alto | 219.2562255859375 × 62.64459228515625 px |
+| Ancho × alto | 221.7943115234375 × 63.36981201171875 px |
 | Opciones | Guardar como cotización · Cargar cotización |
 
 | Item | Texto y medida |
 | --- | --- |
-| Item 1 | Guardar como cotización — 213.869384765625 × 27.72381591796875 px, padding `4px 6px` |
-| Item 2 | Cargar cotización — 213.869384765625 × 27.72381591796875 px, padding `4px 6px` |
+| Item 1 | Guardar como cotización — 215.1917724609375 × 27.89520263671875 px, padding `4px 6px` |
+| Item 2 | Cargar cotización — 215.1917724609375 × 27.895263671875 px, padding `4px 6px` |
 
 ## Diálogo «Cargar cotización» filtrado por cliente
 
