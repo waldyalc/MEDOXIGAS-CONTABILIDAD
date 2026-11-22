@@ -113,6 +113,42 @@ describe("diseño POS estilo Alegra", () => {
     ).not.toContain("flex w-[86px] shrink-0 flex-col");
   });
 
+  it("las hojas móviles ganan su ancho real y el carrito no borra al tacto", () => {
+    const menu = readFileSync(join(POS, "_components", "menu-pos.tsx"), "utf8");
+    expect(
+      menu,
+      "El cajón del menú debe medir 271 px reales: el w-[271px]! le gana al data-[side=left]:w-3/4 de sheet.tsx",
+    ).toContain("w-[271px]!");
+
+    const vender = readFileSync(join(POS, "_components", "vender", "vender-pos.tsx"), "utf8");
+    expect(
+      vender,
+      "La factura móvil debe ocupar todo el ancho: el w-full! le gana al data-[side=right]:w-3/4 de sheet.tsx",
+    ).toContain("w-full!");
+    expect(vender, "En pantallas sm la factura conserva su max-w de 420 px").toContain("sm:max-w-[420px]!");
+
+    const pagos = readFileSync(join(POS, "_components", "pagos", "pagos-pos.tsx"), "utf8");
+    expect(pagos, "El detalle de pagos móvil debe ocupar todo el ancho, no el 75% de sheet.tsx").toContain("w-full!");
+    expect(pagos, "En pantallas sm el detalle de pagos conserva su max-w de 480 px").toContain("sm:max-w-[480px]!");
+
+    const linea = readFileSync(join(POS, "_components", "vender", "linea-carrito-pos.tsx"), "utf8");
+    expect(
+      linea,
+      "En táctil (hover: none) el lápiz/papelera no debe mostrarse: un tap sobre el total no puede borrar la línea; quitar vive en el editor",
+    ).toContain("[@media(hover:none)]:hidden");
+    expect(
+      linea,
+      "El input de cantidad debe medir 60 px para mostrar 1234.56 completo sin romper el stepper",
+    ).toContain("h-9 w-[60px]");
+    expect(
+      linea,
+      "La columna del total no puede ser fija en 112 px: usa un mínimo y deja que crezca con importes largos",
+    ).toContain("min-w-[112px]");
+    expect(linea, "La fila no vuelve a la columna fija de 112 px que se montaba sobre el +").not.toMatch(
+      /flex h-10 w-\[112px\] shrink-0/,
+    );
+  });
+
   it("el shell del POS enfoca en teal, no en el azul del sistema", () => {
     const layout = readFileSync(join(POS, "layout.tsx"), "utf8");
     expect(

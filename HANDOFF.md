@@ -9,6 +9,16 @@ Solo documentación. `AGENTS.md` gana la sección «Preview y capturas al termin
 juntar (`git pull` de `feat/pos-alegra-exacto`, `pnpm build`,
 `systemctl restart medoxigas-preview`, 200) y reporta cada ruta con una línea.
 
+## POS 2: hojas móviles, carrito táctil y totales largos (rama `fix/pos-2-movil`, PR #113)
+
+Trabajo de subagente ejecutor sobre los puntos 1–5 del ajuste móvil del POS 2, base `feat/pos-alegra-exacto` (merge `cb8eb13` del PR #108). Solo presentación: precios, cantidades, impuestos y el motor del carrito intactos.
+
+- **Hojas móviles:** `w-[271px]!` en `menu-pos.tsx` y `w-full!` en `vender-pos.tsx` / `pagos-pos.tsx` vencen al `data-[side=*]:w-3/4` de `sheet.tsx` (que no se tocó). Menú 292.5 → **271 px**; factura 292.5 → **390 px** (420 en `sm`); detalle de pagos con la misma corrección (480 en `sm`; la terminal no tiene pagos para abrirlo en vivo).
+- **Carrito táctil:** las acciones lápiz/papelera llevan `[@media(hover:none)]:hidden`, así que un tap sobre el total no toca nada; quitar sigue en «Quitar línea» del editor. Verificado con `hasTouch`: 1 línea antes y después del tap.
+- **Cantidad y total:** input de cantidad 40 → **60 px** (muestra `1234.56` completo); la columna del total pasa de `w-[112px]` a `min-w-[112px]` (`min-w-[152px]` en xl) con `whitespace-nowrap`: `RD$12,980.00` deja 16 px al `+` a 1024 y 56 px a 1280/1440, sin solape. Fila de 76 px, tipografías y stepper de 36/18 de #108 intactos.
+- **Candado:** `src/lib/pos/diseno-pos.test.ts` exige los anchos con `!`, el input de 60 px, el `min-w` del total y las acciones ocultas en `hover: none`.
+- **Evidencia:** `docs/diseno/capturas/pos-2-movil/` (antes/después de menú y factura, cantidad 1234.56, total largo a 1024/1280 y táctil) + `medidas.md`.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1566) y `pnpm build` en verde; capturas con Playwright en el puerto 3026.
 ## POS 5: «Nuevo pago» como Alegra (rama `feat/pos-nuevo-pago-alegra`)
 
 Rediseño del modal de registrar movimiento del POS sobre la base del PR #107
