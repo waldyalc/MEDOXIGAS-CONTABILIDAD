@@ -6,6 +6,8 @@
 // cuando la cuenta contable del renglón (o su cuenta madre) no tiene la
 // clasificación fiscal configurada.
 
+import { digitoVerificadorValido as digitoVerificadorDGII } from "@/lib/validacion/cedula";
+
 import { soloDigitos } from "./comun";
 import type { DocumentoFiscal } from "./tipos";
 
@@ -32,36 +34,9 @@ export function motivoCuentaSinClasificar(nombreCuenta: string): string {
   return `La cuenta contable ${nombreCuenta} o su cuenta contable madre aún no tienen configurada la clasificación de costos y gastos.`;
 }
 
-/**
- * Dígito verificador DGII, igual que `public._rnc_digito_valido`:
- * · RNC (9): pesos [7,9,8,6,4,3,2] sobre los dígitos 2..8; dv = (11 - suma % 11) % 11.
- * · Cédula (11): pesos [1,2,1,2,1,2,1,2,1,2] sobre los 10 primeros, restando 9 a
- *   los productos >= 10; dv = (10 - suma % 10) % 10.
- */
+/** Dígito verificador DGII de RNC/cédula — el mismo de `public._rnc_digito_valido`. */
 export function digitoVerificadorValido(valor: string | null | undefined): boolean {
-  const digitos = soloDigitos(valor);
-
-  if (digitos.length === 9) {
-    const pesos = [7, 9, 8, 6, 4, 3, 2];
-    let suma = 0;
-    for (let i = 0; i < pesos.length; i += 1) {
-      suma += Number(digitos[i + 1]) * (pesos[i] ?? 0);
-    }
-    return (11 - (suma % 11)) % 11 === Number(digitos[8]);
-  }
-
-  if (digitos.length === 11) {
-    const pesos = [1, 2, 1, 2, 1, 2, 1, 2, 1, 2];
-    let suma = 0;
-    for (let i = 0; i < pesos.length; i += 1) {
-      let producto = Number(digitos[i]) * (pesos[i] ?? 0);
-      if (producto >= 10) producto -= 9;
-      suma += producto;
-    }
-    return (10 - (suma % 10)) % 10 === Number(digitos[10]);
-  }
-
-  return false;
+  return digitoVerificadorDGII(soloDigitos(valor));
 }
 
 /** Cédula de 11 o RNC de 9 dígitos con dígito verificador válido. */

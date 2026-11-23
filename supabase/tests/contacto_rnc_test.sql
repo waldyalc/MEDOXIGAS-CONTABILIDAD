@@ -1,9 +1,15 @@
 -- Validación del dígito verificador DGII de RNC (9 dígitos) y cédula (11)
 -- al crear o actualizar contactos, como hace Alegra.
--- Casos reales de la prueba: 132000013 y 402123455 válidos, 132000015 inválido.
+--
+-- RNC: pesos [7,9,8,6,5,4,3,2] sobre los primeros 8 dígitos; dv = 11 - resto,
+-- con 10 → 1 y 11 → 2 (algoritmo corregido en 20261126130000_rnc_digito_dgii).
+-- Vectores reales del catálogo de la DGII: 131712789 (FRINET SRL), 130893489
+-- (MEDOXIGAS ALC SRL), 131488791 (OXYMAT SRL), 132000013 (DIMARDI M&M SRL),
+-- 101007151 (ROSEDAL CXA) y 531068592 (JUSTINA SUERO AMADOR). 402123455 es el
+-- RNC de la prueba de Alegra; 132000015 fue rechazado por Alegra.
 
 begin;
-select plan(20);
+select plan(23);
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'admin@prueba.local'),
@@ -38,7 +44,19 @@ select ok(
     'tipo_identificacion', 'rnc',
     'rnc_cedula', '402123455'
   )) is not null,
-  'el RNC real 402123455 pasa la validación y crea el contacto'
+  'el RNC 402123455 de la prueba de Alegra pasa la validación y crea el contacto'
+);
+
+-- El RNC que rechazaba el algoritmo viejo: 131712789 es FRINET SRL, inscrito
+-- en la DGII (el caso que reportó Waldy en producción).
+select ok(
+  public.crear_contacto(jsonb_build_object(
+    'tipo', 'cliente',
+    'nombre', 'RNC FRINET',
+    'tipo_identificacion', 'rnc',
+    'rnc_cedula', '131712789'
+  )) is not null,
+  'el RNC real 131712789 (FRINET SRL) se acepta tras corregir el algoritmo'
 );
 
 select throws_ok(
@@ -53,7 +71,24 @@ select throws_ok(
   ),
   '22023',
   'La comprobación del dígito verificador de la identificación: 132000015 fue errónea.',
-  'el RNC real 132000015 se rechaza con el mensaje literal de Alegra'
+  'el RNC 132000015 se rechaza con el mensaje literal de Alegra'
+);
+
+-- Candado del bug: con los pesos viejos (que ignoraban el primer dígito)
+-- 902123455 pasaba; con el algoritmo de la DGII el dv es 3, no 5.
+select throws_ok(
+  format(
+    'select public.crear_contacto(%L::jsonb)',
+    jsonb_build_object(
+      'tipo', 'proveedor',
+      'nombre', 'RNC del algoritmo viejo',
+      'tipo_identificacion', 'rnc',
+      'rnc_cedula', '902123455'
+    )
+  ),
+  '22023',
+  'La comprobación del dígito verificador de la identificación: 902123455 fue errónea.',
+  'un RNC que solo pasaba con los pesos viejos se rechaza'
 );
 
 select throws_ok(
@@ -247,10 +282,21 @@ select ok(
 select ok(
   public._rnc_digito_valido('132000013')
     and public._rnc_digito_valido('402123455')
-    and public._rnc_digito_valido('1-32-00001-3')
+    and public._rnc_digito_valido('131712789')
+    and public._rnc_digito_valido('130893489')
+    and public._rnc_digito_valido('1-31-71278-9')
     and not public._rnc_digito_valido('132000015')
+    and not public._rnc_digito_valido('902123455')
     and not public._rnc_digito_valido('123'),
   'el validador acepta los RNC reales, ignora separadores y rechaza largos distintos'
+);
+
+select ok(
+  public._rnc_digito_valido('531068592')
+    and public._rnc_digito_valido('101007151')
+    and not public._rnc_digito_valido('531068590')
+    and not public._rnc_digito_valido('101007150'),
+  'el validador usa 2 cuando el resto es 0 y 1 cuando el resto es 1 (catálogo DGII)'
 );
 
 select ok(

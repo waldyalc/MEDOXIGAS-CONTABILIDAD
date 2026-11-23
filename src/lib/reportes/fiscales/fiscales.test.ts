@@ -316,6 +316,16 @@ describe("exclusiones de los reportes DGII", () => {
     expect(identificacionValida("132000015")).toBe(false);
   });
 
+  test("no excluye RNC reales del catálogo DGII que el algoritmo viejo rechazaba", () => {
+    // El algoritmo viejo (pesos sobre los dígitos 2..8) excluía del 606/607 a
+    // FRINET SRL y OXYMAT SRL; con la DGII ambos pasan. 902123455 solo pasaba
+    // con los pesos viejos.
+    expect(digitoVerificadorValido("131712789")).toBe(true);
+    expect(digitoVerificadorValido("131488791")).toBe(true);
+    expect(digitoVerificadorValido("902123455")).toBe(false);
+    expect(motivoIdentificacionInvalida("131712789")).toBeNull();
+  });
+
   test("usa los motivos literales de Alegra", () => {
     expect(motivoIdentificacionInvalida("123")).toBe(MOTIVO_IDENTIFICACION_LONGITUD);
     expect(motivoIdentificacionInvalida("132000015")).toBe(
