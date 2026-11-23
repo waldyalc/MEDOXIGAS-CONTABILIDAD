@@ -14,14 +14,18 @@ export function TarjetaProductoPos({
   producto,
   cantidad,
   resaltado,
+  favorito,
   imagenUrl,
   onAgregar,
+  onFavorito,
 }: {
   producto: ProductoPOS;
   cantidad: number;
   resaltado: boolean;
+  favorito: boolean;
   imagenUrl: string | null;
   onAgregar: (producto: ProductoPOS) => void;
+  onFavorito: (producto: ProductoPOS) => void;
 }) {
   const esServicio = producto.tipo === "servicio";
   const esCombo = producto.tipo === "combo";
@@ -51,30 +55,40 @@ export function TarjetaProductoPos({
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => onAgregar(producto)}
-      aria-label={`Agregar ${producto.nombre}`}
+    <article
       className={cn(
         "group relative m-1 mx-5 mb-5 flex min-h-[250px] w-[220px] shrink-0 flex-col items-center rounded-[8px] border-2 border-transparent bg-white p-2.5 text-center shadow-[1px_2px_5px_rgba(0,0,0,0.1)] transition-colors dark:bg-card",
-        "hover:border-pos-primario/40 focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2 focus-visible:outline-none",
+        "hover:border-pos-primario/40 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-2",
         cantidad > 0 && "border-pos-primario",
         resaltado && "border-pos-primario bg-pos-primario/5",
       )}
     >
+      <button
+        type="button"
+        onClick={() => onAgregar(producto)}
+        aria-label={`Agregar ${producto.nombre}`}
+        className="absolute inset-0 z-10 rounded-[6px] outline-none"
+      />
+
       {cantidad > 0 ? (
-        <span className="bg-pos-primario absolute -top-1.5 -right-1.5 z-20 flex size-[22px] items-center justify-center rounded-full text-xs font-semibold text-white tabular-nums ring-2 ring-white dark:ring-card">
+        <span className="bg-pos-primario absolute -top-1.5 -left-1.5 z-20 flex size-[22px] items-center justify-center rounded-full text-xs font-semibold text-white tabular-nums ring-2 ring-white dark:ring-card">
           {formatoCantidad(cantidad)}
         </span>
       ) : null}
 
-      {producto.favorito_pos ? (
-        <span className="absolute -top-0.5 right-3 z-10 flex h-8 w-7 items-center justify-center rounded-b-lg bg-[#30aba9] text-white">
-          <Star className="size-4 fill-current" aria-label="Favorito" />
-        </span>
-      ) : (
-        <Star className="text-pos-icono/40 absolute top-2 right-2 size-4" aria-hidden="true" />
-      )}
+      {/* Cuadro teal de Alegra, siempre visible: estrella blanca vacía o rellena. No agrega al carrito. */}
+      <button
+        type="button"
+        onClick={(evento) => {
+          evento.stopPropagation();
+          onFavorito(producto);
+        }}
+        aria-pressed={favorito}
+        aria-label={favorito ? `Quitar ${producto.nombre} de favoritos` : `Marcar ${producto.nombre} como favorito`}
+        className="bg-pos-primario hover:bg-pos-primario-hover absolute top-0 right-0 z-20 flex size-8 items-center justify-center rounded-tr-[6px] rounded-bl-[8px] text-white transition-colors"
+      >
+        <Star className={cn("size-[18px]", favorito && "fill-white")} aria-hidden="true" />
+      </button>
 
       <span className="mt-9 mb-2 flex h-[98px] w-full items-center justify-center">
         {imagenUrl ? (
@@ -95,6 +109,6 @@ export function TarjetaProductoPos({
       </span>
 
       <span className="sr-only">{`${producto.nombre}. ${formatoMonedaPOS(producto.precio)}.`}</span>
-    </button>
+    </article>
   );
 }

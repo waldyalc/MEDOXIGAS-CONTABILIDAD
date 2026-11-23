@@ -75,7 +75,7 @@ Viven en `.opencode/skills/<nombre>/SKILL.md`. Cárgalas con la herramienta `ski
 - `pedir-ayuda` — si te atascas, pregunta al Orquestador con la herramienta `question`; no des vueltas ni inventes atajos.
 - `biome` — cómo convertir cada corrección de Waldy en un candado (test o regla de Biome) y resumen de la charla de Lauren Tan.
 
-- `ticket-80mm` — `.opencode/skills/ticket-80mm/SKILL.md`: contrato MSG-22 de medidas exactas en pt/mm y prueba de cuatro PDFs (`src/lib/pos/ticket-pdf.test.tsx`). Obligatoria al tocar factura/prefactura/cotización/cierre: no adivinar tamaños en em ni comparar capturas con dpi distintos.
+- `ticket-80mm` — `.opencode/skills/ticket-80mm/SKILL.md`: contrato MSG-22 de medidas exactas en pt/mm y prueba de cuatro PDFs (`src/lib/pos/ticket-pdf.test.tsx`, carril `pnpm test:pdf`). Obligatoria al tocar factura/prefactura/cotización/cierre: no adivinar tamaños en em ni comparar capturas con dpi distintos.
 
 ## Módulos (menú lateral)
 
@@ -96,6 +96,7 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 | Tipos                    | `pnpm typecheck`                                               |
 | Formato + lint + imports | `pnpm check` (`pnpm check:fix` para arreglar)                  |
 | Tests unitarios          | `pnpm test`                                                    |
+| Ticket 80 mm (PDF real)  | `pnpm test:pdf` (Chromium + Poppler; NO entra en `pnpm test`)  |
 | Humo navegador           | `pnpm test:e2e` (sin `E2E_EMAIL`/`E2E_PASSWORD` se salta)      |
 | Build prod               | `pnpm build`                                                   |
 | Regenerar tipos Supabase | `pnpm db:types` (tras cada migración; ver `supabase/AGENTS.md`) |
@@ -160,7 +161,9 @@ Candados que ya existen:
 - `src/lib/supabase/reset-virgen.test.ts` — exige que las 64 tablas `public.*` de las migraciones estén clasificadas una sola vez en `docs/pruebas/reset-base-virgen.sql`, dentro de `BEGIN…COMMIT`, sin tocar `perfiles` ni `auth.users`.
 - `tests/e2e/numeraciones.spec.ts` — guardar B16 sin cambios cierra el diálogo y un nombre en blanco muestra el error en español (requiere `E2E_EMAIL`/`E2E_PASSWORD`, como el humo).
 - `supabase/tests/anular_ajuste_costo_test.sql` — anular un ajuste de inventario de entrada devuelve la cantidad y revierte el costo promedio; anular una compra ya lo hacía (`anular_compra_costo_test.sql`).
+- `src/lib/pos/ticket-pdf-carril.test.ts` — el test del ticket 80 mm (Chromium + Poppler) queda fuera de `pnpm test`: exige que `vitest.config.mts` lo excluya, que `pnpm test:pdf` use `vitest.pdf.config.mts` y que el job `ci` de CI no instale navegador ni Poppler (solo el job `pdf`).
 - `src/lib/pos/diseno-pos.test.ts` — el POS usa los tokens `--pos-*` (teal `#00b19d`, copia exacta de Alegra); prohíbe `--primary` y `#1e56c7` en `src/app/(pos)/pos/` con una lista de pendientes que solo puede encoger, y exige la paleta en `globals.css`. Además fija el Punto 1: el turno y las pestañas de ventas van en la barra inferior (`barra-inferior-pos.tsx`), no en una línea sobre el buscador ni dentro del panel, y el Sheet móvil termina 44 px antes para no tapar la barra. El cuerpo del panel usa `--pos-panel` (#f8fafc) con encabezado, bloque superior, renglones y pie blancos, y el shell fija `--ring: var(--pos-primario)` para que el foco sea teal.
+- `src/lib/pos/mas-opciones.test.ts` + `tests/e2e/pos-mas-opciones.spec.ts` — el ⋯ del carrito abre el panel «Más opciones» a todo el panel (no un dropdown) con los cuadros «Guardar cotización», «Cargar cotización» e «Historial de ventas» desde un arreglo; X y Esc cierran sin tocar la venta.
 
 ## Preview y capturas al terminar (regla de Waldy, 22-11-2026)
 

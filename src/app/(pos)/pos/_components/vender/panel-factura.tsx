@@ -1,22 +1,22 @@
 "use client";
 
-import { useState } from "react";
-
-import { useRouter } from "next/navigation";
+import { useCallback, useRef, useState } from "react";
 
 import { DialogoNuevoContacto } from "@/components/contactos/dialogo-nuevo-contacto";
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import {
+  AlertTriangle,
   Basket,
   FileText,
   FolderOpen,
-  Loader2,
   MoreHorizontal,
+  Pencil,
   Percent,
   Printer,
   Receipt,
   SlidersHorizontal,
   UserPlus,
+  X,
   Zap,
 } from "@/components/icons";
 import { TicketPos } from "@/components/pos/ticket-pos";
@@ -45,9 +45,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { InputGroupButton } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatoCantidad } from "@/lib/facturacion/formato";
@@ -55,81 +55,20 @@ import type { ContactoResumen, Empresa } from "@/lib/facturacion/tipos";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { sumarMontos } from "@/lib/pos/calculo";
+import { esComprobanteCreditoFiscal, esConsumidorFinalPOS } from "@/lib/pos/consumidor-final";
 import { armarTicketCotizacionDocumento, armarTicketPrefactura, type TicketPOSPayload } from "@/lib/pos/impresion";
 import type { LineaVenta, PlantillaTicket } from "@/lib/pos/tipos";
 
 import { type LineaCarrito, totalesDeLinea, useCarritoPOS } from "../carrito-pos-provider";
 import { formatoMonedaPOS, hoyRD } from "../formato-pos";
 import { LineaCarritoPos } from "./linea-carrito-pos";
+import { MasOpcionesPos, type OpcionMasOpciones } from "./mas-opciones-pos";
 
 const NINGUNO = "__ninguno";
 
 /** «Crédito fiscal B01» se muestra como en Alegra: «Crédito fiscal (01)». */
 function etiquetaNumeracion(numeracion: Numeracion): string {
   return `${numeracion.nombre} (${numeracion.prefijo.replace(/^[A-Za-z]+/, "")})`;
-}
-
-/**
- * Botón oscuro cuadrado de la barra de cobro: antes era un enlace al historial
- * y ahora abre las funciones de la venta, con el historial como una opción.
- * Las opciones son items separados para sumar más adelante sin tocar el resto
- * del panel.
- */
-function MenuMasFunciones({
-  hayLineas,
-  cotizacion,
-  puedeEscribir,
-  guardandoCotizacion,
-  onGuardarCotizacion,
-  onCargarCotizacion,
-  onHistorial,
-}: {
-  hayLineas: boolean;
-  cotizacion: boolean;
-  puedeEscribir: boolean;
-  guardandoCotizacion: boolean;
-  onGuardarCotizacion: () => void;
-  onCargarCotizacion: () => void;
-  onHistorial: () => void;
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            className="bg-pos-oscuro hover:bg-pos-oscuro/85 relative h-[45px] w-11 shrink-0 rounded-[10px] text-white"
-            title="Más funciones"
-            aria-label="Más funciones"
-          />
-        }
-      >
-        <MoreHorizontal className="size-6" aria-hidden="true" />
-        <span className="absolute -top-1.5 -right-1.5 size-[17px] rounded-full bg-slate-300 ring-2 ring-white dark:ring-card" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" side="top" sideOffset={6} className="w-56">
-        <DropdownMenuItem
-          disabled={!hayLineas || cotizacion || !puedeEscribir || guardandoCotizacion}
-          onClick={onGuardarCotizacion}
-        >
-          {guardandoCotizacion ? (
-            <Loader2 className="animate-spin" aria-hidden="true" />
-          ) : (
-            <FileText aria-hidden="true" />
-          )}
-          Guardar como cotización
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={cotizacion || !puedeEscribir} onClick={onCargarCotizacion}>
-          <FolderOpen aria-hidden="true" />
-          Cargar cotización
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={onHistorial}>
-          <Receipt aria-hidden="true" />
-          Historial de ventas
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
 }
 
 export interface PanelFacturaProps {
@@ -141,6 +80,8 @@ export interface PanelFacturaProps {
   listas: { id: string; nombre: string }[];
   vendedores: { id: string; nombre: string }[];
   contactos: ContactoResumen[];
+  /** Contacto «Consumidor final» resuelto por RNC; null si no existe en la base. */
+  consumidorFinalId: string | null;
   impuestos: Impuesto[];
   puedeEscribir: boolean;
   onCobrar: () => void;
@@ -170,6 +111,7 @@ export function PanelFactura({
   listas,
   vendedores,
   contactos,
+  consumidorFinalId,
   impuestos,
   puedeEscribir,
   onCobrar,
@@ -184,13 +126,20 @@ export function PanelFactura({
   sinCaja = false,
   idPanel = "panel-factura-pos",
 }: PanelFacturaProps) {
-  const router = useRouter();
   const carrito = useCarritoPOS();
   const { activa, totales } = carrito;
   const [expandida, setExpandida] = useState<string | null>(null);
   const [cancelar, setCancelar] = useState(false);
   const [nuevoCliente, setNuevoCliente] = useState(false);
   const [vistaPrevia, setVistaPrevia] = useState<"prefactura" | "cotizacion" | null>(null);
+  const [masOpciones, setMasOpciones] = useState(false);
+  const botonMasOpciones = useRef<HTMLButtonElement | null>(null);
+
+  // Cerrar solo cambia la vista: la venta (líneas, cliente, numeración) no se toca.
+  const cerrarMasOpciones = useCallback(() => {
+    setMasOpciones(false);
+    botonMasOpciones.current?.focus();
+  }, []);
 
   const numeracionValida = numeraciones.some((numeracion) => numeracion.id === activa.numeracionId);
   const cotizacion = activa.cotizacion;
@@ -239,6 +188,10 @@ export function PanelFactura({
 
   const contactoActual = contactos.find((contacto) => contacto.id === activa.contactoId) ?? null;
   const vendedorActual = vendedores.find((vendedor) => vendedor.id === activa.vendedorId) ?? null;
+  const numeracionActual = numeraciones.find((numeracion) => numeracion.id === activa.numeracionId) ?? null;
+  const avisoCreditoFiscal =
+    esComprobanteCreditoFiscal(numeracionActual?.tipo_comprobante) &&
+    esConsumidorFinalPOS(activa.contactoId, consumidorFinalId);
 
   const entradaPresentacion = {
     empresa,
@@ -272,12 +225,31 @@ export function PanelFactura({
   const tituloPrevia =
     vistaPrevia === "prefactura" ? "prefactura" : cotizacion ? `cotizacion-${cotizacion.numero}` : "cotizacion";
 
+  // Sumar una opción al panel es sumar una línea aquí.
+  const opcionesMas: OpcionMasOpciones[] = [
+    {
+      id: "guardar-cotizacion",
+      etiqueta: "Guardar cotización",
+      Icono: FileText,
+      deshabilitada: activa.lineas.length === 0 || cotizacion !== null || !puedeEscribir || guardandoCotizacion,
+      accion: onGuardarCotizacion,
+    },
+    {
+      id: "cargar-cotizacion",
+      etiqueta: "Cargar cotización",
+      Icono: FolderOpen,
+      deshabilitada: cotizacion !== null || !puedeEscribir,
+      accion: onCargarCotizacion,
+    },
+    { id: "historial-ventas", etiqueta: "Historial de ventas", Icono: Receipt, href: "/pos/historial" },
+  ];
+
   return (
     <aside
       id={idPanel}
       role="tabpanel"
       aria-labelledby={`pestana-${activa.id}`}
-      className="border-l border-l-slate-300 text-pos-texto bg-pos-panel flex h-full min-h-0 w-full flex-col [font-family:var(--font-inter)] dark:border-l-pos-linea dark:bg-card"
+      className="border-l border-l-slate-300 text-pos-texto bg-pos-panel relative flex h-full min-h-0 w-full flex-col [font-family:var(--font-inter)] dark:border-l-pos-linea dark:bg-card"
     >
       <div className="border-pos-linea flex h-[60px] shrink-0 items-center justify-between border-b bg-white pl-5 pr-1 dark:bg-card">
         <div className="flex items-center gap-2">
@@ -400,6 +372,15 @@ export function PanelFactura({
           </div>
         </div>
 
+        {avisoCreditoFiscal ? (
+          <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+            <AlertTriangle aria-hidden="true" />
+            <AlertDescription className="text-amber-900/90 dark:text-amber-200/90">
+              El Crédito fiscal (01) necesita un cliente con RNC. Elige un cliente o cambia la numeración.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         <div className="flex items-center gap-2">
           <Label htmlFor="cliente-pos" className="text-pos-texto w-12 shrink-0 text-sm font-normal">
             Cliente
@@ -411,6 +392,32 @@ export function PanelFactura({
             onCambio={(contacto) => carrito.setContacto(contacto?.id ?? "")}
             tipoInicial="cliente"
             showClear={false}
+            mostrarRncEnValor
+            acciones={(contacto) =>
+              contacto ? (
+                <>
+                  <InputGroupButton
+                    size="icon-xs"
+                    variant="ghost"
+                    nativeButton={false}
+                    aria-label="Editar cliente"
+                    title="Editar cliente"
+                    render={<a href={`/dashboard/contactos/${contacto.id}`} target="_blank" rel="noreferrer" />}
+                  >
+                    <Pencil className="pointer-events-none" aria-hidden="true" />
+                  </InputGroupButton>
+                  <InputGroupButton
+                    size="icon-xs"
+                    variant="ghost"
+                    aria-label="Quitar cliente"
+                    title="Quitar cliente"
+                    onClick={() => carrito.setContacto("")}
+                  >
+                    <X className="pointer-events-none" aria-hidden="true" />
+                  </InputGroupButton>
+                </>
+              ) : null
+            }
             placeholder="Buscar cliente…"
             disabled={cotizacion !== null}
             className="min-w-0 flex-1"
@@ -547,15 +554,17 @@ export function PanelFactura({
             <span>Vender</span>
             <span className="tabular-nums">{formatoMonedaPOS(totales.total)}</span>
           </Button>
-          <MenuMasFunciones
-            hayLineas={activa.lineas.length > 0}
-            cotizacion={cotizacion !== null}
-            puedeEscribir={puedeEscribir}
-            guardandoCotizacion={guardandoCotizacion}
-            onGuardarCotizacion={onGuardarCotizacion}
-            onCargarCotizacion={onCargarCotizacion}
-            onHistorial={() => router.push("/pos/historial")}
-          />
+          <Button
+            ref={botonMasOpciones}
+            className="bg-pos-oscuro hover:bg-pos-oscuro/85 relative h-[45px] w-11 shrink-0 rounded-[10px] text-white"
+            title="Más opciones"
+            aria-label="Más opciones"
+            aria-expanded={masOpciones}
+            onClick={() => setMasOpciones(true)}
+          >
+            <MoreHorizontal className="size-6" aria-hidden="true" />
+            <span className="absolute -top-1.5 -right-1.5 size-[17px] rounded-full bg-slate-300 ring-2 ring-white dark:ring-card" />
+          </Button>
         </div>
 
         <div className="border-pos-linea flex h-[43px] items-center justify-between rounded-[10px] border px-4">
@@ -636,6 +645,8 @@ export function PanelFactura({
           onAnunciar(`Cliente ${contacto.nombre} creado y seleccionado.`);
         }}
       />
+
+      {masOpciones ? <MasOpcionesPos opciones={opcionesMas} onCerrar={cerrarMasOpciones} /> : null}
     </aside>
   );
 }
