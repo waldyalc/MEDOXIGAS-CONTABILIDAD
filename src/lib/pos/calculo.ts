@@ -41,6 +41,25 @@ export function centavosATexto(centavos: number): Decimal {
   return `${negativo ? "-" : ""}${entero}.${fraccion}`;
 }
 
+/**
+ * Cantidad sin los ceros de más que arrastra un monto: «3.00» → «3»,
+ * «1.50» → «1.5», «1.25» → «1.25». El consumidor decide cómo mostrarla;
+ * el carrito la guarda así para no reaparecer como «3.00».
+ */
+export function normalizarCantidad(valor: Decimal | null | undefined): Decimal {
+  const centavos = centavosDeDecimal(valor);
+  if (centavos === null) return "0";
+
+  const signo = centavos < 0 ? "-" : "";
+  const absoluto = Math.abs(centavos);
+  const entero = Math.floor(absoluto / 100);
+  const resto = absoluto % 100;
+  if (resto === 0) return `${signo}${entero}`;
+
+  const fraccion = String(resto).padStart(2, "0").replace(/0$/, "");
+  return `${signo}${entero}.${fraccion}`;
+}
+
 /** División entera con redondeo mitad hacia arriba (valores del POS ≥ 0). */
 function dividirRedondeando(numerador: number, denominador: number): number {
   if (denominador === 0) return 0;
