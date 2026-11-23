@@ -39,7 +39,7 @@ interface Props {
   placeholder?: string;
   disabled?: boolean;
   showClear?: boolean;
-  /** Muestra el nombre con su RNC entre paréntesis, como Alegra. */
+  /** Muestra el nombre con su RNC entre paréntesis; el Consumidor final queda solo con su nombre (MSG-44). */
   mostrarRncEnValor?: boolean;
   /** Acciones junto a la flecha (lápiz y X en el POS); no reemplazan la flecha. */
   acciones?: (contacto: ContactoOpcion | null) => ReactNode;
