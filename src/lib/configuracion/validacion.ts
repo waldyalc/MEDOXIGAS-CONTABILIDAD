@@ -66,6 +66,8 @@ export const esquemaEmpresa = z.object({
     .refine((valor) => valor.length > 0, "El nombre de la empresa es obligatorio")
     .refine((valor) => valor.length <= 200, "El nombre de la empresa no puede pasar de 200 caracteres"),
   rnc: campoOpcional(20, "El RNC no puede pasar de 20 caracteres"),
+  sucursal: campoOpcional(80, "La sucursal no puede pasar de 80 caracteres"),
+  regimen: campoOpcional(120, "El régimen no puede pasar de 120 caracteres"),
   direccion: campoOpcional(300, "La dirección no puede pasar de 300 caracteres"),
   telefono: campoOpcional(40, "El teléfono no puede pasar de 40 caracteres"),
   correo: campoCorreo,

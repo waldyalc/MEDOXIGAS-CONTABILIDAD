@@ -51,6 +51,32 @@ cierre sigue siendo su variante de 57 mm.
   cotización a **1 página, 227.04 × 708.96 pt** y cierre a 162 × 708.96;
   `comparacion.png` y `medidas.md` con el análisis por partes.
 
+## POS 10 fix: encabezado configurable + tamaños (rama `fix/pos-10-encabezado-config`)
+
+MSG-15 de Waldy/Coder sobre la plantilla única:
+
+- **Empresa `sucursal`/`regimen`:** campos nuevos en
+  `esquemaEmpresa`, `datosEmpresa`, el formulario de Configuración >
+  Empresa (refactor `CamposDatos` por el candado de complejidad) y el
+  mapeador `empresaPOS`. `getEmpresa` lee `select("*")`: las columnas
+  llegan solas cuando existan. La migración aditiva propuesta
+  (`alter table empresa` + `actualizar_empresa` extendida) quedó en
+  `docs/pruebas/migracion-empresa-sucursal-regimen.sql` dentro de
+  BEGIN/ROLLBACK — **no aplicada, espera OK de Waldy**. Hasta entonces
+  el RPC viejo ignora las claves nuevas sin error y el ticket omite
+  las líneas.
+- **Tamaños:** empresa pequeña en negrita, `Cliente:` y título del
+  documento al tamaño del cuerpo, `Total` a `1.2em` (se quitó el
+  `1.5em` de Alegra que se veía grande). Los dos cierres reales
+  (`cierre-3`, `cierre-4`) salen con el título en una línea.
+- **Tests:** `impresion.test.ts` suma el bloque «encabezado de empresa
+  completo» (orden Alegra, omisión sin datos, prefactura sin
+  `Vence`, cotización con `Vence`/`Vendedor`) y
+  `validacion.test.ts` cubre `sucursal`/`regimen`.
+- **Capturas nuevas:** `config-empresa.png`, `cierre-3.*`,
+  `cierre-4.*`, `comparacion-cierres.png` y los recortes
+  `comparacion-{encabezado,cliente-doc,items-totales,pie}.png`.
+
 ## POS 9 — pestañas de venta con ⋮, renombrar y eliminar (`feat/pos-pestanas-venta`)
 
 Base `feat/pos-alegra-exacto`. Solo presentación y estado en memoria: sin base, migraciones ni ventas nuevas.

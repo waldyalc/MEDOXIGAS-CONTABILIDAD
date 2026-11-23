@@ -7,6 +7,8 @@ describe("esquemaEmpresa", () => {
     const resultado = esquemaEmpresa.parse({
       nombre: "  Medoxigas   ALC, SRL ",
       rnc: " ",
+      sucursal: " Principal ",
+      regimen: "",
       direccion: "",
       telefono: " 809-555-0000 ",
       correo: "  ",
@@ -16,6 +18,8 @@ describe("esquemaEmpresa", () => {
     expect(resultado).toEqual({
       nombre: "Medoxigas ALC, SRL",
       rnc: null,
+      sucursal: "Principal",
+      regimen: null,
       direccion: null,
       telefono: "809-555-0000",
       correo: null,

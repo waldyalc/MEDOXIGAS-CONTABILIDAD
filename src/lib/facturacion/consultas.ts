@@ -50,7 +50,7 @@ export const getEmpresa = cache(async (): Promise<Empresa | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("empresa")
-    .select("id, nombre, rnc, direccion, telefono, correo, logo_url")
+    .select("*")
     .eq("id", 1)
     .maybeSingle()
     .returns<Empresa | null>();

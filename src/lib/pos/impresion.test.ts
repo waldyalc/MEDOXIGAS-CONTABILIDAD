@@ -253,6 +253,77 @@ describe("armarTicketFactura", () => {
   });
 });
 
+describe("encabezado de empresa completo (configuración)", () => {
+  function empresaCompleta() {
+    const venta = ventaEjemplo();
+    if (!venta.empresa) throw new Error("La venta de ejemplo no trae empresa.");
+    return { ...venta.empresa, sucursal: "Principal", regimen: "Régimen general" };
+  }
+
+  test("con datos imprime nombre, sucursal, RNC, dirección, teléfono, correo y régimen en el orden de Alegra", () => {
+    const venta = { ...ventaEjemplo(), empresa: empresaCompleta() };
+    const lineas = armarTicketFactura(venta).encabezado.empresa;
+    const orden = [
+      "Medoxigas ALC, SRL",
+      "Sucursal: Principal",
+      "RNC: 131234567",
+      "Av. Duarte 125, Santiago",
+      "Teléfono: 809-555-0101",
+      "ventas@medoxigas.test",
+      "Régimen: Régimen general",
+    ].map((texto) => lineas.findIndex((linea) => linea === texto));
+
+    expect(orden.every((indice) => indice >= 0)).toBe(true);
+    expect(orden).toEqual([...orden].sort((a, b) => a - b));
+  });
+
+  test("sin sucursal ni régimen esas líneas no se imprimen", () => {
+    const venta = { ...ventaEjemplo(), empresa: { ...empresaCompleta(), sucursal: null, regimen: null } };
+    const lineas = armarTicketFactura(venta).encabezado.empresa;
+
+    expect(lineas.some((linea) => linea.startsWith("Sucursal:"))).toBe(false);
+    expect(lineas.some((linea) => linea.startsWith("Régimen:"))).toBe(false);
+    expect(lineas).toContain("RNC: 131234567");
+  });
+
+  test("prefactura y cotización usan el mismo encabezado completo", () => {
+    const empresa = empresaCompleta();
+    const venta = ventaEjemplo();
+    const prefactura = armarTicketPrefactura({
+      empresa,
+      contacto: { nombre: "Juan Pérez", rnc_cedula: "40212345678", direccion: "Calle 2, Santiago" },
+      lineas: venta.lineas,
+      totales: venta.totales,
+      fecha: "2026-11-22",
+    });
+    const cotizacion = armarTicketCotizacion({
+      ...cotizacionEjemplo(),
+      empresa,
+    });
+
+    for (const ticket of [prefactura, cotizacion]) {
+      expect(ticket.encabezado.empresa).toContain("Sucursal: Principal");
+      expect(ticket.encabezado.empresa).toContain("Régimen: Régimen general");
+      expect(ticket.encabezado.empresa).toContain("Teléfono: 809-555-0101");
+    }
+    expect(prefactura.cliente.lineas).toContain("Calle 2, Santiago");
+    // La prefactura no inventa vencimiento: sin cotización no hay «Vence».
+    expect(prefactura.encabezado.lineas.some((linea) => linea.startsWith("Vence"))).toBe(false);
+  });
+
+  test("la cotización muestra Vence y Vendedor solo cuando existen", () => {
+    const ejemplo = cotizacionEjemplo();
+    const ticket = armarTicketCotizacion({
+      ...ejemplo,
+      empresa: empresaCompleta(),
+      vendedor: { id: "v-1", nombre: "Ana" },
+    });
+
+    expect(ticket.encabezado.lineas).toContain("Vence: 20/12/2026");
+    expect(ticket.encabezado.lineas).toContain("Vendedor: Ana");
+  });
+});
+
 describe("armarTicketCotizacion", () => {
   test("no imprime NCF ni pagos y avisa que no tiene valor fiscal", () => {
     const ticket = armarTicketCotizacion(cotizacionEjemplo());
