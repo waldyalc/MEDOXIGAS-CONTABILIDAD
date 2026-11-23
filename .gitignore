@@ -44,3 +44,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# supabase cli (estado local del proyecto enlazado; nunca se commitea)
+supabase/.temp/
