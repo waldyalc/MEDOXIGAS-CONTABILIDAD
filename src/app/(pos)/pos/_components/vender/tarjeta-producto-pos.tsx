@@ -87,7 +87,8 @@ export function TarjetaProductoPos({
         aria-label={favorito ? `Quitar ${producto.nombre} de favoritos` : `Marcar ${producto.nombre} como favorito`}
         className="bg-pos-primario hover:bg-pos-primario-hover absolute top-0 right-0 z-20 flex size-8 items-center justify-center rounded-tr-[6px] rounded-bl-[8px] text-white transition-colors"
       >
-        <Star className={cn("size-[18px]", favorito && "fill-white")} aria-hidden="true" />
+        {/* Phosphor dibuja la estrella con un path relleno: «regular» es el contorno y «fill» la sólida. */}
+        <Star weight={favorito ? "fill" : "regular"} className="size-[18px]" aria-hidden="true" />
       </button>
 
       <span className="mt-9 mb-2 flex h-[98px] w-full items-center justify-center">
