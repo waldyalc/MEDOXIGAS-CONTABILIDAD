@@ -9,6 +9,7 @@ export default defineConfig({
     testTimeout: 30000,
     include: ["src/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
     // El humo de Playwright vive en tests/e2e y tiene su propio runner.
-    exclude: ["node_modules", "dist", ".next", "tests/e2e/**"],
+    // El ticket 80 mm lanza Chromium y Poppler: corre con `pnpm test:pdf`.
+    exclude: ["node_modules", "dist", ".next", "tests/e2e/**", "src/lib/pos/ticket-pdf.test.tsx"],
   },
 });

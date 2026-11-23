@@ -110,7 +110,7 @@ La propuesta SQL sucursal/régimen permanece en docs/pruebas hasta aprobación y
 
 ## Verificación obligatoria
 
-Ejecutar `pnpm vitest run src/lib/pos/ticket-pdf.test.tsx` (Chromium Playwright instalado y Poppler: pdfinfo, pdffonts, pdftotext, pdftoppm). Genera cuatro PDFs desde los componentes reales sin servidor, credenciales ni base.
+Ejecutar `pnpm test:pdf` (Chromium Playwright instalado y Poppler: pdfinfo, pdffonts, pdftotext, pdftoppm). Corre en su propio carril (`vitest.pdf.config.mts`), fuera de `pnpm test` y del job `ci`; el job `pdf` de CI lo ejecuta con esas herramientas. Genera cuatro PDFs desde los componentes reales sin servidor, credenciales ni base.
 
 - `pdfinfo archivo.pdf`: una página, 80 o 57 mm de ancho, 250 mm de alto (tolerancia de redondeo Chromium).
 - `pdffonts archivo.pdf`: Arial/LiberationSans normal y bold incrustadas; no system-ui.

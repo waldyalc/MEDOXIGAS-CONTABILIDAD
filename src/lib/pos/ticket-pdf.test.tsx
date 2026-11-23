@@ -127,9 +127,19 @@ test("MSG-22: genera cuatro PDFs reales con tipografía exacta y papel térmico"
           documento.nombre === "factura" ? "Factura" : documento.nombre === "prefactura" ? "Prefactura" : "Cotización",
           9,
         );
-        const logo = await pagina.locator(".ticket-pos img").boundingBox();
+        const imagenes = pagina.locator(".ticket-pos img");
+        expect(await imagenes.count(), "El ticket debe llevar el logo cuando la empresa tiene logo").toBe(1);
+        const logo = await imagenes.boundingBox();
         expect(Math.abs(((logo?.width ?? 0) * 25.4) / 96 - 69.8)).toBeLessThan(0.1);
         expect(Math.abs(((logo?.height ?? 0) * 25.4) / 96 - 20.9)).toBeLessThan(0.1);
+        const nombre = await pagina.locator("header > p:first-of-type").boundingBox();
+        expect((logo?.y ?? 0) + (logo?.height ?? 0), "El logo va arriba del nombre").toBeLessThanOrEqual(
+          nombre?.y ?? 0,
+        );
+        expect(
+          Math.abs((logo?.x ?? 0) + (logo?.width ?? 0) / 2 - ((nombre?.x ?? 0) + (nombre?.width ?? 0) / 2)),
+          "El logo va centrado sobre el nombre de la empresa",
+        ).toBeLessThan(0.5);
         for (const selector of [
           "header > p:first-of-type",
           ".bloque-totales > div:last-child > span",

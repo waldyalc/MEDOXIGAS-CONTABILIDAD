@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { Plus } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,10 @@ interface Props {
   placeholder?: string;
   disabled?: boolean;
   showClear?: boolean;
+  /** Muestra el nombre con su RNC entre paréntesis, como Alegra. */
+  mostrarRncEnValor?: boolean;
+  /** Acciones junto a la flecha (lápiz y X en el POS); no reemplazan la flecha. */
+  acciones?: (contacto: ContactoOpcion | null) => ReactNode;
   "aria-label"?: string;
   "aria-invalid"?: boolean;
   "aria-describedby"?: string;
@@ -53,6 +57,8 @@ export function SelectorContacto({
   placeholder,
   disabled = false,
   showClear = true,
+  mostrarRncEnValor = false,
+  acciones,
   "aria-label": ariaLabel,
   "aria-invalid": ariaInvalid,
   "aria-describedby": ariaDescribedBy,
@@ -162,7 +168,9 @@ export function SelectorContacto({
         items={opciones}
         value={seleccionado}
         onValueChange={cambiar}
-        itemToStringLabel={(contacto) => contacto.nombre}
+        itemToStringLabel={(contacto) =>
+          mostrarRncEnValor && contacto.rnc_cedula ? `${contacto.nombre} (${contacto.rnc_cedula})` : contacto.nombre
+        }
         isItemEqualToValue={(a, b) => a.id === b.id}
         filter={null}
         onOpenChange={(nuevo) => {
@@ -181,7 +189,9 @@ export function SelectorContacto({
           aria-describedby={ariaDescribedBy}
           aria-busy={cargando}
           onChange={(evento) => setBusqueda(evento.currentTarget.value)}
-        />
+        >
+          {acciones ? acciones(seleccionado) : null}
+        </ComboboxInput>
         <ComboboxContent>
           {permiteCrear ? (
             <div className="border-b p-1">
