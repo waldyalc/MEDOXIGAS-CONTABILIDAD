@@ -178,102 +178,96 @@ export {
   XIcon,
 } from "@phosphor-icons/react/dist/ssr";
 
-// Iconos de HugeIcons (estilo stroke fino, como los de Alegra) — decisión de
-// Waldy: se usan en las pantallas que copian su diseño. Se envuelven con el
-// mismo contrato que los de Phosphor (className/style, strokeWidth 1.5).
+// Iconos de Tabler — la misma librería que usa Alegra (en su HTML se ven las
+// clases `tabler-icon-*`); se envuelven con stroke 1.5 como lo renderizan ellos.
 
 import {
-  Analytics01Icon,
-  BankIcon,
-  BookOpen01Icon,
-  Briefcase01Icon,
-  Cash02Icon,
-  ChartColumnIcon,
-  CheckmarkSquare02Icon,
-  DollarCircleIcon,
-  File01Icon,
-  Home01Icon,
-  IdCardIcon,
-  InboxIcon,
-  Invoice01Icon,
-  PackageIcon,
-  ReceiptDollarIcon,
-  ReceiptIcon,
-  Settings02Icon,
-  ShoppingCart01Icon,
-  Star as StarIconHuge,
-  Store01Icon,
-  UserMultiple02Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon, type HugeiconsIconProps } from "@hugeicons/react";
+  IconBriefcase,
+  IconBuildingBank,
+  IconBuildingStore,
+  IconCalculator,
+  IconCash,
+  IconChartBarPopular,
+  IconCircleArrowDownLeft,
+  IconCircleArrowUpRight,
+  IconClipboardCheck,
+  IconCoin,
+  IconFileInvoice,
+  IconHome,
+  IconInbox,
+  IconPackage,
+  IconReportMoney,
+  IconSettings,
+  IconStar,
+  IconTimeline,
+  IconUsers,
+  IconUsersGroup,
+  type IconProps as TablerIconProps,
+} from "@tabler/icons-react";
 
-export type { IconSvgElement } from "@hugeicons/react";
-export type PropsIconoHuge = Omit<HugeiconsIconProps, "icon">;
-export type IconoHuge = (props: PropsIconoHuge) => import("react").ReactElement;
+export type PropsIconoTabler = Omit<TablerIconProps, "ref">;
+export type IconoTabler = (props: PropsIconoTabler) => import("react").ReactElement;
 
 // Categorías de la página de Reportes (mismo glifo que Alegra).
-export function HugeDollarCircle(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={DollarCircleIcon} strokeWidth={1.5} {...props} />;
+export function TablerCoin(props: PropsIconoTabler) {
+  return <IconCoin stroke={1.5} {...props} />;
 }
-export function HugeChartColumn(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={ChartColumnIcon} strokeWidth={1.5} {...props} />;
+export function TablerChartBar(props: PropsIconoTabler) {
+  return <IconChartBarPopular stroke={1.5} {...props} />;
 }
-export function HugeCash(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={Cash02Icon} strokeWidth={1.5} {...props} />;
+export function TablerCash(props: PropsIconoTabler) {
+  return <IconCash stroke={1.5} {...props} />;
 }
-export function HugeInvoice(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={Invoice01Icon} strokeWidth={1.5} {...props} />;
+export function TablerFileInvoice(props: PropsIconoTabler) {
+  return <IconFileInvoice stroke={1.5} {...props} />;
 }
-export function HugeReceiptDollar(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={ReceiptDollarIcon} strokeWidth={1.5} {...props} />;
+export function TablerReportMoney(props: PropsIconoTabler) {
+  return <IconReportMoney stroke={1.5} {...props} />;
 }
-export function HugeBriefcase(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={Briefcase01Icon} strokeWidth={1.5} {...props} />;
+export function TablerBriefcase(props: PropsIconoTabler) {
+  return <IconBriefcase stroke={1.5} {...props} />;
 }
-export function HugeStar(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={StarIconHuge} strokeWidth={1.5} {...props} />;
+export function TablerStar(props: PropsIconoTabler) {
+  return <IconStar stroke={1.5} {...props} />;
 }
 
-// Menú lateral (orden de Alegra).
-export function HugeHome(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={Home01Icon} strokeWidth={1.5} {...props} />;
+// Menú lateral (el icono exacto que Alegra usa en cada ítem).
+export function TablerHome(props: PropsIconoTabler) {
+  return <IconHome stroke={1.5} {...props} />;
 }
-export function HugeInbox(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={InboxIcon} strokeWidth={1.5} {...props} />;
+export function TablerInbox(props: PropsIconoTabler) {
+  return <IconInbox stroke={1.5} {...props} />;
 }
-export function HugeReceipt(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={ReceiptIcon} strokeWidth={1.5} {...props} />;
+export function TablerIngresos(props: PropsIconoTabler) {
+  return <IconCircleArrowDownLeft stroke={1.5} {...props} />;
 }
-export function HugeShoppingCart(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={ShoppingCart01Icon} strokeWidth={1.5} {...props} />;
+export function TablerCompras(props: PropsIconoTabler) {
+  return <IconCircleArrowUpRight stroke={1.5} {...props} />;
 }
-export function HugeUsers(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={UserMultiple02Icon} strokeWidth={1.5} {...props} />;
+export function TablerUsers(props: PropsIconoTabler) {
+  return <IconUsers stroke={1.5} {...props} />;
 }
-export function HugePackage(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={PackageIcon} strokeWidth={1.5} {...props} />;
+export function TablerPackage(props: PropsIconoTabler) {
+  return <IconPackage stroke={1.5} {...props} />;
 }
-export function HugeBank(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={BankIcon} strokeWidth={1.5} {...props} />;
+export function TablerBank(props: PropsIconoTabler) {
+  return <IconBuildingBank stroke={1.5} {...props} />;
 }
-export function HugeBookOpen(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={BookOpen01Icon} strokeWidth={1.5} {...props} />;
+export function TablerCalculator(props: PropsIconoTabler) {
+  return <IconCalculator stroke={1.5} {...props} />;
 }
-export function HugeAnalytics(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={Analytics01Icon} strokeWidth={1.5} {...props} />;
+export function TablerTimeline(props: PropsIconoTabler) {
+  return <IconTimeline stroke={1.5} {...props} />;
 }
-export function HugeCheckSquare(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={CheckmarkSquare02Icon} strokeWidth={1.5} {...props} />;
+export function TablerClipboardCheck(props: PropsIconoTabler) {
+  return <IconClipboardCheck stroke={1.5} {...props} />;
 }
-export function HugeSettings(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={Settings02Icon} strokeWidth={1.5} {...props} />;
+export function TablerSettings(props: PropsIconoTabler) {
+  return <IconSettings stroke={1.5} {...props} />;
 }
-export function HugeFile(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={File01Icon} strokeWidth={1.5} {...props} />;
+export function TablerNomina(props: PropsIconoTabler) {
+  return <IconUsersGroup stroke={1.5} {...props} />;
 }
-export function HugeIdCard(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={IdCardIcon} strokeWidth={1.5} {...props} />;
-}
-export function HugeStore(props: PropsIconoHuge) {
-  return <HugeiconsIcon icon={Store01Icon} strokeWidth={1.5} {...props} />;
+export function TablerPos(props: PropsIconoTabler) {
+  return <IconBuildingStore stroke={1.5} {...props} />;
 }

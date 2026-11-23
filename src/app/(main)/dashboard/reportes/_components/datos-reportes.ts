@@ -1,17 +1,17 @@
 import {
-  HugeBriefcase,
-  HugeCash,
-  HugeChartColumn,
-  HugeDollarCircle,
-  HugeInvoice,
-  HugeReceiptDollar,
-  HugeStar,
-  type IconoHuge,
+  type IconoTabler,
+  TablerBriefcase,
+  TablerCash,
+  TablerChartBar,
+  TablerCoin,
+  TablerFileInvoice,
+  TablerReportMoney,
+  TablerStar,
 } from "@/components/icons";
 import type { CategoriaReporte } from "@/lib/reportes/catalogo-reportes";
 
 interface MetaCategoria {
-  icono: IconoHuge;
+  icono: IconoTabler;
   /** Texto que Alegra revela al pasar el mouse sobre la tarjeta de categoría. */
   descripcion: string;
   /** Color del icono de categoría (hex de Alegra). */
@@ -22,39 +22,39 @@ interface MetaCategoria {
 
 export const META_CATEGORIAS: Record<CategoriaReporte, MetaCategoria> = {
   Ventas: {
-    icono: HugeDollarCircle,
+    icono: TablerCoin,
     descripcion:
       "Monitorea la distribución de tus ventas y obtén información para gestionar tus operaciones comerciales.",
     iconoColor: "#16A34A",
     iconoFondo: "#DCFCE7",
   },
   Administrativos: {
-    icono: HugeChartColumn,
+    icono: TablerChartBar,
     descripcion:
       "Haz seguimiento a tus transacciones y obtén información para controlar la salud financiera de tu empresa.",
     iconoColor: "#30ABA9",
     iconoFondo: "#D8F4F2",
   },
   Financieros: {
-    icono: HugeCash,
+    icono: TablerCash,
     descripcion: "Analiza los resultados financieros de tu empresa, incluyendo entradas y salidas de efectivo.",
     iconoColor: "#F54A00",
     iconoFondo: "#FFEDD5",
   },
   Contables: {
-    icono: HugeInvoice,
+    icono: TablerFileInvoice,
     descripcion: "Conoce el desempeño contable y el estado económico de tu empresa en todo momento.",
     iconoColor: "#FBBF24",
     iconoFondo: "#FEF3C7",
   },
   Fiscales: {
-    icono: HugeReceiptDollar,
+    icono: TablerReportMoney,
     descripcion: "Revisa el detalle de tus impuestos y retenciones para cumplir con tus obligaciones tributarias.",
     iconoColor: "#E11D48",
     iconoFondo: "#FFE4E6",
   },
   "Para trabajar": {
-    icono: HugeBriefcase,
+    icono: TablerBriefcase,
     descripcion: "Exporta la información clave de tu negocio para realizar análisis adicionales.",
     iconoColor: "#4F46E5",
     iconoFondo: "#E0E7FF",
@@ -63,7 +63,7 @@ export const META_CATEGORIAS: Record<CategoriaReporte, MetaCategoria> = {
 
 /** Metadatos de la tarjeta «Favoritos» (no es una categoría con reportes). */
 export const META_FAVORITOS = {
-  icono: HugeStar,
+  icono: TablerStar,
   descripcion: "En este espacio vas a encontrar todos los reportes que has marcado como favoritos.",
   iconoColor: "#64748B",
   iconoFondo: "#F1F5F9",

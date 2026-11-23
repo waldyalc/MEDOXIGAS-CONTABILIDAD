@@ -6,7 +6,7 @@ import Link from "next/link";
 
 import { cn } from "cn";
 
-import { ChevronRight, type IconoHuge, Search, Star, X } from "@/components/icons";
+import { ChevronRight, type IconoTabler, Search, Star, X } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import {
@@ -264,7 +264,7 @@ function Buscador({ valor, onCambiar }: { valor: string; onCambiar: (valor: stri
 }
 
 interface MetaTarjeta {
-  icono: IconoHuge;
+  icono: IconoTabler;
   descripcion: string;
   iconoColor: string;
   iconoFondo: string;

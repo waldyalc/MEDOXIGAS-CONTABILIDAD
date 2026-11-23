@@ -1,19 +1,19 @@
 import {
-  HugeAnalytics,
-  HugeBank,
-  HugeBookOpen,
-  HugeCheckSquare,
-  HugeFile,
-  HugeHome,
-  HugeIdCard,
-  HugeInbox,
-  HugePackage,
-  HugeReceipt,
-  HugeSettings,
-  HugeShoppingCart,
-  HugeStore,
-  HugeUsers,
-  type IconoHuge,
+  type IconoTabler,
+  TablerBank,
+  TablerCalculator,
+  TablerClipboardCheck,
+  TablerCompras,
+  TablerFileInvoice,
+  TablerHome,
+  TablerInbox,
+  TablerIngresos,
+  TablerNomina,
+  TablerPackage,
+  TablerPos,
+  TablerSettings,
+  TablerTimeline,
+  TablerUsers,
 } from "@/components/icons";
 import type { Rol } from "@/lib/auth/rol";
 
@@ -23,7 +23,7 @@ export interface NavSubItem {
   id: string;
   title: string;
   url: string;
-  icon?: IconoHuge;
+  icon?: IconoTabler;
   /** Ruta de creación: el botón «+» que Alegra muestra al pasar el mouse. */
   addUrl?: string;
   badge?: NavBadge;
@@ -34,7 +34,7 @@ export interface NavSubItem {
 interface NavItemBase {
   id: string;
   title: string;
-  icon?: IconoHuge;
+  icon?: IconoTabler;
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;
@@ -69,21 +69,21 @@ export const sidebarItems: NavGroup[] = [
         id: "inicio",
         title: "Inicio",
         url: "/dashboard",
-        icon: HugeHome,
+        icon: TablerHome,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "bandeja-entrada",
         title: "Bandeja de entrada",
         url: "/dashboard",
-        icon: HugeInbox,
+        icon: TablerInbox,
         separadorDespues: true,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "ingresos",
         title: "Ingresos",
-        icon: HugeReceipt,
+        icon: TablerIngresos,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -133,7 +133,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "compras",
         title: "Compras",
-        icon: HugeShoppingCart,
+        icon: TablerCompras,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -178,13 +178,13 @@ export const sidebarItems: NavGroup[] = [
         id: "contactos",
         title: "Contactos",
         url: "/dashboard/contactos",
-        icon: HugeUsers,
+        icon: TablerUsers,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "inventario",
         title: "Inventario",
-        icon: HugePackage,
+        icon: TablerPackage,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -230,7 +230,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "bancos",
         title: "Bancos",
-        icon: HugeBank,
+        icon: TablerBank,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -248,7 +248,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "contabilidad",
         title: "Contabilidad",
-        icon: HugeBookOpen,
+        icon: TablerCalculator,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -289,28 +289,28 @@ export const sidebarItems: NavGroup[] = [
         id: "reportes",
         title: "Reportes",
         url: "/dashboard/reportes",
-        icon: HugeAnalytics,
+        icon: TablerTimeline,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "mis-tareas",
         title: "Mis tareas",
         url: "/dashboard",
-        icon: HugeCheckSquare,
+        icon: TablerClipboardCheck,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "configuracion",
         title: "Configuración",
         url: "/dashboard/configuracion",
-        icon: HugeSettings,
+        icon: TablerSettings,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "configuracion-reportes-dgii",
         title: "Reportes DGII",
         url: "/dashboard/configuracion/reportes-dgii",
-        icon: HugeFile,
+        icon: TablerFileInvoice,
         roles: ["admin", "contador"],
       },
     ],
@@ -322,7 +322,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "nomina",
         title: "Nómina",
-        icon: HugeIdCard,
+        icon: TablerNomina,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -361,7 +361,7 @@ export const sidebarItems: NavGroup[] = [
         id: "punto-venta",
         title: "POS",
         url: "/pos",
-        icon: HugeStore,
+        icon: TablerPos,
         newTab: true,
         roles: TODOS_LOS_ROLES,
       },

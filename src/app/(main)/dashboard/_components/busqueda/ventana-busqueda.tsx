@@ -12,7 +12,7 @@ import {
   Banknote,
   BookOpen,
   FilePlus2,
-  type IconoHuge,
+  type IconoTabler,
   PackagePlus,
   Receipt,
   Search,
@@ -97,7 +97,7 @@ interface Enlace {
   url: string;
   /** Módulo del menú al que pertenece (solo subítems de navegación). */
   modulo?: string;
-  icono: typeof Search | IconoHuge;
+  icono: typeof Search | IconoTabler;
 }
 
 /** Enlaces de navegación del menú lateral, aplanados a una sola lista. */
