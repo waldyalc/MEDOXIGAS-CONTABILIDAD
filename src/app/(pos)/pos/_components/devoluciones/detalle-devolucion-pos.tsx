@@ -60,6 +60,7 @@ export function DetalleDevolucionPos({
           <Button
             variant="ghost"
             className="h-10"
+            nativeButton={false}
             render={<a href={`/dashboard/notas-credito/${detalle.nota.id}`} target="_blank" rel="noreferrer" />}
           >
             Ver en Contabilidad
