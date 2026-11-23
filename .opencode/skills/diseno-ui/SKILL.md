@@ -1,11 +1,11 @@
 ---
 name: diseno-ui
-description: Usar shadcn tal cual (InputGroup, Select, calendario), colores Medoxigas (tokens --pos-* teal en el POS, que copia a Alegra exactamente) y las guías de docs/alegra, sin copiar código de Alegra.
+description: Usar shadcn tal cual (InputGroup, Select, calendario), colores Medoxigas (tokens --pos-* teal en el POS) y copia exacta del diseño de Alegra en todo el sistema, adaptando su HTML/CSS de las capturas a nuestro código.
 ---
 
 # Diseño de la UI
 
-Inspirado en Alegra (formas simples, todo enlazado), con **colores y componentes de Medoxigas**. Excepción (decisión de Waldy, 22-11-2026): **el punto de venta (`src/app/(pos)/pos/`) copia el diseño de Alegra exactamente**, incluido el teal `#00b19d`, a través de los tokens `--pos-*` de `src/app/globals.css` (aliases Tailwind `pos-*`); el candado `src/lib/pos/diseno-pos.test.ts` prohíbe `--primary`/`#1e56c7` ahí. Lo que nunca se copia es el código fuente de Alegra: nada de su HTML, CSS, selectores, textos largos ni logos.
+**Copia exacta de Alegra en todo el sistema** (decisión de Waldy, 23-11-2026 — amplía la del 22-11, que solo cubría el POS): se copia su diseño y se puede adaptar su HTML, CSS, estructura y selectores de las capturas al código propio (Tailwind + shadcn). En el POS (`src/app/(pos)/pos/`) el teal `#00b19d` va por los tokens `--pos-*` de `src/app/globals.css` (aliases Tailwind `pos-*`); el candado `src/lib/pos/diseno-pos.test.ts` prohíbe `--primary`/`#1e56c7` ahí. Lo que siempre es nuestro: el **logo Medoxigas** y la marca.
 
 ## shadcn, tal cual
 
@@ -122,11 +122,11 @@ Preset por defecto: `src/styles/presets/medoxigas.css`, importado desde `src/app
 
 Texto en español de RD. Números con formato `es-DO`. Fechas y horas en `America/Santo_Domingo`.
 
-## Guías de Alegra (medidas, no código)
+## Guías y exports de Alegra
 
-Estudio en `docs/alegra/`. Para factura y calendario:
+Estudio en `docs/alegra/` y exports crudos SingleFile fuera del repo en `/root/alegra-refs/` (plantilla y regla de medición; nunca se commitean). Para factura y calendario:
 
 - `docs/alegra/css-factura/GUIA-DISENO-FACTURA.md`
 - `docs/alegra/css-factura/GUIA-CALENDARIO.md` (capturas `docs/alegra/capturas/calendario-*.png`)
 
-Pasan medidas, colores y ritmo. Aplícalos con Tailwind + shadcn: el azul de Medoxigas en Contabilidad y, en el POS, los tokens `--pos-*` que copian el teal de Alegra exactamente. No copies ni pegues `index.html`, `styles.css` ni `original/` (no están en el repo a propósito).
+Se copian medidas, colores, estructura y ritmo adaptándolos con Tailwind + shadcn: el azul de Medoxigas en Contabilidad y, en el POS, los tokens `--pos-*` que copian el teal de Alegra exactamente. Los archivos crudos (`index.html`, `styles.css`, `original/`) no están en el repo a propósito.
