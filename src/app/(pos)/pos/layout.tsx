@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
 import { getEmpresa } from "@/lib/facturacion/consultas";
+import { getConsumidorFinalId } from "@/lib/pos/consultas";
+import { contactoInicialPOS } from "@/lib/pos/consumidor-final";
 import { createClient } from "@/lib/supabase/server";
 
 import { CarritoPosProvider } from "./_components/carrito-pos-provider";
@@ -31,7 +33,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
   if (contexto.estado === "error") return <EstadoPos tipo="error" />;
   if (contexto.estado === "sin-terminales" || !contexto.terminal) return <EstadoPos tipo="sin-terminales" />;
 
-  const empresa = await getEmpresa();
+  const [empresa, consumidorFinalId] = await Promise.all([getEmpresa(), getConsumidorFinalId()]);
   const terminal = contexto.terminal;
   const turno = contexto.turno;
   const supabase = await createClient();
@@ -48,7 +50,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
       <CarritoPosProvider
         key={terminal.id}
         defaults={{
-          contactoId: terminal.contacto_defecto_id,
+          contactoId: contactoInicialPOS(consumidorFinalId, terminal.contacto_defecto_id),
           listaPrecioId: terminal.lista_precio_defecto_id ?? "",
           numeracionId: terminal.numeracion_defecto_id,
         }}

@@ -66,6 +66,7 @@ export function VenderPos({
   listas,
   vendedores,
   contactos,
+  consumidorFinalId,
   cuentas,
   plantillaFactura,
   plantillaCotizacion,
@@ -89,6 +90,7 @@ export function VenderPos({
   listas: { id: string; nombre: string }[];
   vendedores: { id: string; nombre: string }[];
   contactos: ContactoResumen[];
+  consumidorFinalId: string | null;
   cuentas: { id: string; nombre: string }[];
   plantillaFactura: { mostrarLogo: boolean; notas: string; terminos: string };
   plantillaCotizacion: { mostrarLogo: boolean; notas: string; terminos: string };
@@ -624,6 +626,7 @@ export function VenderPos({
               listas={listas}
               vendedores={vendedores}
               contactos={contactos}
+              consumidorFinalId={consumidorFinalId}
               impuestos={impuestos}
               puedeEscribir
               sinCaja={sinCaja}
@@ -677,6 +680,7 @@ export function VenderPos({
                 listas={listas}
                 vendedores={vendedores}
                 contactos={contactos}
+                consumidorFinalId={consumidorFinalId}
                 impuestos={impuestos}
                 puedeEscribir
                 sinCaja={sinCaja}
@@ -721,6 +725,7 @@ export function VenderPos({
         empresa={empresa}
         cuentas={cuentas}
         contactos={contactos}
+        consumidorFinalId={consumidorFinalId}
         plantillaTicket={terminal.plantilla_ticket}
         plantillaFactura={plantillaFactura}
         plantillaCotizacion={plantillaCotizacion}
