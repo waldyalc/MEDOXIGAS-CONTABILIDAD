@@ -19,15 +19,7 @@ Tu trabajo no es escribir el código: es **dividirlo, delegarlo, revisarlo e int
      "options": { "variant": "max" }
    }
    ```
-   **Hijos de Devin (regla permanente de Waldy, 23-11-2026):** siempre SWE-2 con Thinking en **Max**, puesto explícito en el `delegate_task`:
-   ```json
-   {
-     "providerInstanceId": "acpRegistry_devin",
-     "model": "swe-2-high",
-     "options": { "thought_level": "max", "mode": "bypass" }
-   }
-   ```
-   **Nunca** `adaptive`. Otro modelo solo si Waldy lo pide o si el trabajo exige más criterio (UI/copy → gusto alto; revisión de plan → otro modelo independiente). Si un hijo falla con «Your daily usage quota has been exhausted», avisa a Waldy de inmediato y espera su decisión: no cambies de modelo ni relances por tu cuenta.
+   **Modelo único (Waldy, 23-11-2026 8:59 PM):** todos los hijos usan **DeepSeek V4.1 Flash 1017**, el default de arriba. Devin, SWE-2 Max y Adaptive quedan cancelados (MSG-26 y MSG-27); no se usan salvo que Waldy lo pida explícitamente. Otro modelo solo si Waldy lo pide o si el trabajo exige más criterio (UI/copy → gusto alto; revisión de plan → otro modelo independiente). Si un hijo falla con «Your daily usage quota has been exhausted», avisa a Waldy de inmediato y espera su decisión: no cambies de modelo ni relances por tu cuenta.
 5. **Esperar la notificación.** No hagas polling (`task_status`, `sleep`, watchers). Sigue con trabajo que no se solape o termina tu turno; el sistema te avisa cuando el subagente vuelve.
 6. **Revisión real del diff y de los tests.** Abre los archivos cambiados, `git diff origin/main...<rama>`, y corre tú mismo `pnpm typecheck`, `pnpm check`, `pnpm test` en el worktree o en `main` tras integrar. No confíes en el «todo verde» del reporte.
 7. **Integración limpia a `main`.** Un PR = una tarea. Revisa que el diff sea <400 líneas fuera de generados/lockfile, que no haya archivos ajenos ni `.env*`, y que la rama esté al día con `main` (rebase/merge de `main` en la rama si hace falta; nunca force-push).
