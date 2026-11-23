@@ -33,11 +33,12 @@ import {
   IconCalculator,
   IconCalendar,
   IconCalendarPlus,
-  IconCaretDown,
-  IconCaretLeft,
-  IconCaretRight,
-  IconCaretUp,
+  IconCaretDownFilled,
+  IconCaretLeftFilled,
+  IconCaretRightFilled,
+  IconCaretUpFilled,
   IconCash,
+  IconCashRegister,
   IconChartBar,
   IconChartBarPopular,
   IconChartLine,
@@ -81,6 +82,7 @@ import {
   IconHistory,
   IconHome,
   IconIdBadge,
+  IconIdBadge2,
   IconInbox,
   IconInfoCircle,
   IconLayersSubtract,
@@ -142,7 +144,6 @@ import {
   IconUserMinus,
   IconUserPlus,
   IconUsers,
-  IconUsersGroup,
   IconWallet,
   IconX,
   type IconProps as TablerIconProps,
@@ -272,31 +273,31 @@ export function CheckSquare(props: PropsIcono) {
 }
 
 export function ChevronDown(props: PropsIcono) {
-  return <IconCaretDown stroke={1.5} {...props} />;
+  return <IconCaretDownFilled stroke={1.5} {...props} />;
 }
 
 export function ChevronDownIcon(props: PropsIcono) {
-  return <IconCaretDown stroke={1.5} {...props} />;
+  return <IconCaretDownFilled stroke={1.5} {...props} />;
 }
 
 export function ChevronLeft(props: PropsIcono) {
-  return <IconCaretLeft stroke={1.5} {...props} />;
+  return <IconCaretLeftFilled stroke={1.5} {...props} />;
 }
 
 export function ChevronLeftIcon(props: PropsIcono) {
-  return <IconCaretLeft stroke={1.5} {...props} />;
+  return <IconCaretLeftFilled stroke={1.5} {...props} />;
 }
 
 export function ChevronRight(props: PropsIcono) {
-  return <IconCaretRight stroke={1.5} {...props} />;
+  return <IconCaretRightFilled stroke={1.5} {...props} />;
 }
 
 export function ChevronRightIcon(props: PropsIcono) {
-  return <IconCaretRight stroke={1.5} {...props} />;
+  return <IconCaretRightFilled stroke={1.5} {...props} />;
 }
 
 export function ChevronUpIcon(props: PropsIcono) {
-  return <IconCaretUp stroke={1.5} {...props} />;
+  return <IconCaretUpFilled stroke={1.5} {...props} />;
 }
 
 export function ChevronsLeft(props: PropsIcono) {
@@ -870,10 +871,10 @@ export function TablerSettings(props: PropsIcono) {
   return <IconSettings stroke={1.5} {...props} />;
 }
 export function TablerNomina(props: PropsIcono) {
-  return <IconUsersGroup stroke={1.5} {...props} />;
+  return <IconIdBadge2 stroke={1.5} {...props} />;
 }
 export function TablerPos(props: PropsIcono) {
-  return <IconBuildingStore stroke={1.5} {...props} />;
+  return <IconCashRegister stroke={1.5} {...props} />;
 }
 export function TablerFileInvoice(props: PropsIcono) {
   return <IconFileInvoice stroke={1.5} {...props} />;
