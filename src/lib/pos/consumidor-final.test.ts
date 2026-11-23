@@ -5,6 +5,8 @@ import {
   contactoInicialPOS,
   esComprobanteCreditoFiscal,
   esConsumidorFinalPOS,
+  esConsumidorFinalPorRnc,
+  etiquetaContactoPOS,
   normalizarRnc,
   RNC_CONSUMIDOR_FINAL,
 } from "./consumidor-final";
@@ -17,6 +19,10 @@ import { join } from "node:path";
  * migraciones ni ids fijos; la X lo quita y la siguiente venta lo vuelve a
  * poner. El comprobante 01 (Crédito fiscal) avisa que necesita un cliente con
  * RNC.
+ *
+ * Candado de MSG-44: el selector pinta al Consumidor final solo con su nombre,
+ * nunca «Consumidor Final (22222222222)»; los demás clientes conservan
+ * «Nombre (RNC)».
  */
 
 const POS = join(process.cwd(), "src", "app", "(pos)", "pos");
@@ -52,6 +58,14 @@ describe("cliente inicial del POS", () => {
     expect(esConsumidorFinalPOS(CONSUMIDOR, null)).toBe(false);
   });
 
+  it("reconoce al Consumidor final por su RNC normalizado", () => {
+    expect(esConsumidorFinalPorRnc("22222222222")).toBe(true);
+    expect(esConsumidorFinalPorRnc("222-2222222-2")).toBe(true);
+    expect(esConsumidorFinalPorRnc("130999888")).toBe(false);
+    expect(esConsumidorFinalPorRnc(null)).toBe(false);
+    expect(esConsumidorFinalPorRnc("")).toBe(false);
+  });
+
   it("una pestaña restaurada sin líneas vuelve al Consumidor final, no a la anterior", () => {
     const vacia = { contactoId: "", lineas: [], cotizacion: null };
     const conLineas = { contactoId: "", lineas: ["Cilindro"], cotizacion: null };
@@ -60,6 +74,29 @@ describe("cliente inicial del POS", () => {
     expect(contactoDePestanaRestaurada(vacia, CONSUMIDOR)).toBe(CONSUMIDOR);
     expect(contactoDePestanaRestaurada(conLineas, CONSUMIDOR)).toBe("");
     expect(contactoDePestanaRestaurada(conCotizacion, CONSUMIDOR)).toBe("");
+  });
+});
+
+describe("etiqueta del cliente en el selector del POS", () => {
+  it("el Consumidor final se pinta solo con su nombre, sin el RNC genérico entre paréntesis", () => {
+    expect(etiquetaContactoPOS({ nombre: "Consumidor Final", rnc_cedula: RNC_CONSUMIDOR_FINAL }, true)).toBe(
+      "Consumidor Final",
+    );
+    expect(etiquetaContactoPOS({ nombre: "Consumidor Final", rnc_cedula: "222-2222222-2" }, true)).toBe(
+      "Consumidor Final",
+    );
+    expect(etiquetaContactoPOS({ nombre: "Consumidor Final", rnc_cedula: RNC_CONSUMIDOR_FINAL }, true)).not.toContain(
+      "(",
+    );
+  });
+
+  it("los demás clientes siguen con «Nombre (RNC)» y sin la bandera se muestra solo el nombre", () => {
+    expect(etiquetaContactoPOS({ nombre: "Clínica Unión", rnc_cedula: "130999888" }, true)).toBe(
+      "Clínica Unión (130999888)",
+    );
+    expect(etiquetaContactoPOS({ nombre: "Clínica Unión", rnc_cedula: "130999888" }, false)).toBe("Clínica Unión");
+    expect(etiquetaContactoPOS({ nombre: "Juan Pérez", rnc_cedula: null }, true)).toBe("Juan Pérez");
+    expect(etiquetaContactoPOS({ nombre: "Juan Pérez", rnc_cedula: null }, false)).toBe("Juan Pérez");
   });
 });
 
@@ -97,15 +134,28 @@ describe("candados de la venta nueva con Consumidor final", () => {
     );
   });
 
-  it("el panel muestra lápiz y X junto a la flecha, con el RNC del cliente", () => {
+  it("el panel muestra lápiz y X junto a la flecha, con el RNC de los clientes normales", () => {
     const panel = leer(POS, "_components", "vender", "panel-factura.tsx");
     const selector = leer("src", "components", "contactos", "selector-contacto.tsx");
 
-    expect(panel, "El selector del POS debe mostrar «Nombre (RNC)», como Alegra").toContain("mostrarRncEnValor");
+    expect(panel, "El selector del POS debe mostrar «Nombre (RNC)» a los clientes normales").toContain(
+      "mostrarRncEnValor",
+    );
     expect(panel, "El lápiz abre la ficha del cliente").toContain('aria-label="Editar cliente"');
     expect(panel, "La X quita el cliente sin ocultar la flecha").toContain('aria-label="Quitar cliente"');
     expect(panel, "La X limpia el contacto del carrito").toContain('carrito.setContacto("")');
     expect(selector, "El selector debe aceptar acciones junto a la flecha").toContain("acciones?:");
+    expect(
+      selector,
+      "La etiqueta debe salir de etiquetaContactoPOS; pegarla a mano devuelve «Consumidor Final (22222222222)»",
+    ).toContain("etiquetaContactoPOS(contacto, mostrarRncEnValor)");
+    expect(
+      selector,
+      "No vuelvas a pegar el RNC con paréntesis: el Consumidor final debe verse solo «Consumidor Final»",
+    ).not.toContain("contacto.nombre} (");
+    expect(selector, "El desplegable tampoco debe repetir el RNC genérico bajo «Consumidor Final»").toContain(
+      "!(mostrarRncEnValor && esConsumidorFinalPorRnc(contacto.rnc_cedula))",
+    );
   });
 
   it("avisa cuando se elige Crédito fiscal (01) con Consumidor final", () => {

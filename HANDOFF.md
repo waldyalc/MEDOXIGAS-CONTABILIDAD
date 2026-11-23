@@ -1,5 +1,56 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 18: la estrella marcada se ve rellena (rama `fix/pos-favoritos-estrella-rellena`, MSG-31)
+
+Corrección de Waldy sobre el PR #128: en las capturas la estrella marcada se veía igual que la vacía.
+
+- **Causa:** `@/components/icons` exporta `StarIcon` de Phosphor, que pinta un único path con `currentColor`. La clase `fill-white` solo repintaba el path del contorno, que ya era blanco por `text-white`; nunca aparecía la forma sólida. La variante rellena es `weight="fill"`.
+- **Tarjeta (`tarjeta-producto-pos.tsx`):** `<Star weight={favorito ? "fill" : "regular"} />`. El cuadro teal de 32 px, `stopPropagation()` y `aria-pressed` quedan igual. El mismo defecto estaba en la estrella del botón «Favoritos» de `catalogo-pos.tsx` (`fill-current`), corregido igual.
+- **Candado:** `tarjeta-producto-pos.test.tsx` renderiza la tarjeta marcada y la vacía con `renderToStaticMarkup` y compara el `d` del path de la estrella contra las variantes `fill` y `regular` de Phosphor (falla si vuelven a verse iguales), más `aria-pressed`; `favoritos.test.ts` prohíbe `fill-white`/`fill-current` en la tarjeta y exige el `weight`.
+- **Evidencia:** `docs/diseno/capturas/pos-favoritos/`: regeneradas 02–05 (el cuadro teal ya sale siempre, como el código actual) y nuevas `06-zoom-marcada.png` y `07-zoom-no-marcada.png` (4×, la misma tarjeta marcada y sin marcar para comparar a simple vista).
+- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1637) y `pnpm build` en verde. Capturas desde `pnpm start -p 3037` tras el build: con el VPS a load 17 el dev server tardaba más de 150 s en hidratar; la app y el puerto son los mismos.
+
+## POS 17: la cola offline no se tranca con una venta fallida (rama `fix/pos-offline-cola-fallidas`)
+
+Auditoría del Punto 2. **Hallazgo confirmado:** `sincronizarColaOffline` hacía
+`return` al encontrar la primera operación `fallida` (y también al guardar un
+rechazo de negocio), así que una sola venta rechazada detenía para siempre todas
+las siguientes; además `comprobarCierre()` contaba las fallidas como pendientes y
+bloqueaba el cierre.
+
+- **Cola:** las `fallida` se saltan con `continue`; un rechazo de negocio se
+  guarda como fallido y la pasada sigue con las demás ventas. Un fallo de red
+  conserva el `return` para no adelantar dependientes y respetar el orden.
+- **Bandeja:** el panel de Sincronización muestra «Ventas con problema» con
+  folio, resumen cobrado, error e intentos. Cada una tiene **Reintentar**
+  (mismo UUID, vuelve a `pendiente`) y **Descartar** con confirmación
+  («¿Descartar esta venta?», no se puede recuperar). Solo se descartan fallidas;
+  las pendientes no se pueden borrar. El badge de la barra inferior cuenta las
+  fallidas y abre la bandeja.
+- **Cierre:** `revisionCierreOffline` bloquea solo con ventas `pendiente`; las
+  fallidas no bloquean, pero el diálogo de cierre y el resumen posterior muestran
+  «N ventas con problema no subirán. Quedan guardadas…». `conCierreSeguro` usa el
+  impedimento nuevo.
+- **Archivos:** `src/lib/pos/{cola-offline,almacen-offline}.ts`,
+  `src/app/(pos)/pos/_components/offline-pos-provider.tsx`,
+  `.../turnos/{dialogo-cerrar-turno,turnos-pos}.tsx`,
+  `.../vender/barra-inferior-pos.tsx`; tests en `cola-offline.test.ts`,
+  `offline-fallidas.test.ts`, `offline-integracion.test.ts` y ajuste del candado
+  de `reglas.test.ts` para permitir el borrado local de IndexedDB sin abrir la
+  puerta a escrituras directas en Supabase.
+- **Candados:** 1 fallida + 9 válidas suben las 9; reintentar la reencola con su
+  UUID; el descarte exige confirmación; el cierre no se bloquea y el aviso
+  aparece; test de fuente del panel/diálogo.
+- **Checklist de caja real:** `docs/pruebas/checklist-offline-caja.md` (3 ventas
+  offline con 1 rechazada por existencia, reintento/descarte, cierre avisado y
+  verificación de NCF, asientos e inventario).
+- **Evidencia:** `docs/diseno/capturas/pos-offline-fallidas/` (bandeja clara y
+  oscura, confirmación de descarte y aviso de cierre con el botón habilitado),
+  tomadas a 1440 px en el dev server 3036 sembrando la cola en IndexedDB; no se
+  creó ninguna venta real.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test`, `pnpm build` en
+  verde. Sin merge a `main`; PR contra `feat/pos-alegra-exacto`.
+
 ## POS 16: panel «Más opciones» del carrito (rama `feat/pos-mas-opciones`)
 
 Waldy (MSG-34): el ⋯ de la barra de cobro deja de abrir una listita y abre un

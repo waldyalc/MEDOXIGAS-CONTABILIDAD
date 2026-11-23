@@ -977,7 +977,7 @@ Se alimenta de `pos_resumen_turno`. No se recalcula en el cliente.
   - `NCF B0200000015` (si `ncf` es null, se omite);
   - fecha y hora de la venta: `formatoDia(factura.fecha)` + la hora de `factura.creado_en` (columna existente de `facturas`) cuando el payload la trae; en la confirmación inmediata, si no viene, se usa la hora en que se recibió la respuesta. En el historial, 2B incluye `creado_en` en el detalle. No se inventa una fecha ni se usa la hora de la reimpresión.
   - `Terminal: Caja 1`, `Turno No 4`, `Cajero: …` (si viene);
-  - `Cliente: …` y `RNC: …` (si existe); no se imprime la dirección del cliente;
+  - `Cliente: …` y `RNC: …` (si existe); no se imprime la dirección del cliente. El RNC genérico del Consumidor final (`22222222222`) no se imprime: el cliente se ve solo con su nombre (MSG-44);
   - `Vendedor: …` solo si `mostrar_vendedor` y el vendedor no es null;
   - `Vence NCF: …` si `ncf_vence` existe.
 - Cuerpo: líneas con cantidad, unidad (si `mostrar_unidad`), descripción (si `mostrar_descripcion`), referencia (si `mostrar_referencia`), precio unitario (si `mostrar_precio_unitario`), descuento por línea y total.

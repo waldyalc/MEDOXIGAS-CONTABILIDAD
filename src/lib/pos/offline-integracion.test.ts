@@ -107,13 +107,18 @@ describe("integración offline con la RPC idempotente", () => {
     expect(reset).toContain("'pos_sync_operaciones',");
   });
 
-  it("bloquea el cierre con el aviso en barra, panel y diálogo", () => {
+  it("bloquea el cierre solo con ventas por subir y avisa las que tienen problema", () => {
     const barra = leer("src/app/(pos)/pos/_components/vender/barra-inferior-pos.tsx");
-    expect(barra).toContain("Conéctate para subir ${offline.pendientes} ventas antes de cerrar");
+    expect(barra).toContain("Conéctate para subir ${offline.porSubir} ventas antes de cerrar");
     const panel = leer("src/app/(pos)/pos/_components/offline-pos-provider.tsx");
-    expect(panel).toContain("Conéctate para subir ${pendientes} ventas antes de cerrar el turno.");
+    expect(panel).toContain("Conéctate para subir ${porSubir} ventas antes de cerrar el turno.");
+    expect(panel).toContain("Ventas con problema");
+    expect(panel).toContain("Sí, descartar");
     const dialogo = leer("src/app/(pos)/pos/_components/turnos/dialogo-cerrar-turno.tsx");
     expect(dialogo).toContain("cierreBloqueado");
+    expect(dialogo).toContain("offline.porSubir > 0");
+    expect(dialogo).not.toContain("offline.pendientes > 0");
+    expect(dialogo).toContain("avisoCierreOffline(offline.fallidas)");
     expect(dialogo).toContain("disabled={enviando || esperadoNegativo || cierreBloqueado}");
   });
 

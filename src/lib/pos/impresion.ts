@@ -6,6 +6,7 @@ import { formatoDia, formatoFechaHora } from "@/lib/formato";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 
 import { calcularLineaPOS, compararMontos, precioConImpuesto, sumarMontos } from "./calculo";
+import { esConsumidorFinalPorRnc } from "./consumidor-final";
 import { normalizarPlantilla } from "./mapeo";
 import type {
   AnchoTicket,
@@ -132,7 +133,10 @@ export function armarTicketOffline(entrada: EntradaTicketOffline): TicketPOSPayl
     },
     cliente: {
       nombre: entrada.cliente.nombre,
-      lineas: entrada.cliente.rnc_cedula ? [`RNC/Cédula: ${entrada.cliente.rnc_cedula}`] : [],
+      lineas:
+        entrada.cliente.rnc_cedula && !esConsumidorFinalPorRnc(entrada.cliente.rnc_cedula)
+          ? [`RNC/Cédula: ${entrada.cliente.rnc_cedula}`]
+          : [],
     },
     lineas: entrada.lineas.map((linea) => lineaDeVenta(linea, plantilla)),
     bloques: [],
@@ -382,7 +386,9 @@ function clienteDe(
 
   const lineas: string[] = [];
   const documento = contacto.rnc_cedula?.trim();
-  if (documento) {
+  // El RNC del Consumidor final es el relleno genérico 22222222222: no se
+  // imprime. El cliente se ve solo con su nombre (MSG-44), no en una línea aparte.
+  if (documento && !esConsumidorFinalPorRnc(documento)) {
     const digitos = documento.replace(/\D/g, "");
     const etiqueta =
       contacto.tipo_identificacion === "cedula" || (!contacto.tipo_identificacion && digitos.length === 11)

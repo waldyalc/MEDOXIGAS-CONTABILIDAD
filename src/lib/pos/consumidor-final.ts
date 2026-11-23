@@ -26,9 +26,30 @@ export function esComprobanteCreditoFiscal(tipoComprobante: string | null | unde
   return tipoComprobante === "01";
 }
 
+/** ¿El RNC es el genérico del Consumidor final? Se compara normalizado, como la búsqueda. */
+export function esConsumidorFinalPorRnc(rnc: string | null | undefined): boolean {
+  return normalizarRnc(rnc) === RNC_CONSUMIDOR_FINAL;
+}
+
 /** ¿La venta está a nombre del Consumidor final? */
 export function esConsumidorFinalPOS(contactoId: string, consumidorFinalId: string | null): boolean {
   return consumidorFinalId !== null && contactoId === consumidorFinalId;
+}
+
+/**
+ * Cómo se pinta el cliente en el POS (decisión de Waldy, MSG-44): el
+ * Consumidor final se queda **solo** con su nombre, sin el RNC genérico
+ * «22222222222» entre paréntesis; los demás clientes sí llevan «Nombre (RNC)».
+ * Es la única regla de formato: las pantallas no la repiten.
+ */
+export function etiquetaContactoPOS(
+  contacto: { nombre: string; rnc_cedula: string | null },
+  mostrarRnc: boolean,
+): string {
+  if (!mostrarRnc || !contacto.rnc_cedula || esConsumidorFinalPorRnc(contacto.rnc_cedula)) {
+    return contacto.nombre;
+  }
+  return `${contacto.nombre} (${contacto.rnc_cedula})`;
 }
 
 /**

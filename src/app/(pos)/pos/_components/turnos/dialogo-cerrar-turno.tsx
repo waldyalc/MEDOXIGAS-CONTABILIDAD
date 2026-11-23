@@ -21,6 +21,7 @@ import { toast } from "@/components/ui/toast";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { cerrarTurno } from "@/lib/pos/acciones";
 import { centavosATexto, centavosDeDecimal, compararMontos } from "@/lib/pos/calculo";
+import { avisoCierreOffline } from "@/lib/pos/cola-offline";
 import type { CierreTurnoPOS, ResumenTurnoVista } from "@/lib/pos/tipos";
 
 import { capitalizar, textoAMonto } from "../formato-pos";
@@ -39,11 +40,12 @@ export function DialogoCerrarTurno({
 }) {
   const offline = useOfflinePOS();
   const cierreBloqueado =
-    !offline.preparado || offline.estado === "offline" || offline.estado === "sincronizando" || offline.pendientes > 0;
+    !offline.preparado || offline.estado === "offline" || offline.estado === "sincronizando" || offline.porSubir > 0;
   const mensajeOffline =
-    offline.pendientes > 0
-      ? `Conéctate para subir ${offline.pendientes} ventas antes de cerrar`
+    offline.porSubir > 0
+      ? `Conéctate para subir ${offline.porSubir} ventas antes de cerrar`
       : "Conéctate a internet para cerrar el turno";
+  const avisoFallidas = avisoCierreOffline(offline.fallidas);
   const [real, setReal] = useState("");
   const [registrarDiferencia, setRegistrarDiferencia] = useState(true);
   const [observaciones, setObservaciones] = useState("");
@@ -221,6 +223,13 @@ export function DialogoCerrarTurno({
 
           {cierreBloqueado ? (
             <p role="alert">{mensajeOffline}. El cuadre solo incluye operaciones sincronizadas.</p>
+          ) : null}
+          {avisoFallidas ? (
+            <Alert className="border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10">
+              <AlertDescription className="text-amber-900 dark:text-amber-200">
+                {`${avisoFallidas} El cierre del turno no se bloquea, pero estas ventas no se sumarán al cuadre.`}
+              </AlertDescription>
+            </Alert>
           ) : null}
           {error ? (
             <Alert variant="destructive">

@@ -19,6 +19,7 @@ import {
   type TipoBusquedaContacto,
   unirContactos,
 } from "@/lib/contactos/seleccion";
+import { esConsumidorFinalPorRnc, etiquetaContactoPOS } from "@/lib/pos/consumidor-final";
 
 import { type ContactoCreado, DialogoNuevoContacto } from "./dialogo-nuevo-contacto";
 
@@ -38,7 +39,7 @@ interface Props {
   placeholder?: string;
   disabled?: boolean;
   showClear?: boolean;
-  /** Muestra el nombre con su RNC entre paréntesis, como Alegra. */
+  /** Muestra el nombre con su RNC entre paréntesis; el Consumidor final queda solo con su nombre (MSG-44). */
   mostrarRncEnValor?: boolean;
   /** Acciones junto a la flecha (lápiz y X en el POS); no reemplazan la flecha. */
   acciones?: (contacto: ContactoOpcion | null) => ReactNode;
@@ -168,9 +169,7 @@ export function SelectorContacto({
         items={opciones}
         value={seleccionado}
         onValueChange={cambiar}
-        itemToStringLabel={(contacto) =>
-          mostrarRncEnValor && contacto.rnc_cedula ? `${contacto.nombre} (${contacto.rnc_cedula})` : contacto.nombre
-        }
+        itemToStringLabel={(contacto) => etiquetaContactoPOS(contacto, mostrarRncEnValor)}
         isItemEqualToValue={(a, b) => a.id === b.id}
         filter={null}
         onOpenChange={(nuevo) => {
@@ -213,7 +212,7 @@ export function SelectorContacto({
               <ComboboxItem key={contacto.id} value={contacto}>
                 <span className="flex min-w-0 flex-col">
                   <span className="truncate">{contacto.nombre}</span>
-                  {contacto.rnc_cedula ? (
+                  {contacto.rnc_cedula && !(mostrarRncEnValor && esConsumidorFinalPorRnc(contacto.rnc_cedula)) ? (
                     <span className="text-muted-foreground text-xs tabular-nums">{contacto.rnc_cedula}</span>
                   ) : null}
                 </span>
