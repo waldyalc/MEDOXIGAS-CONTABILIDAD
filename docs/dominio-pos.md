@@ -85,7 +85,7 @@
 2. Si no hay turno abierto, lo abre con una **base inicial** (conteo físico). Sin turno abierto no se vende ni se devuelve.
 3. Busca productos por nombre/referencia/marca o escanea un código de barra. El catálogo devuelve precio de la lista del terminal, ITBIS y existencia del almacén del terminal.
 4. Agrega líneas al carrito (cliente, cantidad, unidad, precio editable, descuento). Puede usar **venta simple** (monto libre sin producto) o **cargar una cotización abierta**.
-5. La venta abre con el cliente **Consumidor final** ya elegido, como Alegra: se busca por su RNC normalizado (`22222222222`) y, si no existe, se usa el `contacto_defecto_id` de la terminal. Se puede cambiar, quitar con la X o editar con el lápiz. Al elegir «Crédito fiscal (01)» con Consumidor final, el panel avisa que ese comprobante necesita un cliente con RNC. Cada pestaña nueva y cada venta cobrada o cancelada vuelve a arrancar con Consumidor final.
+5. La venta abre con el cliente **Consumidor final** ya elegido, como Alegra: se busca por su RNC normalizado (`22222222222`) y, si no existe, se usa el `contacto_defecto_id` de la terminal. Se puede cambiar, quitar con la X o editar con el lápiz. El selector pinta al Consumidor final **solo con su nombre** (sin el RNC genérico entre paréntesis); los demás clientes llevan «Nombre (RNC)» (MSG-44). Al elegir «Crédito fiscal (01)» con Consumidor final, el panel avisa que ese comprobante necesita un cliente con RNC. Cada pestaña nueva y cada venta cobrada o cancelada vuelve a arrancar con Consumidor final.
 6. Cobra:
    - **Pago simple:** efectivo, tarjeta débito, tarjeta crédito o transferencia.
    - **Combinado:** varias filas, cada una con su método, cuenta y monto.
