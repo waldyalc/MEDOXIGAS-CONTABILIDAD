@@ -13,6 +13,7 @@ import {
   esquemaTerminal,
   esquemaTerminalEdicion,
   esquemaVenta,
+  MAXIMO_PAGOS_VENTA,
   mensajeValidacion,
 } from "./esquemas";
 
@@ -226,6 +227,45 @@ describe("esquemaVenta", () => {
     });
 
     expect(resultado.success).toBe(true);
+  });
+
+  test("acepta pagos repetidos del mismo método en una sola venta", () => {
+    const resultado = esquemaVenta.safeParse({
+      terminal_id: TERMINAL,
+      lineas: [{ producto_id: PRODUCTO, cantidad: "2", precio: "100", itbis_tasa: "18" }],
+      pagos: [
+        { metodo: "efectivo", monto: "100", monto_recibido: "100" },
+        { metodo: "efectivo", monto: "136", monto_recibido: "140" },
+      ],
+    });
+
+    expect(resultado.success).toBe(true);
+  });
+
+  test(`admite hasta ${MAXIMO_PAGOS_VENTA} pagos y rechaza uno más`, () => {
+    const pagos = Array.from({ length: MAXIMO_PAGOS_VENTA }, () => ({
+      metodo: "efectivo" as const,
+      monto: "23.60",
+      monto_recibido: "23.60",
+    }));
+
+    expect(
+      esquemaVenta.safeParse({
+        terminal_id: TERMINAL,
+        lineas: [{ producto_id: PRODUCTO, cantidad: "2", precio: "100", itbis_tasa: "18" }],
+        pagos,
+      }).success,
+    ).toBe(true);
+
+    expect(
+      errorDe(
+        esquemaVenta.safeParse({
+          terminal_id: TERMINAL,
+          lineas: [{ producto_id: PRODUCTO, cantidad: "2", precio: "100", itbis_tasa: "18" }],
+          pagos: [...pagos, { metodo: "transferencia", monto: "1" }],
+        }),
+      ),
+    ).toBe(`La venta admite hasta ${MAXIMO_PAGOS_VENTA} pagos.`);
   });
 });
 
