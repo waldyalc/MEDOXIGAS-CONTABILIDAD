@@ -1,19 +1,19 @@
 import {
-  Bank,
-  Calculator,
-  ChartLine,
-  CheckSquare,
-  FileText,
-  Gear,
-  House,
-  IdentificationCard,
-  Inbox,
-  type LucideIcon,
-  Package,
-  Receipt,
-  ShoppingCart,
-  Storefront,
-  Users,
+  HugeAnalytics,
+  HugeBank,
+  HugeBookOpen,
+  HugeCheckSquare,
+  HugeFile,
+  HugeHome,
+  HugeIdCard,
+  HugeInbox,
+  HugePackage,
+  HugeReceipt,
+  HugeSettings,
+  HugeShoppingCart,
+  HugeStore,
+  HugeUsers,
+  type IconoHuge,
 } from "@/components/icons";
 import type { Rol } from "@/lib/auth/rol";
 
@@ -23,7 +23,7 @@ export interface NavSubItem {
   id: string;
   title: string;
   url: string;
-  icon?: LucideIcon;
+  icon?: IconoHuge;
   /** Ruta de creación: el botón «+» que Alegra muestra al pasar el mouse. */
   addUrl?: string;
   badge?: NavBadge;
@@ -34,7 +34,7 @@ export interface NavSubItem {
 interface NavItemBase {
   id: string;
   title: string;
-  icon?: LucideIcon;
+  icon?: IconoHuge;
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;
@@ -69,21 +69,21 @@ export const sidebarItems: NavGroup[] = [
         id: "inicio",
         title: "Inicio",
         url: "/dashboard",
-        icon: House,
+        icon: HugeHome,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "bandeja-entrada",
         title: "Bandeja de entrada",
         url: "/dashboard",
-        icon: Inbox,
+        icon: HugeInbox,
         separadorDespues: true,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "ingresos",
         title: "Ingresos",
-        icon: Receipt,
+        icon: HugeReceipt,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -133,7 +133,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "compras",
         title: "Compras",
-        icon: ShoppingCart,
+        icon: HugeShoppingCart,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -178,13 +178,13 @@ export const sidebarItems: NavGroup[] = [
         id: "contactos",
         title: "Contactos",
         url: "/dashboard/contactos",
-        icon: Users,
+        icon: HugeUsers,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "inventario",
         title: "Inventario",
-        icon: Package,
+        icon: HugePackage,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -230,7 +230,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "bancos",
         title: "Bancos",
-        icon: Bank,
+        icon: HugeBank,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -248,7 +248,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "contabilidad",
         title: "Contabilidad",
-        icon: Calculator,
+        icon: HugeBookOpen,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -289,28 +289,28 @@ export const sidebarItems: NavGroup[] = [
         id: "reportes",
         title: "Reportes",
         url: "/dashboard/reportes",
-        icon: ChartLine,
+        icon: HugeAnalytics,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "mis-tareas",
         title: "Mis tareas",
         url: "/dashboard",
-        icon: CheckSquare,
+        icon: HugeCheckSquare,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "configuracion",
         title: "Configuración",
         url: "/dashboard/configuracion",
-        icon: Gear,
+        icon: HugeSettings,
         roles: TODOS_LOS_ROLES,
       },
       {
         id: "configuracion-reportes-dgii",
         title: "Reportes DGII",
         url: "/dashboard/configuracion/reportes-dgii",
-        icon: FileText,
+        icon: HugeFile,
         roles: ["admin", "contador"],
       },
     ],
@@ -322,7 +322,7 @@ export const sidebarItems: NavGroup[] = [
       {
         id: "nomina",
         title: "Nómina",
-        icon: IdentificationCard,
+        icon: HugeIdCard,
         roles: TODOS_LOS_ROLES,
         subItems: [
           {
@@ -361,7 +361,7 @@ export const sidebarItems: NavGroup[] = [
         id: "punto-venta",
         title: "POS",
         url: "/pos",
-        icon: Storefront,
+        icon: HugeStore,
         newTab: true,
         roles: TODOS_LOS_ROLES,
       },

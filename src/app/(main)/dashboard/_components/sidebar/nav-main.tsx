@@ -217,9 +217,9 @@ function NavCollapsibleItem({ item, defaultOpen, esSubItemActivo, onNavigate }: 
       <CollapsibleTrigger
         render={<SidebarMenuButton tooltip={item.title} disabled={item.disabled} className={estiloItem} />}
       >
-        {Icon && <Icon weight="duotone" size={20} />}
+        {Icon && <Icon size={20} />}
         <span className="truncate">{item.title}</span>
-        <ChevronDown className="dark:text-sidebar-foreground/50 ml-auto size-5! shrink-0 text-slate-400 transition-transform duration-200 group-data-[state=collapsed]:hidden group-data-panel-open/menu-button:rotate-180" />
+        <ChevronDown className="dark:text-sidebar-foreground/50 ml-auto size-5! shrink-0 text-slate-400 transition-transform duration-200 group-data-panel-open/menu-button:rotate-180 group-data-[state=collapsed]:hidden" />
       </CollapsibleTrigger>
       <NavItemBadge badge={item.badge} />
 
@@ -245,7 +245,7 @@ function NavCollapsibleItem({ item, defaultOpen, esSubItemActivo, onNavigate }: 
                     isActive={esSubItemActivo(subItem.url)}
                     className={cn(estiloSubItem, subItem.addUrl != null && "pr-8")}
                   >
-                    {SubIcon && <SubIcon weight="duotone" size={20} />}
+                    {SubIcon && <SubIcon size={20} />}
                     <span className="truncate">{subItem.title}</span>
                   </SidebarMenuSubButton>
                   {subItem.addUrl != null ? (
@@ -253,7 +253,7 @@ function NavCollapsibleItem({ item, defaultOpen, esSubItemActivo, onNavigate }: 
                       href={subItem.addUrl}
                       aria-label={`Crear: ${subItem.title}`}
                       onClick={() => onNavigate(subItem.url)}
-                      className="absolute right-1 hidden size-6 items-center justify-center rounded-[6px] text-slate-400 hover:bg-slate-200/70 hover:text-slate-900 group-hover/sub:flex dark:hover:bg-white/[0.09] dark:hover:text-sidebar-foreground [&_svg]:size-4"
+                      className="dark:hover:text-sidebar-foreground absolute right-1 hidden size-6 items-center justify-center rounded-[6px] text-slate-400 group-hover/sub:flex hover:bg-slate-200/70 hover:text-slate-900 dark:hover:bg-white/[0.09] [&_svg]:size-4"
                     >
                       <Plus />
                     </Link>
