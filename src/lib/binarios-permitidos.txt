@@ -236,6 +236,11 @@ docs/diseno/capturas/pos-9/renombrar.png
 docs/diseno/capturas/pos-alegra/despues/pos-1920x1080-claro.png
 docs/diseno/capturas/pos-alegra/despues/pos-1920x1080-oscuro.png
 docs/diseno/capturas/pos-cierre/comparacion-cierre.png
+docs/diseno/capturas/pos-consumidor-final/despues-sin-rnc-ticket.png
+docs/diseno/capturas/pos-favoritos/06-zoom-marcada.png
+docs/diseno/capturas/pos-favoritos/07-zoom-no-marcada.png
+docs/diseno/capturas/pos-offline-fallidas/bandeja-venta-fallida-oscuro.png
+docs/diseno/capturas/pos-offline-fallidas/confirmacion-descarte.png
 docs/diseno/capturas/pos-ticket/comparacion-80mm.png
 docs/planes/rediseno-alegra/img/02-alegra-pos-carrito.png
 docs/planes/rediseno-alegra/img/03-alegra-pos-menu.png
