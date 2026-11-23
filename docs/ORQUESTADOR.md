@@ -32,7 +32,7 @@ Tu trabajo no es escribir el código: es **dividirlo, delegarlo, revisarlo e int
 
 Todo cambio de UI llega **con capturas en el hilo**, hechas por el propio subagente y verificadas por el Orquestador:
 
-1. **El brief de toda tarea de UI termina exigiendo capturas**: el subagente copia `.env.local` de la copia principal a su worktree, levanta `pnpm dev -p 300X` (puerto 3000 es de Waldy; nunca lo toques), entra con las credenciales que el Orquestador le pasa **por archivo temporal fuera del repo** (nunca en el brief ni commiteadas), navega a la pantalla del cambio y captura claro, oscuro (y móvil si aplica) con Playwright. Base de producción: solo lectura.
+1. **El brief de toda tarea de UI termina exigiendo capturas**: el subagente levanta `pnpm dev -p 300X` en su worktree (puerto 3000 es de Waldy; nunca lo toques; `.env.local`/`.env.pruebas` ya se enlazan solos vía `t3.json` → `scripts/t3-worktree-setup.sh`), entra como ZZTEST y captura con **`pnpm captura --ruta <ruta> --salida <carpeta> --base http://localhost:300X`** (claro, oscuro y móvil en una pasada; el script falla ante errores de consola o 5xx). Base de producción: solo lectura.
 2. El subagente reporta las rutas de los PNG + checks estructurales del DOM contra la fuente de diseño (p.ej. chevron con `aria-expanded`, montos por signo, textos literales) y mata su dev server.
 3. **El Orquestador revisa el código** (diff + checks estructurales contra la fuente de diseño) y **le muestra las capturas a Waldy: la verificación visual y la decisión son de Waldy**. Nada de UI se declara "listo" antes de ese paso.
 4. Al terminar, se borran el archivo de credenciales y el `.env.local` del worktree.
@@ -82,8 +82,11 @@ Commits chicos en tu rama. NO hagas push ni merge a main. Reporta: rama, SHA, ar
 2. **Usa las herramientas MCP de PR (`pull_request_*`), no heredocs de Bash en PowerShell.** Cuerpos con `$(cat <<'EOF' ... EOF)` se rompen y dejan PRs con texto basura. Para crear, editar, comentar o mergear: `pull_request_create`, `pull_request_update`, `pull_request_review`, `pull_request_merge`, etc. Enlaza cada PR con `link_pull_request` en la llamada siguiente.
 3. **PRs y diffs acotados (<400 líneas fuera de generados/lockfile).** Un PR = una tarea. Si el diff creció, pártelo. Los generados (`src/lib/supabase/types.ts`, `pnpm-lock.yaml`) no cuentan, pero no se editan a mano.
 4. **No edites `src/lib/supabase/types.ts` a mano.** Si cambió el esquema, regenéralo con `pnpm db:types` (o `supabase gen types` contra la base local) y verifica que el job **`db`** de CI pase. El workflow compara solo el esquema público; una firma inventada rompe el build.
-5. **Higiene de disco y worktrees.** Tras integrar: borra el worktree, borra la rama local y remota ya fusionada, y corre `git fetch --prune`. Revisa `git worktree list` y `git branch -vv` antes de crear más. C: no es infinito.
+5. **Higiene de disco y worktrees.** Tras integrar: borra el worktree, borra la rama local y remota ya fusionada, y corre `git fetch --prune`. Revisa `git worktree list` y `git branch -vv` antes de crear más. C: no es infinito. Para un inventario de candidatos (worktrees mergeados, `.next` viejos, capturas viejas) corre `scripts/limpieza-disco.sh` — solo lista, no borra.
 6. **Migraciones con timestamp UTC real.** `YYYYMMDDHHMMSS_descripcion_en_snake_case.sql`, estrictamente mayor que el último archivo existente y con fecha/hora válida (nada de `20261123999999`, horas 25 ni fechas futuras inventadas). Nunca edites una migración aplicada; todo cambio va en una nueva, aditiva y reintentable.
+7. **RAM antes de lanzar hijos (VPS).** Corre `free -m` antes de cada `delegate_task`: como máximo **~1 hijo que haga `next build`/Playwright por cada 3–4 GB libres** (RAM disponible + swap libre); con swap lleno o menos de 3 GB libres, 1–2 hijos a la vez y ninguno pesado. Si hay `next-server`/`next-build`/`tsc` viejos de worktrees ya integrados, nota para Waldy y mátalos con su OK (nunca el `medoxigas-preview` del 3010 ni los de hijos vivos).
+8. **Hilos de orquestador cortos.** Un hilo de orquestador por bloque (5–10 PRs máximo). Al cerrar el bloque: `HANDOFF.md` al día y se abre un hilo nuevo limpio; no se sigue orquestando desde un hilo largo.
+9. **Revisor antes de `main`.** Antes de pedir a Waldy el merge a `main` (o al integrar un bloque grande), un subagente **REVISOR de solo lectura con otro modelo** (`deepseek-v4-pro` u otro fuerte disponible en opencode; nunca el mismo que escribió el código) audita el diff completo contra reglas de negocio, seguridad y `AGENTS.md`, y deja su informe en `docs/revisiones/AAAAMMDD-<bloque>.md`. Sin informe no se pide el merge.
 
 ---
 
@@ -107,5 +110,6 @@ Commits chicos en tu rama. NO hagas push ni merge a main. Reporta: rama, SHA, ar
 - [ ] Diff revisado archivo por archivo, solo los archivos previstos.
 - [ ] `ci`, `db`, `scan` y `e2e` en `success` sobre el `headSha` integrado (o skip declarado).
 - [ ] `pnpm typecheck`, `pnpm check`, `pnpm test` y `pnpm build` en verde en `main`.
+- [ ] Si el bloque va a `main`: informe del REVISOR en `docs/revisiones/` (ver regla 9).
 - [ ] `HANDOFF.md` actualizado.
 - [ ] Worktree y rama podados, `git fetch --prune` corrido.

@@ -100,6 +100,8 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 | Build prod               | `pnpm build`                                                   |
 | Regenerar tipos Supabase | `pnpm db:types` (tras cada migración; ver `supabase/AGENTS.md`) |
 | Probar RLS en local      | `supabase start` + `supabase test db` (NUNCA contra producción) |
+| pgTAP sin Docker         | `scripts/pgtap-local.sh` (Postgres 18 + pgtap del VPS; corre como `postgres`) |
+| Capturas claro/oscuro/móvil | `pnpm captura --ruta /pos --salida <carpeta>` (ZZTEST, storageState fuera del repo) |
 
 ## Estructura (convención de la plantilla)
 
@@ -118,6 +120,7 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 - Toda operación de base de datos (migraciones, consultas, tipos) se hace con **Supabase CLI desde este VPS**; no se usan claves en scripts ni `service_role` en el cliente.
 - El token de acceso vive en `/root/.supabase.env` (chmod 600, cargado por el shell). **Nunca** se imprime, se pega en el chat o en logs, ni se commitea.
 - Proyecto de prueba: `ljfdhrnvlsfaweuvnqxz`. La base de producción y la de OPP no se tocan sin el OK de Waldy en el chat.
+- **Los agentes nunca prueban contra producción**: solo `ljfdhrnvlsfaweuvnqxz` (prueba) o Postgres local (`scripts/pgtap-local.sh`), y en la de prueba solo datos ZZTEST. Propuesta de staging aparte: `docs/infra/base-staging.md`.
 
 ## Calidad de código (la verifica CI; el pre-push también)
 
@@ -161,14 +164,16 @@ Candados que ya existen:
 - `tests/e2e/numeraciones.spec.ts` — guardar B16 sin cambios cierra el diálogo y un nombre en blanco muestra el error en español (requiere `E2E_EMAIL`/`E2E_PASSWORD`, como el humo).
 - `supabase/tests/anular_ajuste_costo_test.sql` — anular un ajuste de inventario de entrada devuelve la cantidad y revierte el costo promedio; anular una compra ya lo hacía (`anular_compra_costo_test.sql`).
 - `src/lib/pos/diseno-pos.test.ts` — el POS usa los tokens `--pos-*` (teal `#00b19d`, copia exacta de Alegra); prohíbe `--primary` y `#1e56c7` en `src/app/(pos)/pos/` con una lista de pendientes que solo puede encoger, y exige la paleta en `globals.css`. Además fija el Punto 1: el turno y las pestañas de ventas van en la barra inferior (`barra-inferior-pos.tsx`), no en una línea sobre el buscador ni dentro del panel, y el Sheet móvil termina 44 px antes para no tapar la barra. El cuerpo del panel usa `--pos-panel` (#f8fafc) con encabezado, bloque superior, renglones y pie blancos, y el shell fija `--ring: var(--pos-primario)` para que el foco sea teal.
+- `src/lib/binarios-grandes.test.ts` (+ `src/lib/binarios-permitidos.txt`) — bloquea binarios nuevos >200 KB e imágenes con «alegra» en el nombre o bajo `docs/diseno/alegra-pos/`; lo ya commiteado quedó abuelado en la lista permitida, que solo encoge.
+- `.github/workflows/supabase.yml` — en PR, toda migración nueva en `supabase/migrations/` exige al menos un archivo tocado en `supabase/tests/`.
 
 ## Preview y capturas al terminar (regla de Waldy, 22-11-2026)
 
 «Al terminar una tarea, todo agente debe tomar capturas de pantalla de lo que hizo (en el preview) y entregarlas con su informe; el orquestador, al juntar, actualiza el preview y reporta las capturas».
 
 - **Preview oficial:** http://127.0.0.1:3010 (puerto 3010). Al juntar, el Orquestador hace `git pull` de `feat/pos-alegra-exacto`, `pnpm build` y `systemctl restart medoxigas-preview`, y comprueba que responde 200.
-- **Cómo se toman:** entrando como **ZZTEST** con Playwright, viewport de **1440 px**, de lo que quedó hecho: **una captura por punto**.
-- **Dónde se guardan:** `/root/referencias/capturas-terminadas/<fecha>-<punto>.png`, fuera del repo. El informe del Orquestador lista la ruta y una línea de qué muestra cada una.
+- **Cómo se toman:** con el script único **`pnpm captura --ruta /pos --salida <carpeta> [--base http://localhost:3010]`** (`src/scripts/captura.ts`): entra como **ZZTEST** (credenciales de `.env.pruebas`, storageState en `/root/.medoxigas/` fuera del repo, se renueva solo), toma claro 1440 px, oscuro 1440 px y móvil 390 px, y **falla ante errores de consola o HTTP 5xx**. Todos los agentes usan este script; nada de scripts de captura improvisados.
+- **Dónde se guardan:** `/root/referencias/capturas-terminadas/<fecha>-<punto>.png`, fuera del repo (defecto del script: `/root/referencias/capturas-terminadas/<fecha>`). El informe del Orquestador lista la ruta y una línea de qué muestra cada una.
 - **Seguridad:** no se commitean claves ni datos sensibles; las capturas sí pueden incluir datos de prueba de ZZTEST.
 
 ## Antes de decir "listo"
