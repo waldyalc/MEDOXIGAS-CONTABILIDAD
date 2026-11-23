@@ -1,5 +1,23 @@
 export type EstadoOperacionOffline = "pendiente" | "fallida" | "sincronizada";
 
+export function resumenSnapshotOffline(snapshot: unknown): string | null {
+  if (typeof snapshot !== "object" || snapshot === null) return null;
+  const ticket = "ticket" in snapshot ? snapshot.ticket : null;
+  if (typeof ticket === "object" && ticket !== null && "cliente" in ticket && "total" in ticket) {
+    const cliente = ticket.cliente;
+    const nombre =
+      typeof cliente === "object" && cliente !== null && "nombre" in cliente && typeof cliente.nombre === "string"
+        ? cliente.nombre
+        : null;
+    const total = typeof ticket.total === "string" ? `RD$${ticket.total}` : null;
+    return [nombre, total].filter(Boolean).join(" · ") || null;
+  }
+  const monto = "monto" in snapshot && typeof snapshot.monto === "string" ? `RD$${snapshot.monto}` : null;
+  if (!monto) return null;
+  const motivo = "motivo" in snapshot && typeof snapshot.motivo === "string" ? snapshot.motivo : "Movimiento";
+  return `${motivo} · ${monto}`;
+}
+
 export function resumenConfirmacionOffline(resultado: unknown): string | null {
   if (typeof resultado !== "object" || resultado === null) return null;
   const documento =
