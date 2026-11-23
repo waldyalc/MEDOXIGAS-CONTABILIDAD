@@ -5,15 +5,18 @@ import { useCallback, useRef, useState } from "react";
 import { DialogoNuevoContacto } from "@/components/contactos/dialogo-nuevo-contacto";
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import {
+  AlertTriangle,
   Basket,
   FileText,
   FolderOpen,
   MoreHorizontal,
+  Pencil,
   Percent,
   Printer,
   Receipt,
   SlidersHorizontal,
   UserPlus,
+  X,
   Zap,
 } from "@/components/icons";
 import { TicketPos } from "@/components/pos/ticket-pos";
@@ -44,6 +47,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { InputGroupButton } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatoCantidad } from "@/lib/facturacion/formato";
@@ -51,6 +55,7 @@ import type { ContactoResumen, Empresa } from "@/lib/facturacion/tipos";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { sumarMontos } from "@/lib/pos/calculo";
+import { esComprobanteCreditoFiscal, esConsumidorFinalPOS } from "@/lib/pos/consumidor-final";
 import { armarTicketCotizacionDocumento, armarTicketPrefactura, type TicketPOSPayload } from "@/lib/pos/impresion";
 import type { LineaVenta, PlantillaTicket } from "@/lib/pos/tipos";
 
@@ -75,6 +80,8 @@ export interface PanelFacturaProps {
   listas: { id: string; nombre: string }[];
   vendedores: { id: string; nombre: string }[];
   contactos: ContactoResumen[];
+  /** Contacto «Consumidor final» resuelto por RNC; null si no existe en la base. */
+  consumidorFinalId: string | null;
   impuestos: Impuesto[];
   puedeEscribir: boolean;
   onCobrar: () => void;
@@ -104,6 +111,7 @@ export function PanelFactura({
   listas,
   vendedores,
   contactos,
+  consumidorFinalId,
   impuestos,
   puedeEscribir,
   onCobrar,
@@ -180,6 +188,10 @@ export function PanelFactura({
 
   const contactoActual = contactos.find((contacto) => contacto.id === activa.contactoId) ?? null;
   const vendedorActual = vendedores.find((vendedor) => vendedor.id === activa.vendedorId) ?? null;
+  const numeracionActual = numeraciones.find((numeracion) => numeracion.id === activa.numeracionId) ?? null;
+  const avisoCreditoFiscal =
+    esComprobanteCreditoFiscal(numeracionActual?.tipo_comprobante) &&
+    esConsumidorFinalPOS(activa.contactoId, consumidorFinalId);
 
   const entradaPresentacion = {
     empresa,
@@ -360,6 +372,15 @@ export function PanelFactura({
           </div>
         </div>
 
+        {avisoCreditoFiscal ? (
+          <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+            <AlertTriangle aria-hidden="true" />
+            <AlertDescription className="text-amber-900/90 dark:text-amber-200/90">
+              El Crédito fiscal (01) necesita un cliente con RNC. Elige un cliente o cambia la numeración.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         <div className="flex items-center gap-2">
           <Label htmlFor="cliente-pos" className="text-pos-texto w-12 shrink-0 text-sm font-normal">
             Cliente
@@ -371,6 +392,32 @@ export function PanelFactura({
             onCambio={(contacto) => carrito.setContacto(contacto?.id ?? "")}
             tipoInicial="cliente"
             showClear={false}
+            mostrarRncEnValor
+            acciones={(contacto) =>
+              contacto ? (
+                <>
+                  <InputGroupButton
+                    size="icon-xs"
+                    variant="ghost"
+                    nativeButton={false}
+                    aria-label="Editar cliente"
+                    title="Editar cliente"
+                    render={<a href={`/dashboard/contactos/${contacto.id}`} target="_blank" rel="noreferrer" />}
+                  >
+                    <Pencil className="pointer-events-none" aria-hidden="true" />
+                  </InputGroupButton>
+                  <InputGroupButton
+                    size="icon-xs"
+                    variant="ghost"
+                    aria-label="Quitar cliente"
+                    title="Quitar cliente"
+                    onClick={() => carrito.setContacto("")}
+                  >
+                    <X className="pointer-events-none" aria-hidden="true" />
+                  </InputGroupButton>
+                </>
+              ) : null
+            }
             placeholder="Buscar cliente…"
             disabled={cotizacion !== null}
             className="min-w-0 flex-1"

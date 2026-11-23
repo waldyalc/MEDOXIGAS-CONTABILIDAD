@@ -1,6 +1,6 @@
 # Handoff — Medoxigas Contabilidad
 
-## POS 15: panel «Más opciones» del carrito (rama `feat/pos-mas-opciones`)
+## POS 16: panel «Más opciones» del carrito (rama `feat/pos-mas-opciones`)
 
 Waldy (MSG-34): el ⋯ de la barra de cobro deja de abrir una listita y abre un
 panel grande que tapa todo el carrito.
@@ -22,6 +22,43 @@ panel grande que tapa todo el carrito.
   siempre).
 - **Evidencia:** `docs/diseno/capturas/pos-mas-opciones/` (antes con la listita;
   panel abierto en claro y oscuro; móvil a 390 px). Sin migraciones ni datos.
+
+## POS 15: venta nueva con Consumidor final (rama `feat/pos-consumidor-final`, MSG-33)
+
+Decisión de Waldy (23-11-2026): como Alegra, cada venta nueva del POS arranca
+con el cliente «Consumidor final» ya elegido.
+
+- **Sin migración ni datos nuevos:** el contacto ya existe (`rnc_cedula =
+  22222222222`). `getConsumidorFinalId()` lo busca por RNC normalizado con el
+  usuario de la sesión (solo lectura, `cache` por petición) y el layout lo pasa
+  como contacto inicial del carrito; si no aparece, usa el
+  `contacto_defecto_id` de la terminal. `crearPestana`, «Nueva venta»,
+  «Cancelar» y «Nueva venta» tras cobrar ya usan esos defaults.
+- **Pestañas y recargas:** una pestaña restaurada sin líneas ni cotización
+  vuelve al contacto inicial (`contactoDePestanaRestaurada`), para que una
+  venta nueva no herede el cliente que se quitó antes.
+- **Selector como Alegra:** el input muestra «Consumidor final
+  (22222222222)»; a la izquierda de la flecha aparecen el lápiz (abre la ficha
+  del contacto en otra pestaña) y la X (quita el cliente). Se agregó el
+  render prop `acciones` a `SelectorContacto` sin cambiar los demás usos.
+- **Aviso de Crédito fiscal:** con la numeración `01` y Consumidor final, el
+  panel muestra «El Crédito fiscal (01) necesita un cliente con RNC. Elige un
+  cliente o cambia la numeración.». El cobro a crédito sigue bloqueado por el
+  toast existente, ahora comparando contra el mismo id resuelto por RNC.
+- **Candado:** `src/lib/pos/consumidor-final.test.ts` prueba la normalización
+  del RNC, el cliente inicial, el respaldo de la terminal, la pestaña
+  restaurada, el comprobante 01, el aviso y que el layout/panel/checkout usen
+  el mismo Consumidor final. `docs/dominio-pos.md` actualizado.
+- **Evidencia:** `docs/diseno/capturas/pos-consumidor-final/` con el antes
+  (`PRUEBA CAPTURA ER`), el después («Consumidor final (22222222222)» con
+  lápiz/X), el aviso de Crédito fiscal, oscuro y móvil. Playwright en
+  `localhost:3034`, 1440 px, sesión ZZTEST; el «antes» se tomó con el código
+  base y el resto con la rama. No se modificó ningún dato.
+- **Pendiente de datos (no bloquea):** `pos_terminales.contacto_defecto_id`
+  de ZZTEST sigue apuntando a un contacto de prueba. El POS ya no lo usa salvo
+  como respaldo, pero la RPC `pos_completar_venta` todavía bloquea el crédito
+  según esa columna; cuando Waldy apunte la terminal al Consumidor final real,
+  base y UI quedarán alineadas.
 
 ## POS 14: logo de Medoxigas en el ticket (rama `feat/pos-ticket-logo`, MSG-35)
 
