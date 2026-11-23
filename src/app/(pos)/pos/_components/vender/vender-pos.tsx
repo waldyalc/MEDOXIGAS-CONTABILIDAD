@@ -18,6 +18,7 @@ import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { crearCotizacionPOS } from "@/lib/pos/acciones";
 import { conBloqueoOffline, guardarOffline, leerOffline } from "@/lib/pos/almacen-offline";
 import { enlaceCotizacionPOS, payloadCotizacionPOS } from "@/lib/pos/cotizaciones";
+import { filtrarFavoritosPOS } from "@/lib/pos/favoritos";
 import type { TicketPOSPayload } from "@/lib/pos/impresion";
 import type { CotizacionPOSResultado, PlantillaTicket, ProductoPOS, ProductoPOSCodigo } from "@/lib/pos/tipos";
 
@@ -33,6 +34,7 @@ import { ConfirmacionVenta } from "./confirmacion-venta";
 import { DialogoCargarCotizacion } from "./dialogo-cargar-cotizacion";
 import { DialogoVentaSimple } from "./dialogo-venta-simple";
 import { PanelFactura } from "./panel-factura";
+import { useFavoritosPOS } from "./use-favoritos-pos";
 
 const TAMANO_LOTE = 50;
 
@@ -106,6 +108,7 @@ export function VenderPos({
   const [avisoCatalogo, setAvisoCatalogo] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [favoritos, setFavoritos] = useState(false);
+  const { favoritos: favoritosLocales, esFavorito, alternar: alternarFavorito } = useFavoritosPOS();
   const [categoria, setCategoria] = useState("");
   const [resaltado, setResaltado] = useState(-1);
   const [tokenLimpiar, setTokenLimpiar] = useState(0);
@@ -258,7 +261,6 @@ export function VenderPos({
           const datos = guardado.productos.filter(
             (producto) =>
               (!categoria || producto.categoria_id === categoria) &&
-              (!favoritos || producto.favorito_pos) &&
               (!texto || `${producto.nombre} ${producto.referencia ?? ""}`.toLocaleLowerCase("es").includes(texto)),
           );
           const precios: Record<string, string> = {};
@@ -277,7 +279,6 @@ export function VenderPos({
           ...(listaPrecioId ? { lista_precio_id: listaPrecioId } : {}),
           ...(busqueda ? { busqueda } : {}),
           ...(categoria ? { categoria_id: categoria } : {}),
-          solo_favoritos: favoritos,
           limit: TAMANO_LOTE,
           offset: reiniciar ? 0 : catalogoRef.current.length,
         });
@@ -312,7 +313,7 @@ export function VenderPos({
         }
       }
     },
-    [busqueda, categoria, favoritos, listaPrecioId, terminal.id, ambito, estadoConexion],
+    [busqueda, categoria, listaPrecioId, terminal.id, ambito, estadoConexion],
   );
 
   useEffect(() => {
@@ -322,6 +323,15 @@ export function VenderPos({
     }
     void cargarCatalogo(true);
   }, [cargarCatalogo]);
+
+  /**
+   * El filtro «Favoritos» es local (localStorage + `favorito_pos` global), así
+   * que se aplica sobre lo ya cargado; «Ver más» sigue trayendo el resto.
+   */
+  const catalogoVisible = useMemo(
+    () => (favoritos ? filtrarFavoritosPOS(catalogo, favoritosLocales) : catalogo),
+    [catalogo, favoritos, favoritosLocales],
+  );
 
   const buscarCodigo = useCallback(
     async (codigo: string) => {
@@ -359,6 +369,13 @@ export function VenderPos({
     ultimoAgregado.current = producto.nombre;
     setAnuncio(`${producto.nombre} agregado.`);
     inputRef.current?.focus();
+  }
+
+  /** La estrella marca/desmarca sin agregar al carrito (el clic no burbujea). */
+  function alternarFavoritoProducto(producto: ProductoPOS) {
+    const estabaMarcado = esFavorito(producto);
+    alternarFavorito(producto);
+    setAnuncio(estabaMarcado ? `${producto.nombre} quitado de favoritos.` : `${producto.nombre} agregado a favoritos.`);
   }
 
   useEffect(() => {
@@ -440,15 +457,15 @@ export function VenderPos({
   }, [carrito.activa.cotizacion, hayModal, puedeCobrar]);
 
   function onEnter(texto: string): boolean {
-    const resaltadoActual = resaltado >= 0 ? catalogo[resaltado] : undefined;
+    const resaltadoActual = resaltado >= 0 ? catalogoVisible[resaltado] : undefined;
     if (resaltadoActual) {
       agregar(resaltadoActual);
       setBusqueda("");
       setTokenLimpiar((actual) => actual + 1);
       return true;
     }
-    if (catalogo.length === 1 && busqueda.trim() !== "") {
-      const unico = catalogo[0];
+    if (catalogoVisible.length === 1 && busqueda.trim() !== "") {
+      const unico = catalogoVisible[0];
       if (unico) {
         agregar(unico);
         setBusqueda("");
@@ -466,14 +483,14 @@ export function VenderPos({
   }
 
   function onMover(delta: number) {
-    if (catalogo.length === 0) {
+    if (catalogoVisible.length === 0) {
       setResaltado(-1);
       return;
     }
     setResaltado((actual) => {
-      if (actual < 0) return delta > 0 ? 0 : catalogo.length - 1;
+      if (actual < 0) return delta > 0 ? 0 : catalogoVisible.length - 1;
       const siguiente = actual + delta;
-      return Math.min(Math.max(siguiente, 0), catalogo.length - 1);
+      return Math.min(Math.max(siguiente, 0), catalogoVisible.length - 1);
     });
   }
 
@@ -589,7 +606,7 @@ export function VenderPos({
           ) : null}
           <CatalogoPos
             inputRef={inputRef}
-            productos={catalogo}
+            productos={catalogoVisible}
             categorias={categorias}
             categoria={categoria}
             favoritos={favoritos}
@@ -598,19 +615,24 @@ export function VenderPos({
             cargandoMas={cargandoMas}
             hayMas={hayMas}
             error={errorCatalogo}
-            resultados={catalogo.length}
+            resultados={catalogoVisible.length}
             resaltado={resaltado}
             cantidades={cantidades}
             onBuscar={setBusqueda}
             onEnter={onEnter}
             onMover={onMover}
-            onFavoritos={() => setFavoritos((actual) => !actual)}
+            onFavoritos={() => {
+              setFavoritos((actual) => !actual);
+              setResaltado(-1);
+            }}
             onCategoria={setCategoria}
             onLimpiar={limpiar}
             onReintentar={() => void cargarCatalogo(true)}
             onVerMas={() => void cargarCatalogo(false)}
             onAgregar={agregar}
+            onFavorito={alternarFavoritoProducto}
             onVentaSimple={() => setSimpleAbierto(true)}
+            esFavorito={esFavorito}
             limpiarToken={tokenLimpiar}
           />
         </div>

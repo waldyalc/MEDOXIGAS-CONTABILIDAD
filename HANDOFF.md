@@ -37,6 +37,18 @@ con el cliente «Consumidor final» ya elegido.
   según esa columna; cuando Waldy apunte la terminal al Consumidor final real,
   base y UI quedarán alineadas.
 
+## POS 13: favoritos con la estrella teal (rama `feat/pos-favoritos-estrella`, MSG-31)
+
+Decisión de Waldy (23-11-2026): el catálogo copia la estrella de Alegra.
+Cada tarjeta lleva arriba a la derecha un cuadro teal de 32 px con una estrella
+blanca: vacía si no es favorito, rellena si lo es.
+
+- **Tarjeta (`tarjeta-producto-pos.tsx`):** el cuadro usa `bg-pos-primario` y `hover:bg-pos-primario-hover` (tokens `--pos-*`, sin `--primary` ni hex sueltos). La tarjeta pasa de `<button>` a `<article>` con un botón invisible que cubre la superficie para agregar al carrito y un `<button aria-pressed>` encima para la estrella; el clic de la estrella hace `stopPropagation()` y **no** agrega al carrito. La cantidad del carrito se movió arriba a la izquierda para no chocar con la estrella.
+- **Persistencia:** `src/lib/pos/favoritos.ts` guarda `pos:favoritos:v1` en `localStorage` (clave versionada, lectura segura que descarta JSON inválido o valores que no sean booleanos). La marca local manda sobre `productos.favorito_pos` (favorito global de Inventario): `true` marca y `false` desmarca. No se escribe en la base ni hace falta migración.
+- **Filtro «Favoritos»:** `vender-pos.tsx` filtra en el cliente con `filtrarFavoritosPOS` sobre lo cargado, así incluye tanto los favoritos locales como los globales; «Ver más» sigue trayendo el resto. Se quitó `solo_favoritos` de la llamada del POS (la RPC y la columna siguen intactas).
+- **Candados:** `src/lib/pos/favoritos.test.ts` prueba lectura/escritura segura, la precedencia local/global y el filtro; `tests/e2e/pos-favoritos.spec.ts` (sesión ZZTEST, 1440 px) marca la estrella, comprueba que el carrito sigue en 0, activa el filtro, verifica que no queda ninguna tarjeta sin marcar y recarga para confirmar la persistencia.
+- **Evidencia:** `docs/diseno/capturas/pos-favoritos/` (`01-antes-estrella-gris.png`, `02-despues-estrella-teal-marcada.png`, `03-despues-filtro-favoritos.png`, `04-despues-oscuro.png`, `05-despues-movil.png`).
+
 ## POS 12: menú lateral plano (rama `t3/pos-flat-sidebar-menu`)
 
 Decisión de Waldy (23-11-2026, 9:30 PM): el menú del POS deja de agrupar y
