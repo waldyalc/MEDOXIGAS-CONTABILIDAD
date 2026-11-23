@@ -1,6 +1,6 @@
 # POS 10 — Tres impresiones, una plantilla 80 mm + cierre 57 mm
 
-Capturas del 22-11-2026, rama `feat/pos-prefactura-cotizacion-pdf`.
+Capturas actualizadas el 23-11-2026 (MSG-22), rama `fix/pos-10-medidas-exactas`.
 Dev server en `http://localhost:3029` con datos reales de Medoxigas
 (MEDOXIGAS ALC, SRL — RNC 130893489). Los PDFs se generaron con
 Playwright (`page.pdf` + `preferCSSPageSize`) sobre el portal
@@ -21,14 +21,13 @@ Sin hoja en blanco extra en ninguno (todas 1 página).
 
 ## Medidas tipográficas (pdftotext -bbox, nuestra factura)
 
-- Nombre de empresa: ~10.8 pt alto de letra, negrita, centrado.
-- Etiquetas (`RNC:`, `Cliente:`, `Fecha:`…): ~7.2 pt, negrita.
-- Cuerpo e ítems: ~7.2 pt regular.
-- Total grande (`RD$…`): ~11 pt negrita.
-- Cierre: título `Cierre No 4` en **una sola línea** (~17.25 pt, negrita,
-  `white-space: nowrap`), filas con separador horizontal como Alegra,
-  sin caja alrededor de la tabla y sin logo (la referencia de Alegra
-  tampoco lo muestra).
+- Fuente incrustada: LiberationSans y LiberationSans-Bold, sustituto métrico de Arial.
+- Empresa, cliente y Total: 13.5 pt nominales; caja bbox ~15.08 pt.
+- Encabezado/datos de cliente/título/subtotales/conteos/pie: 9 pt; caja ~10.05 pt.
+- Item/Total de tabla: 8.1 pt bold; ítem/importe: 7.29 pt; detalle: 6.55 pt.
+- Logo: caja 69.8×20.9 mm cuando existe logo_url (la captura actual no tiene).
+- Cierre No 3 y No 4: título **26.25 pt normal, una sola línea**, filas 7.5 pt y dinero 9 pt. Márgenes de título de 4 mm autorizados; filas mantienen 5.6 mm. Sin caja ni logo inventado.
+- El alto bbox NO es el tamaño nominal: se convierte dividiendo entre 1.1171875, métrica de Arial/Liberation Sans, antes de comparar ±0.3 pt. El candado genera cuatro PDFs desde los componentes reales y comprueba ambos tipos de fuente, tamaños, página y logo.
 
 ## Comparación por partes vs `alegra-ticket-1.png`
 
@@ -62,18 +61,15 @@ Sin hoja en blanco extra en ninguno (todas 1 página).
   configurado es el propio «Precios sujetos a cambio sin previo
   aviso.». Nunca «Generado en Alegra POS».
 
-## Tamaños de letra (corrección Waldy, 22-11-2026)
+## MSG-22: contrato exacto y comparación a igual escala
 
-Medido en `alegra-ticket-80mm.pdf` con `pdftotext -bbox` (alto real de
-glifo): cuerpo ≈ 10.1 pt, encabezados (empresa/cliente/total) ≈ 15.1 pt.
-La comparación anterior hacía ver nuestras letras más grandes porque la
-PNG de Alegra venía a ~110 dpi y la nuestra a 150 dpi; aun así se aplicó
-la corrección en `ticket-pos.tsx`: nombre de empresa pequeño en negrita
-(sin `1.5em`), `Cliente:` y título del documento al tamaño del cuerpo, y
-`Total` solo un poco más grande (`1.2em`). En el cierre, `Cierre No N`
-quedó en una sola línea a 17.25 pt, verificado en **los dos cierres
-reales** (`cierre-3.pdf`, `cierre-4.pdf`; Alegra lo parte en dos, pero
-Waldy lo quiere en una).
+La tabla completa de Coder (PyMuPDF, tamaños nominales y posiciones) vive en `.opencode/skills/ticket-80mm/SKILL.md`, enlazada desde AGENTS.md. Reemplaza las medidas provisionales del MSG-15, que confundían el alto de caja bbox con pt nominales.
+
+Las comparaciones actuales se renderizan desde AMBOS PDFs a 150 dpi, sin redimensionar columnas. Se ocultan logo/datos sensibles del referente; no se versiona su PDF crudo. El título partido de la columna Alegra es la referencia, NO un cierre actual de Medoxigas. Las otras dos columnas están rotuladas como No 3 ACTUAL y No 4 ACTUAL.
+
+Prueba: `pnpm vitest run src/lib/pos/ticket-pdf.test.tsx`. Requiere Chromium Playwright, Poppler y Arial/Liberation Sans; CI instala las herramientas sin secretos y el test no consulta la base. Preview oficial falló dos veces por el sandbox de Chrome al ejecutar T3 como root; las capturas del flujo real se hicieron en 3029 con Playwright local, sin tocar 3010.
+
+Migración: tras consultar el conflicto del timestamp futuro, se eligió **Conservar propuesta**. El SQL sigue en docs/pruebas, sin aplicar ni cambiar el candado de migrations. Faltan dirección, teléfono, correo, sucursal, régimen y logo configurados para la captura del encabezado completo; no se inventaron.
 
 ## Incidencia corregida durante las capturas
 
