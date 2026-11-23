@@ -36,6 +36,12 @@ export function prepararCierre(datos: CierreTurnoPOS, terminales: CuentasTarjeta
     credito &&
     debito !== credito &&
     porCuenta(debito) + porCuenta(credito) === centavosDeDecimal(resumen.ventas.por_metodo.tarjeta);
+  const tarjetas = separable
+    ? {
+        debito: moneda(centavosATexto(porCuenta(debito))),
+        credito: moneda(centavosATexto(porCuenta(credito))),
+      }
+    : null;
   return {
     numero: turno.numero,
     inicio: fecha(turno.abierto_en),
@@ -43,12 +49,10 @@ export function prepararCierre(datos: CierreTurnoPOS, terminales: CuentasTarjeta
     ventas: moneda(resumen.ventas.total),
     base: moneda(resumen.efectivo.base_inicial),
     efectivo: moneda(resumen.ventas.por_metodo.efectivo),
-    tarjetas: separable
-      ? {
-          debito: moneda(centavosATexto(porCuenta(debito))),
-          credito: moneda(centavosATexto(porCuenta(credito))),
-        }
-      : null,
+    tarjetas:
+      centavosDeDecimal(resumen.ventas.por_metodo.tarjeta) === 0
+        ? { debito: moneda("0.00"), credito: moneda("0.00") }
+        : tarjetas,
     tarjeta: moneda(resumen.ventas.por_metodo.tarjeta),
     transferencias: moneda(resumen.ventas.por_metodo.transferencia),
     devoluciones: moneda(resumen.devoluciones.efectivo),

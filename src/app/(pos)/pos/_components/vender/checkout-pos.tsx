@@ -133,7 +133,6 @@ export function CheckoutPos({
   const [lento, setLento] = useState(false);
   const [perdido, setPerdido] = useState(false);
   const [venta, setVenta] = useState<VentaPOSResultado | null>(null);
-  const [confirmarCierre, setConfirmarCierre] = useState(false);
 
   const total = totales.total;
   const cotizacion = activa.cotizacion;
@@ -453,18 +452,11 @@ export function CheckoutPos({
   }
 
   function cerrar(nuevo: boolean) {
-    if (!nuevo) {
-      if (enviando) return;
-      if (venta) {
-        onCerrar();
-        return;
-      }
-      if (activa.lineas.length > 0) {
-        setConfirmarCierre(true);
-        return;
-      }
-      onCerrar();
-    }
+    if (nuevo) return;
+    // La X y «Cancelar» cierran el cobro de inmediato: el carrito se conserva
+    // y la venta no se registra. Mientras se envía la venta no se puede cerrar.
+    if (enviando) return;
+    onCerrar();
   }
 
   const camposCobro = (
@@ -909,29 +901,6 @@ export function CheckoutPos({
             document.body,
           )
         : null}
-
-      <Dialog open={confirmarCierre} onOpenChange={setConfirmarCierre}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>La venta no se ha cobrado. ¿Cerrar el cobro?</DialogTitle>
-            <DialogDescription>El carrito se conserva.</DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setConfirmarCierre(false)}>
-              Seguir cobrando
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setConfirmarCierre(false);
-                onCerrar();
-              }}
-            >
-              Cerrar cobro
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

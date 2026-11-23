@@ -22,6 +22,7 @@ import type {
   AsientoResumen,
   AsientoVista,
   ContactoResumen,
+  CotizacionOrigenVista,
   CuentaCajaBanco,
   Empresa,
   EstadoDocumento,
@@ -49,7 +50,7 @@ export const getEmpresa = cache(async (): Promise<Empresa | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("empresa")
-    .select("id, nombre, rnc, direccion, telefono, correo, logo_url")
+    .select("*")
     .eq("id", 1)
     .maybeSingle()
     .returns<Empresa | null>();
@@ -231,6 +232,28 @@ async function getAsiento(asientoId: string | null): Promise<AsientoVista> {
   };
 }
 
+/**
+ * Cotización que originó la factura: `pos_completar_venta` la marca como
+ * convertida y le escribe `factura_id`. El detalle de la factura usa esta
+ * relación (ya indexada) para mostrar el enlace inverso a la cotización.
+ */
+export async function getCotizacionOrigen(facturaId: string): Promise<CotizacionOrigenVista | null> {
+  if (!z.uuid().safeParse(facturaId).success) return null;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("cotizaciones")
+    .select("id, numero, fecha, total, estado")
+    .eq("factura_id", facturaId)
+    .order("numero")
+    .limit(1)
+    .maybeSingle()
+    .returns<CotizacionOrigenVista | null>();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function getFacturaVista(id: string): Promise<FacturaVista | null> {
   if (!z.uuid().safeParse(id).success) return null;
 
@@ -261,6 +284,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
     notasCredito,
     notasDebito,
     adjuntosRes,
+    cotizacionOrigen,
   ] = await Promise.all([
     supabase
       .from("factura_lineas")
@@ -321,6 +345,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
       .order("fecha")
       .returns<NotaVentaResumen[]>(),
     listarAdjuntos(supabase, "factura", id),
+    getCotizacionOrigen(id),
   ]);
 
   if (lineas.error) throw new Error(lineas.error.message);
@@ -373,5 +398,6 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
     notasCredito: notasCredito.data,
     notasDebito: notasDebito.data,
     adjuntos: adjuntosRes.data ?? [],
+    cotizacionOrigen,
   };
 }

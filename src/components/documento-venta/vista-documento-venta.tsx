@@ -25,10 +25,12 @@ import {
   Pencil,
   Plus,
   Printer,
+  ReceiptText,
   Share2,
   Truck,
 } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
+import { ImpresionPos } from "@/components/pos/impresion-pos";
 import { type OpcionSelect, SelectCampo } from "@/components/select-campo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -181,6 +183,8 @@ const TITULOS_DOCUMENTO: Record<TipoVistaDocumento, string> = {
 interface PropsBase {
   puedeEscribir: boolean;
   papel: ReactNode;
+  /** Ticket térmico de 80 mm ya armado (POS); activa el botón «Ticket». */
+  ticket?: { titulo: string; ancho: 80 | 57; nodo: ReactNode };
 }
 
 type Props =
@@ -753,6 +757,7 @@ function MenuAcciones(props: MenuAccionesProps) {
 
 interface AccionesDocumentoProps extends MenuAccionesProps {
   tipo: TipoVistaDocumento;
+  onImprimirTicket?: () => void;
   esFactura: boolean;
   documentoId: string | null;
   contactoId: string | null;
@@ -829,6 +834,18 @@ function AccionesDocumento(props: AccionesDocumentoProps) {
       <Button variant="outline" size="icon" className={BOTON_ICONO} aria-label="Imprimir" onClick={props.onImprimir}>
         <Printer />
       </Button>
+
+      {props.onImprimirTicket ? (
+        <Button
+          variant="outline"
+          className={BOTON_TEXTO}
+          aria-label="Imprimir ticket de 80 mm"
+          onClick={props.onImprimirTicket}
+        >
+          <ReceiptText />
+          Ticket
+        </Button>
+      ) : null}
 
       {props.esFactura && props.puedePagar && props.facturaId ? (
         <Button
@@ -927,6 +944,7 @@ function PanelFactura({
   adjuntos,
   facturaId,
   puedeEscribir,
+  cotizacionOrigen,
 }: {
   pagos: PagoFacturaVista[];
   notasCredito: NotaVentaResumen[];
@@ -935,6 +953,7 @@ function PanelFactura({
   adjuntos: AdjuntoItem[];
   facturaId: string;
   puedeEscribir: boolean;
+  cotizacionOrigen: DocumentoRelacionado | null;
 }) {
   return (
     <Card className="bg-card gap-0 rounded-[12px] border border-slate-400/20 px-2 pt-2 pb-6 shadow-none ring-0 [--card-spacing:0px] sm:px-8 sm:pb-8">
@@ -958,6 +977,11 @@ function PanelFactura({
           <TabsTrigger value="adjuntos" className={PESTANA}>
             Adjuntos
           </TabsTrigger>
+          {cotizacionOrigen ? (
+            <TabsTrigger value="cotizacion-origen" className={PESTANA}>
+              Cotización origen
+            </TabsTrigger>
+          ) : null}
         </TabsList>
 
         <TabsContent value="pagos" className="mt-6">
@@ -980,6 +1004,11 @@ function PanelFactura({
             puedeEscribir={puedeEscribir}
           />
         </TabsContent>
+        {cotizacionOrigen ? (
+          <TabsContent value="cotizacion-origen" className="mt-6">
+            <TablaDocumentoRelacionado documento={cotizacionOrigen} tipo="cotizacion" />
+          </TabsContent>
+        ) : null}
       </Tabs>
     </Card>
   );
@@ -1304,6 +1333,7 @@ function prepararVista(props: Props): VistaPreparada | null {
     notasDebito = props.datos.notasDebito;
     asiento = props.datos.asiento;
     adjuntos = props.datos.adjuntos;
+    cotizacionOrigen = props.datos.cotizacionOrigen;
   } else {
     documento = props.datos.documento;
     facturaRelacionada = props.datos.facturaRelacionada;
@@ -1538,6 +1568,7 @@ function useAccionesVista({
 }
 
 export function VistaDocumentoVenta(props: Props) {
+  const [imprimiendoTicket, setImprimiendoTicket] = useState(false);
   const preparado = prepararVista(props);
   const acciones = useAccionesVista({
     tipo: props.tipo,
@@ -1565,6 +1596,7 @@ export function VistaDocumentoVenta(props: Props) {
         adjuntos={adjuntos}
         facturaId={factura.id}
         puedeEscribir={props.puedeEscribir}
+        cotizacionOrigen={preparado.cotizacionOrigen}
       />
     );
   } else if (tipoDocumento) {
@@ -1617,6 +1649,7 @@ export function VistaDocumentoVenta(props: Props) {
               onAnular={() => {
                 acciones.cambiarAnular(true);
               }}
+              onImprimirTicket={props.ticket ? () => setImprimiendoTicket(true) : undefined}
             />
           }
         />
@@ -1668,6 +1701,16 @@ export function VistaDocumentoVenta(props: Props) {
       />
 
       <PortalImpresion>{papel}</PortalImpresion>
+
+      {imprimiendoTicket && props.ticket ? (
+        <ImpresionPos
+          titulo={props.ticket.titulo}
+          ancho={props.ticket.ancho}
+          onCerrar={() => setImprimiendoTicket(false)}
+        >
+          {props.ticket.nodo}
+        </ImpresionPos>
+      ) : null}
     </div>
   );
 }

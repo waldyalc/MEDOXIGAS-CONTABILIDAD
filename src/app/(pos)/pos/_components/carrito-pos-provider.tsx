@@ -5,6 +5,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 import type { UnidadPos } from "@/lib/inventario/ferreteria/tipos";
 import { almacenColaOffline, guardarOffline, leerOffline } from "@/lib/pos/almacen-offline";
 import { calcularLineaPOS, sumarMontos, type TotalesCarritoPOS, type TotalesLineaPOS } from "@/lib/pos/calculo";
+import { eliminarPestanaDe, ID_PESTANA_PRINCIPAL, renombrarPestanaEn } from "@/lib/pos/pestanas-venta";
 import type { Decimal, ProductoPOS } from "@/lib/pos/tipos";
 
 import { useOfflinePOS } from "./offline-pos-provider";
@@ -40,7 +41,7 @@ export interface PestanaVenta {
   listaPrecioId: string;
   numeracionId: string;
   vendedorId: string;
-  cotizacion: { id: string; numero: number } | null;
+  cotizacion: { id: string; numero: number; fecha: string | null; vencimiento: string | null } | null;
 }
 
 export interface DefaultsVenta {
@@ -69,6 +70,8 @@ interface ValorCarrito {
   aplicarCotizacion: (entrada: {
     id: string;
     numero: number;
+    fecha: string | null;
+    vencimiento: string | null;
     contactoId: string;
     listaPrecioId: string;
     lineas: {
@@ -104,9 +107,9 @@ function nuevoId(): string {
   return aleatorio;
 }
 
-export function crearPestana(nombre: string, defaults: DefaultsVenta): PestanaVenta {
+export function crearPestana(nombre: string, defaults: DefaultsVenta, id?: string): PestanaVenta {
   return {
-    id: nuevoId(),
+    id: id ?? nuevoId(),
     nombre,
     lineas: [],
     contactoId: defaults.contactoId,
@@ -157,7 +160,9 @@ export function ivaPorTasa(lineas: readonly LineaCarrito[]): { tasa: Decimal; mo
 }
 
 export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsVenta; children: ReactNode }) {
-  const [pestanas, setPestanas] = useState<PestanaVenta[]>(() => [crearPestana("Venta principal", defaults)]);
+  const [pestanas, setPestanas] = useState<PestanaVenta[]>(() => [
+    crearPestana("Venta principal", defaults, ID_PESTANA_PRINCIPAL),
+  ]);
   const [activaId, setActivaId] = useState<string>(() => pestanas[0]?.id ?? "");
   const { ambito } = useOfflinePOS();
   const [hidratado, setHidratado] = useState(false);
@@ -370,33 +375,17 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
   }, [defaults, pestanas]);
 
   const renombrarPestana = useCallback((id: string, nombre: string) => {
-    const limpio = nombre.trim().slice(0, 30);
-    setPestanas((actuales) =>
-      actuales.map((pestana) =>
-        pestana.id === id ? { ...pestana, nombre: limpio === "" ? pestana.nombre : limpio } : pestana,
-      ),
-    );
+    setPestanas((actuales) => renombrarPestanaEn(actuales, id, nombre));
   }, []);
 
   const eliminarPestana = useCallback(
     (id: string) => {
-      if (pestanas.length === 1) {
-        const nueva = crearPestana("Venta principal", defaults);
-        setPestanas([nueva]);
-        setActivaId(nueva.id);
-        return;
-      }
-
-      const indice = pestanas.findIndex((pestana) => pestana.id === id);
-      const restantes = pestanas.filter((pestana) => pestana.id !== id);
-      setPestanas(restantes);
-
-      if (id === activaId) {
-        const anterior = restantes[Math.max(0, indice - 1)] ?? restantes[0];
-        if (anterior) setActivaId(anterior.id);
-      }
+      const resultado = eliminarPestanaDe(pestanas, activaId, id);
+      if (!resultado.eliminada) return;
+      setPestanas(resultado.pestanas);
+      if (resultado.activaId !== activaId) setActivaId(resultado.activaId);
     },
-    [activaId, defaults, pestanas],
+    [activaId, pestanas],
   );
 
   const setContacto = useCallback(
@@ -423,6 +412,8 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
     (entrada: {
       id: string;
       numero: number;
+      fecha: string | null;
+      vencimiento: string | null;
       contactoId: string;
       listaPrecioId: string;
       lineas: {
@@ -442,7 +433,12 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
         contactoId: entrada.contactoId,
         listaPrecioId: entrada.listaPrecioId,
         vendedorId: "",
-        cotizacion: { id: entrada.id, numero: entrada.numero },
+        cotizacion: {
+          id: entrada.id,
+          numero: entrada.numero,
+          fecha: entrada.fecha,
+          vencimiento: entrada.vencimiento,
+        },
         lineas: entrada.lineas.map((linea) => ({
           id: nuevoId(),
           productoId: linea.productoId,

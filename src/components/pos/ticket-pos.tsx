@@ -14,23 +14,11 @@ import type { FilaTicketPOS, LineaTicketPOS, TicketPOSPayload } from "@/lib/pos/
  * Papel térmico: negro sobre blanco, sin tokens.
  */
 
-const FAMILIAS: Record<TicketPOSPayload["diseno"]["fuente"], string> = {
-  clasica: 'ui-sans-serif, system-ui, "Segoe UI", Arial, sans-serif',
-  moderna: '"Geist", "Inter", ui-sans-serif, system-ui, sans-serif',
-  compacta: 'ui-sans-serif, system-ui, "Arial Narrow", sans-serif',
-};
-
-const TAMANOS: Record<TicketPOSPayload["diseno"]["tamano_letra"], Record<80 | 57, string>> = {
-  pequena: { 80: "9pt", 57: "7pt" },
-  mediana: { 80: "10pt", 57: "8pt" },
-  grande: { 80: "11pt", 57: "9pt" },
-};
-
-const INTERLINEADO: Record<TicketPOSPayload["diseno"]["interlineado"], number> = {
-  compacto: 1.2,
-  normal: 1.35,
-  amplio: 1.55,
-};
+const TIPOGRAFIA_TICKET = {
+  fontFamily: 'Arial, "Liberation Sans", sans-serif',
+  fontSize: "9pt",
+  lineHeight: "13.5pt",
+} as const;
 
 /*
  * Alto fijo de 250 mm: Chrome ignora el alto «auto» en @page y cae a
@@ -51,7 +39,7 @@ const CSS_IMPRESION = `
   [data-print-root] .ticket-pos {
     width: 80mm;
     margin: 0;
-    padding: 6mm 5mm;
+    padding: 5.6mm 5mm;
     background: #fff !important;
     color: #000 !important;
     box-shadow: none !important;
@@ -88,7 +76,10 @@ function Logo({ url, nombre, estrecho }: { url: string | null; nombre: string; e
     <img
       src={url}
       alt={nombre}
-      className={cn("mx-auto mb-1 w-auto object-contain grayscale", estrecho ? "max-h-[11mm]" : "max-h-[16mm]")}
+      className={cn(
+        "mx-auto mb-1 object-contain grayscale",
+        estrecho ? "h-[11mm] max-w-full" : "h-[20.9mm] w-[69.8mm]",
+      )}
       onError={(evento) => {
         evento.currentTarget.style.display = "none";
       }}
@@ -113,7 +104,11 @@ function FilaTotal({ etiqueta, valor, fuerte }: { etiqueta: string; valor: strin
 function LineaDato({ texto, className }: { texto: string; className?: string }) {
   const corte = texto.indexOf(": ");
   if (corte <= 0) {
-    return <p className={cn("font-bold", className)}>{texto}</p>;
+    return (
+      <p className={cn((texto.startsWith("NCF ") || texto === "Sin valor fiscal") && "font-bold", className)}>
+        {texto}
+      </p>
+    );
   }
   return (
     <p className={className}>
@@ -138,24 +133,25 @@ function LineaItem({
     <div className="linea flex flex-col py-0.5">
       <div className="flex items-baseline gap-1.5">
         <span
-          className={cn("min-w-0 break-words text-[0.8em]", minimalista && "font-bold tracking-[0.08em] uppercase")}
+          className={cn("min-w-0 break-words text-[7.29pt]", minimalista && "font-bold tracking-[0.08em] uppercase")}
         >
           {linea.descripcion}
         </span>
-        {apilada ? null : <span className="ml-auto shrink-0 text-[0.8em] tabular-nums">{linea.total}</span>}
+        {apilada ? null : <span className="ml-auto shrink-0 text-[7.29pt] tabular-nums">{linea.total}</span>}
       </div>
       {linea.detalle ? (
         <div className="flex items-baseline justify-between gap-2">
-          <span className={cn("min-w-0 text-[0.72em]", minimalista && "tracking-[0.06em] uppercase")}>
-            {linea.detalle}
+          <span className={cn("min-w-0 text-[6.55pt]", minimalista && "tracking-[0.06em] uppercase")}>
+            <strong>{linea.detalle.split(" ", 1)[0]}</strong>
+            {linea.detalle.slice(linea.detalle.indexOf(" ") < 0 ? linea.detalle.length : linea.detalle.indexOf(" "))}
           </span>
-          {apilada ? <span className="shrink-0 text-[0.8em] tabular-nums">{linea.total}</span> : null}
+          {apilada ? <span className="shrink-0 text-[7.29pt] tabular-nums">{linea.total}</span> : null}
         </div>
       ) : null}
-      {apilada && !linea.detalle ? <div className="text-right text-[0.8em] tabular-nums">{linea.total}</div> : null}
-      {linea.referencia ? <span className="text-[0.72em]">Ref. {linea.referencia}</span> : null}
+      {apilada && !linea.detalle ? <div className="text-right text-[7.29pt] tabular-nums">{linea.total}</div> : null}
+      {linea.referencia ? <span className="text-[6.55pt]">Ref. {linea.referencia}</span> : null}
       {detallado && linea.descuento ? (
-        <div className="flex items-baseline justify-between gap-2 text-[0.72em]">
+        <div className="flex items-baseline justify-between gap-2 text-[6.55pt]">
           <span>Descuento</span>
           <span className="shrink-0 tabular-nums">{linea.descuento}</span>
         </div>
@@ -170,7 +166,7 @@ function SeccionCliente({ cliente, minimalista }: { cliente: TicketPOSPayload["c
 
   return (
     <section className={cn("flex flex-col", minimalista ? "items-start text-left" : "items-center text-center")}>
-      {cliente.nombre ? <p className="text-[1.5em] font-bold">Cliente: {cliente.nombre}</p> : null}
+      {cliente.nombre ? <p className="text-[13.5pt] leading-[18pt] font-bold">Cliente: {cliente.nombre}</p> : null}
       {cliente.lineas.map((linea) => (
         <LineaDato key={linea} texto={linea} />
       ))}
@@ -193,7 +189,7 @@ function SeccionItems({
 
   return (
     <section className="mt-2 flex flex-col">
-      <div className="flex items-baseline justify-between gap-2 text-[0.9em]">
+      <div className="flex items-baseline justify-between gap-2 text-[8.1pt] font-bold">
         <span>Item</span>
         <span>Total</span>
       </div>
@@ -220,7 +216,7 @@ function SeccionBloques({ bloques, minimalista }: { bloques: TicketPOSPayload["b
       <Separador />
       {bloques.map((bloque) => (
         <section key={bloque.titulo} className="mt-1 flex flex-col">
-          <p className={cn("text-[0.9em] font-bold", minimalista && "uppercase")}>{bloque.titulo}</p>
+          <p className={cn("text-[9pt] font-bold", minimalista && "uppercase")}>{bloque.titulo}</p>
           {bloque.filas.map((fila) => (
             <FilaTotal
               key={`${bloque.titulo}-${fila.etiqueta || fila.valor}`}
@@ -244,8 +240,10 @@ function SeccionTotales({ totales }: { totales: FilaTicketPOS[] }) {
         const fuerte = fila.etiqueta === "Total" || fila.etiqueta === "Total del recibo";
         return (
           <div key={fila.etiqueta} className="contents">
-            <span className="min-w-0 break-words text-right font-bold">{fila.etiqueta ? `${fila.etiqueta}:` : ""}</span>
-            <span className={cn("text-right tabular-nums", fuerte && "text-[1.5em] font-bold")}>{fila.valor}</span>
+            <span className={cn("min-w-0 break-words text-right font-bold", fuerte && "text-[13.5pt]")}>
+              {fila.etiqueta ? `${fila.etiqueta}:` : ""}
+            </span>
+            <span className={cn("text-right tabular-nums", fuerte && "text-[13.5pt] font-bold")}>{fila.valor}</span>
           </div>
         );
       })}
@@ -289,11 +287,8 @@ export function TicketPos({
 
   const estilo: CSSProperties = {
     width: `${ancho}mm`,
-    padding: "6mm 5mm",
-    fontFamily: FAMILIAS[diseno.fuente],
-    fontSize: TAMANOS[diseno.tamano_letra][ancho],
-    lineHeight: INTERLINEADO[diseno.interlineado],
-    letterSpacing: diseno.fuente === "compacta" ? "-0.01em" : undefined,
+    padding: "5.6mm 5mm",
+    ...TIPOGRAFIA_TICKET,
     fontVariantNumeric: "tabular-nums",
   };
 
@@ -313,7 +308,7 @@ export function TicketPos({
         {diseno.mostrar_logo ? <Logo url={diseno.logo_url} nombre={nombreEmpresa} estrecho={estrecho} /> : null}
         {encabezado.empresa.map((linea, indice) =>
           indice === 0 ? (
-            <p key={linea} className="text-[1.5em] font-bold">
+            <p key={linea} className="text-[13.5pt] leading-[18pt] font-bold">
               {linea}
             </p>
           ) : (
@@ -333,7 +328,7 @@ export function TicketPos({
 
       <div className={cn("flex flex-col", alineacion)}>
         <p className={cn("font-bold", minimalista && "tracking-[0.08em] uppercase")}>{encabezado.titulo}</p>
-        {encabezado.anulada ? <p className="text-[1.2em] font-bold tracking-widest">ANULADA</p> : null}
+        {encabezado.anulada ? <p className="text-[13.5pt] font-bold tracking-widest">ANULADA</p> : null}
         {encabezado.lineas.map((linea) => (
           <LineaDato key={linea} texto={linea} />
         ))}
@@ -355,14 +350,14 @@ export function TicketPos({
       <LineasIzquierda filas={payload.resumen} />
 
       {payload.nota ? (
-        <p className={cn("mt-1 text-[0.82em]", minimalista ? "text-left" : "text-center")}>{payload.nota}</p>
+        <p className={cn("mt-1 text-[9pt]", minimalista ? "text-left" : "text-center")}>{payload.nota}</p>
       ) : null}
 
       {payload.pie ? (
         <p className={cn("mt-4 whitespace-pre-line", minimalista ? "text-left" : "text-center")}>{payload.pie}</p>
       ) : null}
 
-      {estrecho ? <div className="mt-1 text-center text-[0.72em]">***</div> : null}
+      {estrecho ? <div className="mt-1 text-center text-[6.55pt]">***</div> : null}
     </div>
   );
 }

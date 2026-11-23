@@ -1,0 +1,54 @@
+-- POS 10: sucursal y régimen del encabezado del ticket.
+-- Migración aditiva; actualizar_empresa acepta las claves nuevas.
+
+-- Propuesta de migración aditiva (POS 10 — encabezado del ticket 80 mm):
+-- empresa.sucursal y empresa.regimen para el encabezado estilo Alegra.
+--
+-- NO APLICADA. Probar con BEGIN/ROLLBACK (o supabase start + db reset) y
+-- aplicar solo con el OK de Waldy. Cuando se aplique como migración real,
+-- el archivo va en supabase/migrations/ con timestamp UTC real mayor que
+-- el último existente y después hay que regenerar `pnpm db:types`.
+--
+-- El código ya envía sucursal/regimen en el JSON de actualizar_empresa:
+-- con la función vieja se ignoran sin error; con esta versión se guardan.
+
+alter table public.empresa
+  add column if not exists sucursal text null,
+  add column if not exists regimen text null;
+
+create or replace function public.actualizar_empresa(p jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_rol text;
+  v_nombre text;
+begin
+  v_rol := public.rol_actual();
+  if v_rol is null or v_rol <> 'admin' then
+    raise exception 'sin permiso' using errcode = '42501';
+  end if;
+
+  if p is null then
+    raise exception 'datos de la empresa requeridos' using errcode = '22023';
+  end if;
+
+  v_nombre := trim(coalesce(p->>'nombre', ''));
+  if v_nombre = '' then
+    raise exception 'el nombre de la empresa es obligatorio' using errcode = '22023';
+  end if;
+
+  update public.empresa
+  set nombre = v_nombre,
+      rnc = nullif(trim(coalesce(p->>'rnc', '')), ''),
+      sucursal = nullif(trim(coalesce(p->>'sucursal', '')), ''),
+      regimen = nullif(trim(coalesce(p->>'regimen', '')), ''),
+      direccion = nullif(trim(coalesce(p->>'direccion', '')), ''),
+      telefono = nullif(trim(coalesce(p->>'telefono', '')), ''),
+      correo = nullif(trim(coalesce(p->>'correo', '')), ''),
+      logo_url = nullif(trim(coalesce(p->>'logo_url', '')), '')
+  where id = 1;
+end;
+$$;

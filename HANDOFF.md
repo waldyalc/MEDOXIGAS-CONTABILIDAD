@@ -13,6 +13,104 @@ fecha fiscal al sincronizar y stock según `vende_negativo`.
 - Pendientes: llamada RPC tipada, prueba real exactamente tres documentos y cuadre, prueba/captura de cierre, sincronizando real y evidencia claro/oscuro/móvil. Crédito y conversión de cotizaciones requieren conexión en esta implementación.
 - No está listo para integrar ni para quitar draft. Diseño y límites actualizados en `docs/diseno/pos-offline.md`.
 
+## POS 7–8: más funciones con cotizaciones y cerrar cobro directo (rama `feat/pos-cotizaciones-mas-funciones`)
+
+Trabajo de subagente ejecutor sobre `feat/pos-alegra-exacto` (PLAN POS 2, puntos 7 y 8). Sin migraciones ni datos nuevos: solo lectura + carrito en memoria.
+
+- **Botón «más funciones» (`panel-factura.tsx`):** el cuadro oscuro de la barra de cobro deja de ser un enlace a `/pos/historial` y abre un `DropdownMenu` anclado con «Guardar como cotización», «Cargar cotización» e «Historial de ventas» (el antiguo acceso del botón, ahora dentro del menú; icono `MoreHorizontal`). Conserva tamaño (44×45 px), radio de 10 px, fondo `--pos-oscuro` y el punto gris. El menú de sliders de arriba conserva «Venta simple» (F4); las cotizaciones ya no están duplicadas allí.
+- **Guardar:** el payload sale de `src/lib/pos/cotizaciones.ts` (`payloadCotizacionPOS`: cliente, lista, vendedor, líneas, cantidades, precios, descuentos e impuestos) y el `toast` muestra `Cotización No N guardada` con enlace a `/dashboard/cotizaciones/<id>`. Se mantiene el diálogo de confirmación/impresión.
+- **Cargar:** `DialogoCargarCotizacion` recibe el cliente del carrito y filtra por `contacto_id` (nuevo campo opcional en `esquemaCotizacionesAbiertas`; lectura, sin migración). El diálogo avisa «Solo las cotizaciones abiertas de <cliente>» y muestra un estado vacío acorde. Las líneas se mapean con `lineasDeCotizacionPOS`.
+- **Enlace inverso factura → cotización:** `getFacturaVista` incluye `cotizacionOrigen` (consulta `cotizaciones.factura_id`, ya indexada) y el detalle de factura suma la pestaña «Cotización origen» solo cuando existe, reutilizando la tabla de documentos relacionados con enlace al detalle de la cotización.
+- **Cerrar cobro directo (`checkout-pos.tsx`):** se eliminó `confirmarCierre` y el diálogo «La venta no se ha cobrado. ¿Cerrar el cobro?». La X y «Cancelar» cierran el modal de inmediato, conservan el carrito y respetan el bloqueo mientras `enviando`. Se conserva el toast de campos obligatorios que trajo el PR #111.
+- **Tests:** `src/lib/pos/cotizaciones-pos.test.ts` (9 pruebas) y `src/lib/pos/checkout-pos.test.ts` (2): payload de guardado, mapeo de carga, filtro por contacto, `cotizacion_id` en la venta, `getCotizacionOrigen` por `factura_id`, pestaña de la factura y candados que prohíben volver a enlazar el botón a `/pos/historial` o mostrar «¿Cerrar el cobro?».
+- **Evidencia:** `docs/diseno/capturas/pos-7/` con `menu-mas-funciones.png`, `cargar-cotizacion-cliente.png`, `cerrar-cobro-directo.png` y `medidas.md`, tomadas con Playwright en el puerto 3027 (el preview 3010 se actualiza al integrar). Solo lectura: no se guardó ninguna cotización ni venta. No existe en la base una factura creada desde cotización, así que la pestaña «Cotización origen» se validó con las pruebas y no con captura (crear ese dato estaba prohibido).
+- **Coordinación con POS 10:** no se agregó «Imprimir cotización» ni se tocó el icono de impresora del header; el acceso al historial quedó como opción del menú.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` y `pnpm build` en verde. Pendiente revisión visual e integración del Orquestador; sin merge a `main`.
+
+## POS 10: prefactura, cotización y cierre sobre la plantilla 80 mm (rama `feat/pos-prefactura-cotizacion-pdf`)
+
+Subagente ejecutor sobre `feat/pos-alegra-exacto`. Una sola plantilla
+(`TicketPos` + `impresion.ts`) cubre factura, prefactura y cotización; el
+cierre sigue siendo su variante de 57 mm.
+
+- **Prefactura (solo presentación):** el icono de impresora del panel abre
+  «Imprimir vista previa» del carrito en memoria: título «Prefactura» +
+  «Sin valor fiscal», sin NCF, sin venta ni escritura en base. El menú
+  «más funciones» ofrece «Imprimir cotización» (habilitado solo con
+  cotización cargada).
+- **Cotización 80 mm:** «Cotización No. N», fecha, «Vence», «Sin valor
+  fiscal», totales compartidos `(A) ITBIS`/`Total ITBIS`. Desde el POS y
+  desde `/dashboard/cotizaciones/[id]` (acción nueva junto a la Carta).
+- **Encabezado orden Alegra:** nombre → `Sucursal` (opcional) → `RNC:` →
+  dirección → `Teléfono:` → correo → `Régimen` (opcional); se omite lo
+  que no exista. La tabla `empresa` **no tiene** `sucursal`/`regimen`
+  (verificado en los tipos generados): quedaron como campos opcionales
+  en `Empresa`/`EmpresaPOS`; la migración aditiva + campos de
+  Configuración quedan pendientes del OK de Waldy.
+- **Cierre:** `Cierre No N` en una sola línea (17.25 pt negrita, nowrap),
+  sin marco; filas como Alegra.
+- **Bug real corregido:** el portal de impresión vivía dentro de
+  `PanelFactura`, que `vender-pos` desmonta cuando
+  `matchMedia("(min-width:1024px)")` es falso. Al imprimir, Chromium
+  evalúa esa media query con el ancho del papel (80 mm) → panel desmontado
+  a mitad del `window.print()` → hoja en blanco. El estado `impresionDoc`
+  y `ImpresionPos` ahora viven en `vender-pos` (el panel delega con
+  `onImprimir`); candado en `prefactura-cotizacion.test.ts`.
+- **Candados:** `prefactura-cotizacion.test.ts` (acciones del panel,
+  portal en `vender-pos`, prohibidos «Generado en Alegra POS», OXYMAT y
+  Fiel Ferreteria) + `impresion.test.ts` (payloads).
+- **Verificación:** typecheck/check/test (1,582 passed) /build verdes;
+  PDFs en `docs/diseno/capturas/pos-10/`: factura, prefactura y
+  cotización a **1 página, 227.04 × 708.96 pt** y cierre a 162 × 708.96;
+  `comparacion.png` y `medidas.md` con el análisis por partes.
+
+## POS 10 fix: encabezado configurable + tamaños (rama `fix/pos-10-encabezado-config`)
+
+MSG-15 de Waldy/Coder sobre la plantilla única:
+
+- **Empresa `sucursal`/`regimen`:** campos nuevos en
+  `esquemaEmpresa`, `datosEmpresa`, el formulario de Configuración >
+  Empresa (refactor `CamposDatos` por el candado de complejidad) y el
+  mapeador `empresaPOS`. `getEmpresa` lee `select("*")`: las columnas
+  llegan solas cuando existan. La migración aditiva propuesta
+  (`alter table empresa` + `actualizar_empresa` extendida) quedó en
+  `docs/pruebas/migracion-empresa-sucursal-regimen.sql` dentro de
+  BEGIN/ROLLBACK — **no aplicada, espera OK de Waldy**. Hasta entonces
+  el RPC viejo ignora las claves nuevas sin error y el ticket omite
+  las líneas.
+- **Tamaños:** empresa pequeña en negrita, `Cliente:` y título del
+  documento al tamaño del cuerpo, `Total` a `1.2em` (se quitó el
+  `1.5em` de Alegra que se veía grande). Los dos cierres reales
+  (`cierre-3`, `cierre-4`) salen con el título en una línea.
+- **Tests:** `impresion.test.ts` suma el bloque «encabezado de empresa
+  completo» (orden Alegra, omisión sin datos, prefactura sin
+  `Vence`, cotización con `Vence`/`Vendedor`) y
+  `validacion.test.ts` cubre `sucursal`/`regimen`.
+- **Capturas nuevas:** `config-empresa.png`, `cierre-3.*`,
+  `cierre-4.*`, `comparacion-cierres.png` y los recortes
+  `comparacion-{encabezado,cliente-doc,items-totales,pie}.png`.
+
+## POS 10 MSG-22: medidas exactas y candado PDF (`fix/pos-10-medidas-exactas`)
+
+- Skill solicitada: `.opencode/skills/ticket-80mm/SKILL.md`, enlazada desde AGENTS.md, con tabla completa de tamaños/posiciones de Coder, encabezado configurable, reglas de plantilla única y verificación Poppler. Sustituye los tamaños provisionales en em del MSG-15.
+- `TicketPos`: Arial/Liberation Sans 9 pt; empresa/cliente/Total 13.5 pt bold; título 9; tabla 8.1 bold; ítem 7.29; detalle 6.55; logo configurable 69.8×20.9 mm. No se cargó logo ni datos.
+- Cierre: 26.25 pt normal en una línea. Tras medir ~48 mm de texto contra ~45.8 mm útiles, se consultó y se autorizó reducir SOLO los márgenes laterales del título a 4 mm. Filas 7.5 pt, dinero 9 pt. Débito/crédito cero se muestran separados cuando el total de tarjetas es cero; con importes históricos sin atribución se conserva la fila combinada, sin inventar desglose.
+- Prueba `src/lib/pos/ticket-pdf.test.tsx`: genera los cuatro PDFs con componentes reales, Tailwind real y Chromium sin servidor/base; comprueba fuentes incrustadas con pdffonts, tamaños ±0.3 pt con pdftotext -bbox (alto de caja convertido usando métrica Arial/LiberationSans 1.1171875), dimensiones, una página, caja del logo y pesos. CI instala Chromium, Poppler y Liberation antes de `pnpm test`.
+- Evidencia real regenerada en `docs/diseno/capturas/pos-10/`: factura/prefactura/cotización y ambos cierres No 3/4. Comparaciones y recortes a 150 dpi en ambos lados, sin redimensionar, con datos sensibles de referencia ocultos. Preview oficial bloqueado por sandbox de Chrome al ejecutar T3 como root; se usó Playwright local 3029 tras dos fallos, sin tocar 3010.
+- SQL: se preguntó por el timestamp futuro `20261126121000` y se eligió **Conservar propuesta**. Sigue en `docs/pruebas/migracion-empresa-sucursal-regimen.sql`, sin aplicar ni promover a migrations, sin modificar el candado. Se mantiene íntegro el trabajo de configuración de #120.
+- Verificación: typecheck/check/test/build aprobados. Sin escrituras de negocio, sin migraciones aplicadas ni datos inventados.
+
+## POS 9 — pestañas de venta con ⋮, renombrar y eliminar (`feat/pos-pestanas-venta`)
+
+Base `feat/pos-alegra-exacto`. Solo presentación y estado en memoria: sin base, migraciones ni ventas nuevas.
+
+- **Reglas puras** en `src/lib/pos/pestanas-venta.ts` (`renombrarPestanaEn`, `eliminarPestanaDe`, `esPestanaPrincipal`) usadas por el provider: la principal (primera) nunca se elimina, el carrito nunca queda sin pestaña y al borrar la activa se activa su vecina anterior. Nombre vacío conserva el anterior; máximo 30 caracteres.
+- **UI:** ⋮ visible siempre en la activa y al hover/foco en las demás; Renombrar/Eliminar en las extra y solo Renombrar en la principal; input inline con Enter/blur que guarda y Escape que cancela; la extra vacía se borra al instante y con productos pide la confirmación corta. La tira hace scroll a la pestaña activa en móvil.
+- **Hidratación:** el id de la primera pestaña es fijo (`ID_PESTANA_PRINCIPAL`) para que SSR y cliente coincidan; se eliminó el warning de hidratación del POS.
+- **Tests:** `src/lib/pos/pestanas-venta.test.ts` (9 casos de comportamiento) + candado en `diseno-pos.test.ts` (⋮, Renombrar/Eliminar, principal sin Eliminar, confirmación solo con productos, 160 px/Basket/teal/dark).
+- **Capturas:** `docs/diseno/capturas/pos-9/` con menú, renombrar y confirmación (claro), detalles, oscuro y móvil + `medidas.md` (pestaña 160 px, barra 44, menú ⋮ 24, input 128×32, diálogo 384).
+- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1,584 aprobados, 3 omitidos) y `pnpm build` en verde; Playwright con 0 errores de consola y sin crear ni editar ventas. Integrado con `origin/feat/pos-alegra-exacto` (PR #113 y POS 5) sin conflictos en código.
+
 ## Regla de capturas al terminar (rama `docs/regla-capturas-preview`)
 
 Solo documentación. `AGENTS.md` gana la sección «Preview y capturas al terminar»

@@ -73,6 +73,8 @@ Viven en `.opencode/skills/<nombre>/SKILL.md`. Cárgalas con la herramienta `ski
 - `pedir-ayuda` — si te atascas, pregunta al Orquestador con la herramienta `question`; no des vueltas ni inventes atajos.
 - `biome` — cómo convertir cada corrección de Waldy en un candado (test o regla de Biome) y resumen de la charla de Lauren Tan.
 
+- `ticket-80mm` — `.opencode/skills/ticket-80mm/SKILL.md`: contrato MSG-22 de medidas exactas en pt/mm y prueba de cuatro PDFs (`src/lib/pos/ticket-pdf.test.tsx`). Obligatoria al tocar factura/prefactura/cotización/cierre: no adivinar tamaños en em ni comparar capturas con dpi distintos.
+
 ## Módulos (menú lateral)
 
 Hechos: Inicio, Ingresos (facturas de venta y recurrentes, pagos recibidos, notas de crédito y débito, cotizaciones, conduces), Compras (facturas de proveedor, pagos, gastos menores, notas de crédito, órdenes de compra, pagos recurrentes), Contactos, Inventario (productos, ajustes, transferencias, listas de precios, almacenes, categorías), Bancos (cuentas y conciliaciones), Contabilidad (catálogo de cuentas, asientos, numeraciones, activos fijos, periodos), Reportes y Configuración.
@@ -108,6 +110,12 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 
 - `src/lib/supabase/types.ts` ← `pnpm db:types` (tras cada migración; el job `db` de CI verifica que esté al día).
 - `pnpm-lock.yaml` ← `pnpm install`. `.next/`, `next-env.d.ts` ← `next dev`/`build`.
+
+## Base de datos (regla del VPS)
+
+- Toda operación de base de datos (migraciones, consultas, tipos) se hace con **Supabase CLI desde este VPS**; no se usan claves en scripts ni `service_role` en el cliente.
+- El token de acceso vive en `/root/.supabase.env` (chmod 600, cargado por el shell). **Nunca** se imprime, se pega en el chat o en logs, ni se commitea.
+- Proyecto de prueba: `ljfdhrnvlsfaweuvnqxz`. La base de producción y la de OPP no se tocan sin el OK de Waldy en el chat.
 
 ## Calidad de código (la verifica CI; el pre-push también)
 

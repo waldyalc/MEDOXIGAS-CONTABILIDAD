@@ -80,6 +80,8 @@ function empresaPOS(
     telefono: string | null;
     correo: string | null;
     logo_url: string | null;
+    sucursal?: string | null;
+    regimen?: string | null;
   } | null,
 ): EmpresaPOS | null {
   if (!empresa) return null;
@@ -91,6 +93,8 @@ function empresaPOS(
     telefono: empresa.telefono,
     correo: empresa.correo,
     logo_url: empresa.logo_url,
+    sucursal: empresa.sucursal ?? null,
+    regimen: empresa.regimen ?? null,
   };
 }
 
@@ -162,9 +166,15 @@ export async function cuentasTurnoPOS() {
 // Cotizaciones
 // ---------------------------------------------------------------------------
 
-export async function cotizacionesAbiertasPOS(q: string) {
+export async function cotizacionesAbiertasPOS(q: string, contactoId?: string) {
   try {
-    return { ok: true as const, data: await getCotizacionesAbiertas({ q }) };
+    return {
+      ok: true as const,
+      data: await getCotizacionesAbiertas({
+        q,
+        ...(contactoId ? { contacto_id: contactoId } : {}),
+      }),
+    };
   } catch (error) {
     return { ok: false as const, error: errorDe(error) };
   }

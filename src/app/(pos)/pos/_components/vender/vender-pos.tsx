@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ReceiptText } from "@/components/icons";
+import { ImpresionPos } from "@/components/pos/impresion-pos";
+import { TicketPos } from "@/components/pos/ticket-pos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,6 +17,8 @@ import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { crearCotizacionPOS } from "@/lib/pos/acciones";
 import { conBloqueoOffline, guardarOffline, leerOffline } from "@/lib/pos/almacen-offline";
+import { enlaceCotizacionPOS, payloadCotizacionPOS } from "@/lib/pos/cotizaciones";
+import type { TicketPOSPayload } from "@/lib/pos/impresion";
 import type { CotizacionPOSResultado, PlantillaTicket, ProductoPOS, ProductoPOSCodigo } from "@/lib/pos/tipos";
 
 import { buscarCatalogoPOS, buscarCodigoPOS } from "../acciones-pos";
@@ -112,6 +116,13 @@ export function VenderPos({
   const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
   const [errorCotizacion, setErrorCotizacion] = useState<string | null>(null);
   const [confirmacionCotizacion, setConfirmacionCotizacion] = useState<CotizacionPOSResultado | null>(null);
+  /**
+   * Documento de presentación (prefactura/cotización) a imprimir. Vive aquí
+   * y no en `PanelFactura`: al imprimir, Chromium evalúa el medio «print»
+   * con el ancho del papel (80 mm) y `esEscritorio` pasa a falso, lo que
+   * desmontaría el panel y su portal a mitad de la impresión.
+   */
+  const [impresionDoc, setImpresionDoc] = useState<{ titulo: string; payload: TicketPOSPayload } | null>(null);
   const [esEscritorio, setEsEscritorio] = useState(false);
   const [turnoActual, setTurnoActual] = useState(turno);
 
@@ -208,6 +219,13 @@ export function VenderPos({
     vendedores,
     contactos,
   ]);
+  // El carrito siempre tiene un cliente (el de la terminal o el que se elija):
+  // «Cargar cotización» muestra solo las suyas, como Alegra.
+  const contactoDelCarrito = carrito.activa.contactoId;
+  const filtroCotizacionId = contactoDelCarrito === "" ? undefined : contactoDelCarrito;
+  const filtroCotizacionNombre = filtroCotizacionId
+    ? (contactos.find((contacto) => contacto.id === filtroCotizacionId)?.nombre ?? null)
+    : null;
 
   const cargarCatalogo = useCallback(
     async (reiniciar: boolean) => {
@@ -478,32 +496,36 @@ export function VenderPos({
     const hoy = hoyRD();
 
     try {
-      const resultado = await crearCotizacionPOS({
-        terminal_id: terminal.id,
-        contacto_id: activa.contactoId || null,
-        lista_precio_id: activa.listaPrecioId || null,
-        fecha: hoy,
-        vencimiento: sumarDias(hoy, 30),
-        vendedor_id: activa.vendedorId || null,
-        lineas: activa.lineas.map((linea) => ({
-          producto_id: linea.productoId,
-          descripcion: linea.descripcion,
-          cantidad: linea.cantidad,
-          unidad_id: linea.unidadId,
-          precio: linea.precio,
-          descuento_pct: linea.descuentoPct,
-          itbis_tasa: linea.itbisTasa,
-          impuesto_id: linea.impuestoId,
-        })),
-      });
+      const resultado = await crearCotizacionPOS(
+        payloadCotizacionPOS({
+          terminalId: terminal.id,
+          fecha: hoy,
+          vencimiento: sumarDias(hoy, 30),
+          pestana: activa,
+        }),
+      );
 
       if (!resultado.ok) {
         setErrorCotizacion(capitalizar(resultado.error));
         return;
       }
 
+      const cotizacion = resultado.data.cotizacion;
       setConfirmacionCotizacion(resultado.data);
-      toast.add({ type: "success", title: "Cotización guardada." });
+      toast.add({
+        type: "success",
+        title: `Cotización No ${cotizacion.numero} guardada.`,
+        description: (
+          <a
+            href={enlaceCotizacionPOS(cotizacion.id)}
+            target="_blank"
+            rel="noreferrer"
+            className="text-pos-primario font-medium hover:underline"
+          >
+            Ver cotización
+          </a>
+        ),
+      });
     } catch {
       setErrorCotizacion("No sabemos si la cotización se guardó. Revisa Cotizaciones antes de volver a guardarla.");
     } finally {
@@ -596,6 +618,8 @@ export function VenderPos({
             <PanelFactura
               terminal={terminal}
               turno={turnoActual}
+              empresa={empresa}
+              plantillaTicket={terminal.plantilla_ticket}
               numeraciones={numeraciones}
               listas={listas}
               vendedores={vendedores}
@@ -609,6 +633,7 @@ export function VenderPos({
               onGuardarCotizacion={() => void guardarCotizacion()}
               onCancelarVenta={() => inputRef.current?.focus()}
               onAnunciar={setAnuncio}
+              onImprimir={setImpresionDoc}
               guardandoCotizacion={guardandoCotizacion}
               errorCotizacion={errorCotizacion}
             />
@@ -646,6 +671,8 @@ export function VenderPos({
               <PanelFactura
                 terminal={terminal}
                 turno={turnoActual}
+                empresa={empresa}
+                plantillaTicket={terminal.plantilla_ticket}
                 numeraciones={numeraciones}
                 listas={listas}
                 vendedores={vendedores}
@@ -672,6 +699,7 @@ export function VenderPos({
                   inputRef.current?.focus();
                 }}
                 onAnunciar={setAnuncio}
+                onImprimir={setImpresionDoc}
                 guardandoCotizacion={guardandoCotizacion}
                 errorCotizacion={errorCotizacion}
               />
@@ -711,6 +739,8 @@ export function VenderPos({
 
       <DialogoCargarCotizacion
         abierto={cargarCotizacionAbierto}
+        contactoId={filtroCotizacionId}
+        contactoNombre={filtroCotizacionNombre}
         onCerrar={() => {
           setCargarCotizacionAbierto(false);
           inputRef.current?.focus();
@@ -728,6 +758,16 @@ export function VenderPos({
           router.refresh();
         }}
       />
+
+      {impresionDoc ? (
+        <ImpresionPos
+          titulo={impresionDoc.titulo}
+          ancho={impresionDoc.payload.diseno.ancho_mm}
+          onCerrar={() => setImpresionDoc(null)}
+        >
+          <TicketPos payload={impresionDoc.payload} />
+        </ImpresionPos>
+      ) : null}
 
       <Dialog
         open={confirmacionCotizacion !== null}

@@ -15,7 +15,7 @@ export function TicketCierrePos({ datos }: { datos: PresentacionCierre }) {
       <style>{`
         @page { size: 57mm 250mm; margin: 0; }
         .cierre-papel { box-sizing: border-box; width: 57mm; padding: 26.25pt 15.75pt 0; color: #000; background: #fff; font-family: Arial, "Liberation Sans", sans-serif; font-size: 7.5pt; line-height: 11.25pt; }
-        .cierre-titulo { margin: 0 0 21pt; font-size: 26.25pt; font-weight: 400; line-height: 31.5pt; }
+        .cierre-titulo { margin: 0 -1.6mm 21pt; font-size: 26.25pt; font-weight: 400; line-height: 31.5pt; white-space: nowrap; }
         .cierre-fecha { display: flex; align-items: center; margin-bottom: 9.75pt; }
         .cierre-fila { display: flex; align-items: center; justify-content: space-between; gap: 2pt; min-height: 22.5pt; }
         .cierre-fila > span:last-child { flex-shrink: 0; white-space: nowrap; }
@@ -31,11 +31,7 @@ export function TicketCierrePos({ datos }: { datos: PresentacionCierre }) {
           .cierre-papel { break-inside: avoid; }
         }
       `}</style>
-      <h1 className="cierre-titulo">
-        Cierre No
-        <br />
-        {datos.numero}
-      </h1>
+      <h1 className="cierre-titulo">Cierre No {datos.numero}</h1>
       <div className="cierre-fecha">
         <span>Fecha</span>
         <span>
