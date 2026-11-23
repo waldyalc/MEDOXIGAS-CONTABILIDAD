@@ -164,6 +164,9 @@ describe("transporte offline con pos_sincronizar_operacion", () => {
       guardar: async (fila: OperacionOffline) => {
         filas.set(fila.uuid, structuredClone(fila));
       },
+      eliminar: async (_ambito: string, uuid: string) => {
+        filas.delete(uuid);
+      },
     };
     await sincronizarColaOffline(almacen, operacion.ambito, (fila) => transportarOperacionOffline(fila, TERMINAL));
     const guardada = filas.get(operacion.uuid);
