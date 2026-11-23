@@ -13,6 +13,16 @@ fecha fiscal al sincronizar y stock según `vende_negativo`.
 - Pendientes: llamada RPC tipada, prueba real exactamente tres documentos y cuadre, prueba/captura de cierre, sincronizando real y evidencia claro/oscuro/móvil. Crédito y conversión de cotizaciones requieren conexión en esta implementación.
 - No está listo para integrar ni para quitar draft. Diseño y límites actualizados en `docs/diseno/pos-offline.md`.
 
+## POS 10 medidas exactas y migraciones aplicadas (23 nov 2026)
+
+- **Plantilla única 80 mm:** `TicketPos` + `impresion.ts` cubren factura, prefactura y cotización; el cierre usa su variante de 57 mm. Se eliminó `em`/`system-ui`: Arial/Liberation Sans con la tabla exacta de `medidas-alegra.txt` (fuera del repo; copiada en `.opencode/skills/ticket-80mm/SKILL.md`): empresa/cliente/Total 13.5 bold, cuerpo/título/subtotales/pie 9, tabla 8.1 bold, ítem 7.29, detalle 6.55; logo 69.8×20.9 mm. El título del cierre queda en 26.25 pt normal, una línea, con 4 mm de margen lateral autorizados por Waldy (la tabla dice 5.6 mm; se documentó la desviación). PR #121.
+- **Candado:** `.opencode/skills/ticket-80mm/SKILL.md` y `src/lib/pos/ticket-pdf.test.tsx` generan los cuatro PDFs reales y verifican fuentes/tamaños ±0.3 pt, página única de 80/57×250 mm y pesos con `pdffonts`/`pdftotext -bbox`. CI instala Chromium, Poppler y Liberation.
+- **Migraciones aplicadas (solo `ljfdhrnvlsfaweuvnqxz`):** `20261126120000_pos_offline_client_uuid.sql` (client_uuid + índices únicos parciales, `pos_sync_operaciones`, RPC idempotente `pos_sincronizar_operacion`) y `20261126121000_empresa_sucursal_regimen.sql` (`empresa.sucursal/regimen`, `actualizar_empresa` extendida). Antes de escribir se corrió cada SQL en `BEGIN/ROLLBACK` y se comprobó el ref; el historial remoto de migraciones registra ambas. Tipos regenerados con `pnpm db:types`; `pos_sync_operaciones` clasificada en el reset a base virgen. PR #122.
+- **Regla permanente de base de datos:** toda operación (migraciones, consultas, tipos) se hace con **Supabase CLI desde el VPS**. El token vive en `/root/.supabase.env` (chmod 600, cargado por el shell): nunca se imprime, se pega en el chat/logs ni se commitea. Proyecto de prueba `ljfdhrnvlsfaweuvnqxz`; la base de OPP y producción no se tocan sin el OK de Waldy en el chat.
+- **Modelo de los subagentes:** decisión de Waldy del 23-11-2026 8:59 PM: **DeepSeek V4.1 Flash 1017 para todos los hijos**. Devin, SWE-2 Max y Adaptive quedan cancelados (MSG-26 y MSG-27). Si un hijo agota cuota, se avisa a Waldy y no se cambia de modelo sin preguntar. PR #124.
+- **Pendiente de datos reales:** la fila `empresa` ya tiene las columnas nuevas, pero dirección, teléfono, correo, sucursal, régimen y `logo_url` siguen vacíos. No se inventan: Waldy/Contable deben cargarlos en Configuración → Empresa.
+- **Evidencia:** `/root/referencias/capturas-terminadas/2026-11-23-pos10-exacto-*` (factura, prefactura, cotización, cierres, comparaciones a 150 dpi) y `2026-11-23-pos10-config-empresa-campos.png` (campos nuevos en el preview 3010). Preview reconstruido y en 200 tras #121/#122.
+
 ## POS 7–8: más funciones con cotizaciones y cerrar cobro directo (rama `feat/pos-cotizaciones-mas-funciones`)
 
 Trabajo de subagente ejecutor sobre `feat/pos-alegra-exacto` (PLAN POS 2, puntos 7 y 8). Sin migraciones ni datos nuevos: solo lectura + carrito en memoria.
