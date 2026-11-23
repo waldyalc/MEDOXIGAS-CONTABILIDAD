@@ -1,6 +1,6 @@
 # Handoff — Medoxigas Contabilidad
 
-## POS 13: panel «Más opciones» del carrito (rama `feat/pos-mas-opciones`)
+## POS 15: panel «Más opciones» del carrito (rama `feat/pos-mas-opciones`)
 
 Waldy (MSG-34): el ⋯ de la barra de cobro deja de abrir una listita y abre un
 panel grande que tapa todo el carrito.
@@ -22,6 +22,35 @@ panel grande que tapa todo el carrito.
   siempre).
 - **Evidencia:** `docs/diseno/capturas/pos-mas-opciones/` (antes con la listita;
   panel abierto en claro y oscuro; móvil a 390 px). Sin migraciones ni datos.
+
+## POS 14: logo de Medoxigas en el ticket (rama `feat/pos-ticket-logo`, MSG-35)
+
+El código ya pintaba el logo (arriba, centrado, 69.8 × 20.9 mm con
+`object-contain`), pero `empresa.logo_url` era NULL y el bucket `logos` estaba
+vacío, así que nunca salía.
+
+- Subido `public/marca/logo-medoxigas.png` (500 × 260, PNG con transparencia) al
+  bucket público `logos` del proyecto `ljfdhrnvlsfaweuvnqxz` y actualizado
+  `empresa.logo_url` a su URL pública. Sin migración ni cambio de código de
+  producción; si la empresa no tiene logo, `Logo` devuelve `null` y no deja hueco.
+- Comprobado con Playwright (1440 px) sobre una venta ZZTEST existente: factura
+  80 mm con el logo sobre «MEDOXIGAS ALC, SRL» y cierre 57 mm igual que Alegra
+  (sin encabezado de empresa). Capturas en `docs/diseno/capturas/pos-logo/`.
+- **Candado:** `src/lib/pos/ticket-pdf.test.tsx` ahora exige además que el `<img>`
+  exista una sola vez, quede arriba del nombre de la empresa y centrado con él,
+  manteniendo las medidas 69.8 × 20.9 mm de los cuatro PDFs.
+
+## POS 13: favoritos con la estrella teal (rama `feat/pos-favoritos-estrella`, MSG-31)
+
+Decisión de Waldy (23-11-2026): el catálogo copia la estrella de Alegra.
+Cada tarjeta lleva arriba a la derecha un cuadro teal de 32 px con una estrella
+blanca: vacía si no es favorito, rellena si lo es.
+
+- **Tarjeta (`tarjeta-producto-pos.tsx`):** el cuadro usa `bg-pos-primario` y `hover:bg-pos-primario-hover` (tokens `--pos-*`, sin `--primary` ni hex sueltos). La tarjeta pasa de `<button>` a `<article>` con un botón invisible que cubre la superficie para agregar al carrito y un `<button aria-pressed>` encima para la estrella; el clic de la estrella hace `stopPropagation()` y **no** agrega al carrito. La cantidad del carrito se movió arriba a la izquierda para no chocar con la estrella.
+- **Persistencia:** `src/lib/pos/favoritos.ts` guarda `pos:favoritos:v1` en `localStorage` (clave versionada, lectura segura que descarta JSON inválido o valores que no sean booleanos). La marca local manda sobre `productos.favorito_pos` (favorito global de Inventario): `true` marca y `false` desmarca. No se escribe en la base ni hace falta migración.
+- **Filtro «Favoritos»:** `vender-pos.tsx` filtra en el cliente con `filtrarFavoritosPOS` sobre lo cargado, así incluye tanto los favoritos locales como los globales; «Ver más» sigue trayendo el resto. Se quitó `solo_favoritos` de la llamada del POS (la RPC y la columna siguen intactas).
+- **Candados:** `src/lib/pos/favoritos.test.ts` prueba lectura/escritura segura, la precedencia local/global y el filtro; `tests/e2e/pos-favoritos.spec.ts` (sesión ZZTEST, 1440 px) marca la estrella, comprueba que el carrito sigue en 0, activa el filtro, verifica que no queda ninguna tarjeta sin marcar y recarga para confirmar la persistencia.
+- **Evidencia:** `docs/diseno/capturas/pos-favoritos/` (`01-antes-estrella-gris.png`, `02-despues-estrella-teal-marcada.png`, `03-despues-filtro-favoritos.png`, `04-despues-oscuro.png`, `05-despues-movil.png`).
 
 ## POS 12: menú lateral plano (rama `t3/pos-flat-sidebar-menu`)
 
