@@ -96,7 +96,7 @@ begin
       raise exception 'la terminal de la venta no coincide' using errcode = '22023';
     end if;
     v_resultado := public.pos_completar_venta(
-      (v_payload - 'fecha' - 'vencimiento') || jsonb_build_object(
+      (v_payload - 'fecha') || jsonb_build_object(
         'fecha', (now() at time zone 'America/Santo_Domingo')::date
       )
     );

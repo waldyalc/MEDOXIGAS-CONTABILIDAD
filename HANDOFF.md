@@ -1,14 +1,17 @@
 # Handoff — Medoxigas Contabilidad
 
-## POS 11: plan POS sin internet (rama `feat/pos-offline`)
+## POS 11: fase 2 en curso (rama `feat/pos-offline`, PR #115 draft)
 
-Solo plan, fase 1. `docs/diseno/pos-offline.md`: cola en IndexedDB con
-`client_uuid` idempotente, aviso de conexión en la barra inferior, cierre de
-turno bloqueado con pendientes, y migración aditiva propuesta
-(`client_uuid unique` en `facturas` y `pos_turno_movimientos`).
-**Decisión NCF recomendada: (A)** folio provisional `POS-LOCAL-xxxx` y NCF real
-al sincronizar (la RPC ya lo asigna al insert; cero huecos). Esperando OK de
-Waldy antes de implementar.
+Waldy aprobó opción A: offline sin NCF, ticket «Folio: POS-LOCAL-<UUID>»,
+fecha fiscal al sincronizar y stock según `vende_negativo`.
+
+- Implementados guardado de cobros/movimientos, carritos recuperables, catálogo cacheado por lista, worker mínimo `/pos`, barra, panel/log, beforeunload y cierre bloqueado. Limpieza de caché HTML al cerrar sesión desde Contabilidad sin borrar cobros locales; separación del helper global autorizada por question, candados intactos.
+- `transporte-offline.ts` sigue deliberadamente deshabilitado con error visible hasta validar la RPC y generar tipos. Sin `as` para RPC ni cambios manuales a `types.ts`; no sustituir por la RPC online anterior.
+- SQL aditivo en `docs/pruebas/pos-offline-pendiente.sql`, BEGIN/ROLLBACK, **no ejecutado**. Conserva `vencimiento`; se modifica solo la fecha de emisión. `pos-offline-reset.patch` clasifica la tabla en el reset cuando se incorpore la migración al repo; no ejecutar el reset.
+- Chromium verifica tres operaciones locales tras recarga offline y serialización entre pestañas; esto NO verifica tres facturas/NCF ni cuadre remoto.
+- Capturas autenticadas bloqueadas: falta ruta concreta del storageState ZZTEST externo; T3 preview falla por sandbox root. Test UI preparado con `E2E_POS_STORAGE_STATE` y `E2E_POS_PRODUCTO` ZZTEST; omite sin ellos y bloquea POST al reconectar. No hay capturas entregadas todavía, ni se tocó 3010.
+- Pendientes: llamada RPC tipada, prueba real exactamente tres documentos y cuadre, prueba/captura de cierre, sincronizando real y evidencia claro/oscuro/móvil. Crédito y conversión de cotizaciones requieren conexión en esta implementación.
+- No está listo para integrar ni para quitar draft. Diseño y límites actualizados en `docs/diseno/pos-offline.md`.
 
 ## Regla de capturas al terminar (rama `docs/regla-capturas-preview`)
 

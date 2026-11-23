@@ -13,8 +13,10 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } fr
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
 import { registrarMovimientoTurno } from "@/lib/pos/acciones";
 import { compararMontos, sumarMontos } from "@/lib/pos/calculo";
+import { esquemaMovimientoTurno, mensajeValidacion } from "@/lib/pos/esquemas";
 import type {
   MotivoMovimientoPOS,
   MovimientoTurnoPOSResultado,
@@ -23,6 +25,7 @@ import type {
 } from "@/lib/pos/tipos";
 
 import { capitalizar, formatoMonedaPOS, textoAMonto } from "../formato-pos";
+import { useOfflinePOS } from "../offline-pos-provider";
 import type { CuentaPOS } from "../servidor";
 
 export interface PrellenadoMovimiento {
@@ -117,6 +120,7 @@ export function DialogoMovimiento({
   prellenado: PrellenadoMovimiento | null;
   onRegistrado: (datos: MovimientoTurnoPOSResultado) => void;
 }) {
+  const offline = useOfflinePOS();
   const [paso, setPaso] = useState<Paso>("tipo");
   const [tipo, setTipo] = useState<TipoMovimientoPOS>("ingreso");
   const [pestana, setPestana] = useState<PestanaEgreso>("gastos");
@@ -207,9 +211,35 @@ export function DialogoMovimiento({
     setError(null);
 
     try {
-      const resultado = await registrarMovimientoTurno(
-        armarMovimiento({ turnoId, tipo, esGasto, monto: montoFinal, cuenta, cuentaGasto, contactoId, notas }),
-      );
+      const entrada = armarMovimiento({
+        turnoId,
+        tipo,
+        esGasto,
+        monto: montoFinal,
+        cuenta,
+        cuentaGasto,
+        contactoId,
+        notas,
+      });
+      if (!navigator.onLine || offline.estado === "offline") {
+        const validada = esquemaMovimientoTurno.safeParse(entrada);
+        if (!validada.success) {
+          setError(mensajeValidacion(validada.error));
+          return;
+        }
+        const operacion = await offline.encolar("movimiento", validada.data, {
+          ...entrada,
+          creadoEn: new Date().toISOString(),
+        });
+        toast.add({
+          type: "success",
+          title: "Movimiento guardado en este dispositivo",
+          description: `Folio: ${operacion.folio}`,
+        });
+        onCerrar();
+        return;
+      }
+      const resultado = await registrarMovimientoTurno(entrada);
 
       if (!resultado.ok) {
         setError(capitalizar(resultado.error));

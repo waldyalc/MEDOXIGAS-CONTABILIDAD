@@ -3,8 +3,11 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import type { UnidadPos } from "@/lib/inventario/ferreteria/tipos";
+import { almacenColaOffline, guardarOffline, leerOffline } from "@/lib/pos/almacen-offline";
 import { calcularLineaPOS, sumarMontos, type TotalesCarritoPOS, type TotalesLineaPOS } from "@/lib/pos/calculo";
 import type { Decimal, ProductoPOS } from "@/lib/pos/tipos";
+
+import { useOfflinePOS } from "./offline-pos-provider";
 
 export const MAXIMO_PESTANAS = 8;
 
@@ -156,6 +159,66 @@ export function ivaPorTasa(lineas: readonly LineaCarrito[]): { tasa: Decimal; mo
 export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsVenta; children: ReactNode }) {
   const [pestanas, setPestanas] = useState<PestanaVenta[]>(() => [crearPestana("Venta principal", defaults)]);
   const [activaId, setActivaId] = useState<string>(() => pestanas[0]?.id ?? "");
+  const { ambito } = useOfflinePOS();
+  const [hidratado, setHidratado] = useState(false);
+  const [errorPersistencia, setErrorPersistencia] = useState(false);
+  const [otroEditor, setOtroEditor] = useState(false);
+
+  useEffect(() => {
+    let vigente = true;
+    let liberar: (() => void) | undefined;
+    async function restaurar() {
+      const guardado = await leerOffline<{ pestanas: PestanaVenta[]; activaId: string }>("carritos", ambito);
+      const operaciones = await almacenColaOffline.listar(ambito);
+      if (!vigente) return;
+      if (guardado?.pestanas.length) {
+        const restauradas = guardado.pestanas.map((pestana) => {
+          const cobrada = operaciones.some((operacion) => {
+            const snapshot = operacion.snapshot;
+            return (
+              typeof snapshot === "object" &&
+              snapshot !== null &&
+              "pestana" in snapshot &&
+              JSON.stringify(snapshot.pestana) === JSON.stringify(pestana)
+            );
+          });
+          return cobrada ? { ...pestana, lineas: [], cotizacion: null } : pestana;
+        });
+        setPestanas(restauradas);
+        setActivaId(guardado.activaId);
+      }
+      setHidratado(true);
+    }
+    if (!navigator.locks) {
+      setErrorPersistencia(true);
+      return;
+    }
+    void navigator.locks
+      .request(`pos-editor:${ambito}`, { ifAvailable: true }, async (bloqueo) => {
+        if (!vigente) return;
+        if (!bloqueo) {
+          setOtroEditor(true);
+          return;
+        }
+        const espera = new Promise<void>((resolve) => {
+          liberar = resolve;
+        });
+        await restaurar();
+        if (vigente) await espera;
+      })
+      .catch(() => {
+        if (vigente) setErrorPersistencia(true);
+      });
+    return () => {
+      vigente = false;
+      liberar?.();
+    };
+  }, [ambito]);
+
+  useEffect(() => {
+    if (!hidratado) return;
+    void guardarOffline("carritos", ambito, { pestanas, activaId }).catch(() => setErrorPersistencia(true));
+  }, [ambito, hidratado, pestanas, activaId]);
 
   const activa = pestanas.find((pestana) => pestana.id === activaId) ?? pestanas[0];
 
@@ -479,6 +542,24 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
     [activa],
   );
 
+  if (otroEditor)
+    return (
+      <p role="alert" className="p-6">
+        Este POS ya está abierto en otra pestaña. Ciérrala y recarga aquí para recuperar sus ventas.
+      </p>
+    );
+  if (errorPersistencia)
+    return (
+      <p role="alert" className="p-6">
+        No se pudo guardar el carrito. No cobres: revisa el almacenamiento del navegador y recarga.
+      </p>
+    );
+  if (!hidratado)
+    return (
+      <p role="status" className="p-6">
+        Recuperando ventas de este dispositivo…
+      </p>
+    );
   if (!activa) return null;
 
   const valor: ValorCarrito = {

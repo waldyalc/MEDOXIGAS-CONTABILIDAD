@@ -14,11 +14,13 @@ import type { ContactoResumen, Empresa } from "@/lib/facturacion/tipos";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { crearCotizacionPOS } from "@/lib/pos/acciones";
+import { conBloqueoOffline, guardarOffline, leerOffline } from "@/lib/pos/almacen-offline";
 import type { CotizacionPOSResultado, PlantillaTicket, ProductoPOS, ProductoPOSCodigo } from "@/lib/pos/tipos";
 
 import { buscarCatalogoPOS, buscarCodigoPOS } from "../acciones-pos";
 import { useCarritoPOS } from "../carrito-pos-provider";
 import { capitalizar, formatoMonedaPOS, hoyRD, sumarDias } from "../formato-pos";
+import { useOfflinePOS } from "../offline-pos-provider";
 import { DialogoAbrirTurno } from "../turnos/dialogo-abrir-turno";
 import { BarraInferiorPos } from "./barra-inferior-pos";
 import { CatalogoPos } from "./catalogo-pos";
@@ -89,11 +91,13 @@ export function VenderPos({
 }) {
   const router = useRouter();
   const carrito = useCarritoPOS();
+  const { ambito, estado: estadoConexion } = useOfflinePOS();
   const [catalogo, setCatalogo] = useState<ProductoPOS[]>(productos);
   const [cargando, setCargando] = useState(false);
   const [cargandoMas, setCargandoMas] = useState(false);
   const [hayMas, setHayMas] = useState(productos.length === TAMANO_LOTE);
   const [errorCatalogo, setErrorCatalogo] = useState<string | null>(null);
+  const [avisoCatalogo, setAvisoCatalogo] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [favoritos, setFavoritos] = useState(false);
   const [categoria, setCategoria] = useState("");
@@ -137,7 +141,12 @@ export function VenderPos({
 
   const numeracionValida = numeraciones.some((numeracion) => numeracion.id === carrito.activa.numeracionId);
   const sinCaja = !cuentas.some((cuenta) => cuenta.id === terminal.cuenta_efectivo_id);
-  const puedeCobrar = carrito.activa.lineas.length > 0 && turnoActual !== null && numeracionValida && !sinCaja;
+  const puedeCobrar =
+    carrito.activa.lineas.length > 0 &&
+    turnoActual !== null &&
+    numeracionValida &&
+    !sinCaja &&
+    !(estadoConexion === "offline" && errorCatalogo !== null);
   const hayModal =
     checkoutAbierto ||
     simpleAbierto ||
@@ -145,6 +154,60 @@ export function VenderPos({
     abrirTurnoAbierto ||
     sheetAbierto ||
     confirmacionCotizacion !== null;
+
+  useEffect(() => {
+    if (estadoConexion === "offline" || !navigator.onLine) return;
+    let vigente = true;
+    async function prepararCache() {
+      await guardarOffline("contactos", ambito, contactos);
+      await guardarOffline("config", `${ambito}/venta`, {
+        terminal,
+        turno,
+        empresa,
+        numeraciones,
+        listas,
+        cuentas,
+        vendedores,
+      });
+      const acumulados: ProductoPOS[] = [];
+      for (let offset = 0; vigente && navigator.onLine; offset += TAMANO_LOTE) {
+        const respuesta = await buscarCatalogoPOS({
+          terminal_id: terminal.id,
+          ...(listaPrecioId ? { lista_precio_id: listaPrecioId } : {}),
+          limit: TAMANO_LOTE,
+          offset,
+        });
+        if (!respuesta.ok || !vigente) return;
+        acumulados.push(...respuesta.data);
+        await conBloqueoOffline(`${ambito}/catalogo`, () =>
+          guardarOffline("catalogo", `${ambito}/${listaPrecioId}`, {
+            productos: acumulados,
+            actualizado: new Date().toISOString(),
+            completo: respuesta.data.length < TAMANO_LOTE,
+          }),
+        );
+        if (respuesta.data.length < TAMANO_LOTE) return;
+      }
+    }
+    void prepararCache().catch(() =>
+      setErrorCatalogo("No se pudo preparar el catálogo offline. Mantén la conexión hasta completar la preparación."),
+    );
+    return () => {
+      vigente = false;
+    };
+  }, [
+    ambito,
+    estadoConexion,
+    listaPrecioId,
+    terminal,
+    turno,
+    empresa,
+    numeraciones,
+    listas,
+    cuentas,
+    vendedores,
+    contactos,
+  ]);
 
   const cargarCatalogo = useCallback(
     async (reiniciar: boolean) => {
@@ -159,6 +222,36 @@ export function VenderPos({
       }
 
       try {
+        if (!navigator.onLine || estadoConexion === "offline") {
+          const guardado = await leerOffline<{ productos: ProductoPOS[]; actualizado: string; completo: boolean }>(
+            "catalogo",
+            `${ambito}/${listaPrecioId}`,
+          );
+          if (solicitud.current !== numero) return;
+          if (!guardado) {
+            setCatalogo([]);
+            setHayMas(false);
+            setErrorCatalogo("Esta lista de precios todavía no está guardada para trabajar sin conexión.");
+            return;
+          }
+          const texto = busqueda.toLocaleLowerCase("es").trim();
+          const datos = guardado.productos.filter(
+            (producto) =>
+              (!categoria || producto.categoria_id === categoria) &&
+              (!favoritos || producto.favorito_pos) &&
+              (!texto || `${producto.nombre} ${producto.referencia ?? ""}`.toLocaleLowerCase("es").includes(texto)),
+          );
+          const precios: Record<string, string> = {};
+          for (const producto of guardado.productos) precios[producto.producto_id] = producto.precio;
+          carritoRef.current.aplicarPreciosDeLista(precios);
+          setCatalogo(datos);
+          setHayMas(false);
+          setErrorCatalogo(null);
+          setAvisoCatalogo(
+            `Catálogo ${guardado.completo ? "guardado" : "parcial"} del ${guardado.actualizado}. Existencias sin actualizar.`,
+          );
+          return;
+        }
         const resultado = await buscarCatalogoPOS({
           terminal_id: terminal.id,
           ...(listaPrecioId ? { lista_precio_id: listaPrecioId } : {}),
@@ -199,7 +292,7 @@ export function VenderPos({
         }
       }
     },
-    [busqueda, categoria, favoritos, listaPrecioId, terminal.id],
+    [busqueda, categoria, favoritos, listaPrecioId, terminal.id, ambito, estadoConexion],
   );
 
   useEffect(() => {
@@ -465,6 +558,11 @@ export function VenderPos({
 
       <div className="flex min-h-0 flex-1 bg-slate-100 dark:bg-background">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {avisoCatalogo ? (
+            <p role="status" className="text-pos-texto-suave px-4 py-1 text-xs">
+              {avisoCatalogo}
+            </p>
+          ) : null}
           <CatalogoPos
             inputRef={inputRef}
             productos={catalogo}

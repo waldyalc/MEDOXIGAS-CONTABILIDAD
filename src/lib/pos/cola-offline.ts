@@ -1,5 +1,18 @@
 export type EstadoOperacionOffline = "pendiente" | "fallida" | "sincronizada";
 
+export function resumenConfirmacionOffline(resultado: unknown): string | null {
+  if (typeof resultado !== "object" || resultado === null) return null;
+  const documento =
+    "factura" in resultado ? resultado.factura : "movimiento" in resultado ? resultado.movimiento : null;
+  if (typeof documento !== "object" || documento === null) return null;
+  const numero =
+    "numero" in documento && (typeof documento.numero === "number" || typeof documento.numero === "string")
+      ? documento.numero
+      : null;
+  const ncf = "ncf" in documento && typeof documento.ncf === "string" ? documento.ncf : null;
+  return [numero !== null ? `No. ${numero}` : null, ncf ? `NCF ${ncf}` : null].filter(Boolean).join(" · ") || null;
+}
+
 export interface OperacionOffline {
   uuid: string;
   ambito: string;

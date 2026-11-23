@@ -1,194 +1,125 @@
-# POS sin internet (Punto 11) — plan
+# POS sin internet (Punto 11)
 
-Objetivo: el cajero puede seguir cobrando con internet caído y las ventas suben
-solas cuando vuelve la conexión, sin duplicar facturas ni romper el cuadre.
+## Decisiones aprobadas
 
-Fase 2 aprobada: opción A, emisión fiscal al sincronizar, respetar
-`vende_negativo`, service worker mínimo para `/pos`. Ticket offline propuesto:
-**«Folio: POS-LOCAL-<UUID>»**, sin NCF ni leyenda «Comprobante provisional».
-La aprobación funcional no sustituye la validación fiscal del contador.
+- NCF opción A: guardar offline sin NCF; asignarlo exclusivamente en servidor al sincronizar.
+- Fecha fiscal: día de sincronización en America/Santo_Domingo.
+- Ticket offline: **Folio: POS-LOCAL-<UUID>**, título «Venta», sin NCF ni leyenda «Comprobante provisional».
+- Inventario: descontar al sincronizar, respetando `vende_negativo`; un rechazo deja la operación pendiente/fallida visible, nunca se descarta.
+- Service worker mínimo, no PWA completa.
+- No se certifica cumplimiento DGII/e-CF con este trabajo. Firma, envío electrónico y contingencia fiscal siguen fuera de este alcance.
 
-Avance parcial: núcleo FIFO y almacenamiento IndexedDB separados por ámbito
-usuario/terminal, todavía sin conectar a cobros ni a UI. Borrador SQL en
-`docs/pruebas/pos-offline-pendiente.sql`, con `BEGIN/ROLLBACK`, NO ejecutado.
-El Orquestador validará SQL y regenerará tipos. Se dejó fuera de migraciones
-con autorización: el reloj UTC real (22-11) es anterior a las migraciones
-existentes (25-11); no se inventó un timestamp ni se cambió el candado.
+## Estado de la fase 2
 
-Estado actual (revisado en `feat/pos-alegra-exacto` @ `97b91e9`):
+Implementados, pendientes de evidencia autenticada:
 
-- El carrito vive solo en memoria (`carrito-pos-provider.tsx`); recargar pierde
-  las pestañas. `beforeunload` ya avisa si hay líneas, nada más.
-- Cobrar llama la server action `completarVenta` → RPC `pos_completar_venta`;
-  el NCF se consume **en el mismo insert** de `facturas`
-  (`v_ncf := prefijo || lpad(siguiente)`; `siguiente + 1` en el motor).
-- No hay service worker, PWA ni IndexedDB. El catálogo, contactos, listas,
-  numeraciones y turno se cargan en `page.tsx` (Server Component) y por lotes
-  en `vender-pos.tsx` (`pos_catalogo_productos`).
-- Sin app cargada offline no hay POS: **hace falta service worker** (Fase 2
-  decide si es mínimo para `/pos` o PWA completo; aquí se diseña mínimo).
+- IndexedDB, cola FIFO, backoff, snapshots, persistencia de carritos.
+- Provider de conexión, panel de operaciones, beforeunload y bloqueo de cierre.
+- Cobro y movimientos offline guardados antes de confirmar al cajero.
+- Ticket térmico reutilizando `TicketPos` e `ImpresionPos`.
+- Caché paginada de catálogo por lista, clientes y configuración.
+- Service worker para recargar `/pos` y sus assets después de prepararlo online.
 
-## 1. UX y detección de conexión
+**NO está habilitado el envío real.** `src/lib/pos/transporte-offline.ts` expone
+un contrato tipado y devuelve un error explícito de migración/tipos pendientes.
+No llama una RPC alternativa ni finge confirmaciones. No desplegar como funcional
+hasta conectar la RPC, verificar el flujo completo y entregar capturas.
 
-- Estado `online | offline | sincronizando | error` en un provider propio
-  (`conexion-pos-provider`). Detección: `navigator.onLine` + eventos
-  `online`/`offline` + **ping real** (`HEAD` a una ruta ligera `/api/pos/ping`
-  cada 15 s mientras offline o con `navigator.onLine === false`).
-- Aviso en la barra inferior (`barra-inferior-pos.tsx`), a la izquierda del
-  estado del turno: punto de color + texto.
-  - offline: «Sin conexión — N ventas pendientes de subir» (punto ámbar).
-  - sincronizando: «Subiendo ventas… N restantes» (spinner).
-  - error: «Error al subir — reintentar» (rojo, clic reintenta manual).
-- `beforeunload`: además del aviso actual por líneas, bloquea si hay ventas
-  cobradas sin subir (mensaje «Tienes N ventas sin subir»).
-- Cobrar offline se siente igual: confirmación con folio provisional
-  `POS-LOCAL-xxxx` y ticket impreso marcado «Comprobante provisional — pendiente
-  de NCF» (ver §4).
+Pendientes externos: validar SQL, generar tipos y proporcionar ruta concreta de
+storageState ZZTEST fuera del repo. Se solicitó el archivo; la respuesta no
+incluyó todavía la ruta. No se ejecutó SQL remoto ni se tocó el preview 3010.
 
-## 2. IndexedDB (`idb` nativo, sin librería nueva, o `idb` si se justifica)
+## Persistencia y recuperación
 
-Base `pos-offline`, versión 1, stores:
+Base `medoxigas-pos-offline`, versión 1:
 
-| Store | Clave | Contenido |
-|---|---|---|
-| `carritos` | `pestana.id` | snapshot de cada `PestanaVenta` (persistir al recargar) |
-| `ventas` | `client_uuid` (PK) | payload `VentaEntrada` completo + totales + `creado_en` |
-| `movimientos` | `client_uuid` | payload de `registrarMovimientoTurno` offline |
-| `catalogo` | `producto_id` | último `ProductoPOS` visto (nombre, precio, unidades, itbis) |
-| `contactos` | `contacto_id` | contactos clientes |
-| `config` | clave | turno abierto, terminal, numeraciones, listas, plantilla, `ultima_sync_catalogo` |
+| Store | Clave / contenido |
+|---|---|
+| `carritos` | usuario/terminal; pestañas, líneas y pestaña activa |
+| `operaciones` | usuario/terminal/UUID; payload, snapshot, secuencia y estado |
+| `catalogo` | usuario/terminal/lista; productos, unidades, precios y fecha |
+| `contactos` | usuario/terminal; contactos cargados |
+| `config` | configuración de venta y contador de secuencias |
 
-- `carritos` se hidrata al montar `CarritoPosProvider` (sobrevive recarga/cierre).
-- `catalogo`/`contactos` se rellenan en cada carga online (fire-and-forget tras
-  `getProductosPOS`/lotes); búsqueda offline filtra sobre `catalogo`.
-- **Service worker mínimo**: cache-first de assets estáticos + network-first de
-  las rutas `/pos*` con fallback a la última respuesta cacheada. Registrado
-  solo en `src/app/(pos)/pos/layout.tsx`. Sin SW, recargar con internet caído
-  mata la app; con SW, `/pos` abre y lee todo de IndexedDB.
+- Los importes se conservan como textos decimales; no se inventan totales fiscales locales.
+- El snapshot de venta incluye carrito, cliente, líneas, precios, tasas, empresa y plantilla del ticket.
+- El guardado de una operación espera el COMMIT de IndexedDB antes de limpiar el carrito y confirmar.
+- Al restaurar, un carrito que coincide con el snapshot de una operación ya guardada se limpia para no cobrarlo otra vez tras una interrupción.
+- Web Locks serializa secuencias y sincronización. Un segundo editor del mismo usuario/terminal se bloquea para no sobrescribir carritos.
+- Sin IndexedDB o Web Locks se muestra un error; no se confirma un cobro sin persistencia.
+- No hay botón de borrar pendientes. Limpiar el navegador o perder el equipo puede perderlos: IndexedDB no es un respaldo externo.
 
-## 3. Cola de sincronización
+## Conexión y cola
 
-- Cada venta/movimiento offline lleva `client_uuid` (crypto.randomUUID) como
-  clave de idempotencia; se envía en el payload al RPC.
-- Worker de cola (módulo `src/lib/pos/cola-offline.ts` + `sync` en el provider):
-  procesa en orden `creado_en`, uno a la vez; llamada `completarVenta` con
-  `client_uuid`. Éxito → borrar del store y registrar en el log; error de red →
-  backoff (5 s, 30 s, 2 min, tope 10 min); error de negocio (RPC rechaza) →
-  marcar `estado: "fallida"` con el mensaje, no reintentar solo, visible en un
-  panel «Pendientes» desde la barra inferior.
-- Idempotencia (doble envío, reintento tras timeout): la migración añade
-  `client_uuid text unique` a `facturas` y `pos_turno_movimientos`; la RPC
-  devuelve la venta existente si el `client_uuid` ya existe (ON CONFLICT →
-  select). Reintentar nunca duplica.
-- Log de sync local (`config` + panel): últimas N operaciones con hora, folio
-  provisional → número/NCF asignado o error.
+`OfflinePosProvider` vive en el layout del POS, aislado por UUID de usuario y terminal.
 
-## 4. NCF / numeración — decisión a aprobar
+- `navigator.onLine` y eventos online/offline, más HEAD no cacheable al servidor cada 15 segundos, con timeout de 5 segundos.
+- Estados online, offline, sincronizando y error en la barra inferior; abre el panel de sincronización.
+- FIFO por secuencia persistida, una operación por vez. Un fallo frena las dependientes.
+- Red: backoff exponencial de 5 segundos a 10 minutos. Negocio: fallida, sin bucle automático.
+- «Reintentar pendientes» conserva UUID y payload. Sin conexión no se intenta enviar.
+- Las confirmaciones se conservan en el log local; no se borran al recibir respuesta.
+- beforeunload solicita el aviso nativo con carritos o cobros pendientes. El navegador controla el texto del diálogo.
+- El procesador funciona mientras el POS está abierto; no se promete sincronización con el navegador cerrado.
 
-El NCF hoy se asigna al insertar la factura, dentro de la RPC. Opciones:
+Un timeout de una venta enviada por la RPC online anterior NO se convierte
+automáticamente en otra venta offline. Se mantiene el aviso de resultado incierto
+y se exige revisar Historial, evitando un segundo cobro por cambio de conexión.
 
-- **(A) Folio provisional, NCF al sincronizar.** Offline la venta se guarda con
-  `POS-LOCAL-xxxx`; al subir, `pos_completar_venta` asigna el NCF real como
-  hoy. Ticket impreso dice «Comprobante provisional». Riesgo DGII: bajo — el
-  comprobante fiscal existe desde que se emite la factura real; la fecha/hora
-  de emisión es la de sincronización. Huecos: ninguno (la serie no se salta).
-- **(B) Bloque de NCF reservado por terminal.** Antes de irse offline la caja
-  reserva N números (mueve `siguiente` de una vez y guarda el rango). Permite
-  imprimir NCF real offline. Riesgo: **huecos en la serie** si el turno no usa
-  todo el bloque (la DGII exige reportar comprobantes anulados/no usados), dos
-  cajas con rangos cruzados si hay errores, y lógica extra de devolución de
-  rango. Mucha más complejidad.
-- **(C) Solo prefactura offline, sin venta fiscal.** Bloquea el cobro de
-  comprobantes fiscales sin internet; solo permite «venta simple»/prefactura
-  sin NCF. Riesgo: bajo fiscalmente, pero el cliente con NCF se va sin
-  comprobante hasta que vuelva internet — Waldy vende mucho al detalle con
-  comprobante; puede frenar la caja.
+## Catálogo, precios y conflictos
 
-**Decisión aprobada: (A).** Conserva la asignación central de NCF al insertar
-la factura. No reserva rangos offline; esto evita huecos por reservas no usadas,
-pero no es una certificación de cumplimiento DGII/e-CF. No se implementan firma,
-emisión electrónica ni contingencia e-CF en este alcance. Lo que NO se puede inventar: un NCF que no venga de la serie
-autorizada de `numeraciones` — por eso offline nunca se imprime NCF, solo
-folio provisional, y el ticket real se reimprime tras sincronizar si el
-cliente lo pide.
+- Se prepara el catálogo completo por lotes, no solo los primeros 50 productos.
+- La caché se separa por lista de precios. Offline se filtra localmente por nombre, referencia, categoría y favoritos.
+- Se indica si la preparación quedó parcial y la fecha de sus existencias; esas existencias no son actuales.
+- Una lista no preparada muestra error en vez de inventar precios.
+- Una venta cobrada conserva su snapshot; el reintento no toma nuevos precios del catálogo.
+- Contacto/producto desactivado, período cerrado o falta de existencia: error visible, operación guardada para intervención administrativa.
+- No se sustituyen clientes ni se fuerza inventario negativo automáticamente.
+- Crédito y conversión de cotizaciones exigen conexión en esta implementación: no se valida crédito ni se convierte dos veces una cotización sin coordinación del servidor.
+- El escáner y las consultas no cacheadas no se anuncian como disponibles offline.
 
-Datos/tablas necesarios: solo `client_uuid` (§3); la numeración no cambia.
-Pendiente de Waldy: confirmar con su contador que «fecha de emisión = fecha de
-sincronización» es aceptable, o exigir (C) para comprobantes fiscales.
+## Service worker y privacidad
 
-## 5. Inventario
+`public/pos-sw.js`, registrado desde el POS:
 
-- El descuento de existencias ocurre al sincronizar, dentro de
-  `pos_completar_venta` (ya lo hace la RPC al crear la factura).
-- Si al subir el producto no tiene existencia: la RPC respeta `vende_negativo`
-  del producto; si no permite negativos, la venta **ya cobrada no se bloquea**:
-  queda `fallida` con mensaje claro y aparece en el panel para que el admin
-  decida (habilitar negativo, ajustar stock y reintentar). El log muestra el
-  faltante.
-- El catálogo cacheado muestra existencia de la última sync con sello
-  «existencia de hace X min»; se permite vender aunque el cache diga 0 (la
-  decisión real la toma el servidor).
+- Solo responde a GET de navegación exacta `/pos` y assets `/_next/static/`.
+- No cachea POST, Server Actions, respuestas RPC, dashboard, historial ni turnos.
+- Prepara HTML y recursos online antes de marcar la recarga como disponible.
+- Caché separada por usuario/terminal, expira en 8 horas; un cambio de ámbito invalida la anterior.
+- Cerrar sesión limpia la caché de páginas del POS, también desde el menú de Contabilidad, pero no borra los cobros de IndexedDB.
+- No guarda claves en la cola. El contenido comercial local no está cifrado: usar solo equipos confiables.
+- No habilita un login nuevo offline. Otras rutas del POS siguen requiriendo servidor.
 
-## 6. Cierre de turno
+## Cierre
 
-- Regla: **no se cierra un turno con cola pendiente**. En `pos/turnos`, botón
-  cerrar deshabilitado si `offline` o `pendientes > 0`, con mensaje
-  «Conéctate para subir N ventas antes de cerrar».
-- Defensa en servidor: `pos_cerrar_turno` ya cuadra solo con lo insertado; la
-  garantía real es la UI + el hecho de que una venta no sincronizada no existe
-  en la base, así que el cuadre jamás la incluye. Si Waldy lo quiere más
-  duro: RPC `pos_turno_pendientes` no aplica (los pendientes viven en el
-  navegador); basta bloquear en cliente.
+- La barra inferior impide navegar al cierre sin conexión o con pendientes y explica «Conéctate para subir N ventas antes de cerrar».
+- El diálogo de cierre deshabilita su acción y vuelve a consultar IndexedDB antes de llamar a la RPC.
+- La comprobación y el envío del cierre comparten Web Lock con la cola del navegador.
+- El cuadre de servidor incluye únicamente documentos ya sincronizados.
+- Límite: la RPC actual no puede conocer operaciones que otro dispositivo nunca le envió. No se presenta el control cliente como una garantía servidor entre equipos.
 
-## 7. Conflictos
+## SQL pendiente, SOLO propuesta
 
-- Precio o lista cambiados mientras offline: **la venta conserva lo cobrado**
-  (snapshot de líneas, precios e ITBIS en `ventas`); se sube tal cual — el
-  dinero cobrado manda.
-- Cliente desactivado/borrado: la RPC rechaza; venta `fallida` con error en el
-  panel, reasignar contacto de mostrador y reintentar (edición del payload en
-  cola).
-- Log visible: pestaña/panel «Sincronización» con cada venta subida
-  (folio → número/NCF/hora) y cada error con su motivo.
+`docs/pruebas/pos-offline-pendiente.sql` permanece en BEGIN/ROLLBACK, sin ejecutar.
+Está fuera de migraciones con autorización: el UTC del entorno es anterior a
+migraciones existentes; no se inventó una fecha ni se alteró el candado.
 
-## 8. Base de datos — migración SOLO aditiva (no aplicar aún)
+- UUID único parcial en facturas y movimientos de turno.
+- `pos_sync_operaciones` con RLS y lectura solo del propietario con rol de escritura.
+- RPC aditiva `pos_sincronizar_operacion`, transaccional y con advisory lock por UUID.
+- Un reintento verifica usuario, terminal, turno, tipo y payload, y devuelve el resultado persistido, incluso si el turno cerró después.
+- Un UUID reutilizado con otros datos se rechaza.
+- Documento, pagos, inventario, asiento y registro de sincronización se confirman juntos o se revierten juntos.
+- Se conserva `vencimiento`: solo se sustituye `fecha`. Si queda anterior a la emisión, la validación existente rechaza; no se extiende silenciosamente.
+- `pos-offline-reset.patch` propone clasificar y verificar la tabla transaccional en `reset-base-virgen.sql`. Aplicar ese parche junto con la incorporación de la migración al repo, nunca ejecutar el reset por esta tarea.
+- El Orquestador aceptó estáticamente el contrato; Coder/Waldy validarán en su base de prueba y regenerarán tipos. No se usó service_role.
 
-```sql
-alter table public.facturas
-  add column if not exists client_uuid text;
-create unique index if not exists facturas_client_uuid_key
-  on public.facturas (client_uuid) where client_uuid is not null;
+## Pruebas y evidencia pendiente
 
-alter table public.pos_turno_movimientos
-  add column if not exists client_uuid text;
-create unique index if not exists pos_turno_movimientos_client_uuid_key
-  on public.pos_turno_movimientos (client_uuid) where client_uuid is not null;
-```
-
-Cambio en RPC (misma migración o siguiente): `pos_completar_venta` y
-`pos_registrar_movimiento_turno` aceptan `p->>'client_uuid'`; si existe fila
-con ese uuid devuelven el resultado existente (idempotente).
-Probar en `BEGIN/ROLLBACK` en `ljfdhrnvlsfaweuvnqxz` (solo inspección, sin
-service_role): índice único, insert duplicado → 1 fila, y pgTAP
-`pos_offline_client_uuid_test.sql`. Regenerar `pnpm db:types`.
-
-## 9. Pruebas y evidencia
-
-- Unitarios (`src/lib/pos/cola-offline.test.ts`): reintentar no duplica
-  (mismo `client_uuid`), orden FIFO, backoff, error de negocio marca `fallida`.
-- Playwright `context.setOffline(true)`: vender 3, recargar (pestañas y
-  pendientes persisten), reconectar → exactamente 3 ventas en `/pos/historial`
-  con 3 NCF distintos y el cuadre del turno correcto; cierre bloqueado
-  offline con su mensaje. Capturas de cada estado (regla MSG-11): offline con
-  pendientes, sincronizando, error/reintento, panel de sync.
-- Datos de prueba: la cuenta ZZTEST del preview; nada se borra sin OK.
-
-## 10. Decisiones que necesitan a Waldy
-
-1. **NCF: confirmar opción (A)** (folio provisional → NCF al subir) o exigir
-   (C) para fiscales. Recomiendo (A).
-2. ¿Permitir venta en negativo automática al sincronizar o marcar `fallida`
-   siempre? (Recomiendo respetar `vende_negativo` y `fallida` si no permite.)
-3. ¿Service worker mínimo solo para `/pos` o PWA completo (manifest, icono)?
-   Recomiendo mínimo.
-4. Ticket offline: ¿imprimir con leyenda «Comprobante provisional» sí o no?
+- Vitest: UUID estable tras perder respuesta, backoff, FIFO, error de negocio, aislamiento y ticket sin NCF ni leyenda.
+- Chromium real: persistencia de tres operaciones y carrito al recargar offline; dos pestañas serializan secuencias con Web Locks. Son pruebas del almacenamiento, NO tres facturas reales.
+- `tests/e2e/pos-offline-ui.spec.ts`: preparado para una sesión externa (`E2E_POS_STORAGE_STATE`) y producto autorizado `E2E_POS_PRODUCTO` con prefijo ZZTEST. Se omite si faltan. Captura ticket, pendientes, panel y error; bloquea peticiones de escritura al reconectar.
+- No hay capturas autenticadas entregadas todavía. T3 preview falló por sandbox root; Playwright local funciona, pero falta la ruta de sesión ZZTEST.
+- Tras habilitar RPC: probar tres cobros offline, recargar, reconectar, exactamente tres UUID/documentos, tres NCF y cuadre correcto; reintentar respuesta perdida no duplica.
+- Pendientes también captura de sincronizando real, cierre bloqueado, claro/oscuro y móvil. No inventar evidencia con ventas ficticias ni borrar datos sin autorización.
+- Mantener PR #115 draft hasta cerrar esas verificaciones.

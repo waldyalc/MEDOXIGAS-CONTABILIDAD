@@ -103,6 +103,52 @@ export interface TicketPOSPayload {
   anulada: boolean;
 }
 
+export interface EntradaTicketOffline {
+  folio: string;
+  empresa: Empresa | null;
+  cliente: { nombre: string; rnc_cedula: string | null };
+  lineas: LineaVenta[];
+  plantilla: PlantillaTicket;
+  fecha: string;
+  subtotal: Decimal;
+  descuento: Decimal;
+  itbis: Decimal;
+  total: Decimal;
+  recibido: Decimal;
+  cambio: Decimal;
+}
+
+export function armarTicketOffline(entrada: EntradaTicketOffline): TicketPOSPayload {
+  const plantilla = normalizarPlantilla(entrada.plantilla);
+  return {
+    tipo: "factura",
+    diseno: disenoDe(plantilla, entrada.empresa),
+    encabezado: {
+      empresa: lineasEmpresa(entrada.empresa),
+      titulo: "Venta",
+      lineas: [`Folio: ${entrada.folio}`, `Fecha: ${formatoFechaHora(entrada.fecha)}`],
+      anulada: false,
+    },
+    cliente: {
+      nombre: entrada.cliente.nombre,
+      lineas: entrada.cliente.rnc_cedula ? [`RNC/Cédula: ${entrada.cliente.rnc_cedula}`] : [],
+    },
+    lineas: entrada.lineas.map((linea) => lineaDeVenta(linea, plantilla)),
+    bloques: [],
+    totales: [
+      fila("Subtotal", moneda(entrada.subtotal)),
+      fila("Descuento", moneda(entrada.descuento)),
+      fila("ITBIS", moneda(entrada.itbis)),
+      fila("Total", moneda(entrada.total)),
+    ],
+    pagos: [fila("Total recibido", moneda(entrada.recibido)), fila("Cambio", moneda(entrada.cambio))],
+    resumen: resumenLineas(entrada.lineas),
+    nota: null,
+    pie: plantilla.pie_ticket,
+    anulada: false,
+  };
+}
+
 export interface OpcionesCartaPOS {
   mostrarLogo: boolean;
   notas?: string | null;
