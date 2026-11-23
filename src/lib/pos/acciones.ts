@@ -351,9 +351,8 @@ export async function crearDevolucionPOS(entrada: unknown): Promise<ResultadoPOS
 
   if (error) return { ok: false, error: mensajeErrorRpc(error) };
 
-  const parseo = esquemasRpcPOS.devolucion.safeParse(data);
-  if (!parseo.success) return { ok: false, error: "La respuesta de la devolución no tiene el formato esperado." };
-
+  // La RPC ya creó la NC, aunque la respuesta no se pueda leer: revalida para
+  // que la lista la muestre y el cajero no la repita.
   revalidatePath("/pos/devoluciones");
   revalidatePath("/pos/historial");
   revalidatePath("/pos/turnos");
@@ -361,5 +360,14 @@ export async function crearDevolucionPOS(entrada: unknown): Promise<ResultadoPOS
   revalidatePath("/dashboard/facturacion");
   revalidatePath("/dashboard/inventario");
   revalidatePath("/dashboard/contabilidad/asientos");
+
+  const parseo = esquemasRpcPOS.devolucion.safeParse(data);
+  if (!parseo.success) {
+    return {
+      ok: false,
+      error: "La devolución se registró, pero no se pudo leer la respuesta. Revisa la lista antes de repetirla.",
+    };
+  }
+
   return { ok: true, data: mapearDevolucionPOS(parseo.data) };
 }
