@@ -22,7 +22,7 @@ export function ResumenEstado({ texto }: Props) {
         className={cn("flex h-10 w-full items-center justify-between p-3", abierto && "border-b border-slate-400/20")}
       >
         <div className="flex items-center gap-2">
-          <Sparkles className="size-6 text-[#0a9e9a]" aria-hidden="true" />
+          <Sparkles className="text-primary size-6" aria-hidden="true" />
           <div className="flex items-center gap-3">
             <span className="text-xs font-medium text-slate-500">Resumen</span>
             <span className="rounded-md bg-indigo-100 px-1.5 py-px text-[10px] leading-4 font-medium text-indigo-700">
@@ -50,7 +50,7 @@ export function ResumenEstado({ texto }: Props) {
               <Button
                 type="button"
                 variant="outline"
-                className="h-7 rounded-full border-[#0a9e9a]/50 bg-white px-3 text-xs font-normal text-[#005452] hover:bg-[#ebfafa]"
+                className="border-primary/50 text-secondary-foreground hover:bg-secondary h-7 rounded-full bg-white px-3 text-xs font-normal"
               >
                 Saber más
               </Button>
@@ -63,7 +63,7 @@ export function ResumenEstado({ texto }: Props) {
                   aria-label="Útil"
                   aria-pressed={voto === "up"}
                   onClick={() => setVoto((previo) => (previo === "up" ? null : "up"))}
-                  className={cn("size-7", voto === "up" && "border-[#0a9e9a] text-[#0a9e9a]")}
+                  className={cn("size-7", voto === "up" && "border-primary text-primary")}
                 >
                   <ThumbsUp />
                 </Button>
@@ -74,7 +74,7 @@ export function ResumenEstado({ texto }: Props) {
                   aria-label="No útil"
                   aria-pressed={voto === "down"}
                   onClick={() => setVoto((previo) => (previo === "down" ? null : "down"))}
-                  className={cn("size-7", voto === "down" && "border-[#0a9e9a] text-[#0a9e9a]")}
+                  className={cn("size-7", voto === "down" && "border-primary text-primary")}
                 >
                   <ThumbsDown />
                 </Button>

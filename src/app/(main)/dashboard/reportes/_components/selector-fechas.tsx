@@ -57,7 +57,7 @@ function CalendarioDia({ className, ...props }: ComponentProps<typeof CalendarDa
 
 /** Chip de filtro estilo Alegra: píldora con tinte teal e iconos de 16 px. */
 const CLASES_BOTON_FECHAS =
-  "h-8 gap-1.5 rounded-full border border-[#0a9e9a]/50 bg-[#ebfafa] px-3 text-xs font-normal text-[#005452] hover:border-[#0a9e9a]/60 hover:bg-[#d4f2f1] [&_svg]:size-4";
+  "h-8 gap-1.5 rounded-full border border-primary/50 bg-secondary px-3 text-xs font-normal text-secondary-foreground hover:border-primary/60 hover:bg-[#dbe6fa] [&_svg]:size-4";
 
 function PanelAtajos({ children }: { children: ReactNode }) {
   return <div className="flex w-36 shrink-0 flex-col gap-0.5 border-r border-slate-200 p-2">{children}</div>;

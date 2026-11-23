@@ -32,7 +32,7 @@ interface Props {
 
 /** Chip de filtro estilo Alegra (`s-chip selected`): píldora con tinte teal. */
 const CLASE_CHIP =
-  "h-8 gap-1.5 rounded-full border border-[#0a9e9a]/50 bg-[#ebfafa] px-3 text-xs font-normal text-[#005452] hover:border-[#0a9e9a]/60 hover:bg-[#d4f2f1] [&_svg]:size-4";
+  "h-8 gap-1.5 rounded-full border border-primary/50 bg-secondary px-3 text-xs font-normal text-secondary-foreground hover:border-primary/60 hover:bg-[#dbe6fa] [&_svg]:size-4";
 
 const ETIQUETAS_VISTA: Record<Vista, string> = {
   detallado: "Reporte detallado",
@@ -158,7 +158,7 @@ export function FiltrosEstados({
       <Button
         type="submit"
         variant="ghost"
-        className="ml-auto h-8 gap-1.5 rounded-full px-2 text-xs font-medium text-[#0a9e9a] hover:bg-[#ebfafa] hover:text-[#00535e] [&_svg]:size-4"
+        className="text-primary hover:bg-secondary ml-auto h-8 gap-1.5 rounded-full px-2 text-xs font-medium hover:text-[#0a2352] [&_svg]:size-4"
       >
         <RefreshCw />
         Actualizar

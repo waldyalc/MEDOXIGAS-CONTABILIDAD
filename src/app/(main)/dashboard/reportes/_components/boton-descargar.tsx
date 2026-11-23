@@ -75,7 +75,7 @@ export function BotonDescargar({ tabla, nombreArchivo }: Props) {
             <Button
               variant="outline"
               disabled={generando != null}
-              className="h-10 gap-1.5 rounded-[10px] border-transparent bg-[#0a9e9a] px-4 text-sm font-medium text-white hover:bg-[#00535e] hover:text-white [&_svg]:size-4"
+              className="bg-primary h-10 gap-1.5 rounded-[10px] border-transparent px-4 text-sm font-medium text-white hover:bg-[#123c8c] hover:text-white [&_svg]:size-4"
             />
           }
         >

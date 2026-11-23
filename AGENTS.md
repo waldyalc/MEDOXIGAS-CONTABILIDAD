@@ -17,7 +17,7 @@ Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y O
 - **Fuente de la verdad funcional:** `docs/alegra/ALEGRA.md` (con sus capturas y las guías `css-*`). Todo se construye copiando el comportamiento y el orden de Alegra Contabilidad documentados ahí; si hay dudas, manda ese archivo.
 - **Repositorio:** `waldyalc/MEDOXIGAS-CONTABILIDAD`. **Solo existe `main`** → https://medoxigas-contabilidad.vercel.app (producción). Cada push a `main` despliega.
 - **Base de datos:** Supabase, proyecto **MEDOXIGAS-CONTABILIDAD** (`ljfdhrnvlsfaweuvnqxz`, ca-central-1, plan gratis). **Única fuente de la verdad.** Roles en `perfiles`: `admin`, `contador`, `lector`.
-- **Stack:** Next.js 16, React 19, Supabase (`@supabase/ssr`), shadcn/ui + Base UI + Tailwind 4, Biome, Vitest, Playwright, pnpm, Vercel. Diseño: plantilla Studio Admin → `docs/plantilla-diseno.md`.
+- **Stack:** Next.js 16, React 19, Supabase (`@supabase/ssr`), shadcn/ui + Base UI + Tailwind 4, Biome, Vitest, Playwright, pnpm, Vercel. Diseño: **`docs/DESIGN.md` es la ley** (estructura de Alegra + azul Medoxigas `#1e56c7`, nunca su teal fuera del POS; iconos Tabler); plantilla base → `docs/plantilla-diseno.md`.
 - **Fiscal RD:** la facturación debe cumplir con la DGII (e-CF / NCF, reportes 606 y 607). Se diseña con Contable antes de programar.
 
 ## Rol según cómo fuiste invocado
