@@ -2,19 +2,23 @@
 
 Esta carpeta guarda la **guía destilada** del punto de venta de Alegra y las medidas
 que usa el POS de Medoxigas para verse igual. Nada de aquí es código de Alegra:
-son tablas de medidas, capturas de referencia y el informe de comparación.
+son tablas de medidas, la guía y el informe de comparación. **Las capturas de
+Alegra no viven en el repo** (es público): se guardan en `/root/referencias/` del VPS.
 
 ## De dónde salió cada cosa
 
 | Material | Origen | ¿Se commitea? |
 | --- | --- | --- |
-| `referencia/alegra-1440x900.png` | Captura local del SingleFile `vender/index.html` de la cuenta de prueba **Fiel Ferreteria** (copia local guardada fuera del repo), Chromium headless a 1440×900. | Sí (es una captura). |
-| `referencia/alegra-1024x600.png` | La misma copia local a 1024×600. | Sí. |
+| Capturas de referencia de Alegra (1440×900 y 1024×600) | Captura local del SingleFile `vender/index.html` de la cuenta de prueba **Fiel Ferreteria** (copia local guardada fuera del repo), Chromium headless. | **No**: viven fuera del repo, en `/root/referencias/alegra-pos/diseno-pos/referencia/`. |
 | `MEDIDAS.md` | Valores leídos de `styles.css` y del DOM renderizado de esa copia local a 1440×900 y 1024×600. | Sí. |
-| `COMPARACION.md` + `comparacion/` | Comparación propia, pixel a pixel, de esa referencia contra el POS de Medoxigas. | Sí. |
+| `COMPARACION.md` | Comparación propia, pixel a pixel, de esa referencia contra el POS de Medoxigas. Las imágenes del análisis tampoco se commitean. | Sí (solo el texto). |
 | `GUIA-POS.md` | Guía de implementación con Tailwind/shadcn y tokens `--pos-*`. | Sí. |
-| `docs/diseno/capturas/pos-alegra/antes/` | POS de Medoxigas antes del cambio (`4400174`), mismo viewport. | Sí. |
-| `docs/diseno/capturas/pos-alegra/despues/` | POS de Medoxigas con los Puntos 1 y 3. | Sí. |
+| Capturas del POS de Medoxigas (`docs/diseno/capturas/pos-alegra/antes/` y `despues/`) | POS propio antes del cambio (`4400174`) y después de los Puntos 1 y 3. Son capturas nuestras, no de Alegra. | Sí. |
+
+Las capturas de Alegra (referencia, lado a lado, diferencias y recortes por
+componente) se guardan **fuera del repo**, en `/root/referencias/alegra-pos/diseno-pos/`
+del VPS. El candado `src/lib/sin-capturas-alegra.test.ts` falla si vuelve a entrar
+una imagen de Alegra.
 
 Los exports crudos de Alegra (`index.html`, `styles.css`, `original/` y los scripts
 `.py`/`.js` de extracción) **no se commitean**: `AGENTS.md` los prohíbe en el repo

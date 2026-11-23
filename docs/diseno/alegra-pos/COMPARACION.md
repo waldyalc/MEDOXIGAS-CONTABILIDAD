@@ -72,21 +72,26 @@ Muestras de control del panel (mismo estado, carrito vacío):
 | Pie del panel (550×113) | **0.49 %** | Casi idéntico: botón «Vender», botón historial y fila «Productos/Cancelar». |
 | Tarjeta «Venta simple» a 1024×600 | **2.95 %** | El mismo residuo de iconos/texto. |
 
-Los recortes lado a lado y sus imágenes de diferencias están en
-`comparacion/componentes/`.
+Los recortes lado a lado y sus imágenes de diferencias se guardaron fuera del
+repo (ver «Imágenes»).
 
 ## Imágenes
 
-| Archivo | Qué muestra |
-| --- | --- |
-| `comparacion/lado-a-lado-1440x900.png` | UI real de Alegra (izquierda) y de Medoxigas (derecha) a 1440×900. |
-| `comparacion/lado-a-lado-1024x600.png` | La misma comparación a 1024×600. |
-| `comparacion/diferencia-1440x900.png` | Estructural sin textos/datos: Alegra × Medoxigas arriba y diferencias en rojo abajo (1.062 %). |
-| `comparacion/diferencia-1024x600.png` | Igual a 1024×600 (1.404 %). |
-| `comparacion/componentes/*-lado.png` | Recorte comparado de tarjeta, buscador, barra, encabezado y pie. |
-| `comparacion/componentes/*-diff.png` | Diferencia en rojo de cada recorte. |
-| `referencia/alegra-1440x900.png` | Captura de referencia de Alegra a 1440×900. |
-| `referencia/alegra-1024x600.png` | Captura de referencia de Alegra a 1024×600. |
+Las imágenes de esta comparación **no se commitean** (el repo es público): quedaron
+fuera del repo, en `/root/referencias/alegra-pos/diseno-pos/comparacion/` del VPS,
+con esta estructura:
+
+- `lado-a-lado-1440x900.png` y `lado-a-lado-1024x600.png`: UI real de Alegra
+  (izquierda) y de Medoxigas (derecha) en cada viewport.
+- `diferencia-1440x900.png` y `diferencia-1024x600.png`: comparación estructural
+  sin textos ni datos (Alegra × Medoxigas arriba y diferencias en rojo abajo).
+- `componentes/*-lado.png`: recorte comparado de tarjeta, buscador, barra,
+  encabezado y pie.
+- `componentes/*-diff.png`: diferencia en rojo de cada recorte.
+
+Las capturas de referencia de Alegra (`alegra-1440x900.png` y `alegra-1024x600.png`)
+están junto a ellas, en `.../diseno-pos/referencia/`. El candado
+`src/lib/sin-capturas-alegra.test.ts` falla si alguna vuelve a entrar al repo.
 
 ## Fondo del panel
 
