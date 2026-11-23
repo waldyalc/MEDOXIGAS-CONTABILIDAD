@@ -343,7 +343,10 @@ const esquemaTurnoResumenJson = z.object({
   terminal_id: z.string().optional(),
   abierto_por: z.string().optional(),
   abierto_en: z.string().nullable().optional(),
-  base_inicial: numero,
+  // `pos_crear_devolucion` devuelve el turno con solo id, numero y estado
+  // (`supabase/migrations/20261125121000_pos_rpc.sql`); el resto de las RPC sí
+  // mandan base_inicial. El resumen del turno lo completa con 0.
+  base_inicial: numero.default(0),
   estado: z.string().nullable().optional(),
   efectivo_esperado_actual: numeroNulo.optional(),
 });
@@ -352,6 +355,7 @@ const esquemaTurnoCompletoJson = esquemaTurnoResumenJson.extend({
   terminal_id: z.string(),
   abierto_por: z.string(),
   abierto_en: z.string(),
+  base_inicial: numero,
   cerrado_por: z.string().nullable().optional(),
   cerrado_en: z.string().nullable().optional(),
   efectivo_esperado: numeroNulo.optional(),

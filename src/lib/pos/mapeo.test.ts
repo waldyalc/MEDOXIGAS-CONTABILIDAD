@@ -169,8 +169,16 @@ describe("mapeo de las RPC", () => {
     expect(cotizacion.lista_precio?.nombre).toBe("General");
   });
 
-  test("la devolución mapea el reembolso y la factura origen", () => {
-    const resultado = esquemasRpcPOS.devolucion.safeParse(devolucionJson());
+  test("la devolución parsea la respuesta real de pos_crear_devolucion", () => {
+    // El fixture es la forma que arma la migración 20261125121000_pos_rpc.sql:
+    // el `turno` solo trae id, numero y estado (sin base_inicial). Si alguien
+    // vuelve a exigir base_inicial, este test falla y la devolución queda en
+    // «La respuesta de la devolución no tiene el formato esperado» aunque la NC
+    // ya se haya creado.
+    const payload = devolucionJson();
+    expect(Object.keys(payload.turno).sort()).toEqual(["estado", "id", "numero"]);
+
+    const resultado = esquemasRpcPOS.devolucion.safeParse(payload);
     expect(resultado.success).toBe(true);
     if (!resultado.success) return;
 
@@ -182,6 +190,7 @@ describe("mapeo de las RPC", () => {
     expect(devolucion.reembolso.efectivo).toBe("59");
     expect(devolucion.reembolso.cuenta_nombre).toBe("Caja general");
     expect(devolucion.lineas[0]?.cantidad).toBe("0.5");
+    expect(devolucion.turno.base_inicial).toBe("0");
     expect(devolucion.resumen.efectivo.efectivo_esperado).toBe("306");
   });
 
