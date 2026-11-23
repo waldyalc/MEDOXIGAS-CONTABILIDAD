@@ -118,7 +118,7 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 
 - Toda operación de base de datos (migraciones, consultas, tipos) se hace con **Supabase CLI desde este VPS**; no se usan claves en scripts ni `service_role` en el cliente.
 - El token de acceso vive en `/root/.supabase.env` (chmod 600, cargado por el shell). **Nunca** se imprime, se pega en el chat o en logs, ni se commitea.
-- Proyecto de prueba: `ljfdhrnvlsfaweuvnqxz`. La base de producción y la de OPP no se tocan sin el OK de Waldy en el chat.
+- Proyecto `ljfdhrnvlsfaweuvnqxz` = **producción**: es la base que usa https://medoxigas-contabilidad.vercel.app, donde Waldy hace su prueba real del mes. Los agentes solo la **leen** con usuarios ZZTEST; **nunca** escriben datos ni aplican migraciones sin el OK de Waldy en el chat. La base de OPP tampoco se toca sin su OK.
 
 ## Calidad de código (la verifica CI; el pre-push también)
 
@@ -139,7 +139,7 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 ## Preview oficial en el VPS
 
 - **Enlace oficial:** https://medoxigas-agentes.tail25e53a.ts.net (solo abre desde equipos con Tailscale). Es donde **Waldy revisa los cambios** en vivo.
-- Por dentro es el servicio systemd `medoxigas-preview.service`: corre `pnpm start` en el puerto **3010** desde `/root/MEDOXIGAS-CONTABILIDAD` (sirve el último `pnpm build`; hay que rebuild tras mergear), contra la **base de PRUEBA** con datos falsos (no producción).
+- Por dentro es el servicio systemd `medoxigas-preview.service`: corre `pnpm start` en el puerto **3010** desde `/root/MEDOXIGAS-CONTABILIDAD` (sirve el último `pnpm build`; hay que rebuild tras mergear), contra la base de **producción** (solo lectura con usuarios ZZTEST).
 - **Nunca** levantes otro dev server en el puerto 3010 ni mates ese servicio. Si hay que reiniciarlo: `systemctl restart medoxigas-preview`.
 - Un worktree que quiera su propio preview usa otro puerto (**3011 en adelante**).
 - El login es con los usuarios **ZZTEST** de `.env.pruebas` (las claves nunca van en el repo ni en prompts).
