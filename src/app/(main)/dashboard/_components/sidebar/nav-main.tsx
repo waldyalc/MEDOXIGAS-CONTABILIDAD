@@ -55,10 +55,10 @@ interface NavCollapsibleItemProps {
 }
 
 const estiloItem =
-  "relative h-8 gap-2 rounded-[6px] px-2 py-1.5 font-[family-name:var(--font-inter)] text-sm leading-[21px] font-normal tracking-normal text-slate-700 before:absolute before:top-1/2 before:left-0 before:h-3 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-sidebar-primary before:opacity-0 before:content-[''] hover:bg-slate-200/45 hover:text-slate-900 active:bg-slate-200/70 focus-visible:ring-sidebar-primary data-active:bg-slate-200/45 data-active:font-normal data-active:text-slate-900 data-active:before:opacity-100 data-active:hover:bg-slate-200/70 data-active:active:bg-slate-200/90 dark:text-sidebar-foreground/85 dark:before:bg-primary dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:active:bg-white/[0.09] dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] dark:data-active:active:bg-white/[0.12] [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-slate-400 [&_svg]:stroke-[1.5] data-active:[&_svg]:text-slate-900 dark:[&_svg]:text-sidebar-foreground/50 dark:data-active:[&_svg]:text-sidebar-foreground";
+  "relative h-9 gap-2 rounded-lg px-2 py-1.5 font-[family-name:var(--font-inter)] text-sm leading-[21px] font-normal tracking-normal text-slate-700 before:absolute before:top-1/2 before:left-0 before:h-3.5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-sidebar-primary before:opacity-0 before:content-[''] hover:bg-slate-200/45 hover:text-slate-900 active:bg-slate-200/70 focus-visible:ring-sidebar-primary data-active:bg-slate-200/45 data-active:font-normal data-active:text-slate-900 data-active:before:opacity-100 data-active:hover:bg-slate-200/70 data-active:active:bg-slate-200/90 dark:text-sidebar-foreground/85 dark:before:bg-primary dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:active:bg-white/[0.09] dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] dark:data-active:active:bg-white/[0.12] [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-slate-400 [&_svg]:stroke-[1.5] data-active:[&_svg]:text-slate-900 dark:[&_svg]:text-sidebar-foreground/50 dark:data-active:[&_svg]:text-sidebar-foreground";
 
 const estiloSubItem =
-  "relative mb-1 h-8 min-h-8 w-full translate-x-0 gap-2 rounded-[6px] px-2 font-[family-name:var(--font-inter)] text-sm leading-[21px] font-normal tracking-normal text-slate-900 before:absolute before:top-1/2 before:left-0 before:h-3 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-sidebar-primary before:opacity-0 before:content-[''] lg:before:h-4 hover:bg-slate-200/45 hover:text-slate-900 active:bg-slate-200/70 focus-visible:ring-sidebar-primary data-active:bg-slate-200/45 data-active:font-normal data-active:text-slate-900 data-active:before:opacity-100 data-active:hover:bg-slate-200/70 data-active:active:bg-slate-200/90 dark:text-sidebar-foreground dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:active:bg-white/[0.09] dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] dark:data-active:active:bg-white/[0.12] [&_svg]:hidden";
+  "relative h-9 min-h-9 w-full translate-x-0 gap-2 rounded-lg px-2 font-[family-name:var(--font-inter)] text-sm leading-[21px] font-normal tracking-normal text-slate-900 before:absolute before:top-1/2 before:left-0 before:h-3.5 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-sidebar-primary before:opacity-0 before:content-[''] hover:bg-slate-200/45 hover:text-slate-900 active:bg-slate-200/70 focus-visible:ring-sidebar-primary data-active:bg-slate-200/45 data-active:font-normal data-active:text-slate-900 data-active:before:opacity-100 data-active:hover:bg-slate-200/70 data-active:active:bg-slate-200/90 dark:text-sidebar-foreground dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:active:bg-white/[0.09] dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] dark:data-active:active:bg-white/[0.12] [&_svg]:hidden";
 
 function hasSubItems(item: NavMainItem): item is NavMainParentItem {
   return Boolean(item.subItems?.length);
@@ -126,7 +126,7 @@ export function NavMain({ items }: NavMainProps) {
             </SidebarGroupLabel>
           ) : null}
           <SidebarGroupContent>
-            <SidebarMenu className="gap-0">
+            <SidebarMenu className="gap-1">
               {group.items.map((item) => (
                 <Fragment key={item.id}>
                   <NavItem
@@ -224,7 +224,7 @@ function NavCollapsibleItem({ item, defaultOpen, esSubItemActivo, onNavigate }: 
       <NavItemBadge badge={item.badge} />
 
       <CollapsibleContent>
-        <SidebarMenuSub className="dark:border-sidebar-border mx-0 my-2 ml-[17px] translate-x-0 gap-0 border-l border-slate-200 px-0 pl-[10px] group-data-[state=collapsed]:hidden">
+        <SidebarMenuSub className="dark:border-sidebar-border mx-0 my-1.5 ml-[17px] translate-x-0 gap-1 border-l border-slate-200 px-0 pl-[11px] group-data-[state=collapsed]:hidden">
           {item.subItems.map((subItem) => {
             const SubIcon = subItem.icon;
 

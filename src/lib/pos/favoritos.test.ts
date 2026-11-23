@@ -95,12 +95,12 @@ describe("favoritos del POS (MSG-31)", () => {
     expect(tarjeta).toContain("onFavorito(producto)");
     expect(tarjeta).toMatch(/`Quitar \$\{producto\.nombre\} de favoritos`/);
     expect(tarjeta).toMatch(/`Marcar \$\{producto\.nombre\} como favorito`/);
-    expect(tarjeta, "la estrella marcada usa la variante rellena de Phosphor").toContain(
-      'weight={favorito ? "fill" : "regular"}',
+    expect(tarjeta, "la estrella marcada usa la variante rellena de Tabler").toContain(
+      'fill={favorito ? "currentColor" : "none"}',
     );
     expect(
       tarjeta,
-      "Phosphor ya pinta con currentColor: `fill-white` no rellena nada, solo cambia el peso del ícono",
+      "el relleno va por la prop `fill` del ícono: `fill-white`/`fill-current` (clases Tailwind) no rellenan el svg",
     ).not.toMatch(/fill-white|fill-current/);
     expect(tarjeta, "el cuadro teal usa tokens --pos-* y mide 32 px para el tacto").toContain("bg-pos-primario");
     expect(tarjeta).toContain("size-8");

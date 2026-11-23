@@ -88,7 +88,7 @@ export function TarjetaProductoPos({
         className="bg-pos-primario hover:bg-pos-primario-hover absolute top-0 right-0 z-20 flex size-8 items-center justify-center rounded-tr-[6px] rounded-bl-[8px] text-white transition-colors"
       >
         {/* Phosphor dibuja la estrella con un path relleno: «regular» es el contorno y «fill» la sólida. */}
-        <Star weight={favorito ? "fill" : "regular"} className="size-[18px]" aria-hidden="true" />
+        <Star fill={favorito ? "currentColor" : "none"} className="size-[18px]" aria-hidden="true" />
       </button>
 
       <span className="mt-9 mb-2 flex h-[98px] w-full items-center justify-center">

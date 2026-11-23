@@ -143,7 +143,7 @@ export function CatalogoPos({
           onClick={onFavoritos}
           className="h-8 gap-1.5 text-sm"
         >
-          <Star weight={favoritos ? "fill" : "regular"} aria-hidden="true" />
+          <Star fill={favoritos ? "currentColor" : "none"} aria-hidden="true" />
           Favoritos
         </Button>
 

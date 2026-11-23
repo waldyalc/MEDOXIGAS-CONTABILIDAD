@@ -170,7 +170,7 @@ export function PanelMovimientos({
         filaHref={(movimiento) => movimiento.documento.href ?? enlaceAsiento(movimiento.asientoId)}
         vacio={{
           filtrada: hayFiltro,
-          icono: <Landmark className="size-14" weight="thin" />,
+          icono: <Landmark className="size-14" />,
           titulo: hayFiltro ? "Sin movimientos" : "¡Crea tu primer movimiento!",
           descripcion: hayFiltro
             ? "La cuenta no tiene movimientos en el período seleccionado."
