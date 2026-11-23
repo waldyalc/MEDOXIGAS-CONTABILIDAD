@@ -39,9 +39,18 @@ import { toast } from "@/components/ui/toast";
 import type { ContactoBuscado } from "@/lib/contactos/seleccion";
 import type { Empresa } from "@/lib/facturacion/tipos";
 import { completarVenta } from "@/lib/pos/acciones";
-import { calcularLineaPOS, centavosATexto, centavosDeDecimal, compararMontos, sumarMontos } from "@/lib/pos/calculo";
+import {
+  armarPagosCombinadoPOS,
+  calcularLineaPOS,
+  calcularTotalesCombinadoPOS,
+  centavosATexto,
+  centavosDeDecimal,
+  compararMontos,
+  type PagoPOSArmado,
+  sumarMontos,
+} from "@/lib/pos/calculo";
 import { esConsumidorFinalPOS } from "@/lib/pos/consumidor-final";
-import { esquemaVenta, mensajeValidacion } from "@/lib/pos/esquemas";
+import { esquemaVenta, MAXIMO_PAGOS_VENTA, mensajeValidacion } from "@/lib/pos/esquemas";
 import { armarTicketOffline, type EntradaTicketOffline, type TicketPOSPayload } from "@/lib/pos/impresion";
 import type { MetodoPOS, PlantillaTicket, VentaPOSResultado } from "@/lib/pos/tipos";
 import { createClient } from "@/lib/supabase/client";
@@ -212,22 +221,12 @@ export function CheckoutPos({
   const excedeOtro = compararMontos(aplicadoOtro, total) > 0;
   const creditoOtro = excedeOtro ? "0.00" : centavosATexto(Math.max(0, centavos(total) - centavos(aplicadoOtro)));
 
-  const sumaCombinada = sumarMontos(filas.map((fila) => fila.monto || "0"));
-  const excedeCombinado = compararMontos(sumaCombinada, total) > 0;
-  const porCobrarCombinado = excedeCombinado
-    ? "0.00"
-    : centavosATexto(Math.max(0, centavos(total) - centavos(sumaCombinada)));
-  const hayCreditoCombinado = centavos(porCobrarCombinado) > 0;
-  const cambioCombinado = hayCreditoCombinado
-    ? "0.00"
-    : centavosATexto(
-        Math.max(
-          0,
-          filas
-            .filter((fila) => fila.metodo === "efectivo")
-            .reduce((suma, fila) => suma + Math.max(0, centavos(fila.recibido) - centavos(fila.monto)), 0),
-        ),
-      );
+  const totalesCombinados = calcularTotalesCombinadoPOS(filas, total);
+  const sumaCombinada = totalesCombinados.aplicado;
+  const excedeCombinado = totalesCombinados.excede;
+  const porCobrarCombinado = totalesCombinados.porCobrar;
+  const hayCreditoCombinado = totalesCombinados.hayCredito;
+  const cambioCombinado = totalesCombinados.cambio;
 
   const credito =
     modo === "credito"
@@ -256,11 +255,7 @@ export function CheckoutPos({
           ? centavos(aplicadoEfectivo)
           : centavos(aplicadoOtro);
 
-  const filaCombinadaInvalida = filas.some(
-    (fila) =>
-      centavos(fila.monto) <= 0 ||
-      (fila.metodo === "efectivo" && !hayCreditoCombinado && centavos(fila.recibido) < centavos(fila.monto)),
-  );
+  const filaCombinadaInvalida = totalesCombinados.invalido;
 
   const ctaDeshabilitado =
     enviando ||
@@ -293,15 +288,14 @@ export function CheckoutPos({
   }
 
   function agregarFila() {
-    const disponibles = METODOS_COMBINADOS.filter(
-      (metodo) => !filas.some((fila) => fila.metodo === metodo) && metodoDisponible(metodo),
-    );
-    const metodo = disponibles[0];
+    // Se puede repetir el método: dos efectivos o dos transferencias de bancos
+    // distintos son pagos separados y la RPC crea un recibo por cada fila.
+    const metodo = METODOS_COMBINADOS.find((candidato) => metodoDisponible(candidato));
     if (!metodo) return;
     const restante = centavosATexto(
       Math.max(0, centavos(total) - centavos(sumarMontos(filas.map((fila) => fila.monto || "0")))),
     );
-    const monto = centavos(restante) > 0 ? restante : total;
+    const monto = centavos(restante) > 0 ? restante : "";
     setFilas((actuales) => [...actuales, { id: nuevoId(), metodo, monto, recibido: monto }]);
   }
 
@@ -312,28 +306,13 @@ export function CheckoutPos({
     return Boolean(cuentaTransferencia);
   }
 
-  function armarPagos() {
+  function armarPagos(): PagoPOSArmado[] {
     if (modo === "credito") return [];
-    if (modo === "combinado") {
-      return filas
-        .filter((fila) => centavos(fila.monto) > 0)
-        .map((fila) => {
-          const monto = textoAMonto(fila.monto) ?? "0.00";
-          return {
-            metodo: fila.metodo,
-            monto,
-            ...(fila.metodo === "efectivo"
-              ? {
-                  monto_recibido: hayCreditoCombinado ? monto : mayor(textoAMonto(fila.recibido) ?? "0.00", monto),
-                }
-              : {}),
-          };
-        });
-    }
+    if (modo === "combinado") return armarPagosCombinadoPOS(filas, hayCreditoCombinado);
     if (modo === "efectivo") {
       return [
         {
-          metodo: "efectivo" as const,
+          metodo: "efectivo",
           monto: aplicadoEfectivo,
           monto_recibido: mayor(recibidoNum ?? "0", aplicadoEfectivo),
         },
@@ -367,9 +346,7 @@ export function CheckoutPos({
     setPerdido(false);
 
     const pagos = armarPagos();
-    const recibidoOffline = sumarMontos(
-      pagos.map((pago) => ("monto_recibido" in pago ? (pago.monto_recibido ?? pago.monto) : pago.monto)),
-    );
+    const recibidoOffline = sumarMontos(pagos.map((pago) => pago.monto_recibido ?? pago.monto));
     const entrada = {
       terminal_id: terminal.id,
       contacto_defecto_id: cotizacion ? null : (consumidorFinalId ?? terminal.contacto_defecto_id),
@@ -705,16 +682,14 @@ export function CheckoutPos({
                     <div className="flex flex-col gap-2">
                       {filas.map((fila) => {
                         const metodo = fila.metodo;
+                        const opciones = METODOS_COMBINADOS.filter(
+                          (candidato) => candidato === fila.metodo || metodoDisponible(candidato),
+                        ).map((candidato) => ({ value: candidato, label: ETIQUETAS_METODO[candidato] }));
                         return (
                           <div key={fila.id} className="border-border flex flex-col gap-2 rounded-lg border p-2">
                             <div className="flex items-center gap-2">
                               <Select
-                                items={METODOS_COMBINADOS.filter(
-                                  (candidato) =>
-                                    candidato === fila.metodo ||
-                                    (!filas.some((otra) => otra.id !== fila.id && otra.metodo === candidato) &&
-                                      metodoDisponible(candidato)),
-                                ).map((candidato) => ({ value: candidato, label: ETIQUETAS_METODO[candidato] }))}
+                                items={opciones}
                                 value={metodo}
                                 onValueChange={(valor) => {
                                   if (!valor) return;
@@ -735,14 +710,9 @@ export function CheckoutPos({
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent alignItemWithTrigger={false}>
-                                  {METODOS_COMBINADOS.filter(
-                                    (candidato) =>
-                                      candidato === fila.metodo ||
-                                      (!filas.some((otra) => otra.id !== fila.id && otra.metodo === candidato) &&
-                                        metodoDisponible(candidato)),
-                                  ).map((candidato) => (
-                                    <SelectItem key={candidato} value={candidato}>
-                                      {ETIQUETAS_METODO[candidato]}
+                                  {opciones.map((opcion) => (
+                                    <SelectItem key={opcion.value} value={opcion.value}>
+                                      {opcion.label}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -825,17 +795,18 @@ export function CheckoutPos({
                       <Button
                         variant="outline"
                         className="h-10 gap-1.5"
-                        disabled={
-                          filas.length >= 4 ||
-                          METODOS_COMBINADOS.every(
-                            (metodo) => filas.some((fila) => fila.metodo === metodo) || !metodoDisponible(metodo),
-                          )
-                        }
+                        disabled={filas.length >= MAXIMO_PAGOS_VENTA}
                         onClick={agregarFila}
                       >
                         <Plus aria-hidden="true" />
                         Agregar método
                       </Button>
+
+                      {filas.length >= MAXIMO_PAGOS_VENTA ? (
+                        <p className="text-muted-foreground text-xs">
+                          Una venta admite hasta {MAXIMO_PAGOS_VENTA} pagos.
+                        </p>
+                      ) : null}
 
                       {excedeCombinado ? (
                         <p className="text-destructive text-xs">

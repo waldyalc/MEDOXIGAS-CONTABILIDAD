@@ -1,7 +1,9 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  armarPagosCombinadoPOS,
   calcularLineaPOS,
+  calcularTotalesCombinadoPOS,
   centavosATexto,
   centavosDeDecimal,
   compararMontos,
@@ -119,5 +121,146 @@ describe("precioConImpuesto", () => {
     expect(precioConImpuesto("100", "18")).toBe("118.00");
     expect(precioConImpuesto("100", "0")).toBe("100.00");
     expect(precioConImpuesto("33.33", "18")).toBe("39.33");
+  });
+});
+
+describe("calcularTotalesCombinadoPOS", () => {
+  test("dos filas del mismo método suman aplicado, recibido y cambio", () => {
+    expect(
+      calcularTotalesCombinadoPOS(
+        [
+          { metodo: "efectivo", monto: "2000.00", recibido: "2000.00" },
+          { metodo: "efectivo", monto: "1850.00", recibido: "2000.00" },
+        ],
+        "3850.00",
+      ),
+    ).toEqual({
+      aplicado: "3850.00",
+      porCobrar: "0.00",
+      cambio: "150.00",
+      hayCredito: false,
+      excede: false,
+      invalido: false,
+    });
+  });
+
+  test("dos transferencias del mismo método no piden cambio ni crédito", () => {
+    expect(
+      calcularTotalesCombinadoPOS(
+        [
+          { metodo: "transferencia", monto: "1000.00" },
+          { metodo: "transferencia", monto: "850.00" },
+        ],
+        "1850.00",
+      ),
+    ).toEqual({
+      aplicado: "1850.00",
+      porCobrar: "0.00",
+      cambio: "0.00",
+      hayCredito: false,
+      excede: false,
+      invalido: false,
+    });
+  });
+
+  test("con filas repetidas puede quedar un saldo a crédito sin cambio", () => {
+    expect(
+      calcularTotalesCombinadoPOS(
+        [
+          { metodo: "efectivo", monto: "1000.00", recibido: "1000.00" },
+          { metodo: "efectivo", monto: "500.00", recibido: "500.00" },
+        ],
+        "2000.00",
+      ),
+    ).toEqual({
+      aplicado: "1500.00",
+      porCobrar: "500.00",
+      cambio: "0.00",
+      hayCredito: true,
+      excede: false,
+      invalido: false,
+    });
+  });
+
+  test("marca inválida una fila sin monto y un efectivo recibido menor al aplicado", () => {
+    expect(calcularTotalesCombinadoPOS([{ metodo: "efectivo", monto: "", recibido: "" }], "100.00").invalido).toBe(
+      true,
+    );
+    expect(
+      calcularTotalesCombinadoPOS([{ metodo: "efectivo", monto: "100.00", recibido: "90.00" }], "100.00").invalido,
+    ).toBe(true);
+  });
+
+  test("marca inválida una suma repetida que excede el total", () => {
+    const totales = calcularTotalesCombinadoPOS(
+      [
+        { metodo: "efectivo", monto: "600.00", recibido: "600.00" },
+        { metodo: "efectivo", monto: "600.00", recibido: "600.00" },
+      ],
+      "1000.00",
+    );
+
+    expect(totales.excede).toBe(true);
+    expect(totales.porCobrar).toBe("0.00");
+  });
+});
+
+describe("armarPagosCombinadoPOS", () => {
+  test("conserva una entrada por fila aunque el método se repita", () => {
+    const pagos = armarPagosCombinadoPOS(
+      [
+        { metodo: "efectivo", monto: "2000.00", recibido: "2000.00" },
+        { metodo: "efectivo", monto: "1850.00", recibido: "2000.00" },
+      ],
+      false,
+    );
+
+    expect(pagos).toHaveLength(2);
+    expect(pagos).toEqual([
+      { metodo: "efectivo", monto: "2000.00", monto_recibido: "2000.00" },
+      { metodo: "efectivo", monto: "1850.00", monto_recibido: "2000.00" },
+    ]);
+  });
+
+  test("las transferencias repetidas van sin monto recibido", () => {
+    const pagos = armarPagosCombinadoPOS(
+      [
+        { metodo: "transferencia", monto: "1000.00" },
+        { metodo: "transferencia", monto: "850.00" },
+      ],
+      false,
+    );
+
+    expect(pagos).toEqual([
+      { metodo: "transferencia", monto: "1000.00" },
+      { metodo: "transferencia", monto: "850.00" },
+    ]);
+  });
+
+  test("si queda crédito el efectivo se declara recibido por su monto", () => {
+    const pagos = armarPagosCombinadoPOS(
+      [
+        { metodo: "efectivo", monto: "1000.00", recibido: "1000.00" },
+        { metodo: "efectivo", monto: "500.00", recibido: "500.00" },
+      ],
+      true,
+    );
+
+    expect(pagos).toEqual([
+      { metodo: "efectivo", monto: "1000.00", monto_recibido: "1000.00" },
+      { metodo: "efectivo", monto: "500.00", monto_recibido: "500.00" },
+    ]);
+  });
+
+  test("normaliza montos y descarta filas sin monto", () => {
+    expect(
+      armarPagosCombinadoPOS(
+        [
+          { metodo: "transferencia", monto: "1,500.5" },
+          { metodo: "tarjeta_credito", monto: "0" },
+        ],
+        false,
+      ),
+    ).toEqual([{ metodo: "transferencia", monto: "1500.50" }]);
   });
 });

@@ -440,6 +440,13 @@ function contarFuentes(datos: {
   return fuentes;
 }
 
+/**
+ * Tope de pagos de una venta POS. Los métodos pueden repetirse (dos efectivos,
+ * dos transferencias de bancos distintos), así que el límite es de filas, no de
+ * métodos distintos.
+ */
+export const MAXIMO_PAGOS_VENTA = 10;
+
 export const esquemaVenta = z
   .object({
     terminal_id: z.uuid("La terminal no es válida."),
@@ -458,7 +465,10 @@ export const esquemaVenta = z
     lineas: z.array(esquemaLineaVenta).max(500, { message: "La venta no puede pasar de 500 líneas." }).optional(),
     venta_simple: esquemaVentaSimple.optional(),
     cotizacion_id: uuidNulo("La cotización no es válida."),
-    pagos: z.array(esquemaPagoVenta).max(4, { message: "La venta admite hasta 4 pagos." }).default([]),
+    pagos: z
+      .array(esquemaPagoVenta)
+      .max(MAXIMO_PAGOS_VENTA, { message: `La venta admite hasta ${MAXIMO_PAGOS_VENTA} pagos.` })
+      .default([]),
   })
   .superRefine((datos, ctx) => {
     if (contarFuentes(datos) !== 1) {

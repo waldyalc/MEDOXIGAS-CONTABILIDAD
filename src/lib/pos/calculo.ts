@@ -9,7 +9,7 @@
  * pagos suman y para formatear tickets; nunca para guardar un monto.
  */
 
-import type { Decimal } from "./tipos";
+import type { Decimal, MetodoPOS } from "./tipos";
 
 const DECIMAL_SIMPLE = /^(-?)(\d+)(?:\.(\d{1,4}))?$/;
 
@@ -174,4 +174,104 @@ export function precioConImpuesto(precio: Decimal, tasa: Decimal | null | undefi
   const precioCentavos = centavosDeDecimal(precio) ?? 0;
   const itbis = dividirRedondeando(precioCentavos * puntosBase(tasa), 10000);
   return centavosATexto(precioCentavos + itbis);
+}
+
+/** Fila del cobro combinado del POS. El método puede repetirse entre filas. */
+export interface FilaPagoCombinadoPOS {
+  metodo: MetodoPOS;
+  monto: Decimal;
+  /** Solo efectivo: lo que entrega el cliente. */
+  recibido?: Decimal | null;
+}
+
+export interface TotalesPagoCombinadoPOS {
+  /** Suma de los montos aplicados; cada fila repetida cuenta aparte. */
+  aplicado: Decimal;
+  /** `total − aplicado`, nunca negativo. */
+  porCobrar: Decimal;
+  /** Cambio total del efectivo; cero cuando la venta queda a crédito. */
+  cambio: Decimal;
+  /** La venta queda total o parcialmente por cobrar. */
+  hayCredito: boolean;
+  /** La suma aplicada supera el total de la venta. */
+  excede: boolean;
+  /** Hay una fila sin monto o con efectivo recibido menor al aplicado sin crédito. */
+  invalido: boolean;
+}
+
+/**
+ * Matemática del cobro combinado con filas repetidas (dos efectivos, dos
+ * transferencias…). Replica el motor: el cambio es la suma de lo recibido en
+ * efectivo menos lo aplicado en efectivo, y solo existe si no queda crédito.
+ */
+export function calcularTotalesCombinadoPOS(
+  filas: readonly FilaPagoCombinadoPOS[],
+  total: Decimal,
+): TotalesPagoCombinadoPOS {
+  let aplicadoCentavos = 0;
+  let efectivoAplicadoCentavos = 0;
+  let efectivoRecibidoCentavos = 0;
+
+  for (const fila of filas) {
+    const montoCentavos = centavosDeDecimal(fila.monto) ?? 0;
+    aplicadoCentavos += montoCentavos;
+
+    if (fila.metodo === "efectivo") {
+      efectivoAplicadoCentavos += montoCentavos;
+      efectivoRecibidoCentavos += Math.max(0, centavosDeDecimal(fila.recibido) ?? 0);
+    }
+  }
+
+  const totalCentavos = Math.max(0, centavosDeDecimal(total) ?? 0);
+  const porCobrarCentavos = Math.max(0, totalCentavos - aplicadoCentavos);
+  const hayCredito = porCobrarCentavos > 0;
+
+  return {
+    aplicado: centavosATexto(aplicadoCentavos),
+    porCobrar: centavosATexto(porCobrarCentavos),
+    cambio: hayCredito ? "0.00" : centavosATexto(Math.max(0, efectivoRecibidoCentavos - efectivoAplicadoCentavos)),
+    hayCredito,
+    excede: aplicadoCentavos > totalCentavos,
+    invalido: hayFilaCombinadaInvalida(filas, hayCredito),
+  };
+}
+
+/** Fila sin monto, o efectivo que no cubre lo aplicado cuando no queda crédito. */
+function hayFilaCombinadaInvalida(filas: readonly FilaPagoCombinadoPOS[], hayCredito: boolean): boolean {
+  return filas.some((fila) => {
+    const montoCentavos = centavosDeDecimal(fila.monto) ?? 0;
+    if (montoCentavos <= 0) return true;
+    if (hayCredito || fila.metodo !== "efectivo") return false;
+    return (centavosDeDecimal(fila.recibido) ?? 0) < montoCentavos;
+  });
+}
+
+/** Pago listo para el payload de `pos_completar_venta`. */
+export interface PagoPOSArmado {
+  metodo: MetodoPOS;
+  monto: Decimal;
+  monto_recibido?: Decimal;
+}
+
+/**
+ * Arma un pago por fila, sin fusionar métodos repetidos. En efectivo,
+ * `monto_recibido` es lo entregado por el cliente y no baja del monto aplicado;
+ * si la venta queda a crédito se envía igual al monto (no hay cambio).
+ */
+export function armarPagosCombinadoPOS(filas: readonly FilaPagoCombinadoPOS[], hayCredito: boolean): PagoPOSArmado[] {
+  return filas
+    .filter((fila) => (centavosDeDecimal(fila.monto) ?? 0) > 0)
+    .map((fila) => {
+      const montoCentavos = centavosDeDecimal(fila.monto) ?? 0;
+      const monto = centavosATexto(montoCentavos);
+
+      if (fila.metodo !== "efectivo") return { metodo: fila.metodo, monto };
+
+      const recibidoCentavos = Math.max(0, centavosDeDecimal(fila.recibido) ?? 0);
+      return {
+        metodo: "efectivo" as const,
+        monto,
+        monto_recibido: hayCredito ? monto : centavosATexto(Math.max(montoCentavos, recibidoCentavos)),
+      };
+    });
 }
