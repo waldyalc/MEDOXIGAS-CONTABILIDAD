@@ -56,6 +56,17 @@ export async function guardarOffline<T>(store: StoreOffline, clave: string, valo
   });
 }
 
+export async function borrarOffline(store: StoreOffline, clave: string): Promise<void> {
+  const db = await abrir();
+  return new Promise((resolve, reject) => {
+    const transaccion = db.transaction(store, "readwrite");
+    transaccion.objectStore(store).delete(clave);
+    transaccion.oncomplete = () => resolve();
+    transaccion.onabort = () => reject(transaccion.error ?? new Error("No se pudo borrar en este dispositivo."));
+    transaccion.onerror = () => reject(transaccion.error);
+  });
+}
+
 export const almacenColaOffline: AlmacenColaOffline = {
   listar: async (ambito) => {
     const db = await abrir();
@@ -71,6 +82,7 @@ export const almacenColaOffline: AlmacenColaOffline = {
     });
   },
   guardar: (operacion) => guardarOffline("operaciones", `${operacion.ambito}/${operacion.uuid}`, operacion),
+  eliminar: (ambito, uuid) => borrarOffline("operaciones", `${ambito}/${uuid}`),
 };
 
 export async function conBloqueoOffline<T>(ambito: string, accion: () => Promise<T>): Promise<T> {
