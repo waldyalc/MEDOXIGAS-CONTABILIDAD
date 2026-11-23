@@ -1,6 +1,6 @@
 # Handoff — Medoxigas Contabilidad
 
-## POS 13: venta nueva con Consumidor final (rama `feat/pos-consumidor-final`, MSG-33)
+## POS 15: venta nueva con Consumidor final (rama `feat/pos-consumidor-final`, MSG-33)
 
 Decisión de Waldy (23-11-2026): como Alegra, cada venta nueva del POS arranca
 con el cliente «Consumidor final» ya elegido.
@@ -36,6 +36,23 @@ con el cliente «Consumidor final» ya elegido.
   como respaldo, pero la RPC `pos_completar_venta` todavía bloquea el crédito
   según esa columna; cuando Waldy apunte la terminal al Consumidor final real,
   base y UI quedarán alineadas.
+
+## POS 14: logo de Medoxigas en el ticket (rama `feat/pos-ticket-logo`, MSG-35)
+
+El código ya pintaba el logo (arriba, centrado, 69.8 × 20.9 mm con
+`object-contain`), pero `empresa.logo_url` era NULL y el bucket `logos` estaba
+vacío, así que nunca salía.
+
+- Subido `public/marca/logo-medoxigas.png` (500 × 260, PNG con transparencia) al
+  bucket público `logos` del proyecto `ljfdhrnvlsfaweuvnqxz` y actualizado
+  `empresa.logo_url` a su URL pública. Sin migración ni cambio de código de
+  producción; si la empresa no tiene logo, `Logo` devuelve `null` y no deja hueco.
+- Comprobado con Playwright (1440 px) sobre una venta ZZTEST existente: factura
+  80 mm con el logo sobre «MEDOXIGAS ALC, SRL» y cierre 57 mm igual que Alegra
+  (sin encabezado de empresa). Capturas en `docs/diseno/capturas/pos-logo/`.
+- **Candado:** `src/lib/pos/ticket-pdf.test.tsx` ahora exige además que el `<img>`
+  exista una sola vez, quede arriba del nombre de la empresa y centrado con él,
+  manteniendo las medidas 69.8 × 20.9 mm de los cuatro PDFs.
 
 ## POS 13: favoritos con la estrella teal (rama `feat/pos-favoritos-estrella`, MSG-31)
 
