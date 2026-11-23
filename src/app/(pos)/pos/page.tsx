@@ -7,7 +7,7 @@ import { getImpuestosActivos } from "@/lib/impuestos/consultas";
 import { listarCategorias } from "@/lib/inventario/consultas";
 import { getNumeraciones } from "@/lib/numeraciones/consultas";
 import { getPlantillaImpresion } from "@/lib/plantillas-impresion/consultas";
-import { getProductosPOS } from "@/lib/pos/consultas";
+import { getConsumidorFinalId, getProductosPOS } from "@/lib/pos/consultas";
 import { getVendedoresActivos } from "@/lib/vendedores/consultas";
 
 import { getContextoPOS, getCuentasPOS } from "./_components/servidor";
@@ -33,6 +33,7 @@ export default async function Page() {
     cuentas,
     plantillaFactura,
     plantillaCotizacion,
+    consumidorFinalId,
   ] = await Promise.all([
     getEmpresa(),
     getProductosPOS({ terminal_id: terminal.id, limit: 50, offset: 0 }),
@@ -45,6 +46,7 @@ export default async function Page() {
     getCuentasPOS(),
     getPlantillaImpresion("factura"),
     getPlantillaImpresion("cotizacion"),
+    getConsumidorFinalId(),
   ]);
 
   const numeracionesVenta = numeraciones.filter(
@@ -89,6 +91,7 @@ export default async function Page() {
       listas={listas}
       vendedores={vendedores}
       contactos={contactos}
+      consumidorFinalId={consumidorFinalId}
       cuentas={cuentas.map((cuenta) => ({ id: cuenta.id, nombre: cuenta.nombre }))}
       plantillaFactura={plantillaFactura}
       plantillaCotizacion={plantillaCotizacion}

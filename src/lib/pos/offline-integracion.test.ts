@@ -4,7 +4,7 @@ import { nuevaOperacionOffline, resumenConfirmacionOffline, resumenSnapshotOffli
 import { armarTicketOffline } from "./impresion";
 import { ventaEjemplo } from "./pruebas/ejemplos";
 import { PLANTILLA_TICKET_DEFECTO } from "./tipos";
-import { errorTransitorio } from "./transporte-offline";
+import { clasificarErrorOffline, errorTransitorio } from "./transporte-offline";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -72,14 +72,28 @@ describe("integración offline con la RPC idempotente", () => {
     expect(operacion.folio).toBe(`POS-LOCAL-${operacion.uuid}`);
   });
 
-  it("distingue errores de red/servidor de los rechazos de negocio", () => {
+  it("clasifica red, servidor, sesión y negocio", () => {
+    // Red, servidor y conflictos que se resuelven solos: reintento con backoff.
     expect(errorTransitorio(null)).toBe(true);
-    expect(errorTransitorio("PGRST301")).toBe(true);
     expect(errorTransitorio("08006")).toBe(true);
+    expect(errorTransitorio("53400")).toBe(true);
     expect(errorTransitorio("57014")).toBe(true);
+    expect(errorTransitorio("40001")).toBe(true);
+    expect(errorTransitorio("40P01")).toBe(true);
+    expect(errorTransitorio("PGRST000")).toBe(true);
+    // Sesión: se refresca y se reintenta; no se marca fallida ni se reintenta a ciegas.
+    expect(errorTransitorio("PGRST301")).toBe(false);
+    expect(errorTransitorio("42501")).toBe(false);
+    expect(clasificarErrorOffline("42501")).toBe("sesion");
+    expect(clasificarErrorOffline("PGRST301")).toBe("sesion");
+    expect(clasificarErrorOffline("PGRST302")).toBe("sesion");
+    // Rechazos reales: se marcan fallidos y se conservan en el panel.
     expect(errorTransitorio("P0001")).toBe(false);
     expect(errorTransitorio("22023")).toBe(false);
-    expect(errorTransitorio("42501")).toBe(false);
+    expect(clasificarErrorOffline("PGRST202")).toBe("permanente");
+    expect(clasificarErrorOffline("PGRST204")).toBe("permanente");
+    expect(clasificarErrorOffline("23505")).toBe("permanente");
+    expect(clasificarErrorOffline("99999")).toBe("permanente");
   });
 
   it("el SQL aplicado conserva vencimiento y la tabla queda clasificada para el reset", () => {

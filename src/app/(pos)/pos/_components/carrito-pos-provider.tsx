@@ -5,6 +5,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 import type { UnidadPos } from "@/lib/inventario/ferreteria/tipos";
 import { almacenColaOffline, guardarOffline, leerOffline } from "@/lib/pos/almacen-offline";
 import { calcularLineaPOS, sumarMontos, type TotalesCarritoPOS, type TotalesLineaPOS } from "@/lib/pos/calculo";
+import { contactoDePestanaRestaurada } from "@/lib/pos/consumidor-final";
 import { eliminarPestanaDe, ID_PESTANA_PRINCIPAL, renombrarPestanaEn } from "@/lib/pos/pestanas-venta";
 import type { Decimal, ProductoPOS } from "@/lib/pos/tipos";
 
@@ -187,7 +188,10 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
               JSON.stringify(snapshot.pestana) === JSON.stringify(pestana)
             );
           });
-          return cobrada ? { ...pestana, lineas: [], cotizacion: null } : pestana;
+          const restaurada = cobrada ? { ...pestana, lineas: [], cotizacion: null } : pestana;
+          // Una venta restaurada sin líneas es una venta nueva: arranca con el
+          // cliente inicial (Consumidor final), no con el que quedó antes.
+          return { ...restaurada, contactoId: contactoDePestanaRestaurada(restaurada, defaults.contactoId) };
         });
         setPestanas(restauradas);
         setActivaId(guardado.activaId);
@@ -220,7 +224,7 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
       controlador.abort();
       liberar?.();
     };
-  }, [ambito]);
+  }, [ambito, defaults.contactoId]);
 
   useEffect(() => {
     if (!hidratado) return;

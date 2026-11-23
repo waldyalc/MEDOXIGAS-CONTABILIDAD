@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { mensajeErrorRpc } from "@/lib/facturacion/errores";
 import { buscarProductoPorCodigoBarra, listarCatalogoPos } from "@/lib/inventario/ferreteria/consultas";
 import { decimal, textoONulo } from "@/lib/inventario/ferreteria/mapeo";
@@ -14,6 +16,7 @@ import { consultarEnLotes } from "@/lib/supabase/lotes";
 import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
+import { normalizarRnc, RNC_CONSUMIDOR_FINAL } from "./consumidor-final";
 import {
   esquemaBusquedaCodigoPOS,
   esquemaCatalogoPOS,
@@ -104,6 +107,27 @@ export async function getTerminal(id: string): Promise<TerminalPOS | null> {
   if (error) throw new ErrorPOS(mensajeErrorRpc(error), error.code);
   return data ? mapearTerminal(data) : null;
 }
+
+/**
+ * Id del contacto «Consumidor final» por su RNC normalizado. Es el cliente con
+ * el que arranca toda venta nueva del POS, como Alegra. Si la lectura falla o
+ * el contacto no existe, el POS cae al contacto por defecto de la terminal.
+ */
+export const getConsumidorFinalId = cache(async (): Promise<string | null> => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("contactos")
+    .select("id, rnc_cedula")
+    .eq("activo", true)
+    .in("tipo", ["cliente", "ambos"])
+    .eq("rnc_cedula", RNC_CONSUMIDOR_FINAL)
+    .order("nombre")
+    .limit(1)
+    .maybeSingle<{ id: string; rnc_cedula: string | null }>();
+
+  if (error || !data) return null;
+  return normalizarRnc(data.rnc_cedula) === RNC_CONSUMIDOR_FINAL ? data.id : null;
+});
 
 /** Turno abierto de la terminal; `null` si no hay. El índice único garantiza uno solo. */
 export async function getTurnoAbierto(terminalId: string): Promise<TurnoPOS | null> {
