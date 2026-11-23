@@ -86,7 +86,7 @@ export function HistorialPos({
   return (
     <ContenedorLista className="p-4 md:p-6">
       <EncabezadoPagina
-        titulo="Historial de ventas del POS"
+        titulo="Ventas"
         subtitulo="Facturas cobradas desde el punto de venta."
         acciones={
           <Button variant="outline" className="h-10" render={<a href="/pos" />}>

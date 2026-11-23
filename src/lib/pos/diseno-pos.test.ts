@@ -77,21 +77,46 @@ describe("diseño POS estilo Alegra", () => {
     expect(linea, "Los renglones del carrito van en blanco sobre el cuerpo gris del panel").toContain("bg-white");
   });
 
-  it("el menú del POS no vuelve a las flechitas: los subitems quedan siempre visibles", () => {
+  it("el menú del POS es plano: cinco enlaces, sin grupos ni submenús", () => {
     const menu = readFileSync(join(POS, "_components", "menu-pos.tsx"), "utf8");
+    const estilos = readFileSync(join(POS, "_components", "menu-pos-estilos.ts"), "utf8");
+    const inicio = menu.indexOf("const ITEMS_PRINCIPALES");
+    const fin = menu.indexOf("const ITEMS_CONTABILIDAD");
+    const bloque = menu.slice(inicio, fin);
+
+    expect(inicio, "No se encontró ITEMS_PRINCIPALES en menu-pos.tsx").toBeGreaterThan(-1);
+    expect(fin, "No se encontró ITEMS_CONTABILIDAD después de ITEMS_PRINCIPALES").toBeGreaterThan(inicio);
+
+    const etiquetas = [...bloque.matchAll(/etiqueta: "([^"]+)"/g)].map((coincidencia) => coincidencia[1]);
     expect(
-      menu,
-      "El menú no usa Collapsible: Ingresos y Turnos son secciones con sus subitems siempre visibles al expandir (decisión de Waldy, POS 2). Quita el acordeón y deja los enlaces bajo su sección.",
-    ).not.toContain("Collapsible");
+      etiquetas,
+      "El menú del POS es plano (decisión de Waldy, 23-11-2026): deja exactamente Facturar, Ventas, Pagos, Turnos y Devoluciones en ese orden, sin grupos «Ingresos» ni «Historial de turnos».",
+    ).toEqual(["Facturar", "Ventas", "Pagos", "Turnos", "Devoluciones"]);
+
+    const enlaces = [...bloque.matchAll(/href: "([^"]+)"/g)].map((coincidencia) => coincidencia[1]);
     expect(
-      menu,
-      "No vuelvas a poner la flecha de abrir/cerrar: el menú muestra Historial de ventas, Registro de pagos e Historial de turnos sin un clic extra.",
-    ).not.toContain("ChevronDown");
-    expect(menu, "Falta la sección Ingresos con Historial de ventas y Registro de pagos").toContain(
-      "Historial de ventas",
-    );
-    expect(menu, "Falta la sección Turnos con Historial de turnos").toContain("Historial de turnos");
-    expect(menu, "El título de sección debe usar itemMenuSeccion (sin hover de enlace)").toContain("itemMenuSeccion");
+      enlaces,
+      "Los cinco enlaces planos deben apuntar a /pos, /pos/historial, /pos/pagos, /pos/turnos y /pos/devoluciones, en ese orden.",
+    ).toEqual(["/pos", "/pos/historial", "/pos/pagos", "/pos/turnos", "/pos/devoluciones"]);
+
+    for (const texto of ["Ingresos", "Historial de turnos", "Historial de ventas", "Registro de pagos"]) {
+      expect(
+        menu,
+        `No vuelvas a agrupar el menú del POS: quita «${texto}» y deja el enlace plano con su nombre visible (Ventas, Pagos, Turnos).`,
+      ).not.toContain(texto);
+    }
+
+    for (const pieza of ["ItemSeccion", "sub:", "Collapsible", "ChevronDown"]) {
+      expect(
+        menu,
+        `El menú del POS no tiene submenús ni acordeones (decisión de Waldy, 23-11-2026); quita «${pieza}» y deja los cinco enlaces al mismo nivel.`,
+      ).not.toContain(pieza);
+    }
+
+    expect(
+      estilos,
+      "Elimina itemMenuSeccion de menu-pos-estilos.ts: ya no hay títulos de grupo en el menú plano del POS.",
+    ).not.toContain("itemMenuSeccion");
   });
 
   it("la línea del carrito es una sola fila: stepper grande, total solo y acciones flotantes", () => {

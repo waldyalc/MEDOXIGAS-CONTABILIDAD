@@ -11,7 +11,6 @@ import {
   ArrowUpRight,
   CircleDollarSign,
   Clock,
-  HandCoins,
   History,
   House,
   type LucideIcon,
@@ -23,13 +22,12 @@ import {
   Settings,
   Store,
   Users,
-  Wallet,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 import { EstadoTurnoPos } from "./estado-turno-pos";
-import { claseIconoMenu, itemMenuActivo, itemMenuBase, itemMenuColapsado, itemMenuSeccion } from "./menu-pos-estilos";
+import { claseIconoMenu, itemMenuActivo, itemMenuBase, itemMenuColapsado } from "./menu-pos-estilos";
 import { SalirPos } from "./salir-pos";
 import { SelectorTerminal } from "./selector-terminal";
 import { UsuarioPos } from "./usuario-pos";
@@ -43,32 +41,11 @@ interface ItemEnlacePOS {
   externo?: boolean;
 }
 
-interface ItemSeccionPOS {
-  id: string;
-  etiqueta: string;
-  icono: LucideIcon;
-  sub: ItemEnlacePOS[];
-}
-
-type ItemPOS = ItemEnlacePOS | ItemSeccionPOS;
-
-const ITEMS_PRINCIPALES: ItemPOS[] = [
+const ITEMS_PRINCIPALES: ItemEnlacePOS[] = [
   { id: "facturar", etiqueta: "Facturar", icono: House, href: "/pos" },
-  {
-    id: "ingresos",
-    etiqueta: "Ingresos",
-    icono: HandCoins,
-    sub: [
-      { id: "historial-ventas", etiqueta: "Historial de ventas", icono: History, href: "/pos/historial" },
-      { id: "registro-pagos", etiqueta: "Registro de pagos", icono: CircleDollarSign, href: "/pos/pagos" },
-    ],
-  },
-  {
-    id: "turnos",
-    etiqueta: "Turnos",
-    icono: Wallet,
-    sub: [{ id: "historial-turnos", etiqueta: "Historial de turnos", icono: Clock, href: "/pos/turnos" }],
-  },
+  { id: "ventas", etiqueta: "Ventas", icono: History, href: "/pos/historial" },
+  { id: "pagos", etiqueta: "Pagos", icono: CircleDollarSign, href: "/pos/pagos" },
+  { id: "turnos", etiqueta: "Turnos", icono: Clock, href: "/pos/turnos" },
   { id: "devoluciones", etiqueta: "Devoluciones", icono: RotateCcw, href: "/pos/devoluciones" },
 ];
 
@@ -86,10 +63,6 @@ const ITEMS_CONTABILIDAD: ItemEnlacePOS[] = [
 
 function esActivo(pathname: string, href: string): boolean {
   return href === "/pos" ? pathname === "/pos" : pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function esSeccion(item: ItemPOS): item is ItemSeccionPOS {
-  return "sub" in item;
 }
 
 function IconoItem({ icono: Icono, activo }: { icono: LucideIcon; activo?: boolean }) {
@@ -258,19 +231,15 @@ function ContenidoMenuPos({
 
       <nav aria-label="Secciones del punto de venta" className="min-h-0 flex-1 overflow-y-auto p-2">
         <ul className="flex flex-col gap-0.5">
-          {ITEMS_PRINCIPALES.map((item) =>
-            esSeccion(item) ? (
-              <ItemSeccion key={item.id} item={item} expandido={expandido} onNavegar={onNavegar} />
-            ) : (
-              <ItemEnlace
-                key={item.id}
-                item={item}
-                activo={esActivo(pathname, item.href)}
-                expandido={expandido}
-                onNavegar={onNavegar}
-              />
-            ),
-          )}
+          {ITEMS_PRINCIPALES.map((item) => (
+            <ItemEnlace
+              key={item.id}
+              item={item}
+              activo={esActivo(pathname, item.href)}
+              expandido={expandido}
+              onNavegar={onNavegar}
+            />
+          ))}
         </ul>
 
         <div aria-hidden="true" className="my-2 flex h-4 items-center py-1">
@@ -322,53 +291,6 @@ function ItemEnlace({
           <ArrowUpRight className="dark:text-sidebar-foreground/50 size-4 shrink-0 text-slate-400" aria-hidden="true" />
         ) : null}
       </Link>
-    </li>
-  );
-}
-
-/**
- * Sección del menú (Ingresos, Turnos): el título agrupa sus subitems, que
- * están siempre visibles al expandir el panel —sin flechitas ni acordeón—
- * y se ocultan en el riel de 52 px, donde solo cabe el icono.
- */
-function ItemSeccion({
-  item,
-  expandido,
-  onNavegar,
-}: {
-  item: ItemSeccionPOS;
-  expandido: boolean;
-  onNavegar?: () => void;
-}) {
-  const pathname = usePathname();
-
-  return (
-    <li>
-      <div title={item.etiqueta} className={cn(itemMenuSeccion, !expandido && itemMenuColapsado)}>
-        <IconoItem icono={item.icono} />
-        <span className={cn("min-w-0 flex-1 truncate", !expandido && "hidden")}>{item.etiqueta}</span>
-      </div>
-      {expandido ? (
-        <ul className="dark:border-sidebar-border my-2 ml-[17px] flex flex-col border-l border-slate-200 pl-[10px]">
-          {item.sub.map((sub) => {
-            const activo = esActivo(pathname, sub.href);
-            return (
-              <li key={sub.id} className="mb-1 last:mb-0">
-                <Link
-                  href={sub.href}
-                  aria-current={activo ? "page" : undefined}
-                  title={sub.etiqueta}
-                  className={cn(itemMenuBase, "min-h-8", activo && itemMenuActivo)}
-                  onClick={onNavegar}
-                >
-                  <IconoItem icono={sub.icono} activo={activo} />
-                  <span className="min-w-0 flex-1 truncate">{sub.etiqueta}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
     </li>
   );
 }
