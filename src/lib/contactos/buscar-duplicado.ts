@@ -22,10 +22,11 @@ function sinAcentos(valor: string) {
 
 /**
  * Filtro `.or()` de PostgREST con las variantes del texto. Se piden las
- * versiones con y sin acentos para encontrar el nombre guardado como sea.
+ * versiones con y sin acentos para encontrar el nombre guardado como sea;
+ * aquí solo se limpian los comodines, no la diacrítica.
  */
 function filtroNombre(valores: readonly string[]) {
-  const patrones = [...new Set(valores.map((valor) => sinAcentos(limpiarBusqueda(valor))).filter(Boolean))];
+  const patrones = [...new Set(valores.map((valor) => limpiarBusqueda(valor).replace(/[%_]/g, "")).filter(Boolean))];
   if (patrones.length === 0) return null;
   return patrones.map((patron) => `nombre.ilike.${patronIlike(patron)}`).join(",");
 }
@@ -70,7 +71,7 @@ export async function buscarContactoDuplicado(datos: {
     if (encontrado) return encontrado;
   }
 
-  const primeraPalabra = filtroNombre([palabra]);
+  const primeraPalabra = filtroNombre([palabra, sinAcentos(palabra)]);
   if (primeraPalabra) {
     const encontrado = await leer(
       supabase.from("contactos").select(CAMPOS).eq("activo", true).or(primeraPalabra).order("nombre").limit(100),
