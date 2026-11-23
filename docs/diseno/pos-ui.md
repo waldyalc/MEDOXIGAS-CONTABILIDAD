@@ -531,7 +531,7 @@ Seis tiles seleccionables, en grilla 3×2 (2×3 en móvil), cada uno de 72 px de
 
 #### 4.9.5 Combinado
 
-- Tabla de filas, máximo 4, una por método. «Agregar método» abre un `Select` con los métodos disponibles que no estén ya en la tabla. No se repite un método para evitar dos cuentas iguales en la misma venta.
+- Tabla de filas, máximo `MAXIMO_PAGOS_VENTA` (10). «Agregar método» crea una fila con el restante y el `Select` muestra todos los métodos: un método puede repetirse (dos efectivos, dos transferencias). Cada recibo de `pagos_recibidos` nace de una fila.
 - Cada fila:
   - `Select` «Método» (efectivo, tarjeta débito, tarjeta crédito, transferencia);
   - `InputGroup` «Monto aplicado» (default: el saldo por aplicar; editable);
@@ -545,7 +545,7 @@ Seis tiles seleccionables, en grilla 3×2 (2×3 en móvil), cada uno de 72 px de
   - si `porCobrar = 0`, el cambio es `sum(recibido efectivo) − sum(aplicado efectivo)`, nunca negativo;
   - si `porCobrar > 0` y el cliente es Consumidor Final, se muestra el bloque de crédito bloqueado y no se puede cobrar.
 - La fila de efectivo es opcional; una venta combinada de solo tarjeta y transferencia es válida (es un pago dividido, no un crédito).
-- «Agregar método» se deshabilita si no quedan métodos o si ya hay 4 filas.
+- «Agregar método» se deshabilita al llegar a `MAXIMO_PAGOS_VENTA` (10) filas; cualquier fila extra se puede quitar, la última queda protegida.
 
 #### 4.9.6 Crédito y pago parcial
 
