@@ -34,6 +34,12 @@ jobs:
       - name: Lint
         run: pnpm check
 
+      - name: Herramientas PDF y Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils fonts-liberation
+          pnpm exec playwright install --with-deps chromium
+
       - name: Test
         run: pnpm test
 

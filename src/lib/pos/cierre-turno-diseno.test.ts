@@ -27,6 +27,14 @@ describe("presentación del cierre POS", () => {
     expect(prepararCierre(datos, [terminal]).tarjetas).toBeNull();
   });
 
+  it("sin ventas de tarjeta muestra débito y crédito cero sin inventar atribuciones históricas", () => {
+    const datos = cierreEjemplo();
+    datos.resumen.ventas.por_metodo.tarjeta = "0.00";
+    expect(prepararCierre(datos, []).tarjetas).toEqual({ debito: "RD$0.00", credito: "RD$0.00" });
+    datos.resumen.ventas.por_metodo.tarjeta = "12.00";
+    expect(prepararCierre(datos, []).tarjetas).toBeNull();
+  });
+
   it("presenta retiros negativos entre paréntesis y conserva contado, esperado y observaciones", () => {
     const datos = cierreEjemplo();
     datos.turno.abierto_en = "2026-11-21T13:23:00Z";

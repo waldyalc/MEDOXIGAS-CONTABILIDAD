@@ -77,6 +77,16 @@ MSG-15 de Waldy/Coder sobre la plantilla única:
   `cierre-4.*`, `comparacion-cierres.png` y los recortes
   `comparacion-{encabezado,cliente-doc,items-totales,pie}.png`.
 
+## POS 10 MSG-22: medidas exactas y candado PDF (`fix/pos-10-medidas-exactas`)
+
+- Skill solicitada: `.opencode/skills/ticket-80mm/SKILL.md`, enlazada desde AGENTS.md, con tabla completa de tamaños/posiciones de Coder, encabezado configurable, reglas de plantilla única y verificación Poppler. Sustituye los tamaños provisionales en em del MSG-15.
+- `TicketPos`: Arial/Liberation Sans 9 pt; empresa/cliente/Total 13.5 pt bold; título 9; tabla 8.1 bold; ítem 7.29; detalle 6.55; logo configurable 69.8×20.9 mm. No se cargó logo ni datos.
+- Cierre: 26.25 pt normal en una línea. Tras medir ~48 mm de texto contra ~45.8 mm útiles, se consultó y se autorizó reducir SOLO los márgenes laterales del título a 4 mm. Filas 7.5 pt, dinero 9 pt. Débito/crédito cero se muestran separados cuando el total de tarjetas es cero; con importes históricos sin atribución se conserva la fila combinada, sin inventar desglose.
+- Prueba `src/lib/pos/ticket-pdf.test.tsx`: genera los cuatro PDFs con componentes reales, Tailwind real y Chromium sin servidor/base; comprueba fuentes incrustadas con pdffonts, tamaños ±0.3 pt con pdftotext -bbox (alto de caja convertido usando métrica Arial/LiberationSans 1.1171875), dimensiones, una página, caja del logo y pesos. CI instala Chromium, Poppler y Liberation antes de `pnpm test`.
+- Evidencia real regenerada en `docs/diseno/capturas/pos-10/`: factura/prefactura/cotización y ambos cierres No 3/4. Comparaciones y recortes a 150 dpi en ambos lados, sin redimensionar, con datos sensibles de referencia ocultos. Preview oficial bloqueado por sandbox de Chrome al ejecutar T3 como root; se usó Playwright local 3029 tras dos fallos, sin tocar 3010.
+- SQL: se preguntó por el timestamp futuro `20261126121000` y se eligió **Conservar propuesta**. Sigue en `docs/pruebas/migracion-empresa-sucursal-regimen.sql`, sin aplicar ni promover a migrations, sin modificar el candado. Se mantiene íntegro el trabajo de configuración de #120.
+- Verificación: typecheck/check/test/build aprobados. Sin escrituras de negocio, sin migraciones aplicadas ni datos inventados.
+
 ## POS 9 — pestañas de venta con ⋮, renombrar y eliminar (`feat/pos-pestanas-venta`)
 
 Base `feat/pos-alegra-exacto`. Solo presentación y estado en memoria: sin base, migraciones ni ventas nuevas.
