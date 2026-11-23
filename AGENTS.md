@@ -111,6 +111,12 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 - `src/lib/supabase/types.ts` ← `pnpm db:types` (tras cada migración; el job `db` de CI verifica que esté al día).
 - `pnpm-lock.yaml` ← `pnpm install`. `.next/`, `next-env.d.ts` ← `next dev`/`build`.
 
+## Base de datos (regla del VPS)
+
+- Toda operación de base de datos (migraciones, consultas, tipos) se hace con **Supabase CLI desde este VPS**; no se usan claves en scripts ni `service_role` en el cliente.
+- El token de acceso vive en `/root/.supabase.env` (chmod 600, cargado por el shell). **Nunca** se imprime, se pega en el chat o en logs, ni se commitea.
+- Proyecto de prueba: `ljfdhrnvlsfaweuvnqxz`. La base de producción y la de OPP no se tocan sin el OK de Waldy en el chat.
+
 ## Calidad de código (la verifica CI; el pre-push también)
 
 - TypeScript estricto extra (`noUncheckedIndexedAccess`, etc.; sin `exactOptionalPropertyTypes`: rompe Base UI). Biome: sin `any` (salvo `src/components/ui`), sin `!`, sin `console` salvo `error`/`warn` (scripts en `src/scripts/` exentos), sin `@ts-ignore`. Toda supresión `biome-ignore` o `@ts-expect-error` lleva el motivo en el mismo comentario.
