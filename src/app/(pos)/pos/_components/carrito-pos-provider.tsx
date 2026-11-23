@@ -198,13 +198,13 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
       setErrorPersistencia(true);
       return;
     }
+    const controlador = new AbortController();
+    const aviso = window.setTimeout(() => setOtroEditor(true), 1000);
     void navigator.locks
-      .request(`pos-editor:${ambito}`, { ifAvailable: true }, async (bloqueo) => {
+      .request(`pos-editor:${ambito}`, { signal: controlador.signal }, async () => {
+        window.clearTimeout(aviso);
         if (!vigente) return;
-        if (!bloqueo) {
-          setOtroEditor(true);
-          return;
-        }
+        setOtroEditor(false);
         const espera = new Promise<void>((resolve) => {
           liberar = resolve;
         });
@@ -216,6 +216,8 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
       });
     return () => {
       vigente = false;
+      window.clearTimeout(aviso);
+      controlador.abort();
       liberar?.();
     };
   }, [ambito]);

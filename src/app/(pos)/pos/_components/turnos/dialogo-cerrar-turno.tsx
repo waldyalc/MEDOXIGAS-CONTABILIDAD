@@ -40,7 +40,10 @@ export function DialogoCerrarTurno({
   const offline = useOfflinePOS();
   const cierreBloqueado =
     !offline.preparado || offline.estado === "offline" || offline.estado === "sincronizando" || offline.pendientes > 0;
-  const mensajeOffline = `Conéctate para subir ${offline.pendientes} ventas antes de cerrar`;
+  const mensajeOffline =
+    offline.pendientes > 0
+      ? `Conéctate para subir ${offline.pendientes} ventas antes de cerrar`
+      : "Conéctate a internet para cerrar el turno";
   const [real, setReal] = useState("");
   const [registrarDiferencia, setRegistrarDiferencia] = useState(true);
   const [observaciones, setObservaciones] = useState("");

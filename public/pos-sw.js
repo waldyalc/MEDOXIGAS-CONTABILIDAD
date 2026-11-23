@@ -1,5 +1,6 @@
 const PREFIJO = "medoxigas-pos-v1-";
 const META = `${PREFIJO}meta`;
+const ASSETS = `${PREFIJO}assets`;
 const LLAVE = new URL("/pos-offline-identidad", self.location.origin).href;
 
 self.addEventListener("install", (evento) => evento.waitUntil(self.skipWaiting()));
@@ -18,7 +19,7 @@ async function identidad() {
   return datos.hasta > Date.now() ? datos : null;
 }
 
-async function preparar(ambito) {
+async function preparar(ambito, recursosCargados = []) {
   if (typeof ambito !== "string" || !/^[a-zA-Z0-9/-]{1,150}$/.test(ambito)) return;
   const anterior = await identidad();
   if (anterior && anterior.ambito !== ambito) await limpiar();
@@ -27,7 +28,13 @@ async function preparar(ambito) {
   const documento = await fetch("/pos", { credentials: "same-origin", cache: "no-store", redirect: "error" });
   if (!documento.ok || !documento.headers.get("content-type")?.includes("text/html")) return;
   const html = await documento.clone().text();
+  const assets = await caches.open(ASSETS);
   const recursos = new Set();
+  for (const cargado of Array.isArray(recursosCargados) ? recursosCargados : []) {
+    if (typeof cargado !== "string") continue;
+    const ruta = new URL(cargado, self.location.origin);
+    if (ruta.origin === self.location.origin && ruta.pathname.startsWith("/_next/static/")) recursos.add(ruta.href);
+  }
   for (const coincidencia of html.matchAll(/(?:src|href)="([^"<>]+)"/g)) {
     const ruta = new URL(coincidencia[1].replaceAll("&amp;", "&"), self.location.origin);
     if (ruta.origin === self.location.origin && ruta.pathname.startsWith("/_next/static/")) recursos.add(ruta.href);
@@ -36,7 +43,7 @@ async function preparar(ambito) {
     [...recursos].map(async (ruta) => {
       const respuesta = await fetch(ruta, { cache: "reload" });
       if (!respuesta.ok) throw new Error("No se pudo preparar un recurso del POS.");
-      await cache.put(ruta, respuesta);
+      await assets.put(ruta, respuesta);
     }),
   );
   await cache.put(new URL("/pos", self.location.origin), documento);
@@ -48,7 +55,7 @@ self.addEventListener("message", (evento) => {
   if (evento.data?.tipo === "LIMPIAR") evento.waitUntil(limpiar());
   if (evento.data?.tipo === "PREPARAR") {
     evento.waitUntil(
-      preparar(evento.data.ambito)
+      preparar(evento.data.ambito, evento.data.recursos)
         .then((listo) =>
           evento.source?.postMessage({
             tipo: listo ? "POS_CACHE_LISTO" : "POS_CACHE_ERROR",
@@ -80,7 +87,7 @@ self.addEventListener("fetch", (evento) => {
   evento.respondWith(
     (async () => {
       const datos = await identidad();
-      const cache = datos ? await caches.open(`${PREFIJO}${datos.ambito}`) : null;
+      const cache = recurso ? await caches.open(ASSETS) : datos ? await caches.open(`${PREFIJO}${datos.ambito}`) : null;
       try {
         const respuesta = await fetch(solicitud);
         if (recurso && respuesta.ok && cache) await cache.put(solicitud, respuesta.clone());

@@ -9,6 +9,7 @@ import {
   nuevaOperacionOffline,
   type OperacionOffline,
   resumenConfirmacionOffline,
+  resumenSnapshotOffline,
   sincronizarColaOffline,
 } from "@/lib/pos/cola-offline";
 import { transportarOperacionOffline } from "@/lib/pos/transporte-offline";
@@ -33,10 +34,12 @@ const Contexto = createContext<ContextoOffline | null>(null);
 
 export function OfflinePosProvider({
   ambito,
+  terminalId,
   turnoId,
   children,
 }: {
   ambito: string;
+  terminalId: string;
   turnoId: string | null;
   children: ReactNode;
 }) {
@@ -63,14 +66,18 @@ export function OfflinePosProvider({
     try {
       await conBloqueoOffline(ambito, async () => {
         const filas = await refrescar();
+        const conError = (actuales: OperacionOffline[]) =>
+          actuales.some((fila) => fila.estado === "fallida" || (fila.estado === "pendiente" && fila.error !== null));
         if (!filas.some((fila) => fila.estado === "pendiente")) {
-          setEstado(filas.some((fila) => fila.estado === "fallida") ? "error" : "online");
+          setEstado(conError(filas) ? "error" : "online");
           return;
         }
         setEstado("sincronizando");
-        await sincronizarColaOffline(almacenColaOffline, ambito, transportarOperacionOffline);
+        await sincronizarColaOffline(almacenColaOffline, ambito, (operacion) =>
+          transportarOperacionOffline(operacion, terminalId),
+        );
         const actuales = await refrescar();
-        setEstado(actuales.some((fila) => fila.estado === "fallida") ? "error" : "online");
+        setEstado(conError(actuales) ? "error" : "online");
         canal.current?.postMessage("actualizado");
       });
     } catch (causa) {
@@ -79,7 +86,7 @@ export function OfflinePosProvider({
     } finally {
       ocupado.current = false;
     }
-  }, [ambito, refrescar]);
+  }, [ambito, refrescar, terminalId]);
 
   useEffect(() => {
     let vigente = true;
@@ -163,7 +170,15 @@ export function OfflinePosProvider({
       }
       await navigator.serviceWorker.register("/pos-sw.js", { scope: "/pos" });
       const registro = await navigator.serviceWorker.ready;
-      if (vigente) registro.active?.postMessage({ tipo: "PREPARAR", ambito });
+      if (vigente)
+        registro.active?.postMessage({
+          tipo: "PREPARAR",
+          ambito,
+          recursos: [
+            ...performance.getEntriesByType("resource").map((recurso) => recurso.name),
+            ...Array.from(document.scripts, (script) => script.src),
+          ],
+        });
     }
     void prepararWorker().catch(() => setError("No se pudo preparar la recarga offline. Mantén esta pestaña abierta."));
     const { data } = createClient().auth.onAuthStateChange((evento) => {
@@ -197,9 +212,12 @@ export function OfflinePosProvider({
   async function comprobarCierre() {
     const filas = await refrescar();
     const cantidad = filas.filter((fila) => fila.estado !== "sincronizada").length;
-    if (!navigator.onLine || !conectado.current || cantidad > 0) {
-      return `Conéctate para subir ${cantidad} ventas antes de cerrar${cantidad ? " (incluye movimientos pendientes)" : ""}.`;
+    if (!navigator.onLine || !conectado.current) {
+      return cantidad > 0
+        ? `Conéctate para subir ${cantidad} ventas antes de cerrar.`
+        : "Conéctate a internet para cerrar el turno.";
     }
+    if (cantidad > 0) return `Conéctate para subir ${cantidad} ventas antes de cerrar.`;
     return null;
   }
 
@@ -271,6 +289,9 @@ export function OfflinePosProvider({
                 <p>
                   {operacion.tipo} · {operacion.estado} · {operacion.intentos} intentos
                 </p>
+                {resumenSnapshotOffline(operacion.snapshot) ? (
+                  <p className="text-muted-foreground">Cobrado: {resumenSnapshotOffline(operacion.snapshot)}</p>
+                ) : null}
                 {operacion.estado === "sincronizada" ? <p>{resumenConfirmacionOffline(operacion.resultado)}</p> : null}
                 {operacion.error ? <p role="alert">{operacion.error}</p> : null}
               </li>

@@ -48,7 +48,13 @@ export function BarraInferiorPos({
             type="button"
             className="text-pos-texto-suave font-medium"
             onClick={() => {
-              toast.add({ type: "error", title: `Conéctate para subir ${offline.pendientes} ventas antes de cerrar` });
+              toast.add({
+                type: "error",
+                title:
+                  offline.pendientes > 0
+                    ? `Conéctate para subir ${offline.pendientes} ventas antes de cerrar`
+                    : "Conéctate a internet para cerrar el turno",
+              });
               offline.abrirPanel();
             }}
           >
