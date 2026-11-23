@@ -156,7 +156,7 @@ export function PagosPos({
   return (
     <ContenedorLista className="p-4 md:p-6">
       <EncabezadoPagina
-        titulo="Registro de pagos"
+        titulo="Pagos"
         subtitulo="Entradas y salidas de efectivo de los turnos de esta terminal."
         acciones={
           puedeEscribir ? (

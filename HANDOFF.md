@@ -1,5 +1,15 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 12: menú lateral plano (rama `t3/pos-flat-sidebar-menu`)
+
+Decisión de Waldy (23-11-2026, 9:30 PM): el menú del POS deja de agrupar y
+queda todo al mismo nivel, sin títulos de grupo, submenús ni flechitas.
+
+- `menu-pos.tsx`: `ITEMS_PRINCIPALES` es una lista plana de cinco enlaces —Facturar (`/pos`), Ventas (`/pos/historial`), Pagos (`/pos/pagos`), Turnos (`/pos/turnos`) y Devoluciones (`/pos/devoluciones`)—; se eliminaron `ItemSeccionPOS`, `esSeccion`, `ItemSeccion`, el tipo `ItemPOS` y los imports de `HandCoins`/`Wallet`. `menu-pos-estilos.ts` ya no exporta `itemMenuSeccion`.
+- Títulos visibles: «Historial de ventas del POS» → **Ventas** y «Registro de pagos» → **Pagos**; Turnos ya se llamaba así. Las rutas y el contenido de las páginas no cambian. `docs/dominio-pos.md` (pantallas y descripción del menú) se alineó.
+- **Candados:** `src/lib/pos/diseno-pos.test.ts` exige los cinco enlaces planos en orden y prohíbe «Ingresos», «Historial de turnos», `ItemSeccion`, `sub:`, `Collapsible`, `ChevronDown` e `itemMenuSeccion`. `tests/e2e/pos-menu-plano.spec.ts` repite el candado de fuente sin credenciales y, con la sesión ZZTEST externa, navega Ventas/Pagos/Turnos/Devoluciones a 1440 px verificando títulos.
+- **Evidencia:** `docs/diseno/capturas/pos-menu-plano/` (menú expandido en claro y oscuro, antes/después contra `menu-pos-actual.png`, y cajón móvil). Sin migraciones ni datos nuevos.
+
 ## POS 11: modo sin internet cerrado (rama `feat/pos-offline`, PR #115)
 
 Waldy aprobó opción A: offline sin NCF, ticket «Folio: POS-LOCAL-<UUID>»,
