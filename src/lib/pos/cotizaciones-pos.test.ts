@@ -233,9 +233,10 @@ describe("enlace cotización ↔ factura", () => {
   });
 });
 
-describe("candado del botón «más funciones»", () => {
-  test("el botón oscuro abre el menú con historial y cotizaciones, y conserva su diseño", () => {
+describe("candado del botón «más opciones»", () => {
+  test("el botón oscuro abre el panel con historial y cotizaciones, y conserva su diseño", () => {
     const panel = readFileSync(join(VENDER, "panel-factura.tsx"), "utf8");
+    const overlay = readFileSync(join(VENDER, "mas-opciones-pos.tsx"), "utf8");
 
     expect(panel, "El botón de abajo a la derecha ya no navega directo al historial").not.toContain(
       'href="/pos/historial"',
@@ -243,13 +244,12 @@ describe("candado del botón «más funciones»", () => {
     expect(panel, "El botón debe seguir siendo el cuadro oscuro de 45×44 px").toContain(
       "bg-pos-oscuro hover:bg-pos-oscuro/85 relative h-[45px] w-11 shrink-0 rounded-[10px] text-white",
     );
-    expect(panel, "El botón abre un menú anclado, no un enlace").toMatch(
-      /<DropdownMenu[\s\S]*aria-label="Más funciones"/,
+    expect(panel, "El ⋯ abre el panel grande que tapa el carrito (MSG-34), no una listita").toContain(
+      "<MasOpcionesPos",
     );
-    expect(panel, "Falta la opción de guardar").toContain("Guardar como cotización");
-    expect(panel, "Falta la opción de cargar").toContain("Cargar cotización");
-    expect(panel, "El acceso al historial debe seguir dentro del menú").toContain("Historial de ventas");
-    expect(panel, "El historial navega a /pos/historial desde el menú").toContain('router.push("/pos/historial")');
-    expect(panel, "Las opciones deben ser items separados del menú").toContain("DropdownMenuItem");
+    expect(panel, "Falta la opción de guardar").toContain('etiqueta: "Guardar cotización"');
+    expect(panel, "Falta la opción de cargar").toContain('etiqueta: "Cargar cotización"');
+    expect(panel, "El historial navega a /pos/historial desde el panel").toContain('href: "/pos/historial"');
+    expect(overlay, "El panel de opciones cubre todo el carrito").toContain("absolute inset-0");
   });
 });
