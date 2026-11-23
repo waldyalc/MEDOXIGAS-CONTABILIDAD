@@ -6,6 +6,7 @@ import {
   Building2,
   CalendarClock,
   Coins,
+  FileSpreadsheet,
   Hash,
   ListTree,
   type LucideIcon,
@@ -140,6 +141,17 @@ export default async function Page() {
           url: "/dashboard/configuracion/retenciones",
           icon: ReceiptText,
         },
+        ...(rol === "admin" || rol === "contador"
+          ? [
+              {
+                id: "reportes-dgii",
+                titulo: "Reportes DGII",
+                descripcion: "Clasificación fiscal por cuenta para los formatos 606 y 607.",
+                url: "/dashboard/configuracion/reportes-dgii",
+                icon: FileSpreadsheet,
+              },
+            ]
+          : []),
       ],
     },
     {
