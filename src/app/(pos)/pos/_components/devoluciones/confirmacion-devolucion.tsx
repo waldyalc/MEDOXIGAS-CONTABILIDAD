@@ -64,6 +64,7 @@ export function ConfirmacionDevolucion({
         <Button
           variant="ghost"
           className="h-12"
+          nativeButton={false}
           render={<a href={`/dashboard/notas-credito/${resultado.nota.id}`} target="_blank" rel="noreferrer" />}
         >
           Ver en Contabilidad

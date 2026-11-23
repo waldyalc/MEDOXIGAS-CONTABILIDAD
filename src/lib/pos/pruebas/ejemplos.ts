@@ -291,6 +291,14 @@ export function cotizacionEjemplo(): CotizacionPOSResultado {
   return mapearCotizacionPOS(esquemasRpcPOS.cotizacion.parse(cotizacionJson()));
 }
 
+/**
+ * Respuesta real de `pos_crear_devolucion` tal como la arma
+ * `supabase/migrations/20261125121000_pos_rpc.sql` (buscar
+ * `create or replace function public.pos_crear_devolucion`). El bloque `turno`
+ * solo trae `id`, `numero` y `estado`: no manda `base_inicial`, por eso el
+ * esquema lo trata como opcional. Si esta forma cambia, el test de mapeo debe
+ * cambiar con ella y no al revés.
+ */
 export function devolucionJson() {
   return {
     nota: {
@@ -326,7 +334,8 @@ export function devolucionJson() {
     contacto,
     empresa,
     terminal,
-    turno: { id: ID_TURNO, numero: 4, estado: "abierto", base_inicial: 0 },
+    // pos_crear_devolucion solo devuelve id, numero y estado del turno.
+    turno: { id: ID_TURNO, numero: 4, estado: "abierto" },
     lineas: [
       {
         factura_linea_id: ID_LINEA,

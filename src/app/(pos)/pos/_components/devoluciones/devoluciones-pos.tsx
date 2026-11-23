@@ -278,7 +278,13 @@ export function DevolucionesPos({
         efectivoEsperado={efectivoEsperado}
         facturaInicial={facturaInicial}
         plantilla={plantilla}
-        onCreada={() => router.refresh()}
+        onCreada={(creada) => {
+          // La NC ya existe en la base: recarga la lista del servidor y deja
+          // seleccionada la devolución recién creada.
+          router.refresh();
+          setDetalleId(creada.nota.id);
+          setDetalleMovil(true);
+        }}
       />
 
       {trabajo ? (

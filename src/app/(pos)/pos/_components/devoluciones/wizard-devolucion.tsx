@@ -31,7 +31,7 @@ import { calcularLineaPOS, centavosATexto, centavosDeDecimal, compararMontos, su
 import type { DevolucionPOSResultado, PlantillaTicket, TipoReembolsoPOS } from "@/lib/pos/tipos";
 
 import { datosDevolucionPOS } from "../acciones-pos";
-import { capitalizar, textoAMonto } from "../formato-pos";
+import { capitalizar, hoyRD, textoAMonto } from "../formato-pos";
 import type { DatosDevolucionPOS } from "../tipos";
 import { BuscadorFacturaPos } from "./buscador-factura-pos";
 import { ConfirmacionDevolucion } from "./confirmacion-devolucion";
@@ -77,7 +77,7 @@ export function WizardDevolucion({
   efectivoEsperado: string;
   facturaInicial: string | null;
   plantilla: PlantillaTicket;
-  onCreada: () => void;
+  onCreada: (creada: DevolucionPOSResultado) => void;
 }) {
   const [paso, setPaso] = useState(1);
   const [datos, setDatos] = useState<DatosDevolucionPOS | null>(null);
@@ -199,6 +199,10 @@ export function WizardDevolucion({
         terminal_id: terminal.id,
         factura_id: datos.factura.id,
         turno_id: turno.id,
+        // La fecha del POS es la del día en RD, no la UTC del servidor: si se
+        // omite, después de las 8 PM la NC queda fechada mañana y no aparece en
+        // la lista (que filtra hasta hoy en RD).
+        fecha: hoyRD(),
         lineas: seleccionadas.map((fila) => ({
           factura_linea_id: fila.linea.id,
           cantidad: fila.cantidad,
@@ -218,7 +222,7 @@ export function WizardDevolucion({
 
       setResultado(respuesta.data);
       toast.add({ type: "success", title: "Devolución creada." });
-      onCreada();
+      onCreada(respuesta.data);
     } catch {
       setError("No sabemos si la devolución se registró. Revisa la lista antes de repetirla.");
     } finally {
