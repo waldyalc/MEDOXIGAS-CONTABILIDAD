@@ -9,7 +9,8 @@ import {
   FORM_TEXTAREA,
   FormField,
 } from "@/components/formularios/formulario";
-import { ChevronDown } from "@/components/icons";
+import { ArrowUpRight, ChevronDown } from "@/components/icons";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DialogClose, DialogFooter } from "@/components/ui/dialog";
@@ -18,7 +19,16 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/in
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { actualizarContacto, crearContacto } from "@/lib/contactos/actions";
-import { type Contacto, type ContactoTipo, SIN_LISTA_PRECIO, TIPOS_CONTACTO } from "@/lib/contactos/contactos";
+import { buscarContactoDuplicado } from "@/lib/contactos/buscar-duplicado";
+import {
+  type Contacto,
+  type ContactoTipo,
+  normalizarNombre,
+  normalizarRncCedula,
+  SIN_LISTA_PRECIO,
+  TIPOS_CONTACTO,
+} from "@/lib/contactos/contactos";
+import type { DuplicadoContacto } from "@/lib/contactos/duplicados";
 import { completarConDatosDgii } from "@/lib/dgii/completar";
 import type { DatosContribuyenteDgii } from "@/lib/dgii/consulta";
 import type { ListaPrecio } from "@/lib/inventario/tipos";
@@ -43,10 +53,13 @@ export function FormularioContacto({
   readonly onGuardado: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const [duplicado, setDuplicado] = useState<DuplicadoContacto | null>(null);
   const [pendiente, startTransition] = useTransition();
   const [nombre, setNombre] = useState(contacto?.nombre ?? "");
   const [rncCedula, setRncCedula] = useState(contacto?.rnc_cedula ?? "");
   const [tipo, setTipo] = useState<ContactoTipo>(contacto?.tipo ?? "cliente");
+  const formularioRef = useRef<HTMLFormElement>(null);
+  const enVuelo = useRef<boolean>(false);
   const { cargando, mensaje, consultar, limpiar } = useConsultaDgii();
   const autoRellenado = useRef({ nombre: "" });
   const valores = useRef({ nombre: "" });
@@ -66,6 +79,7 @@ export function FormularioContacto({
   function completarConDgii(datos: DatosContribuyenteDgii): string {
     const { campos, mensaje: texto } = completarConDatosDgii(datos, valores.current, autoRellenado.current);
     if (campos.nombre !== undefined) setNombre(campos.nombre);
+    setDuplicado(null);
     Object.assign(valores.current, campos);
     Object.assign(autoRellenado.current, campos);
     return texto;
@@ -85,25 +99,66 @@ export function FormularioContacto({
     if (valor === "cliente" || valor === "proveedor" || valor === "ambos") setTipo(valor);
   }
 
-  function enviar(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+  async function avisarDuplicado(datos: { nombre: string; rnc_cedula: string | null }) {
+    try {
+      const existente = await buscarContactoDuplicado(datos);
+      if (existente === null) return false;
+      setDuplicado(existente);
+      return true;
+    } catch {
+      setError("No se pudo verificar si el contacto ya existe. Intenta de nuevo.");
+      return true;
+    }
+  }
+
+  function guardar(formData: FormData, permitirDuplicado: boolean) {
+    if (enVuelo.current) return;
+    enVuelo.current = true;
+
     setError(null);
+    const identificacion = normalizarRncCedula(rncCedula);
+    const datos = {
+      nombre: normalizarNombre(nombre),
+      rnc_cedula: identificacion === "" ? null : identificacion,
+    };
 
     startTransition(async () => {
-      const resultado = contacto ? await actualizarContacto(contacto.id, formData) : await crearContacto(formData);
+      try {
+        if (contacto === null && !permitirDuplicado && (await avisarDuplicado(datos))) return;
 
-      if (!resultado.ok) {
-        setError(resultado.error);
-        return;
+        const resultado = contacto ? await actualizarContacto(contacto.id, formData) : await crearContacto(formData);
+
+        if (!resultado.ok) {
+          setError(resultado.error);
+          return;
+        }
+
+        onGuardado();
+      } catch {
+        setError("No se pudo guardar el contacto. Intenta de nuevo.");
+      } finally {
+        enVuelo.current = false;
       }
-
-      onGuardado();
     });
   }
 
+  function enviar(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (enVuelo.current) return;
+    setDuplicado(null);
+    guardar(new FormData(event.currentTarget), false);
+  }
+
+  function crearDeTodasFormas() {
+    if (formularioRef.current === null) return;
+    setDuplicado(null);
+    guardar(new FormData(formularioRef.current), true);
+  }
+
+  const motivo = duplicado?.motivo === "rnc" ? "RNC o cédula" : "nombre";
+
   return (
-    <form onSubmit={enviar} className="flex flex-col gap-4">
+    <form ref={formularioRef} onSubmit={enviar} className="flex flex-col gap-4">
       <input type="hidden" name="tipo_identificacion" value={contacto?.tipo_identificacion ?? ""} />
       <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
         <FormField htmlFor="nombre" label="Nombre" required className="sm:col-span-2">
@@ -113,7 +168,10 @@ export function FormularioContacto({
             required
             maxLength={200}
             value={nombre}
-            onChange={(event) => setNombre(event.target.value)}
+            onChange={(event) => {
+              setNombre(event.target.value);
+              setDuplicado(null);
+            }}
             className={FORM_INPUT}
           />
         </FormField>
@@ -147,6 +205,7 @@ export function FormularioContacto({
             value={rncCedula}
             onChange={(event) => {
               setRncCedula(event.target.value);
+              setDuplicado(null);
               limpiar();
             }}
             onBlur={() => consultarEnDgii(true)}
@@ -235,6 +294,31 @@ export function FormularioContacto({
             </FormField>
           </CollapsibleContent>
         </Collapsible>
+
+        {duplicado ? (
+          <Alert variant="destructive" className="sm:col-span-2">
+            <AlertTitle>Ya existe un contacto con este {motivo}</AlertTitle>
+            <AlertDescription>
+              <p className="text-foreground font-medium">{duplicado.contacto.nombre}</p>
+              {duplicado.contacto.rnc_cedula ? <p className="tabular-nums">{duplicado.contacto.rnc_cedula}</p> : null}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  nativeButton={false}
+                  render={<a href={`/dashboard/contactos/${duplicado.contacto.id}`} target="_blank" rel="noreferrer" />}
+                >
+                  <ArrowUpRight />
+                  Ver el existente
+                </Button>
+                <Button type="button" size="sm" onClick={crearDeTodasFormas}>
+                  Crear de todas formas
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         {error ? (
           <p role="alert" className="text-destructive text-sm">
