@@ -34,14 +34,18 @@ Sin hoja en blanco extra en ninguno (todas 1 página).
 
 - **Encabezado:** Alegra imprime logo + nombre + «Sucursal», «RNC»,
   dirección, «Teléfono», correo y «Régimen». Medoxigas imprime nombre
-  (grande, negrita) + «RNC: 130893489». La tabla `empresa` **no tiene**
-  columnas `sucursal` ni `regimen` (verificado en
-  `src/lib/supabase/types.ts`); el código ya soporta esas líneas de
-  forma opcional (`sucursal?`/`regimen?` en `Empresa`/`EmpresaPOS`) y
-  las imprimiría en el orden de Alegra cuando existan — queda pendiente
-  la migración aditiva + campos del formulario de Configuración, a la
-  espera del OK de Waldy. La empresa configurada no trae `logo_url`,
-  así que no se imprime logo (no se inventa).
+  (grande, negrita) + «RNC: 130893489». La tabla `empresa` **aún no
+  tiene** columnas `sucursal` ni `regimen`: el formulario de
+  Configuración > Empresa ya las captura (`config-empresa.png`), el
+  esquema zod y el payload de `actualizar_empresa` las llevan, y la
+  migración aditiva propuesta está en
+  `docs/pruebas/migracion-empresa-sucursal-regimen.sql`
+  (BEGIN/ROLLBACK, pendiente del OK de Waldy). Mientras tanto la
+  consulta lee `select("*")`, así que los campos llegan al ticket en
+  cuanto existan. La fila de empresa tampoco trae `direccion`,
+  `telefono`, `correo` ni `logo_url` cargados: esas líneas se omiten
+  (no se inventan); `config-empresa.png` muestra el estado actual y
+  los datos finales los cargará Waldy en la pantalla.
 - **Cliente:** «Cliente: <nombre>» grande y negrita + RNC debajo,
   igual que Alegra.
 - **Bloque documento:** prefactura → «Prefactura» + «Sin valor fiscal»
@@ -57,6 +61,19 @@ Sin hoja en blanco extra en ninguno (todas 1 página).
 - **Pie:** `pie_ticket` de la plantilla; en estas capturas el pie
   configurado es el propio «Precios sujetos a cambio sin previo
   aviso.». Nunca «Generado en Alegra POS».
+
+## Tamaños de letra (corrección Waldy, 22-11-2026)
+
+Medido en `alegra-ticket-80mm.pdf` con `pdftotext -bbox` (alto real de
+glifo): cuerpo ≈ 10.1 pt, encabezados (empresa/cliente/total) ≈ 15.1 pt.
+La comparación anterior hacía ver nuestras letras más grandes porque la
+PNG de Alegra venía a ~110 dpi y la nuestra a 150 dpi; aun así se aplicó
+la corrección en `ticket-pos.tsx`: nombre de empresa pequeño en negrita
+(sin `1.5em`), `Cliente:` y título del documento al tamaño del cuerpo, y
+`Total` solo un poco más grande (`1.2em`). En el cierre, `Cierre No N`
+quedó en una sola línea a 17.25 pt, verificado en **los dos cierres
+reales** (`cierre-3.pdf`, `cierre-4.pdf`; Alegra lo parte en dos, pero
+Waldy lo quiere en una).
 
 ## Incidencia corregida durante las capturas
 
@@ -76,6 +93,13 @@ vive ahora `ImpresionPos` para prefactura/cotización.
 - `prefactura-printroot.png` — el portal de impresión bajo media print.
 - `cotizacion.pdf` / `cotizacion.png` — ticket de una cotización guardada.
 - `cotizacion-pagina.png` — ficha de la cotización con la acción 80 mm.
+- `config-empresa.png` — formulario Configuración > Empresa con los
+  campos Sucursal y Régimen (vacíos: dependen de la migración).
 - `cierre.pdf` / `cierre.png` — cierre de turno 57 mm, «Cierre No 4» una línea.
-- `comparacion.png` — Alegra ticket vs factura/prefactura/cotización
-  Medoxigas + Alegra cierre vs cierre Medoxigas.
+- `cierre-3.pdf` / `cierre-3.png` y `cierre-4.pdf` / `cierre-4.png` — los
+  dos cierres reales, ambos con el título en una línea.
+- `comparacion.png` — Alegra ticket vs factura/prefactura/cotización.
+- `comparacion-cierres.png` — Alegra cierre vs los dos cierres Medoxigas.
+- `comparacion-encabezado.png`, `comparacion-cliente-doc.png`,
+  `comparacion-items-totales.png`, `comparacion-pie.png` — comparación por
+  partes recortadas (Alegra izquierda, Medoxigas derecha).

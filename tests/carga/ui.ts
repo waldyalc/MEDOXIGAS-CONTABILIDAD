@@ -195,9 +195,13 @@ async function medirPagina(page: Page, pantalla: Pantalla): Promise<Muestra> {
     if (pantalla.selector) {
       await page.waitForSelector(pantalla.selector, { state: "visible", timeout: 15_000 });
     } else {
-      await page.waitForFunction(() => (document.querySelector("main")?.innerText.trim().length ?? 0) > 80, undefined, {
-        timeout: 15_000,
-      });
+      await page.waitForFunction(
+        () => (document.querySelector("main")?.textContent?.trim().length ?? 0) > 80,
+        undefined,
+        {
+          timeout: 15_000,
+        },
+      );
     }
     return { nombre: pantalla.nombre, url: pantalla.url, ms: Math.round(performance.now() - inicio), error: null };
   } catch (error) {

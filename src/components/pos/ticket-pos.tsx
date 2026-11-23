@@ -170,7 +170,7 @@ function SeccionCliente({ cliente, minimalista }: { cliente: TicketPOSPayload["c
 
   return (
     <section className={cn("flex flex-col", minimalista ? "items-start text-left" : "items-center text-center")}>
-      {cliente.nombre ? <p className="text-[1.5em] font-bold">Cliente: {cliente.nombre}</p> : null}
+      {cliente.nombre ? <p className="font-bold">Cliente: {cliente.nombre}</p> : null}
       {cliente.lineas.map((linea) => (
         <LineaDato key={linea} texto={linea} />
       ))}
@@ -245,7 +245,7 @@ function SeccionTotales({ totales }: { totales: FilaTicketPOS[] }) {
         return (
           <div key={fila.etiqueta} className="contents">
             <span className="min-w-0 break-words text-right font-bold">{fila.etiqueta ? `${fila.etiqueta}:` : ""}</span>
-            <span className={cn("text-right tabular-nums", fuerte && "text-[1.5em] font-bold")}>{fila.valor}</span>
+            <span className={cn("text-right tabular-nums", fuerte && "text-[1.2em] font-bold")}>{fila.valor}</span>
           </div>
         );
       })}
@@ -313,7 +313,7 @@ export function TicketPos({
         {diseno.mostrar_logo ? <Logo url={diseno.logo_url} nombre={nombreEmpresa} estrecho={estrecho} /> : null}
         {encabezado.empresa.map((linea, indice) =>
           indice === 0 ? (
-            <p key={linea} className="text-[1.5em] font-bold">
+            <p key={linea} className="font-bold">
               {linea}
             </p>
           ) : (
