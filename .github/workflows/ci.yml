@@ -34,12 +34,6 @@ jobs:
       - name: Lint
         run: pnpm check
 
-      - name: Herramientas PDF y Chromium
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y poppler-utils fonts-liberation
-          pnpm exec playwright install --with-deps chromium
-
       - name: Test
         run: pnpm test
 
@@ -52,6 +46,32 @@ jobs:
 
       - name: Audit (aviso, no bloquea)
         run: pnpm audit --prod || true
+
+  pdf:
+    # Contrato del ticket 80 mm (MSG-22): Chromium + Poppler solo aquí, no en
+    # `ci`, para que `pnpm test` siga siendo rápido.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Herramientas PDF y Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils fonts-liberation
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Ticket 80 mm
+        run: pnpm test:pdf
 
   e2e:
     # Sin `if:` con secrets a nivel de job (GitHub lo rechaza): el primer
