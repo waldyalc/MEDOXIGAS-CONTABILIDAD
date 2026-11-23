@@ -25,5 +25,5 @@ export function claseIconoMenu(activo: boolean): string {
   );
 }
 
-/** Versión del ítem colapsada al riel de 56 px: solo el icono, centrado. */
+/** Versión del ítem colapsada al riel de 52 px: solo el icono, centrado. */
 export const itemMenuColapsado = "justify-center px-0";

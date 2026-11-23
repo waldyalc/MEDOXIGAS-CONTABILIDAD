@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 
-import { Loader2, PackageSearch, ScanBarcode, Star } from "@/components/icons";
+import { Loader2, PackageSearch, Plus, ScanBarcode, Star } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -40,7 +40,9 @@ export function CatalogoPos({
   onReintentar,
   onVerMas,
   onAgregar,
+  onFavorito,
   onVentaSimple,
+  esFavorito,
   limpiarToken,
 }: {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -65,15 +67,17 @@ export function CatalogoPos({
   onReintentar: () => void;
   onVerMas: () => void;
   onAgregar: (producto: ProductoPOS) => void;
+  onFavorito: (producto: ProductoPOS) => void;
   onVentaSimple: () => void;
+  esFavorito: (producto: ProductoPOS) => boolean;
   limpiarToken?: number;
 }) {
   const vacio = productos.length === 0 && !cargando;
   const imagenes = useImagenesCatalogo(productos);
 
   return (
-    <section id="catalogo-pos" className="flex min-h-0 min-w-0 flex-col gap-3" aria-label="Catálogo">
-      <div className="flex items-center gap-2">
+    <section id="catalogo-pos" className="flex min-h-0 min-w-0 flex-col" aria-label="Catálogo">
+      <div className="flex items-center gap-1.5 px-4 pt-3.5 sm:px-6">
         <BuscadorCatalogoPos
           inputRef={inputRef}
           cargando={cargando}
@@ -89,7 +93,7 @@ export function CatalogoPos({
         <Button
           type="button"
           variant="outline"
-          className="size-11 shrink-0"
+          className="h-10 w-[42px] shrink-0 rounded-[10px] border-slate-400/40 shadow-none"
           aria-label="Leer código de barras"
           title="Lector de código de barras"
           onClick={() => {
@@ -97,18 +101,20 @@ export function CatalogoPos({
             inputRef.current?.select();
           }}
         >
-          <ScanBarcode aria-hidden="true" />
+          <ScanBarcode className="size-5" aria-hidden="true" />
         </Button>
 
         <Button
-          className="bg-pos-acento text-pos-acento-texto hover:bg-pos-acento/70 hover:text-pos-acento-texto h-11 shrink-0"
+          className="h-10 w-10 shrink-0 justify-center rounded-[10px] bg-[#cff2f1] px-0 text-sm font-medium text-[#1a7e7f] hover:bg-[#cff2f1]/70 hover:text-[#1a7e7f] sm:w-[151px] dark:bg-pos-acento dark:text-pos-acento-texto"
+          aria-label="Nuevo producto"
           render={<a href="/dashboard/productos/nuevo" target="_blank" rel="noreferrer" />}
         >
-          Nuevo producto
+          <span className="hidden sm:inline">Nuevo producto</span>
+          <Plus className="sm:hidden" aria-hidden="true" />
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 px-4 pt-2 pb-1 sm:px-6">
         <Select
           items={[
             { value: TODAS, label: "Todas las categorías" },
@@ -117,7 +123,7 @@ export function CatalogoPos({
           value={categoria === "" ? TODAS : categoria}
           onValueChange={(valor) => onCategoria(valor === TODAS ? "" : (valor ?? ""))}
         >
-          <SelectTrigger className="h-9 w-[180px]" aria-label="Categoría del catálogo">
+          <SelectTrigger className="h-8 w-[180px] text-sm" aria-label="Categoría del catálogo">
             <SelectValue />
           </SelectTrigger>
           <SelectContent alignItemWithTrigger={false}>
@@ -135,45 +141,47 @@ export function CatalogoPos({
           variant={favoritos ? "secondary" : "outline"}
           aria-pressed={favoritos}
           onClick={onFavoritos}
-          className="h-9 gap-1.5"
+          className="h-8 gap-1.5 text-sm"
         >
           <Star className={favoritos ? "fill-current" : ""} aria-hidden="true" />
           Favoritos
         </Button>
 
-        <span className="text-muted-foreground ml-auto text-xs tabular-nums">
+        <span className="text-pos-texto-suave ml-auto text-xs tabular-nums">
           {productos.length === 1 ? "1 producto" : `${formatoCantidad(productos.length)} productos`}
         </span>
       </div>
 
       {error ? (
-        <Alert variant="destructive">
-          <AlertDescription className="flex flex-wrap items-center gap-2">
-            No se pudo cargar el catálogo. Revisa tu conexión e inténtalo de nuevo.
-            <Button variant="outline" size="sm" onClick={onReintentar}>
-              Reintentar
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <div className="px-4 sm:px-6">
+          <Alert variant="destructive">
+            <AlertDescription className="flex flex-wrap items-center gap-2">
+              No se pudo cargar el catálogo. Revisa tu conexión e inténtalo de nuevo.
+              <Button variant="outline" size="sm" onClick={onReintentar}>
+                Reintentar
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-y-auto pr-1 pb-2">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {cargando && productos.length === 0 ? (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-4 pt-2" aria-busy="true">
+          <div className="flex flex-wrap content-start items-start justify-around pt-3" aria-busy="true">
             <span className="sr-only">Cargando productos…</span>
             {Array.from({ length: 10 }, (_, indice) => (
-              <Skeleton key={`catalogo-esqueleto-${indice}`} className="h-[196px] rounded-[10px]" />
+              <Skeleton key={`catalogo-esqueleto-${indice}`} className="m-1 mx-5 mb-5 h-[250px] w-[220px] rounded-lg" />
             ))}
           </div>
         ) : null}
 
         {vacio && !error ? (
-          <div className="border-border bg-card flex flex-col items-center gap-2 rounded-xl border px-6 py-16 text-center">
-            <PackageSearch className="text-muted-foreground size-8" aria-hidden="true" />
+          <div className="border-pos-linea bg-card mx-4 my-2 flex flex-col items-center gap-2 rounded-xl border px-6 py-16 text-center sm:mx-6">
+            <PackageSearch className="text-pos-icono size-8" aria-hidden="true" />
             {busqueda !== "" ? (
               <>
                 <p className="font-semibold">{`No encontramos productos para «${busqueda}».`}</p>
-                <p className="text-muted-foreground text-sm">Revisa el nombre o escanea el código de barra.</p>
+                <p className="text-pos-texto-suave text-sm">Revisa el nombre o escanea el código de barra.</p>
                 <Button variant="outline" size="sm" onClick={onLimpiar}>
                   Limpiar búsqueda
                 </Button>
@@ -181,21 +189,17 @@ export function CatalogoPos({
             ) : favoritos ? (
               <>
                 <p className="font-semibold">Aún no tienes productos favoritos.</p>
-                <p className="text-muted-foreground text-sm">
-                  Marca productos como favoritos en Inventario para verlos aquí.
+                <p className="text-pos-texto-suave text-sm">
+                  Marca productos con la estrella del catálogo para verlos aquí.
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  render={<a href="/dashboard/productos" target="_blank" rel="noreferrer" />}
-                >
-                  Ir a Inventario
+                <Button variant="outline" size="sm" onClick={onLimpiar}>
+                  Ver todo el catálogo
                 </Button>
               </>
             ) : (
               <>
                 <p className="font-semibold">No hay productos en esta terminal.</p>
-                <p className="text-muted-foreground text-sm">
+                <p className="text-pos-texto-suave text-sm">
                   Configura el catálogo en Inventario o cambia de terminal.
                 </p>
               </>
@@ -204,7 +208,7 @@ export function CatalogoPos({
         ) : null}
 
         {!vacio ? (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-4 pt-2">
+          <div className="flex flex-wrap content-start items-start justify-around pt-3">
             <TarjetaVentaSimplePos onClick={onVentaSimple} />
             {productos.map((producto) => (
               <TarjetaProductoPos
@@ -212,15 +216,17 @@ export function CatalogoPos({
                 producto={producto}
                 cantidad={cantidades.get(producto.producto_id) ?? 0}
                 resaltado={resaltado >= 0 && productos[resaltado]?.producto_id === producto.producto_id}
+                favorito={esFavorito(producto)}
                 imagenUrl={imagenes.get(producto.producto_id) ?? null}
                 onAgregar={onAgregar}
+                onFavorito={onFavorito}
               />
             ))}
           </div>
         ) : null}
 
         {hayMas && !cargando ? (
-          <div className="flex justify-center pt-3">
+          <div className="flex justify-center pt-3 pb-4">
             <Button variant="outline" className="h-10" onClick={onVerMas} disabled={cargandoMas}>
               {cargandoMas ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
               {cargandoMas ? "Cargando…" : "Ver más productos"}

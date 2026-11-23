@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { ReceiptText } from "@/components/icons";
+import { ImpresionPos } from "@/components/pos/impresion-pos";
+import { TicketPos } from "@/components/pos/ticket-pos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,18 +16,25 @@ import type { ContactoResumen, Empresa } from "@/lib/facturacion/tipos";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { crearCotizacionPOS } from "@/lib/pos/acciones";
+import { conBloqueoOffline, guardarOffline, leerOffline } from "@/lib/pos/almacen-offline";
+import { enlaceCotizacionPOS, payloadCotizacionPOS } from "@/lib/pos/cotizaciones";
+import { filtrarFavoritosPOS } from "@/lib/pos/favoritos";
+import type { TicketPOSPayload } from "@/lib/pos/impresion";
 import type { CotizacionPOSResultado, PlantillaTicket, ProductoPOS, ProductoPOSCodigo } from "@/lib/pos/tipos";
 
 import { buscarCatalogoPOS, buscarCodigoPOS } from "../acciones-pos";
 import { useCarritoPOS } from "../carrito-pos-provider";
 import { capitalizar, formatoMonedaPOS, hoyRD, sumarDias } from "../formato-pos";
+import { useOfflinePOS } from "../offline-pos-provider";
 import { DialogoAbrirTurno } from "../turnos/dialogo-abrir-turno";
+import { BarraInferiorPos } from "./barra-inferior-pos";
 import { CatalogoPos } from "./catalogo-pos";
 import { CheckoutPos } from "./checkout-pos";
 import { ConfirmacionVenta } from "./confirmacion-venta";
 import { DialogoCargarCotizacion } from "./dialogo-cargar-cotizacion";
 import { DialogoVentaSimple } from "./dialogo-venta-simple";
 import { PanelFactura } from "./panel-factura";
+import { useFavoritosPOS } from "./use-favoritos-pos";
 
 const TAMANO_LOTE = 50;
 
@@ -59,6 +68,7 @@ export function VenderPos({
   listas,
   vendedores,
   contactos,
+  consumidorFinalId,
   cuentas,
   plantillaFactura,
   plantillaCotizacion,
@@ -82,19 +92,23 @@ export function VenderPos({
   listas: { id: string; nombre: string }[];
   vendedores: { id: string; nombre: string }[];
   contactos: ContactoResumen[];
+  consumidorFinalId: string | null;
   cuentas: { id: string; nombre: string }[];
   plantillaFactura: { mostrarLogo: boolean; notas: string; terminos: string };
   plantillaCotizacion: { mostrarLogo: boolean; notas: string; terminos: string };
 }) {
   const router = useRouter();
   const carrito = useCarritoPOS();
+  const { ambito, estado: estadoConexion } = useOfflinePOS();
   const [catalogo, setCatalogo] = useState<ProductoPOS[]>(productos);
   const [cargando, setCargando] = useState(false);
   const [cargandoMas, setCargandoMas] = useState(false);
   const [hayMas, setHayMas] = useState(productos.length === TAMANO_LOTE);
   const [errorCatalogo, setErrorCatalogo] = useState<string | null>(null);
+  const [avisoCatalogo, setAvisoCatalogo] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [favoritos, setFavoritos] = useState(false);
+  const { favoritos: favoritosLocales, esFavorito, alternar: alternarFavorito } = useFavoritosPOS();
   const [categoria, setCategoria] = useState("");
   const [resaltado, setResaltado] = useState(-1);
   const [tokenLimpiar, setTokenLimpiar] = useState(0);
@@ -107,6 +121,13 @@ export function VenderPos({
   const [guardandoCotizacion, setGuardandoCotizacion] = useState(false);
   const [errorCotizacion, setErrorCotizacion] = useState<string | null>(null);
   const [confirmacionCotizacion, setConfirmacionCotizacion] = useState<CotizacionPOSResultado | null>(null);
+  /**
+   * Documento de presentación (prefactura/cotización) a imprimir. Vive aquí
+   * y no en `PanelFactura`: al imprimir, Chromium evalúa el medio «print»
+   * con el ancho del papel (80 mm) y `esEscritorio` pasa a falso, lo que
+   * desmontaría el panel y su portal a mitad de la impresión.
+   */
+  const [impresionDoc, setImpresionDoc] = useState<{ titulo: string; payload: TicketPOSPayload } | null>(null);
   const [esEscritorio, setEsEscritorio] = useState(false);
   const [turnoActual, setTurnoActual] = useState(turno);
 
@@ -136,7 +157,12 @@ export function VenderPos({
 
   const numeracionValida = numeraciones.some((numeracion) => numeracion.id === carrito.activa.numeracionId);
   const sinCaja = !cuentas.some((cuenta) => cuenta.id === terminal.cuenta_efectivo_id);
-  const puedeCobrar = carrito.activa.lineas.length > 0 && turnoActual !== null && numeracionValida && !sinCaja;
+  const puedeCobrar =
+    carrito.activa.lineas.length > 0 &&
+    turnoActual !== null &&
+    numeracionValida &&
+    !sinCaja &&
+    !(estadoConexion === "offline" && errorCatalogo !== null);
   const hayModal =
     checkoutAbierto ||
     simpleAbierto ||
@@ -144,6 +170,67 @@ export function VenderPos({
     abrirTurnoAbierto ||
     sheetAbierto ||
     confirmacionCotizacion !== null;
+
+  useEffect(() => {
+    if (estadoConexion === "offline" || !navigator.onLine) return;
+    let vigente = true;
+    async function prepararCache() {
+      await guardarOffline("contactos", ambito, contactos);
+      await guardarOffline("config", `${ambito}/venta`, {
+        terminal,
+        turno,
+        empresa,
+        numeraciones,
+        listas,
+        cuentas,
+        vendedores,
+      });
+      const acumulados: ProductoPOS[] = [];
+      for (let offset = 0; vigente && navigator.onLine; offset += TAMANO_LOTE) {
+        const respuesta = await buscarCatalogoPOS({
+          terminal_id: terminal.id,
+          ...(listaPrecioId ? { lista_precio_id: listaPrecioId } : {}),
+          limit: TAMANO_LOTE,
+          offset,
+        });
+        if (!respuesta.ok || !vigente) return;
+        acumulados.push(...respuesta.data);
+        await conBloqueoOffline(`${ambito}/catalogo`, () =>
+          guardarOffline("catalogo", `${ambito}/${listaPrecioId}`, {
+            productos: acumulados,
+            actualizado: new Date().toISOString(),
+            completo: respuesta.data.length < TAMANO_LOTE,
+          }),
+        );
+        if (respuesta.data.length < TAMANO_LOTE) return;
+      }
+    }
+    void prepararCache().catch(() =>
+      setErrorCatalogo("No se pudo preparar el catálogo offline. Mantén la conexión hasta completar la preparación."),
+    );
+    return () => {
+      vigente = false;
+    };
+  }, [
+    ambito,
+    estadoConexion,
+    listaPrecioId,
+    terminal,
+    turno,
+    empresa,
+    numeraciones,
+    listas,
+    cuentas,
+    vendedores,
+    contactos,
+  ]);
+  // El carrito siempre tiene un cliente (el de la terminal o el que se elija):
+  // «Cargar cotización» muestra solo las suyas, como Alegra.
+  const contactoDelCarrito = carrito.activa.contactoId;
+  const filtroCotizacionId = contactoDelCarrito === "" ? undefined : contactoDelCarrito;
+  const filtroCotizacionNombre = filtroCotizacionId
+    ? (contactos.find((contacto) => contacto.id === filtroCotizacionId)?.nombre ?? null)
+    : null;
 
   const cargarCatalogo = useCallback(
     async (reiniciar: boolean) => {
@@ -158,12 +245,40 @@ export function VenderPos({
       }
 
       try {
+        if (!navigator.onLine || estadoConexion === "offline") {
+          const guardado = await leerOffline<{ productos: ProductoPOS[]; actualizado: string; completo: boolean }>(
+            "catalogo",
+            `${ambito}/${listaPrecioId}`,
+          );
+          if (solicitud.current !== numero) return;
+          if (!guardado) {
+            setCatalogo([]);
+            setHayMas(false);
+            setErrorCatalogo("Esta lista de precios todavía no está guardada para trabajar sin conexión.");
+            return;
+          }
+          const texto = busqueda.toLocaleLowerCase("es").trim();
+          const datos = guardado.productos.filter(
+            (producto) =>
+              (!categoria || producto.categoria_id === categoria) &&
+              (!texto || `${producto.nombre} ${producto.referencia ?? ""}`.toLocaleLowerCase("es").includes(texto)),
+          );
+          const precios: Record<string, string> = {};
+          for (const producto of guardado.productos) precios[producto.producto_id] = producto.precio;
+          carritoRef.current.aplicarPreciosDeLista(precios);
+          setCatalogo(datos);
+          setHayMas(false);
+          setErrorCatalogo(null);
+          setAvisoCatalogo(
+            `Catálogo ${guardado.completo ? "guardado" : "parcial"} del ${guardado.actualizado}. Existencias sin actualizar.`,
+          );
+          return;
+        }
         const resultado = await buscarCatalogoPOS({
           terminal_id: terminal.id,
           ...(listaPrecioId ? { lista_precio_id: listaPrecioId } : {}),
           ...(busqueda ? { busqueda } : {}),
           ...(categoria ? { categoria_id: categoria } : {}),
-          solo_favoritos: favoritos,
           limit: TAMANO_LOTE,
           offset: reiniciar ? 0 : catalogoRef.current.length,
         });
@@ -198,7 +313,7 @@ export function VenderPos({
         }
       }
     },
-    [busqueda, categoria, favoritos, listaPrecioId, terminal.id],
+    [busqueda, categoria, listaPrecioId, terminal.id, ambito, estadoConexion],
   );
 
   useEffect(() => {
@@ -208,6 +323,15 @@ export function VenderPos({
     }
     void cargarCatalogo(true);
   }, [cargarCatalogo]);
+
+  /**
+   * El filtro «Favoritos» es local (localStorage + `favorito_pos` global), así
+   * que se aplica sobre lo ya cargado; «Ver más» sigue trayendo el resto.
+   */
+  const catalogoVisible = useMemo(
+    () => (favoritos ? filtrarFavoritosPOS(catalogo, favoritosLocales) : catalogo),
+    [catalogo, favoritos, favoritosLocales],
+  );
 
   const buscarCodigo = useCallback(
     async (codigo: string) => {
@@ -245,6 +369,13 @@ export function VenderPos({
     ultimoAgregado.current = producto.nombre;
     setAnuncio(`${producto.nombre} agregado.`);
     inputRef.current?.focus();
+  }
+
+  /** La estrella marca/desmarca sin agregar al carrito (el clic no burbujea). */
+  function alternarFavoritoProducto(producto: ProductoPOS) {
+    const estabaMarcado = esFavorito(producto);
+    alternarFavorito(producto);
+    setAnuncio(estabaMarcado ? `${producto.nombre} quitado de favoritos.` : `${producto.nombre} agregado a favoritos.`);
   }
 
   useEffect(() => {
@@ -326,15 +457,15 @@ export function VenderPos({
   }, [carrito.activa.cotizacion, hayModal, puedeCobrar]);
 
   function onEnter(texto: string): boolean {
-    const resaltadoActual = resaltado >= 0 ? catalogo[resaltado] : undefined;
+    const resaltadoActual = resaltado >= 0 ? catalogoVisible[resaltado] : undefined;
     if (resaltadoActual) {
       agregar(resaltadoActual);
       setBusqueda("");
       setTokenLimpiar((actual) => actual + 1);
       return true;
     }
-    if (catalogo.length === 1 && busqueda.trim() !== "") {
-      const unico = catalogo[0];
+    if (catalogoVisible.length === 1 && busqueda.trim() !== "") {
+      const unico = catalogoVisible[0];
       if (unico) {
         agregar(unico);
         setBusqueda("");
@@ -352,14 +483,14 @@ export function VenderPos({
   }
 
   function onMover(delta: number) {
-    if (catalogo.length === 0) {
+    if (catalogoVisible.length === 0) {
       setResaltado(-1);
       return;
     }
     setResaltado((actual) => {
-      if (actual < 0) return delta > 0 ? 0 : catalogo.length - 1;
+      if (actual < 0) return delta > 0 ? 0 : catalogoVisible.length - 1;
       const siguiente = actual + delta;
-      return Math.min(Math.max(siguiente, 0), catalogo.length - 1);
+      return Math.min(Math.max(siguiente, 0), catalogoVisible.length - 1);
     });
   }
 
@@ -384,32 +515,36 @@ export function VenderPos({
     const hoy = hoyRD();
 
     try {
-      const resultado = await crearCotizacionPOS({
-        terminal_id: terminal.id,
-        contacto_id: activa.contactoId || null,
-        lista_precio_id: activa.listaPrecioId || null,
-        fecha: hoy,
-        vencimiento: sumarDias(hoy, 30),
-        vendedor_id: activa.vendedorId || null,
-        lineas: activa.lineas.map((linea) => ({
-          producto_id: linea.productoId,
-          descripcion: linea.descripcion,
-          cantidad: linea.cantidad,
-          unidad_id: linea.unidadId,
-          precio: linea.precio,
-          descuento_pct: linea.descuentoPct,
-          itbis_tasa: linea.itbisTasa,
-          impuesto_id: linea.impuestoId,
-        })),
-      });
+      const resultado = await crearCotizacionPOS(
+        payloadCotizacionPOS({
+          terminalId: terminal.id,
+          fecha: hoy,
+          vencimiento: sumarDias(hoy, 30),
+          pestana: activa,
+        }),
+      );
 
       if (!resultado.ok) {
         setErrorCotizacion(capitalizar(resultado.error));
         return;
       }
 
+      const cotizacion = resultado.data.cotizacion;
       setConfirmacionCotizacion(resultado.data);
-      toast.add({ type: "success", title: "Cotización guardada." });
+      toast.add({
+        type: "success",
+        title: `Cotización No ${cotizacion.numero} guardada.`,
+        description: (
+          <a
+            href={enlaceCotizacionPOS(cotizacion.id)}
+            target="_blank"
+            rel="noreferrer"
+            className="text-pos-primario font-medium hover:underline"
+          >
+            Ver cotización
+          </a>
+        ),
+      });
     } catch {
       setErrorCotizacion("No sabemos si la cotización se guardó. Revisa Cotizaciones antes de volver a guardarla.");
     } finally {
@@ -444,28 +579,6 @@ export function VenderPos({
         {anuncio}
       </div>
 
-      <p className="text-pos-texto-suave px-3 pt-3 text-xs sm:px-4">
-        {turnoActual ? (
-          <>
-            {`Turno No ${turnoActual.numero} abierto `}
-            <a href="/pos/turnos" className="text-pos-primario hover:text-pos-primario-hover font-medium">
-              Cerrar turno
-            </a>
-          </>
-        ) : (
-          <>
-            {"Turno cerrado "}
-            <button
-              type="button"
-              className="text-pos-primario hover:text-pos-primario-hover font-medium"
-              onClick={() => setAbrirTurnoAbierto(true)}
-            >
-              Abrir turno
-            </button>
-          </>
-        )}
-      </p>
-
       {sinCaja ? (
         <div className="px-3 pt-2 sm:px-4">
           <Alert variant="destructive">
@@ -484,11 +597,16 @@ export function VenderPos({
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col p-3 pt-2 sm:p-4 sm:pt-2">
+      <div className="flex min-h-0 flex-1 bg-slate-100 dark:bg-background">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {avisoCatalogo ? (
+            <p role="status" className="text-pos-texto-suave px-4 py-1 text-xs">
+              {avisoCatalogo}
+            </p>
+          ) : null}
           <CatalogoPos
             inputRef={inputRef}
-            productos={catalogo}
+            productos={catalogoVisible}
             categorias={categorias}
             categoria={categoria}
             favoritos={favoritos}
@@ -497,32 +615,40 @@ export function VenderPos({
             cargandoMas={cargandoMas}
             hayMas={hayMas}
             error={errorCatalogo}
-            resultados={catalogo.length}
+            resultados={catalogoVisible.length}
             resaltado={resaltado}
             cantidades={cantidades}
             onBuscar={setBusqueda}
             onEnter={onEnter}
             onMover={onMover}
-            onFavoritos={() => setFavoritos((actual) => !actual)}
+            onFavoritos={() => {
+              setFavoritos((actual) => !actual);
+              setResaltado(-1);
+            }}
             onCategoria={setCategoria}
             onLimpiar={limpiar}
             onReintentar={() => void cargarCatalogo(true)}
             onVerMas={() => void cargarCatalogo(false)}
             onAgregar={agregar}
+            onFavorito={alternarFavoritoProducto}
             onVentaSimple={() => setSimpleAbierto(true)}
+            esFavorito={esFavorito}
             limpiarToken={tokenLimpiar}
           />
         </div>
 
         {esEscritorio ? (
-          <div className="flex min-h-0 w-[400px] shrink-0">
+          <div className="flex min-h-0 w-[40%] max-w-[550px] shrink-0">
             <PanelFactura
               terminal={terminal}
               turno={turnoActual}
+              empresa={empresa}
+              plantillaTicket={terminal.plantilla_ticket}
               numeraciones={numeraciones}
               listas={listas}
               vendedores={vendedores}
               contactos={contactos}
+              consumidorFinalId={consumidorFinalId}
               impuestos={impuestos}
               puedeEscribir
               sinCaja={sinCaja}
@@ -532,6 +658,7 @@ export function VenderPos({
               onGuardarCotizacion={() => void guardarCotizacion()}
               onCancelarVenta={() => inputRef.current?.focus()}
               onAnunciar={setAnuncio}
+              onImprimir={setImpresionDoc}
               guardandoCotizacion={guardandoCotizacion}
               errorCotizacion={errorCotizacion}
             />
@@ -558,15 +685,24 @@ export function VenderPos({
           </div>
 
           <Sheet open={sheetAbierto} onOpenChange={setSheetAbierto}>
-            <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-[420px]">
+            {/* `w-full!` vence al `data-[side=right]:w-3/4` de sheet.tsx: la factura ocupa todo el móvil. */}
+            <SheetContent
+              side="right"
+              className="w-full! gap-0 p-0 sm:max-w-[420px]!"
+              overlayStyle={{ bottom: "2.75rem" }}
+              style={{ bottom: "2.75rem", height: "calc(100dvh - 2.75rem)" }}
+            >
               <SheetTitle className="sr-only">Factura de venta</SheetTitle>
               <PanelFactura
                 terminal={terminal}
                 turno={turnoActual}
+                empresa={empresa}
+                plantillaTicket={terminal.plantilla_ticket}
                 numeraciones={numeraciones}
                 listas={listas}
                 vendedores={vendedores}
                 contactos={contactos}
+                consumidorFinalId={consumidorFinalId}
                 impuestos={impuestos}
                 puedeEscribir
                 sinCaja={sinCaja}
@@ -589,6 +725,7 @@ export function VenderPos({
                   inputRef.current?.focus();
                 }}
                 onAnunciar={setAnuncio}
+                onImprimir={setImpresionDoc}
                 guardandoCotizacion={guardandoCotizacion}
                 errorCotizacion={errorCotizacion}
               />
@@ -596,6 +733,8 @@ export function VenderPos({
           </Sheet>
         </>
       ) : null}
+
+      <BarraInferiorPos turno={turnoActual} onAbrirTurno={() => setAbrirTurnoAbierto(true)} />
 
       <CheckoutPos
         abierto={checkoutAbierto}
@@ -608,6 +747,7 @@ export function VenderPos({
         empresa={empresa}
         cuentas={cuentas}
         contactos={contactos}
+        consumidorFinalId={consumidorFinalId}
         plantillaTicket={terminal.plantilla_ticket}
         plantillaFactura={plantillaFactura}
         plantillaCotizacion={plantillaCotizacion}
@@ -626,6 +766,8 @@ export function VenderPos({
 
       <DialogoCargarCotizacion
         abierto={cargarCotizacionAbierto}
+        contactoId={filtroCotizacionId}
+        contactoNombre={filtroCotizacionNombre}
         onCerrar={() => {
           setCargarCotizacionAbierto(false);
           inputRef.current?.focus();
@@ -643,6 +785,16 @@ export function VenderPos({
           router.refresh();
         }}
       />
+
+      {impresionDoc ? (
+        <ImpresionPos
+          titulo={impresionDoc.titulo}
+          ancho={impresionDoc.payload.diseno.ancho_mm}
+          onCerrar={() => setImpresionDoc(null)}
+        >
+          <TicketPos payload={impresionDoc.payload} />
+        </ImpresionPos>
+      ) : null}
 
       <Dialog
         open={confirmacionCotizacion !== null}

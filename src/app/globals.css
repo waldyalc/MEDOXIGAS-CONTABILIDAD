@@ -316,6 +316,11 @@ html {
     display: none !important;
   }
 
+  /* Cuando hay un ticket del POS montado, el papel Carta no sale. */
+  body:has(> [data-print-root][data-print-pos]) > [data-print-root]:not([data-print-pos]) {
+    display: none !important;
+  }
+
   [data-print-root] {
     display: block !important;
     width: auto !important;

@@ -5,10 +5,11 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { cn } from "cn";
+import { createPortal } from "react-dom";
 
-import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import {
   ArrowLeftRight,
+  Ban,
   Banknote,
   CalendarClock,
   CreditCard,
@@ -18,6 +19,7 @@ import {
   Split,
   Trash2,
   Wallet,
+  X,
 } from "@/components/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -35,15 +37,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { ContactoBuscado } from "@/lib/contactos/seleccion";
-import { formatoMoneda } from "@/lib/facturacion/formato";
 import type { Empresa } from "@/lib/facturacion/tipos";
 import { completarVenta } from "@/lib/pos/acciones";
-import { centavosATexto, centavosDeDecimal, compararMontos, sumarMontos } from "@/lib/pos/calculo";
+import { calcularLineaPOS, centavosATexto, centavosDeDecimal, compararMontos, sumarMontos } from "@/lib/pos/calculo";
+import { esConsumidorFinalPOS } from "@/lib/pos/consumidor-final";
+import { esquemaVenta, mensajeValidacion } from "@/lib/pos/esquemas";
+import { armarTicketOffline, type EntradaTicketOffline, type TicketPOSPayload } from "@/lib/pos/impresion";
 import type { MetodoPOS, PlantillaTicket, VentaPOSResultado } from "@/lib/pos/tipos";
 import { createClient } from "@/lib/supabase/client";
 
 import { useCarritoPOS } from "../carrito-pos-provider";
-import { capitalizar, ETIQUETAS_METODO, hoyRD, textoAMonto } from "../formato-pos";
+import { capitalizar, ETIQUETAS_METODO, formatoMonedaPOS, hoyRD, textoAMonto } from "../formato-pos";
+import { useOfflinePOS } from "../offline-pos-provider";
+import { ConfirmacionOffline } from "./confirmacion-offline";
 import { ConfirmacionVenta } from "./confirmacion-venta";
 
 type ModoCobro = MetodoPOS | "combinado" | "credito";
@@ -85,6 +91,7 @@ export function CheckoutPos({
   empresa,
   cuentas,
   contactos,
+  consumidorFinalId,
   plantillaTicket,
   plantillaFactura,
   plantillaCotizacion,
@@ -105,6 +112,7 @@ export function CheckoutPos({
   empresa: Empresa | null;
   cuentas: { id: string; nombre: string }[];
   contactos: ContactoBuscado[];
+  consumidorFinalId: string | null;
   plantillaTicket: PlantillaTicket;
   plantillaFactura: { mostrarLogo: boolean; notas: string; terminos: string };
   plantillaCotizacion: { mostrarLogo: boolean; notas: string; terminos: string };
@@ -112,6 +120,8 @@ export function CheckoutPos({
 }) {
   const router = useRouter();
   const carrito = useCarritoPOS();
+  const offline = useOfflinePOS();
+  const [ticketOffline, setTicketOffline] = useState<TicketPOSPayload | null>(null);
   const { activa, totales } = carrito;
   const [vista, setVista] = useState<"metodos" | "detalle">("metodos");
   const [modo, setModo] = useState<ModoCobro>("efectivo");
@@ -121,15 +131,15 @@ export function CheckoutPos({
   const [notas, setNotas] = useState("");
   const [vendedores, setVendedores] = useState<{ id: string; nombre: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [aviso, setAviso] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [lento, setLento] = useState(false);
   const [perdido, setPerdido] = useState(false);
   const [venta, setVenta] = useState<VentaPOSResultado | null>(null);
-  const [confirmarCierre, setConfirmarCierre] = useState(false);
 
   const total = totales.total;
   const cotizacion = activa.cotizacion;
-  const esConsumidorFinal = activa.contactoId === terminal.contacto_defecto_id;
+  const esConsumidorFinal = esConsumidorFinalPOS(activa.contactoId, consumidorFinalId);
   const nombreCuenta = (id: string | null) =>
     id ? (cuentas.find((cuenta) => cuenta.id === id)?.nombre ?? null) : null;
   const cuentasActivas = useMemo(() => new Set(cuentas.map((cuenta) => cuenta.id)), [cuentas]);
@@ -147,9 +157,11 @@ export function CheckoutPos({
     setFilas([]);
     setNotas("");
     setError(null);
+    setAviso(false);
     setLento(false);
     setPerdido(false);
     setVenta(null);
+    setTicketOffline(null);
   }, [abierto]);
 
   useEffect(() => {
@@ -225,14 +237,15 @@ export function CheckoutPos({
         : modo === "efectivo"
           ? creditoEfectivo
           : creditoOtro;
-  const hayCredito = centavos(credito) > 0;
+  const porCobrarVisible = centavos(credito) > 0;
+  const cambioVisible =
+    (modo === "efectivo" && centavos(cambioEfectivo) > 0) || (modo === "combinado" && centavos(cambioCombinado) > 0);
 
   const motivoDebito = cuentaDebito ? null : "La terminal no tiene una cuenta configurada para tarjeta débito.";
   const motivoCredito = cuentaCredito ? null : "La terminal no tiene una cuenta configurada para tarjeta crédito.";
   const motivoTransferencia = cuentaTransferencia
     ? null
     : "La terminal no tiene una cuenta configurada para transferencia.";
-  const motivoCreditoCliente = esConsumidorFinal ? "No se puede vender a crédito al Consumidor Final." : null;
 
   const sumaAplicada =
     modo === "credito"
@@ -258,11 +271,10 @@ export function CheckoutPos({
     excedeOtro ||
     excedeCombinado ||
     (modo === "combinado" && (filas.length === 0 || filaCombinadaInvalida)) ||
-    (hayCredito && esConsumidorFinal) ||
     (modo === "efectivo" && !simpleEfectivo);
 
   const etiquetaCta =
-    modo === "credito" ? `Vender a crédito ${formatoMoneda(total)}` : `Cobrar ${formatoMoneda(total)}`;
+    modo === "credito" ? `Vender a crédito ${formatoMonedaPOS(total)}` : `Cobrar ${formatoMonedaPOS(total)}`;
 
   const pills = useMemo(() => {
     const opciones = new Set<string>();
@@ -345,13 +357,22 @@ export function CheckoutPos({
 
   async function cobrar() {
     if (ctaDeshabilitado) return;
+    if (porCobrarVisible && esConsumidorFinal) {
+      setAviso(true);
+      return;
+    }
+    setAviso(false);
     setEnviando(true);
     setError(null);
     setPerdido(false);
 
+    const pagos = armarPagos();
+    const recibidoOffline = sumarMontos(
+      pagos.map((pago) => ("monto_recibido" in pago ? (pago.monto_recibido ?? pago.monto) : pago.monto)),
+    );
     const entrada = {
       terminal_id: terminal.id,
-      contacto_defecto_id: cotizacion ? null : terminal.contacto_defecto_id,
+      contacto_defecto_id: cotizacion ? null : (consumidorFinalId ?? terminal.contacto_defecto_id),
       contacto_id: cotizacion ? null : activa.contactoId || null,
       lista_precio_id: cotizacion ? null : activa.listaPrecioId || null,
       numeracion_id: activa.numeracionId || null,
@@ -359,10 +380,56 @@ export function CheckoutPos({
       ...(notas.trim() ? { notas: notas.trim() } : {}),
       fecha: hoyRD(),
       ...(cotizacion ? { cotizacion_id: cotizacion.id } : { lineas: lineasPayload() }),
-      pagos: armarPagos(),
+      pagos,
     };
 
+    let envioRemoto = false;
     try {
+      if (!navigator.onLine || offline.estado === "offline") {
+        if (cotizacion) throw new Error("Conéctate para convertir una cotización y evitar facturarla dos veces.");
+        if (porCobrarVisible)
+          throw new Error("Conéctate para verificar el crédito del cliente antes de vender a crédito.");
+        const cliente = contactos.find((contacto) => contacto.id === activa.contactoId);
+        if (!cliente)
+          throw new Error("El cliente no está disponible en la caché. Selecciona uno cargado antes de cobrar.");
+        const validada = esquemaVenta.safeParse(entrada);
+        if (!validada.success) throw new Error(mensajeValidacion(validada.error));
+        const detalle: Omit<EntradaTicketOffline, "folio"> = {
+          empresa,
+          cliente,
+          plantilla: plantillaTicket,
+          fecha: new Date().toISOString(),
+          ...totales,
+          recibido: recibidoOffline,
+          cambio: centavosATexto(Math.max(0, centavos(recibidoOffline) - centavos(total))),
+          lineas: activa.lineas.map((linea) => ({
+            id: linea.id,
+            producto_id: linea.productoId,
+            producto_nombre: linea.descripcion,
+            referencia: linea.referencia,
+            descripcion: linea.descripcion,
+            cantidad: linea.cantidad,
+            unidad_id: linea.unidadId,
+            unidad_nombre: linea.unidadNombre,
+            factor_base: linea.factorBase,
+            precio: linea.precio,
+            descuento_pct: linea.descuentoPct,
+            itbis_tasa: linea.itbisTasa,
+            impuesto_id: linea.impuestoId,
+            ...calcularLineaPOS({
+              cantidad: linea.cantidad,
+              precio: linea.precio,
+              descuento_pct: linea.descuentoPct,
+              itbis_tasa: linea.itbisTasa,
+            }),
+          })),
+        };
+        const operacion = await offline.encolar("venta", validada.data, { pestana: activa, ticket: detalle });
+        setTicketOffline(armarTicketOffline({ ...detalle, folio: operacion.folio }));
+        carrito.reiniciarTrasVenta();
+        return;
+      }
+      envioRemoto = true;
       const resultado = await completarVenta(entrada);
       if (!resultado.ok) {
         setError(capitalizar(resultado.error));
@@ -372,26 +439,27 @@ export function CheckoutPos({
       carrito.reiniciarTrasVenta();
       toast.add({ type: "success", title: "Venta registrada." });
       router.refresh();
-    } catch {
-      setPerdido(true);
+    } catch (causa) {
+      if (!envioRemoto) {
+        setError(
+          causa instanceof Error
+            ? causa.message
+            : "No se pudo guardar. No entregues la venta hasta confirmar el guardado.",
+        );
+      } else {
+        setPerdido(true);
+      }
     } finally {
       setEnviando(false);
     }
   }
 
   function cerrar(nuevo: boolean) {
-    if (!nuevo) {
-      if (enviando) return;
-      if (venta) {
-        onCerrar();
-        return;
-      }
-      if (activa.lineas.length > 0) {
-        setConfirmarCierre(true);
-        return;
-      }
-      onCerrar();
-    }
+    if (nuevo) return;
+    // La X y «Cancelar» cierran el cobro de inmediato: el carrito se conserva
+    // y la venta no se registra. Mientras se envía la venta no se puede cerrar.
+    if (enviando) return;
+    onCerrar();
   }
 
   const camposCobro = (
@@ -408,8 +476,10 @@ export function CheckoutPos({
   return (
     <>
       <Dialog open={abierto} onOpenChange={cerrar}>
-        <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-[720px]">
-          {venta ? (
+        <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-[640px]">
+          {ticketOffline ? (
+            <ConfirmacionOffline ticket={ticketOffline} onCerrar={onCerrar} />
+          ) : venta ? (
             <>
               <DialogTitle className="sr-only">Venta registrada</DialogTitle>
               <DialogDescription className="sr-only">La venta se cobró correctamente.</DialogDescription>
@@ -426,9 +496,9 @@ export function CheckoutPos({
             </>
           ) : (
             <>
-              <DialogHeader>
-                <DialogTitle>Pagar factura</DialogTitle>
-                <DialogDescription>
+              <DialogHeader className="gap-1">
+                <DialogTitle className="text-pos-texto text-2xl font-semibold">Pagar factura</DialogTitle>
+                <DialogDescription className="text-pos-texto-suave text-sm">
                   {turno ? `${terminal.nombre} · Turno No ${turno.numero}` : terminal.nombre}
                 </DialogDescription>
               </DialogHeader>
@@ -437,32 +507,31 @@ export function CheckoutPos({
                 {vista === "detalle" ? (
                   <button
                     type="button"
-                    className="text-primary hover:text-primary/80 absolute top-0 right-0 flex items-center gap-1 text-sm font-medium transition-colors"
+                    className="text-pos-primario hover:text-pos-primario-hover absolute top-0 right-0 flex items-center gap-1 text-sm font-medium transition-colors"
                     onClick={() => setVista("metodos")}
                   >
                     <ArrowLeftRight className="size-3.5" aria-hidden="true" />
                     Cambiar método
                   </button>
                 ) : null}
-                <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Total</span>
-                <span className="text-3xl font-semibold tabular-nums">{formatoMoneda(total)}</span>
-                {vista === "detalle" && modo === "efectivo" && centavos(cambioEfectivo) > 0 ? (
-                  <span className="text-sm">
-                    Cambio:{" "}
-                    <span className="text-destructive font-semibold tabular-nums">{formatoMoneda(cambioEfectivo)}</span>
-                  </span>
-                ) : null}
-                {vista === "detalle" && modo === "combinado" ? (
-                  <span className="text-sm">
-                    Total recibido <span className="tabular-nums">{formatoMoneda(sumaCombinada)}</span>
-                    {" · "}
+                <span className="text-pos-icono text-xs font-medium tracking-wide uppercase">Total</span>
+                <span className="text-pos-texto text-2xl font-semibold tabular-nums">{formatoMonedaPOS(total)}</span>
+                {vista === "detalle" && porCobrarVisible ? (
+                  <span className="text-pos-texto-suave text-base">
                     Por cobrar:{" "}
-                    <span className="text-destructive font-semibold tabular-nums">
-                      {formatoMoneda(porCobrarCombinado)}
+                    <span className="font-semibold text-[#e11d48] tabular-nums dark:text-rose-400">
+                      {formatoMonedaPOS(credito)}
+                    </span>
+                  </span>
+                ) : vista === "detalle" && cambioVisible ? (
+                  <span className="text-pos-texto-suave text-base">
+                    Cambio:{" "}
+                    <span className="font-semibold text-[#e11d48] tabular-nums dark:text-rose-400">
+                      {formatoMonedaPOS(modo === "combinado" ? cambioCombinado : cambioEfectivo)}
                     </span>
                   </span>
                 ) : null}
-                <span className="text-muted-foreground text-xs">
+                <span className="text-pos-texto-suave text-xs">
                   {cotizacion ? `Cotización No ${cotizacion.numero}` : carrito.activa.nombre}
                 </span>
               </div>
@@ -523,9 +592,9 @@ export function CheckoutPos({
                     />
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="bg-border h-px flex-1" aria-hidden="true" />
-                    <span className="text-muted-foreground text-xs">Otros métodos</span>
-                    <span className="bg-border h-px flex-1" aria-hidden="true" />
+                    <span className="bg-pos-linea h-px flex-1" aria-hidden="true" />
+                    <span className="text-pos-texto-suave text-xs">Otros métodos</span>
+                    <span className="bg-pos-linea h-px flex-1" aria-hidden="true" />
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     <Tile
@@ -546,12 +615,11 @@ export function CheckoutPos({
                       icono={<CalendarClock aria-hidden="true" />}
                       titulo="Crédito"
                       activo={false}
-                      motivo={motivoCreditoCliente}
                       onClick={() => elegirMetodo("credito")}
                     />
                   </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => cerrar(false)}>
+                  <DialogFooter className="-mx-4 mt-2 -mb-4 flex-row justify-end gap-2 rounded-b-xl border-0 bg-transparent p-4">
+                    <Button variant="outline" className="h-10 rounded-[8px] px-5 text-sm" onClick={() => cerrar(false)}>
                       Cancelar
                     </Button>
                   </DialogFooter>
@@ -563,7 +631,7 @@ export function CheckoutPos({
                       <div className="flex flex-col gap-2">
                         <div className="flex flex-col gap-1">
                           <Label htmlFor="efectivo-recibido">Valor del pago en efectivo *</Label>
-                          <InputGroup className="h-10">
+                          <InputGroup className="h-12 rounded-[5px]">
                             <InputGroupAddon>
                               <InputGroupText>RD$</InputGroupText>
                             </InputGroupAddon>
@@ -576,9 +644,9 @@ export function CheckoutPos({
                           </InputGroup>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="bg-border h-px flex-1" aria-hidden="true" />
-                          <span className="text-muted-foreground text-xs">Opciones rápidas</span>
-                          <span className="bg-border h-px flex-1" aria-hidden="true" />
+                          <span className="bg-pos-linea h-px flex-1" aria-hidden="true" />
+                          <span className="text-pos-texto-suave text-xs">Opciones rápidas</span>
+                          <span className="bg-pos-linea h-px flex-1" aria-hidden="true" />
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {pills.map((pill) => (
@@ -588,18 +656,14 @@ export function CheckoutPos({
                               variant="outline"
                               size="sm"
                               className={cn(
-                                "h-9",
-                                recibido === pill && "border-primary text-primary hover:text-primary",
+                                "h-9 rounded-[5px]",
+                                recibido === pill && "border-pos-primario text-pos-primario hover:text-pos-primario",
                               )}
                               onClick={() => setRecibido(pill)}
                             >
-                              {pill === total ? `Exacto ${formatoMoneda(pill)}` : formatoMoneda(pill)}
+                              {pill === total ? `Exacto ${formatoMonedaPOS(pill)}` : formatoMonedaPOS(pill)}
                             </Button>
                           ))}
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Aplicado a la venta</span>
-                          <span className="tabular-nums">{formatoMoneda(aplicadoEfectivo)}</span>
                         </div>
                         {!simpleEfectivo ? (
                           <p className="text-destructive text-xs">Escribe el efectivo recibido.</p>
@@ -614,7 +678,7 @@ export function CheckoutPos({
                       <div className="flex flex-col gap-2">
                         <div className="flex flex-col gap-1">
                           <Label htmlFor="monto-aplicado">Valor del pago *</Label>
-                          <InputGroup className="h-10">
+                          <InputGroup className="h-12 rounded-[5px]">
                             <InputGroupAddon>
                               <InputGroupText>RD$</InputGroupText>
                             </InputGroupAddon>
@@ -632,10 +696,6 @@ export function CheckoutPos({
                             La suma de los pagos no puede exceder el total de la venta.
                           </p>
                         ) : null}
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Aplicado a la venta</span>
-                          <span className="tabular-nums">{formatoMoneda(menor(aplicadoOtro, total))}</span>
-                        </div>
                       </div>
                       {camposCobro}
                     </div>
@@ -742,7 +802,7 @@ export function CheckoutPos({
                                   />
                                 </InputGroup>
                                 <span className="text-muted-foreground text-xs">
-                                  {`Cambio ${formatoMoneda(
+                                  {`Cambio ${formatoMonedaPOS(
                                     centavosATexto(
                                       Math.max(
                                         0,
@@ -786,66 +846,26 @@ export function CheckoutPos({
                         <p className="text-destructive text-xs">Completa cada fila con un monto mayor a cero.</p>
                       ) : null}
 
-                      <div className="flex flex-col gap-1 border-t pt-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Total recibido</span>
-                          <span className="tabular-nums">{formatoMoneda(sumaCombinada)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Por cobrar</span>
-                          <span className="tabular-nums">{formatoMoneda(porCobrarCombinado)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Cambio</span>
-                          <span className="tabular-nums">{formatoMoneda(cambioCombinado)}</span>
-                        </div>
-                      </div>
-
                       {camposCobro}
                     </div>
                   ) : null}
 
                   {modo === "credito" ? <div className="grid gap-3 sm:grid-cols-2">{camposCobro}</div> : null}
 
-                  {hayCredito || modo === "credito" ? (
-                    <div className="bg-muted/40 flex flex-col gap-2 rounded-lg p-3">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-sm font-medium">Queda a crédito</span>
-                        <span className="text-lg font-semibold tabular-nums">{formatoMoneda(credito)}</span>
-                      </div>
-                      <p className="text-muted-foreground text-sm">
-                        {`La factura quedará por cobrar a nombre de ${nombreCliente(contactos, activa.contactoId)}.`}
-                      </p>
-                      {esConsumidorFinal ? (
-                        <Alert variant="destructive">
-                          <AlertDescription>
-                            No se puede vender a crédito al Consumidor Final; selecciona un cliente o cobra el total.
-                          </AlertDescription>
-                        </Alert>
-                      ) : null}
-                      {esConsumidorFinal && !cotizacion ? (
-                        <div className="flex flex-col gap-1">
-                          <Label className="text-xs">Cliente para el crédito</Label>
-                          <SelectorContacto
-                            contactos={contactos}
-                            valor={activa.contactoId}
-                            onCambio={(contacto) => carrito.setContacto(contacto?.id ?? "")}
-                            tipoInicial="cliente"
-                            showClear={false}
-                          />
-                        </div>
-                      ) : null}
-                      {esConsumidorFinal && cotizacion ? (
-                        <p className="text-destructive text-xs">Quita la cotización para cambiar de cliente.</p>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  <DialogFooter>
-                    <Button variant="outline" disabled={enviando} onClick={() => cerrar(false)}>
+                  <DialogFooter className="-mx-4 mt-2 -mb-4 flex-row justify-end gap-2 rounded-b-xl border-0 bg-transparent p-4">
+                    <Button
+                      variant="outline"
+                      className="h-10 rounded-[8px] px-5 text-sm"
+                      disabled={enviando}
+                      onClick={() => cerrar(false)}
+                    >
                       Cancelar
                     </Button>
-                    <Button className="h-11" disabled={ctaDeshabilitado} onClick={() => void cobrar()}>
+                    <Button
+                      className="bg-pos-primario hover:bg-pos-primario-hover h-10 rounded-[8px] px-5 text-sm text-white"
+                      disabled={ctaDeshabilitado}
+                      onClick={() => void cobrar()}
+                    >
                       {enviando ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
                       {enviando ? "Procesando venta…" : etiquetaCta}
                     </Button>
@@ -857,28 +877,33 @@ export function CheckoutPos({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={confirmarCierre} onOpenChange={setConfirmarCierre}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>La venta no se ha cobrado. ¿Cerrar el cobro?</DialogTitle>
-            <DialogDescription>El carrito se conserva.</DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setConfirmarCierre(false)}>
-              Seguir cobrando
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setConfirmarCierre(false);
-                onCerrar();
-              }}
+      {aviso
+        ? createPortal(
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="fixed top-5 right-5 z-[100] flex w-[calc(100%-2rem)] max-w-[390px] items-start gap-3 rounded-[8px] bg-[#ffe4e6] p-3 text-slate-900 shadow-lg dark:bg-rose-950/85 dark:text-rose-50"
             >
-              Cerrar cobro
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+              <Ban className="mt-0.5 size-5 shrink-0 text-[#e11d48] dark:text-rose-400" aria-hidden="true" />
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <p className="text-sm leading-tight font-semibold">Algunos campos necesitan tu atención</p>
+                <p className="text-sm text-slate-700 dark:text-rose-100/80">
+                  Revisa los campos marcados antes de guardar.
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 shrink-0 text-slate-500 hover:bg-rose-200/60 hover:text-slate-700 dark:text-rose-200 dark:hover:bg-rose-900/60"
+                aria-label="Cerrar aviso"
+                onClick={() => setAviso(false)}
+              >
+                <X aria-hidden="true" />
+              </Button>
+            </div>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
@@ -896,10 +921,6 @@ function cuentaDeMetodo(
   if (metodo === "tarjeta_debito") return terminal.cuenta_tarjeta_debito_id;
   if (metodo === "tarjeta_credito") return terminal.cuenta_tarjeta_credito_id;
   return terminal.cuenta_transferencia_id;
-}
-
-function nombreCliente(contactos: ContactoBuscado[], id: string): string {
-  return contactos.find((contacto) => contacto.id === id)?.nombre ?? "Consumidor Final";
 }
 
 function CamposCobro({
@@ -931,7 +952,7 @@ function CamposCobro({
             onValueChange={(valor) => onVendedor(valor === NINGUNO ? "" : (valor ?? ""))}
             disabled={vendedorDeshabilitado}
           >
-            <SelectTrigger id="cobro-vendedor" className="h-10 w-full">
+            <SelectTrigger id="cobro-vendedor" className="h-12 w-full rounded-[5px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
@@ -952,6 +973,7 @@ function CamposCobro({
           value={notas}
           maxLength={500}
           placeholder="Ingresa tu observación"
+          className="min-h-[100px] rounded-[5px]"
           onChange={(evento) => onNotas(evento.target.value)}
         />
       </div>
@@ -981,7 +1003,7 @@ function Tile({
       onClick={onClick}
       className={cn(
         "border-border flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-lg border p-3 transition-colors",
-        activo ? "border-primary bg-primary/5 text-primary" : "hover:bg-muted",
+        activo ? "border-pos-primario bg-pos-acento text-pos-acento-texto" : "hover:bg-muted",
         motivo && "cursor-not-allowed opacity-50",
       )}
     >

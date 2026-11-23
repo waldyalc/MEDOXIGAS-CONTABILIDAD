@@ -14,14 +14,18 @@ export function TarjetaProductoPos({
   producto,
   cantidad,
   resaltado,
+  favorito,
   imagenUrl,
   onAgregar,
+  onFavorito,
 }: {
   producto: ProductoPOS;
   cantidad: number;
   resaltado: boolean;
+  favorito: boolean;
   imagenUrl: string | null;
   onAgregar: (producto: ProductoPOS) => void;
+  onFavorito: (producto: ProductoPOS) => void;
 }) {
   const esServicio = producto.tipo === "servicio";
   const esCombo = producto.tipo === "combo";
@@ -32,62 +36,79 @@ export function TarjetaProductoPos({
 
   let etiquetaInventario: ReactNode;
   if (esServicio) {
-    etiquetaInventario = <span className="text-muted-foreground text-[11px] font-medium">Servicio</span>;
+    etiquetaInventario = <span className="text-pos-texto-suave text-xs font-medium">Servicio</span>;
   } else if (comboSinDisponible) {
-    etiquetaInventario = <span className="text-muted-foreground text-[11px] font-medium">Combo</span>;
+    etiquetaInventario = <span className="text-pos-texto-suave text-xs font-medium">Combo</span>;
   } else if (agotado) {
     etiquetaInventario = (
-      <span className="flex items-center gap-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+      <span className="flex h-4 items-center justify-center gap-1 rounded-lg bg-[#f9fafb] px-2 text-xs font-normal text-[#e85e42] dark:bg-white/5">
         <TriangleAlert className="size-3" aria-hidden="true" />
         Agotado
       </span>
     );
   } else {
     etiquetaInventario = (
-      <span className="text-pos-primario text-[11px] font-medium tabular-nums">Inv. {formatoCantidad(disponible)}</span>
+      <span className="text-pos-primario flex h-4 items-center justify-center rounded-lg bg-[#f9fafb] px-2 text-xs font-normal tabular-nums dark:bg-white/5">
+        Inv. {formatoCantidad(disponible)}
+      </span>
     );
   }
 
   return (
-    <button
-      type="button"
-      onClick={() => onAgregar(producto)}
-      aria-label={`Agregar ${producto.nombre}`}
+    <article
       className={cn(
-        "border-border bg-card hover:border-pos-primario/60 hover:bg-pos-primario/[0.03] group relative flex flex-col items-center gap-1 rounded-[10px] border p-3 text-center transition-colors",
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2 focus-visible:outline-none",
-        cantidad > 0 && "border-pos-primario ring-pos-primario/40 ring-1",
+        "group relative m-1 mx-5 mb-5 flex min-h-[250px] w-[220px] shrink-0 flex-col items-center rounded-[8px] border-2 border-transparent bg-white p-2.5 text-center shadow-[1px_2px_5px_rgba(0,0,0,0.1)] transition-colors dark:bg-card",
+        "hover:border-pos-primario/40 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-ring/50 has-[:focus-visible]:ring-2",
+        cantidad > 0 && "border-pos-primario",
         resaltado && "border-pos-primario bg-pos-primario/5",
       )}
     >
+      <button
+        type="button"
+        onClick={() => onAgregar(producto)}
+        aria-label={`Agregar ${producto.nombre}`}
+        className="absolute inset-0 z-10 rounded-[6px] outline-none"
+      />
+
       {cantidad > 0 ? (
-        <span className="bg-pos-primario absolute -top-1.5 -right-1.5 z-10 flex size-6 items-center justify-center rounded-full text-xs font-semibold text-white tabular-nums shadow-sm">
+        <span className="bg-pos-primario absolute -top-1.5 -left-1.5 z-20 flex size-[22px] items-center justify-center rounded-full text-xs font-semibold text-white tabular-nums ring-2 ring-white dark:ring-card">
           {formatoCantidad(cantidad)}
         </span>
       ) : null}
 
-      {producto.favorito_pos ? (
-        <span className="bg-pos-primario absolute top-2 right-2 flex size-5 items-center justify-center rounded-md text-white">
-          <Star className="size-3 fill-current" aria-label="Favorito" />
-        </span>
-      ) : (
-        <Star className="text-muted-foreground/40 absolute top-2.5 right-2.5 size-4" aria-hidden="true" />
-      )}
+      {/* Cuadro teal de Alegra, siempre visible: estrella blanca vacía o rellena. No agrega al carrito. */}
+      <button
+        type="button"
+        onClick={(evento) => {
+          evento.stopPropagation();
+          onFavorito(producto);
+        }}
+        aria-pressed={favorito}
+        aria-label={favorito ? `Quitar ${producto.nombre} de favoritos` : `Marcar ${producto.nombre} como favorito`}
+        className="bg-pos-primario hover:bg-pos-primario-hover absolute top-0 right-0 z-20 flex size-8 items-center justify-center rounded-tr-[6px] rounded-bl-[8px] text-white transition-colors"
+      >
+        <Star className={cn("size-[18px]", favorito && "fill-white")} aria-hidden="true" />
+      </button>
 
-      <span className="flex h-16 w-full items-center justify-center">
+      <span className="mt-9 mb-2 flex h-[98px] w-full items-center justify-center">
         {imagenUrl ? (
-          <img src={imagenUrl} alt="" loading="lazy" className="max-h-16 max-w-full object-contain" />
+          // biome-ignore lint/performance/noImgElement: imagen firmada del bucket privado de productos
+          <img src={imagenUrl} alt="" loading="lazy" className="max-h-[98px] max-w-full rounded-lg object-contain" />
         ) : (
-          <Tag className="text-muted-foreground/30 size-11" strokeWidth={1.5} aria-hidden="true" />
+          <Tag className="text-[#d1d5db] dark:text-pos-icono/40 size-16" strokeWidth={1.25} aria-hidden="true" />
         )}
       </span>
 
       {etiquetaInventario}
 
-      <span className="line-clamp-2 min-h-8 text-[13px] leading-4">{producto.nombre}</span>
-      <span className="mt-auto text-[15px] font-semibold tabular-nums">{formatoMonedaPOS(producto.precio)}</span>
+      <span className="text-pos-texto mt-1 line-clamp-2 w-full text-sm leading-[22px] uppercase">
+        {producto.nombre}
+      </span>
+      <span className="text-pos-texto mt-auto text-base leading-[26px] tabular-nums">
+        {formatoMonedaPOS(producto.precio)}
+      </span>
 
       <span className="sr-only">{`${producto.nombre}. ${formatoMonedaPOS(producto.precio)}.`}</span>
-    </button>
+    </article>
   );
 }

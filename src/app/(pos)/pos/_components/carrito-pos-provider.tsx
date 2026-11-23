@@ -3,8 +3,13 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import type { UnidadPos } from "@/lib/inventario/ferreteria/tipos";
+import { almacenColaOffline, guardarOffline, leerOffline } from "@/lib/pos/almacen-offline";
 import { calcularLineaPOS, sumarMontos, type TotalesCarritoPOS, type TotalesLineaPOS } from "@/lib/pos/calculo";
+import { contactoDePestanaRestaurada } from "@/lib/pos/consumidor-final";
+import { eliminarPestanaDe, ID_PESTANA_PRINCIPAL, renombrarPestanaEn } from "@/lib/pos/pestanas-venta";
 import type { Decimal, ProductoPOS } from "@/lib/pos/tipos";
+
+import { useOfflinePOS } from "./offline-pos-provider";
 
 export const MAXIMO_PESTANAS = 8;
 
@@ -37,7 +42,7 @@ export interface PestanaVenta {
   listaPrecioId: string;
   numeracionId: string;
   vendedorId: string;
-  cotizacion: { id: string; numero: number } | null;
+  cotizacion: { id: string; numero: number; fecha: string | null; vencimiento: string | null } | null;
 }
 
 export interface DefaultsVenta {
@@ -66,6 +71,8 @@ interface ValorCarrito {
   aplicarCotizacion: (entrada: {
     id: string;
     numero: number;
+    fecha: string | null;
+    vencimiento: string | null;
     contactoId: string;
     listaPrecioId: string;
     lineas: {
@@ -101,9 +108,9 @@ function nuevoId(): string {
   return aleatorio;
 }
 
-export function crearPestana(nombre: string, defaults: DefaultsVenta): PestanaVenta {
+export function crearPestana(nombre: string, defaults: DefaultsVenta, id?: string): PestanaVenta {
   return {
-    id: nuevoId(),
+    id: id ?? nuevoId(),
     nombre,
     lineas: [],
     contactoId: defaults.contactoId,
@@ -154,8 +161,75 @@ export function ivaPorTasa(lineas: readonly LineaCarrito[]): { tasa: Decimal; mo
 }
 
 export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsVenta; children: ReactNode }) {
-  const [pestanas, setPestanas] = useState<PestanaVenta[]>(() => [crearPestana("Venta principal", defaults)]);
+  const [pestanas, setPestanas] = useState<PestanaVenta[]>(() => [
+    crearPestana("Venta principal", defaults, ID_PESTANA_PRINCIPAL),
+  ]);
   const [activaId, setActivaId] = useState<string>(() => pestanas[0]?.id ?? "");
+  const { ambito } = useOfflinePOS();
+  const [hidratado, setHidratado] = useState(false);
+  const [errorPersistencia, setErrorPersistencia] = useState(false);
+  const [otroEditor, setOtroEditor] = useState(false);
+
+  useEffect(() => {
+    let vigente = true;
+    let liberar: (() => void) | undefined;
+    async function restaurar() {
+      const guardado = await leerOffline<{ pestanas: PestanaVenta[]; activaId: string }>("carritos", ambito);
+      const operaciones = await almacenColaOffline.listar(ambito);
+      if (!vigente) return;
+      if (guardado?.pestanas.length) {
+        const restauradas = guardado.pestanas.map((pestana) => {
+          const cobrada = operaciones.some((operacion) => {
+            const snapshot = operacion.snapshot;
+            return (
+              typeof snapshot === "object" &&
+              snapshot !== null &&
+              "pestana" in snapshot &&
+              JSON.stringify(snapshot.pestana) === JSON.stringify(pestana)
+            );
+          });
+          const restaurada = cobrada ? { ...pestana, lineas: [], cotizacion: null } : pestana;
+          // Una venta restaurada sin líneas es una venta nueva: arranca con el
+          // cliente inicial (Consumidor final), no con el que quedó antes.
+          return { ...restaurada, contactoId: contactoDePestanaRestaurada(restaurada, defaults.contactoId) };
+        });
+        setPestanas(restauradas);
+        setActivaId(guardado.activaId);
+      }
+      setHidratado(true);
+    }
+    if (!navigator.locks) {
+      setErrorPersistencia(true);
+      return;
+    }
+    const controlador = new AbortController();
+    const aviso = window.setTimeout(() => setOtroEditor(true), 1000);
+    void navigator.locks
+      .request(`pos-editor:${ambito}`, { signal: controlador.signal }, async () => {
+        window.clearTimeout(aviso);
+        if (!vigente) return;
+        setOtroEditor(false);
+        const espera = new Promise<void>((resolve) => {
+          liberar = resolve;
+        });
+        await restaurar();
+        if (vigente) await espera;
+      })
+      .catch(() => {
+        if (vigente) setErrorPersistencia(true);
+      });
+    return () => {
+      vigente = false;
+      window.clearTimeout(aviso);
+      controlador.abort();
+      liberar?.();
+    };
+  }, [ambito, defaults.contactoId]);
+
+  useEffect(() => {
+    if (!hidratado) return;
+    void guardarOffline("carritos", ambito, { pestanas, activaId }).catch(() => setErrorPersistencia(true));
+  }, [ambito, hidratado, pestanas, activaId]);
 
   const activa = pestanas.find((pestana) => pestana.id === activaId) ?? pestanas[0];
 
@@ -307,33 +381,17 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
   }, [defaults, pestanas]);
 
   const renombrarPestana = useCallback((id: string, nombre: string) => {
-    const limpio = nombre.trim().slice(0, 30);
-    setPestanas((actuales) =>
-      actuales.map((pestana) =>
-        pestana.id === id ? { ...pestana, nombre: limpio === "" ? pestana.nombre : limpio } : pestana,
-      ),
-    );
+    setPestanas((actuales) => renombrarPestanaEn(actuales, id, nombre));
   }, []);
 
   const eliminarPestana = useCallback(
     (id: string) => {
-      if (pestanas.length === 1) {
-        const nueva = crearPestana("Venta principal", defaults);
-        setPestanas([nueva]);
-        setActivaId(nueva.id);
-        return;
-      }
-
-      const indice = pestanas.findIndex((pestana) => pestana.id === id);
-      const restantes = pestanas.filter((pestana) => pestana.id !== id);
-      setPestanas(restantes);
-
-      if (id === activaId) {
-        const anterior = restantes[Math.max(0, indice - 1)] ?? restantes[0];
-        if (anterior) setActivaId(anterior.id);
-      }
+      const resultado = eliminarPestanaDe(pestanas, activaId, id);
+      if (!resultado.eliminada) return;
+      setPestanas(resultado.pestanas);
+      if (resultado.activaId !== activaId) setActivaId(resultado.activaId);
     },
-    [activaId, defaults, pestanas],
+    [activaId, pestanas],
   );
 
   const setContacto = useCallback(
@@ -360,6 +418,8 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
     (entrada: {
       id: string;
       numero: number;
+      fecha: string | null;
+      vencimiento: string | null;
       contactoId: string;
       listaPrecioId: string;
       lineas: {
@@ -379,7 +439,12 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
         contactoId: entrada.contactoId,
         listaPrecioId: entrada.listaPrecioId,
         vendedorId: "",
-        cotizacion: { id: entrada.id, numero: entrada.numero },
+        cotizacion: {
+          id: entrada.id,
+          numero: entrada.numero,
+          fecha: entrada.fecha,
+          vencimiento: entrada.vencimiento,
+        },
         lineas: entrada.lineas.map((linea) => ({
           id: nuevoId(),
           productoId: linea.productoId,
@@ -479,6 +544,24 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
     [activa],
   );
 
+  if (otroEditor)
+    return (
+      <p role="alert" className="p-6">
+        Este POS ya está abierto en otra pestaña. Ciérrala y recarga aquí para recuperar sus ventas.
+      </p>
+    );
+  if (errorPersistencia)
+    return (
+      <p role="alert" className="p-6">
+        No se pudo guardar el carrito. No cobres: revisa el almacenamiento del navegador y recarga.
+      </p>
+    );
+  if (!hidratado)
+    return (
+      <p role="status" className="p-6">
+        Recuperando ventas de este dispositivo…
+      </p>
+    );
   if (!activa) return null;
 
   const valor: ValorCarrito = {

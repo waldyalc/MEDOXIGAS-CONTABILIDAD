@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { cn } from "cn";
 
@@ -11,9 +11,129 @@ import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatoCantidad } from "@/lib/facturacion/formato";
+import { compararMontos, normalizarCantidad, sumarMontos } from "@/lib/pos/calculo";
 
 import { type LineaCarrito, totalesDeLinea, useCarritoPOS } from "../carrito-pos-provider";
 import { formatoMonedaPOS, textoAMonto } from "../formato-pos";
+
+/**
+ * Cantidad del carrito como Alegra: se ve «3», no «3.00», como texto plano
+ * entre − y +. Al hacer clic se convierte en un input para escribir otra
+ * cantidad; al salir o con Enter se guarda normalizada y Escape cancela.
+ */
+function ControlCantidad({
+  linea,
+  puedeEditar,
+  onError,
+}: {
+  linea: LineaCarrito;
+  puedeEditar: boolean;
+  onError: (mensaje: string | null) => void;
+}) {
+  const { cambiarCantidad } = useCarritoPOS();
+  const [cantidadTexto, setCantidadTexto] = useState(() => normalizarCantidad(linea.cantidad));
+  const [editandoCantidad, setEditandoCantidad] = useState(false);
+  const entradaCantidad = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setCantidadTexto(normalizarCantidad(linea.cantidad));
+  }, [linea.cantidad]);
+
+  useEffect(() => {
+    if (!editandoCantidad) return;
+    entradaCantidad.current?.focus();
+    entradaCantidad.current?.select();
+  }, [editandoCantidad]);
+
+  function fijarCantidad() {
+    const monto = textoAMonto(cantidadTexto);
+    if (monto === null || Number(monto) <= 0) {
+      setCantidadTexto("1");
+      setEditandoCantidad(false);
+      onError("La cantidad debe ser mayor a cero.");
+      cambiarCantidad(linea.id, "1");
+      return;
+    }
+    const cantidad = normalizarCantidad(monto);
+    setCantidadTexto(cantidad);
+    setEditandoCantidad(false);
+    onError(null);
+    cambiarCantidad(linea.id, cantidad);
+  }
+
+  function cancelarEdicionCantidad() {
+    setCantidadTexto(normalizarCantidad(linea.cantidad));
+    setEditandoCantidad(false);
+    onError(null);
+  }
+
+  function paso(delta: number) {
+    const siguiente = sumarMontos([linea.cantidad, String(delta)]);
+    const cantidad = normalizarCantidad(compararMontos(siguiente, "1") < 0 ? "1" : siguiente);
+    setCantidadTexto(cantidad);
+    onError(null);
+    cambiarCantidad(linea.id, cantidad);
+  }
+
+  return (
+    <div className="text-pos-texto flex shrink-0 items-center">
+      <button
+        type="button"
+        className="text-pos-icono hover:text-pos-texto flex size-9 items-center justify-center rounded-md transition-colors hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-white/10"
+        aria-label={`Disminuir cantidad de ${linea.descripcion}`}
+        disabled={!puedeEditar}
+        onClick={() => paso(-1)}
+      >
+        <Minus className="size-[18px]" strokeWidth={1.75} aria-hidden="true" />
+      </button>
+      {editandoCantidad && puedeEditar ? (
+        <Input
+          ref={entradaCantidad}
+          value={cantidadTexto}
+          inputMode="decimal"
+          aria-label={`Cantidad de ${linea.descripcion}`}
+          onChange={(evento) => setCantidadTexto(evento.target.value)}
+          onBlur={fijarCantidad}
+          onKeyDown={(evento) => {
+            if (evento.key === "Enter") {
+              evento.preventDefault();
+              evento.currentTarget.blur();
+            }
+            if (evento.key === "Escape") {
+              evento.preventDefault();
+              cancelarEdicionCantidad();
+            }
+          }}
+          className="h-9 w-[60px] border-0 bg-transparent px-0 text-center text-sm font-medium tabular-nums shadow-none focus-visible:ring-1 dark:bg-transparent"
+        />
+      ) : (
+        <button
+          type="button"
+          aria-label={`Cantidad de ${linea.descripcion}`}
+          title={puedeEditar ? "Editar cantidad" : undefined}
+          disabled={!puedeEditar}
+          onClick={() => {
+            setCantidadTexto(normalizarCantidad(linea.cantidad));
+            onError(null);
+            setEditandoCantidad(true);
+          }}
+          className="focus-visible:ring-pos-primario flex h-9 w-[60px] cursor-text items-center justify-center rounded-md text-sm font-medium tabular-nums outline-none focus-visible:ring-2 disabled:cursor-default"
+        >
+          {formatoCantidad(linea.cantidad)}
+        </button>
+      )}
+      <button
+        type="button"
+        className="text-pos-icono hover:text-pos-texto flex size-9 items-center justify-center rounded-md transition-colors hover:bg-slate-100 disabled:opacity-40 dark:hover:bg-white/10"
+        aria-label={`Aumentar cantidad de ${linea.descripcion}`}
+        disabled={!puedeEditar}
+        onClick={() => paso(1)}
+      >
+        <Plus className="size-[18px]" strokeWidth={1.75} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
 
 export function LineaCarritoPos({
   linea,
@@ -32,44 +152,29 @@ export function LineaCarritoPos({
   onColapsar: () => void;
   onAnunciar: (mensaje: string) => void;
 }) {
-  const { actualizarLinea, cambiarCantidad, quitarLinea } = useCarritoPOS();
+  const { actualizarLinea, quitarLinea } = useCarritoPOS();
   const totales = totalesDeLinea(linea);
-  const [cantidadTexto, setCantidadTexto] = useState(linea.cantidad);
   const [errorCantidad, setErrorCantidad] = useState<string | null>(null);
   const [precioTexto, setPrecioTexto] = useState(linea.precio);
   const [descuentoTexto, setDescuentoTexto] = useState(linea.descuentoPct);
 
   useEffect(() => {
-    setCantidadTexto(linea.cantidad);
     setPrecioTexto(linea.precio);
     setDescuentoTexto(linea.descuentoPct);
-  }, [linea.cantidad, linea.precio, linea.descuentoPct]);
+  }, [linea.precio, linea.descuentoPct]);
 
-  function fijarCantidad() {
-    const monto = textoAMonto(cantidadTexto);
-    if (monto === null || Number(monto) <= 0) {
-      setCantidadTexto("1");
-      cambiarCantidad(linea.id, "1");
-      setErrorCantidad("La cantidad debe ser mayor a cero.");
-      return;
-    }
-    setErrorCantidad(null);
-    setCantidadTexto(monto);
-    cambiarCantidad(linea.id, monto);
-  }
-
-  function paso(delta: number) {
-    const actual = Number(linea.cantidad) || 0;
-    const siguiente = Math.max(1, Math.round((actual + delta) * 100) / 100);
-    cambiarCantidad(linea.id, siguiente.toFixed(2));
+  function quitar() {
+    quitarLinea(linea.id);
+    onAnunciar(`${linea.descripcion} quitado.`);
   }
 
   const unidadVisible = linea.unidadId !== null && linea.unidadNombre ? linea.unidadNombre : null;
   const puedeEditar = !bloqueada;
+  const etiquetaEdicion = expandida ? "Cerrar edición" : "Editar línea";
 
   return (
-    <div className={cn("group border-pos-linea border-b", expandida && "bg-pos-panel/60")}>
-      <div className="flex items-start gap-2 px-4 py-2.5">
+    <div className={cn("border-pos-linea border-b bg-white dark:bg-card", expandida && "bg-slate-50 dark:bg-white/5")}>
+      <div className="flex min-h-[76px] items-center gap-3 px-4 py-2">
         <button
           type="button"
           className="min-w-0 flex-1 text-left"
@@ -77,77 +182,48 @@ export function LineaCarritoPos({
           disabled={!puedeEditar}
         >
           <span
-            className="text-pos-texto block truncate text-[13px] leading-snug font-semibold uppercase"
+            className="text-pos-texto block truncate text-sm leading-5 font-bold uppercase"
             title={linea.descripcion}
           >
             {linea.descripcion}
           </span>
-          <span className="text-pos-texto-suave mt-0.5 block truncate text-xs">
+          <span className="text-pos-texto-suave mt-1 block truncate text-xs leading-4">
             {formatoMonedaPOS(linea.precio)}
             {unidadVisible ? ` · ${unidadVisible}` : ""}
             {Number(linea.descuentoPct) > 0 ? ` · Desc. ${formatoCantidad(linea.descuentoPct)}%` : ""}
           </span>
         </button>
 
-        <div className="text-pos-texto flex shrink-0 items-center gap-0.5 self-center">
-          <button
-            type="button"
-            className="text-pos-icono hover:text-pos-texto flex size-6 items-center justify-center disabled:opacity-40"
-            aria-label={`Disminuir cantidad de ${linea.descripcion}`}
-            disabled={!puedeEditar}
-            onClick={() => paso(-1)}
-          >
-            <Minus className="size-4" aria-hidden="true" />
-          </button>
-          <Input
-            value={cantidadTexto}
-            inputMode="decimal"
-            aria-label={`Cantidad de ${linea.descripcion}`}
-            aria-invalid={errorCantidad !== null}
-            disabled={!puedeEditar}
-            onChange={(evento) => setCantidadTexto(evento.target.value)}
-            onBlur={fijarCantidad}
-            onKeyDown={(evento) => {
-              if (evento.key === "Enter") fijarCantidad();
-            }}
-            className="h-7 w-9 border-0 px-0 text-center text-sm tabular-nums shadow-none focus-visible:ring-1"
-          />
-          <button
-            type="button"
-            className="text-pos-icono hover:text-pos-texto flex size-6 items-center justify-center disabled:opacity-40"
-            aria-label={`Aumentar cantidad de ${linea.descripcion}`}
-            disabled={!puedeEditar}
-            onClick={() => paso(1)}
-          >
-            <Plus className="size-4" aria-hidden="true" />
-          </button>
-        </div>
+        <ControlCantidad linea={linea} puedeEditar={puedeEditar} onError={setErrorCantidad} />
 
-        <div className="flex w-[86px] shrink-0 flex-col items-end">
-          <span className="text-pos-texto text-sm font-bold tabular-nums">{formatoMonedaPOS(totales.total)}</span>
-          <div className="text-pos-icono flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="group/precio relative flex h-10 min-w-[112px] shrink-0 items-center justify-end xl:min-w-[152px]">
+          <span className="text-pos-texto text-[15px] leading-5 font-bold whitespace-nowrap tabular-nums transition-opacity group-focus-within/precio:opacity-0 group-hover/precio:opacity-0">
+            {formatoMonedaPOS(totales.total)}
+          </span>
+          {/* En táctil no hay hover real: se oculta para que un tap en el total nunca toque la papelera.
+              Quitar sigue disponible en «Quitar línea» del editor. */}
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 opacity-0 transition-opacity group-focus-within/precio:pointer-events-auto group-focus-within/precio:opacity-100 group-hover/precio:pointer-events-auto group-hover/precio:opacity-100 [@media(hover:none)]:hidden">
             <Button
               variant="ghost"
               size="icon"
-              className="hover:text-pos-texto size-6"
-              aria-label={expandida ? "Cerrar edición" : "Editar línea"}
+              className="hover:text-pos-texto size-8"
+              aria-label={etiquetaEdicion}
+              title={etiquetaEdicion}
               disabled={!puedeEditar}
               onClick={expandida ? onColapsar : onExpandir}
             >
-              <Pencil className="size-3.5" aria-hidden="true" />
+              <Pencil className="size-4" aria-hidden="true" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="hover:text-destructive size-6"
+              className="hover:text-destructive size-8"
               aria-label={`Quitar ${linea.descripcion}`}
+              title={`Quitar ${linea.descripcion}`}
               disabled={!puedeEditar}
-              onClick={() => {
-                quitarLinea(linea.id);
-                onAnunciar(`${linea.descripcion} quitado.`);
-              }}
+              onClick={quitar}
             >
-              <Trash2 className="size-3.5" aria-hidden="true" />
+              <Trash2 className="size-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -295,7 +371,16 @@ export function LineaCarritoPos({
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              variant="ghost"
+              className="text-destructive hover:text-destructive h-10 gap-1.5"
+              disabled={!puedeEditar}
+              onClick={quitar}
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+              Quitar línea
+            </Button>
             <Button variant="outline" className="h-10" onClick={onColapsar}>
               Listo
             </Button>

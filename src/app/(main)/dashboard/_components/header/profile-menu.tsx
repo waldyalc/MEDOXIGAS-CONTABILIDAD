@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { limpiarCachePOS } from "@/lib/cache-pos";
 
 export function ProfileMenu({ nombre, correo }: { readonly nombre: string | null; readonly correo: string | null }) {
   const [saliendo, startTransition] = React.useTransition();
@@ -21,7 +22,11 @@ export function ProfileMenu({ nombre, correo }: { readonly nombre: string | null
 
   function cerrarSesion() {
     startTransition(async () => {
-      await salir();
+      try {
+        await limpiarCachePOS();
+      } finally {
+        await salir();
+      }
     });
   }
 

@@ -29,7 +29,9 @@ Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y O
 Si estás hablando **directamente con Waldy en el hilo principal de T3 Code**, eres el **Orquestador**:
 
 - Analizas el pedido, diseñas el plan y lo divides en tareas con **archivos disjuntos** (dos subagentes nunca escriben el mismo archivo).
-- Delegas con `delegate_task` e `isolation: "worktree"`. Modelo por defecto: **DeepSeek V4.1 Flash 1017** → `providerInstanceId: "opencode_2"`, `model: "opencode-go/deepseek-v4.1-flash"`, `options: { variant: "max" }`; usa otro solo si Waldy lo pide.
+- Delegas con `delegate_task` e `isolation: "worktree"`. Modelo por defecto: **DeepSeek V4.1 Flash 1017** → `providerInstanceId: "opencode"`, `model: "opencode-go/deepseek-v4.1-flash"`, `options: { variant: "max" }`; usa otro solo si Waldy lo pide.
+- **Modelo único (Waldy, 23-11-2026 8:59 PM):** todos los hijos usan **DeepSeek V4.1 Flash 1017** (`providerInstanceId: "opencode"`, `model: "opencode-go/deepseek-v4.1-flash"`, `options: { variant: "max" }`). Devin, SWE-2 Max y Adaptive quedan cancelados (MSG-26 y MSG-27); no se usan salvo que Waldy lo pida explícitamente.
+- **Cuota agotada:** si un hijo devuelve «Your daily usage quota has been exhausted», avisa a Waldy en el hilo de inmediato y espera su decisión; no lo relances en otro modelo sin preguntar.
 - Revisas el diff real, verificas los checks de CI y luego integras a `main`.
 - **Solo tú lees `docs/ORQUESTADOR.md`**: es tu playbook obligatorio.
 - Waldy aprueba lo irreversible: deploy a producción, migraciones que borran o cambian datos, borrar datos y planes pagos.
@@ -38,7 +40,7 @@ Si estás hablando **directamente con Waldy en el hilo principal de T3 Code**, e
 
 Si llegaste por un brief de `delegate_task`, eres **Ejecutor** (o Revisor), no el orquestador:
 
-- **Prueba visual SIEMPRE (regla de Waldy, 20-11-2026):** tu reporte entrega evidencia de lo que hiciste. Si tocaste UI o diseño: **capturas de pantalla del resultado funcionando** (dev server de tu worktree con Playwright, claro y oscuro; móvil si aplica). El Orquestador te pasa las credenciales por archivo temporal fuera del repo — nunca las imprimas ni las commitees. Las capturas se le muestran a **Waldy para que las verifique con sus ojos**; sin captura, tu trabajo no está terminado. Si tu tarea es backend/motor, la evidencia es la verificación (tests, pgTAP en CI, logs).
+- **Prueba visual SIEMPRE (regla de Waldy, 20-11-2026):** tu reporte entrega evidencia de lo que hiciste. Si tocaste UI o diseño: **capturas de pantalla del resultado funcionando** desde el preview oficial con Playwright (ver «Preview y capturas al terminar»; para UI, además claro/oscuro y móvil si aplica). El Orquestador te pasa las credenciales por archivo temporal fuera del repo — nunca las imprimas ni las commitees. Las capturas se le muestran a **Waldy para que las verifique con sus ojos**; sin captura, tu trabajo no está terminado. Si tu tarea es backend/motor, la evidencia es la verificación (tests, pgTAP en CI, logs).
 
 - **No leas `docs/ORQUESTADOR.md`** ni asumas el rol de orquestador.
 - Ejecuta el brief **tú mismo** en tu worktree: código, tests y docs de tu tarea.
@@ -73,11 +75,13 @@ Viven en `.opencode/skills/<nombre>/SKILL.md`. Cárgalas con la herramienta `ski
 - `pedir-ayuda` — si te atascas, pregunta al Orquestador con la herramienta `question`; no des vueltas ni inventes atajos.
 - `biome` — cómo convertir cada corrección de Waldy en un candado (test o regla de Biome) y resumen de la charla de Lauren Tan.
 
+- `ticket-80mm` — `.opencode/skills/ticket-80mm/SKILL.md`: contrato MSG-22 de medidas exactas en pt/mm y prueba de cuatro PDFs (`src/lib/pos/ticket-pdf.test.tsx`, carril `pnpm test:pdf`). Obligatoria al tocar factura/prefactura/cotización/cierre: no adivinar tamaños en em ni comparar capturas con dpi distintos.
+
 ## Módulos (menú lateral)
 
 Hechos: Inicio, Ingresos (facturas de venta y recurrentes, pagos recibidos, notas de crédito y débito, cotizaciones, conduces), Compras (facturas de proveedor, pagos, gastos menores, notas de crédito, órdenes de compra, pagos recurrentes), Contactos, Inventario (productos, ajustes, transferencias, listas de precios, almacenes, categorías), Bancos (cuentas y conciliaciones), Contabilidad (catálogo de cuentas, asientos, numeraciones, activos fijos, periodos), Reportes y Configuración.
 
-Punto de venta (`src/app/(pos)/pos/`, shell propio con riel lateral `menu-pos.tsx` de 56 px → 271 px, sin el sidebar de Contabilidad): `/pos` (vender), `/pos/pagos` (registro de pagos), `/pos/turnos`, `/pos/historial` (ventas) y `/pos/devoluciones`. La configuración de terminales vive en `/dashboard/configuracion/pos`.
+Punto de venta (`src/app/(pos)/pos/`, shell propio con riel lateral `menu-pos.tsx` de 52 px → 271 px, sin el sidebar de Contabilidad): `/pos` (vender), `/pos/pagos` (registro de pagos), `/pos/turnos`, `/pos/historial` (ventas) y `/pos/devoluciones`. La configuración de terminales vive en `/dashboard/configuracion/pos`.
 
 Transversales: adjuntos por documento/ficha, auditoría de quién creó/modificó/anuló, búsqueda global, saldos iniciales, tipos de entrada de diario, límite de crédito por contacto y control de `vende_negativo` por producto. El motor contable se resume en `docs/motor-contable.md`; tablas y RPC en `supabase/AGENTS.md`.
 
@@ -92,6 +96,7 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 | Tipos                    | `pnpm typecheck`                                               |
 | Formato + lint + imports | `pnpm check` (`pnpm check:fix` para arreglar)                  |
 | Tests unitarios          | `pnpm test`                                                    |
+| Ticket 80 mm (PDF real)  | `pnpm test:pdf` (Chromium + Poppler; NO entra en `pnpm test`)  |
 | Humo navegador           | `pnpm test:e2e` (sin `E2E_EMAIL`/`E2E_PASSWORD` se salta)      |
 | Build prod               | `pnpm build`                                                   |
 | Regenerar tipos Supabase | `pnpm db:types` (tras cada migración; ver `supabase/AGENTS.md`) |
@@ -108,6 +113,12 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 
 - `src/lib/supabase/types.ts` ← `pnpm db:types` (tras cada migración; el job `db` de CI verifica que esté al día).
 - `pnpm-lock.yaml` ← `pnpm install`. `.next/`, `next-env.d.ts` ← `next dev`/`build`.
+
+## Base de datos (regla del VPS)
+
+- Toda operación de base de datos (migraciones, consultas, tipos) se hace con **Supabase CLI desde este VPS**; no se usan claves en scripts ni `service_role` en el cliente.
+- El token de acceso vive en `/root/.supabase.env` (chmod 600, cargado por el shell). **Nunca** se imprime, se pega en el chat o en logs, ni se commitea.
+- Proyecto de prueba: `ljfdhrnvlsfaweuvnqxz`. La base de producción y la de OPP no se tocan sin el OK de Waldy en el chat.
 
 ## Calidad de código (la verifica CI; el pre-push también)
 
@@ -127,7 +138,7 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 
 ## Candados: cada corrección se vuelve un test o una regla
 
-- **Regla de Waldy (20-11-2026) — capturas siempre:** todo cambio de UI (diseño nuevo o ajuste) llega con **capturas de pantalla del resultado terminado**: las toma el propio subagente que implementó (dev server de su worktree, Playwright; el brief las exige como criterio de terminado), el Orquestador revisa el diff y los checks estructurales, y **le muestra las capturas a Waldy, que es quien verifica visualmente y decide**. "Listo" sin captura no está listo.
+- **Regla de Waldy (20-11-2026) — capturas siempre:** todo cambio de UI (diseño nuevo o ajuste) llega con **capturas de pantalla del resultado terminado**: las toma el propio subagente que implementó (Playwright; el brief las exige como criterio de terminado), el Orquestador revisa el diff y los checks estructurales, y **le muestra las capturas a Waldy, que es quien verifica visualmente y decide**. "Listo" sin captura no está listo. Dónde y cómo se toman: «Preview y capturas al terminar».
 
 - **Regla de oro:** cada vez que Waldy te corrija algo, no lo apuntes solo aquí. Crea un **test** (Vitest, pgTAP o Playwright) o una **regla de Biome** que falle si alguien lo vuelve a hacer, con un mensaje que diga cómo arreglarlo de raíz. Después agrega una línea abajo. Cómo hacerlo: skill `biome`.
 - **Por qué:** este archivo es un consejo y la IA a veces no lo lee, se le olvida o busca una excusa. Un test o una regla es un candado: si se rompe, el commit no entra.
@@ -150,13 +161,25 @@ Candados que ya existen:
 - `src/lib/supabase/reset-virgen.test.ts` — exige que las 64 tablas `public.*` de las migraciones estén clasificadas una sola vez en `docs/pruebas/reset-base-virgen.sql`, dentro de `BEGIN…COMMIT`, sin tocar `perfiles` ni `auth.users`.
 - `tests/e2e/numeraciones.spec.ts` — guardar B16 sin cambios cierra el diálogo y un nombre en blanco muestra el error en español (requiere `E2E_EMAIL`/`E2E_PASSWORD`, como el humo).
 - `supabase/tests/anular_ajuste_costo_test.sql` — anular un ajuste de inventario de entrada devuelve la cantidad y revierte el costo promedio; anular una compra ya lo hacía (`anular_compra_costo_test.sql`).
-- `src/lib/pos/diseno-pos.test.ts` — el POS usa los tokens `--pos-*` (teal `#00b19d`, copia exacta de Alegra); prohíbe `--primary` y `#1e56c7` en `src/app/(pos)/pos/` con una lista de pendientes que solo puede encoger, y exige la paleta en `globals.css`.
+- `src/lib/pos/ticket-pdf-carril.test.ts` — el test del ticket 80 mm (Chromium + Poppler) queda fuera de `pnpm test`: exige que `vitest.config.mts` lo excluya, que `pnpm test:pdf` use `vitest.pdf.config.mts` y que el job `ci` de CI no instale navegador ni Poppler (solo el job `pdf`).
+- `src/lib/pos/diseno-pos.test.ts` — el POS usa los tokens `--pos-*` (teal `#00b19d`, copia exacta de Alegra); prohíbe `--primary` y `#1e56c7` en `src/app/(pos)/pos/` con una lista de pendientes que solo puede encoger, y exige la paleta en `globals.css`. Además fija el Punto 1: el turno y las pestañas de ventas van en la barra inferior (`barra-inferior-pos.tsx`), no en una línea sobre el buscador ni dentro del panel, y el Sheet móvil termina 44 px antes para no tapar la barra. El cuerpo del panel usa `--pos-panel` (#f8fafc) con encabezado, bloque superior, renglones y pie blancos, y el shell fija `--ring: var(--pos-primario)` para que el foco sea teal.
+- `src/lib/pos/mas-opciones.test.ts` + `tests/e2e/pos-mas-opciones.spec.ts` — el ⋯ del carrito abre el panel «Más opciones» a todo el panel (no un dropdown) con los cuadros «Guardar cotización», «Cargar cotización» e «Historial de ventas» desde un arreglo; X y Esc cierran sin tocar la venta.
+
+## Preview y capturas al terminar (regla de Waldy, 22-11-2026)
+
+«Al terminar una tarea, todo agente debe tomar capturas de pantalla de lo que hizo (en el preview) y entregarlas con su informe; el orquestador, al juntar, actualiza el preview y reporta las capturas».
+
+- **Preview oficial:** http://127.0.0.1:3010 (puerto 3010). Al juntar, el Orquestador hace `git pull` de `feat/pos-alegra-exacto`, `pnpm build` y `systemctl restart medoxigas-preview`, y comprueba que responde 200.
+- **Cómo se toman:** entrando como **ZZTEST** con Playwright, viewport de **1440 px**, de lo que quedó hecho: **una captura por punto**.
+- **Dónde se guardan:** `/root/referencias/capturas-terminadas/<fecha>-<punto>.png`, fuera del repo. El informe del Orquestador lista la ruta y una línea de qué muestra cada una.
+- **Seguridad:** no se commitean claves ni datos sensibles; las capturas sí pueden incluir datos de prueba de ZZTEST.
 
 ## Antes de decir "listo"
 
 - [ ] `pnpm typecheck`, `pnpm check`, `pnpm test` y `pnpm build` en verde.
 - [ ] Un PR = una tarea; diff pequeño (<400 líneas sin contar generados/lockfile).
-- [ ] Si tocaste datos: los números coinciden con Supabase (SQL de solo lectura). Si cambió UI: capturas en claro/oscuro y móvil.
+- [ ] Si tocaste datos: los números coinciden con Supabase (SQL de solo lectura). Si cambió UI: además de las capturas del preview, en claro/oscuro y móvil.
+- [ ] Capturas de lo que quedó hecho, una por punto, desde el preview oficial (ZZTEST, 1440 px), guardadas en `/root/referencias/capturas-terminadas/` y entregadas con el informe.
 - [ ] Actualiza `HANDOFF.md` (qué se hizo y cómo se resolvió).
 - [ ] Si eres subagente: reporta al Orquestador rama, SHA, archivos y verificación. No empujes ni fusiones a `main`.
 

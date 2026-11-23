@@ -657,6 +657,7 @@ export type FiltrosHistorialEntrada = z.infer<typeof esquemaFiltrosHistorial>;
 
 export const esquemaCotizacionesAbiertas = z.object({
   q: textoOpcional(80, "La búsqueda es demasiado larga."),
+  contacto_id: uuidOpcional("El cliente del filtro no es válido."),
 });
 
 /** Catálogo del POS: los filtros de la fase 1 más la terminal que los resuelve. */

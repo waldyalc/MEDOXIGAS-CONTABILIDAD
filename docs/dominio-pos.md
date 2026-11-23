@@ -9,7 +9,7 @@
 > 2. Colores: **solo** los tokens de `docs/plantilla-diseno.md` (shadcn/Base UI, `--primary` azul). **Nunca** el teal `#00b19d` de Alegra ni hex sueltos.
 > 3. Sin multi-empresa: se usa la fila única de `empresa` (`empresa.nombre`, `empresa.rnc`, etc.). No se agrega `empresa_id`.
 > 4. Nada de textos de marca hardcodeados en tablas, RPCs ni tickets. El ticket usa `empresa.*`; si un dato falta, se omite la línea.
-> 5. El POS solo tiene **Vender**, **Registro de pagos**, **Turnos**, **Historial de ventas del POS** y **Devoluciones**. Inventario y Configuración viven en Contabilidad.
+> 5. El POS solo tiene **Vender**, **Ventas**, **Pagos**, **Turnos** y **Devoluciones**. Inventario y Configuración viven en Contabilidad.
 > 6. No se copia código, HTML, CSS, textos ni diseño exacto de Alegra. El estudio de `docs/alegra/pos/` es inspiración funcional.
 
 ---
@@ -55,13 +55,13 @@
 | Pantalla | Ruta | Qué hace |
 | --- | --- | --- |
 | Vender | `/pos` | Catálogo en tarjetas + carrito «Factura de venta» (panel fijo de 400 px) + checkout en dos pasos + venta simple + cotización rápida + cargar cotización. Es la pantalla principal. |
-| Registro de pagos | `/pos/pagos` | Ingresos y retiros de efectivo de los turnos (`pos_turno_movimientos`), con «Nuevo pago» que exige turno abierto y calcula el efectivo esperado. |
+| Pagos | `/pos/pagos` | Ingresos y retiros de efectivo de los turnos (`pos_turno_movimientos`), con «Nuevo pago» que exige turno abierto y calcula el efectivo esperado. |
 | Turnos | `/pos/turnos` | Turno en curso, resumen, movimientos de caja, cierre con conteo real, historial de cierres e impresión del cierre. |
-| Historial de ventas | `/pos/historial` | Facturas del POS (`origen = 'pos'`), maestro-detalle, pagos, notas de crédito, ticket y PDF Carta. |
+| Ventas | `/pos/historial` | Facturas del POS (`origen = 'pos'`), maestro-detalle, pagos, notas de crédito, ticket y PDF Carta. |
 | Devoluciones | `/pos/devoluciones` | Lista de devoluciones del POS y wizard de 3 pasos para crear una B04 (efectivo, crédito o combinado). |
 | Configuración → POS | `/dashboard/configuracion/pos` | Terminales: almacén, cuentas por método, numeración, lista de precios, contacto por defecto, centro de costo y plantilla del ticket. |
 
-- El POS vive en un **layout propio** `src/app/(pos)/pos/` sin el sidebar de Contabilidad. La navegación es un **riel lateral** (`menu-pos.tsx`): riel de 56 px que expande un panel de 271 px al hover/foco (con pin fijable) y cajón móvil de 271 px bajo 1024 px. Menú: Facturar → `/pos`; acordeón Ingresos → `/pos/historial` y `/pos/pagos`; acordeón Turnos → `/pos/turnos`; Devoluciones → `/pos/devoluciones`; separador; Contactos/Inventario/Configuraciones → `/dashboard/...` en pestaña nueva. El pie lleva el selector de terminal, la insignia de turno (ABIERTO/CERRADO), el usuario, «Volver a Contabilidad» y «Salir».
+- El POS vive en un **layout propio** `src/app/(pos)/pos/` sin el sidebar de Contabilidad. La navegación es un **riel lateral** (`menu-pos.tsx`): riel de 56 px que expande un panel de 271 px al hover/foco (con pin fijable) y cajón móvil de 271 px bajo 1024 px. Menú plano: Facturar → `/pos`; Ventas → `/pos/historial`; Pagos → `/pos/pagos`; Turnos → `/pos/turnos`; Devoluciones → `/pos/devoluciones`; separador; Contactos/Inventario/Configuraciones → `/dashboard/...` en pestaña nueva. El pie lleva el selector de terminal, la insignia de turno (ABIERTO/CERRADO), el usuario, «Volver a Contabilidad» y «Salir».
 - El menú principal agrega **Punto de venta** con `newTab: true` hacia `/pos` (`src/navigation/sidebar/sidebar-items.ts`). No duplica las pantallas de Inventario ni Configuración.
 - La configuración de terminales sí vive en el dashboard (`/dashboard/configuracion/pos`) y se enlaza desde la tarjeta «Punto de venta» del hub de Configuración.
 
@@ -85,7 +85,7 @@
 2. Si no hay turno abierto, lo abre con una **base inicial** (conteo físico). Sin turno abierto no se vende ni se devuelve.
 3. Busca productos por nombre/referencia/marca o escanea un código de barra. El catálogo devuelve precio de la lista del terminal, ITBIS y existencia del almacén del terminal.
 4. Agrega líneas al carrito (cliente, cantidad, unidad, precio editable, descuento). Puede usar **venta simple** (monto libre sin producto) o **cargar una cotización abierta**.
-5. Elige cliente (por defecto el contacto de la terminal, normalmente Consumidor Final), tipo de comprobante y lista de precios.
+5. La venta abre con el cliente **Consumidor final** ya elegido, como Alegra: se busca por su RNC normalizado (`22222222222`) y, si no existe, se usa el `contacto_defecto_id` de la terminal. Se puede cambiar, quitar con la X o editar con el lápiz. Al elegir «Crédito fiscal (01)» con Consumidor final, el panel avisa que ese comprobante necesita un cliente con RNC. Cada pestaña nueva y cada venta cobrada o cancelada vuelve a arrancar con Consumidor final.
 6. Cobra:
    - **Pago simple:** efectivo, tarjeta débito, tarjeta crédito o transferencia.
    - **Combinado:** varias filas, cada una con su método, cuenta y monto.
@@ -162,7 +162,7 @@ Se administra en `/dashboard/configuracion/pos`. Una fila = una caja/terminal f�
 | `cuenta_transferencia_id` | `uuid` | Sí | `null` | Igual que débito. |
 | `numeracion_defecto_id` | `uuid` | No | — | FK `numeraciones(id)`. Activa y de tipo `01`, `02`, `14`, `15` o `16`. Define el **tipo** de comprobante por defecto; la serie concreta la resuelve `crear_factura` (activa del tipo, `id` más bajo). |
 | `lista_precio_defecto_id` | `uuid` | Sí | `null` | FK `listas_precios(id)`. Si existe, activa. Si es null, se usa el precio base del producto. |
-| `contacto_defecto_id` | `uuid` | No | — | FK `contactos(id)`. Activo y `tipo in ('cliente','ambos')`. Es el **Consumidor Final** de esa terminal: el crédito se bloquea cuando la venta usa este contacto. |
+| `contacto_defecto_id` | `uuid` | No | — | FK `contactos(id)`. Activo y `tipo in ('cliente','ambos')`. Es el **respaldo** del cliente inicial: el POS abre con el contacto «Consumidor final» encontrado por RNC `22222222222` y solo cae aquí si ese contacto no existe. La RPC sigue usando este campo para bloquear el crédito al Consumidor Final. |
 | `centro_costo_id` | `uuid` | Sí | `null` | FK `centros_costo(id)`. Si existe, activo. Se copia a la factura y a las líneas de asiento del POS. |
 | `plantilla_ticket` | `jsonb` | No | Ver §2.2.1 | Objeto JSON validado por las RPC. `jsonb_typeof = 'object'`. |
 | `activa` | `boolean` | No | `true` | Si es false no se puede abrir turno, vender, cotizar ni devolver. No se borra. |

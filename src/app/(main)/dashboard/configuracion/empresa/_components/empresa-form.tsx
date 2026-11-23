@@ -82,11 +82,117 @@ function datosEmpresa(datos: FormData, logoUrl: string | null) {
   return {
     nombre: String(datos.get("nombre") ?? ""),
     rnc: String(datos.get("rnc") ?? ""),
+    sucursal: String(datos.get("sucursal") ?? ""),
+    regimen: String(datos.get("regimen") ?? ""),
     direccion: String(datos.get("direccion") ?? ""),
     telefono: String(datos.get("telefono") ?? ""),
     correo: String(datos.get("correo") ?? ""),
     logo_url: logoUrl,
   };
+}
+
+function CamposDatos({
+  empresa,
+  puedeEditar,
+  validacion,
+}: {
+  readonly empresa: Empresa | null;
+  readonly puedeEditar: boolean;
+  readonly validacion: ReturnType<typeof useValidacionFormulario>;
+}) {
+  return (
+    <div className="mt-4 flex flex-col gap-4">
+      <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+        <CampoFormulario htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
+          <Input
+            id="nombre"
+            name="nombre"
+            required
+            maxLength={200}
+            defaultValue={empresa?.nombre ?? ""}
+            disabled={!puedeEditar}
+            onChange={() => validacion.limpiar("nombre")}
+            className={FORM_INPUT}
+          />
+        </CampoFormulario>
+        <CampoFormulario htmlFor="rnc" label="RNC">
+          <Input
+            id="rnc"
+            name="rnc"
+            maxLength={20}
+            defaultValue={empresa?.rnc ?? ""}
+            disabled={!puedeEditar}
+            className={FORM_INPUT}
+          />
+        </CampoFormulario>
+        <CampoFormulario htmlFor="sucursal" label="Sucursal">
+          <Input
+            id="sucursal"
+            name="sucursal"
+            maxLength={80}
+            defaultValue={empresa?.sucursal ?? ""}
+            disabled={!puedeEditar}
+            className={FORM_INPUT}
+          />
+        </CampoFormulario>
+        <CampoFormulario htmlFor="regimen" label="Régimen">
+          <Input
+            id="regimen"
+            name="regimen"
+            maxLength={120}
+            defaultValue={empresa?.regimen ?? ""}
+            disabled={!puedeEditar}
+            className={FORM_INPUT}
+          />
+        </CampoFormulario>
+      </div>
+
+      <Collapsible
+        className="rounded-xl border border-slate-200"
+        defaultOpen={Boolean(empresa?.direccion ?? empresa?.telefono ?? empresa?.correo)}
+      >
+        <CollapsibleTrigger render={<Button type="button" variant="ghost" className="w-full justify-between" />}>
+          Más opciones
+          <ChevronDown className="size-4" />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="flex flex-col gap-4 border-t border-slate-200 p-3">
+          <CampoFormulario htmlFor="direccion" label="Dirección">
+            <Input
+              id="direccion"
+              name="direccion"
+              maxLength={300}
+              defaultValue={empresa?.direccion ?? ""}
+              disabled={!puedeEditar}
+              className={FORM_INPUT}
+            />
+          </CampoFormulario>
+          <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            <CampoFormulario htmlFor="telefono" label="Teléfono">
+              <Input
+                id="telefono"
+                name="telefono"
+                maxLength={40}
+                defaultValue={empresa?.telefono ?? ""}
+                disabled={!puedeEditar}
+                className={FORM_INPUT}
+              />
+            </CampoFormulario>
+            <CampoFormulario htmlFor="correo" label="Correo">
+              <Input
+                id="correo"
+                name="correo"
+                type="email"
+                maxLength={200}
+                defaultValue={empresa?.correo ?? ""}
+                disabled={!puedeEditar}
+                className={FORM_INPUT}
+              />
+            </CampoFormulario>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
+  );
 }
 
 export function EmpresaForm({
@@ -173,77 +279,7 @@ export function EmpresaForm({
           <FormSectionTitle descripcion="Así aparecen el nombre y los datos en facturas, cotizaciones y conduces.">
             Datos de la empresa
           </FormSectionTitle>
-          <div className="mt-4 flex flex-col gap-4">
-            <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-              <CampoFormulario htmlFor="nombre" label="Nombre" required error={validacion.errorDe("nombre")}>
-                <Input
-                  id="nombre"
-                  name="nombre"
-                  required
-                  maxLength={200}
-                  defaultValue={empresa?.nombre ?? ""}
-                  disabled={!puedeEditar}
-                  onChange={() => validacion.limpiar("nombre")}
-                  className={FORM_INPUT}
-                />
-              </CampoFormulario>
-              <CampoFormulario htmlFor="rnc" label="RNC">
-                <Input
-                  id="rnc"
-                  name="rnc"
-                  maxLength={20}
-                  defaultValue={empresa?.rnc ?? ""}
-                  disabled={!puedeEditar}
-                  className={FORM_INPUT}
-                />
-              </CampoFormulario>
-            </div>
-
-            <Collapsible
-              className="rounded-xl border border-slate-200"
-              defaultOpen={Boolean(empresa?.direccion ?? empresa?.telefono ?? empresa?.correo)}
-            >
-              <CollapsibleTrigger render={<Button type="button" variant="ghost" className="w-full justify-between" />}>
-                Más opciones
-                <ChevronDown className="size-4" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="flex flex-col gap-4 border-t border-slate-200 p-3">
-                <CampoFormulario htmlFor="direccion" label="Dirección">
-                  <Input
-                    id="direccion"
-                    name="direccion"
-                    maxLength={300}
-                    defaultValue={empresa?.direccion ?? ""}
-                    disabled={!puedeEditar}
-                    className={FORM_INPUT}
-                  />
-                </CampoFormulario>
-                <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-                  <CampoFormulario htmlFor="telefono" label="Teléfono">
-                    <Input
-                      id="telefono"
-                      name="telefono"
-                      maxLength={40}
-                      defaultValue={empresa?.telefono ?? ""}
-                      disabled={!puedeEditar}
-                      className={FORM_INPUT}
-                    />
-                  </CampoFormulario>
-                  <CampoFormulario htmlFor="correo" label="Correo">
-                    <Input
-                      id="correo"
-                      name="correo"
-                      type="email"
-                      maxLength={200}
-                      defaultValue={empresa?.correo ?? ""}
-                      disabled={!puedeEditar}
-                      className={FORM_INPUT}
-                    />
-                  </CampoFormulario>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
+          <CamposDatos empresa={empresa} puedeEditar={puedeEditar} validacion={validacion} />
         </section>
 
         <FormDivider />

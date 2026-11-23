@@ -15,6 +15,9 @@ export interface Empresa {
   telefono: string | null;
   correo: string | null;
   logo_url: string | null;
+  /** Pendiente: la tabla empresa aún no tiene sucursal ni régimen. */
+  sucursal?: string | null;
+  regimen?: string | null;
 }
 
 export interface ContactoResumen {
@@ -134,6 +137,15 @@ export interface NotaVentaResumen {
   estado: string;
 }
 
+/** Cotización de origen de una factura creada desde el POS (relación cotizaciones.factura_id). */
+export interface CotizacionOrigenVista {
+  id: string;
+  numero: number;
+  fecha: string;
+  total: number;
+  estado: string;
+}
+
 export interface FacturaVista {
   factura: FacturaDetalle;
   lineas: FacturaLinea[];
@@ -146,4 +158,5 @@ export interface FacturaVista {
   notasCredito: NotaVentaResumen[];
   notasDebito: NotaVentaResumen[];
   adjuntos: AdjuntoItem[];
+  cotizacionOrigen: CotizacionOrigenVista | null;
 }

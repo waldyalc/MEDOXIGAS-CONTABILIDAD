@@ -2,27 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { Loader2 } from "@/components/icons";
+import { cn } from "cn";
+
+import { SelectorContacto } from "@/components/contactos/selector-contacto";
+import { ArrowLeft, CircleArrowDown, CircleArrowUp, Loader2, Wallet, X } from "@/components/icons";
 import { SelectCampo } from "@/components/select-campo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { formatoMoneda } from "@/lib/facturacion/formato";
+import { toast } from "@/components/ui/toast";
 import { registrarMovimientoTurno } from "@/lib/pos/acciones";
-import { calcularLineaPOS, compararMontos, sumarMontos } from "@/lib/pos/calculo";
+import { compararMontos, sumarMontos } from "@/lib/pos/calculo";
+import { esquemaMovimientoTurno, mensajeValidacion } from "@/lib/pos/esquemas";
 import type {
   MotivoMovimientoPOS,
   MovimientoTurnoPOSResultado,
@@ -30,10 +24,9 @@ import type {
   TipoMovimientoPOS,
 } from "@/lib/pos/tipos";
 
-import { BuscadorFacturaPos } from "../devoluciones/buscador-factura-pos";
-import { capitalizar, textoAMonto } from "../formato-pos";
+import { capitalizar, formatoMonedaPOS, textoAMonto } from "../formato-pos";
+import { useOfflinePOS } from "../offline-pos-provider";
 import type { CuentaPOS } from "../servidor";
-import type { FacturaCandidataPOS } from "../tipos";
 
 export interface PrellenadoMovimiento {
   tipo: TipoMovimientoPOS;
@@ -42,25 +35,72 @@ export interface PrellenadoMovimiento {
   notas: string;
 }
 
-const MOTIVOS_INGRESO = [
-  { value: "fondo_caja", label: "Fondo de caja" },
-  { value: "cobro_factura", label: "Cobro de factura" },
-  { value: "otro", label: "Otro ingreso" },
-] as const;
+type Paso = "tipo" | "formulario";
+type PestanaEgreso = "gastos" | "factura";
 
-const MOTIVOS_RETIRO = [
-  { value: "retiro_caja", label: "Retiro de caja" },
-  { value: "gasto_menor", label: "Gasto menor" },
-  { value: "deposito_banco", label: "Depósito al banco" },
-  { value: "otro", label: "Otro retiro" },
-] as const;
-
-function opcionesCuenta(cuentas: CuentaPOS[], soloBanco: boolean) {
-  return cuentas
-    .filter((cuenta) => (soloBanco ? cuenta.es_caja_banco : true))
-    .map((cuenta) => ({ value: cuenta.id, label: `${cuenta.codigo} · ${cuenta.nombre}` }));
+function opcionesCuenta(cuentas: CuentaPOS[]) {
+  return cuentas.map((cuenta) => ({ value: cuenta.id, label: `${cuenta.codigo} · ${cuenta.nombre}` }));
 }
 
+/** Payload de la RPC existente, sin campos nuevos (el formulario de Alegra no muestra ITBIS). */
+function armarMovimiento({
+  turnoId,
+  tipo,
+  esGasto,
+  monto,
+  cuenta,
+  cuentaGasto,
+  contactoId,
+  notas,
+}: {
+  turnoId: string;
+  tipo: TipoMovimientoPOS;
+  esGasto: boolean;
+  monto: string;
+  cuenta: string;
+  cuentaGasto: string;
+  contactoId: string;
+  notas: string;
+}) {
+  const notasLimpias = notas.trim();
+
+  return {
+    turno_id: turnoId,
+    tipo,
+    motivo: esGasto ? ("gasto_menor" as const) : ("otro" as const),
+    monto,
+    ...(esGasto
+      ? {
+          cuenta_gasto_id: cuentaGasto,
+          subtotal: monto,
+          itbis_tasa: "0",
+          descripcion: (notasLimpias || "Gasto de caja del POS").slice(0, 200),
+        }
+      : { cuenta_contrapartida_id: cuenta }),
+    ...(contactoId ? { contacto_id: contactoId } : {}),
+    ...(notasLimpias ? { notas: notasLimpias } : {}),
+  };
+}
+
+function EtiquetaObligatoria({ htmlFor, children }: { htmlFor: string; children: string }) {
+  return (
+    <Label htmlFor={htmlFor} className="text-pos-texto text-sm font-medium">
+      {children}
+      <span aria-hidden="true" className="text-pos-primario ml-0.5">
+        *
+      </span>
+    </Label>
+  );
+}
+
+/**
+ * «Nuevo pago» del POS (PLAN POS 2, Punto 5): primero la tarjeta de tipo
+ * (Ingreso verde / Egreso rojo) y después el formulario de Alegra. Todo se
+ * mapea a la RPC existente `pos_registrar_movimiento_turno`:
+ * - Ingreso y el retiro prellenado por «Inverso» → motivo `otro`.
+ * - Egreso → Gastos generales → `gasto_menor` (ITBIS 0, como Alegra).
+ * - Pago a factura de proveedor todavía no tiene puente al POS.
+ */
 export function DialogoMovimiento({
   abierto,
   onCerrar,
@@ -80,61 +120,42 @@ export function DialogoMovimiento({
   prellenado: PrellenadoMovimiento | null;
   onRegistrado: (datos: MovimientoTurnoPOSResultado) => void;
 }) {
+  const offline = useOfflinePOS();
+  const [paso, setPaso] = useState<Paso>("tipo");
   const [tipo, setTipo] = useState<TipoMovimientoPOS>("ingreso");
-  const [motivo, setMotivo] = useState<MotivoMovimientoPOS>("fondo_caja");
+  const [pestana, setPestana] = useState<PestanaEgreso>("gastos");
   const [monto, setMonto] = useState("");
   const [cuenta, setCuenta] = useState("");
-  const [notas, setNotas] = useState("");
-  const [factura, setFactura] = useState<FacturaCandidataPOS | null>(null);
-  const [descripcion, setDescripcion] = useState("");
   const [cuentaGasto, setCuentaGasto] = useState("");
-  const [subtotal, setSubtotal] = useState("");
-  const [itbisTasa, setItbisTasa] = useState("0");
+  const [contactoId, setContactoId] = useState("");
+  const [notas, setNotas] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
     if (!abierto) return;
+    setPaso(prellenado ? "formulario" : "tipo");
     setTipo(prellenado?.tipo ?? "ingreso");
-    setMotivo(prellenado?.motivo ?? "fondo_caja");
+    setPestana("gastos");
     setMonto(prellenado?.monto ?? "");
     setNotas(prellenado?.notas ?? "");
     setCuenta("");
-    setFactura(null);
-    setDescripcion("");
     setCuentaGasto("");
-    setSubtotal("");
-    setItbisTasa("0");
+    setContactoId("");
     setError(null);
   }, [abierto, prellenado]);
 
-  const motivos = tipo === "ingreso" ? MOTIVOS_INGRESO : MOTIVOS_RETIRO;
-  const esGasto = motivo === "gasto_menor";
-  const esCobro = motivo === "cobro_factura";
-  const esDeposito = motivo === "deposito_banco";
-  const requiereCuenta = !esGasto && !esCobro;
+  const enFormulario = paso === "formulario";
+  const esIngreso = tipo === "ingreso";
+  const esGasto = tipo === "retiro" && prellenado === null;
+  const esFacturaProveedor = esGasto && pestana === "factura";
+  const mostrarFormulario = enFormulario && !esFacturaProveedor;
 
-  const totalGasto = calcularLineaPOS({
-    cantidad: "1",
-    precio: textoAMonto(subtotal) ?? "0",
-    descuento_pct: "0",
-    itbis_tasa: itbisTasa,
-  }).total;
-
-  const montoFinal = esGasto ? totalGasto : (textoAMonto(monto) ?? "0");
+  const montoFinal = textoAMonto(monto) ?? "0";
   const montoValido = compararMontos(montoFinal, "0") > 0;
-  const maxCobro = factura?.saldo ?? "0";
-  const cobroExcede = esCobro && compararMontos(montoFinal, maxCobro) > 0;
-  const esperadoDespues = sumarMontos([
-    resumen.efectivo.efectivo_esperado,
-    tipo === "ingreso" ? montoFinal : `-${montoFinal}`,
-  ]);
-  const dejaNegativo = tipo === "retiro" && compararMontos(esperadoDespues, "0") < 0;
+  const esperadoDespues = sumarMontos([resumen.efectivo.efectivo_esperado, esIngreso ? montoFinal : `-${montoFinal}`]);
+  const dejaNegativo = !esIngreso && montoValido && compararMontos(esperadoDespues, "0") < 0;
 
-  const cuentasMovimiento = useMemo(
-    () => opcionesCuenta(cuentas, esDeposito).filter((opcion) => opcion.value !== cuentaEfectivoId),
-    [cuentas, esDeposito, cuentaEfectivoId],
-  );
   const cuentasGasto = useMemo(
     () =>
       cuentas
@@ -142,57 +163,83 @@ export function DialogoMovimiento({
         .map((cuenta) => ({ value: cuenta.id, label: `${cuenta.codigo} · ${cuenta.nombre}` })),
     [cuentas],
   );
+  const cuentasContrapartida = useMemo(
+    () => opcionesCuenta(cuentas.filter((cuenta) => cuenta.id !== cuentaEfectivoId)),
+    [cuentas, cuentaEfectivoId],
+  );
 
-  function cambiarTipo(nuevo: string | null) {
-    const siguiente: TipoMovimientoPOS = nuevo === "retiro" ? "retiro" : "ingreso";
-    setTipo(siguiente);
-    setMotivo(siguiente === "ingreso" ? "fondo_caja" : "retiro_caja");
-    setFactura(null);
+  const cuentaElegida = esGasto ? cuentaGasto : cuenta;
+  const puedeRegistrar = montoValido && cuentaElegida !== "" && !dejaNegativo && !enviando;
+
+  function etiquetaAccion() {
+    if (esIngreso) return "Registrar ingreso";
+    if (esGasto) return "Registrar pago";
+    return "Registrar retiro";
+  }
+
+  function elegirTipo(nuevo: TipoMovimientoPOS) {
+    setTipo(nuevo);
+    setPaso("formulario");
+    setPestana("gastos");
+    setCuenta("");
+    setCuentaGasto("");
+    setContactoId("");
+    setError(null);
+  }
+
+  function volver() {
+    setPaso("tipo");
     setError(null);
   }
 
   async function registrar() {
+    if (esFacturaProveedor) return;
     if (!montoValido) {
-      setError("El monto del movimiento debe ser mayor a cero.");
+      setError("El total a pagar debe ser mayor a cero.");
       return;
     }
-    if (esCobro && !factura) {
-      setError("Selecciona la factura que se está cobrando.");
+    if (cuentaElegida === "") {
+      setError("La cuenta contable es obligatoria.");
       return;
     }
-    if (esCobro && cobroExcede) {
-      setError("El monto del cobro no puede superar el saldo de la factura.");
-      return;
-    }
-    if (requiereCuenta && cuenta === "") {
-      setError("La cuenta de contrapartida es obligatoria.");
-      return;
-    }
-    if (esGasto && (cuentaGasto === "" || descripcion.trim() === "" || !textoAMonto(subtotal))) {
-      setError("Completa la descripción, la cuenta de gasto y el subtotal.");
+    if (dejaNegativo) {
+      setError("El egreso deja la caja en negativo.");
       return;
     }
 
     setEnviando(true);
     setError(null);
+
     try {
-      const resultado = await registrarMovimientoTurno({
-        turno_id: turnoId,
+      const entrada = armarMovimiento({
+        turnoId,
         tipo,
-        motivo,
+        esGasto,
         monto: montoFinal,
-        ...(requiereCuenta && cuenta ? { cuenta_contrapartida_id: cuenta } : {}),
-        ...(esCobro && factura ? { factura_id: factura.id } : {}),
-        ...(esGasto
-          ? {
-              cuenta_gasto_id: cuentaGasto,
-              subtotal: textoAMonto(subtotal) ?? "0",
-              itbis_tasa: itbisTasa,
-              descripcion: descripcion.trim(),
-            }
-          : {}),
-        ...(notas.trim() ? { notas: notas.trim() } : {}),
+        cuenta,
+        cuentaGasto,
+        contactoId,
+        notas,
       });
+      if (!navigator.onLine || offline.estado === "offline") {
+        const validada = esquemaMovimientoTurno.safeParse(entrada);
+        if (!validada.success) {
+          setError(mensajeValidacion(validada.error));
+          return;
+        }
+        const operacion = await offline.encolar("movimiento", validada.data, {
+          ...entrada,
+          creadoEn: new Date().toISOString(),
+        });
+        toast.add({
+          type: "success",
+          title: "Movimiento guardado en este dispositivo",
+          description: `Folio: ${operacion.folio}`,
+        });
+        onCerrar();
+        return;
+      }
+      const resultado = await registrarMovimientoTurno(entrada);
 
       if (!resultado.ok) {
         setError(capitalizar(resultado.error));
@@ -210,210 +257,258 @@ export function DialogoMovimiento({
 
   return (
     <Dialog open={abierto} onOpenChange={(nuevo) => (nuevo ? null : onCerrar())}>
-      <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-[640px]">
-        <DialogHeader>
-          <DialogTitle>Registrar movimiento</DialogTitle>
-          <DialogDescription>Ingreso o retiro de efectivo del turno.</DialogDescription>
-        </DialogHeader>
+      <DialogContent
+        showCloseButton={false}
+        className="flex max-h-[92dvh] w-full flex-col gap-0 overflow-hidden rounded-xl p-0 sm:max-w-[800px]"
+      >
+        {paso === "tipo" ? (
+          <>
+            <header className="border-pos-linea flex h-[60px] shrink-0 items-center border-b px-5">
+              <DialogTitle className="text-pos-texto font-heading text-xl leading-7 font-semibold">
+                Nuevo pago
+              </DialogTitle>
+              <DialogClose
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-pos-icono hover:text-pos-texto ml-auto"
+                  />
+                }
+              >
+                <X aria-hidden="true" />
+                <span className="sr-only">Cerrar</span>
+              </DialogClose>
+            </header>
 
-        <Tabs value={tipo} onValueChange={cambiarTipo}>
-          <TabsList variant="line">
-            <TabsTrigger value="ingreso">Ingreso</TabsTrigger>
-            <TabsTrigger value="retiro">Retiro</TabsTrigger>
-          </TabsList>
-        </Tabs>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-5 pb-14">
+              <DialogDescription className="text-pos-texto text-base">
+                Selecciona el tipo de movimiento que vas a registrar.
+              </DialogDescription>
 
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="motivo-movimiento">Motivo</Label>
-            <Select
-              items={motivos.map((opcion) => ({ value: opcion.value, label: opcion.label }))}
-              value={motivo}
-              onValueChange={(valor) => {
-                if (!valor) return;
-                setMotivo(valor as MotivoMovimientoPOS);
-                setFactura(null);
-                setError(null);
-              }}
-            >
-              <SelectTrigger id="motivo-movimiento" className="h-10 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {motivos.map((opcion) => (
-                  <SelectItem key={opcion.value} value={opcion.value}>
-                    {opcion.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+              <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => elegirTipo("ingreso")}
+                  className="focus-visible:ring-pos-primario flex min-h-[250px] flex-col items-center justify-center gap-2 rounded-lg bg-emerald-600 text-white transition-colors outline-none hover:bg-emerald-700 focus-visible:ring-2 focus-visible:ring-offset-2 max-sm:min-h-[150px]"
+                >
+                  <CircleArrowDown className="size-6" aria-hidden="true" />
+                  <span className="text-base font-medium">Ingreso</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => elegirTipo("retiro")}
+                  className="focus-visible:ring-pos-primario flex min-h-[250px] flex-col items-center justify-center gap-2 rounded-lg bg-rose-600 text-white transition-colors outline-none hover:bg-rose-700 focus-visible:ring-2 focus-visible:ring-offset-2 max-sm:min-h-[150px]"
+                >
+                  <CircleArrowUp className="size-6" aria-hidden="true" />
+                  <span className="text-base font-medium">Egreso</span>
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <header className="border-pos-linea flex h-20 shrink-0 items-center gap-1 border-b px-5">
+              {prellenado === null ? (
+                <Button type="button" variant="ghost" size="icon" className="text-pos-texto -ml-2" onClick={volver}>
+                  <ArrowLeft aria-hidden="true" />
+                  <span className="sr-only">Volver</span>
+                </Button>
+              ) : null}
+              <DialogTitle className="text-pos-texto font-heading text-xl leading-7 font-semibold">
+                Nuevo pago
+              </DialogTitle>
+              <DialogClose
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-pos-icono hover:text-pos-texto ml-auto"
+                  />
+                }
+              >
+                <X aria-hidden="true" />
+                <span className="sr-only">Cerrar</span>
+              </DialogClose>
+            </header>
 
-          {esCobro ? (
-            factura ? (
-              <div className="bg-muted/40 flex flex-col gap-1 rounded-lg p-3 text-sm">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium">{factura.ncf ?? `Factura No ${factura.numero}`}</span>
-                  <Button variant="ghost" size="sm" onClick={() => setFactura(null)}>
-                    Cambiar
-                  </Button>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-6">
+              <DialogDescription className="sr-only">
+                Registra un ingreso o egreso de efectivo del turno abierto.
+              </DialogDescription>
+
+              {esGasto ? (
+                <div
+                  role="tablist"
+                  aria-label="Tipo de egreso"
+                  className="bg-muted border-pos-linea flex h-12 rounded-lg border p-1"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={pestana === "gastos"}
+                    onClick={() => setPestana("gastos")}
+                    className={cn(
+                      "text-pos-texto-suave hover:text-pos-texto flex-1 rounded-md text-sm font-semibold transition-colors",
+                      pestana === "gastos" && "text-pos-texto bg-card shadow-sm dark:bg-white/10",
+                    )}
+                  >
+                    Gastos generales
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={pestana === "factura"}
+                    onClick={() => setPestana("factura")}
+                    className={cn(
+                      "text-pos-texto-suave hover:text-pos-texto flex-1 rounded-md text-sm font-semibold transition-colors",
+                      pestana === "factura" && "text-pos-texto bg-card shadow-sm dark:bg-white/10",
+                    )}
+                  >
+                    Pago a factura de proveedor
+                  </button>
                 </div>
-                <span className="text-muted-foreground">{factura.cliente_nombre}</span>
-                <div className="flex flex-wrap gap-3 text-xs">
-                  <span>Total {formatoMoneda(factura.total)}</span>
-                  <span>Pagado {formatoMoneda(factura.pagado)}</span>
-                  <span className="font-medium">Saldo {formatoMoneda(factura.saldo)}</span>
-                </div>
-              </div>
-            ) : (
-              <BuscadorFacturaPos
-                soloConSaldo
-                onSeleccionar={(seleccionada) => {
-                  setFactura(seleccionada);
-                  setMonto(seleccionada.saldo);
-                }}
-              />
-            )
-          ) : null}
+              ) : null}
 
-          {esGasto ? (
-            <>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="gasto-descripcion">Descripción</Label>
-                <Input
-                  id="gasto-descripcion"
-                  value={descripcion}
-                  maxLength={200}
-                  onChange={(evento) => setDescripcion(evento.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <Label htmlFor="gasto-cuenta">Cuenta de gasto</Label>
-                <SelectCampo
-                  id="gasto-cuenta"
-                  opciones={cuentasGasto}
-                  valor={cuentaGasto}
-                  onCambio={setCuentaGasto}
-                  etiquetaVacia="Selecciona la cuenta…"
-                  buscable
-                  requerido
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="gasto-subtotal">Subtotal</Label>
-                  <InputGroup className="h-10">
-                    <InputGroupAddon>
-                      <InputGroupText>RD$</InputGroupText>
-                    </InputGroupAddon>
-                    <InputGroupInput
-                      id="gasto-subtotal"
-                      value={subtotal}
-                      inputMode="decimal"
-                      onChange={(evento) => setSubtotal(evento.target.value)}
-                    />
-                  </InputGroup>
+              {esFacturaProveedor ? (
+                <div className="border-pos-linea bg-pos-panel mt-4 rounded-lg border p-5">
+                  <p className="text-pos-texto text-base font-semibold">No disponible en el POS todavía</p>
+                  <p className="text-pos-texto-suave mt-2 text-sm">
+                    Pagar una factura de proveedor desde la caja necesita guardar el turno y el movimiento en el pago.
+                    Esa conexión todavía no existe. Por ahora, regístralo en Compras → Pagos.
+                  </p>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor="gasto-itbis">ITBIS</Label>
-                  <InputGroup className="h-10">
-                    <InputGroupInput
-                      id="gasto-itbis"
-                      value={itbisTasa}
-                      inputMode="decimal"
-                      onChange={(evento) => setItbisTasa(evento.target.value)}
-                    />
-                    <InputGroupAddon align="inline-end">
-                      <InputGroupText>%</InputGroupText>
-                    </InputGroupAddon>
-                  </InputGroup>
-                </div>
-              </div>
-              <div className="bg-muted/40 flex items-center justify-between rounded-lg px-3 py-2 text-sm">
-                <span>Total</span>
-                <span className="font-semibold tabular-nums">{formatoMoneda(totalGasto)}</span>
-              </div>
-            </>
-          ) : null}
+              ) : null}
 
-          {!esGasto ? (
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="monto-movimiento">{esCobro ? "Monto del cobro" : "Monto"}</Label>
-              <InputGroup className="h-10">
-                <InputGroupAddon>
-                  <InputGroupText>RD$</InputGroupText>
-                </InputGroupAddon>
-                <InputGroupInput
-                  id="monto-movimiento"
-                  value={monto}
-                  inputMode="decimal"
-                  aria-invalid={cobroExcede}
-                  onChange={(evento) => setMonto(evento.target.value)}
-                />
-              </InputGroup>
-              {cobroExcede ? (
-                <p className="text-destructive text-xs">El cobro no puede superar el saldo de la factura.</p>
+              {mostrarFormulario ? (
+                <form
+                  id="formulario-movimiento-pos"
+                  className={cn("flex flex-col gap-4", esGasto && "mt-6")}
+                  onSubmit={(evento) => {
+                    evento.preventDefault();
+                    void registrar();
+                  }}
+                >
+                  <div className="grid gap-x-2.5 gap-y-5 sm:grid-cols-2">
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="pago-contacto" className="text-pos-texto text-sm font-medium">
+                        {esIngreso ? "Cliente" : "Proveedor"}
+                      </Label>
+                      <SelectorContacto
+                        id="pago-contacto"
+                        contactos={[]}
+                        valor={contactoId}
+                        onCambio={(contacto) => setContactoId(contacto?.id ?? "")}
+                        tipoInicial={esIngreso ? "cliente" : "proveedor"}
+                        placeholder="Seleccionar"
+                        className="bg-card has-[[data-slot=input-group-control]:focus-visible]:border-pos-primario has-[[data-slot=input-group-control]:focus-visible]:ring-pos-primario/30 h-12 w-full rounded-[10px] text-base"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="pago-metodo" className="text-pos-texto text-sm font-medium">
+                        Método de pago
+                        <span aria-hidden="true" className="text-pos-primario ml-0.5">
+                          *
+                        </span>
+                      </Label>
+                      <output
+                        id="pago-metodo"
+                        aria-label="Método de pago: Efectivo, el único disponible en el turno"
+                        className="border-input bg-card text-pos-texto flex h-12 items-center justify-between gap-2 rounded-[10px] border px-3 text-base"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Wallet className="text-pos-icono size-4" aria-hidden="true" />
+                          Efectivo
+                        </span>
+                        <span className="text-pos-texto-suave text-xs">Solo efectivo</span>
+                      </output>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <EtiquetaObligatoria htmlFor="pago-cuenta">Cuenta contable</EtiquetaObligatoria>
+                      <SelectCampo
+                        id="pago-cuenta"
+                        opciones={esGasto ? cuentasGasto : cuentasContrapartida}
+                        valor={esGasto ? cuentaGasto : cuenta}
+                        onCambio={esGasto ? setCuentaGasto : setCuenta}
+                        etiquetaVacia="Seleccionar"
+                        buscable
+                        requerido
+                        className="bg-card focus-visible:border-pos-primario focus-visible:ring-pos-primario/30 h-12 w-full rounded-[10px] text-base"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <EtiquetaObligatoria htmlFor="pago-total">
+                        {esIngreso ? "Total" : "Total a pagar"}
+                      </EtiquetaObligatoria>
+                      <InputGroup className="bg-card has-[[data-slot=input-group-control]:focus-visible]:border-pos-primario has-[[data-slot=input-group-control]:focus-visible]:ring-pos-primario/30 h-12 rounded-[10px]">
+                        <InputGroupAddon>
+                          <InputGroupText className="text-pos-texto-suave">RD$</InputGroupText>
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id="pago-total"
+                          value={monto}
+                          inputMode="decimal"
+                          placeholder="0"
+                          aria-invalid={monto !== "" && !montoValido}
+                          onChange={(evento) => setMonto(evento.target.value)}
+                        />
+                      </InputGroup>
+                    </div>
+
+                    <div className="flex flex-col gap-2 sm:col-span-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="pago-observaciones" className="text-pos-texto text-sm font-medium">
+                          Observaciones
+                        </Label>
+                        <span className="text-pos-texto-suave text-xs tabular-nums">{notas.length}/300</span>
+                      </div>
+                      <Textarea
+                        id="pago-observaciones"
+                        value={notas}
+                        maxLength={300}
+                        placeholder="Observaciones"
+                        className="bg-card focus-visible:border-pos-primario focus-visible:ring-pos-primario/30 min-h-[106px] resize-none rounded-[10px] text-base"
+                        onChange={(evento) => setNotas(evento.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {dejaNegativo ? (
+                    <Alert variant="destructive">
+                      <AlertDescription>El egreso deja la caja en negativo.</AlertDescription>
+                    </Alert>
+                  ) : null}
+
+                  {error ? (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  ) : null}
+                </form>
               ) : null}
             </div>
-          ) : null}
 
-          {requiereCuenta ? (
-            <div className="flex flex-col gap-1">
-              <Label htmlFor="cuenta-movimiento">Cuenta de contrapartida</Label>
-              <SelectCampo
-                id="cuenta-movimiento"
-                opciones={cuentasMovimiento}
-                valor={cuenta}
-                onCambio={setCuenta}
-                etiquetaVacia="Selecciona la cuenta…"
-                buscable
-                requerido
-              />
-              {esDeposito && cuentasMovimiento.length === 0 ? (
-                <p className="text-destructive text-xs">
-                  Para depositar al banco, la cuenta de destino debe ser de caja o banco.
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="flex flex-col gap-1">
-            <Label htmlFor="notas-movimiento">Notas</Label>
-            <Textarea
-              id="notas-movimiento"
-              value={notas}
-              maxLength={500}
-              onChange={(evento) => setNotas(evento.target.value)}
-            />
-          </div>
-
-          <div className="border-border flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Efectivo esperado después</span>
-            <span className="font-semibold tabular-nums">{formatoMoneda(esperadoDespues)}</span>
-          </div>
-
-          {dejaNegativo ? (
-            <Alert variant="destructive">
-              <AlertDescription>El retiro deja la caja en negativo.</AlertDescription>
-            </Alert>
-          ) : null}
-
-          {error ? (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onCerrar} disabled={enviando}>
-            Cancelar
-          </Button>
-          <Button className="h-12" disabled={enviando || dejaNegativo || !montoValido} onClick={() => void registrar()}>
-            {enviando ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
-            {enviando ? "Registrando…" : tipo === "ingreso" ? "Registrar ingreso" : "Registrar retiro"}
-          </Button>
-        </DialogFooter>
+            <footer className="border-pos-linea bg-pos-panel flex shrink-0 flex-col gap-3 border-t px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className={cn("text-xs", dejaNegativo ? "text-destructive" : "text-pos-texto-suave")}>
+                Efectivo esperado después: <span className="tabular-nums">{formatoMonedaPOS(esperadoDespues)}</span>
+              </p>
+              <Button
+                type="submit"
+                form="formulario-movimiento-pos"
+                className="bg-pos-primario hover:bg-pos-primario-hover h-12 w-full px-6 text-base font-medium text-white disabled:bg-pos-primario/30 disabled:text-white/90 sm:w-auto"
+                disabled={!puedeRegistrar || esFacturaProveedor}
+              >
+                {enviando ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+                {enviando ? "Registrando…" : etiquetaAccion()}
+              </Button>
+            </footer>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
