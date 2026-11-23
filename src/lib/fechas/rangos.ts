@@ -11,6 +11,8 @@ import {
   startOfYear,
   subDays,
   subMonths,
+  subQuarters,
+  subWeeks,
   subYears,
 } from "date-fns";
 import { es } from "date-fns/locale";
@@ -62,6 +64,13 @@ export function rangoEstaSemana(hoy: string): RangoFechas {
   return crearRango(startOfWeek(fecha, opciones), endOfWeek(fecha, opciones));
 }
 
+/** Semana completa anterior, de lunes a domingo. */
+export function rangoSemanaAnterior(hoy: string): RangoFechas {
+  const fecha = subWeeks(aFecha(hoy), 1);
+  const opciones = { weekStartsOn: 1 } as const;
+  return crearRango(startOfWeek(fecha, opciones), endOfWeek(fecha, opciones));
+}
+
 export function rangoEsteMes(hoy: string): RangoFechas {
   const fecha = aFecha(hoy);
   return crearRango(startOfMonth(fecha), endOfMonth(fecha));
@@ -75,6 +84,12 @@ export function rangoMesAnterior(hoy: string): RangoFechas {
 export function rangoEsteTrimestre(hoy: string): RangoFechas {
   const fecha = aFecha(hoy);
   return crearRango(startOfQuarter(fecha), endOfQuarter(fecha));
+}
+
+/** Trimestre calendario completo anterior. */
+export function rangoTrimestreAnterior(hoy: string): RangoFechas {
+  const anterior = subQuarters(aFecha(hoy), 1);
+  return crearRango(startOfQuarter(anterior), endOfQuarter(anterior));
 }
 
 export function rangoEsteAnio(hoy: string): RangoFechas {
@@ -110,9 +125,11 @@ export const ATAJOS_RANGO: readonly AtajoRango[] = [
   { id: "hoy", etiqueta: "Hoy", obtener: rangoHoy },
   { id: "ayer", etiqueta: "Ayer", obtener: rangoAyer },
   { id: "esta-semana", etiqueta: "Esta semana", obtener: rangoEstaSemana },
+  { id: "semana-anterior", etiqueta: "Semana anterior", obtener: rangoSemanaAnterior },
   { id: "este-mes", etiqueta: "Este mes", obtener: rangoEsteMes },
   { id: "mes-anterior", etiqueta: "Mes anterior", obtener: rangoMesAnterior },
   { id: "este-trimestre", etiqueta: "Este trimestre", obtener: rangoEsteTrimestre },
+  { id: "trimestre-anterior", etiqueta: "Trimestre anterior", obtener: rangoTrimestreAnterior },
   { id: "este-anio", etiqueta: "Este año", obtener: rangoEsteAnio },
   { id: "anio-anterior", etiqueta: "Año anterior", obtener: rangoAnioAnterior },
   { id: "personalizado", etiqueta: "Personalizado", obtener: null },
