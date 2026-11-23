@@ -1,5 +1,44 @@
 # Handoff — Medoxigas Contabilidad
 
+## Cierre del orquestador POS — punto de partida del orquestador nuevo (23-11-2026, MSG-55)
+
+### Qué quedó en `main`
+
+Todo el trabajo del POS tipo Alegra más la infraestructura de agentes, en tres tandas:
+
+- **Tanda 1 (PR #107, `d3733ea`):** POS completo — riel lateral plano, carrito con cantidades enteras y −/+, pestañas de venta, checkout/«Nuevo pago», cierre de turno, tickets 80 mm/prefactura/cotización con logo Medoxigas, favoritos teal + filtro, Consumidor final por defecto, cola offline idempotente con clasificación de errores, pgTAP de las migraciones POS, `pnpm test` sin navegador (carril `test:pdf`), capturas de Alegra fuera del árbol con candado.
+- **Tanda 2 (PR #140, `89be977`):** estrella rellena (`weight="fill"`), «Consumidor final» sin RNC (`etiquetaContactoPOS`), cola offline destrancada + bandeja «Ventas con problema» (Reintentar/Descartar), panel «Más opciones» a todo el carrito.
+- **Tanda 3 (PR #141 + este merge):** docs ZZTEST, sección preview oficial, regla «Vercel y producción», corrección `ljfdhrnvlsfaweuvnqxz` = **producción** (solo lectura con ZZTEST), e infra de agentes: `pnpm captura` (claro/oscuro/móvil en una pasada), `scripts/pgtap-local.sh` (pgTAP sin Docker), `scripts/t3-worktree-setup.sh` + `t3.json`, candado `binarios-grandes`, guarda «migración nueva exige test pgTAP» en `supabase.yml`, Playwright MCP en `opencode.json`.
+
+### Ramas abiertas y por qué
+
+- **Dependabot ×4** (`acciones`, `menores`, `hookform/resolvers 7.x`, `typescript 7.x`): sin CI en verde; `typescript` 5→7 y `resolvers` 5→7 son saltos mayores que necesitan tanda propia con revisión.
+- **`feat/ncf-manual-orq`:** fase 1 de NCF manual por serie (migración + pgTAP + types, sin UI). Quedó fuera porque su migración hubiera quedado sin aplicar durante el congelamiento; retomarla exige aplicar `20261117400000_ncf_manual_facturas.sql` (OK de Waldy) y regenerar `types.ts`.
+- **`feat/alegra-pos-docs`:** +50 capturas de Alegra y `docs/alegra/alegra-pos.md` nuevo — rompe el candado `sin-capturas-alegra` (basename «alegra» no está en LEGADO) y depende de la decisión sobre `docs/alegra/` completo.
+- **`devin/1795185628-alegra-nomina-docs`:** estudio de Alegra Nómina + ~30 capturas. Misma decisión pendiente.
+- **`chore/pos-productos-zztest`, `docs/preview-vps`, `infra/mejoras-agentes`:** ya mergeadas a `feat`/`main`; quedan remotas por si Waldy quiere borrarlas a mano.
+
+### Decisiones pendientes de Waldy
+
+- `docs/alegra/` completo (553 archivos preexistentes) y los ~1.18 MB de PNG de Alegra que quedan en el historial de git.
+- `pos_terminales.contacto_defecto_id` de la terminal ZZTEST apunta a otro contacto (solo afecta el respaldo de la RPC).
+- Crear proyecto Supabase de staging para los agentes (ver `docs/infra/base-staging.md`, opción A).
+
+### Propuestas pendientes del VPS (todas sin aplicar, esperan OK)
+
+- **Limpieza de disco:** `scripts/limpieza-disco.sh` solo LISTA candidatos (worktrees mergeados, `.next` viejos, capturas viejas, store pnpm). El borrado por cron queda apagado hasta el OK.
+- **next-server/tsc viejos:** hay procesos de builds/dev de worktrees ya integrados comiendo RAM; matarlos con OK (regla en `docs/ORQUESTADOR.md`, nunca tocar `medoxigas-preview` ni hijos vivos).
+- **Staging:** segundo proyecto Supabase gratis para que los agentes escriban sin tocar producción (`docs/infra/base-staging.md`).
+- **Usuario `agente`:** sacar a los agentes de root por pasos con vuelta atrás (`docs/infra/usuario-agente.md`).
+- **backgroundActivity:** ajuste de configuración de T3 Code mencionado por Waldy, pendiente de definir con él.
+
+### Estado
+
+- `feat/pos-alegra-exacto` y `main` convergen tras este merge; CI verde (ci, db, pdf, e2e, scan).
+- Migraciones aplicadas en producción: todas las del repo (`supabase migration list` vs remoto, verificado 23-11). Cero pendientes.
+- Vercel: producción desplegada; MSG-52 (construir solo `main`) queda por configurar en el panel o por API (Ignorar Build Step: `if [ "$VERCEL_GIT_COMMIT_REF" = "main" ]; then exit 1; else exit 0; fi`).
+- Preview oficial: https://medoxigas-agentes.tail25e53a.ts.net → `medoxigas-preview.service` (`pnpm start`, puerto 3010; rebuild + restart tras mergear).
+
 ## POS 18: la estrella marcada se ve rellena (rama `fix/pos-favoritos-estrella-rellena`, MSG-31)
 
 Corrección de Waldy sobre el PR #128: en las capturas la estrella marcada se veía igual que la vacía.
@@ -161,6 +200,19 @@ blanca: vacía si no es favorito, rellena si lo es.
 - **Filtro «Favoritos»:** `vender-pos.tsx` filtra en el cliente con `filtrarFavoritosPOS` sobre lo cargado, así incluye tanto los favoritos locales como los globales; «Ver más» sigue trayendo el resto. Se quitó `solo_favoritos` de la llamada del POS (la RPC y la columna siguen intactas).
 - **Candados:** `src/lib/pos/favoritos.test.ts` prueba lectura/escritura segura, la precedencia local/global y el filtro; `tests/e2e/pos-favoritos.spec.ts` (sesión ZZTEST, 1440 px) marca la estrella, comprueba que el carrito sigue en 0, activa el filtro, verifica que no queda ninguna tarjeta sin marcar y recarga para confirmar la persistencia.
 - **Evidencia:** `docs/diseno/capturas/pos-favoritos/` (`01-antes-estrella-gris.png`, `02-despues-estrella-teal-marcada.png`, `03-despues-filtro-favoritos.png`, `04-despues-oscuro.png`, `05-despues-movil.png`).
+## INFRA mejoras VPS y agentes (rama `infra/mejoras-agentes`, 23 nov 2026)
+
+Encargo de Waldy (22-11-2026) al agente de infraestructura: aplicar la
+auditoría del VPS srv2187989. Sin cambios al código del POS.
+
+- **Memoria:** swap total 12 GB (`/swapfile2` de 8 GB ya existía y quedó verificado en fstab) y `vm.swappiness=80` persistente en `/etc/sysctl.d/90-medoxigas-ram.conf`. Nueva regla del orquestador: `free -m` antes de delegar, ~1 hijo pesado por cada 3–4 GB libres.
+- **pgTAP sin Docker:** `postgresql-18` + `postgresql-18-pgtap` vía apt (clúster del sistema parado y deshabilitado; solo binarios). `scripts/pgtap-local.sh` re-ejecuta como `postgres` al correr como root (escenifica en /tmp) y su stub gana el esquema `storage`. Suite completa en verde (~1,300 asserts).
+- **Capturas únicas:** `pnpm captura --ruta <ruta> --salida <carpeta>` (`src/scripts/captura.ts`): ZZTEST con storageState fuera del repo (`/root/.medoxigas/storage-zztest.json`, 600, se renueva solo); claro/oscuro 1440 px y móvil 390 px; falla ante errores de consola u HTTP 5xx.
+- **Worktrees:** `t3.json` + `scripts/t3-worktree-setup.sh` enlazan `.env.local`/`.env.pruebas` del checkout principal y corren `pnpm install --prefer-offline` al crear el hilo.
+- **Candados:** `src/lib/binarios-grandes.test.ts` + `binarios-permitidos.txt` (binarios nuevos >200 KB e imágenes «alegra»/`docs/diseno/alegra-pos/`); job `db` de CI exige test en `supabase/tests/` cuando el PR agrega migraciones.
+- **Docs:** `docs/infra/base-staging.md` (staging aparte — pendiente Waldy), `docs/infra/usuario-agente.md` (sacar agentes de root — pendiente), `docs/infra/navegador-depuracion.md` (Playwright MCP `@0.0.85` en `opencode.json`). `docs/revisiones/` recibe los informes del REVISOR antes de `main`.
+- **Disco:** `scripts/limpieza-disco.sh` (solo listar): ~20 GB en worktrees mergeados + `/root/preview-antes-carrito` y `/tmp/opencode` como candidatos; cron de borrado apagado hasta el OK de Waldy.
+
 
 ## POS 12: menú lateral plano (rama `t3/pos-flat-sidebar-menu`)
 
