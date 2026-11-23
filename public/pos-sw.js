@@ -41,8 +41,13 @@ async function preparar(ambito, recursosCargados = []) {
   }
   await Promise.all(
     [...recursos].map(async (ruta) => {
-      const respuesta = await fetch(ruta, { cache: "reload" });
-      if (!respuesta.ok) throw new Error("No se pudo preparar un recurso del POS.");
+      let respuesta;
+      try {
+        respuesta = await fetch(ruta, { cache: "reload" });
+      } catch (causa) {
+        throw new Error(`${ruta}: ${causa instanceof Error ? causa.message : String(causa)}`);
+      }
+      if (!respuesta.ok) throw new Error(`${ruta}: HTTP ${respuesta.status}`);
       await assets.put(ruta, respuesta);
     }),
   );
@@ -62,7 +67,13 @@ self.addEventListener("message", (evento) => {
             ambito: evento.data.ambito,
           }),
         )
-        .catch(() => evento.source?.postMessage({ tipo: "POS_CACHE_ERROR", ambito: evento.data.ambito })),
+        .catch((causa) =>
+          evento.source?.postMessage({
+            tipo: "POS_CACHE_ERROR",
+            ambito: evento.data.ambito,
+            detalle: causa instanceof Error ? causa.message : String(causa),
+          }),
+        ),
     );
   }
   if (evento.data?.tipo === "COMPROBAR") {

@@ -63,7 +63,9 @@ export const transportarOperacionOffline: TransporteOffline = async (operacion, 
       return {
         ok: false,
         transitorio: errorTransitorio(error.code),
-        error: mensajeErrorRpc(error),
+        error: error.code
+          ? mensajeErrorRpc(error)
+          : "No se recibió confirmación del servidor. Se reintentará con el mismo folio; no se duplica.",
       };
     }
     const parseo =

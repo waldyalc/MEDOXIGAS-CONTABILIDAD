@@ -1,3 +1,7 @@
+-- HISTÓRICO: esta propuesta ya se aplicó como migración
+-- supabase/migrations/20261126120000_pos_offline_client_uuid.sql (base de
+-- prueba ljfdhrnvlsfaweuvnqxz, PR #122). Se conserva para trazabilidad; no
+-- volver a ejecutarla.
 begin;
 
 alter table public.facturas add column if not exists client_uuid uuid;

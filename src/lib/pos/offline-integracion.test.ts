@@ -93,6 +93,16 @@ describe("integración offline con la RPC idempotente", () => {
     expect(reset).toContain("'pos_sync_operaciones',");
   });
 
+  it("bloquea el cierre con el aviso en barra, panel y diálogo", () => {
+    const barra = leer("src/app/(pos)/pos/_components/vender/barra-inferior-pos.tsx");
+    expect(barra).toContain("Conéctate para subir ${offline.pendientes} ventas antes de cerrar");
+    const panel = leer("src/app/(pos)/pos/_components/offline-pos-provider.tsx");
+    expect(panel).toContain("Conéctate para subir ${pendientes} ventas antes de cerrar el turno.");
+    const dialogo = leer("src/app/(pos)/pos/_components/turnos/dialogo-cerrar-turno.tsx");
+    expect(dialogo).toContain("cierreBloqueado");
+    expect(dialogo).toContain("disabled={enviando || esperadoNegativo || cierreBloqueado}");
+  });
+
   it("el service worker solo sirve GET de POS y assets, y nunca toca IndexedDB", () => {
     const sw = leer("public/pos-sw.js");
     expect(sw).toContain('solicitud.method !== "GET"');

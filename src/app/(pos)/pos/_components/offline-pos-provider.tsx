@@ -269,6 +269,11 @@ export function OfflinePosProvider({
               {pendientes} operaciones pendientes en este dispositivo. No borres los datos del navegador.
             </DialogDescription>
           </DialogHeader>
+          {pendientes > 0 ? (
+            <p className="text-destructive text-sm font-medium">
+              {`Conéctate para subir ${pendientes} ventas antes de cerrar el turno.`}
+            </p>
+          ) : null}
           <p className="text-sm">
             {recargaLista
               ? "Recarga offline preparada para esta sesión (máximo 8 horas)."

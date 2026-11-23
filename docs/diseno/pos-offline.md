@@ -5,29 +5,28 @@
 - NCF opción A: guardar offline sin NCF; asignarlo exclusivamente en servidor al sincronizar.
 - Fecha fiscal: día de sincronización en America/Santo_Domingo.
 - Ticket offline: **Folio: POS-LOCAL-<UUID>**, título «Venta», sin NCF ni leyenda «Comprobante provisional».
-- Inventario: descontar al sincronizar, respetando `vende_negativo`; un rechazo deja la operación pendiente/fallida visible, nunca se descarta.
+- Inventario: descontar al sincronizar, respetando `vende_negativo`; un rechazo deja la operación fallida visible, nunca se descarta.
 - Service worker mínimo, no PWA completa.
 - No se certifica cumplimiento DGII/e-CF con este trabajo. Firma, envío electrónico y contingencia fiscal siguen fuera de este alcance.
 
-## Estado de la fase 2
+## Estado: implementado y probado contra la base de prueba
 
-Implementados, pendientes de evidencia autenticada:
+La cola real está habilitada. `src/lib/pos/transporte-offline.ts` llama
+directamente `supabase.rpc("pos_sincronizar_operacion", { ... })` con el
+`client_uuid` como idempotencia, sin guardar la RPC en variables ni usar casts.
 
-- IndexedDB, cola FIFO, backoff, snapshots, persistencia de carritos.
-- Provider de conexión, panel de operaciones, beforeunload y bloqueo de cierre.
-- Cobro y movimientos offline guardados antes de confirmar al cajero.
-- Ticket térmico reutilizando `TicketPos` e `ImpresionPos`.
-- Caché paginada de catálogo por lista, clientes y configuración.
-- Service worker para recargar `/pos` y sus assets después de prepararlo online.
+Migraciones ya aplicadas en `ljfdhrnvlsfaweuvnqxz` (PR #122):
 
-**NO está habilitado el envío real.** `src/lib/pos/transporte-offline.ts` expone
-un contrato tipado y devuelve un error explícito de migración/tipos pendientes.
-No llama una RPC alternativa ni finge confirmaciones. No desplegar como funcional
-hasta conectar la RPC, verificar el flujo completo y entregar capturas.
+- `20261126120000_pos_offline_client_uuid.sql`: `client_uuid` en facturas y
+  movimientos, índices únicos parciales, `pos_sync_operaciones` con RLS,
+  y la RPC transaccional `pos_sincronizar_operacion`.
+- `20261126121000_empresa_sucursal_regimen.sql`: campos de empresa (POS 10).
 
-Pendientes externos: validar SQL, generar tipos y proporcionar ruta concreta de
-storageState ZZTEST fuera del repo. Se solicitó el archivo; la respuesta no
-incluyó todavía la ruta. No se ejecutó SQL remoto ni se tocó el preview 3010.
+La respuesta de la RPC se valida con `esquemasRpcPOS`; el log muestra el
+número y NCF confirmados por el servidor. Un error de red o 5xx se reintenta
+con el mismo UUID; un rechazo de negocio (existencia, `vende_negativo`,
+período, crédito) queda **fallido** y visible en el panel, con la venta
+completa conservada para intervención.
 
 ## Persistencia y recuperación
 
@@ -59,7 +58,7 @@ Base `medoxigas-pos-offline`, versión 1:
 - Red: backoff exponencial de 5 segundos a 10 minutos. Negocio: fallida, sin bucle automático.
 - «Reintentar pendientes» conserva UUID y payload. Sin conexión no se intenta enviar.
 - Las confirmaciones se conservan en el log local; no se borran al recibir respuesta.
-- beforeunload solicita el aviso nativo con carritos o cobros pendientes. El navegador controla el texto del diálogo.
+- beforeunload solicita el aviso nativo con cobros pendientes. El navegador controla el texto del diálogo.
 - El procesador funciona mientras el POS está abierto; no se promete sincronización con el navegador cerrado.
 
 Un timeout de una venta enviada por la RPC online anterior NO se convierte
@@ -72,7 +71,7 @@ y se exige revisar Historial, evitando un segundo cobro por cambio de conexión.
 - La caché se separa por lista de precios. Offline se filtra localmente por nombre, referencia, categoría y favoritos.
 - Se indica si la preparación quedó parcial y la fecha de sus existencias; esas existencias no son actuales.
 - Una lista no preparada muestra error en vez de inventar precios.
-- Una venta cobrada conserva su snapshot; el reintento no toma nuevos precios del catálogo.
+- Una venta cobrada conserva su snapshot; el reintento no toma nuevos precios del catálogo. El panel muestra «Cobrado: cliente · RD$total».
 - Contacto/producto desactivado, período cerrado o falta de existencia: error visible, operación guardada para intervención administrativa.
 - No se sustituyen clientes ni se fuerza inventario negativo automáticamente.
 - Crédito y conversión de cotizaciones exigen conexión en esta implementación: no se valida crédito ni se convierte dos veces una cotización sin coordinación del servidor.
@@ -93,33 +92,37 @@ y se exige revisar Historial, evitando un segundo cobro por cambio de conexión.
 ## Cierre
 
 - La barra inferior impide navegar al cierre sin conexión o con pendientes y explica «Conéctate para subir N ventas antes de cerrar».
-- El diálogo de cierre deshabilita su acción y vuelve a consultar IndexedDB antes de llamar a la RPC.
-- La comprobación y el envío del cierre comparten Web Lock con la cola del navegador.
+- El panel de sincronización repite el aviso y deshabilita el cierre mientras haya pendientes.
+- El diálogo de cierre vuelve a consultar IndexedDB antes de llamar a la RPC y comparte Web Lock con la cola.
 - El cuadre de servidor incluye únicamente documentos ya sincronizados.
 - Límite: la RPC actual no puede conocer operaciones que otro dispositivo nunca le envió. No se presenta el control cliente como una garantía servidor entre equipos.
 
-## SQL pendiente, SOLO propuesta
+## Pruebas y evidencia
 
-`docs/pruebas/pos-offline-pendiente.sql` permanece en BEGIN/ROLLBACK, sin ejecutar.
-Está fuera de migraciones con autorización: el UTC del entorno es anterior a
-migraciones existentes; no se inventó una fecha ni se alteró el candado.
+- Vitest: idempotencia con el mismo UUID tras perder respuesta, backoff, FIFO,
+  error de negocio, snapshot estable, transporte directo de la RPC tipada y
+  ticket sin NCF ni leyenda.
+- `tests/e2e/pos-offline-almacen.spec.ts`: IndexedDB real conserva operaciones y
+  carritos tras recargar offline; dos pestañas serializan secuencias con Web Locks.
+- `tests/e2e/pos-offline-ui.spec.ts` (**corrida real verde**, 22-11-2026): abre
+  el POS con sesión ZZTEST, prepara la recarga, vende 3 con `context.setOffline(true)`,
+  recarga offline, fuerza un fallo de red para ver el error/reintento, reconecta,
+  sincroniza y comprueba:
+  - exactamente 3 operaciones `sincronizada` en IndexedDB;
+  - 3 NCF distintos: **B0200000020, B0200000021 y B0200000022**;
+  - las 3 facturas en `/pos/historial`;
+  - el cuadre del turno sube 3 ventas y RD$336.30 (3 × RD$112.10).
+- Las corridas de depuración anteriores dejaron en la base de prueba las
+  facturas ZZTEST NCF 8–19; no se borraron datos sin autorización.
+- Capturas en `docs/diseno/capturas/pos-11/`: offline pendientes, sincronizando,
+  error/reintento, panel de sync, ticket con folio, cierre bloqueado, historial
+  y cuadre. `panel-sync.png` y `cierre-bloqueado.png` se regeneraron con 3 ventas
+  locales que no se sincronizaron, para no escribir ventas adicionales.
 
-- UUID único parcial en facturas y movimientos de turno.
-- `pos_sync_operaciones` con RLS y lectura solo del propietario con rol de escritura.
-- RPC aditiva `pos_sincronizar_operacion`, transaccional y con advisory lock por UUID.
-- Un reintento verifica usuario, terminal, turno, tipo y payload, y devuelve el resultado persistido, incluso si el turno cerró después.
-- Un UUID reutilizado con otros datos se rechaza.
-- Documento, pagos, inventario, asiento y registro de sincronización se confirman juntos o se revierten juntos.
-- Se conserva `vencimiento`: solo se sustituye `fecha`. Si queda anterior a la emisión, la validación existente rechaza; no se extiende silenciosamente.
-- `pos-offline-reset.patch` propone clasificar y verificar la tabla transaccional en `reset-base-virgen.sql`. Aplicar ese parche junto con la incorporación de la migración al repo, nunca ejecutar el reset por esta tarea.
-- El Orquestador aceptó estáticamente el contrato; Coder/Waldy validarán en su base de prueba y regenerarán tipos. No se usó service_role.
+## Limitaciones conocidas
 
-## Pruebas y evidencia pendiente
-
-- Vitest: UUID estable tras perder respuesta, backoff, FIFO, error de negocio, aislamiento y ticket sin NCF ni leyenda.
-- Chromium real: persistencia de tres operaciones y carrito al recargar offline; dos pestañas serializan secuencias con Web Locks. Son pruebas del almacenamiento, NO tres facturas reales.
-- `tests/e2e/pos-offline-ui.spec.ts`: preparado para una sesión externa (`E2E_POS_STORAGE_STATE`) y producto autorizado `E2E_POS_PRODUCTO` con prefijo ZZTEST. Se omite si faltan. Captura ticket, pendientes, panel y error; bloquea peticiones de escritura al reconectar.
-- No hay capturas autenticadas entregadas todavía. T3 preview falló por sandbox root; Playwright local funciona, pero falta la ruta de sesión ZZTEST.
-- Tras habilitar RPC: probar tres cobros offline, recargar, reconectar, exactamente tres UUID/documentos, tres NCF y cuadre correcto; reintentar respuesta perdida no duplica.
-- Pendientes también captura de sincronizando real, cierre bloqueado, claro/oscuro y móvil. No inventar evidencia con ventas ficticias ni borrar datos sin autorización.
-- Mantener PR #115 draft hasta cerrar esas verificaciones.
+- La sincronización corre solo con el POS abierto; no hay Background Sync.
+- Si el navegador pierde IndexedDB o el equipo se daña, los pendientes se pierden: no es un respaldo.
+- La primera recarga offline exige haber abierto el POS online y esperar «Recarga offline preparada». Si se corta la conexión durante esa preparación, se avisa.
+- No se puede iniciar sesión offline ni abrir historial/turnos sin conexión (solo `/pos` está cacheado, por decisión de alcance mínimo).
+- El cuadre entre dispositivos no puede ver operaciones que nunca llegaron al servidor.
