@@ -67,7 +67,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         descripcion="Conoce tu desempeño financiero y obtén insumos para tomar decisiones inteligentes."
         migas={[
           { etiqueta: "Reportes", href: "/dashboard/reportes" },
-          { etiqueta: "Contables", href: "/dashboard/reportes" },
+          { etiqueta: "Contables", href: "/dashboard/reportes?categoria=Contables" },
           { etiqueta: "Estado de resultados" },
         ]}
         acciones={
