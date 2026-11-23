@@ -50,6 +50,7 @@ export interface OperacionOffline {
 export interface AlmacenColaOffline {
   listar: (ambito: string) => Promise<OperacionOffline[]>;
   guardar: (operacion: OperacionOffline) => Promise<void>;
+  eliminar: (ambito: string, uuid: string) => Promise<void>;
 }
 
 export type ResultadoEnvioOffline =
@@ -76,6 +77,93 @@ export function demoraReintentoOffline(intentos: number): number {
   return Math.min(600_000, 5_000 * 2 ** Math.min(Math.max(intentos - 1, 0), 7));
 }
 
+/** Una venta rechazada se conserva marcada y el cajero decide reintentarla o descartarla. */
+export function programarReintentoOffline(operacion: OperacionOffline): OperacionOffline {
+  return { ...operacion, estado: "pendiente", error: null, proximoIntento: 0 };
+}
+
+/** Aviso del cierre cuando quedan ventas que el servidor rechazó: no bloquean, pero no subirán. */
+export function avisoCierreOffline(fallidas: number): string | null {
+  if (fallidas <= 0) return null;
+  return fallidas === 1
+    ? "1 venta con problema no subirá. Queda guardada en este dispositivo."
+    : `${fallidas} ventas con problema no subirán. Quedan guardadas en este dispositivo.`;
+}
+
+export interface RevisionCierreOffline {
+  impedimento: string | null;
+  aviso: string | null;
+  porSubir: number;
+  fallidas: number;
+}
+
+/**
+ * El cierre se bloquea solo mientras haya ventas por subir; una venta rechazada
+ * (fallida) no impide cerrar el turno, pero el cajero debe ver el aviso.
+ */
+export function revisionCierreOffline(
+  operaciones: Pick<OperacionOffline, "estado">[],
+  conectado: boolean,
+): RevisionCierreOffline {
+  const porSubir = operaciones.filter((operacion) => operacion.estado === "pendiente").length;
+  const fallidas = operaciones.filter((operacion) => operacion.estado === "fallida").length;
+  const aviso = avisoCierreOffline(fallidas);
+  if (!conectado) {
+    return {
+      impedimento:
+        porSubir > 0
+          ? `Conéctate para subir ${porSubir} ventas antes de cerrar.`
+          : "Conéctate a internet para cerrar el turno.",
+      aviso,
+      porSubir,
+      fallidas,
+    };
+  }
+  return {
+    impedimento: porSubir > 0 ? `Conéctate para subir ${porSubir} ventas antes de cerrar.` : null,
+    aviso,
+    porSubir,
+    fallidas,
+  };
+}
+
+type PasoColaOffline = "seguir" | "detener";
+
+async function procesarOperacionOffline(
+  almacen: AlmacenColaOffline,
+  operacion: OperacionOffline,
+  enviar: (operacion: OperacionOffline) => Promise<ResultadoEnvioOffline>,
+  ahora: () => number,
+): Promise<PasoColaOffline> {
+  let respuesta: ResultadoEnvioOffline;
+  try {
+    respuesta = await enviar(structuredClone(operacion));
+  } catch {
+    respuesta = { ok: false, transitorio: true, error: "No se recibió confirmación del servidor." };
+  }
+  const intentos = operacion.intentos + 1;
+  if (!respuesta.ok) {
+    await almacen.guardar({
+      ...operacion,
+      intentos,
+      estado: respuesta.transitorio ? "pendiente" : "fallida",
+      proximoIntento: respuesta.transitorio ? ahora() + demoraReintentoOffline(intentos) : 0,
+      error: respuesta.error,
+    });
+    // Un fallo de red conserva el orden; un rechazo de negocio no debe frenar las demás ventas.
+    return respuesta.transitorio ? "detener" : "seguir";
+  }
+  await almacen.guardar({
+    ...operacion,
+    intentos,
+    estado: "sincronizada",
+    proximoIntento: 0,
+    error: null,
+    resultado: respuesta.resultado,
+  });
+  return "seguir";
+}
+
 export async function sincronizarColaOffline(
   almacen: AlmacenColaOffline,
   ambito: string,
@@ -87,31 +175,9 @@ export async function sincronizarColaOffline(
     .sort((a, b) => a.secuencia - b.secuencia || a.uuid.localeCompare(b.uuid));
 
   for (const operacion of operaciones) {
-    if (operacion.estado === "fallida" || operacion.proximoIntento > ahora()) return;
-    let respuesta: ResultadoEnvioOffline;
-    try {
-      respuesta = await enviar(structuredClone(operacion));
-    } catch {
-      respuesta = { ok: false, transitorio: true, error: "No se recibió confirmación del servidor." };
-    }
-    const intentos = operacion.intentos + 1;
-    if (!respuesta.ok) {
-      await almacen.guardar({
-        ...operacion,
-        intentos,
-        estado: respuesta.transitorio ? "pendiente" : "fallida",
-        proximoIntento: respuesta.transitorio ? ahora() + demoraReintentoOffline(intentos) : 0,
-        error: respuesta.error,
-      });
-      return;
-    }
-    await almacen.guardar({
-      ...operacion,
-      intentos,
-      estado: "sincronizada",
-      proximoIntento: 0,
-      error: null,
-      resultado: respuesta.resultado,
-    });
+    // Una operación rechazada no puede trancar la cola: queda visible y se salta.
+    if (operacion.estado === "fallida") continue;
+    if (operacion.proximoIntento > ahora()) return;
+    if ((await procesarOperacionOffline(almacen, operacion, enviar, ahora)) === "detener") return;
   }
 }
