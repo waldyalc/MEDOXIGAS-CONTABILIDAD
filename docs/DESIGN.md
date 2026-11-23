@@ -107,7 +107,6 @@ Viven en `META_CATEGORIAS` / `META_FAVORITOS` de
 | Ítem | Icono Tabler | Envoltorio |
 |---|---|---|
 | Inicio | `home` | `TablerHome` |
-| Bandeja de entrada | `inbox` | `TablerInbox` |
 | Ingresos | `circle-arrow-down-left` | `TablerIngresos` |
 | Compras | `circle-arrow-up-right` | `TablerCompras` |
 | Contactos | `users` | `TablerUsers` |
@@ -115,11 +114,9 @@ Viven en `META_CATEGORIAS` / `META_FAVORITOS` de
 | Bancos | `building-bank` | `TablerBank` |
 | Contabilidad | `calculator` | `TablerCalculator` |
 | Reportes | `timeline` | `TablerTimeline` |
-| Mis tareas | `clipboard-check` | `TablerClipboardCheck` |
 | Configuración | `settings` | `TablerSettings` |
 | Nómina | `users-group` | `TablerNomina` |
 | POS | `building-store` | `TablerPos` |
-| Reportes DGII | `file-invoice` | `TablerFileInvoice` |
 
 Categorías de Reportes: `coin`, `chart-bar-popular`, `cash`, `file-invoice`,
 `report-money`, `briefcase`, `star` (envoltorios `TablerCoin`, `TablerChartBar`,
@@ -135,10 +132,11 @@ Otros de su UI: `chevron-down`/`chevron-right`/`chevron-up` (árbol y acordeones
 
 - Panel fijo `w-[272px]`, fondo `#f1f5f9`, logo Medoxigas arriba a la izquierda +
   botón `layout-sidebar` para colapsar a riel.
-- Orden exacto: **Inicio · Bandeja de entrada** — separador — **Ingresos ·
-  Compras · Contactos · Inventario · Bancos · Contabilidad · Reportes · Mis
-  tareas · Configuración · Reportes DGII** — grupo **"Descubre más soluciones"**
-  (Nómina, POS).
+- Orden exacto (menú plano, un solo grupo, sin separadores ni etiquetas):
+  **Inicio · Ingresos · Compras · Contactos · Inventario · Bancos ·
+  Contabilidad · Reportes · Configuración · Nómina · POS**.
+  «Reportes DGII» no va en el menú: se abre como tarjeta dentro de
+  Configuración (`/dashboard/configuracion`, grupo Impuestos).
 - Ítem: `h-8`, `rounded-[6px]`, `px-2`, `gap-2`, `text-sm leading-[21px]`,
   icono 20px `text-slate-400` (activo `text-slate-900`).
 - Activo: píldora `before:` de 3×12px (`h-3 w-[3px]`) en el borde izquierdo
