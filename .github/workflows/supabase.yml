@@ -8,7 +8,7 @@ on:
       - "src/lib/supabase/types.ts"
       - ".github/workflows/supabase.yml"
   pull_request:
-    branches: ["main"]
+    branches: ["main", "feat/pos-alegra-exacto"]
     paths:
       - "supabase/**"
       - "src/lib/supabase/types.ts"
