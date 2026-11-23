@@ -1,5 +1,18 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 11: modo sin internet cerrado (rama `feat/pos-offline`, PR #115)
+
+Waldy aprobó opción A: offline sin NCF, ticket «Folio: POS-LOCAL-<UUID>»,
+fecha fiscal al sincronizar y stock según `vende_negativo`.
+
+- Cobros y movimientos se guardan en IndexedDB antes de confirmar; carritos por pestaña, catálogo por lista, contactos y configuración sobreviven recarga/cierre. Worker mínimo para recargar `/pos`; no borra IndexedDB.
+- `transporte-offline.ts` usa directamente la RPC tipada `pos_sincronizar_operacion` con `client_uuid`; FIFO con backoff de 5 s a 10 min. Un fallo de red conserva el UUID; un rechazo de negocio (existencia/`vende_negativo`) queda `fallida` visible, sin perder la venta.
+- La barra distingue sin conexión, sincronizando, error/reintentar y pendientes; el panel muestra folio, snapshot «Cobrado» y NCF confirmado. `beforeunload` avisa con pendientes. El cierre y el cuadre solo usan lo sincronizado; el panel explica «Conéctate para subir N ventas antes de cerrar el turno».
+- Migraciones ya aplicadas en la base de prueba (PR #122): `20261126120000_pos_offline_client_uuid.sql` y `20261126121000_empresa_sucursal_regimen.sql`. Tipos regenerados; `pos_sync_operaciones` clasificada en el reset a base virgen.
+- **Prueba real verde** (`tests/e2e/pos-offline-ui.spec.ts`, 3031, 1440 px, sesión ZZTEST): 3 ventas con `setOffline(true)`, recarga offline, fallo de red forzado con reintento, reconexión y sync. Resultado: 3 NCF distintos (**B0200000020, B0200000021, B0200000022**), cola vacía, 3 facturas en `/pos/historial` y cuadre del turno +3 ventas / RD$336.30. Las corridas de depuración previas dejaron NCF 8–19 como datos ZZTEST; no se borró nada.
+- Capturas en `docs/diseno/capturas/pos-11/` (offline pendientes, sincronizando, error/reintento, panel de sync, ticket, cierre bloqueado, historial y cuadre). `panel-sync.png` y `cierre-bloqueado.png` se regeneraron con ventas locales sin sincronizar para no crear facturas extra.
+- Límites: sync solo con el POS abierto (sin Background Sync), sin login offline y solo `/pos` cacheado; IndexedDB no es respaldo externo. Crédito y conversión de cotizaciones requieren conexión. Diseño y límites en `docs/diseno/pos-offline.md`; listo para revisión e integración, sin merge a `main`.
+
 ## POS 10 medidas exactas y migraciones aplicadas (23 nov 2026)
 
 - **Plantilla única 80 mm:** `TicketPos` + `impresion.ts` cubren factura, prefactura y cotización; el cierre usa su variante de 57 mm. Se eliminó `em`/`system-ui`: Arial/Liberation Sans con la tabla exacta de `medidas-alegra.txt` (fuera del repo; copiada en `.opencode/skills/ticket-80mm/SKILL.md`): empresa/cliente/Total 13.5 bold, cuerpo/título/subtotales/pie 9, tabla 8.1 bold, ítem 7.29, detalle 6.55; logo 69.8×20.9 mm. El título del cierre queda en 26.25 pt normal, una línea, con 4 mm de margen lateral autorizados por Waldy (la tabla dice 5.6 mm; se documentó la desviación). PR #121.

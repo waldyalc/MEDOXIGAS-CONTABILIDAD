@@ -1,0 +1,27 @@
+diff --git a/docs/pruebas/reset-base-virgen.sql b/docs/pruebas/reset-base-virgen.sql
+--- a/docs/pruebas/reset-base-virgen.sql
++++ b/docs/pruebas/reset-base-virgen.sql
+@@ -171,6 +171,7 @@
+   public.pagos_recibidos,
+   public.pagos_recurrentes,
+   public.periodos_contables,
++  public.pos_sync_operaciones,
+   public.pos_turno_movimientos,
+   public.pos_turnos,
+   public.producto_codigos_barra,
+@@ -536,6 +537,7 @@
+     'pagos_recibidos',
+     'pagos_recurrentes',
+     'periodos_contables',
++    'pos_sync_operaciones',
+     'pos_turno_movimientos',
+     'pos_turnos',
+     'producto_codigos_barra',
+@@ -667,6 +669,7 @@
+   union all select 'pagos_recibidos', count(*) from public.pagos_recibidos
+   union all select 'pagos_recurrentes', count(*) from public.pagos_recurrentes
+   union all select 'periodos_contables', count(*) from public.periodos_contables
++  union all select 'pos_sync_operaciones', count(*) from public.pos_sync_operaciones
+   union all select 'pos_turno_movimientos', count(*) from public.pos_turno_movimientos
+   union all select 'pos_turnos', count(*) from public.pos_turnos
+   union all select 'producto_codigos_barra', count(*) from public.producto_codigos_barra

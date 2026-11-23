@@ -39,12 +39,16 @@ import { toast } from "@/components/ui/toast";
 import type { ContactoBuscado } from "@/lib/contactos/seleccion";
 import type { Empresa } from "@/lib/facturacion/tipos";
 import { completarVenta } from "@/lib/pos/acciones";
-import { centavosATexto, centavosDeDecimal, compararMontos, sumarMontos } from "@/lib/pos/calculo";
+import { calcularLineaPOS, centavosATexto, centavosDeDecimal, compararMontos, sumarMontos } from "@/lib/pos/calculo";
+import { esquemaVenta, mensajeValidacion } from "@/lib/pos/esquemas";
+import { armarTicketOffline, type EntradaTicketOffline, type TicketPOSPayload } from "@/lib/pos/impresion";
 import type { MetodoPOS, PlantillaTicket, VentaPOSResultado } from "@/lib/pos/tipos";
 import { createClient } from "@/lib/supabase/client";
 
 import { useCarritoPOS } from "../carrito-pos-provider";
 import { capitalizar, ETIQUETAS_METODO, formatoMonedaPOS, hoyRD, textoAMonto } from "../formato-pos";
+import { useOfflinePOS } from "../offline-pos-provider";
+import { ConfirmacionOffline } from "./confirmacion-offline";
 import { ConfirmacionVenta } from "./confirmacion-venta";
 
 type ModoCobro = MetodoPOS | "combinado" | "credito";
@@ -85,6 +89,7 @@ export function CheckoutPos({
   turno,
   empresa,
   cuentas,
+  contactos,
   plantillaTicket,
   plantillaFactura,
   plantillaCotizacion,
@@ -112,6 +117,8 @@ export function CheckoutPos({
 }) {
   const router = useRouter();
   const carrito = useCarritoPOS();
+  const offline = useOfflinePOS();
+  const [ticketOffline, setTicketOffline] = useState<TicketPOSPayload | null>(null);
   const { activa, totales } = carrito;
   const [vista, setVista] = useState<"metodos" | "detalle">("metodos");
   const [modo, setModo] = useState<ModoCobro>("efectivo");
@@ -151,6 +158,7 @@ export function CheckoutPos({
     setLento(false);
     setPerdido(false);
     setVenta(null);
+    setTicketOffline(null);
   }, [abierto]);
 
   useEffect(() => {
@@ -355,6 +363,10 @@ export function CheckoutPos({
     setError(null);
     setPerdido(false);
 
+    const pagos = armarPagos();
+    const recibidoOffline = sumarMontos(
+      pagos.map((pago) => ("monto_recibido" in pago ? (pago.monto_recibido ?? pago.monto) : pago.monto)),
+    );
     const entrada = {
       terminal_id: terminal.id,
       contacto_defecto_id: cotizacion ? null : terminal.contacto_defecto_id,
@@ -365,10 +377,56 @@ export function CheckoutPos({
       ...(notas.trim() ? { notas: notas.trim() } : {}),
       fecha: hoyRD(),
       ...(cotizacion ? { cotizacion_id: cotizacion.id } : { lineas: lineasPayload() }),
-      pagos: armarPagos(),
+      pagos,
     };
 
+    let envioRemoto = false;
     try {
+      if (!navigator.onLine || offline.estado === "offline") {
+        if (cotizacion) throw new Error("Conéctate para convertir una cotización y evitar facturarla dos veces.");
+        if (porCobrarVisible)
+          throw new Error("Conéctate para verificar el crédito del cliente antes de vender a crédito.");
+        const cliente = contactos.find((contacto) => contacto.id === activa.contactoId);
+        if (!cliente)
+          throw new Error("El cliente no está disponible en la caché. Selecciona uno cargado antes de cobrar.");
+        const validada = esquemaVenta.safeParse(entrada);
+        if (!validada.success) throw new Error(mensajeValidacion(validada.error));
+        const detalle: Omit<EntradaTicketOffline, "folio"> = {
+          empresa,
+          cliente,
+          plantilla: plantillaTicket,
+          fecha: new Date().toISOString(),
+          ...totales,
+          recibido: recibidoOffline,
+          cambio: centavosATexto(Math.max(0, centavos(recibidoOffline) - centavos(total))),
+          lineas: activa.lineas.map((linea) => ({
+            id: linea.id,
+            producto_id: linea.productoId,
+            producto_nombre: linea.descripcion,
+            referencia: linea.referencia,
+            descripcion: linea.descripcion,
+            cantidad: linea.cantidad,
+            unidad_id: linea.unidadId,
+            unidad_nombre: linea.unidadNombre,
+            factor_base: linea.factorBase,
+            precio: linea.precio,
+            descuento_pct: linea.descuentoPct,
+            itbis_tasa: linea.itbisTasa,
+            impuesto_id: linea.impuestoId,
+            ...calcularLineaPOS({
+              cantidad: linea.cantidad,
+              precio: linea.precio,
+              descuento_pct: linea.descuentoPct,
+              itbis_tasa: linea.itbisTasa,
+            }),
+          })),
+        };
+        const operacion = await offline.encolar("venta", validada.data, { pestana: activa, ticket: detalle });
+        setTicketOffline(armarTicketOffline({ ...detalle, folio: operacion.folio }));
+        carrito.reiniciarTrasVenta();
+        return;
+      }
+      envioRemoto = true;
       const resultado = await completarVenta(entrada);
       if (!resultado.ok) {
         setError(capitalizar(resultado.error));
@@ -378,8 +436,16 @@ export function CheckoutPos({
       carrito.reiniciarTrasVenta();
       toast.add({ type: "success", title: "Venta registrada." });
       router.refresh();
-    } catch {
-      setPerdido(true);
+    } catch (causa) {
+      if (!envioRemoto) {
+        setError(
+          causa instanceof Error
+            ? causa.message
+            : "No se pudo guardar. No entregues la venta hasta confirmar el guardado.",
+        );
+      } else {
+        setPerdido(true);
+      }
     } finally {
       setEnviando(false);
     }
@@ -408,7 +474,9 @@ export function CheckoutPos({
     <>
       <Dialog open={abierto} onOpenChange={cerrar}>
         <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-[640px]">
-          {venta ? (
+          {ticketOffline ? (
+            <ConfirmacionOffline ticket={ticketOffline} onCerrar={onCerrar} />
+          ) : venta ? (
             <>
               <DialogTitle className="sr-only">Venta registrada</DialogTitle>
               <DialogDescription className="sr-only">La venta se cobró correctamente.</DialogDescription>

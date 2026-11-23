@@ -21,7 +21,6 @@ import {
   type PlantillaTicketEntrada,
   type TerminalEdicionEntrada,
   type TerminalEntrada,
-  type VentaEntrada,
 } from "./esquemas";
 import {
   esquemasRpcPOS,
@@ -32,6 +31,7 @@ import {
   mapearMovimientoResultado,
   mapearVentaPOS,
 } from "./mapeo";
+import { payloadFuenteVenta, payloadVentaCompleta } from "./payload-venta";
 import type {
   AperturaTurnoPOS,
   CierreTurnoPOS,
@@ -261,71 +261,10 @@ export async function cerrarTurno(entrada: unknown): Promise<ResultadoPOS<Cierre
 // Venta, cotización y devolución
 // ---------------------------------------------------------------------------
 
-function payloadLineas(lineas: NonNullable<VentaEntrada["lineas"]>) {
-  return lineas.map((linea) => ({
-    producto_id: linea.producto_id ?? null,
-    cantidad: linea.cantidad,
-    descuento_pct: linea.descuento_pct,
-    ...(linea.descripcion ? { descripcion: linea.descripcion } : {}),
-    ...(linea.unidad_id ? { unidad_id: linea.unidad_id } : {}),
-    ...(linea.precio !== undefined ? { precio: linea.precio } : {}),
-    ...(linea.itbis_tasa !== undefined ? { itbis_tasa: linea.itbis_tasa } : {}),
-    ...(linea.impuesto_id ? { impuesto_id: linea.impuesto_id } : {}),
-  }));
-}
-
-function payloadPagos(pagos: VentaEntrada["pagos"]) {
-  return pagos.map((pago) => ({
-    metodo: pago.metodo,
-    monto: pago.monto,
-    ...(pago.cuenta_id ? { cuenta_id: pago.cuenta_id } : {}),
-    ...(pago.metodo === "efectivo" && pago.monto_recibido !== undefined ? { monto_recibido: pago.monto_recibido } : {}),
-    ...(pago.notas ? { notas: pago.notas } : {}),
-  }));
-}
-
-function payloadFuente(datos: {
-  lineas?: VentaEntrada["lineas"];
-  venta_simple?: VentaEntrada["venta_simple"];
-  cotizacion_id?: string | null;
-}) {
-  return {
-    ...(datos.cotizacion_id ? { cotizacion_id: datos.cotizacion_id } : {}),
-    ...(datos.venta_simple
-      ? {
-          venta_simple: {
-            descripcion: datos.venta_simple.descripcion,
-            monto: datos.venta_simple.monto,
-            ...(datos.venta_simple.itbis_tasa !== undefined ? { itbis_tasa: datos.venta_simple.itbis_tasa } : {}),
-          },
-        }
-      : {}),
-    ...(datos.lineas && !datos.cotizacion_id && !datos.venta_simple ? { lineas: payloadLineas(datos.lineas) } : {}),
-  };
-}
-
-function payloadVentaCompleta(datos: VentaEntrada) {
-  return {
-    terminal_id: datos.terminal_id,
-    pagos: payloadPagos(datos.pagos),
-    ...payloadFuente(datos),
-    ...(datos.contacto_id ? { contacto_id: datos.contacto_id } : {}),
-    ...(datos.lista_precio_id ? { lista_precio_id: datos.lista_precio_id } : {}),
-    ...(datos.numeracion_id ? { numeracion_id: datos.numeracion_id } : {}),
-    ...(datos.tipo_comprobante ? { tipo_comprobante: datos.tipo_comprobante } : {}),
-    ...(datos.fecha ? { fecha: datos.fecha } : {}),
-    ...(datos.vencimiento ? { vencimiento: datos.vencimiento } : {}),
-    ...(datos.vendedor_id ? { vendedor_id: datos.vendedor_id } : {}),
-    ...(datos.notas ? { notas: datos.notas } : {}),
-    ...(datos.terminos ? { terminos: datos.terminos } : {}),
-    ...(datos.pie ? { pie: datos.pie } : {}),
-  };
-}
-
 function payloadCotizacionCompleta(datos: CotizacionEntrada) {
   return {
     terminal_id: datos.terminal_id,
-    ...payloadFuente(datos),
+    ...payloadFuenteVenta(datos),
     ...(datos.contacto_id ? { contacto_id: datos.contacto_id } : {}),
     ...(datos.lista_precio_id ? { lista_precio_id: datos.lista_precio_id } : {}),
     ...(datos.fecha ? { fecha: datos.fecha } : {}),

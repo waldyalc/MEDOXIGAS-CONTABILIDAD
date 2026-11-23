@@ -24,6 +24,7 @@ import { centavosATexto, centavosDeDecimal, compararMontos } from "@/lib/pos/cal
 import type { CierreTurnoPOS, ResumenTurnoVista } from "@/lib/pos/tipos";
 
 import { capitalizar, textoAMonto } from "../formato-pos";
+import { useOfflinePOS } from "../offline-pos-provider";
 
 export function DialogoCerrarTurno({
   abierto,
@@ -36,6 +37,13 @@ export function DialogoCerrarTurno({
   vista: ResumenTurnoVista;
   onCerrado: (datos: CierreTurnoPOS) => void;
 }) {
+  const offline = useOfflinePOS();
+  const cierreBloqueado =
+    !offline.preparado || offline.estado === "offline" || offline.estado === "sincronizando" || offline.pendientes > 0;
+  const mensajeOffline =
+    offline.pendientes > 0
+      ? `Conéctate para subir ${offline.pendientes} ventas antes de cerrar`
+      : "Conéctate a internet para cerrar el turno";
   const [real, setReal] = useState("");
   const [registrarDiferencia, setRegistrarDiferencia] = useState(true);
   const [observaciones, setObservaciones] = useState("");
@@ -71,12 +79,14 @@ export function DialogoCerrarTurno({
     setEnviando(true);
     setError(null);
     try {
-      const resultado = await cerrarTurno({
-        turno_id: vista.turno.id,
-        efectivo_real: realValido,
-        registrar_diferencia: hayDiferencia ? registrarDiferencia : false,
-        ...(observaciones.trim() ? { observaciones: observaciones.trim() } : {}),
-      });
+      const resultado = await offline.conCierreSeguro(() =>
+        cerrarTurno({
+          turno_id: vista.turno.id,
+          efectivo_real: realValido,
+          registrar_diferencia: hayDiferencia ? registrarDiferencia : false,
+          ...(observaciones.trim() ? { observaciones: observaciones.trim() } : {}),
+        }),
+      );
 
       if (!resultado.ok) {
         setError(capitalizar(resultado.error));
@@ -209,6 +219,9 @@ export function DialogoCerrarTurno({
 
           <p className="text-muted-foreground text-xs">El turno se cerrará y no se puede reabrir.</p>
 
+          {cierreBloqueado ? (
+            <p role="alert">{mensajeOffline}. El cuadre solo incluye operaciones sincronizadas.</p>
+          ) : null}
           {error ? (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -220,7 +233,11 @@ export function DialogoCerrarTurno({
           <Button variant="outline" onClick={onCerrar} disabled={enviando}>
             Cancelar
           </Button>
-          <Button className="h-12" onClick={() => void cerrar()} disabled={enviando || esperadoNegativo}>
+          <Button
+            className="h-12"
+            onClick={() => void cerrar()}
+            disabled={enviando || esperadoNegativo || cierreBloqueado}
+          >
             {enviando ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
             {enviando ? "Cerrando turno…" : "Cerrar turno"}
           </Button>
