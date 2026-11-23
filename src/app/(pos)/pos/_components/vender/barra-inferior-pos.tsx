@@ -23,7 +23,7 @@ export function BarraInferiorPos({
 }) {
   const abierto = turno !== null;
   const offline = useOfflinePOS();
-  const bloquearCierre = !offline.preparado || offline.estado === "offline" || offline.pendientes > 0;
+  const bloquearCierre = !offline.preparado || offline.estado === "offline" || offline.porSubir > 0;
 
   return (
     <footer className="border-black/20 bg-slate-100 dark:bg-card dark:border-pos-linea flex h-11 shrink-0 items-stretch justify-between border-t print:hidden">
@@ -51,8 +51,8 @@ export function BarraInferiorPos({
               toast.add({
                 type: "error",
                 title:
-                  offline.pendientes > 0
-                    ? `Conéctate para subir ${offline.pendientes} ventas antes de cerrar`
+                  offline.porSubir > 0
+                    ? `Conéctate para subir ${offline.porSubir} ventas antes de cerrar`
                     : "Conéctate a internet para cerrar el turno",
               });
               offline.abrirPanel();

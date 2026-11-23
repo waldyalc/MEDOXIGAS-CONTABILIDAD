@@ -1,13 +1,13 @@
--- Propuesta de migración aditiva (POS 10 — encabezado del ticket 80 mm):
+-- Verificación de la migración aplicada (POS 10 — encabezado del ticket 80 mm):
 -- empresa.sucursal y empresa.regimen para el encabezado estilo Alegra.
 --
--- NO APLICADA. Probar con BEGIN/ROLLBACK (o supabase start + db reset) y
--- aplicar solo con el OK de Waldy. Cuando se aplique como migración real,
--- el archivo va en supabase/migrations/ con timestamp UTC real mayor que
--- el último existente y después hay que regenerar `pnpm db:types`.
---
--- El código ya envía sucursal/regimen en el JSON de actualizar_empresa:
--- con la función vieja se ignoran sin error; con esta versión se guardan.
+-- APLICADA. La migración real vive en
+-- supabase/migrations/20261126121000_empresa_sucursal_regimen.sql y ya está
+-- registrada en supabase_migrations.schema_migrations del proyecto
+-- ljfdhrnvlsfaweuvnqxz (es la última versión aplicada). El código envía
+-- sucursal/regimen en el JSON de actualizar_empresa y esta versión los guarda.
+-- Este archivo queda como verificación reproducible dentro de BEGIN/ROLLBACK:
+-- no aplica nada al ejecutarlo.
 
 begin;
 

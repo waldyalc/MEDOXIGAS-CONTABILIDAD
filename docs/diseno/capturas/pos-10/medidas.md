@@ -67,7 +67,7 @@ La tabla completa de Coder (PyMuPDF, tamaños nominales y posiciones) vive en `.
 
 Las comparaciones actuales se renderizan desde AMBOS PDFs a 150 dpi, sin redimensionar columnas. Se ocultan logo/datos sensibles del referente; no se versiona su PDF crudo. El título partido de la columna Alegra es la referencia, NO un cierre actual de Medoxigas. Las otras dos columnas están rotuladas como No 3 ACTUAL y No 4 ACTUAL.
 
-Prueba: `pnpm vitest run src/lib/pos/ticket-pdf.test.tsx`. Requiere Chromium Playwright, Poppler y Arial/Liberation Sans; CI instala las herramientas sin secretos y el test no consulta la base. Preview oficial falló dos veces por el sandbox de Chrome al ejecutar T3 como root; las capturas del flujo real se hicieron en 3029 con Playwright local, sin tocar 3010.
+Prueba: `pnpm test:pdf`. Requiere Chromium Playwright, Poppler y Arial/Liberation Sans; el job `pdf` de CI instala las herramientas sin secretos y el test no consulta la base. Preview oficial falló dos veces por el sandbox de Chrome al ejecutar T3 como root; las capturas del flujo real se hicieron en 3029 con Playwright local, sin tocar 3010.
 
 Migración: tras consultar el conflicto del timestamp futuro, se eligió **Conservar propuesta**. El SQL sigue en docs/pruebas, sin aplicar ni cambiar el candado de migrations. Faltan dirección, teléfono, correo, sucursal, régimen y logo configurados para la captura del encabezado completo; no se inventaron.
 

@@ -5,7 +5,7 @@
 - NCF opción A: guardar offline sin NCF; asignarlo exclusivamente en servidor al sincronizar.
 - Fecha fiscal: día de sincronización en America/Santo_Domingo.
 - Ticket offline: **Folio: POS-LOCAL-<UUID>**, título «Venta», sin NCF ni leyenda «Comprobante provisional».
-- Inventario: descontar al sincronizar, respetando `vende_negativo`; un rechazo deja la operación fallida visible, nunca se descarta.
+- Inventario: descontar al sincronizar, respetando `vende_negativo`; un rechazo deja la venta fallida visible para reintentarla o descartarla con confirmación explícita del cajero.
 - Service worker mínimo, no PWA completa.
 - No se certifica cumplimiento DGII/e-CF con este trabajo. Firma, envío electrónico y contingencia fiscal siguen fuera de este alcance.
 
@@ -25,8 +25,8 @@ Migraciones ya aplicadas en `ljfdhrnvlsfaweuvnqxz` (PR #122):
 La respuesta de la RPC se valida con `esquemasRpcPOS`; el log muestra el
 número y NCF confirmados por el servidor. Un error de red o 5xx se reintenta
 con el mismo UUID; un rechazo de negocio (existencia, `vende_negativo`,
-período, crédito) queda **fallido** y visible en el panel, con la venta
-completa conservada para intervención.
+período, crédito) queda **fallido** y visible en la bandeja de «Ventas con
+problema», con la venta completa conservada para reintentarla o descartarla.
 
 ## Persistencia y recuperación
 
@@ -46,7 +46,10 @@ Base `medoxigas-pos-offline`, versión 1:
 - Al restaurar, un carrito que coincide con el snapshot de una operación ya guardada se limpia para no cobrarlo otra vez tras una interrupción.
 - Web Locks serializa secuencias y sincronización. Un segundo editor del mismo usuario/terminal se bloquea para no sobrescribir carritos.
 - Sin IndexedDB o Web Locks se muestra un error; no se confirma un cobro sin persistencia.
-- No hay botón de borrar pendientes. Limpiar el navegador o perder el equipo puede perderlos: IndexedDB no es un respaldo externo.
+- Las ventas pendientes no se pueden borrar; solo una venta rechazada por el
+  servidor se puede descartar, con diálogo de confirmación y sin dejar rastro
+  contable. Limpiar el navegador o perder el equipo puede perder la cola:
+  IndexedDB no es un respaldo externo.
 
 ## Conexión y cola
 
@@ -54,9 +57,12 @@ Base `medoxigas-pos-offline`, versión 1:
 
 - `navigator.onLine` y eventos online/offline, más HEAD no cacheable al servidor cada 15 segundos, con timeout de 5 segundos.
 - Estados online, offline, sincronizando y error en la barra inferior; abre el panel de sincronización.
-- FIFO por secuencia persistida, una operación por vez. Un fallo frena las dependientes.
+- FIFO por secuencia persistida, una operación por vez. Un fallo de red frena
+  las dependientes para no perder el orden; un rechazo de negocio marca la
+  venta como fallida y la cola sigue con las demás.
 - Red: backoff exponencial de 5 segundos a 10 minutos. Negocio: fallida, sin bucle automático.
-- «Reintentar pendientes» conserva UUID y payload. Sin conexión no se intenta enviar.
+- «Reintentar todo» y el reintento individual conservan UUID y payload. Sin
+  conexión no se intenta enviar. Descartar una fallida pide confirmación.
 - Las confirmaciones se conservan en el log local; no se borran al recibir respuesta.
 - beforeunload solicita el aviso nativo con cobros pendientes. El navegador controla el texto del diálogo.
 - El procesador funciona mientras el POS está abierto; no se promete sincronización con el navegador cerrado.
@@ -91,8 +97,13 @@ y se exige revisar Historial, evitando un segundo cobro por cambio de conexión.
 
 ## Cierre
 
-- La barra inferior impide navegar al cierre sin conexión o con pendientes y explica «Conéctate para subir N ventas antes de cerrar».
-- El panel de sincronización repite el aviso y deshabilita el cierre mientras haya pendientes.
+- La barra inferior impide navegar al cierre sin conexión o con ventas por
+  subir y explica «Conéctate para subir N ventas antes de cerrar».
+- Las ventas con problema **no bloquean** el cierre: el diálogo de cierre muestra
+  el aviso ámbar «N ventas con problema no subirán» y el cierre se completa; el
+  cuadre solo incluye lo sincronizado.
+- El panel de sincronización separa «por subir» de «con problema» y permite
+  reintentar o descartar cada fallida.
 - El diálogo de cierre vuelve a consultar IndexedDB antes de llamar a la RPC y comparte Web Lock con la cola.
 - El cuadre de servidor incluye únicamente documentos ya sincronizados.
 - Límite: la RPC actual no puede conocer operaciones que otro dispositivo nunca le envió. No se presenta el control cliente como una garantía servidor entre equipos.
@@ -100,8 +111,11 @@ y se exige revisar Historial, evitando un segundo cobro por cambio de conexión.
 ## Pruebas y evidencia
 
 - Vitest: idempotencia con el mismo UUID tras perder respuesta, backoff, FIFO,
-  error de negocio, snapshot estable, transporte directo de la RPC tipada y
-  ticket sin NCF ni leyenda.
+  error de negocio sin trancar la cola, reintento y descarte de fallidas,
+  cierre sin bloqueo con aviso, snapshot estable, transporte directo de la RPC
+  tipada y ticket sin NCF ni leyenda.
+- Checklist de caja real en `docs/pruebas/checklist-offline-caja.md` (3 ventas
+  offline, 1 rechazada, reintento/descarte y cierre con aviso).
 - `tests/e2e/pos-offline-almacen.spec.ts`: IndexedDB real conserva operaciones y
   carritos tras recargar offline; dos pestañas serializan secuencias con Web Locks.
 - `tests/e2e/pos-offline-ui.spec.ts` (**corrida real verde**, 22-11-2026): abre
@@ -118,6 +132,10 @@ y se exige revisar Historial, evitando un segundo cobro por cambio de conexión.
   error/reintento, panel de sync, ticket con folio, cierre bloqueado, historial
   y cuadre. `panel-sync.png` y `cierre-bloqueado.png` se regeneraron con 3 ventas
   locales que no se sincronizaron, para no escribir ventas adicionales.
+- Capturas de la bandeja de fallidas en
+  `docs/diseno/capturas/pos-offline-fallidas/`: venta con problema, confirmación
+  de descarte, modo oscuro y aviso de cierre con el botón habilitado (sembradas
+  en IndexedDB, sin crear facturas).
 
 ## Limitaciones conocidas
 
