@@ -1,5 +1,28 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 16: panel «Más opciones» del carrito (rama `feat/pos-mas-opciones`)
+
+Waldy (MSG-34): el ⋯ de la barra de cobro deja de abrir una listita y abre un
+panel grande que tapa todo el carrito.
+
+- `mas-opciones-pos.tsx` (nuevo): overlay `absolute inset-0` dentro del `aside`
+  del carrito (mismo tamaño), encabezado «Más opciones» con X «Volver al
+  carrito», Esc para cerrar y cuadrícula 2/3 columnas de cuadros de 116 px con
+  ícono teal encima y nombre debajo. Al cerrar devuelve el foco al botón ⋯.
+- `panel-factura.tsx`: el `DropdownMenu` del ⋯ se reemplazó por ese panel. Las
+  opciones salen de `opcionesMas` (`etiqueta`, `Icono`, `accion`/`href`):
+  «Guardar cotización», «Cargar cotización» e «Historial de ventas» (enlace a
+  `/pos/historial`), con las mismas condiciones de habilitado. Abrir/cerrar no
+  toca el carrito: solo cambia `masOpciones`.
+- **Candados:** `src/lib/pos/mas-opciones.test.ts` (Vitest) exige el arreglo con
+  las tres etiquetas/íconos, el overlay que cubre el aside, los tokens `--pos-*`
+  y que cerrar no mute la venta; `tests/e2e/pos-mas-opciones.spec.ts` abre el
+  panel a 1440 px, comprueba los tres cuadros y que X y Esc dejan el carrito
+  idéntico (requiere la sesión ZZTEST externa; el candado de fuente corre
+  siempre).
+- **Evidencia:** `docs/diseno/capturas/pos-mas-opciones/` (antes con la listita;
+  panel abierto en claro y oscuro; móvil a 390 px). Sin migraciones ni datos.
+
 ## Auditoría Punto 1: capturas de Alegra fuera del repo (rama `fix/pos-audit-capturas-alegra`)
 
 - **Hallazgo confirmado:** el PR #107 commiteó 16 PNG de referencia y comparación de Alegra bajo `docs/diseno/alegra-pos/` en el repo público (1.18 MB de blobs; siguen en el historial de git). Se borraron del árbol y las imágenes quedaron fuera del repo, en `/root/referencias/alegra-pos/diseno-pos/` del VPS.

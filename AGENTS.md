@@ -163,6 +163,7 @@ Candados que ya existen:
 - `supabase/tests/anular_ajuste_costo_test.sql` — anular un ajuste de inventario de entrada devuelve la cantidad y revierte el costo promedio; anular una compra ya lo hacía (`anular_compra_costo_test.sql`).
 - `src/lib/pos/ticket-pdf-carril.test.ts` — el test del ticket 80 mm (Chromium + Poppler) queda fuera de `pnpm test`: exige que `vitest.config.mts` lo excluya, que `pnpm test:pdf` use `vitest.pdf.config.mts` y que el job `ci` de CI no instale navegador ni Poppler (solo el job `pdf`).
 - `src/lib/pos/diseno-pos.test.ts` — el POS usa los tokens `--pos-*` (teal `#00b19d`, copia exacta de Alegra); prohíbe `--primary` y `#1e56c7` en `src/app/(pos)/pos/` con una lista de pendientes que solo puede encoger, y exige la paleta en `globals.css`. Además fija el Punto 1: el turno y las pestañas de ventas van en la barra inferior (`barra-inferior-pos.tsx`), no en una línea sobre el buscador ni dentro del panel, y el Sheet móvil termina 44 px antes para no tapar la barra. El cuerpo del panel usa `--pos-panel` (#f8fafc) con encabezado, bloque superior, renglones y pie blancos, y el shell fija `--ring: var(--pos-primario)` para que el foco sea teal.
+- `src/lib/pos/mas-opciones.test.ts` + `tests/e2e/pos-mas-opciones.spec.ts` — el ⋯ del carrito abre el panel «Más opciones» a todo el panel (no un dropdown) con los cuadros «Guardar cotización», «Cargar cotización» e «Historial de ventas» desde un arreglo; X y Esc cierran sin tocar la venta.
 
 ## Preview y capturas al terminar (regla de Waldy, 22-11-2026)
 
