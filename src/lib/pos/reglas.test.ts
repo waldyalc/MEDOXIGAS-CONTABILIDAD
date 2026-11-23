@@ -27,8 +27,12 @@ describe("reglas de la capa POS", () => {
   test("ningún archivo escribe directo en tablas ni usa service_role", () => {
     for (const archivo of archivosFuente()) {
       const texto = leer(archivo);
+      // El almacén offline borra la copia local en IndexedDB (no es una tabla
+      // de Supabase); se descuenta esa llamada y el candado sigue cazando
+      // cualquier escritura directa contra el API.
+      const sinBorradoLocal = texto.replace(/objectStore\([^)]*\)\.delete\(/g, "");
 
-      expect(texto, `${archivo} no puede hacer insert/update/delete/upsert directo`).not.toMatch(
+      expect(sinBorradoLocal, `${archivo} no puede hacer insert/update/delete/upsert directo`).not.toMatch(
         /\.(insert|update|delete|upsert)\s*\(/,
       );
       expect(texto, `${archivo} no puede mencionar service_role`).not.toContain("service_role");

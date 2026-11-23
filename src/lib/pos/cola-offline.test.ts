@@ -5,6 +5,8 @@ import {
   demoraReintentoOffline,
   nuevaOperacionOffline,
   type OperacionOffline,
+  programarReintentoOffline,
+  revisionCierreOffline,
   sincronizarColaOffline,
 } from "./cola-offline";
 
@@ -14,6 +16,10 @@ function preparar() {
     listar: async (ambito) => [...filas.values()].filter((fila) => fila.ambito === ambito),
     guardar: async (fila) => {
       filas.set(fila.uuid, structuredClone(fila));
+    },
+    eliminar: async (ambito, uuid) => {
+      const fila = filas.get(uuid);
+      if (fila?.ambito === ambito) filas.delete(uuid);
     },
   };
   const crear = (secuencia: number) =>
@@ -54,7 +60,7 @@ describe("cola offline POS", () => {
     expect(filas.get(venta.uuid)?.estado).toBe("sincronizada");
   });
 
-  it("no adelanta operaciones dependientes durante backoff ni ante un error de negocio", async () => {
+  it("ante un fallo de red respeta el backoff y no adelanta las ventas siguientes", async () => {
     const { almacen, crear, filas } = preparar();
     const primera = crear(1);
     const segunda = crear(2);
@@ -64,12 +70,88 @@ describe("cola offline POS", () => {
     await sincronizarColaOffline(almacen, primera.ambito, enviar, () => 0);
     await sincronizarColaOffline(almacen, primera.ambito, enviar, () => 4_999);
     expect(enviar).toHaveBeenCalledTimes(1);
-    const rechazar = vi.fn(async () => ({ ok: false as const, transitorio: false, error: "Sin existencia" }));
-    await sincronizarColaOffline(almacen, primera.ambito, rechazar, () => 5_000);
-    await sincronizarColaOffline(almacen, primera.ambito, rechazar, () => 10_000);
-    expect(rechazar).toHaveBeenCalledTimes(1);
-    expect(filas.get(primera.uuid)?.estado).toBe("fallida");
+    expect(filas.get(primera.uuid)?.estado).toBe("pendiente");
     expect(filas.get(segunda.uuid)?.intentos).toBe(0);
+  });
+
+  it("una venta fallida no tranca la cola: suben las nueve válidas y la fallida queda marcada", async () => {
+    const { almacen, crear, filas } = preparar();
+    const operaciones = Array.from({ length: 10 }, (_, indice) => crear(indice + 1));
+    for (const operacion of operaciones) await almacen.guardar(operacion);
+    const rechazada = operaciones[0];
+    if (!rechazada) throw new Error("Falta la operación rechazada.");
+    const enviar = vi.fn(async (operacion: OperacionOffline) =>
+      operacion.uuid === rechazada.uuid
+        ? { ok: false as const, transitorio: false, error: "Sin existencia" }
+        : { ok: true as const, resultado: { factura: { numero: operacion.secuencia } } },
+    );
+
+    await sincronizarColaOffline(almacen, rechazada.ambito, enviar, () => 0);
+
+    expect(enviar).toHaveBeenCalledTimes(10);
+    expect(filas.get(rechazada.uuid)).toMatchObject({
+      estado: "fallida",
+      error: "Sin existencia",
+      proximoIntento: 0,
+    });
+    for (const valida of operaciones.slice(1)) {
+      expect(filas.get(valida.uuid)?.estado).toBe("sincronizada");
+    }
+
+    enviar.mockClear();
+    await sincronizarColaOffline(almacen, rechazada.ambito, enviar, () => 10_000);
+    expect(enviar).not.toHaveBeenCalled();
+    expect(filas.get(rechazada.uuid)?.estado).toBe("fallida");
+  });
+
+  it("reintentar una venta fallida la vuelve a encolar y la sube con su mismo UUID", async () => {
+    const { almacen, crear, filas } = preparar();
+    const venta = crear(1);
+    await almacen.guardar(venta);
+    const rechazar = vi.fn(async () => ({ ok: false as const, transitorio: false, error: "Sin existencia" }));
+    await sincronizarColaOffline(almacen, venta.ambito, rechazar, () => 0);
+    const fallida = filas.get(venta.uuid);
+    if (!fallida) throw new Error("La venta fallida debe conservarse en la cola.");
+
+    await almacen.guardar(programarReintentoOffline(fallida));
+    expect(filas.get(venta.uuid)).toMatchObject({ estado: "pendiente", error: null, proximoIntento: 0 });
+
+    const enviar = vi.fn(async (_operacion: OperacionOffline) => ({
+      ok: true as const,
+      resultado: { factura: { numero: 7 } },
+    }));
+    await sincronizarColaOffline(almacen, venta.ambito, enviar, () => 10_000);
+    expect(enviar.mock.calls[0]?.[0].uuid).toBe(venta.uuid);
+    expect(filas.get(venta.uuid)?.estado).toBe("sincronizada");
+  });
+
+  it("las fallidas no bloquean el cierre pero se avisan; las pendientes sí lo bloquean", () => {
+    const fallida = { estado: "fallida" as const };
+    const pendiente = { estado: "pendiente" as const };
+    const sincronizada = { estado: "sincronizada" as const };
+
+    expect(revisionCierreOffline([fallida, sincronizada], true)).toEqual({
+      impedimento: null,
+      aviso: "1 venta con problema no subirá. Queda guardada en este dispositivo.",
+      porSubir: 0,
+      fallidas: 1,
+    });
+    expect(revisionCierreOffline([fallida, fallida, sincronizada], true).aviso).toBe(
+      "2 ventas con problema no subirán. Quedan guardadas en este dispositivo.",
+    );
+    expect(revisionCierreOffline([pendiente, fallida], true).impedimento).toBe(
+      "Conéctate para subir 1 ventas antes de cerrar.",
+    );
+    expect(revisionCierreOffline([pendiente], false).impedimento).toBe(
+      "Conéctate para subir 1 ventas antes de cerrar.",
+    );
+    expect(revisionCierreOffline([], false).impedimento).toBe("Conéctate a internet para cerrar el turno.");
+    expect(revisionCierreOffline([], true)).toEqual({
+      impedimento: null,
+      aviso: null,
+      porSubir: 0,
+      fallidas: 0,
+    });
   });
 
   it("procesa tres ventas en orden y no incluye la cola de otro usuario", async () => {
