@@ -82,22 +82,23 @@ function agrupar(filas: readonly FilaReporte[]): Agrupacion {
 }
 
 function CeldaCuenta({ fila }: { fila: FilaReporte }) {
-  const contenido = (
-    <>
-      {fila.codigo === "" ? null : <span className="text-muted-foreground">{fila.codigo}</span>}
-      {fila.codigo === "" ? null : " "}
+  return fila.cuentaId ? (
+    <Enlace href={rutaCuenta(fila.cuentaId)} className="text-inherit">
       {fila.nombre}
-    </>
+    </Enlace>
+  ) : (
+    fila.nombre
   );
-
-  return fila.cuentaId ? <Enlace href={rutaCuenta(fila.cuentaId)}>{contenido}</Enlace> : contenido;
 }
 
 function Montos({ fila }: { fila: FilaReporte }) {
   const total = fila.clase === "total";
+  /* Alegra pinta en rojo los importes de las hojas «contra» (devoluciones);
+     las hojas de gasto/costo van en negro aunque se muestran con signo -. */
+  const periodo = fila.contra ? "text-rose-700" : null;
   return (
     <>
-      <TableCell className={cn("text-right text-xs whitespace-nowrap tabular-nums", total && "font-semibold")}>
+      <TableCell className={cn("text-right text-xs whitespace-nowrap tabular-nums", periodo, total && "font-semibold")}>
         {formatearRd(fila.actual)}
       </TableCell>
       <TableCell
@@ -108,7 +109,7 @@ function Montos({ fila }: { fila: FilaReporte }) {
       >
         {formatoPorcentaje(fila.porcentajeActual)}
       </TableCell>
-      <TableCell className={cn("text-right text-xs whitespace-nowrap tabular-nums", total && "font-semibold")}>
+      <TableCell className={cn("text-right text-xs whitespace-nowrap tabular-nums", periodo, total && "font-semibold")}>
         {formatearRd(fila.anterior)}
       </TableCell>
       <TableCell

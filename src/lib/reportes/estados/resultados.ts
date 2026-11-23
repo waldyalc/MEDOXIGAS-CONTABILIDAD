@@ -283,6 +283,7 @@ export function calcularEstadoResultadosComparativo(
       nombre: cuenta.nombre,
       cuentaId: cuenta.cuentaId ?? opciones.cuentasPorCodigo?.get(cuenta.codigo) ?? null,
       nivel,
+      contra: cuenta.tipo === "ingreso" && (cuenta.actual < 0 || cuenta.anterior < 0),
       actual: signo * cuenta.actual,
       anterior: signo * cuenta.anterior,
       porcentajeActual: porcentajeActual(cuenta.actual),

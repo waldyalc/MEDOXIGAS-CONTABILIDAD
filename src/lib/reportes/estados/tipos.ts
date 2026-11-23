@@ -12,6 +12,8 @@ export interface FilaReporte {
   cuentaId: string | null;
   /** Profundidad en el árbol del reporte: 0 sección/total, 1 hijo, 2 nieto. */
   nivel?: number;
+  /** Hoja «contra» (devolución): Alegra pinta sus importes de periodo en rojo. */
+  contra?: boolean;
   actual: number;
   anterior: number;
   porcentajeActual: number;

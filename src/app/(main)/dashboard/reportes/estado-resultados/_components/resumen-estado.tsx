@@ -46,7 +46,14 @@ export function ResumenEstado({ texto }: Props) {
         <div className="w-full">
           <div className="flex flex-col gap-3 px-4 py-3">
             <p className="text-sm text-slate-700">{texto}</p>
-            <div className="flex w-full items-center justify-end">
+            <div className="flex w-full items-center justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-7 rounded-full border-[#0a9e9a]/50 bg-white px-3 text-xs font-normal text-[#005452] hover:bg-[#ebfafa]"
+              >
+                Saber más
+              </Button>
               <div className="flex items-center gap-2 print:hidden">
                 <span className="text-xs text-slate-500">¿Te pareció útil?</span>
                 <Button

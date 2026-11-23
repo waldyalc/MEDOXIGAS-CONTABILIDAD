@@ -6,6 +6,7 @@ import { filtrarItemsPorRol, sidebarItems } from "./sidebar-items";
 
 const MODULOS = [
   "inicio",
+  "bandeja-entrada",
   "ingresos",
   "compras",
   "contactos",
@@ -13,12 +14,13 @@ const MODULOS = [
   "bancos",
   "contabilidad",
   "reportes",
+  "mis-tareas",
   "configuracion",
   "nomina",
   "punto-venta",
 ];
 
-const MODULOS_CON_DGII = [...MODULOS, "configuracion-reportes-dgii"];
+const MODULOS_CON_DGII = [...MODULOS.slice(0, 11), "configuracion-reportes-dgii", ...MODULOS.slice(11)];
 
 function ids(rol: Rol | null) {
   return filtrarItemsPorRol(rol).flatMap((grupo) => grupo.items.map((item) => item.id));
@@ -159,12 +161,12 @@ describe("filtrarItemsPorRol", () => {
     expect(catalogo?.addUrl).toBeUndefined();
   });
 
-  test("solo Inicio lleva separador después", () => {
+  test("solo Bandeja de entrada lleva separador después, como en Alegra", () => {
     expect(
       items("admin")
         .filter((item) => item.separadorDespues)
         .map((item) => item.id),
-    ).toEqual(["inicio"]);
+    ).toEqual(["bandeja-entrada"]);
   });
 
   test("POS abre /pos en otra pestaña y lo ven los tres roles", () => {
@@ -179,7 +181,8 @@ describe("filtrarItemsPorRol", () => {
     }
   });
 
-  test("el grupo va sin etiqueta, como el menú de Alegra", () => {
-    expect(sidebarItems.map((grupo) => grupo.label)).toEqual([undefined]);
+  test("el menú se divide como Alegra: principal sin etiqueta y «Descubre más soluciones»", () => {
+    expect(sidebarItems.map((grupo) => grupo.label)).toEqual([undefined, "Descubre más soluciones"]);
+    expect(sidebarItems[1]?.items.map((item) => item.id)).toEqual(["nomina", "punto-venta"]);
   });
 });
