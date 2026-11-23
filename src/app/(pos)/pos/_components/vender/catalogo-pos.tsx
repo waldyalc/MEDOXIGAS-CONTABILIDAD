@@ -40,7 +40,9 @@ export function CatalogoPos({
   onReintentar,
   onVerMas,
   onAgregar,
+  onFavorito,
   onVentaSimple,
+  esFavorito,
   limpiarToken,
 }: {
   inputRef: RefObject<HTMLInputElement | null>;
@@ -65,7 +67,9 @@ export function CatalogoPos({
   onReintentar: () => void;
   onVerMas: () => void;
   onAgregar: (producto: ProductoPOS) => void;
+  onFavorito: (producto: ProductoPOS) => void;
   onVentaSimple: () => void;
+  esFavorito: (producto: ProductoPOS) => boolean;
   limpiarToken?: number;
 }) {
   const vacio = productos.length === 0 && !cargando;
@@ -186,14 +190,10 @@ export function CatalogoPos({
               <>
                 <p className="font-semibold">Aún no tienes productos favoritos.</p>
                 <p className="text-pos-texto-suave text-sm">
-                  Marca productos como favoritos en Inventario para verlos aquí.
+                  Marca productos con la estrella del catálogo para verlos aquí.
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  render={<a href="/dashboard/productos" target="_blank" rel="noreferrer" />}
-                >
-                  Ir a Inventario
+                <Button variant="outline" size="sm" onClick={onLimpiar}>
+                  Ver todo el catálogo
                 </Button>
               </>
             ) : (
@@ -216,8 +216,10 @@ export function CatalogoPos({
                 producto={producto}
                 cantidad={cantidades.get(producto.producto_id) ?? 0}
                 resaltado={resaltado >= 0 && productos[resaltado]?.producto_id === producto.producto_id}
+                favorito={esFavorito(producto)}
                 imagenUrl={imagenes.get(producto.producto_id) ?? null}
                 onAgregar={onAgregar}
+                onFavorito={onFavorito}
               />
             ))}
           </div>
