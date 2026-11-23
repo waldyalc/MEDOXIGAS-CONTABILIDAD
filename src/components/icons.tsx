@@ -33,10 +33,6 @@ import {
   IconCalculator,
   IconCalendar,
   IconCalendarPlus,
-  IconCaretDownFilled,
-  IconCaretLeftFilled,
-  IconCaretRightFilled,
-  IconCaretUpFilled,
   IconCash,
   IconCashRegister,
   IconChartBar,
@@ -44,8 +40,12 @@ import {
   IconChartLine,
   IconChartPie,
   IconCheck,
+  IconChevronDown,
+  IconChevronLeft,
+  IconChevronRight,
   IconChevronsLeft,
   IconChevronsRight,
+  IconChevronUp,
   IconCircleArrowDown,
   IconCircleArrowDownLeft,
   IconCircleArrowUp,
@@ -273,31 +273,31 @@ export function CheckSquare(props: PropsIcono) {
 }
 
 export function ChevronDown(props: PropsIcono) {
-  return <IconCaretDownFilled stroke={1.5} {...props} />;
+  return <IconChevronDown stroke={1.5} {...props} />;
 }
 
 export function ChevronDownIcon(props: PropsIcono) {
-  return <IconCaretDownFilled stroke={1.5} {...props} />;
+  return <IconChevronDown stroke={1.5} {...props} />;
 }
 
 export function ChevronLeft(props: PropsIcono) {
-  return <IconCaretLeftFilled stroke={1.5} {...props} />;
+  return <IconChevronLeft stroke={1.5} {...props} />;
 }
 
 export function ChevronLeftIcon(props: PropsIcono) {
-  return <IconCaretLeftFilled stroke={1.5} {...props} />;
+  return <IconChevronLeft stroke={1.5} {...props} />;
 }
 
 export function ChevronRight(props: PropsIcono) {
-  return <IconCaretRightFilled stroke={1.5} {...props} />;
+  return <IconChevronRight stroke={1.5} {...props} />;
 }
 
 export function ChevronRightIcon(props: PropsIcono) {
-  return <IconCaretRightFilled stroke={1.5} {...props} />;
+  return <IconChevronRight stroke={1.5} {...props} />;
 }
 
 export function ChevronUpIcon(props: PropsIcono) {
-  return <IconCaretUpFilled stroke={1.5} {...props} />;
+  return <IconChevronUp stroke={1.5} {...props} />;
 }
 
 export function ChevronsLeft(props: PropsIcono) {
