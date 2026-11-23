@@ -1,5 +1,15 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 13 bis: la estrella marcada se ve rellena (rama `fix/pos-favoritos-estrella-rellena`, MSG-31)
+
+Corrección de Waldy sobre el PR #128: en las capturas la estrella marcada se veía igual que la vacía.
+
+- **Causa:** `@/components/icons` exporta `StarIcon` de Phosphor, que pinta un único path con `currentColor`. La clase `fill-white` solo repintaba el path del contorno, que ya era blanco por `text-white`; nunca aparecía la forma sólida. La variante rellena es `weight="fill"`.
+- **Tarjeta (`tarjeta-producto-pos.tsx`):** `<Star weight={favorito ? "fill" : "regular"} />`. El cuadro teal de 32 px, `stopPropagation()` y `aria-pressed` quedan igual. El mismo defecto estaba en la estrella del botón «Favoritos» de `catalogo-pos.tsx` (`fill-current`), corregido igual.
+- **Candado:** `tarjeta-producto-pos.test.tsx` renderiza la tarjeta marcada y la vacía con `renderToStaticMarkup` y compara el `d` del path de la estrella contra las variantes `fill` y `regular` de Phosphor (falla si vuelven a verse iguales), más `aria-pressed`; `favoritos.test.ts` prohíbe `fill-white`/`fill-current` en la tarjeta y exige el `weight`.
+- **Evidencia:** `docs/diseno/capturas/pos-favoritos/`: regeneradas 02–05 (el cuadro teal ya sale siempre, como el código actual) y nuevas `06-zoom-marcada.png` y `07-zoom-no-marcada.png` (4×, la misma tarjeta marcada y sin marcar para comparar a simple vista).
+- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1637) y `pnpm build` en verde. Capturas desde `pnpm start -p 3037` tras el build: con el VPS a load 17 el dev server tardaba más de 150 s en hidratar; la app y el puerto son los mismos.
+
 ## POS 13: favoritos con la estrella teal (rama `feat/pos-favoritos-estrella`, MSG-31)
 
 Decisión de Waldy (23-11-2026): el catálogo copia la estrella de Alegra.
