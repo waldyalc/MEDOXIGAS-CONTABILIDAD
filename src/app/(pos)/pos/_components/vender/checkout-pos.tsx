@@ -40,6 +40,7 @@ import type { ContactoBuscado } from "@/lib/contactos/seleccion";
 import type { Empresa } from "@/lib/facturacion/tipos";
 import { completarVenta } from "@/lib/pos/acciones";
 import { calcularLineaPOS, centavosATexto, centavosDeDecimal, compararMontos, sumarMontos } from "@/lib/pos/calculo";
+import { esConsumidorFinalPOS } from "@/lib/pos/consumidor-final";
 import { esquemaVenta, mensajeValidacion } from "@/lib/pos/esquemas";
 import { armarTicketOffline, type EntradaTicketOffline, type TicketPOSPayload } from "@/lib/pos/impresion";
 import type { MetodoPOS, PlantillaTicket, VentaPOSResultado } from "@/lib/pos/tipos";
@@ -90,6 +91,7 @@ export function CheckoutPos({
   empresa,
   cuentas,
   contactos,
+  consumidorFinalId,
   plantillaTicket,
   plantillaFactura,
   plantillaCotizacion,
@@ -110,6 +112,7 @@ export function CheckoutPos({
   empresa: Empresa | null;
   cuentas: { id: string; nombre: string }[];
   contactos: ContactoBuscado[];
+  consumidorFinalId: string | null;
   plantillaTicket: PlantillaTicket;
   plantillaFactura: { mostrarLogo: boolean; notas: string; terminos: string };
   plantillaCotizacion: { mostrarLogo: boolean; notas: string; terminos: string };
@@ -136,7 +139,7 @@ export function CheckoutPos({
 
   const total = totales.total;
   const cotizacion = activa.cotizacion;
-  const esConsumidorFinal = activa.contactoId === terminal.contacto_defecto_id;
+  const esConsumidorFinal = esConsumidorFinalPOS(activa.contactoId, consumidorFinalId);
   const nombreCuenta = (id: string | null) =>
     id ? (cuentas.find((cuenta) => cuenta.id === id)?.nombre ?? null) : null;
   const cuentasActivas = useMemo(() => new Set(cuentas.map((cuenta) => cuenta.id)), [cuentas]);
@@ -369,7 +372,7 @@ export function CheckoutPos({
     );
     const entrada = {
       terminal_id: terminal.id,
-      contacto_defecto_id: cotizacion ? null : terminal.contacto_defecto_id,
+      contacto_defecto_id: cotizacion ? null : (consumidorFinalId ?? terminal.contacto_defecto_id),
       contacto_id: cotizacion ? null : activa.contactoId || null,
       lista_precio_id: cotizacion ? null : activa.listaPrecioId || null,
       numeracion_id: activa.numeracionId || null,
