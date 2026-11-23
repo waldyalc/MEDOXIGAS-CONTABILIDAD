@@ -8,7 +8,7 @@ import {
   SALUD_CONEXION_INICIAL,
   textoEstadoOffline,
 } from "./conexion-offline";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), "utf8");
@@ -100,6 +100,8 @@ describe("estado de conexión del pie del POS", () => {
     expect(RUTA_SONDEO).not.toContain("/login");
     expect(provider).toContain("fetch(RUTA_SONDEO");
     expect(provider).not.toContain('fetch("/login"');
+    // Si el estático desaparece, el latido daría 404 y el POS se pintaría offline.
+    expect(existsSync(join(process.cwd(), "public", RUTA_SONDEO)), `Falta public${RUTA_SONDEO}`).toBe(true);
   });
 
   it("un aviso de la recarga offline no se pinta como error de subida", () => {
