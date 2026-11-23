@@ -22,8 +22,26 @@ PORT="${PG_PORT:-54329}"
 DB="medoxigas_pgtap"
 
 if [ "$(id -u)" -eq 0 ]; then
-  echo "Ejecuta este script como usuario normal (initdb no corre como root)." >&2
-  exit 1
+  # En el VPS los agentes corren como root e initdb lo rechaza. Se escenifican
+  # las migraciones y los tests en /tmp y se re-ejecuta como `postgres`
+  # (usuario que crea el paquete postgresql). Sin esto el repo vive bajo
+  # /root, ilegible para ese usuario.
+  PG_RUN_USER="${PG_RUN_USER:-postgres}"
+  if ! id "$PG_RUN_USER" >/dev/null 2>&1; then
+    echo "Como root hace falta el usuario '$PG_RUN_USER' (paquete postgresql)." >&2
+    echo "Alternativa: ejecuta el script como usuario normal." >&2
+    exit 1
+  fi
+  STAGE="$(mktemp -d /tmp/medoxigas-pgtap-stage.XXXXXX)"
+  mkdir -p "$STAGE/repo/supabase" "$STAGE/repo/scripts"
+  cp -a "$ROOT/supabase/migrations" "$ROOT/supabase/tests" "$STAGE/repo/supabase/" 2>/dev/null || true
+  cp -a "${BASH_SOURCE[0]}" "$STAGE/repo/scripts/pgtap-local.sh"
+  chmod -R a+rX "$STAGE"
+  chown -R "$PG_RUN_USER":"$PG_RUN_USER" "$STAGE"
+  echo "== Re-ejecutando como $PG_RUN_USER (escenificado en $STAGE)"
+  exec setpriv --reuid "$PG_RUN_USER" --regid "$PG_RUN_USER" --clear-groups \
+    env PG_PORT="$PORT" PGTAP_KEEP="${PGTAP_KEEP:-0}" \
+    bash "$STAGE/repo/scripts/pgtap-local.sh" "$@"
 fi
 
 find_bindir() {
@@ -178,6 +196,32 @@ $$;
 
 grant execute on function auth.jwt(), auth.uid(), auth.role()
   to anon, authenticated, service_role;
+
+-- Stub mínimo de Supabase Storage: las migraciones crean buckets y políticas
+-- sobre storage.objects; los tests solo verifican que esas piezas existen.
+create schema if not exists storage;
+grant usage on schema storage to anon, authenticated, service_role;
+
+create table storage.buckets (
+  id text primary key,
+  name text not null,
+  public boolean not null default false,
+  file_size_limit bigint,
+  allowed_mime_types text[]
+);
+
+create table storage.objects (
+  id uuid primary key default gen_random_uuid(),
+  bucket_id text references storage.buckets (id),
+  name text,
+  owner uuid,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table storage.buckets enable row level security;
+alter table storage.objects enable row level security;
+grant all on storage.buckets, storage.objects to anon, authenticated, service_role;
 SQL
 
 "$PSQL" -h "$SOCK" -p "$PORT" -U postgres -d "$DB" -X -q \

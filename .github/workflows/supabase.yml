@@ -24,6 +24,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Migración nueva exige test pgTAP
+        if: github.event_name == 'pull_request'
+        run: |
+          BASE="origin/${{ github.base_ref }}"
+          NUEVAS=$(git diff --name-only --diff-filter=A "$BASE"...HEAD -- supabase/migrations/ | wc -l)
+          TESTS=$(git diff --name-only "$BASE"...HEAD -- supabase/tests/ | wc -l)
+          if [ "$NUEVAS" -gt 0 ] && [ "$TESTS" -eq 0 ]; then
+            echo "Este PR agrega $NUEVAS migración(es) pero no toca supabase/tests/."
+            echo "Toda migración lleva su <modulo>_test.sql (ver supabase/AGENTS.md → pgTAP)."
+            exit 1
+          fi
+          echo "OK: $NUEVAS migración(es) nueva(s), $TESTS archivo(s) de test tocados."
 
       - name: Instalar Supabase CLI
         uses: supabase/setup-cli@v1
