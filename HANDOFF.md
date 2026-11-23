@@ -1,5 +1,12 @@
 # Handoff — Medoxigas Contabilidad
 
+## Auditoría Punto 1: capturas de Alegra fuera del repo (rama `fix/pos-audit-capturas-alegra`)
+
+- **Hallazgo confirmado:** el PR #107 commiteó 16 PNG de referencia y comparación de Alegra bajo `docs/diseno/alegra-pos/` en el repo público (1.18 MB de blobs; siguen en el historial de git). Se borraron del árbol y las imágenes quedaron fuera del repo, en `/root/referencias/alegra-pos/diseno-pos/` del VPS.
+- Se conservan las guías `.md` (`README`, `MEDIDAS`, `GUIA-POS`, `COMPARACION`), actualizadas para decir que las capturas viven fuera del repo.
+- **Candado:** `src/lib/sin-capturas-alegra.test.ts` prohíbe binarios bajo `docs/diseno/alegra-pos/` y cualquier archivo rastreado nuevo con «alegra» en el nombre. La lista `LEGADO` (17 archivos que ya estaban en `main` en `docs/alegra/`, `docs/planes/` y `supabase/`) solo puede encoger.
+- **Nota:** `docs/alegra/` ya existía en `main` antes del PR #107 (553 archivos, 514 binarios/exports). No se toca en esta tarea; queda reportado para decisión aparte del Orquestador.
+
 ## POS 12: menú lateral plano (rama `t3/pos-flat-sidebar-menu`)
 
 Decisión de Waldy (23-11-2026, 9:30 PM): el menú del POS deja de agrupar y
