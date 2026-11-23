@@ -161,6 +161,19 @@ blanca: vacía si no es favorito, rellena si lo es.
 - **Filtro «Favoritos»:** `vender-pos.tsx` filtra en el cliente con `filtrarFavoritosPOS` sobre lo cargado, así incluye tanto los favoritos locales como los globales; «Ver más» sigue trayendo el resto. Se quitó `solo_favoritos` de la llamada del POS (la RPC y la columna siguen intactas).
 - **Candados:** `src/lib/pos/favoritos.test.ts` prueba lectura/escritura segura, la precedencia local/global y el filtro; `tests/e2e/pos-favoritos.spec.ts` (sesión ZZTEST, 1440 px) marca la estrella, comprueba que el carrito sigue en 0, activa el filtro, verifica que no queda ninguna tarjeta sin marcar y recarga para confirmar la persistencia.
 - **Evidencia:** `docs/diseno/capturas/pos-favoritos/` (`01-antes-estrella-gris.png`, `02-despues-estrella-teal-marcada.png`, `03-despues-filtro-favoritos.png`, `04-despues-oscuro.png`, `05-despues-movil.png`).
+## INFRA mejoras VPS y agentes (rama `infra/mejoras-agentes`, 23 nov 2026)
+
+Encargo de Waldy (22-11-2026) al agente de infraestructura: aplicar la
+auditoría del VPS srv2187989. Sin cambios al código del POS.
+
+- **Memoria:** swap total 12 GB (`/swapfile2` de 8 GB ya existía y quedó verificado en fstab) y `vm.swappiness=80` persistente en `/etc/sysctl.d/90-medoxigas-ram.conf`. Nueva regla del orquestador: `free -m` antes de delegar, ~1 hijo pesado por cada 3–4 GB libres.
+- **pgTAP sin Docker:** `postgresql-18` + `postgresql-18-pgtap` vía apt (clúster del sistema parado y deshabilitado; solo binarios). `scripts/pgtap-local.sh` re-ejecuta como `postgres` al correr como root (escenifica en /tmp) y su stub gana el esquema `storage`. Suite completa en verde (~1,300 asserts).
+- **Capturas únicas:** `pnpm captura --ruta <ruta> --salida <carpeta>` (`src/scripts/captura.ts`): ZZTEST con storageState fuera del repo (`/root/.medoxigas/storage-zztest.json`, 600, se renueva solo); claro/oscuro 1440 px y móvil 390 px; falla ante errores de consola u HTTP 5xx.
+- **Worktrees:** `t3.json` + `scripts/t3-worktree-setup.sh` enlazan `.env.local`/`.env.pruebas` del checkout principal y corren `pnpm install --prefer-offline` al crear el hilo.
+- **Candados:** `src/lib/binarios-grandes.test.ts` + `binarios-permitidos.txt` (binarios nuevos >200 KB e imágenes «alegra»/`docs/diseno/alegra-pos/`); job `db` de CI exige test en `supabase/tests/` cuando el PR agrega migraciones.
+- **Docs:** `docs/infra/base-staging.md` (staging aparte — pendiente Waldy), `docs/infra/usuario-agente.md` (sacar agentes de root — pendiente), `docs/infra/navegador-depuracion.md` (Playwright MCP `@0.0.85` en `opencode.json`). `docs/revisiones/` recibe los informes del REVISOR antes de `main`.
+- **Disco:** `scripts/limpieza-disco.sh` (solo listar): ~20 GB en worktrees mergeados + `/root/preview-antes-carrito` y `/tmp/opencode` como candidatos; cron de borrado apagado hasta el OK de Waldy.
+
 
 ## POS 12: menú lateral plano (rama `t3/pos-flat-sidebar-menu`)
 
