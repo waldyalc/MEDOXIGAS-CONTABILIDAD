@@ -1,9 +1,9 @@
-# Estudio de Alegra (inspiración, no copia)
+# Estudio de Alegra
 
 Aquí va el mapa de cómo Waldy usa Alegra hoy, sacado de recorrer una **cuenta de prueba** (nunca la cuenta real de Medoxigas).
 
 Reglas:
-- Describir flujos, campos y reglas de negocio con nuestras palabras. No copiar código, textos largos, logos ni el diseño exacto.
+- Desde el 23-11-2026 el sistema **copia el diseño de Alegra exactamente** (decisión de Waldy): se puede adaptar su HTML/CSS/estructura de las capturas a nuestro código. El logo y la marca siempre son Medoxigas.
 - Las capturas van en `docs/alegra/capturas/` solo si no muestran datos reales de clientes; si los muestran, no se suben.
 - Nunca guardar aquí correos, contraseñas ni tokens de Alegra.
 

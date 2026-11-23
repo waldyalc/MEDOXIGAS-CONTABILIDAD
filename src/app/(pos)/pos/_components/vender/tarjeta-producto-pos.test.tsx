@@ -43,20 +43,20 @@ function tarjeta(favorito: boolean) {
 function estrella(html: string) {
   const svg = /<svg[\s\S]*?<\/svg>/.exec(html);
   expect(svg, "la tarjeta debe dibujar la estrella con un svg").not.toBeNull();
-  const forma = /<path d="([^"]+)"/.exec(svg?.[0] ?? "");
-  expect(forma, "la estrella de Phosphor debe dibujarse con un path").not.toBeNull();
+  const forma = /<svg[^>]*fill="([^"]*)"/.exec(svg?.[0] ?? "");
+  expect(forma, "la estrella de Tabler se distingue por el atributo fill del svg").not.toBeNull();
   return forma?.[1] ?? "";
 }
 
-const rellena = estrella(renderToStaticMarkup(<Star weight="fill" aria-hidden="true" />));
-const contorno = estrella(renderToStaticMarkup(<Star weight="regular" aria-hidden="true" />));
+const rellena = estrella(renderToStaticMarkup(<Star fill="currentColor" aria-hidden="true" />));
+const contorno = estrella(renderToStaticMarkup(<Star fill="none" aria-hidden="true" />));
 
 describe("estrella de favoritos en la tarjeta del POS (MSG-31)", () => {
   it("marcada = estrella sólida; sin marcar = contorno, y no se ven iguales", () => {
-    expect(rellena, "Phosphor debe tener un path distinto para «fill» y «regular»").not.toBe(contorno);
+    expect(rellena, "Tabler debe tener un path distinto para rellena y contorno").not.toBe(contorno);
 
-    expect(estrella(tarjeta(true)), "la tarjeta marcada pinta la variante rellena (weight=fill)").toBe(rellena);
-    expect(estrella(tarjeta(false)), "la tarjeta sin marcar deja el contorno (weight=regular)").toBe(contorno);
+    expect(estrella(tarjeta(true)), "la tarjeta marcada pinta la variante rellena (fill=currentColor)").toBe(rellena);
+    expect(estrella(tarjeta(false)), "la tarjeta sin marcar deja el contorno (fill=none)").toBe(contorno);
   });
 
   it("aria-pressed sigue el estado del favorito", () => {

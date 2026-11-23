@@ -76,7 +76,7 @@ export function AppSidebar({ perfil, className }: AppSidebarProps) {
 
   const contenido = (
     <>
-      <SidebarHeader className="h-14 shrink-0 flex-row items-center justify-between gap-0 px-2 py-0 group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:px-1">
+      <SidebarHeader className="h-16 shrink-0 flex-row items-center justify-between gap-0 px-3 py-0 group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:px-1">
         <Link
           href="/dashboard"
           aria-label="Medoxigas Contabilidad"
@@ -84,13 +84,13 @@ export function AppSidebar({ perfil, className }: AppSidebarProps) {
           className="flex min-w-0 items-center overflow-hidden group-data-[state=collapsed]:hidden"
         >
           <Image
-            src="/marca/logo-medoxigas-menu.png"
+            src="/marca/logo-medoxigas.png"
             alt="Medoxigas"
             width={500}
-            height={180}
-            sizes="150px"
+            height={260}
+            sizes="96px"
             priority
-            className="h-10 w-auto max-w-[150px] object-contain object-left dark:brightness-0 dark:invert"
+            className="h-12 w-auto max-w-[170px] object-contain object-left dark:brightness-0 dark:invert"
           />
         </Link>
         <Button
@@ -103,30 +103,30 @@ export function AppSidebar({ perfil, className }: AppSidebarProps) {
           <PanelLeftIcon />
         </Button>
       </SidebarHeader>
-      <SidebarContent className="gap-2 p-2">
+      <SidebarContent className="gap-2 px-3 pt-4 pb-2">
         <NavMain items={grupos} />
       </SidebarContent>
-      <SidebarFooter className="mt-auto gap-1 border-t border-slate-200 p-2 dark:border-sidebar-border">
+      <SidebarFooter className="dark:border-sidebar-border mt-auto gap-1 border-t border-slate-200 p-2">
         <div className="flex min-w-0 items-center gap-2 px-2 py-1">
           <AvatarInicial nombre={perfil?.nombre} correo={perfil?.correo} size="sm" />
           <div className="min-w-0">
-            <p className="truncate text-sm leading-[21px] font-medium text-slate-700 dark:text-sidebar-foreground">
+            <p className="dark:text-sidebar-foreground truncate text-sm leading-[21px] font-medium text-slate-700">
               {perfil?.nombre?.trim() || perfil?.correo || "Sin sesión"}
             </p>
             {perfil?.nombre?.trim() ? (
-              <p className="truncate text-xs leading-4 text-slate-500 dark:text-sidebar-foreground/60">
+              <p className="dark:text-sidebar-foreground/60 truncate text-xs leading-4 text-slate-500">
                 {perfil.correo}
               </p>
             ) : null}
           </div>
         </div>
-        <div className="flex items-center justify-between px-2 text-xs leading-4 text-slate-500 group-data-[state=collapsed]:hidden dark:text-sidebar-foreground/60">
+        <div className="dark:text-sidebar-foreground/60 flex items-center justify-between px-2 text-xs leading-4 text-slate-500 group-data-[state=collapsed]:hidden">
           <span>v{APP_CONFIG.version}</span>
           <a
             href="https://github.com/waldyalc/MEDOXIGAS-CONTABILIDAD/issues"
             target="_blank"
             rel="noreferrer"
-            className="hover:text-slate-900 hover:underline dark:hover:text-sidebar-foreground"
+            className="dark:hover:text-sidebar-foreground hover:text-slate-900 hover:underline"
           >
             Soporte
           </a>
@@ -153,7 +153,7 @@ export function AppSidebar({ perfil, className }: AppSidebarProps) {
         onMouseEnter={() => setHoverRiel(true)}
         onMouseLeave={() => setHoverRiel(false)}
         className={cn(
-          "group fixed inset-y-0 left-0 z-[60] hidden flex-col overflow-hidden border-r border-slate-200 bg-sidebar text-sidebar-foreground transition-[width,box-shadow] duration-300 ease-[cubic-bezier(.4,0,.2,1)] lg:flex dark:border-sidebar-border",
+          "group bg-sidebar text-sidebar-foreground dark:border-sidebar-border fixed inset-y-0 left-0 z-[60] hidden flex-col overflow-hidden border-r border-slate-200 transition-[width,box-shadow] duration-300 ease-[cubic-bezier(.4,0,.2,1)] lg:flex",
           expandido ? "w-[271px]" : "w-[53px]",
           !open && hoverRiel && "shadow-[0_4px_6px_-1px_rgba(0,0,0,.1),0_2px_4px_-2px_rgba(0,0,0,.1)]",
           className,
@@ -169,7 +169,7 @@ export function AppSidebar({ perfil, className }: AppSidebarProps) {
             data-slot="sidebar"
             data-mobile="true"
             data-state="expanded"
-            className="group fixed inset-y-0 left-0 z-[90] flex w-[271px] flex-col overflow-hidden border-r border-slate-200 bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-in-out data-ending-style:-translate-x-full data-starting-style:-translate-x-full lg:hidden dark:border-sidebar-border"
+            className="group bg-sidebar text-sidebar-foreground dark:border-sidebar-border fixed inset-y-0 left-0 z-[90] flex w-[271px] flex-col overflow-hidden border-r border-slate-200 transition-transform duration-200 ease-in-out data-ending-style:-translate-x-full data-starting-style:-translate-x-full lg:hidden"
           >
             <DialogPrimitive.Title className="sr-only">Menú de navegación</DialogPrimitive.Title>
             <DialogPrimitive.Description className="sr-only">

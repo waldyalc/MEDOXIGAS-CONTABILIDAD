@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alegra / Design System — referencia Medoxigas</title>
+<style>
+  :root{
+    --p50:#eff6ff;--p100:#dbeafe;--p200:#bfdbfe;--p300:#93c5fd;--p400:#60a5fa;
+    --p500:#3588ff;--p600:#2563eb;--p700:#1d4ed8;--p800:#1e40af;--p900:#1e3a8a;
+    --s50:#f8fafc;--s100:#f1f5f9;--s200:#e2e8f0;--s300:#cbd5e1;--s400:#94a3b8;
+    --s500:#64748b;--s600:#475569;--s700:#334155;--s900:#0f172a;
+    --medo:#1e56c7;
+  }
+  *{margin:0;box-sizing:border-box}
+  body{font-family:Inter,system-ui,sans-serif;background:#f5f7fa;color:var(--s900);font-size:14px;line-height:1.45}
+  .wrap{display:flex;min-height:100vh}
+  nav{width:200px;background:#fff;border-right:1px solid var(--s200);padding:16px;position:sticky;top:0;height:100vh;flex-shrink:0}
+  nav h1{font-size:13px;font-weight:600;margin-bottom:4px}
+  nav small{color:var(--s500);font-size:11px;display:block;margin-bottom:16px}
+  nav a{display:block;padding:6px 8px;border-radius:8px;color:var(--s700);text-decoration:none;font-size:13px}
+  nav a:hover{background:var(--s100)}
+  main{flex:1;padding:32px 40px;max-width:1100px}
+  h2{font-size:18px;font-weight:600;margin:36px 0 4px}
+  h2:first-child{margin-top:0}
+  .sub{color:var(--s500);font-size:13px;margin-bottom:16px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+  .sw{background:#fff;border:1px solid var(--s200);border-radius:14px;overflow:hidden}
+  .sw .c{height:64px}
+  .sw .t{padding:10px 12px}
+  .sw b{font-size:13px;font-weight:600;display:block}
+  .sw code{font-size:11px;color:var(--s600);font-family:ui-monospace,monospace}
+  .sw p{font-size:11px;color:var(--s500);margin-top:3px;line-height:1.4}
+  .medo .c{box-shadow:inset 0 -3px 0 var(--medo)}
+  table.tt{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--s200);border-radius:14px;overflow:hidden;font-size:13px}
+  table.tt td,table.tt th{padding:9px 14px;border-bottom:1px solid var(--s100);text-align:left}
+  table.tt th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--s500);font-weight:600}
+  table.tt tr:last-child td{border:0}
+  .comp{background:#fff;border:1px solid var(--s200);border-radius:14px;padding:20px;margin-bottom:14px}
+  .comp h4{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--s500);font-weight:600;margin-bottom:14px}
+  .btn{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 16px;border-radius:10px;font:500 14px Inter;border:0;cursor:pointer}
+  .btn-p{background:var(--p600);color:#fff}.btn-o{border:1px solid var(--s300);background:#fff;color:var(--s700)}
+  .chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:9999px;border:1px solid var(--s300);font-size:13px;color:var(--s700);background:#fff}
+  .chip.on{background:var(--p50);border-color:transparent;color:var(--p900)}
+  .mi{display:flex;align-items:center;gap:8px;height:36px;padding:6px 8px;border-radius:8px;color:var(--s700);font-size:14px;position:relative;width:240px}
+  .mi svg{width:20px;height:20px;color:var(--s400)}
+  .mi.on{background:var(--s200);font-weight:500}
+  .mi.on::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:14px;border-radius:99px;background:var(--p600)}
+  .mi:hover{background:#e2e8f073}
+  .rcard{border:1px solid var(--s200);border-radius:16px;padding:16px;min-height:120px;width:220px;background:#fff;transition:.2s}
+  .rcard:hover{border-color:var(--s300);background:var(--s50)}
+  .ric{width:32px;height:24px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .rcard b{font-size:14px;font-weight:600;display:block;margin-top:10px}
+  .rcard small{color:var(--s500);font-size:12px}
+  .tag{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600}
+  .note{background:var(--p50);border:1px solid var(--p200);border-radius:12px;padding:12px 16px;font-size:13px;color:var(--p900);margin:12px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <h1>Alegra Design</h1>
+  <small>Extraído de app.alegra.com · nov-2026</small>
+  <a href="#color">Color</a>
+  <a href="#cat">Colores por categoría</a>
+  <a href="#type">Tipografía</a>
+  <a href="#space">Espaciado y radios</a>
+  <a href="#comp">Componentes</a>
+  <a href="#icons">Iconos</a>
+  <a href="#medo">Traducción Medoxigas</a>
+</nav>
+<main>
+
+<h2 id="color">Color</h2>
+<p class="sub">Escala primaria = Tailwind <b>blue</b> (verificado en su CSS: <code>--sm-color-primary-600 = #2563eb</code>). El teal solo aparece en el botón de chat.</p>
+<div class="grid" id="pri"></div>
+
+<h2 id="cat">Colores por categoría de reporte</h2>
+<p class="sub">Icono y fondo de cada card en /reportes</p>
+<div class="grid" id="cats"></div>
+
+<h2 id="type">Tipografía</h2>
+<p class="sub">Familia única: <b>Inter</b> en todo el sistema</p>
+<table class="tt" id="type-t"></table>
+
+<h2 id="space">Espaciado y radios</h2>
+<table class="tt">
+<tr><th>Elemento</th><th>Medida</th></tr>
+<tr><td>Sidebar</td><td>272px, fondo slate-100, padding-top 16px, listas 0 12px</td></tr>
+<tr><td>Ítem de menú</td><td>padding 6px 8px (~32-36px alto), gap 8px, radius 8px, gap entre ítems 4px</td></tr>
+<tr><td>Indicador activo</td><td>3×14px, radius full, a la izquierda, color primario</td></tr>
+<tr><td>Submenú</td><td>riel border-left 1px slate-200, margin-left 17px, padding-left 11px</td></tr>
+<tr><td>Título de grupo</td><td>padding-top 12px, padding-bottom 2px, 12px slate-500 medium</td></tr>
+<tr><td>Header sidebar</td><td>64px alto, padding 0 12px</td></tr>
+<tr><td>Cards de reporte</td><td>radius 16px, borde 1px slate-200, min-height 120px, grid minmax(228px,1fr), gap 16px</td></tr>
+<tr><td>Chip icono de card</td><td>32×24px, radius 8px, icono 16px</td></tr>
+<tr><td>Botón primario</td><td>altura 40px, radius 10px, padding 0 16px, primary-600 / texto blanco</td></tr>
+<tr><td>Chip de filtro</td><td>altura 32px, radius 9999px, borde slate-300; activo = fondo primary-50 + texto primary-900</td></tr>
+<tr><td>Tabla reporte</td><td>celdas ~8px 16px, texto xs; totales fondo slate-50 + semibold; indentación 32px por nivel</td></tr>
+<tr><td>Sombras</td><td>cards sin sombra (solo borde); modal 0 20px 25px -5px #0001a</td></tr>
+</table>
+
+<h2 id="comp">Componentes</h2>
+<div class="comp"><h4>Botones</h4>
+<button class="btn btn-p">Descargar ▾</button>
+<button class="btn btn-o">Actualizar</button>
+</div>
+<div class="comp"><h4>Chips de filtro</h4>
+<span class="chip on">📅 Este mes ▾</span>
+<span class="chip">🏷 Centro de costos ▾</span>
+</div>
+<div class="comp"><h4>Ítem de menú (inactivo / activo)</h4>
+<div style="background:var(--s100);padding:12px;border-radius:12px;width:264px">
+<div class="mi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10"/></svg>Inicio</div>
+<div class="mi on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v18M7 15l4-4 4 4 5-6"/></svg>Reportes</div>
+</div></div>
+<div class="comp"><h4>Card de reporte (Ventas)</h4>
+<div class="rcard"><div class="ric" style="background:#dcfce7"><span style="color:#16a34a;font-weight:700">$</span></div>
+<b>Ventas generales</b><small>Consulta tus ventas del período con subtotales, impuestos y totales.</small></div>
+</div>
+
+<h2 id="icons">Iconos</h2>
+<p class="sub"><b>Tabler Icons</b> (<code>tabler-icon-*</code> en su DOM), stroke 1.5, 20px en menú / 16px en controles.
+"Descubre más soluciones" usa SVG custom rellenos (propios de Alegra, no copiables).</p>
+<table class="tt">
+<tr><th>Ítem</th><th>Icono Alegra</th><th>Nuestro Tabler</th></tr>
+<tr><td>Ingresos</td><td><code>circle-arrow-down-left</code></td><td>IconCircleArrowDownLeft</td></tr>
+<tr><td>Compras</td><td><code>circle-arrow-up-right</code></td><td>IconCircleArrowUpRight</td></tr>
+<tr><td>Reportes</td><td><code>timeline</code></td><td>IconTimeline</td></tr>
+<tr><td>Contabilidad</td><td><code>calculator</code></td><td>IconCalculator</td></tr>
+<tr><td>Bancos</td><td><code>building-bank</code></td><td>IconBuildingBank</td></tr>
+<tr><td>Mis tareas</td><td><code>clipboard-check</code></td><td>IconClipboardCheck</td></tr>
+<tr><td>Toggle menú</td><td><code>chevron-down</code></td><td>IconCaretDownFilled (look Phosphor previo)</td></tr>
+<tr><td>Nómina</td><td>SVG custom (personas relleno)</td><td>IconIdBadge2</td></tr>
+<tr><td>POS</td><td>SVG custom (caja registradora)</td><td>IconCashRegister</td></tr>
+</table>
+
+<h2 id="medo">Traducción a Medoxigas</h2>
+<div class="note">Misma estructura, tipografía, espaciado e iconos. Solo cambia el color de marca.</div>
+<div class="grid">
+<div class="sw medo"><div class="c" style="background:var(--p600)"></div><div class="t"><b>Alegra primary-600</b><code>#2563eb</code><p>→ Medoxigas <code>--primary #1e56c7</code></p></div></div>
+<div class="sw medo"><div class="c" style="background:var(--p50)"></div><div class="t"><b>Alegra primary-50</b><code>#eff6ff</code><p>→ Medoxigas <code>#eaf0fc</code> (chips, tintes)</p></div></div>
+<div class="sw medo"><div class="c" style="background:var(--p700)"></div><div class="t"><b>Alegra primary-700</b><code>#1d4ed8</code><p>→ Medoxigas <code>#123c8c</code> (hover)</p></div></div>
+<div class="sw medo"><div class="c" style="background:var(--p900)"></div><div class="t"><b>Alegra primary-900</b><code>#1e3a8a</code><p>→ Medoxigas <code>#0a2352</code> (texto en chips)</p></div></div>
+<div class="sw medo"><div class="c" style="background:#00b19d"></div><div class="t"><b>Teal #00b19d</b><code>solo /pos</code><p>Excepción: el POS conserva el teal (--pos-*)</p></div></div>
+</div>
+
+<script>
+const pri=[['50','#eff6ff','Chips seleccionados, focus suave'],['100','#dbeafe','Hover tintado'],['200','#bfdbfe','Bordes activos'],['300','#93c5fd','—'],['400','#60a5fa','Iconos énfasis'],['500','#3588ff','Anillo de focus'],['600','#2563eb','Botón primario filled'],['700','#1d4ed8','Hover primario'],['800','#1e40af','—'],['900','#1e3a8a','Texto en chips']];
+const neu=[['slate-50','#f8fafc','Fondo página, filas de totales'],['slate-100','#f1f5f9','Fondo sidebar'],['slate-200','#e2e8f0','Bordes, divisores'],['slate-300','#cbd5e1','Bordes de chips'],['slate-400','#94a3b8','Iconos inactivos'],['slate-500','#64748b','Texto secundario'],['slate-700','#334155','Texto de menú'],['slate-900','#0f172a','Texto principal']];
+const sem=[['rose-600/700','#e11d48','Devoluciones, contra, error'],['green-600/700','#16a34a','Variación positiva'],['amber-400','#fbbf24','Estrella favorito'],['indigo-600','#4f46e5','Tag Beta'],['teal','#00b19d','SOLO el botón de chat']];
+const g=document.getElementById('pri');
+const card=(n,h,u,txt)=>`<div class="sw"><div class="c" style="background:${h}"></div><div class="t"><b style="color:${txt||'inherit'}">${n}</b><code>${h}</code><p>${u}</p></div></div>`;
+g.innerHTML=pri.map(([n,h,u])=>card('primary-'+n,h,u)).join('')+neu.map(([n,h,u])=>card(n,h,u)).join('')+sem.map(([n,h,u])=>card(n,h,u,'#fff'&&0?undefined:undefined)).join('');
+document.getElementById('cats').innerHTML=[['Ventas','#16a34a','#dcfce7'],['Administrativos','#30aba9','#d8f4f2'],['Financieros','#f54a00','#ffedd5'],['Contables','#fbbf24','#fef3c7'],['Fiscales','#e11d48','#ffe4e6'],['Para trabajar','#4f46e5','#e0e7ff'],['Favoritos','#fbbf24','#fef3c7']].map(([n,i,b])=>`<div class="sw"><div class="c" style="background:${b};display:flex;align-items:center;justify-content:center"><span style="color:${i};font-size:26px;font-weight:700">●</span></div><div class="t"><b>${n}</b><code>${i} / ${b}</code></div></div>`).join('');
+document.getElementById('type-t').innerHTML='<tr><th>Token</th><th>Tamaño/altura</th><th>Peso</th><th>Uso</th><th>Muestra</th></tr>'+[
+['xs','12px / 16px','400-500','Celdas, contadores, títulos de grupo'],
+['sm','14px / 20px','400','Menú, chips, botones, descripciones'],
+['base','16px / 24px','500-600','Títulos de sección'],
+['lg','18px / 28px','600','Título de página'],
+['xl','20px / 28px','700','H1 (Reportes)']].map(([t,s,w,u])=>`<tr><td><code>${t}</code></td><td>${s}</td><td>${w}</td><td>${u}</td><td style="font-size:${parseInt(s)}px">Ag Medoxigas</td></tr>`).join('');
+</script>
+</main>
+</div>
+</body>
+</html>

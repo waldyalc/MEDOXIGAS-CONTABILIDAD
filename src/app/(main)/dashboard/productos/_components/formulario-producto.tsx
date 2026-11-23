@@ -223,7 +223,7 @@ function TarjetaImagen({
             onClick={() => input.current?.click()}
             className="text-muted-foreground hover:text-primary flex size-full flex-col items-center justify-center gap-2 transition-colors"
           >
-            <ImagePlus className="size-9" weight="light" />
+            <ImagePlus className="size-9" />
             <span className="text-sm">Subir imagen</span>
           </button>
         )}

@@ -489,7 +489,7 @@ export function PanelFactura({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {activa.lineas.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 py-10 text-center">
-            <Basket className="text-pos-icono size-10" weight="light" aria-hidden="true" />
+            <Basket className="text-pos-icono size-10" aria-hidden="true" />
             <p className="text-pos-texto-suave text-sm">Aquí verás los productos que elijas en tu próxima venta</p>
           </div>
         ) : (

@@ -6,19 +6,21 @@ import { filtrarItemsPorRol, sidebarItems } from "./sidebar-items";
 
 const MODULOS = [
   "inicio",
-  "punto-venta",
+  "bandeja-entrada",
   "ingresos",
   "compras",
   "contactos",
   "inventario",
   "bancos",
   "contabilidad",
-  "nomina",
   "reportes",
+  "mis-tareas",
   "configuracion",
+  "nomina",
+  "punto-venta",
 ];
 
-const MODULOS_CON_DGII = [...MODULOS, "configuracion-reportes-dgii"];
+const MODULOS_CON_DGII = [...MODULOS.slice(0, 11), "configuracion-reportes-dgii", ...MODULOS.slice(11)];
 
 function ids(rol: Rol | null) {
   return filtrarItemsPorRol(rol).flatMap((grupo) => grupo.items.map((item) => item.id));
@@ -87,15 +89,16 @@ describe("filtrarItemsPorRol", () => {
       "/dashboard/compras",
       "/dashboard/compras/pagos",
       "/dashboard/gastos",
+      "/dashboard/pagos-recurrentes",
       "/dashboard/compras/notas-credito",
       "/dashboard/ordenes-compra",
-      "/dashboard/pagos-recurrentes",
     ]);
 
     const inventario = items("admin").find((item) => item.id === "inventario");
     if (inventario?.subItems == null) throw new Error("Inventario debe tener submenú");
     expect(inventario.subItems.map((sub) => sub.url)).toEqual([
       "/dashboard/productos",
+      "/dashboard/reportes/valor-inventario",
       "/dashboard/inventario/ajustes",
       "/dashboard/inventario/transferencias",
       "/dashboard/inventario/listas-precios",
@@ -108,6 +111,7 @@ describe("filtrarItemsPorRol", () => {
     expect(contabilidad.subItems.map((sub) => sub.url)).toEqual([
       "/dashboard/contabilidad",
       "/dashboard/contabilidad/asientos",
+      "/dashboard/reportes/libro-diario",
       "/dashboard/contabilidad/numeraciones",
       "/dashboard/contabilidad/activos",
       "/dashboard/contabilidad/periodos",
@@ -116,6 +120,7 @@ describe("filtrarItemsPorRol", () => {
     const bancos = items("admin").find((item) => item.id === "bancos");
     if (bancos?.subItems == null) throw new Error("Bancos debe tener submenú");
     expect(bancos.subItems.map((sub) => sub.url)).toEqual(["/dashboard/bancos", "/dashboard/bancos/conciliaciones"]);
+    expect(bancos.subItems.map((sub) => sub.title)).toEqual(["Bancos y cajas", "Conciliaciones bancarias"]);
 
     const nomina = items("admin").find((item) => item.id === "nomina");
     if (nomina?.subItems == null) throw new Error("Nómina debe tener submenú");
@@ -138,32 +143,46 @@ describe("filtrarItemsPorRol", () => {
     expect(inventario.icon).toBeDefined();
     expect(inventario.subItems[0]).toMatchObject({
       id: "productos",
-      title: "Productos",
+      title: "Productos y servicios",
       url: "/dashboard/productos",
     });
   });
 
-  test("solo Inicio lleva separador después", () => {
+  test("los subítems con pantalla de creación llevan addUrl para el botón +", () => {
+    const ingresos = items("admin").find((item) => item.id === "ingresos");
+    const facturas = ingresos?.subItems?.find((sub) => sub.id === "facturas-venta");
+    expect(facturas?.addUrl).toBe("/dashboard/facturacion/nueva");
+
+    const contabilidad = items("admin").find((item) => item.id === "contabilidad");
+    const asientos = contabilidad?.subItems?.find((sub) => sub.id === "asientos");
+    expect(asientos?.addUrl).toBe("/dashboard/contabilidad/asientos/nuevo");
+
+    const catalogo = contabilidad?.subItems?.find((sub) => sub.id === "catalogo-cuentas");
+    expect(catalogo?.addUrl).toBeUndefined();
+  });
+
+  test("solo Bandeja de entrada lleva separador después, como en Alegra", () => {
     expect(
       items("admin")
         .filter((item) => item.separadorDespues)
         .map((item) => item.id),
-    ).toEqual(["inicio"]);
+    ).toEqual(["bandeja-entrada"]);
   });
 
-  test("Punto de venta abre /pos en otra pestaña y lo ven los tres roles", () => {
+  test("POS abre /pos en otra pestaña y lo ven los tres roles", () => {
     for (const rol of ["admin", "contador", "lector"] as const) {
       const puntoVenta = items(rol).find((item) => item.id === "punto-venta");
       if (puntoVenta == null || !("url" in puntoVenta)) throw new Error("Punto de venta debe ser un enlace");
 
       expect(puntoVenta.url).toBe("/pos");
-      expect(puntoVenta.title).toBe("Punto de venta");
+      expect(puntoVenta.title).toBe("POS");
       expect(puntoVenta.newTab).toBe(true);
       expect(puntoVenta.disabled).toBeUndefined();
     }
   });
 
-  test("el grupo se titula Módulos", () => {
-    expect(sidebarItems.map((grupo) => grupo.label)).toEqual(["Módulos"]);
+  test("el menú se divide como Alegra: principal sin etiqueta y «Descubre más soluciones»", () => {
+    expect(sidebarItems.map((grupo) => grupo.label)).toEqual([undefined, "Descubre más soluciones"]);
+    expect(sidebarItems[1]?.items.map((item) => item.id)).toEqual(["nomina", "punto-venta"]);
   });
 });

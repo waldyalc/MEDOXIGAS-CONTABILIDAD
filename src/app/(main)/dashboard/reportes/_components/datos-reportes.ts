@@ -1,43 +1,72 @@
-import { BookOpen, ClipboardList, Landmark, type LucideIcon, ShoppingCart, Wallet, Wrench } from "@/components/icons";
+import {
+  type IconoTabler,
+  TablerBriefcase,
+  TablerCash,
+  TablerChartBar,
+  TablerCoin,
+  TablerFileInvoice,
+  TablerReportMoney,
+  TablerStar,
+} from "@/components/icons";
 import type { CategoriaReporte } from "@/lib/reportes/catalogo-reportes";
 
 interface MetaCategoria {
-  icono: LucideIcon;
+  icono: IconoTabler;
+  /** Texto que Alegra revela al pasar el mouse sobre la tarjeta de categoría. */
   descripcion: string;
-  iconoClase: string;
+  /** Color del icono de categoría (hex de Alegra). */
+  iconoColor: string;
+  /** Fondo pastel del chip de icono en las tarjetas de reporte. */
+  iconoFondo: string;
 }
 
 export const META_CATEGORIAS: Record<CategoriaReporte, MetaCategoria> = {
   Ventas: {
-    icono: ShoppingCart,
-    descripcion: "Analiza tus ventas y la rentabilidad de cada producto, cliente y vendedor.",
-    iconoClase: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    icono: TablerCoin,
+    descripcion:
+      "Monitorea la distribución de tus ventas y obtén información para gestionar tus operaciones comerciales.",
+    iconoColor: "#16A34A",
+    iconoFondo: "#DCFCE7",
   },
   Administrativos: {
-    icono: ClipboardList,
-    descripcion: "Haz seguimiento a tus transacciones y controla la salud financiera de tu empresa.",
-    iconoClase: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+    icono: TablerChartBar,
+    descripcion:
+      "Haz seguimiento a tus transacciones y obtén información para controlar la salud financiera de tu empresa.",
+    iconoColor: "#30ABA9",
+    iconoFondo: "#D8F4F2",
   },
   Financieros: {
-    icono: Wallet,
-    descripcion: "Analiza los resultados financieros de tu empresa y su liquidez.",
-    iconoClase: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+    icono: TablerCash,
+    descripcion: "Analiza los resultados financieros de tu empresa, incluyendo entradas y salidas de efectivo.",
+    iconoColor: "#F54A00",
+    iconoFondo: "#FFEDD5",
   },
   Contables: {
-    icono: BookOpen,
-    descripcion: "Revisa los estados financieros y los libros contables del período.",
-    iconoClase: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    icono: TablerFileInvoice,
+    descripcion: "Conoce el desempeño contable y el estado económico de tu empresa en todo momento.",
+    iconoColor: "#FBBF24",
+    iconoFondo: "#FEF3C7",
   },
   Fiscales: {
-    icono: Landmark,
-    descripcion: "Prepara los reportes fiscales e informativos que exige la DGII.",
-    iconoClase: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    icono: TablerReportMoney,
+    descripcion: "Revisa el detalle de tus impuestos y retenciones para cumplir con tus obligaciones tributarias.",
+    iconoColor: "#E11D48",
+    iconoFondo: "#FFE4E6",
   },
   "Para trabajar": {
-    icono: Wrench,
-    descripcion: "Herramientas para compartir tu información con tu contador.",
-    iconoClase: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    icono: TablerBriefcase,
+    descripcion: "Exporta la información clave de tu negocio para realizar análisis adicionales.",
+    iconoColor: "#4F46E5",
+    iconoFondo: "#E0E7FF",
   },
+};
+
+/** Metadatos de la tarjeta «Favoritos» (no es una categoría con reportes). */
+export const META_FAVORITOS = {
+  icono: TablerStar,
+  descripcion: "En este espacio vas a encontrar todos los reportes que has marcado como favoritos.",
+  iconoColor: "#64748B",
+  iconoFondo: "#F1F5F9",
 };
 
 export const DESCRIPCION_REPORTES: Record<string, string> = {
@@ -59,7 +88,7 @@ export const DESCRIPCION_REPORTES: Record<string, string> = {
 
   "Flujo de caja": "Analiza las entradas y salidas de efectivo y la liquidez de tu negocio.",
 
-  "Estado de resultados": "Conoce tus ingresos, costos y gastos y la utilidad del período.",
+  "Estado de resultados": "Conoce el desempeño financiero de tu empresa.",
   "Estado de situación financiera": "Revisa tus activos, pasivos y patrimonio al cierre.",
   "Estado de flujo de efectivo": "Analiza el efectivo generado y usado en tus actividades.",
   "Libro diario": "Consulta todos los asientos contables en orden cronológico.",
@@ -69,9 +98,9 @@ export const DESCRIPCION_REPORTES: Record<string, string> = {
   "Movimientos por cuenta contable agrupado": "Consulta los movimientos de una cuenta agrupados por contacto.",
   "Balanza de comprobación por tercero": "Compara los débitos y créditos de cada tercero.",
 
-  "Reporte 606": "Compras e importaciones para el reporte 606 de la DGII.",
-  "Reporte 607": "Ventas y operaciones para el reporte 607 de la DGII.",
-  "Reporte 608": "Comprobantes anulados para el reporte 608 de la DGII.",
+  "Reporte 606": "Formato para reportar tus costos y gastos del ISR a la DGII.",
+  "Reporte 607": "Formato para reportar tus ventas de bienes y servicios a la DGII.",
+  "Reporte 608": "Formato con los detalles de tus comprobantes fiscales anulados.",
   "Reporte IT1": "Informe de retenciones de ITBIS para la DGII.",
   "Reporte detallado de impuestos": "Detalle de impuestos por tasa en ventas, compras y devoluciones.",
   "Impuestos y retenciones": "Consulta los impuestos y retenciones de ventas y compras.",

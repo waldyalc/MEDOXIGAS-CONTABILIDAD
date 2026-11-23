@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { Download } from "@/components/icons";
+import { ChevronDown } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -70,9 +70,17 @@ export function BotonDescargar({ tabla, nombreArchivo }: Props) {
   return (
     <div className="print:hidden">
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="outline" disabled={generando != null} />}>
-          <Download />
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="outline"
+              disabled={generando != null}
+              className="bg-primary h-10 gap-1.5 rounded-[10px] border-transparent px-4 text-sm font-medium text-white hover:bg-[#123c8c] hover:text-white [&_svg]:size-4"
+            />
+          }
+        >
           {generando != null ? "Generando…" : "Descargar"}
+          <ChevronDown />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem disabled={generando != null} onClick={() => void descargar("excel")}>

@@ -29,6 +29,8 @@ interface ParametrosFila {
   codigo?: string;
   nombre: string;
   cuentaId?: string | null;
+  nivel?: number;
+  contra?: boolean;
   actual: number;
   anterior: number;
   porcentajeActual: number;
@@ -42,6 +44,8 @@ export function crearFila({
   codigo,
   nombre,
   cuentaId = null,
+  nivel,
+  contra = false,
   actual,
   anterior,
   porcentajeActual,
@@ -57,6 +61,8 @@ export function crearFila({
     codigo: codigo ?? "",
     nombre,
     cuentaId,
+    nivel,
+    contra,
     actual,
     anterior,
     porcentajeActual: redondearPorcentaje(porcentajeActual),

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getCentrosCostoActivos } from "@/lib/centros-costo/consultas";
 import { obtenerEstadoResultadosComparativo } from "@/lib/reportes/estados/consultas";
 import { etiquetaMes, parsearBusqueda, parsearVista, restarAnio } from "@/lib/reportes/estados/fechas";
+import { generarResumenResultados } from "@/lib/reportes/estados/resumen";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 
 import { AlertaError } from "../_components/alerta-error";
@@ -13,6 +14,7 @@ import { EncabezadoTablaComparativa, type ParametroOculto } from "../_components
 import { FiltrosEstados } from "../_components/estados/filtros-estados";
 import { TablaComparativa } from "../_components/estados/tabla-comparativa";
 import { tablaEstadoResultados } from "./_components/exportar";
+import { ResumenEstado } from "./_components/resumen-estado";
 import { rotuloComparativo } from "./_components/rotulo-comparativo";
 
 const RUTA = "/dashboard/reportes/estado-resultados";
@@ -53,17 +55,21 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <EncabezadoReporte
         titulo="Estado de resultados"
-        descripcion="Ingresos, costos y gastos del período comparados con el mismo período del año anterior."
-        desde={desde}
-        hasta={hasta}
+        descripcion="Conoce tu desempeño financiero y obtén insumos para tomar decisiones inteligentes."
+        migas={[
+          { etiqueta: "Reportes", href: "/dashboard/reportes" },
+          { etiqueta: "Contables", href: "/dashboard/reportes" },
+          { etiqueta: "Estado de resultados" },
+        ]}
         acciones={
           tabla == null ? undefined : (
             <BotonDescargar tabla={tabla} nombreArchivo={`estado-resultados-${desde}-${hasta}`} />
           )
         }
+        mostrarImprimir={false}
       />
 
       <FiltrosEstados
@@ -78,6 +84,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
       />
 
       {error ? <AlertaError mensaje={error} /> : null}
+
+      {reporte ? <ResumenEstado texto={generarResumenResultados(reporte.filas)} /> : null}
 
       {reporte ? (
         <Card className="gap-0 py-0">

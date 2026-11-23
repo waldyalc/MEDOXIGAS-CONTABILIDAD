@@ -10,14 +10,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # AGENTS.md — Medoxigas Contabilidad
 
-Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y Oxymat), República Dominicana. Dueño: Waldy Alcántara. **Inspirado** en Alegra (alegra.com): **el punto de venta copia su diseño exactamente** (decisión de Waldy, 22-11-2026 — teal `#00b19d` vía tokens `--pos-*` de `src/app/globals.css`), el resto del sistema solo se inspira. Sigue prohibido copiar código fuente de Alegra: nada de su código, HTML, CSS, selectores, textos largos ni logos, y no se hace ingeniería inversa (sus términos lo prohíben). El estudio de cómo trabaja Waldy en Alegra vive en `docs/alegra/`.
+Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y Oxymat), República Dominicana. Dueño: Waldy Alcántara. **Copia exacta de Alegra** (alegra.com) en diseño y comportamiento, en **todo** el sistema (decisión de Waldy, 23-11-2026 — amplía la del 22-11, que solo cubría el POS con teal `#00b19d` vía tokens `--pos-*` de `src/app/globals.css`): vale copiar su HTML, CSS, estructura y selectores de las capturas y adaptarlos a nuestro código (Next.js + Tailwind + shadcn). Lo que siempre es nuestro: el **logo Medoxigas**, la marca y los datos. El estudio de cómo trabaja Waldy en Alegra vive en `docs/alegra/`.
 
-- **Exports crudos de Alegra (HTML/CSS capturados de la cuenta de Waldy):** sirven como regla de medición **local** del Orquestador — verificar px, colores y espaciados al revisar un diff — pero **nunca se commitean al repo** (es público), no se copian de ellos selectores, clases ni textos, y los subagentes solo trabajan con las guías destiladas y capturas de `docs/alegra/`.
+- **Exports crudos de Alegra (HTML/CSS SingleFile capturados de la cuenta de Waldy):** son la **plantilla y regla de medición** — se les copia estructura, clases, medidas, colores y comportamiento adaptándolos al código propio — pero **nunca se commitean al repo** (es público y llevan datos de la cuenta): viven fuera del repo (hoy `/root/alegra-refs/`).
 
 - **Fuente de la verdad funcional:** `docs/alegra/ALEGRA.md` (con sus capturas y las guías `css-*`). Todo se construye copiando el comportamiento y el orden de Alegra Contabilidad documentados ahí; si hay dudas, manda ese archivo.
 - **Repositorio:** `waldyalc/MEDOXIGAS-CONTABILIDAD`. **Solo existe `main`** → https://medoxigas-contabilidad.vercel.app (producción). Cada push a `main` despliega.
 - **Base de datos:** Supabase, proyecto **MEDOXIGAS-CONTABILIDAD** (`ljfdhrnvlsfaweuvnqxz`, ca-central-1, plan gratis). **Única fuente de la verdad.** Roles en `perfiles`: `admin`, `contador`, `lector`.
-- **Stack:** Next.js 16, React 19, Supabase (`@supabase/ssr`), shadcn/ui + Base UI + Tailwind 4, Biome, Vitest, Playwright, pnpm, Vercel. Diseño: plantilla Studio Admin → `docs/plantilla-diseno.md`.
+- **Stack:** Next.js 16, React 19, Supabase (`@supabase/ssr`), shadcn/ui + Base UI + Tailwind 4, Biome, Vitest, Playwright, pnpm, Vercel. Diseño: **`docs/DESIGN.md` es la ley** (estructura de Alegra + azul Medoxigas `#1e56c7`, nunca su teal fuera del POS; iconos Tabler); plantilla base → `docs/plantilla-diseno.md`.
 - **Fiscal RD:** la facturación debe cumplir con la DGII (e-CF / NCF, reportes 606 y 607). Se diseña con Contable antes de programar.
 
 ## Rol según cómo fuiste invocado
@@ -69,7 +69,7 @@ Viven en `.opencode/skills/<nombre>/SKILL.md`. Cárgalas con la herramienta `ski
 - `localhost` — levantar el dev server en un worktree de T3 (puerto 3001, `.env.local`, login y la misma base de producción).
 - `probar-cambios` — comandos de test, lint, typecheck y build, y los hooks de husky (nunca `--no-verify`).
 - `flujo-git` — rama `feat/*` o `fix/*` desde `origin/main`, commits chicos y reporte al Orquestador; sin merge a `main` ni force-push.
-- `diseno-ui` — shadcn tal cual (`InputGroup`, `Select`, calendario), colores Medoxigas e inspiración de `docs/alegra/`, sin copiar código de Alegra.
+- `diseno-ui` — shadcn tal cual (`InputGroup`, `Select`, calendario), colores Medoxigas y **copia exacta del diseño de Alegra** (`docs/alegra/` + exports crudos en `/root/alegra-refs/`), adaptada a nuestro código.
 - `motor-contable` — motor de doble partida (archivos, cuentas por defecto, invariantes) y tests antes de cambiar un cálculo.
 - `supabase-migraciones` — cómo escribir una migración; no aplicarla en el remoto ni usar `service_role`; RLS en tablas nuevas.
 - `pedir-ayuda` — si te atascas, pregunta al Orquestador con la herramienta `question`; no des vueltas ni inventes atajos.
@@ -208,4 +208,4 @@ Candados que ya existen:
 - `service_role` en el cliente, en un script o en un prompt; desactivar RLS; editar migraciones aplicadas.
 - Cambiar una política RLS para que un test pase sin el OK de Waldy.
 - Probar Supabase contra producción (`--linked`, `--db-url` o el proyecto real): solo `supabase start` local.
-- Commitear `.env*` o claves (Alegra, Supabase, DGII); `--no-verify`; copiar código, textos o imágenes de Alegra; escribir en WhatsApp ni contactar a nadie.
+- Commitear `.env*` o claves (Alegra, Supabase, DGII); `--no-verify`; usar el logo, la marca ni imágenes de Alegra (el logo siempre es Medoxigas); commitear exports crudos de Alegra al repo; escribir en WhatsApp ni contactar a nadie.
