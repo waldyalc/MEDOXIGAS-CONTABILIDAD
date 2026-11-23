@@ -136,6 +136,21 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 - El Orquestador revisa el diff, verifica los checks reales de CI y luego integra a `main`.
 - Nunca force-push, nunca `--no-verify`, nunca reescribir historia publicada. Ver skill `flujo-git`.
 
+## Preview oficial en el VPS
+
+- **Enlace oficial:** https://medoxigas-agentes.tail25e53a.ts.net (solo abre desde equipos con Tailscale). Es donde **Waldy revisa los cambios** en vivo.
+- Por dentro es el servicio systemd `medoxigas-preview.service`: corre `pnpm start` en el puerto **3010** desde `/root/MEDOXIGAS-CONTABILIDAD` (sirve el último `pnpm build`; hay que rebuild tras mergear), contra la **base de PRUEBA** con datos falsos (no producción).
+- **Nunca** levantes otro dev server en el puerto 3010 ni mates ese servicio. Si hay que reiniciarlo: `systemctl restart medoxigas-preview`.
+- Un worktree que quiera su propio preview usa otro puerto (**3011 en adelante**).
+- El login es con los usuarios **ZZTEST** de `.env.pruebas` (las claves nunca van en el repo ni en prompts).
+
+## Vercel y producción
+
+- Vercel construye SOLO los cambios en `main`. Las ramas y los PR NO generan preview en Vercel; para revisar se usa el preview del VPS (puerto 3010).
+- Vercel tiene un límite de builds seguidos (build-rate-limit). No se unen muchas ramas a `main` de golpe; si un build se rechaza, Vercel no lo reintenta solo y hay que disparar otro.
+- Nada se une a `main`, se publica, se promueve en Vercel ni cambia variables de entorno sin el OK de Waldy en el chat.
+- El trabajo se consolida en la rama del POS (`feat/pos-alegra-exacto`) y se publica de una sola vez cuando Waldy lo apruebe.
+
 ## Candados: cada corrección se vuelve un test o una regla
 
 - **Regla de Waldy (20-11-2026) — capturas siempre:** todo cambio de UI (diseño nuevo o ajuste) llega con **capturas de pantalla del resultado terminado**: las toma el propio subagente que implementó (Playwright; el brief las exige como criterio de terminado), el Orquestador revisa el diff y los checks estructurales, y **le muestra las capturas a Waldy, que es quien verifica visualmente y decide**. "Listo" sin captura no está listo. Dónde y cómo se toman: «Preview y capturas al terminar».
