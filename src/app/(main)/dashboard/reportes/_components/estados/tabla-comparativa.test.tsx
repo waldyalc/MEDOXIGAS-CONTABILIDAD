@@ -128,11 +128,11 @@ describe("TablaComparativa", () => {
     expect(html).not.toContain("Contraer");
   });
 
-  it("los totales van en semibold", () => {
+  it("los totales van en semibold sobre fondo slate-50", () => {
     const html = tabla(true);
     const filaTotal = html.split("<tr").find((fila) => fila.includes("Utilidad bruta"));
-    const clases = /class="([^"]*)"/.exec(filaTotal ?? "");
 
-    expect(clases?.[1]).toContain("font-semibold");
+    expect(filaTotal).toContain("bg-slate-50");
+    expect(filaTotal).toContain("font-semibold");
   });
 });

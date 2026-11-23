@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "cn";
 
-import { ChevronDown } from "@/components/icons";
+import { ChevronDown, Plus } from "@/components/icons";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   SidebarGroup,
@@ -55,10 +55,10 @@ interface NavCollapsibleItemProps {
 }
 
 const estiloItem =
-  "relative h-8 gap-2 rounded-[6px] px-2 py-1.5 font-[family-name:var(--font-inter)] text-sm leading-[21px] font-normal tracking-normal text-slate-700 before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary before:opacity-0 before:content-[''] group-data-[mobile=true]:before:h-3 hover:bg-slate-200/45 hover:text-slate-900 active:bg-slate-200/70 focus-visible:ring-primary data-active:bg-slate-200/45 data-active:font-normal data-active:text-slate-900 data-active:before:opacity-100 data-active:hover:bg-slate-200/70 data-active:active:bg-slate-200/90 dark:text-sidebar-foreground/85 dark:before:bg-primary dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:active:bg-white/[0.09] dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] dark:data-active:active:bg-white/[0.12] [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-slate-400 [&_svg]:stroke-[1.6] data-active:[&_svg]:text-slate-900 dark:[&_svg]:text-sidebar-foreground/50 dark:data-active:[&_svg]:text-sidebar-foreground";
+  "relative h-8 gap-2 rounded-[6px] px-2 py-1.5 font-[family-name:var(--font-inter)] text-sm leading-[21px] font-normal tracking-normal text-slate-700 before:absolute before:top-1/2 before:left-0 before:h-3 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[#0a9e9a] before:opacity-0 before:content-[''] hover:bg-slate-200/45 hover:text-slate-900 active:bg-slate-200/70 focus-visible:ring-[#00b19d] data-active:bg-slate-200/45 data-active:font-normal data-active:text-slate-900 data-active:before:opacity-100 data-active:hover:bg-slate-200/70 data-active:active:bg-slate-200/90 dark:text-sidebar-foreground/85 dark:before:bg-primary dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:active:bg-white/[0.09] dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] dark:data-active:active:bg-white/[0.12] [&_svg]:size-5 [&_svg]:shrink-0 [&_svg]:text-slate-400 [&_svg]:stroke-[1.5] data-active:[&_svg]:text-slate-900 dark:[&_svg]:text-sidebar-foreground/50 dark:data-active:[&_svg]:text-sidebar-foreground";
 
 const estiloSubItem =
-  "relative mb-1 h-8 min-h-8 translate-x-0 gap-2 rounded-[6px] px-2 font-[family-name:var(--font-inter)] text-sm leading-[21px] font-normal tracking-normal text-slate-900 before:absolute before:top-1/2 before:left-0 before:h-4 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-primary before:opacity-0 before:content-[''] group-data-[mobile=true]:before:h-3 hover:bg-slate-200/45 hover:text-slate-900 active:bg-slate-200/70 focus-visible:ring-primary data-active:bg-slate-200/45 data-active:font-normal data-active:text-slate-900 data-active:before:opacity-100 data-active:hover:bg-slate-200/70 data-active:active:bg-slate-200/90 dark:text-sidebar-foreground dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:active:bg-white/[0.09] dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] dark:data-active:active:bg-white/[0.12] [&_svg]:hidden";
+  "relative mb-1 h-8 min-h-8 w-full translate-x-0 gap-2 rounded-[6px] px-2 font-[family-name:var(--font-inter)] text-sm leading-[21px] font-normal tracking-normal text-slate-900 before:absolute before:top-1/2 before:left-0 before:h-3 before:w-[3px] before:-translate-y-1/2 before:rounded-full before:bg-[#0a9e9a] before:opacity-0 before:content-[''] lg:before:h-4 hover:bg-slate-200/45 hover:text-slate-900 active:bg-slate-200/70 focus-visible:ring-[#00b19d] data-active:bg-slate-200/45 data-active:font-normal data-active:text-slate-900 data-active:before:opacity-100 data-active:hover:bg-slate-200/70 data-active:active:bg-slate-200/90 dark:text-sidebar-foreground dark:hover:bg-white/[0.06] dark:hover:text-sidebar-foreground dark:active:bg-white/[0.09] dark:data-active:bg-white/[0.09] dark:data-active:text-sidebar-foreground dark:data-active:hover:bg-white/[0.09] dark:data-active:active:bg-white/[0.12] [&_svg]:hidden";
 
 function hasSubItems(item: NavMainItem): item is NavMainParentItem {
   return Boolean(item.subItems?.length);
@@ -230,23 +230,35 @@ function NavCollapsibleItem({ item, defaultOpen, esSubItemActivo, onNavigate }: 
 
             return (
               <SidebarMenuSubItem key={subItem.id}>
-                <SidebarMenuSubButton
-                  render={
+                <div className="group/sub relative flex items-center">
+                  <SidebarMenuSubButton
+                    render={
+                      <Link
+                        href={subItem.url}
+                        target={subItem.newTab ? "_blank" : undefined}
+                        rel={subItem.newTab ? "noreferrer" : undefined}
+                        aria-current={esSubItemActivo(subItem.url) ? "page" : undefined}
+                        onClick={() => onNavigate(subItem.url)}
+                      />
+                    }
+                    aria-disabled={subItem.disabled}
+                    isActive={esSubItemActivo(subItem.url)}
+                    className={cn(estiloSubItem, subItem.addUrl != null && "pr-8")}
+                  >
+                    {SubIcon && <SubIcon weight="duotone" size={20} />}
+                    <span className="truncate">{subItem.title}</span>
+                  </SidebarMenuSubButton>
+                  {subItem.addUrl != null ? (
                     <Link
-                      href={subItem.url}
-                      target={subItem.newTab ? "_blank" : undefined}
-                      rel={subItem.newTab ? "noreferrer" : undefined}
-                      aria-current={esSubItemActivo(subItem.url) ? "page" : undefined}
+                      href={subItem.addUrl}
+                      aria-label={`Crear: ${subItem.title}`}
                       onClick={() => onNavigate(subItem.url)}
-                    />
-                  }
-                  aria-disabled={subItem.disabled}
-                  isActive={esSubItemActivo(subItem.url)}
-                  className={estiloSubItem}
-                >
-                  {SubIcon && <SubIcon weight="duotone" size={20} />}
-                  <span className="truncate">{subItem.title}</span>
-                </SidebarMenuSubButton>
+                      className="absolute right-1 hidden size-6 items-center justify-center rounded-[6px] text-slate-400 hover:bg-slate-200/70 hover:text-slate-900 group-hover/sub:flex dark:hover:bg-white/[0.09] dark:hover:text-sidebar-foreground [&_svg]:size-4"
+                    >
+                      <Plus />
+                    </Link>
+                  ) : null}
+                </div>
               </SidebarMenuSubItem>
             );
           })}

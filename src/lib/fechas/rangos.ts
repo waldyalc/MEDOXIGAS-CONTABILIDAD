@@ -137,3 +137,14 @@ export function etiquetaFecha(iso: string): string {
 export function etiquetaRango(rango: RangoFechas): string {
   return `${etiquetaFecha(rango.desde)} – ${etiquetaFecha(rango.hasta)}`;
 }
+
+/** Nombre del atajo que coincide con el rango ("Este mes"), o el rango en texto. */
+export function etiquetaPresetRango(rango: RangoFechas): string {
+  const hoy = hoyEnRd();
+  const atajo = ATAJOS_RANGO.find((candidato) => {
+    const sugerido = candidato.obtener?.(hoy);
+    return sugerido?.desde === rango.desde && sugerido?.hasta === rango.hasta;
+  });
+
+  return atajo?.etiqueta ?? etiquetaRango(rango);
+}

@@ -10,7 +10,6 @@ import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaCuenta } from "@/lib/enlaces";
-import { formatoPct } from "@/lib/formato";
 import { formatearRd } from "@/lib/reportes/dinero";
 import type { FilaReporte } from "@/lib/reportes/estados/tipos";
 
@@ -27,45 +26,59 @@ interface Props {
   expandible?: boolean;
 }
 
-/**
- * Montos con texto plano y el signo en el prefijo: Alegra no colorea los
- * montos de sus reportes (decisión de Waldy, 20-11-2026: el rojo/verde por
- * signo se ve chillón y no es parte del diseño de Alegra).
- */
+/** % de Ingresos: siempre 2 decimales, como en Alegra ("112.82%"). */
+function formatoPorcentaje(valor: number): string {
+  return `${valor.toFixed(2)}%`;
+}
+
+/** Var. Relativa: entero con signo implícito ("0%", "-15%"), como en Alegra. */
+function formatoVariacion(valor: number): string {
+  return `${Math.round(valor)}%`;
+}
+
+function nivelDe(fila: FilaReporte): number {
+  return fila.nivel ?? (fila.clase === "detalle" ? 1 : 0);
+}
 
 interface Agrupacion {
-  /** Cuántas cuentas de detalle cuelgan de cada grupo. */
+  /** Cuántas filas cuelgan directamente de cada grupo (cualquier clase). */
   hijas: ReadonlyMap<string, number>;
-  /** Grupo al que pertenece cada cuenta de detalle. */
-  grupoDe: ReadonlyMap<string, string>;
+  /** Cadena de grupos que contiene a cada fila (sección > subgrupo > hoja). */
+  ancestros: ReadonlyMap<string, readonly string[]>;
 }
 
 /**
- * Los detalles del reporte son filas seguidas a su grupo. Se agrupan en una
- * pasada para saber cuáles contraer y cuáles grupos llevan chevron.
+ * El árbol del reporte se lee en una pasada: cada grupo contiene a las filas
+ * que le siguen con un nivel mayor, hasta el próximo total/sección.
  */
 function agrupar(filas: readonly FilaReporte[]): Agrupacion {
   const hijas = new Map<string, number>();
-  const grupoDe = new Map<string, string>();
-  let grupoActual: string | null = null;
+  const ancestros = new Map<string, readonly string[]>();
+  const pila: { clave: string; nivel: number; cadena: readonly string[] }[] = [];
 
   for (const fila of filas) {
+    if (fila.clase === "total" || fila.clase === "titulo") {
+      pila.length = 0;
+      continue;
+    }
+
+    const nivel = nivelDe(fila);
+    while (pila.length > 0 && (pila.at(-1)?.nivel ?? 0) >= nivel) pila.pop();
+
+    const tope = pila.at(-1);
+    if (tope != null) {
+      ancestros.set(fila.clave, tope.cadena);
+      hijas.set(tope.clave, (hijas.get(tope.clave) ?? 0) + 1);
+    }
+
     if (fila.clase === "grupo") {
-      grupoActual = fila.clave;
-      hijas.set(grupoActual, 0);
-      continue;
+      const cadena = [...(tope?.cadena ?? []), fila.clave];
+      pila.push({ clave: fila.clave, nivel, cadena });
+      if (!hijas.has(fila.clave)) hijas.set(fila.clave, 0);
     }
-
-    if (fila.clase === "detalle" && grupoActual != null) {
-      hijas.set(grupoActual, (hijas.get(grupoActual) ?? 0) + 1);
-      grupoDe.set(fila.clave, grupoActual);
-      continue;
-    }
-
-    grupoActual = null;
   }
 
-  return { hijas, grupoDe };
+  return { hijas, ancestros };
 }
 
 function CeldaCuenta({ fila }: { fila: FilaReporte }) {
@@ -81,18 +94,44 @@ function CeldaCuenta({ fila }: { fila: FilaReporte }) {
 }
 
 function Montos({ fila }: { fila: FilaReporte }) {
+  const total = fila.clase === "total";
   return (
     <>
-      <TableCell className="text-right tabular-nums">{formatearRd(fila.actual)}</TableCell>
-      <TableCell className="text-muted-foreground text-right tabular-nums">
-        {formatoPct(fila.porcentajeActual)}
+      <TableCell className={cn("text-right text-xs whitespace-nowrap tabular-nums", total && "font-semibold")}>
+        {formatearRd(fila.actual)}
       </TableCell>
-      <TableCell className="text-right tabular-nums">{formatearRd(fila.anterior)}</TableCell>
-      <TableCell className="text-muted-foreground text-right tabular-nums">
-        {formatoPct(fila.porcentajeAnterior)}
+      <TableCell
+        className={cn(
+          "text-right text-xs whitespace-nowrap tabular-nums",
+          total ? "font-semibold" : "text-muted-foreground",
+        )}
+      >
+        {formatoPorcentaje(fila.porcentajeActual)}
       </TableCell>
-      <TableCell className="text-right tabular-nums">{formatearRd(fila.variacionAbsoluta)}</TableCell>
-      <TableCell className="text-right tabular-nums">{formatoPct(fila.variacionRelativa)}</TableCell>
+      <TableCell className={cn("text-right text-xs whitespace-nowrap tabular-nums", total && "font-semibold")}>
+        {formatearRd(fila.anterior)}
+      </TableCell>
+      <TableCell
+        className={cn(
+          "text-right text-xs whitespace-nowrap tabular-nums",
+          total ? "font-semibold" : "text-muted-foreground",
+        )}
+      >
+        {formatoPorcentaje(fila.porcentajeAnterior)}
+      </TableCell>
+      <TableCell
+        className={cn(
+          "text-right text-xs whitespace-nowrap tabular-nums",
+          fila.variacionAbsoluta > 0 && "text-green-700",
+          fila.variacionAbsoluta < 0 && "text-rose-700",
+          total && "font-semibold",
+        )}
+      >
+        {formatearRd(fila.variacionAbsoluta)}
+      </TableCell>
+      <TableCell className={cn("text-right text-xs whitespace-nowrap tabular-nums", total && "font-semibold")}>
+        {formatoVariacion(fila.variacionRelativa)}
+      </TableCell>
     </>
   );
 }
@@ -106,16 +145,16 @@ interface FilaProps {
 }
 
 function FilaComparativa({ fila, conChevron, abierto, oculta, onAlternar }: FilaProps) {
+  const nivel = nivelDe(fila);
+  const total = fila.clase === "total";
+
   return (
     <FilaNavegable
       href={fila.cuentaId ? rutaCuenta(fila.cuentaId) : null}
-      className={cn(
-        (fila.clase === "grupo" || fila.clase === "total") && "font-semibold",
-        oculta && "hidden print:table-row",
-      )}
+      className={cn(total && "bg-slate-50 hover:bg-slate-50", oculta && "hidden print:table-row")}
     >
-      <TableCell className={cn("pl-4", fila.clase === "detalle" && "pl-14")}>
-        <div className="flex items-center gap-1">
+      <TableCell className="pl-4">
+        <div className="flex items-center gap-1" style={{ paddingLeft: `${nivel * 2}rem` }}>
           {conChevron ? (
             <Button
               type="button"
@@ -128,8 +167,18 @@ function FilaComparativa({ fila, conChevron, abierto, oculta, onAlternar }: Fila
             >
               <ChevronDown className={cn("transition-transform", abierto ? null : "-rotate-90")} />
             </Button>
-          ) : null}
-          <CeldaCuenta fila={fila} />
+          ) : (
+            <span aria-hidden="true" className="-ml-2 inline-block w-6 shrink-0" />
+          )}
+          <span
+            className={cn(
+              "text-xs",
+              (fila.clase === "grupo" && nivel === 0) || total ? "font-semibold" : null,
+              total && "text-sm",
+            )}
+          >
+            <CeldaCuenta fila={fila} />
+          </span>
         </div>
       </TableCell>
       <Montos fila={fila} />
@@ -146,7 +195,7 @@ export function TablaComparativa({
   expandible = false,
 }: Props) {
   const [contraidos, setContraidos] = useState<ReadonlySet<string>>(() => new Set());
-  const { hijas, grupoDe } = agrupar(filas);
+  const { hijas, ancestros } = agrupar(filas);
 
   function alternar(clave: string) {
     setContraidos((previos) => {
@@ -161,13 +210,13 @@ export function TablaComparativa({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="text-muted-foreground pl-4">{rotuloCuenta}</TableHead>
-          <TableHead className="text-muted-foreground text-right">{rotuloActual}</TableHead>
-          <TableHead className="text-muted-foreground text-right">{rotuloPorcentaje}</TableHead>
-          <TableHead className="text-muted-foreground text-right">{rotuloAnterior}</TableHead>
-          <TableHead className="text-muted-foreground text-right">{rotuloPorcentaje}</TableHead>
-          <TableHead className="text-muted-foreground text-right">Var. Absoluta</TableHead>
-          <TableHead className="text-muted-foreground text-right">Var. Relativa (%)</TableHead>
+          <TableHead className="text-muted-foreground min-w-[280px] pl-4">{rotuloCuenta}</TableHead>
+          <TableHead className="text-muted-foreground text-right whitespace-nowrap">{rotuloActual}</TableHead>
+          <TableHead className="text-muted-foreground text-right whitespace-nowrap">{rotuloPorcentaje}</TableHead>
+          <TableHead className="text-muted-foreground text-right whitespace-nowrap">{rotuloAnterior}</TableHead>
+          <TableHead className="text-muted-foreground text-right whitespace-nowrap">{rotuloPorcentaje}</TableHead>
+          <TableHead className="text-muted-foreground text-right whitespace-nowrap">Var. Absoluta</TableHead>
+          <TableHead className="text-muted-foreground text-right whitespace-nowrap">Var. Relativa (%)</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -183,7 +232,7 @@ export function TablaComparativa({
           }
 
           const conChevron = expandible && fila.clase === "grupo" && (hijas.get(fila.clave) ?? 0) > 0;
-          const grupo = grupoDe.get(fila.clave);
+          const oculta = (ancestros.get(fila.clave) ?? []).some((clave) => contraidos.has(clave));
 
           return (
             <FilaComparativa
@@ -191,7 +240,7 @@ export function TablaComparativa({
               fila={fila}
               conChevron={conChevron}
               abierto={conChevron && !contraidos.has(fila.clave)}
-              oculta={grupo != null && contraidos.has(grupo)}
+              oculta={oculta}
               onAlternar={alternar}
             />
           );

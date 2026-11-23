@@ -43,7 +43,7 @@ function aFilaExportada(fila: FilaReporte): FilaExportada {
   return {
     celdas,
     estilo: ESTILO[fila.clase],
-    ...(fila.clase === "detalle" ? { nivel: 1 } : {}),
+    ...(fila.clase === "detalle" ? { nivel: fila.nivel ?? 1 } : {}),
   };
 }
 

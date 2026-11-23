@@ -10,6 +10,8 @@ export interface FilaReporte {
   codigo: string;
   nombre: string;
   cuentaId: string | null;
+  /** Profundidad en el árbol del reporte: 0 sección/total, 1 hijo, 2 nieto. */
+  nivel?: number;
   actual: number;
   anterior: number;
   porcentajeActual: number;
@@ -23,6 +25,8 @@ export interface OpcionesReporte {
   resumido?: boolean;
   centroCostoId?: string | null;
   cuentasPorCodigo?: ReadonlyMap<string, string>;
+  /** Catálogo completo: el estado de resultados lista también las cuentas sin movimiento. */
+  cuentas?: readonly CuentaEstado[];
 }
 
 export interface CuentaEstado {
@@ -34,6 +38,7 @@ export interface CuentaEstado {
   padre_id: string | null;
   acepta_movimientos: boolean;
   es_caja_banco: boolean;
+  activa?: boolean;
 }
 
 export interface EstadoResultadosComparativo {

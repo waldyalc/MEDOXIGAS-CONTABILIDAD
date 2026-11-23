@@ -149,6 +149,8 @@ export {
   SunIcon as Sun,
   TagIcon as Tag,
   TagIcon as Tags,
+  ThumbsDownIcon as ThumbsDown,
+  ThumbsUpIcon as ThumbsUp,
   TrashIcon as Trash2,
   TreeStructureIcon as ListTree,
   TrendDownIcon as TrendingDown,

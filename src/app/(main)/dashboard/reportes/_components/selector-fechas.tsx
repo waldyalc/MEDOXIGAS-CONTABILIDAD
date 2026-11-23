@@ -9,7 +9,7 @@ import { format, isValid, parse } from "date-fns";
 import { es } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 
-import { CalendarDays } from "@/components/icons";
+import { CalendarDays, ChevronDown } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -18,7 +18,7 @@ import {
   ATAJOS_RANGO,
   type AtajoRango,
   etiquetaFecha,
-  etiquetaRango,
+  etiquetaPresetRango,
   hoyEnRd,
 } from "@/lib/fechas/rangos";
 
@@ -55,8 +55,9 @@ function CalendarioDia({ className, ...props }: ComponentProps<typeof CalendarDa
   );
 }
 
+/** Chip de filtro estilo Alegra: píldora con tinte teal e iconos de 16 px. */
 const CLASES_BOTON_FECHAS =
-  "border-primary/40 bg-primary/5 text-primary hover:border-primary/60 hover:bg-primary/10 h-8 gap-2 rounded-full px-3 text-sm font-normal";
+  "h-8 gap-1.5 rounded-full border border-[#0a9e9a]/50 bg-[#ebfafa] px-3 text-xs font-normal text-[#005452] hover:border-[#0a9e9a]/60 hover:bg-[#d4f2f1] [&_svg]:size-4";
 
 function PanelAtajos({ children }: { children: ReactNode }) {
   return <div className="flex w-36 shrink-0 flex-col gap-0.5 border-r border-slate-200 p-2">{children}</div>;
@@ -156,8 +157,9 @@ export function SelectorRangoFechas({ desde, hasta, className }: RangoProps) {
               aria-label="Cambiar fechas"
               className={cn(CLASES_BOTON_FECHAS, className)}
             >
-              <CalendarDays className="size-4" />
-              <span className="truncate">{etiquetaRango({ desde, hasta })}</span>
+              <CalendarDays />
+              <span className="truncate">{etiquetaPresetRango({ desde, hasta })}</span>
+              <ChevronDown />
             </Button>
           }
         />
@@ -246,8 +248,9 @@ export function SelectorFechaCorte({ valor, parametro = "hasta", className }: Fe
               aria-label="Cambiar fecha"
               className={cn(CLASES_BOTON_FECHAS, className)}
             >
-              <CalendarDays className="size-4" />
+              <CalendarDays />
               <span className="truncate">{etiquetaFecha(valor)}</span>
+              <ChevronDown />
             </Button>
           }
         />

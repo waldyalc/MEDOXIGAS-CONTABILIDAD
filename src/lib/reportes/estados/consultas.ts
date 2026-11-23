@@ -29,7 +29,7 @@ type ClienteSupabase = Awaited<ReturnType<typeof createClient>>;
 async function consultarCuentas(supabase: ClienteSupabase): Promise<FilasReporte<CuentaEstado>> {
   const { data, error } = await supabase
     .from("cuentas")
-    .select("id, codigo, nombre, tipo, naturaleza, padre_id, acepta_movimientos, es_caja_banco")
+    .select("id, codigo, nombre, tipo, naturaleza, padre_id, acepta_movimientos, es_caja_banco, activa")
     .order("codigo");
 
   if (error) return { filas: [], error: error.message };
@@ -92,6 +92,7 @@ export async function obtenerEstadoResultadosComparativo(
     reporte: calcularEstadoResultadosComparativo(filasActuales, filasAnteriores, {
       ...opciones,
       cuentasPorCodigo: new Map(cuentas.filas.map((cuenta) => [cuenta.codigo, cuenta.id])),
+      cuentas: cuentas.filas,
     }),
     error: null,
   };
