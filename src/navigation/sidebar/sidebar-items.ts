@@ -2,11 +2,8 @@ import {
   type IconoTabler,
   TablerBank,
   TablerCalculator,
-  TablerClipboardCheck,
   TablerCompras,
-  TablerFileInvoice,
   TablerHome,
-  TablerInbox,
   TablerIngresos,
   TablerNomina,
   TablerPackage,
@@ -38,7 +35,6 @@ interface NavItemBase {
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;
-  separadorDespues?: boolean;
   roles: Rol[];
 }
 
@@ -55,7 +51,6 @@ export type NavMainItem = NavMainLinkItem | NavMainParentItem;
 
 export interface NavGroup {
   id: number;
-  label?: string;
   items: NavMainItem[];
 }
 
@@ -70,14 +65,6 @@ export const sidebarItems: NavGroup[] = [
         title: "Inicio",
         url: "/dashboard",
         icon: TablerHome,
-        roles: TODOS_LOS_ROLES,
-      },
-      {
-        id: "bandeja-entrada",
-        title: "Bandeja de entrada",
-        url: "/dashboard",
-        icon: TablerInbox,
-        separadorDespues: true,
         roles: TODOS_LOS_ROLES,
       },
       {
@@ -293,32 +280,12 @@ export const sidebarItems: NavGroup[] = [
         roles: TODOS_LOS_ROLES,
       },
       {
-        id: "mis-tareas",
-        title: "Mis tareas",
-        url: "/dashboard",
-        icon: TablerClipboardCheck,
-        roles: TODOS_LOS_ROLES,
-      },
-      {
         id: "configuracion",
         title: "Configuración",
         url: "/dashboard/configuracion",
         icon: TablerSettings,
         roles: TODOS_LOS_ROLES,
       },
-      {
-        id: "configuracion-reportes-dgii",
-        title: "Reportes DGII",
-        url: "/dashboard/configuracion/reportes-dgii",
-        icon: TablerFileInvoice,
-        roles: ["admin", "contador"],
-      },
-    ],
-  },
-  {
-    id: 2,
-    label: "Descubre más soluciones",
-    items: [
       {
         id: "nomina",
         title: "Nómina",

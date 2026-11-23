@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { useState } from "react";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -12,7 +12,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import {
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuBadge,
   SidebarMenuButton,
@@ -120,27 +119,16 @@ export function NavMain({ items }: NavMainProps) {
     <>
       {items.map((group) => (
         <SidebarGroup key={group.id} className="p-0">
-          {group.label ? (
-            <SidebarGroupLabel className="h-auto px-2 pt-3 pb-0.5 group-data-[state=collapsed]:hidden">
-              {group.label}
-            </SidebarGroupLabel>
-          ) : null}
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
               {group.items.map((item) => (
-                <Fragment key={item.id}>
-                  <NavItem
-                    item={item}
-                    esEnlaceActivo={esEnlaceActivo}
-                    esSubItemActivo={esSubItemActivo}
-                    onNavigate={onNavigate}
-                  />
-                  {item.separadorDespues ? (
-                    <li aria-hidden="true" className="flex h-4 items-center py-1">
-                      <div className="dark:bg-sidebar-border h-px w-full bg-slate-200" />
-                    </li>
-                  ) : null}
-                </Fragment>
+                <NavItem
+                  key={item.id}
+                  item={item}
+                  esEnlaceActivo={esEnlaceActivo}
+                  esSubItemActivo={esSubItemActivo}
+                  onNavigate={onNavigate}
+                />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
