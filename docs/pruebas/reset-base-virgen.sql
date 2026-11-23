@@ -71,9 +71,9 @@ begin
 end $$;
 
 -- ===========================================================================
--- 0.1) INVENTARIO DE LAS 82 TABLAS DE public
+-- 0.1) INVENTARIO DE LAS 83 TABLAS DE public
 -- ===========================================================================
--- 63 se vacían (paso 1) y 19 se conservan (paso 3). Los marcadores
+-- 64 se vacían (paso 1) y 19 se conservan (paso 3). Los marcadores
 -- @conservar son el candado: src/lib/supabase/reset-virgen.test.ts compara
 -- esta lista + el TRUNCATE contra TODAS las tablas de supabase/migrations y
 -- falla si una tabla queda sin clasificar.
@@ -173,6 +173,7 @@ truncate table
   public.periodos_contables,
   public.pos_turno_movimientos,
   public.pos_turnos,
+  public.pos_sync_operaciones,
   public.producto_codigos_barra,
   public.producto_precios,
   public.producto_unidades,
@@ -538,6 +539,7 @@ begin
     'periodos_contables',
     'pos_turno_movimientos',
     'pos_turnos',
+    'pos_sync_operaciones',
     'producto_codigos_barra',
     'producto_precios',
     'producto_unidades',
@@ -669,6 +671,7 @@ from (
   union all select 'periodos_contables', count(*) from public.periodos_contables
   union all select 'pos_turno_movimientos', count(*) from public.pos_turno_movimientos
   union all select 'pos_turnos', count(*) from public.pos_turnos
+  union all select 'pos_sync_operaciones', count(*) from public.pos_sync_operaciones
   union all select 'producto_codigos_barra', count(*) from public.producto_codigos_barra
   union all select 'producto_precios', count(*) from public.producto_precios
   union all select 'producto_unidades', count(*) from public.producto_unidades
