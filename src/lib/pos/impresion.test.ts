@@ -63,7 +63,10 @@ describe("armarTicketFactura", () => {
     expect(ticket.encabezado.lineas).toContain("Vencimiento: 20/11/2026");
     expect(ticket.encabezado.lineas).not.toContain("Cliente: Consumidor Final");
     expect(ticket.cliente.nombre).toBe("Consumidor Final");
-    expect(ticket.cliente.lineas).toContain("RNC: 22222222222");
+    expect(
+      ticket.cliente.lineas,
+      "El Consumidor final se pinta solo con su nombre: el RNC 22222222222 es un relleno y no se imprime (MSG-44)",
+    ).not.toContain("RNC: 22222222222");
     expect(ticket.lineas[0]?.total).toBe("236.00");
     expect(valor(ticket.totales, "Total")).toBe("RD$236.00");
     expect(ticket.pagos).toEqual([
@@ -73,6 +76,17 @@ describe("armarTicketFactura", () => {
     expect(valor(ticket.resumen, "Total de líneas")).toBe("1");
     expect(valor(ticket.resumen, "Total de productos")).toBe("2");
     expect(ticket.nota).toBeNull();
+  });
+
+  test("un cliente normal sigue imprimiendo su RNC, como antes de MSG-44", () => {
+    const venta = ventaEjemplo();
+    const ticket = armarTicketFactura({
+      ...venta,
+      contacto: { ...venta.contacto, nombre: "Clínica Unión", rnc_cedula: "130999888", tipo_identificacion: "rnc" },
+    });
+
+    expect(ticket.cliente.nombre).toBe("Clínica Unión");
+    expect(ticket.cliente.lineas).toContain("RNC: 130999888");
   });
 
   test("el encabezado sigue el orden de Alegra y no muestra terminal, turno ni cajero", () => {
