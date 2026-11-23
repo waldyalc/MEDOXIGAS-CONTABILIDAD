@@ -17,12 +17,34 @@ describe("dígito verificador DGII", () => {
     expect(digitoVerificadorValido("40237721180")).toBe(false);
   });
 
-  it("valida el RNC con el mismo algoritmo de la base", () => {
-    // Casos documentados en la migración 20261124120000: Alegra aceptó
-    // 132000013 y 402123455, y rechazó 132000015.
+  it("valida el RNC con el algoritmo de la DGII", () => {
+    // Reales del catálogo oficial de la DGII (23-11-2026): 131712789 =
+    // FRINET SRL —el caso del QA de producción—, 130893489 = MEDOXIGAS ALC
+    // SRL, 131488791 = OXYMAT SRL y 132000013 = DIMARDI M&M SRL.
+    expect(digitoVerificadorValido("131712789")).toBe(true);
+    expect(digitoVerificadorValido("1-31-71278-9")).toBe(true);
+    expect(digitoVerificadorValido("130893489")).toBe(true);
+    expect(digitoVerificadorValido("131488791")).toBe(true);
     expect(digitoVerificadorValido("132000013")).toBe(true);
+    // 402123455 es el RNC de la prueba de Alegra; 132000015 lo rechazó.
     expect(digitoVerificadorValido("402123455")).toBe(true);
     expect(digitoVerificadorValido("132000015")).toBe(false);
+  });
+
+  it("usa 1 cuando el resto es 10 y 2 cuando el resto es 11", () => {
+    // Complemento módulo 11 de la DGII: 11 - 10 = 1 y 11 - 0 = 11 → 2.
+    // 101007151 (ROSEDAL CXA) y 531068592 (JUSTINA SUERO AMADOR) son RNC
+    // reales del catálogo oficial.
+    expect(digitoVerificadorValido("101007151")).toBe(true);
+    expect(digitoVerificadorValido("531068592")).toBe(true);
+    expect(digitoVerificadorValido("101007150")).toBe(false);
+    expect(digitoVerificadorValido("531068590")).toBe(false);
+  });
+
+  it("rechaza el RNC que aceptaba el algoritmo viejo", () => {
+    // El algoritmo viejo ponderaba desde el segundo dígito, así que
+    // 902123455 pasaba; con la DGII el dígito verificador es 3.
+    expect(digitoVerificadorValido("902123455")).toBe(false);
   });
 
   it("rechaza longitudes que no son ni RNC ni cédula", () => {
