@@ -26,10 +26,17 @@ import {
   revisionCierreOffline,
   sincronizarColaOffline,
 } from "@/lib/pos/cola-offline";
+import {
+  type EstadoConexion,
+  estadoTrasSondeo,
+  RUTA_SONDEO,
+  registrarSondeo,
+  SALUD_CONEXION_INICIAL,
+  type SaludConexion,
+  textoEstadoOffline,
+} from "@/lib/pos/conexion-offline";
 import { transportarOperacionOffline } from "@/lib/pos/transporte-offline";
 import { createClient } from "@/lib/supabase/client";
-
-type EstadoConexion = "online" | "offline" | "sincronizando" | "error";
 
 interface ContextoOffline {
   ambito: string;
@@ -48,10 +55,6 @@ interface ContextoOffline {
   conCierreSeguro: <T>(accion: () => Promise<T>) => Promise<T>;
 }
 
-function hayProblema(actuales: OperacionOffline[]): boolean {
-  return actuales.some((fila) => fila.estado === "fallida" || (fila.estado === "pendiente" && fila.error !== null));
-}
-
 const Contexto = createContext<ContextoOffline | null>(null);
 
 export function OfflinePosProvider({
@@ -68,11 +71,12 @@ export function OfflinePosProvider({
   const [estado, setEstado] = useState<EstadoConexion>("online");
   const [operaciones, setOperaciones] = useState<OperacionOffline[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [avisoRecarga, setAvisoRecarga] = useState<string | null>(null);
   const [preparado, setPreparado] = useState(false);
   const [panel, setPanel] = useState(false);
   const [descartando, setDescartando] = useState<OperacionOffline | null>(null);
   const [recargaLista, setRecargaLista] = useState(false);
-  const conectado = useRef(false);
+  const salud = useRef<SaludConexion>(SALUD_CONEXION_INICIAL);
   const ocupado = useRef(false);
   const canal = useRef<BroadcastChannel | null>(null);
 
@@ -84,26 +88,28 @@ export function OfflinePosProvider({
   }, [ambito]);
 
   const sincronizar = useCallback(async () => {
-    if (ocupado.current || !conectado.current) return;
+    if (ocupado.current || !salud.current.conectado) return;
     ocupado.current = true;
     try {
       await conBloqueoOffline(ambito, async () => {
         const filas = await refrescar();
+        // La cola local respondió: cualquier aviso de almacenamiento quedó atrás.
+        setError(null);
         if (!filas.some((fila) => fila.estado === "pendiente")) {
-          setEstado(hayProblema(filas) ? "error" : "online");
+          setEstado(salud.current.conectado ? "online" : "offline");
           return;
         }
         setEstado("sincronizando");
         await sincronizarColaOffline(almacenColaOffline, ambito, (operacion) =>
           transportarOperacionOffline(operacion, terminalId),
         );
-        const actuales = await refrescar();
-        setEstado(hayProblema(actuales) ? "error" : "online");
+        await refrescar();
+        setEstado(salud.current.conectado ? "online" : "offline");
         canal.current?.postMessage("actualizado");
       });
     } catch (causa) {
       setError(causa instanceof Error ? causa.message : "No se pudo leer la cola local.");
-      setEstado("error");
+      setEstado(salud.current.conectado ? "online" : "offline");
     } finally {
       ocupado.current = false;
     }
@@ -111,50 +117,61 @@ export function OfflinePosProvider({
 
   useEffect(() => {
     let vigente = true;
+    let ultimoSondeo = 0;
     const controlador = new AbortController();
+
+    function aplicarSondeo(respondio: boolean): boolean {
+      salud.current = registrarSondeo(salud.current, respondio);
+      const conectado = salud.current.conectado;
+      setEstado((actual) => estadoTrasSondeo(actual, conectado));
+      return conectado;
+    }
+
+    async function consultarConexion(): Promise<boolean> {
+      if (!navigator.onLine) return false;
+      const respuesta = await fetch(RUTA_SONDEO, {
+        method: "HEAD",
+        cache: "no-store",
+        signal: AbortSignal.any([controlador.signal, AbortSignal.timeout(5_000)]),
+      });
+      return respuesta.ok;
+    }
+
     async function sondear() {
-      if (!navigator.onLine) {
-        conectado.current = false;
-        setEstado("offline");
-        return;
-      }
+      const orden = ++ultimoSondeo;
+      let respondio = false;
       try {
-        const respuesta = await fetch("/login", {
-          method: "HEAD",
-          cache: "no-store",
-          signal: AbortSignal.any([controlador.signal, AbortSignal.timeout(5_000)]),
-        });
-        if (!vigente) return;
-        conectado.current = respuesta.ok;
-        if (!respuesta.ok) {
-          setEstado("offline");
-          return;
-        }
-        setEstado((actual) => (actual === "sincronizando" ? actual : "online"));
-        await sincronizar();
+        respondio = await consultarConexion();
       } catch {
-        if (!vigente) return;
-        conectado.current = false;
-        setEstado("offline");
+        respondio = false;
       }
+      if (!vigente || orden !== ultimoSondeo) return;
+      if (!aplicarSondeo(respondio)) return;
+      await sincronizar();
     }
     void refrescar().catch(() => {
       setError("No se puede guardar en este navegador. No cobres offline hasta habilitar IndexedDB.");
-      setEstado("error");
     });
     void sondear();
     const intervalo = window.setInterval(() => void sondear(), 15_000);
     window.addEventListener("online", sondear);
     window.addEventListener("offline", sondear);
+    // Al volver a la pestaña se sondea de inmediato: si el navegador la frenó
+    // en segundo plano, el pie no se queda pegado en «Sin conexión».
+    const alCambiarVisibilidad = () => {
+      if (!document.hidden) void sondear();
+    };
+    document.addEventListener("visibilitychange", alCambiarVisibilidad);
     const broadcast = new BroadcastChannel(`pos-offline:${ambito}`);
     canal.current = broadcast;
-    broadcast.onmessage = () => void refrescar().catch(() => setEstado("error"));
+    broadcast.onmessage = () => void refrescar().catch(() => setError("No se pudo leer la cola local."));
     return () => {
       vigente = false;
       controlador.abort();
       window.clearInterval(intervalo);
       window.removeEventListener("online", sondear);
       window.removeEventListener("offline", sondear);
+      document.removeEventListener("visibilitychange", alCambiarVisibilidad);
       broadcast.close();
       canal.current = null;
     };
@@ -179,10 +196,13 @@ export function OfflinePosProvider({
     let vigente = true;
     function recibir(evento: MessageEvent) {
       if (!vigente || evento.data?.ambito !== ambito) return;
-      if (evento.data.tipo === "POS_CACHE_LISTO") setRecargaLista(true);
+      if (evento.data.tipo === "POS_CACHE_LISTO") {
+        setRecargaLista(true);
+        setAvisoRecarga(null);
+      }
       if (evento.data.tipo === "POS_CACHE_ERROR") {
         setRecargaLista(false);
-        setError("La recarga offline no está preparada. Mantén esta pestaña abierta hasta recuperar conexión.");
+        setAvisoRecarga("La recarga offline no está preparada. Mantén esta pestaña abierta hasta recuperar conexión.");
       }
     }
     navigator.serviceWorker.addEventListener("message", recibir);
@@ -203,7 +223,9 @@ export function OfflinePosProvider({
           ],
         });
     }
-    void prepararWorker().catch(() => setError("No se pudo preparar la recarga offline. Mantén esta pestaña abierta."));
+    void prepararWorker().catch(() =>
+      setAvisoRecarga("No se pudo preparar la recarga offline. Mantén esta pestaña abierta."),
+    );
     const { data } = createClient().auth.onAuthStateChange((evento) => {
       if (evento === "SIGNED_OUT") navigator.serviceWorker.controller?.postMessage({ tipo: "LIMPIAR" });
     });
@@ -234,7 +256,7 @@ export function OfflinePosProvider({
 
   async function comprobarCierre(): Promise<RevisionCierreOffline> {
     const filas = await refrescar();
-    return revisionCierreOffline(filas, navigator.onLine && conectado.current);
+    return revisionCierreOffline(filas, navigator.onLine && salud.current.conectado);
   }
 
   async function conCierreSeguro<T>(accion: () => Promise<T>): Promise<T> {
@@ -246,12 +268,8 @@ export function OfflinePosProvider({
   }
 
   async function refrescarEstado(): Promise<void> {
-    const filas = await refrescar();
-    if (hayProblema(filas)) {
-      setEstado("error");
-      return;
-    }
-    setEstado(conectado.current ? "online" : "offline");
+    await refrescar();
+    setEstado(salud.current.conectado ? "online" : "offline");
   }
 
   async function reintentarOperacion(uuid: string) {
@@ -400,6 +418,7 @@ export function OfflinePosProvider({
               ? "Recarga offline preparada para esta sesión (máximo 8 horas)."
               : "Mantén esta pestaña abierta: recarga offline todavía no confirmada."}
           </p>
+          {avisoRecarga ? <p className="text-pos-texto-suave text-xs">{avisoRecarga}</p> : null}
           {error ? (
             <p role="alert" className="text-destructive text-sm">
               {error}
@@ -514,31 +533,9 @@ export function useOfflinePOS() {
   return contexto;
 }
 
-function textoEstadoOffline({
-  error,
-  estado,
-  porSubir,
-  fallidas,
-}: {
-  error: string | null;
-  estado: EstadoConexion;
-  porSubir: number;
-  fallidas: number;
-}): string {
-  if (error) return "Error al subir — revisar";
-  if (fallidas > 0) {
-    const etiqueta = fallidas === 1 ? "venta con problema" : "ventas con problema";
-    return `${fallidas} ${etiqueta}${porSubir > 0 ? ` · ${porSubir} por subir` : ""}`;
-  }
-  if (estado === "sincronizando") return `Subiendo ventas… ${porSubir} por subir`;
-  if (estado === "offline") return `Sin conexión — ${porSubir} ventas por subir`;
-  if (estado === "error") return `Error al subir — ${porSubir} por subir`;
-  return `${porSubir} operaciones por subir · En línea`;
-}
-
 export function EstadoOfflinePOS() {
-  const { estado, porSubir, fallidas, abrirPanel, error } = useOfflinePOS();
-  const texto = textoEstadoOffline({ error, estado, porSubir, fallidas });
+  const { estado, porSubir, fallidas, preparado, abrirPanel } = useOfflinePOS();
+  const texto = textoEstadoOffline({ estado, porSubir, fallidas, preparado });
   return (
     <button
       type="button"
