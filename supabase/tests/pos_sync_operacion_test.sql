@@ -241,8 +241,10 @@ select is(
 
 select is(
   (select valor from _contadores where clave = 'asientos_tras_venta'),
-  (select valor from _contadores where clave = 'asientos_antes') + 1,
-  'la venta genera un asiento'
+  -- El producto de prueba es inventariable con costo 40: pos_completar_venta
+  -- crea el asiento de la venta y el asiento del costo de venta.
+  (select valor from _contadores where clave = 'asientos_antes') + 2,
+  'la venta genera su asiento y el del costo de venta'
 );
 
 insert into _ids (clave, id)
