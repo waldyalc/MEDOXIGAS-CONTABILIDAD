@@ -90,8 +90,8 @@ interface ValorCarrito {
   quitarCotizacion: () => void;
   vaciarPestana: () => void;
   reiniciarTrasVenta: () => void;
-  /** Vuelve a cargar en el carrito una venta offline fallida para editarla y recobrarla. */
-  cargarVentaOffline: (pestana: unknown) => void;
+  /** Vuelve a cargar en el carrito una venta offline fallida para editarla y recobrarla. Devuelve true si se cargó. */
+  cargarVentaOffline: (pestana: unknown) => boolean;
   aplicarPreciosDeLista: (precios: Record<string, Decimal>) => void;
   cantidadDeProducto: (productoId: string) => number;
   totales: TotalesCarritoPOS;
@@ -560,9 +560,9 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
    * caben pestañas reemplaza la activa.
    */
   const cargarVentaOffline = useCallback(
-    (valor: unknown) => {
+    (valor: unknown): boolean => {
       const origen = leerPestanaOffline(valor);
-      if (!origen) return;
+      if (!origen || origen.lineas.length === 0) return false;
 
       const contenido = {
         lineas: origen.lineas.map((linea) => ({ ...linea, id: nuevoId() })),
@@ -574,11 +574,11 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
       };
 
       const actual = pestanas.find((pestana) => pestana.id === activaId) ?? pestanas[0];
-      if (!actual) return;
+      if (!actual) return false;
 
       if (actual.lineas.length === 0 && actual.cotizacion === null) {
         setPestanas(pestanas.map((pestana) => (pestana.id === actual.id ? { ...pestana, ...contenido } : pestana)));
-        return;
+        return true;
       }
 
       if (pestanas.length < MAXIMO_PESTANAS) {
@@ -586,10 +586,10 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
         const nueva: PestanaVenta = { ...crearPestana(nombre, defaults), ...contenido };
         setPestanas([...pestanas, nueva]);
         setActivaId(nueva.id);
-        return;
+        return true;
       }
 
-      setPestanas(pestanas.map((pestana) => (pestana.id === actual.id ? { ...pestana, ...contenido } : pestana)));
+      return false;
     },
     [activaId, defaults, pestanas],
   );

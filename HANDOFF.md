@@ -1,5 +1,28 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS Modo Sin Internet (Offline) estilo Alegra + 5 bugs offline (rama `feat/pos-modo-offline-alegra`, 24-11-2026)
+
+Implementación completa del plan `PLAN-MODO-OFFLINE-POS.md` (sin merge a `main`; espera OK de Waldy):
+
+- **Barra superior y popover de sincronización (`barra-superior-pos.tsx`, `layout.tsx`, `conexion-offline.ts`):**
+  - Indicador `Disponible` / `Sin conexión` en la esquina superior derecha del POS con transición inmediata (<1 s) ante `navigator.onLine === false` o evento `offline` (incluso durante `sincronizando`, vía `registrarOfflineInmediato()` + `estadoTrasSondeo(..., forzar: true)`).
+  - Popover de 3 estados (`Sincronizando`, `Sincronización pendiente` + botón **Revisar pendientes**, `Sincronización al día`), 3 filas (`Ventas`, `Productos`, `Clientes`) con estado real de IndexedDB y botón manual **Sincronizar ahora**. Offline, «Revisar pendientes» abre la cola local para no salir a una ruta no cacheada; online navega a `/pos/historial`.
+- **Historial de ventas offline + modal «Venta pendiente de guardar» (`historial-offline.ts`, `historial-pos.tsx`, `lista-ventas.tsx`, `detalle-venta-offline.tsx`, `checkout-pos.tsx`, `carrito-pos-provider.tsx`):**
+  - `/pos/historial` combina ventas locales y sincronizadas (página 1, respetando filtros `q`/`desde`/`hasta`/`estado`/`terminal` y ventana de gracia de 5 min para sincronizadas aún no refrescadas): amarillo **Sincronizando** + folio temporal, `✓` verde + NCF definitivo, rojo `!` **Error** con banner **«No se pudo sincronizar la venta»**, **Reintentar sincronización**, **Editar venta** (validado con retorno booleano antes de descartar la copia fallida), **Imprimir ticket** y **Descartar**.
+  - En caja (`CheckoutPos`): fallos definitivos de guardado/rechazo muestran el modal **«Venta pendiente de guardar»** con **Imprimir ticket** (prefactura sin NCF) y **Editar venta**; timeouts/caídas de red tras envío remoto conservan el aviso de resultado incierto con **Ver Historial** para evitar doble cobro/NCF.
+- **Cierre de turno estricto estilo Alegra (`cola-offline.ts`, `dialogo-cerrar-turno.tsx`, `barra-inferior-pos.tsx`):**
+  - Prohíbe cerrar turno sin internet y con ventas pendientes o con error (`pendientes > 0`), mostrando la barra roja fija **«Debes sincronizar tu información antes de poder cerrar turno»** (o sin conexión) con botón **Guardar** deshabilitado.
+- **5 bugs offline corregidos:**
+  1. `pos-sw.js` + `offline-pos-provider.tsx`: refresca el HTML de `/pos` en navegaciones buenas (aislando errores de cuota en `cache.put`), incluye `turnoId` en `prepararWorker` + mensajes `PREPARAR`/`POS_CACHE_LISTO` y serializa preparaciones con `generacionPreparacion` + re-preparación pendiente.
+  2. `cache-catalogo-offline.ts` + `vender-pos.tsx`: acumula todos los lotes de 50 productos en memoria y escribe IndexedDB una sola vez al finalizar (`completo: true`), preservando el caché previo ante fallo a mitad; dependencias estabilizadas en `[ambito, terminal.id, listaPrecioId]`.
+  3. `conexion-offline.ts` + `offline-pos-provider.tsx`: `textoEstadoOffline` informa error de almacenamiento cuando `!preparado && error`.
+  4. `dialogo-nuevo-contacto.tsx` + `vender-pos.tsx` + `panel-factura.tsx`: contacto nuevo (`+ Nuevo`) se agrega a `listaContactos` en estado, se guarda en IndexedDB y se hidrata offline.
+  5. `cola-offline.ts` + `dialogo-cerrar-turno.tsx`: propaga `ErrorImpedimentoCierreOffline` antes de invocar la RPC sin mostrar el mensaje engañoso de resultado incierto.
+- **Revisión independiente y evidencia:**
+  - Auditado por **DeepSeek V4.1 Flash 1017** (`docs/revisiones/20261124-pos-modo-offline.md`); los 7 hallazgos bloqueantes/medios fueron corregidos y re-verificados.
+  - Verificación: `pnpm typecheck`, `pnpm check`, `pnpm test`, `pnpm build` y E2E real `tests/e2e/pos-offline-modo-sin-internet.spec.ts` en verde.
+  - Capturas en `/root/referencias/capturas-terminadas/2026-11-24-pos-offline/` (claro/oscuro/móvil + 6 estados del flujo offline/sync/historial).
+
 ## Cierre del orquestador POS — punto de partida del orquestador nuevo (23-11-2026, MSG-55)
 
 ### Qué quedó en `main`

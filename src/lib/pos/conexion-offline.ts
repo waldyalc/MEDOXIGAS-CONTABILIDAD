@@ -45,9 +45,9 @@ export function registrarOfflineInmediato(): SaludConexion {
   return { fallos: FALLOS_PARA_OFFLINE, conectado: false };
 }
 
-/** Un fallo aislado no toca el estado visible; uno confirmado sí. */
-export function estadoTrasSondeo(estado: EstadoConexion, conectado: boolean): EstadoConexion {
-  if (estado === "sincronizando") return estado;
+/** Un fallo aislado no toca el estado visible; uno confirmado o una pérdida inmediata de red sí. */
+export function estadoTrasSondeo(estado: EstadoConexion, conectado: boolean, forzar = false): EstadoConexion {
+  if (!forzar && estado === "sincronizando") return estado;
   return conectado ? "online" : "offline";
 }
 

@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import type { Empresa } from "@/lib/facturacion/tipos";
-import { leerTamano, type ParametrosLista, type ResumenPagina } from "@/lib/listas/parametros";
+import { leerPagina, leerTamano, leerTexto, type ParametrosLista, type ResumenPagina } from "@/lib/listas/parametros";
 import {
   combinarHistorialPOS,
   idDeItemHistorial,
@@ -71,9 +71,23 @@ export function HistorialPos({
   const [imprimiendo, setImprimiendo] = useState<string | null>(null);
   const [trabajo, setTrabajo] = useState<VentaPOSResultado | null>(null);
 
-  // Las ventas guardadas en este dispositivo se suman a las del servidor sin
-  // duplicar las que ya subieron.
-  const ventasLocales = useMemo(() => proyectarVentasLocales(offline.operaciones, filas), [filas, offline.operaciones]);
+  // Las ventas guardadas en este dispositivo se suman en la página 1 respetando
+  // los mismos filtros del historial, sin duplicar las que ya están en el servidor.
+  const filtrosLocales = useMemo(
+    () => ({
+      q: leerTexto(params, "q"),
+      desde,
+      hasta,
+      estado: leerTexto(params, "estado"),
+      terminalId: leerTexto(params, "terminal"),
+      pagina: leerPagina(params),
+    }),
+    [desde, hasta, params],
+  );
+  const ventasLocales = useMemo(
+    () => proyectarVentasLocales(offline.operaciones, filas, filtrosLocales),
+    [filas, filtrosLocales, offline.operaciones],
+  );
   const items = useMemo(() => combinarHistorialPOS(filas, ventasLocales), [filas, ventasLocales]);
   const seleccion = items.find((item) => idDeItemHistorial(item) === detalleId) ?? null;
 
@@ -119,9 +133,17 @@ export function HistorialPos({
     setDetalleMovil(true);
   }
 
-  /** Devuelve la venta al carrito, borra la copia fallida y abre el POS para recobrarla. */
+  /** Devuelve la venta al carrito; solo borra la copia fallida si la carga tuvo éxito. */
   async function editarVentaLocal(venta: VentaLocalHistorial) {
-    carrito.cargarVentaOffline(venta.pestana);
+    const cargada = carrito.cargarVentaOffline(venta.pestana);
+    if (!cargada) {
+      toast.add({
+        type: "error",
+        title: "No se pudo cargar la venta para editar",
+        description: "Cierra una pestaña de venta o revisa la copia local; no se borró nada.",
+      });
+      return;
+    }
     if (venta.estado === "error") await offline.descartarOperacion(venta.uuid);
     router.push("/pos");
   }

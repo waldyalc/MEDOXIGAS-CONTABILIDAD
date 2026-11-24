@@ -54,12 +54,12 @@ describe("estado de conexión del pie del POS", () => {
     expect(estadoTrasSondeo("sincronizando", salud.conectado)).toBe("sincronizando");
   });
 
-  it("sin red confirmada por el navegador pasa a «Sin conexión» al instante, sin esperar 3 fallos", () => {
+  it("sin red confirmada por el navegador pasa a «Sin conexión» al instante, incluso si estaba sincronizando", () => {
     const salud = registrarOfflineInmediato();
     expect(salud.fallos).toBe(FALLOS_PARA_OFFLINE);
     expect(salud.conectado).toBe(false);
-    expect(estadoTrasSondeo("online", salud.conectado)).toBe("offline");
-    expect(estadoTrasSondeo("sincronizando", salud.conectado)).toBe("sincronizando");
+    expect(estadoTrasSondeo("online", salud.conectado, true)).toBe("offline");
+    expect(estadoTrasSondeo("sincronizando", salud.conectado, true)).toBe("offline");
   });
 
   it("un error de almacenamiento nunca deja el pie trabado en «Preparando la cola local…»", () => {
@@ -139,17 +139,22 @@ describe("estado de conexión del pie del POS", () => {
     expect(provider).not.toContain('if (error) return "Error al subir');
   });
 
-  it("el provider re-cachea /pos al cambiar de turno y atiende el offline al instante", () => {
+  it("el provider re-cachea /pos al cambiar de turno con serialización y atiende el offline al instante", () => {
     const provider = leer("src/app/(pos)/pos/_components/offline-pos-provider.tsx");
+    const sw = leer("public/pos-sw.js");
     expect(provider).toContain("registrarOfflineInmediato");
     expect(provider).toMatch(/\}, \[ambito, turnoId\]\);/);
-    expect(provider).toContain("turnoSolicitado.current = turnoId");
+    expect(provider).toContain("turnoId: turnoObjetivo");
+    expect(provider).toContain("reprepararPendiente");
+    expect(provider).toContain("estadoTrasSondeo(actual, false, true)");
     expect(provider).toContain('window.addEventListener("offline", alPerderConexion)');
     expect(provider).toContain("recargarManual");
     expect(provider).toContain("tokenRecargaCache");
     expect(provider).toContain("estadoProductos");
     expect(provider).toContain("estadoClientes");
     expect(provider).toContain("ErrorImpedimentoCierreOffline");
+    expect(sw).toContain("generacionPreparacion");
+    expect(sw).toContain("turnoId");
   });
 
   it("el latido pega a un estático del CDN, no a /login", () => {

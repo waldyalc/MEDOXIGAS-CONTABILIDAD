@@ -113,8 +113,8 @@ export function OfflinePosProvider({
   const canal = useRef<BroadcastChannel | null>(null);
   const turnoVigente = useRef<string | null>(turnoId);
   const turnoCacheado = useRef<string | null>(null);
-  const turnoSolicitado = useRef<string | null>(null);
   const preparandoWorker = useRef(false);
+  const reprepararPendiente = useRef(false);
   const prepararWorkerRef = useRef<(() => Promise<void>) | null>(null);
   const sondearRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -167,7 +167,8 @@ export function OfflinePosProvider({
 
     function aplicarOfflineInmediato() {
       salud.current = registrarOfflineInmediato();
-      setEstado((actual) => estadoTrasSondeo(actual, false));
+      // Forzar transición inmediata incluso si había una subida en curso.
+      setEstado((actual) => estadoTrasSondeo(actual, false, true));
     }
 
     function aplicarSondeo(respondio: boolean): boolean {
@@ -286,34 +287,41 @@ export function OfflinePosProvider({
     let vigente = true;
     function recibir(evento: MessageEvent) {
       if (!vigente || evento.data?.ambito !== ambito) return;
+      const turnoRespuesta: string | null = evento.data.turnoId ?? null;
       if (evento.data.tipo === "POS_CACHE_LISTO") {
-        // El worker acaba de cachear /pos: queda atado al turno que se le pidió.
-        turnoCacheado.current = turnoSolicitado.current;
+        // Solo aceptamos el listo si corresponde al turno actualmente vigente.
+        if (turnoRespuesta !== turnoVigente.current && navigator.onLine) return;
+        turnoCacheado.current = turnoRespuesta;
         setRecargaLista(true);
         setAvisoRecarga(null);
       }
       if (evento.data.tipo === "POS_CACHE_ERROR") {
+        if (turnoRespuesta !== turnoVigente.current) return;
         setRecargaLista(false);
         setAvisoRecarga("La recarga offline no está preparada. Mantén esta pestaña abierta hasta recuperar conexión.");
       }
     }
     navigator.serviceWorker.addEventListener("message", recibir);
     async function prepararWorker() {
-      if (preparandoWorker.current) return;
+      if (preparandoWorker.current) {
+        reprepararPendiente.current = true;
+        return;
+      }
       preparandoWorker.current = true;
+      reprepararPendiente.current = false;
       try {
+        const turnoObjetivo = turnoId;
         if (!navigator.onLine) {
-          turnoSolicitado.current = null;
           navigator.serviceWorker.controller?.postMessage({ tipo: "COMPROBAR", ambito });
           return;
         }
         await navigator.serviceWorker.register("/pos-sw.js", { scope: "/pos" });
         const registro = await navigator.serviceWorker.ready;
         if (!vigente) return;
-        turnoSolicitado.current = turnoId;
         registro.active?.postMessage({
           tipo: "PREPARAR",
           ambito,
+          turnoId: turnoObjetivo,
           recursos: [
             ...performance.getEntriesByType("resource").map((recurso) => recurso.name),
             ...Array.from(document.scripts, (script) => script.src),
@@ -321,6 +329,10 @@ export function OfflinePosProvider({
         });
       } finally {
         preparandoWorker.current = false;
+        if (vigente && reprepararPendiente.current) {
+          reprepararPendiente.current = false;
+          void prepararWorker();
+        }
       }
     }
     prepararWorkerRef.current = prepararWorker;
@@ -364,9 +376,18 @@ export function OfflinePosProvider({
   }
 
   async function conCierreSeguro<T>(accion: () => Promise<T>): Promise<T> {
+    let revision: RevisionCierreOffline;
+    try {
+      revision = await conBloqueoOffline(ambito, () => comprobarCierre());
+    } catch {
+      throw new ErrorImpedimentoCierreOffline("No se pudo verificar la cola local antes de cerrar el turno.");
+    }
+    if (revision.impedimento) throw new ErrorImpedimentoCierreOffline(revision.impedimento);
     return conBloqueoOffline(ambito, async () => {
-      const revision = await comprobarCierre();
-      if (revision.impedimento) throw new ErrorImpedimentoCierreOffline(revision.impedimento);
+      const revalidacion = await comprobarCierre().catch(() => {
+        throw new ErrorImpedimentoCierreOffline("No se pudo verificar la cola local antes de cerrar el turno.");
+      });
+      if (revalidacion.impedimento) throw new ErrorImpedimentoCierreOffline(revalidacion.impedimento);
       return accion();
     });
   }
@@ -431,7 +452,7 @@ export function OfflinePosProvider({
     setTokenRecargaCache((token) => token + 1);
     if (!navigator.onLine) {
       salud.current = registrarOfflineInmediato();
-      setEstado((actual) => estadoTrasSondeo(actual, false));
+      setEstado((actual) => estadoTrasSondeo(actual, false, true));
       return;
     }
     // Sondear primero actualiza `salud.current.conectado` si acabamos de volver

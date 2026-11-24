@@ -308,7 +308,7 @@ test.describe("POS modo sin internet estilo Alegra (E2E real en navegador, cero 
     await botonSync.click();
     const popoverPendiente = page.locator("[data-slot='popover-content']").last();
     await expect(popoverPendiente.getByText("Sincronización pendiente")).toBeVisible();
-    await expect(popoverPendiente.getByRole("link", { name: "Revisar pendientes" })).toBeVisible();
+    await expect(popoverPendiente.getByRole("button", { name: "Revisar pendientes" })).toBeVisible();
     await captura(page, "02-offline-pendiente-popover");
     await page.keyboard.press("Escape");
 

@@ -148,11 +148,12 @@ export function CheckoutPos({
   const [notas, setNotas] = useState("");
   const [vendedores, setVendedores] = useState<{ id: string; nombre: string }[]>([]);
   const [aviso, setAviso] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [lento, setLento] = useState(false);
   const [perdido, setPerdido] = useState(false);
   const [venta, setVenta] = useState<VentaPOSResultado | null>(null);
-  /** Motivo por el que la venta no se guardó; abre «Venta pendiente de guardar». */
+  /** Motivo por el que la venta definitivamente no se guardó; abre «Venta pendiente de guardar». */
   const [pendiente, setPendiente] = useState<string | null>(null);
   const [imprimiendoSoporte, setImprimiendoSoporte] = useState(false);
 
@@ -176,6 +177,7 @@ export function CheckoutPos({
     setFilas([]);
     setNotas("");
     setAviso(false);
+    setError(null);
     setLento(false);
     setPerdido(false);
     setVenta(null);
@@ -352,6 +354,7 @@ export function CheckoutPos({
       return;
     }
     setAviso(false);
+    setError(null);
     setEnviando(true);
     setPerdido(false);
     setPendiente(null);
@@ -374,14 +377,25 @@ export function CheckoutPos({
     let envioRemoto = false;
     try {
       if (!navigator.onLine || offline.estado === "offline") {
-        if (cotizacion) throw new Error("Conéctate para convertir una cotización y evitar facturarla dos veces.");
-        if (porCobrarVisible)
-          throw new Error("Conéctate para verificar el crédito del cliente antes de vender a crédito.");
+        // Guardas previas a persistir: se muestran inline sin cerrar el cobro.
+        if (cotizacion) {
+          setError("Conéctate para convertir una cotización y evitar facturarla dos veces.");
+          return;
+        }
+        if (porCobrarVisible) {
+          setError("Conéctate para verificar el crédito del cliente antes de vender a crédito.");
+          return;
+        }
         const cliente = contactos.find((contacto) => contacto.id === activa.contactoId);
-        if (!cliente)
-          throw new Error("El cliente no está disponible en la caché. Selecciona uno cargado antes de cobrar.");
+        if (!cliente) {
+          setError("El cliente no está disponible en la caché. Selecciona uno cargado antes de cobrar.");
+          return;
+        }
         const validada = esquemaVenta.safeParse(entrada);
-        if (!validada.success) throw new Error(mensajeValidacion(validada.error));
+        if (!validada.success) {
+          setError(mensajeValidacion(validada.error));
+          return;
+        }
         const detalle: Omit<EntradaTicketOffline, "folio"> = {
           empresa,
           cliente,
@@ -420,6 +434,12 @@ export function CheckoutPos({
       envioRemoto = true;
       const resultado = await completarVenta(entrada);
       if (!resultado.ok) {
+        // Si la respuesta falla al parsear tras un posible commit en servidor,
+        // es resultado incierto: exigir revisar Historial para evitar doble cobro.
+        if (resultado.error.toLowerCase().includes("formato esperado")) {
+          setPerdido(true);
+          return;
+        }
         setPendiente(capitalizar(resultado.error));
         return;
       }
@@ -435,8 +455,9 @@ export function CheckoutPos({
             : "No se pudo guardar. No entregues la venta hasta confirmar el guardado.",
         );
       } else {
+        // Timeout o caída de red en envío online: resultado incierto (nunca
+        // ofrecer «Editar venta» como si no se hubiera registrado para evitar doble NCF).
         setPerdido(true);
-        setPendiente("No sabemos si la venta se registró. Revisa el Historial antes de volver a cobrar.");
       }
     } finally {
       setEnviando(false);
@@ -602,6 +623,12 @@ export function CheckoutPos({
                   {cotizacion ? `Cotización No ${cotizacion.numero}` : carrito.activa.nombre}
                 </span>
               </div>
+
+              {error ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              ) : null}
 
               {sinCaja ? (
                 <Alert variant="destructive">

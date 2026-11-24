@@ -179,6 +179,30 @@ describe("historial del POS con ventas locales", () => {
     expect(venta?.total).toBe("0");
     expect(venta?.pestana).toBeNull();
   });
+
+  it("respeta filtros, página > 1 y ventana de gracia para sincronizadas viejas", () => {
+    const sincronizadaVieja = operacion({
+      uuid: "uuid-vieja",
+      secuencia: 1,
+      estado: "sincronizada",
+      resultado: { factura: { id: "f-vieja", numero: 1, ncf: "B0200000001" } },
+    });
+    const pendienteHoy = operacion({ uuid: "uuid-pend", secuencia: 2, estado: "pendiente" });
+
+    // En página 2 no repite ventas locales
+    expect(proyectarVentasLocales([pendienteHoy], [], { pagina: 2 })).toEqual([]);
+    // Filtro de búsqueda q
+    expect(proyectarVentasLocales([pendienteHoy], [], { q: "ZZTEST" })).toHaveLength(1);
+    expect(proyectarVentasLocales([pendienteHoy], [], { q: "inexistente" })).toEqual([]);
+    // Filtro por terminal
+    expect(proyectarVentasLocales([pendienteHoy], [], { terminalId: "terminal" })).toHaveLength(1);
+    expect(proyectarVentasLocales([pendienteHoy], [], { terminalId: "otra-terminal" })).toEqual([]);
+    // Filtro estado anulada excluye locales
+    expect(proyectarVentasLocales([pendienteHoy], [], { estado: "anulada" })).toEqual([]);
+    // Sincronizada más vieja que la ventana de gracia ya no reaparece
+    const ahoraPosterior = Date.parse("2026-11-23T12:00:00.000Z");
+    expect(proyectarVentasLocales([sincronizadaVieja], [], { ahoraMs: ahoraPosterior })).toEqual([]);
+  });
 });
 
 /**

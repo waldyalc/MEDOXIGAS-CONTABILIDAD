@@ -173,16 +173,66 @@ export function proyectarVentaLocal(
   };
 }
 
-/** Ventas locales de la más reciente a la más vieja, sin duplicar las del servidor. */
+export interface FiltrosHistorialLocal {
+  q?: string;
+  desde?: string;
+  hasta?: string;
+  estado?: string;
+  terminalId?: string;
+  pagina?: number;
+  /** Ventana máxima (ms) para mostrar una venta local sincronizada aún ausente en `filas`. */
+  ventanaSincronizadaMs?: number;
+  ahoraMs?: number;
+}
+
+const VENTANA_SINCRONIZADA_MS = 5 * 60 * 1000;
+
+function diaDeIso(fecha: string): string {
+  return fecha.length >= 10 ? fecha.slice(0, 10) : "";
+}
+
+function coincideFiltrosLocal(
+  venta: VentaLocalHistorial,
+  operacion: OperacionOffline,
+  filtros?: FiltrosHistorialLocal,
+): boolean {
+  if (!filtros) return true;
+  if ((filtros.pagina ?? 1) > 1) return false;
+  if (filtros.terminalId) {
+    const terminalLocal = operacion.ambito.split("/")[1] ?? "";
+    if (terminalLocal !== "" && terminalLocal !== filtros.terminalId) return false;
+  }
+  if (filtros.estado === "anulada") return false;
+  if (filtros.estado === "abierta" && venta.estado === "sincronizada") return false;
+  const dia = diaDeIso(venta.fecha);
+  if (dia && filtros.desde && dia < filtros.desde) return false;
+  if (dia && filtros.hasta && dia > filtros.hasta) return false;
+  if (filtros.q?.trim()) {
+    const buscado = filtros.q.trim().toLocaleLowerCase("es");
+    const textoVenta = `${venta.folio} ${venta.ncf ?? ""} ${venta.cliente.nombre}`.toLocaleLowerCase("es");
+    if (!textoVenta.includes(buscado)) return false;
+  }
+  if (venta.estado === "sincronizada" && venta.fecha) {
+    const fechaMs = Date.parse(venta.fecha);
+    const ahora = filtros.ahoraMs ?? Date.now();
+    const ventana = filtros.ventanaSincronizadaMs ?? VENTANA_SINCRONIZADA_MS;
+    if (Number.isFinite(fechaMs) && ahora - fechaMs > ventana) return false;
+  }
+  return true;
+}
+
+/** Ventas locales de la más reciente a la más vieja, respetando filtros y paginación. */
 export function proyectarVentasLocales(
   operaciones: readonly OperacionOffline[],
   filas: readonly HistorialPOSFila[],
+  filtros?: FiltrosHistorialLocal,
 ): VentaLocalHistorial[] {
   return [...operaciones]
     .sort((a, b) => b.secuencia - a.secuencia || a.uuid.localeCompare(b.uuid))
     .flatMap((operacion) => {
       const venta = proyectarVentaLocal(operacion, filas);
-      return venta ? [venta] : [];
+      if (!venta || !coincideFiltrosLocal(venta, operacion, filtros)) return [];
+      return [venta];
     });
 }
 

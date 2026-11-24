@@ -97,14 +97,10 @@ y se exige revisar Historial, evitando un segundo cobro por cambio de conexión.
 
 ## Cierre
 
-- La barra inferior impide navegar al cierre sin conexión o con ventas por
-  subir y explica «Conéctate para subir N ventas antes de cerrar».
-- Las ventas con problema **no bloquean** el cierre: el diálogo de cierre muestra
-  el aviso ámbar «N ventas con problema no subirán» y el cierre se completa; el
-  cuadre solo incluye lo sincronizado.
-- El panel de sincronización separa «por subir» de «con problema» y permite
-  reintentar o descartar cada fallida.
-- El diálogo de cierre vuelve a consultar IndexedDB antes de llamar a la RPC y comparte Web Lock con la cola.
+- Cierre estricto estilo Alegra: la barra inferior y el diálogo de cierre impiden cerrar el turno sin conexión o mientras haya ventas pendientes o con problema sin resolver.
+- Con ventas pendientes o con error, el modal de cierre muestra la barra roja fija «Debes sincronizar tu información antes de poder cerrar turno» y mantiene deshabilitado el botón **Guardar**.
+- Sin conexión a internet, muestra la barra roja fija «Sin conexión a internet. No puedes cerrar el turno sin conexión.» y mantiene deshabilitado **Guardar**.
+- El diálogo de cierre vuelve a consultar IndexedDB bajo Web Lock antes de llamar a la RPC y propaga cualquier bloqueo local (`ErrorImpedimentoCierreOffline`) sin mostrar el aviso de resultado incierto.
 - El cuadre de servidor incluye únicamente documentos ya sincronizados.
 - Límite: la RPC actual no puede conocer operaciones que otro dispositivo nunca le envió. No se presenta el control cliente como una garantía servidor entre equipos.
 

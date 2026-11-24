@@ -132,13 +132,26 @@ export function BarraSuperiorPos() {
 
           {hayPendientes ? (
             <div className="border-pos-linea border-b p-3">
-              <Link
-                href="/pos/historial"
-                onClick={() => setSyncAbierta(false)}
-                className="bg-pos-primario hover:bg-pos-primario-hover flex h-9 items-center justify-center rounded-lg text-sm font-medium text-white transition-colors"
-              >
-                Revisar pendientes
-              </Link>
+              {sinConexion ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSyncAbierta(false);
+                    offline.abrirPanel();
+                  }}
+                  className="bg-pos-primario hover:bg-pos-primario-hover flex h-9 w-full items-center justify-center rounded-lg text-sm font-medium text-white transition-colors"
+                >
+                  Revisar pendientes
+                </button>
+              ) : (
+                <Link
+                  href="/pos/historial"
+                  onClick={() => setSyncAbierta(false)}
+                  className="bg-pos-primario hover:bg-pos-primario-hover flex h-9 items-center justify-center rounded-lg text-sm font-medium text-white transition-colors"
+                >
+                  Revisar pendientes
+                </Link>
+              )}
             </div>
           ) : null}
 
@@ -237,6 +250,6 @@ function detalleVentas({
 function detalleCache(estado: EstadoCachePOS): string {
   if (estado === "al-dia") return "Al día";
   if (estado === "sincronizando") return "Sincronizando…";
-  if (estado === "error") return "Error de almacenamiento";
+  if (estado === "error") return "No se pudo actualizar";
   return "Pendiente de descargar";
 }

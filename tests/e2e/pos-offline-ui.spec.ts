@@ -100,7 +100,7 @@ test("ZZTEST: tres ventas offline, recarga, sincronización real, NCF y cuadre",
 
   page.on("dialog", (dialogo) => dialogo.accept());
   await context.setOffline(true);
-  await expect(page.getByRole("button", { name: "Sin conexión — 0 ventas pendientes de subir" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sin conexión — 0 ventas por subir" })).toBeVisible();
 
   let cobrado = 0;
   for (let numero = 1; numero <= 3; numero++) {
@@ -119,7 +119,7 @@ test("ZZTEST: tres ventas offline, recarga, sincronización real, NCF y cuadre",
     await dialogo.getByRole("button", { name: "Nueva venta", exact: true }).click();
   }
 
-  const barraOffline = page.getByRole("button", { name: "Sin conexión — 3 ventas pendientes de subir" });
+  const barraOffline = page.getByRole("button", { name: "Sin conexión — 3 ventas por subir" });
   await expect(barraOffline).toBeVisible();
   await captura(page, "offline-pendientes");
 
@@ -153,12 +153,12 @@ test("ZZTEST: tres ventas offline, recarga, sincronización real, NCF y cuadre",
     await new Promise((listo) => setTimeout(listo, 1200));
     await ruta.continue();
   });
-  await page.getByRole("button", { name: "Reintentar pendientes" }).click();
+  await page.getByRole("button", { name: "Reintentar todo" }).click();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: /^Subiendo ventas…/ })).toBeVisible({ timeout: 20_000 });
   await captura(page, "sincronizando");
 
-  const barraEnLinea = page.getByRole("button", { name: "0 operaciones pendientes · En línea" });
+  const barraEnLinea = page.getByRole("button", { name: "0 operaciones por subir · En línea" });
   await expect(barraEnLinea).toBeVisible({ timeout: 60_000 });
   await context.unroute("**/rest/v1/rpc/pos_sincronizar_operacion");
 
