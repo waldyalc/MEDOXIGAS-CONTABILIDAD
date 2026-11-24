@@ -17,12 +17,18 @@ export function saldosPorCodigo(filas: readonly FilaBalanceComprobacion[]): Reco
   return saldos;
 }
 
-function sumarSaldoHijos(nodos: NodoCuenta[]): number {
+/**
+ * Acumula en cada padre el saldo de sus hijos. Un hijo con naturaleza distinta
+ * a la del padre es una contra-cuenta (por ejemplo, `1211 Depreciación
+ * acumulada` dentro de `12 Activos no corrientes`): su saldo resta en vez de
+ * sumar, para que el padre muestre el neto y no el doble.
+ */
+function sumarSaldoHijos(nodos: NodoCuenta[], naturalezaPadre: string): number {
   let total = 0;
 
   for (const nodo of nodos) {
-    nodo.saldo += sumarSaldoHijos(nodo.hijos);
-    total += nodo.saldo;
+    nodo.saldo += sumarSaldoHijos(nodo.hijos, nodo.cuenta.naturaleza);
+    total += nodo.cuenta.naturaleza === naturalezaPadre ? nodo.saldo : -nodo.saldo;
   }
 
   return total;
@@ -52,7 +58,9 @@ export function construirArbolCuentas(
     else padre.hijos.push(nodo);
   }
 
-  sumarSaldoHijos(raices);
+  for (const raiz of raices) {
+    raiz.saldo += sumarSaldoHijos(raiz.hijos, raiz.cuenta.naturaleza);
+  }
 
   return raices;
 }

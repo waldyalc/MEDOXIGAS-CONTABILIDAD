@@ -1,5 +1,5 @@
 import { TAMANO_CONTACTOS } from "@/lib/contactos/seleccion";
-import { limpiarBusqueda, numeroDocumento, patronContiene } from "@/lib/listas/busqueda";
+import { limpiarBusqueda, numeroDocumento, patronIlike } from "@/lib/listas/busqueda";
 import {
   type OpcionesLista,
   type ResultadoPagina,
@@ -45,7 +45,12 @@ export async function getAsientosLista(
     if (desde) consulta = consulta.gte("fecha", desde);
     if (hasta) consulta = consulta.lte("fecha", hasta);
     if (q) {
-      consulta = numero != null ? consulta.eq("numero", numero) : consulta.ilike("descripcion", patronContiene(q));
+      // El código visible (AC-12, NO-3) también se busca; el número solo
+      // cuando el término es numérico para no confundirlo con un código.
+      const patron = patronIlike(q);
+      const condiciones = [`codigo.ilike.${patron}`, `descripcion.ilike.${patron}`];
+      if (numero != null) condiciones.push(`numero.eq.${numero}`);
+      consulta = consulta.or(condiciones.join(","));
     }
 
     const { data, error, count } = await consulta

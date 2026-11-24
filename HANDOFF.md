@@ -1,5 +1,15 @@
 # Handoff — Medoxigas Contabilidad
 
+## Contabilidad: contra-cuentas, buscador y origen de asientos (rama `fix/contab-catalogo-y-asientos`)
+
+Tres bugs del módulo Contabilidad, sin migraciones:
+
+- **Contra-cuentas en el catálogo:** `sumarSaldoHijos` (`src/lib/reportes/contabilidad.ts`) sumaba toda hija al padre, así que `1211 Depreciación acumulada` (activo, crédito) inflaba `12` y `1` en el doble. Ahora la recursión recibe la naturaleza del padre y resta el saldo cuando la hija tiene otra naturaleza (neto en el padre; la hija conserva su saldo). Candado: `src/lib/reportes/contabilidad.test.ts` con depreciación y contra-pasivo.
+- **Buscador de Asientos:** `getAsientosLista` solo filtraba `descripcion` (o `numero` si era numérico). Ahora usa `.or()` con `codigo.ilike` + `descripcion.ilike` y agrega `numero.eq` cuando el término es numérico, con `patronIlike` entre comillas. Placeholder: «Buscar por código, número o descripción…». Candado: `src/lib/asientos/consultas.test.ts`.
+- **Origen de asientos:** el listado tenía 8 etiquetas locales y el detalle otro mapa; los 12 orígenes nuevos salían en snake_case o «—». Se creó `src/lib/asientos/origenes.ts` con los 20 `origen_tipo` del CHECK y `etiquetaOrigen`; listado y detalle lo usan. El detalle enlaza `ajuste_inventario` con `rutaAjusteInventario` (también en `rutaOrigenAsiento`), y si no hay ruta muestra la etiqueta con `href: null`. Candados: `src/lib/asientos/origenes.test.ts` y el chequeo del CHECK en `src/lib/reportes/etiquetas-origen.test.ts`.
+
+Verificado: `pnpm typecheck`, `pnpm check` y `pnpm test` (1736) en verde.
+
 ## Contacto: un solo diálogo de alta y POS sin Proveedor (rama `fix/contacto-dialogo-crear-unificado`)
 
 - **Contactos:** «Nuevo contacto» abre `DialogoNuevoContacto` (Cliente/Proveedor, identificación + DGII, Municipio/Provincia, dirección, correo y teléfono) con `tipoInicial="cliente"`; al crear cierra y refresca la lista con `router.refresh()`. La edición de la lista, la ficha y el enlace «Formulario avanzado» (`#nuevo`) siguen con `FormularioContacto`, único lugar del «Límite de crédito».
