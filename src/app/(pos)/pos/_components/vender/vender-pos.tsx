@@ -93,7 +93,7 @@ export function VenderPos({
   vendedores: { id: string; nombre: string }[];
   contactos: ContactoResumen[];
   consumidorFinalId: string | null;
-  cuentas: { id: string; nombre: string }[];
+  cuentas: { id: string; nombre: string; es_caja_banco?: boolean; tipo_banco?: string | null }[];
   plantillaFactura: { mostrarLogo: boolean; notas: string; terminos: string };
   plantillaCotizacion: { mostrarLogo: boolean; notas: string; terminos: string };
 }) {
