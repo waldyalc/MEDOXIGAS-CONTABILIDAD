@@ -17,6 +17,10 @@ interface DatePickerProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  /** Fecha ISO mínima seleccionable: los días anteriores quedan deshabilitados. */
+  min?: string;
+  /** Fecha ISO máxima seleccionable: los días posteriores quedan deshabilitados. */
+  max?: string;
   "aria-invalid"?: boolean;
   "aria-describedby"?: string;
 }
@@ -46,11 +50,19 @@ export function DatePicker({
   onChange,
   placeholder = "Seleccionar fecha",
   className,
+  min,
+  max,
   "aria-invalid": ariaInvalid,
   "aria-describedby": ariaDescribedBy,
 }: DatePickerProps) {
   const [abierto, setAbierto] = useState(false);
   const fecha = aFecha(value);
+  const minimo = aFecha(min ?? "");
+  const maximo = aFecha(max ?? "");
+  const deshabilitados: NonNullable<ComponentProps<typeof Calendar>["disabled"]> = [
+    ...(minimo ? [{ before: minimo }] : []),
+    ...(maximo ? [{ after: maximo }] : []),
+  ];
 
   function seleccionar(dia: Date | undefined) {
     if (!dia) return;
@@ -88,6 +100,7 @@ export function DatePicker({
           selected={fecha}
           defaultMonth={fecha ?? new Date()}
           onSelect={seleccionar}
+          disabled={deshabilitados}
           className="w-[306px] p-3 [--cell-radius:10px] [--cell-size:40px]"
           classNames={{
             weekdays: "border-border flex w-full items-center border-b pb-2",
@@ -127,6 +140,10 @@ interface DatePickerCampoProps {
   defaultValue?: string;
   placeholder?: string;
   className?: string;
+  /** Fecha ISO mínima seleccionable (p. ej. la fecha del documento que se modifica). */
+  min?: string;
+  /** Fecha ISO máxima seleccionable. */
+  max?: string;
   /** Muestra una X para vaciar la fecha (campos opcionales como desde, hasta o vence). */
   permitirLimpiar?: boolean;
 }
@@ -142,6 +159,8 @@ export function DatePickerCampo({
   defaultValue = "",
   placeholder,
   className,
+  min,
+  max,
   permitirLimpiar = false,
 }: DatePickerCampoProps) {
   const [valor, setValor] = useState(defaultValue);
@@ -161,6 +180,8 @@ export function DatePickerCampo({
         onChange={setValor}
         placeholder={placeholder}
         className={cn(mostrarLimpiar && "pr-9", className)}
+        min={min}
+        max={max}
       />
       {mostrarLimpiar ? (
         <Button

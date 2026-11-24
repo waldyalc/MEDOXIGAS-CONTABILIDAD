@@ -1,6 +1,7 @@
 import { cn } from "cn";
 
 import type { DocumentoVista } from "@/lib/cotizaciones/tipos";
+import { subtotalBruto } from "@/lib/facturacion/calculo";
 import { tituloTipoComprobante } from "@/lib/facturacion/comprobantes";
 import { formatoCantidad, saldoDeFactura } from "@/lib/facturacion/formato";
 import { montoEnLetras } from "@/lib/facturacion/numero-a-letras";
@@ -31,6 +32,7 @@ interface DatosPapel {
   fecha: string;
   vencimiento: string;
   lineas: LineaPapel[];
+  /** Subtotal neto (bruto − descuento), como se guarda en la base. */
   subtotal: number;
   descuento: number;
   itbis: number;
@@ -483,7 +485,7 @@ function TotalesFactura({ datos }: { datos: DatosPapel }) {
   return (
     <div className="flex justify-end">
       <div className="w-[210pt] text-[8pt] leading-[13.6pt]">
-        <FilaTotal etiqueta="SUBTOTAL" valor={formatearMontoPapel(datos.subtotal)} />
+        <FilaTotal etiqueta="SUBTOTAL" valor={formatearMontoPapel(subtotalBruto(datos.subtotal, datos.descuento))} />
         {datos.descuento > 0 ? <FilaTotal etiqueta="DESCUENTO" valor={formatearMontoPapel(datos.descuento)} /> : null}
         <FilaTotal etiqueta="MONTO GRAVADO" valor={formatearMontoPapel(montoGravadoDeLineas(datos.lineas))} />
         <FilasImpuestos datos={datos} />
