@@ -195,7 +195,7 @@ export default async function Page({ searchParams }: Props) {
             base={RUTA}
             parametros={params}
             valorInicial={opciones.q}
-            placeholder="Buscar por número o descripción…"
+            placeholder="Buscar por código, número o descripción…"
             ariaLabel="Buscar asientos"
             className="sm:max-w-[267px] [&_input]:h-8"
           />
