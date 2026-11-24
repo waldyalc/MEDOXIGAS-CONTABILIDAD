@@ -3873,6 +3873,7 @@ export type Database = {
           id: string
           metodo: string
           monto: number
+          nota_debito_id: string | null
           notas: string | null
           numero: number
           retenido: number
@@ -3890,6 +3891,7 @@ export type Database = {
           id?: string
           metodo?: string
           monto: number
+          nota_debito_id?: string | null
           notas?: string | null
           numero?: number
           retenido?: number
@@ -3907,6 +3909,7 @@ export type Database = {
           id?: string
           metodo?: string
           monto?: number
+          nota_debito_id?: string | null
           notas?: string | null
           numero?: number
           retenido?: number
@@ -3939,6 +3942,13 @@ export type Database = {
             columns: ["factura_id"]
             isOneToOne: false
             referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_recibidos_nota_debito_id_fkey"
+            columns: ["nota_debito_id"]
+            isOneToOne: false
+            referencedRelation: "notas_debito_venta"
             referencedColumns: ["id"]
           },
           {
