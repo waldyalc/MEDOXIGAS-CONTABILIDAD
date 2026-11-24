@@ -111,7 +111,7 @@ export async function getNotaDebitoVista(id: string): Promise<NotaDebitoVista | 
   const nota = await supabase
     .from("notas_debito_venta")
     .select(
-      "id, numero, ncf, tipo, fecha, subtotal, descuento, itbis, total, estado, notas, asiento_id, factura_id, contacto_id",
+      "id, numero, ncf, tipo, fecha, subtotal, descuento, itbis, otros_impuestos, propina, total, estado, notas, asiento_id, factura_id, contacto_id",
     )
     .eq("id", id)
     .maybeSingle<Omit<NotaDebitoVista, "cliente_nombre" | "factura_numero" | "factura_ncf" | "lineas">>();

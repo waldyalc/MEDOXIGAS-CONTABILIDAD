@@ -21,6 +21,7 @@ import { getPerfil } from "@/lib/auth/rol";
 import { rutaAsiento, rutaContacto, rutaFactura, rutaProducto } from "@/lib/enlaces";
 import { getEmpresa } from "@/lib/facturacion/consultas";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
+import { filasTotalesNota } from "@/lib/facturacion/totales-nota";
 import { formatoDia } from "@/lib/formato";
 import { getNotaCreditoVista } from "@/lib/notas-credito/consultas";
 
@@ -144,10 +145,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         </TablaDocumento>
 
         <TotalesDocumento
-          filas={[
-            { etiqueta: "Subtotal", valor: formatoMoneda(nota.subtotal) },
-            { etiqueta: "ITBIS", valor: formatoMoneda(nota.itbis) },
-          ]}
+          filas={filasTotalesNota(nota).map((fila) => ({
+            etiqueta: fila.etiqueta,
+            valor: formatoMoneda(fila.valor),
+          }))}
           total={formatoMoneda(nota.total)}
         />
       </TarjetaDocumento>

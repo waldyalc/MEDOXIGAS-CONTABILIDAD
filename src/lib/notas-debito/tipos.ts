@@ -50,6 +50,8 @@ export interface NotaDebitoVista {
   subtotal: number;
   descuento: number;
   itbis: number;
+  otros_impuestos: number;
+  propina: number;
   total: number;
   estado: EstadoNotaDebito;
   notas: string | null;

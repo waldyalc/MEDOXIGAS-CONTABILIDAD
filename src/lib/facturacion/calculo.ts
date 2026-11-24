@@ -101,3 +101,12 @@ export function valorACentavos(valor: number): number {
   if (!Number.isFinite(valor) || valor < 0) return 0;
   return Math.round(valor * 100);
 }
+
+/**
+ * Subtotal bruto que se muestra junto a la fila «Descuento». La base guarda el
+ * subtotal ya neto (`bruto - descuento`), así que la vista debe devolverle el
+ * descuento para que Subtotal + impuestos cuadre con el Total.
+ */
+export function subtotalBruto(subtotalNeto: number, descuento: number): number {
+  return centavosAValor(valorACentavos(subtotalNeto) + valorACentavos(descuento));
+}

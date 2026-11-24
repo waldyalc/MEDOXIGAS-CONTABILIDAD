@@ -35,6 +35,8 @@ export interface NotaCreditoVista {
   fecha: string;
   subtotal: number;
   itbis: number;
+  otros_impuestos: number;
+  propina: number;
   total: number;
   devuelve_inventario: boolean;
   estado: EstadoNotaCredito;
