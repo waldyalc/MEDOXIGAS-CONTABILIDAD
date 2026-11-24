@@ -7,6 +7,7 @@ import { getConsumidorFinalId } from "@/lib/pos/consultas";
 import { contactoInicialPOS } from "@/lib/pos/consumidor-final";
 import { createClient } from "@/lib/supabase/server";
 
+import { BarraSuperiorPos } from "./_components/barra-superior-pos";
 import { CarritoPosProvider } from "./_components/carrito-pos-provider";
 import { EstadoPos } from "./_components/estado-pos";
 import { MenuPos } from "./_components/menu-pos";
@@ -55,7 +56,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
           numeracionId: terminal.numeracion_defecto_id,
         }}
       >
-        <div className="bg-background flex h-dvh flex-col overflow-hidden [--ring:var(--pos-primario)] [font-family:var(--font-inter)] lg:flex-row">
+        <div className="bg-background flex h-dvh flex-col overflow-hidden [font-family:var(--font-inter)] [--ring:var(--pos-primario)] lg:flex-row">
           <MenuPos
             empresa={{ nombre: empresa?.nombre ?? null, logo_url: empresa?.logo_url ?? null }}
             terminales={contexto.terminales
@@ -74,7 +75,10 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
             usuario={{ nombre: contexto.perfil.nombre, correo: contexto.perfil.correo }}
           />
 
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{children}</main>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <BarraSuperiorPos />
+            <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{children}</main>
+          </div>
         </div>
       </CarritoPosProvider>
     </OfflinePosProvider>

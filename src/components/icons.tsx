@@ -145,6 +145,8 @@ import {
   IconUserPlus,
   IconUsers,
   IconWallet,
+  IconWifi,
+  IconWifiOff,
   IconX,
   type IconProps as TablerIconProps,
 } from "@tabler/icons-react";
@@ -818,6 +820,14 @@ export function Wallet(props: PropsIcono) {
 
 export function Warehouse(props: PropsIcono) {
   return <IconBuildingWarehouse stroke={1.5} {...props} />;
+}
+
+export function Wifi(props: PropsIcono) {
+  return <IconWifi stroke={1.5} {...props} />;
+}
+
+export function WifiOff(props: PropsIcono) {
+  return <IconWifiOff stroke={1.5} {...props} />;
 }
 
 export function Wrench(props: PropsIcono) {
