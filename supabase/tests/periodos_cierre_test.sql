@@ -19,18 +19,19 @@ insert into public.perfiles (user_id, nombre, rol) values
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"81111111-1111-1111-1111-111111111111","role":"authenticated"}';
 
--- Usa el año más reciente sin cierre para que los datos reales de la base no
--- cambien los montos esperados (el cierre mueve TODO el año).
+-- Usa el año terminado más reciente sin cierre para que los datos reales de la
+-- base no cambien los montos esperados (el cierre mueve TODO el año) y porque
+-- desde el fix del 24-11-2026 el año en curso ya no se puede cerrar.
 insert into _anio (clave, valor)
 select 'cierre', coalesce(
   (
     select g.anio
-    from generate_series(extract(year from current_date)::int, 2000, -1) as g(anio)
+    from generate_series(extract(year from current_date)::int - 1, 2000, -1) as g(anio)
     where not exists (select 1 from public.cierres_resultados c where c.anio = g.anio)
     order by g.anio desc
     limit 1
   ),
-  extract(year from current_date)::int
+  extract(year from current_date)::int - 1
 );
 
 insert into _periodos (clave, id)
@@ -215,6 +216,42 @@ where c.tipo in ('ingreso', 'costo', 'gasto')
   and a.fecha between make_date((select valor from _anio where clave = 'cierre'), 1, 1)
                  and make_date((select valor from _anio where clave = 'cierre'), 12, 31);
 
+-- Meses: el año de cierre todavía está abierto, así que cerramos mayo y
+-- comprobamos que junio sigue admitiendo asientos. Después el cierre anual
+-- marcará los 12 meses del año.
+select public.cerrar_periodo(make_date((select valor from _anio where clave = 'cierre'), 5, 1));
+select public.reabrir_periodo(make_date((select valor from _anio where clave = 'cierre'), 6, 1));
+
+insert into _periodos (clave, id)
+select 'junio', public.crear_asiento_manual(jsonb_build_object(
+  'fecha', to_char(make_date((select valor from _anio where clave = 'cierre'), 6, 10), 'YYYY-MM-DD'),
+  'descripcion', 'Asiento de junio con mayo cerrado pgTAP',
+  'lineas', jsonb_build_array(
+    jsonb_build_object(
+      'cuenta_id', (select id from public.cuentas where codigo = '1101'),
+      'debito', 50,
+      'credito', 0
+    ),
+    jsonb_build_object(
+      'cuenta_id', (select id from public.cuentas where codigo = '3101'),
+      'debito', 0,
+      'credito', 50
+    )
+  )
+));
+
+select ok(
+  (select id from _periodos where clave = 'junio') is not null,
+  'cerrar mayo no bloquea los asientos de junio'
+);
+
+select is(
+  (select p.estado from public.periodos_contables p
+   where p.periodo = make_date((select valor from _anio where clave = 'cierre'), 5, 1)),
+  'cerrado',
+  'mayo queda cerrado y junio abierto'
+);
+
 select public.reabrir_periodo(make_date((select valor from _anio where clave = 'cierre'), 12, 1));
 
 insert into _periodos (clave, id)
@@ -329,39 +366,6 @@ select throws_ok(
 );
 
 select public.reabrir_periodo(date_trunc('month', current_date)::date);
-
-select public.cerrar_periodo(make_date((select valor from _anio where clave = 'cierre'), 5, 1));
-select public.reabrir_periodo(make_date((select valor from _anio where clave = 'cierre'), 6, 1));
-
-insert into _periodos (clave, id)
-select 'junio', public.crear_asiento_manual(jsonb_build_object(
-  'fecha', to_char(make_date((select valor from _anio where clave = 'cierre'), 6, 10), 'YYYY-MM-DD'),
-  'descripcion', 'Asiento de junio con mayo cerrado pgTAP',
-  'lineas', jsonb_build_array(
-    jsonb_build_object(
-      'cuenta_id', (select id from public.cuentas where codigo = '1101'),
-      'debito', 50,
-      'credito', 0
-    ),
-    jsonb_build_object(
-      'cuenta_id', (select id from public.cuentas where codigo = '3101'),
-      'debito', 0,
-      'credito', 50
-    )
-  )
-));
-
-select ok(
-  (select id from _periodos where clave = 'junio') is not null,
-  'cerrar mayo no bloquea los asientos de junio'
-);
-
-select is(
-  (select p.estado from public.periodos_contables p
-   where p.periodo = make_date((select valor from _anio where clave = 'cierre'), 5, 1)),
-  'cerrado',
-  'mayo queda cerrado y junio abierto'
-);
 
 select is(
   (select c.asiento_id from public.cierres_resultados c

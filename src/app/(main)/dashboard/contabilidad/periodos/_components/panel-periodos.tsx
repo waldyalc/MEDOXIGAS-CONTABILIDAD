@@ -25,6 +25,7 @@ import { rutaAsiento } from "@/lib/enlaces";
 import { formatoFechaHora } from "@/lib/formato";
 import { cerrarPeriodo, cerrarResultadosAnio, reabrirPeriodo } from "@/lib/periodos/acciones";
 import type { DatosPeriodos, MesPeriodo } from "@/lib/periodos/tipos";
+import { puedeCerrarResultados } from "@/lib/periodos/validacion";
 import { centavos, formatearRd } from "@/lib/reportes/dinero";
 
 interface Props {
@@ -97,7 +98,8 @@ export function PanelPeriodos({ datos, puedeEscribir }: Props) {
     });
   }
 
-  const unAnio = datos.anio > datos.anioActual;
+  // Solo se cierran ejercicios terminados: el año en curso (o uno futuro) no.
+  const cierreBloqueado = !puedeCerrarResultados(datos.anio, datos.anioActual);
 
   const columnas: readonly ColumnaLista<MesPeriodo>[] = [
     {
@@ -186,12 +188,26 @@ export function PanelPeriodos({ datos, puedeEscribir }: Props) {
             <>
               <p className="text-muted-foreground text-sm">
                 Crea el asiento al 31 de diciembre que lleva los ingresos, costos y gastos del año contra la cuenta
-                Utilidad del ejercicio. Se puede ejecutar una sola vez por año. Si diciembre está cerrado, reábrelo
-                primero.
+                Utilidad del ejercicio y cierra los 12 meses del año. Solo se pueden cerrar años terminados. Se puede
+                ejecutar una sola vez por año. Si diciembre está cerrado, reábrelo primero.
               </p>
+              {cierreBloqueado ? (
+                <p className="text-muted-foreground text-sm">
+                  {datos.anio === datos.anioActual
+                    ? "El año en curso se podrá cerrar cuando termine."
+                    : "Solo se pueden cerrar años terminados."}
+                </p>
+              ) : null}
               <div className="flex justify-end">
                 <AlertDialog open={cierreAbierto} onOpenChange={setCierreAbierto}>
-                  <AlertDialogTrigger render={<Button disabled={!puedeEscribir || pendiente || unAnio} />}>
+                  <AlertDialogTrigger
+                    render={
+                      <Button
+                        disabled={!puedeEscribir || pendiente || cierreBloqueado}
+                        title={cierreBloqueado ? "Solo se pueden cerrar años terminados" : undefined}
+                      />
+                    }
+                  >
                     {pendiente && procesando === "cierre" ? <Loader2 className="animate-spin" /> : null}
                     Cerrar resultados del año
                   </AlertDialogTrigger>
@@ -200,7 +216,8 @@ export function PanelPeriodos({ datos, puedeEscribir }: Props) {
                       <AlertDialogTitle>¿Cerrar los resultados de {datos.anio}?</AlertDialogTitle>
                       <AlertDialogDescription>
                         Se creará un asiento con fecha 31/12/{datos.anio} que deja en cero las cuentas de ingreso, costo
-                        y gasto contra Utilidad del ejercicio. No se puede repetir para el mismo año.
+                        y gasto contra Utilidad del ejercicio, y se cerrarán los 12 meses del año. No se puede repetir
+                        para el mismo año.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
