@@ -39,6 +39,16 @@ Todo el trabajo del POS tipo Alegra más la infraestructura de agentes, en tres 
 - Vercel: producción desplegada; MSG-52 (construir solo `main`) queda por configurar en el panel o por API (Ignorar Build Step: `if [ "$VERCEL_GIT_COMMIT_REF" = "main" ]; then exit 1; else exit 0; fi`).
 - Preview oficial: https://medoxigas-agentes.tail25e53a.ts.net → `medoxigas-preview.service` (`pnpm start`, puerto 3010; rebuild + restart tras mergear).
 
+## Auditoría de funciones SQL: 3 bugs de main (rama `fix/contab-funciones-auditoria`)
+
+Corrección de tres funciones aplicadas, en migraciones nuevas con `create or replace` (las viejas no se editan):
+
+- **`actualizar_cuenta`** (`20261126140000_fix_actualizar_cuenta_invariantes.sql`): rechaza poner `acepta_movimientos = false` en una cuenta que ya tiene líneas en `asiento_lineas` (antes `cerrar_resultados_anio` la ignoraba y `anular_documento` fallaba) y rechaza cambiar `tipo` si alguna hija directa tiene otro tipo (corrompía los totales del árbol). Sigue permitiendo renombrar, cambiar banderas de cuentas sin movimientos y agrupar.
+- **`actualizar_numeracion`** (`20261126141000_fix_actualizar_numeracion_gastos_menores.sql`): la subconsulta de `gastos_menores` ahora exige `v_num.tipo_comprobante = '13'`. Con una serie `00` de prefijo corto (`B`, `B1`) entraban los NCF B13 y el `substring(...)::int` bloqueaba o reventaba por cast/overflow. Las demás subconsultas ya filtraban por tipo.
+- **`registrar_saldos_iniciales`** (`20261126142000_fix_saldos_iniciales_lock.sql`): toma `pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('saldos_iniciales'))` antes del chequeo de saldo ya registrado; dos envíos simultáneos de la misma cuenta ya no duplican el saldo.
+- **Candados:** `supabase/tests/fix_actualizar_cuenta_invariantes_test.sql` (14 asserts), `fix_actualizar_numeracion_gastos_menores_test.sql` (8) y `fix_saldos_iniciales_lock_test.sql` (8; incluye el candado estructural sobre `pg_proc.prosrc`). Verificado que los tres fallan con las funciones viejas y pasan con las nuevas.
+- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1724) y `bash scripts/pgtap-local.sh` (todo en verde) en el worktree.
+
 ## POS 18: la estrella marcada se ve rellena (rama `fix/pos-favoritos-estrella-rellena`, MSG-31)
 
 Corrección de Waldy sobre el PR #128: en las capturas la estrella marcada se veía igual que la vacía.
