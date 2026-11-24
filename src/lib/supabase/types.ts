@@ -3264,8 +3264,10 @@ export type Database = {
           estado: string
           factura_id: string
           fecha: string
+          fecha_anulacion: string | null
           id: string
           itbis: number
+          motivo_anulacion_id: string | null
           ncf: string
           notas: string | null
           numero: number
@@ -3284,8 +3286,10 @@ export type Database = {
           estado?: string
           factura_id: string
           fecha?: string
+          fecha_anulacion?: string | null
           id?: string
           itbis?: number
+          motivo_anulacion_id?: string | null
           ncf: string
           notas?: string | null
           numero?: number
@@ -3304,8 +3308,10 @@ export type Database = {
           estado?: string
           factura_id?: string
           fecha?: string
+          fecha_anulacion?: string | null
           id?: string
           itbis?: number
+          motivo_anulacion_id?: string | null
           ncf?: string
           notas?: string | null
           numero?: number
@@ -3335,6 +3341,13 @@ export type Database = {
             columns: ["factura_id"]
             isOneToOne: false
             referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_debito_venta_motivo_anulacion_id_fkey"
+            columns: ["motivo_anulacion_id"]
+            isOneToOne: false
+            referencedRelation: "motivos_anulacion"
             referencedColumns: ["id"]
           },
         ]
@@ -5111,7 +5124,7 @@ export type Database = {
       }
       _almacen_principal: { Args: never; Returns: string }
       _anular_documento_ajustes: {
-        Args: { p_id: string; p_tipo: string }
+        Args: { p_fecha?: string; p_id: string; p_tipo: string }
         Returns: string
       }
       _anular_documento_ajustes_base: {
