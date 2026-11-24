@@ -121,7 +121,7 @@ export function OfflinePosProvider({
     const controlador = new AbortController();
 
     function aplicarSondeo(respondio: boolean): boolean {
-      salud.current = registrarSondeo(salud.current, respondio);
+      salud.current = registrarSondeo(salud.current, respondio, !navigator.onLine);
       const conectado = salud.current.conectado;
       setEstado((actual) => estadoTrasSondeo(actual, conectado));
       return conectado;
@@ -534,8 +534,8 @@ export function useOfflinePOS() {
 }
 
 export function EstadoOfflinePOS() {
-  const { estado, porSubir, fallidas, preparado, abrirPanel } = useOfflinePOS();
-  const texto = textoEstadoOffline({ estado, porSubir, fallidas, preparado });
+  const { estado, porSubir, fallidas, preparado, error, abrirPanel } = useOfflinePOS();
+  const texto = textoEstadoOffline({ estado, porSubir, fallidas, preparado, error });
   return (
     <button
       type="button"

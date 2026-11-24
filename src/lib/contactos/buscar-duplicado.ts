@@ -1,6 +1,6 @@
 "use server";
 
-import { limpiarBusqueda, patronIlike } from "@/lib/listas/busqueda";
+import { limpiarBusqueda, patronContiene, patronIlike } from "@/lib/listas/busqueda";
 import { createClient } from "@/lib/supabase/server";
 
 import { normalizarNombre } from "./contactos";
@@ -56,7 +56,9 @@ export async function buscarContactoDuplicado(datos: {
 
   if (rnc !== "") {
     // El `%` entre dígitos encuentra el RNC aunque esté guardado con guiones.
-    const patronRnc = patronIlike(rnc.split("").join("%"));
+    // `.ilike()` directo lleva `patronContiene` (sin comillas): `patronIlike`
+    // solo va dentro de `.or()`, donde las comillas son sintaxis del filtro.
+    const patronRnc = patronContiene(rnc.split("").join("%"));
     const encontrado = await leer(
       supabase.from("contactos").select(CAMPOS).eq("activo", true).ilike("rnc_cedula", patronRnc).limit(50),
     );
