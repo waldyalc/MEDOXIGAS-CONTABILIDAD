@@ -1,5 +1,13 @@
 # Handoff — Medoxigas Contabilidad
 
+## NC de venta: residuo de parciales y límite de sobrecrédito (24-11-2026)
+
+Rama `fix/nc-parciales-y-sobrecredito`, migración `20261126152000_fix_nc_residuo_y_credito.sql` + pgTAP `fix_nc_residuo_credito_test.sql` (25 asserts). Solo SQL.
+
+- **Bug A (parciales):** al acreditar varias NC parciales sobre la misma línea, el subtotal/ITBIS prorrateado acumulaba ±0.01; la última unidad podía quedar bloqueada por el tope de crédito o la factura quedaba abierta por RD$0.01. Ahora, cuando lo ya acreditado + la cantidad de la NC agota la línea, el subtotal y el ITBIS se toman como **residuo** de la línea original menos lo acreditado por NC activas (`nota_credito_venta_lineas`, estado `activa`). Se reemplaza `_crear_nota_credito_venta_sin_impuestos` completo.
+- **Bug B (sobrecrédito):** una NC manual podía dejar `facturas.credito` mayor que `total - pagado - retenido` (saldo a favor invisible en CxC). Ahora rechaza con `la nota dejaría un crédito de X sobre una factura con Y pendiente`, salvo `permite_saldo_a_favor = true` en el payload. `pos_crear_devolucion` pasa esa marca porque el POS elige el reembolso en pantalla (docs/dominio-pos.md §3.11); la devolución POS sigue igual.
+- **Verificado:** `bash scripts/pgtap-local.sh` en verde (todo el suite; `pos_test.sql` 91 ok) y el test nuevo falla con la función vieja (la tercera NC choca con «el crédito de la nota excede el total de la factura»). `pnpm typecheck`, `pnpm check`, `pnpm test` (1724) en verde. Sin push ni merge.
+
 ## Contabilidad: contra-cuentas, buscador y origen de asientos (rama `fix/contab-catalogo-y-asientos`)
 
 Tres bugs del módulo Contabilidad, sin migraciones:
