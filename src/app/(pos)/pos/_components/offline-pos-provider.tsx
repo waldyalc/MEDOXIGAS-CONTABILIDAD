@@ -47,7 +47,7 @@ import {
   textoEstadoOffline,
 } from "@/lib/pos/conexion-offline";
 import { registrarNcfConfirmadoLocal, reservarNcfLocal } from "@/lib/pos/ncf-local";
-import { transportarOperacionOffline } from "@/lib/pos/transporte-offline";
+import { type ResultadoTransporteOffline, transportarOperacionOffline } from "@/lib/pos/transporte-offline";
 import { createClient } from "@/lib/supabase/client";
 
 type EstadoCachePOS = "al-dia" | "sincronizando" | "pendiente" | "error";
@@ -100,6 +100,17 @@ async function hayCacheDelAmbito(store: "catalogo" | "contactos", ambito: string
   }
 }
 
+/**
+ * El aviso de sesión vencida se enciende con un `sesionRequerida` real de la
+ * subida y solo se apaga cuando una pasada completa termina sin ese error
+ * (`null` deja el aviso como estaba). Nada se pierde: la cola espera al login.
+ */
+function resolucionSesionRequerida(sesionEnPasada: boolean, intentos: number, transitorio: boolean): boolean | null {
+  if (sesionEnPasada) return true;
+  if (intentos > 0 && !transitorio) return false;
+  return null;
+}
+
 interface ContextoOffline {
   ambito: string;
   estado: EstadoConexion;
@@ -109,6 +120,8 @@ interface ContextoOffline {
   operaciones: OperacionOffline[];
   error: string | null;
   preparado: boolean;
+  /** La sesión venció: la cola sube al volver a iniciar sesión, nada se pierde. */
+  sesionRequerida: boolean;
   estadoProductos: EstadoCachePOS;
   estadoClientes: EstadoCachePOS;
   marcarCacheProductos: (estado: EstadoCachePOS) => void;
@@ -134,11 +147,13 @@ export function OfflinePosProvider({
   ambito,
   terminalId,
   turnoId,
+  logoUrl = null,
   children,
 }: {
   ambito: string;
   terminalId: string;
   turnoId: string | null;
+  logoUrl?: string | null;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -150,6 +165,7 @@ export function OfflinePosProvider({
   const [panel, setPanel] = useState(false);
   const [descartando, setDescartando] = useState<OperacionOffline | null>(null);
   const [recargaLista, setRecargaLista] = useState(false);
+  const [sesionRequerida, setSesionRequerida] = useState(false);
   const [estadoProductos, setEstadoProductos] = useState<EstadoCachePOS>("al-dia");
   const [estadoClientes, setEstadoClientes] = useState<EstadoCachePOS>("al-dia");
   const [tokenRecargaCache, setTokenRecargaCache] = useState(0);
@@ -158,6 +174,7 @@ export function OfflinePosProvider({
   const canal = useRef<BroadcastChannel | null>(null);
   const turnoVigente = useRef<string | null>(turnoId);
   const turnoCacheado = useRef<string | null>(null);
+  const logoVigente = useRef<string | null>(logoUrl);
   const preparandoWorker = useRef(false);
   const reprepararPendiente = useRef(false);
   const prepararWorkerRef = useRef<(() => Promise<void>) | null>(null);
@@ -167,6 +184,16 @@ export function OfflinePosProvider({
   useEffect(() => {
     turnoVigente.current = turnoId;
   }, [turnoId]);
+
+  useEffect(() => {
+    logoVigente.current = logoUrl;
+  }, [logoUrl]);
+
+  // Una vez por sesión y en silencio: sin esto el navegador puede borrar la cola
+  // de ventas por falta de espacio justo cuando no hay internet.
+  useEffect(() => {
+    void navigator.storage?.persist?.().catch(() => undefined);
+  }, []);
 
   const marcarCacheProductos = useCallback((nuevo: EstadoCachePOS) => setEstadoProductos(nuevo), []);
   const marcarCacheClientes = useCallback((nuevo: EstadoCachePOS) => setEstadoClientes(nuevo), []);
@@ -183,6 +210,14 @@ export function OfflinePosProvider({
     ocupado.current = true;
     let huboTransitorio = false;
     let huboConfirmada = false;
+    let intentosEnvio = 0;
+    let sesionEnPasada = false;
+    async function enviar(operacion: OperacionOffline): Promise<ResultadoTransporteOffline> {
+      const resultado = await transportarOperacionOffline(operacion, terminalId);
+      intentosEnvio += 1;
+      if (resultado.sesionRequerida) sesionEnPasada = true;
+      return resultado;
+    }
     try {
       await conBloqueoOffline(ambito, async () => {
         const filas = await refrescar();
@@ -193,9 +228,7 @@ export function OfflinePosProvider({
           return;
         }
         setEstado("sincronizando");
-        const resumen = await sincronizarColaOffline(almacenColaOffline, ambito, (operacion) =>
-          transportarOperacionOffline(operacion, terminalId),
-        );
+        const resumen = await sincronizarColaOffline(almacenColaOffline, ambito, enviar);
         for (const confirmada of resumen.confirmadas) {
           const datos = datosNcfConfirmado(confirmada);
           if (datos) {
@@ -206,6 +239,10 @@ export function OfflinePosProvider({
         }
         huboConfirmada = resumen.confirmadas.length > 0;
         huboTransitorio = resumen.transitorios > 0;
+        // El aviso de sesión vencida manda mientras no haya un envío limpio: al
+        // volver a entrar, la cola se sube sola y el aviso desaparece.
+        const sesion = resolucionSesionRequerida(sesionEnPasada, intentosEnvio, huboTransitorio);
+        if (sesion !== null) setSesionRequerida(sesion);
         await refrescar();
         setEstado(salud.current.conectado ? "online" : "offline");
         canal.current?.postMessage("actualizado");
@@ -404,6 +441,7 @@ export function OfflinePosProvider({
           tipo: "PREPARAR",
           ambito,
           turnoId: turnoObjetivo,
+          logoUrl: logoVigente.current,
           recursos: [
             ...performance.getEntriesByType("resource").map((recurso) => recurso.name),
             ...Array.from(document.scripts, (script) => script.src),
@@ -582,6 +620,7 @@ export function OfflinePosProvider({
         operaciones,
         error,
         preparado,
+        sesionRequerida,
         estadoProductos,
         estadoClientes,
         marcarCacheProductos,
