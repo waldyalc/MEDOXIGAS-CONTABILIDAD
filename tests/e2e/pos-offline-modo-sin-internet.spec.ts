@@ -281,12 +281,24 @@ test.describe("POS modo sin internet estilo Alegra (E2E real en navegador, cero 
       await primerProducto.click();
       await page.getByRole("button", { name: /^Vender/ }).click();
       const dialogoCobro = page.getByRole("dialog");
+
+      // Verificar «Tarjeta» unificada (sin Tarjeta crédito / Tarjeta débito) y bancos destino en Transferencia
+      await expect(dialogoCobro.getByRole("button", { name: "Tarjeta", exact: true })).toBeVisible();
+      await expect(dialogoCobro.getByRole("button", { name: "Tarjeta crédito" })).toHaveCount(0);
+      await expect(dialogoCobro.getByRole("button", { name: "Tarjeta débito" })).toHaveCount(0);
+      await captura(page, "01a-pagar-metodos-tarjeta-unica");
+
+      await dialogoCobro.getByRole("button", { name: "Transferencia", exact: true }).click();
+      await expect(dialogoCobro.getByText("Banco destino *")).toBeVisible();
+      await captura(page, "01b-transferencia-bancos");
+      await dialogoCobro.getByRole("button", { name: "Cambiar método" }).click();
+
       await dialogoCobro.getByRole("button", { name: "Efectivo", exact: true }).click();
       await dialogoCobro.getByRole("button", { name: /^Cobrar/ }).click();
       await expect(dialogoCobro.getByRole("heading", { name: "¡Venta completada!" })).toBeVisible();
       await expect(dialogoCobro.getByText(/^[BE]\d{10}$/)).toBeVisible();
       await expect(dialogoCobro.getByText(/POS-LOCAL-/)).toHaveCount(0);
-      await captura(page, "01b-venta-completada-local-ncf");
+      await captura(page, "01c-venta-completada-local-ncf");
       await dialogoCobro.getByRole("button", { name: "Nueva venta", exact: true }).click();
     } else {
       await sembrarOperacionLocal(page, {

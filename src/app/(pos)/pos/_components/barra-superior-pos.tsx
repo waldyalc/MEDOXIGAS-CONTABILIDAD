@@ -3,6 +3,7 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { cn } from "cn";
 
@@ -21,6 +22,7 @@ type EstadoCachePOS = "al-dia" | "sincronizando" | "pendiente" | "error";
  * semánticos; nunca el azul de Medoxigas.
  */
 export function BarraSuperiorPos() {
+  const pathname = usePathname();
   const offline = useOfflinePOS();
   const [redAbierta, setRedAbierta] = useState(false);
   const [syncAbierta, setSyncAbierta] = useState(false);
@@ -29,6 +31,7 @@ export function BarraSuperiorPos() {
   const sinConexion = offline.estado === "offline";
   const sincronizando = offline.estado === "sincronizando";
   const hayPendientes = offline.porSubir > 0 || offline.fallidas > 0;
+  const enCaja = pathname === "/pos";
   const sinConexionPrevio = useRef(sinConexion);
   const resumen = estadoPopoverSincronizacion({
     estado: offline.estado,
@@ -37,8 +40,9 @@ export function BarraSuperiorPos() {
   });
 
   // En modo local-first, cada venta normal pasa ~300 ms por «pendiente» mientras
-  // sube en segundo plano: no abrimos el popover en ese destello. Solo se abre
-  // automático al reconectar con pendientes, si hay ventas fallidas, o si algo
+  // sube en segundo plano: no abrimos el popover en ese destello ni tapamos los
+  // botones de acción en /pos/turnos o /pos/historial. Solo se abre automático
+  // en la caja (/pos) al reconectar con pendientes, ante errores reales o si algo
   // lleva más de 4 s esperando sin terminar de subir.
   useEffect(() => {
     const acabaDeReconectar = sinConexionPrevio.current && !sinConexion;
@@ -48,7 +52,7 @@ export function BarraSuperiorPos() {
       avisado.current = false;
       return;
     }
-    if (!offline.preparado || sinConexion || avisado.current) return;
+    if (!enCaja || !offline.preparado || sinConexion || avisado.current) return;
 
     if (offline.fallidas > 0 || acabaDeReconectar) {
       avisado.current = true;
@@ -61,7 +65,7 @@ export function BarraSuperiorPos() {
       setSyncAbierta(true);
     }, 4_000);
     return () => window.clearTimeout(temporizador);
-  }, [hayPendientes, offline.fallidas, offline.preparado, sinConexion]);
+  }, [enCaja, hayPendientes, offline.fallidas, offline.preparado, sinConexion]);
 
   return (
     <div className="border-pos-linea dark:bg-card flex h-12 shrink-0 items-center justify-end gap-2 border-b bg-white px-4 print:hidden">
