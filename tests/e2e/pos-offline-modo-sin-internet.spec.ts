@@ -283,8 +283,10 @@ test.describe("POS modo sin internet estilo Alegra (E2E real en navegador, cero 
       const dialogoCobro = page.getByRole("dialog");
       await dialogoCobro.getByRole("button", { name: "Efectivo", exact: true }).click();
       await dialogoCobro.getByRole("button", { name: /^Cobrar/ }).click();
-      await expect(dialogoCobro.getByRole("heading", { name: "Venta guardada en este dispositivo" })).toBeVisible();
-      await expect(dialogoCobro.getByText(/Folio: POS-LOCAL-/)).toBeVisible();
+      await expect(dialogoCobro.getByRole("heading", { name: "¡Venta completada!" })).toBeVisible();
+      await expect(dialogoCobro.getByText(/^[BE]\d{10}$/)).toBeVisible();
+      await expect(dialogoCobro.getByText(/POS-LOCAL-/)).toHaveCount(0);
+      await captura(page, "01b-venta-completada-local-ncf");
       await dialogoCobro.getByRole("button", { name: "Nueva venta", exact: true }).click();
     } else {
       await sembrarOperacionLocal(page, {

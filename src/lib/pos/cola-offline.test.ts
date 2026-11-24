@@ -192,5 +192,8 @@ describe("cola offline POS", () => {
     entrada.payload = { precio: "999.00" };
     expect(copia.payload).toEqual({ precio: "120.00" });
     expect(copia.folio).toBe(`POS-LOCAL-${copia.uuid}`);
+
+    const conNcf = nuevaOperacionOffline(entrada, undefined, "B0200000145");
+    expect(conNcf.folio).toBe("B0200000145");
   });
 });

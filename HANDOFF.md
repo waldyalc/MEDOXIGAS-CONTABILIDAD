@@ -1,5 +1,22 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS Local-First + NCF consecutivo + Checkout simplificado (rama `feat/pos-modo-offline-alegra`, 24-11-2026)
+
+Evolución directa tras pruebas en vivo con Waldy (sin merge a `main`; espera OK de Waldy):
+
+- **Local-first puro (Opción A) con subida en segundo plano (`checkout-pos.tsx`, `offline-pos-provider.tsx`, `transporte-offline.ts`, `barra-superior-pos.tsx`):**
+  - Toda venta de contado normal (Efectivo, Tarjeta, Transferencia, Combinado) se guarda primero en IndexedDB con `client_uuid` idempotente y abre **`¡Venta completada!`** en < 50 ms (sin esperar red ni mostrar «No sabemos si la venta se registró» cuando el internet tambalea).
+  - La subida a `pos_sincronizar_operacion` corre al instante en segundo plano con timeout de 10 s (`TIMEOUT_SINCRONIZACION_MS`), reintentos automáticos cada 5 s mientras haya pendientes y detección de caída real en ~15 s. El popover superior no interrumpe una venta normal que sube rápido; solo se abre automático al reconectar con pendientes, ante errores reales o demoras > 4 s.
+  - Crédito y conversión de cotizaciones siguen pidiendo conexión para validar límite de crédito y evitar doble facturación.
+- **NCF consecutivo local (`ncf-local.ts`, `venta-local.ts`, `cola-offline.ts`, `vender-pos.tsx`):**
+  - El dispositivo mantiene el contador local (`siguiente`) por numeración en IndexedDB (sincronizado al alza con el servidor y con cada NCF confirmado) y emite el siguiente comprobante real (`B0200000XXX`, `B0100000XXX`, etc.) sin folios `POS-LOCAL-*`. Si otra caja facturó en paralelo, al sincronizar el servidor asigna el siguiente libre y actualiza el historial.
+- **Modal único `¡Venta completada!` (`confirmacion-venta.tsx`, `detalle-venta-offline.tsx`):**
+  - Eliminado `confirmacion-offline.tsx` («Venta guardada en este dispositivo» + preview incrustado). Las ventas locales arman una `VentaPOSResultado` completa (`armarVentaLocalResultado`) y usan exactamente el mismo modal `¡Venta completada!` (migrado a teal `--pos-primario`), el mismo ticket térmico oficial (`armarTicketFactura`) y el mismo PDF Carta (`armarCartaFactura`).
+- **Checkout y catálogo simplificados (integrados desde `t3/1ffa8b8e` y `t3/pos-tarjeta-unica-transferencia-banco`):**
+  - Eliminada la opción «Venta simple» (tarjeta, diálogo, atajo `F4`, `agregarLineaLibre` + candado en `diseno-pos.test.ts`).
+  - Unificadas «Tarjeta crédito» y «Tarjeta débito» en una sola opción **«Tarjeta»** (en cobro simple, combinado y ticket).
+  - En **Transferencia** (y por fila en **Combinado**), botones clicables de **Banco destino \*** con las cuentas bancarias activas reales (`es_caja_banco && tipo_banco === "banco"`) enviando su `cuenta_id` al backend.
+
 ## POS Modo Sin Internet (Offline) estilo Alegra + 5 bugs offline (rama `feat/pos-modo-offline-alegra`, 24-11-2026)
 
 Implementación completa del plan `PLAN-MODO-OFFLINE-POS.md` (sin merge a `main`; espera OK de Waldy):

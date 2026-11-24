@@ -29,23 +29,39 @@ export function BarraSuperiorPos() {
   const sinConexion = offline.estado === "offline";
   const sincronizando = offline.estado === "sincronizando";
   const hayPendientes = offline.porSubir > 0 || offline.fallidas > 0;
+  const sinConexionPrevio = useRef(sinConexion);
   const resumen = estadoPopoverSincronizacion({
     estado: offline.estado,
     porSubir: offline.porSubir,
     fallidas: offline.fallidas,
   });
 
-  // Al volver a /pos con internet y la cola sucia, el aviso «Sincronización
-  // pendiente» se abre solo una vez por ciclo (no es un modal y se puede cerrar).
+  // En modo local-first, cada venta normal pasa ~300 ms por «pendiente» mientras
+  // sube en segundo plano: no abrimos el popover en ese destello. Solo se abre
+  // automático al reconectar con pendientes, si hay ventas fallidas, o si algo
+  // lleva más de 4 s esperando sin terminar de subir.
   useEffect(() => {
+    const acabaDeReconectar = sinConexionPrevio.current && !sinConexion;
+    sinConexionPrevio.current = sinConexion;
+
     if (!hayPendientes) {
       avisado.current = false;
       return;
     }
     if (!offline.preparado || sinConexion || avisado.current) return;
-    avisado.current = true;
-    setSyncAbierta(true);
-  }, [hayPendientes, offline.preparado, sinConexion]);
+
+    if (offline.fallidas > 0 || acabaDeReconectar) {
+      avisado.current = true;
+      setSyncAbierta(true);
+      return;
+    }
+
+    const temporizador = window.setTimeout(() => {
+      avisado.current = true;
+      setSyncAbierta(true);
+    }, 4_000);
+    return () => window.clearTimeout(temporizador);
+  }, [hayPendientes, offline.fallidas, offline.preparado, sinConexion]);
 
   return (
     <div className="border-pos-linea dark:bg-card flex h-12 shrink-0 items-center justify-end gap-2 border-b bg-white px-4 print:hidden">

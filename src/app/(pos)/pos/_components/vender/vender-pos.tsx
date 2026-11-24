@@ -22,6 +22,7 @@ import { cargarCatalogoCompletoOffline } from "@/lib/pos/cache-catalogo-offline"
 import { enlaceCotizacionPOS, payloadCotizacionPOS } from "@/lib/pos/cotizaciones";
 import { filtrarFavoritosPOS } from "@/lib/pos/favoritos";
 import type { TicketPOSPayload } from "@/lib/pos/impresion";
+import { actualizarPisoNcfLocal } from "@/lib/pos/ncf-local";
 import type { CotizacionPOSResultado, PlantillaTicket, ProductoPOS, ProductoPOSCodigo } from "@/lib/pos/tipos";
 
 import { buscarCatalogoPOS, buscarCodigoPOS } from "../acciones-pos";
@@ -240,6 +241,7 @@ export function VenderPos({
       cuentas,
       vendedores,
     }).catch(() => undefined);
+    void conBloqueoOffline(ambito, () => actualizarPisoNcfLocal(ambito, numeraciones)).catch(() => undefined);
   }, [ambito, terminal, turno, empresa, numeraciones, listas, cuentas, vendedores]);
 
   /**
@@ -833,6 +835,8 @@ export function VenderPos({
         terminal={terminal}
         turno={turnoActual}
         empresa={empresa}
+        numeraciones={numeraciones}
+        vendedoresIniciales={vendedores}
         cuentas={cuentas}
         contactos={listaContactos}
         consumidorFinalId={consumidorFinalId}

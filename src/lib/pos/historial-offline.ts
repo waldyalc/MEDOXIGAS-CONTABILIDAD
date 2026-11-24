@@ -1,6 +1,6 @@
 import { calcularLineaPOS } from "./calculo";
 import type { OperacionOffline } from "./cola-offline";
-import type { HistorialPOSFila, LineaVenta } from "./tipos";
+import type { HistorialPOSFila, LineaVenta, VentaPOSResultado } from "./tipos";
 
 /**
  * Proyección de las ventas guardadas en este dispositivo (cola offline) al
@@ -50,6 +50,8 @@ export interface VentaLocalHistorial {
   totales: TotalesLocalHistorial;
   /** Pestaña del carrito tal como se guardó; la valida `cargarVentaOffline`. */
   pestana: unknown;
+  /** Resultado completo armado en local (cuando existe), para reimprimir el ticket real. */
+  ventaCompleta: VentaPOSResultado | null;
 }
 
 export type ItemHistorialPOS =
@@ -134,6 +136,15 @@ function estadoLocal(estado: OperacionOffline["estado"]): EstadoVentaLocal {
   return "sincronizada";
 }
 
+function ventaCompletaDe(snapshot: Record<string, unknown> | null): VentaPOSResultado | null {
+  const venta = campos(snapshot?.venta);
+  if (!venta) return null;
+  const factura = campos(venta.factura);
+  const contacto = campos(venta.contacto);
+  if (!factura || !contacto || !Array.isArray(venta.lineas) || !Array.isArray(venta.pagos)) return null;
+  return venta as unknown as VentaPOSResultado;
+}
+
 /** Proyecta una operación de venta; `null` si no aplica o ya está en el servidor. */
 export function proyectarVentaLocal(
   operacion: OperacionOffline,
@@ -170,6 +181,7 @@ export function proyectarVentaLocal(
     lineas: lineasDe(ticket),
     totales,
     pestana: snapshot?.pestana ?? null,
+    ventaCompleta: ventaCompletaDe(snapshot),
   };
 }
 

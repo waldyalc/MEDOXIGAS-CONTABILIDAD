@@ -1,9 +1,19 @@
 import { describe, expect, test } from "vitest";
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const CHECKOUT = join(process.cwd(), "src", "app", "(pos)", "pos", "_components", "vender", "checkout-pos.tsx");
+const CONFIRMACION_OFFLINE = join(
+  process.cwd(),
+  "src",
+  "app",
+  "(pos)",
+  "pos",
+  "_components",
+  "vender",
+  "confirmacion-offline.tsx",
+);
 
 /**
  * Candado del Punto 8 del PLAN POS 2: la X y «Cancelar» del modal Pagar
@@ -87,5 +97,30 @@ describe("una sola Tarjeta y banco destino al transferir", () => {
     expect(checkout, "El pago por transferencia envía el cuenta_id del banco elegido").toContain(
       "cuenta_id: bancoTransferenciaId",
     );
+  });
+});
+
+/**
+ * Decisión de Waldy (24-11-2026): ventas de contado normales van local-first
+ * puro (Opción A) con NCF consecutivo local y abren el mismo modal
+ * «¡Venta completada!» (sin el preview «Venta guardada en este dispositivo»).
+ * Crédito y cotizaciones siguen pidiendo conexión.
+ */
+describe("POS local-first y modal único ¡Venta completada!", () => {
+  const checkout = readFileSync(CHECKOUT, "utf8");
+
+  test("no existe ni se revive el preview viejo ConfirmacionOffline", () => {
+    expect(
+      existsSync(CONFIRMACION_OFFLINE),
+      "ConfirmacionOffline fue eliminado: las ventas locales muestran el mismo modal ConfirmacionVenta",
+    ).toBe(false);
+    expect(checkout).not.toContain("ConfirmacionOffline");
+    expect(checkout).not.toContain("armarTicketOffline");
+  });
+
+  test("las ventas de contado van primero al dispositivo con NCF local y crédito/cotización piden conexión", () => {
+    expect(checkout).toContain("const requiereConexion = cotizacion !== null || porCobrarVisible");
+    expect(checkout).toContain("armarVentaLocalResultado");
+    expect(checkout).toContain("{ numeracion, fecha: hoy }");
   });
 });

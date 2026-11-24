@@ -25,7 +25,6 @@ const PENDIENTES = [
   "_components/menu-pos-estilos.ts",
   "_components/menu-pos.tsx",
   "_components/pagos/lista-pagos.tsx",
-  "_components/vender/confirmacion-venta.tsx",
 ];
 
 function listar(directorio: string): string[] {

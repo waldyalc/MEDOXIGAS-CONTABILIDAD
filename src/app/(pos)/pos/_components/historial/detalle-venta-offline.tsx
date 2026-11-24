@@ -23,7 +23,7 @@ import type { Empresa } from "@/lib/facturacion/tipos";
 import { formatoFechaHora } from "@/lib/formato";
 import type { EstadoConexion } from "@/lib/pos/conexion-offline";
 import { lineasVentaDeLocal, type VentaLocalHistorial } from "@/lib/pos/historial-offline";
-import { armarTicketOffline } from "@/lib/pos/impresion";
+import { armarTicketFactura, armarTicketOffline } from "@/lib/pos/impresion";
 import type { PlantillaTicket } from "@/lib/pos/tipos";
 
 function tonoLocal(estado: VentaLocalHistorial["estado"]): TonoPill {
@@ -38,11 +38,11 @@ function etiquetaLocal(estado: VentaLocalHistorial["estado"]): string {
   return "Sincronizando";
 }
 
-/** NCF definitivo cuando subió; si no, el número temporal del dispositivo. */
+/** NCF definitivo cuando subió; si no, el NCF consecutivo local del dispositivo. */
 function numeroVenta(venta: VentaLocalHistorial): string {
   if (venta.ncf) return venta.ncf;
   if (venta.numero !== null) return `Factura No ${venta.numero}`;
-  return "Venta en este dispositivo";
+  return venta.folio;
 }
 
 function BannerEstadoOffline({
@@ -105,7 +105,7 @@ function BannerEstadoOffline({
           <div className="flex flex-col gap-1">
             <p className="text-pos-texto text-sm font-semibold">Sincronizando</p>
             <p className="text-pos-texto-suave text-sm">
-              {`La venta está guardada en este dispositivo con el número temporal ${venta.folio}. Se subirá automáticamente al tener conexión.`}
+              {`La venta ${venta.folio} está guardada en este dispositivo y se subirá automáticamente al servidor.`}
             </p>
           </div>
         </div>
@@ -154,20 +154,22 @@ export function DetalleVentaOffline({
   const [descartando, setDescartando] = useState(false);
   const reintentoBloqueado = estado === "offline" || estado === "sincronizando";
 
-  const ticket = armarTicketOffline({
-    folio: venta.folio,
-    empresa,
-    cliente: venta.cliente,
-    lineas: lineasVentaDeLocal(venta.lineas),
-    plantilla: plantillaTicket,
-    fecha: venta.fecha,
-    subtotal: venta.totales.subtotal,
-    descuento: venta.totales.descuento,
-    itbis: venta.totales.itbis,
-    total: venta.totales.total,
-    recibido: venta.totales.recibido,
-    cambio: venta.totales.cambio,
-  });
+  const ticket = venta.ventaCompleta
+    ? armarTicketFactura(venta.ventaCompleta, plantillaTicket)
+    : armarTicketOffline({
+        folio: venta.folio,
+        empresa,
+        cliente: venta.cliente,
+        lineas: lineasVentaDeLocal(venta.lineas),
+        plantilla: plantillaTicket,
+        fecha: venta.fecha,
+        subtotal: venta.totales.subtotal,
+        descuento: venta.totales.descuento,
+        itbis: venta.totales.itbis,
+        total: venta.totales.total,
+        recibido: venta.totales.recibido,
+        cambio: venta.totales.cambio,
+      });
 
   return (
     <>
@@ -265,9 +267,11 @@ export function DetalleVentaOffline({
             ) : null}
           </section>
 
-          <p className="text-pos-texto-suave text-xs">
-            Este ticket de soporte se genera con los datos guardados en este dispositivo y no tiene valor fiscal.
-          </p>
+          {venta.estado !== "sincronizada" ? (
+            <p className="text-pos-texto-suave text-xs">
+              Venta guardada en este dispositivo, pendiente de sincronizar con el servidor.
+            </p>
+          ) : null}
         </div>
       </div>
 

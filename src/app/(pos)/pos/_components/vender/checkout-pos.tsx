@@ -40,6 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { ContactoBuscado } from "@/lib/contactos/seleccion";
 import type { Empresa } from "@/lib/facturacion/tipos";
+import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { completarVenta } from "@/lib/pos/acciones";
 import {
   armarPagosCombinadoPOS,
@@ -53,19 +54,14 @@ import {
 } from "@/lib/pos/calculo";
 import { esConsumidorFinalPOS } from "@/lib/pos/consumidor-final";
 import { esquemaVenta, MAXIMO_PAGOS_VENTA, mensajeValidacion } from "@/lib/pos/esquemas";
-import {
-  armarTicketOffline,
-  armarTicketPrefactura,
-  type EntradaTicketOffline,
-  type TicketPOSPayload,
-} from "@/lib/pos/impresion";
+import { armarTicketPrefactura, type EntradaTicketOffline } from "@/lib/pos/impresion";
 import type { LineaVenta, MetodoPOS, PlantillaTicket, VentaPOSResultado } from "@/lib/pos/tipos";
+import { armarVentaLocalResultado } from "@/lib/pos/venta-local";
 import { createClient } from "@/lib/supabase/client";
 
 import { useCarritoPOS } from "../carrito-pos-provider";
 import { capitalizar, formatoMonedaPOS, hoyRD, textoAMonto } from "../formato-pos";
 import { useOfflinePOS } from "../offline-pos-provider";
-import { ConfirmacionOffline } from "./confirmacion-offline";
 import { ConfirmacionVenta } from "./confirmacion-venta";
 
 type ModoCobro = "efectivo" | "tarjeta" | "transferencia" | "combinado" | "credito";
@@ -119,6 +115,8 @@ export function CheckoutPos({
   terminal,
   turno,
   empresa,
+  numeraciones,
+  vendedoresIniciales,
   cuentas,
   contactos,
   consumidorFinalId,
@@ -140,8 +138,10 @@ export function CheckoutPos({
   };
   turno: { id: string; numero: number } | null;
   empresa: Empresa | null;
+  numeraciones: Numeracion[];
+  vendedoresIniciales?: { id: string; nombre: string }[];
   cuentas: { id: string; nombre: string; es_caja_banco?: boolean; tipo_banco?: string | null }[];
-  contactos: ContactoBuscado[];
+  contactos: (ContactoBuscado & { direccion?: string | null; telefono?: string | null })[];
   consumidorFinalId: string | null;
   plantillaTicket: PlantillaTicket;
   plantillaFactura: { mostrarLogo: boolean; notas: string; terminos: string };
@@ -151,7 +151,6 @@ export function CheckoutPos({
   const router = useRouter();
   const carrito = useCarritoPOS();
   const offline = useOfflinePOS();
-  const [ticketOffline, setTicketOffline] = useState<TicketPOSPayload | null>(null);
   const { activa, totales } = carrito;
   const [vista, setVista] = useState<"metodos" | "detalle">("metodos");
   const [modo, setModo] = useState<ModoCobro>("efectivo");
@@ -160,7 +159,7 @@ export function CheckoutPos({
   const [filas, setFilas] = useState<FilaCombinada[]>([]);
   const [bancoTransferenciaId, setBancoTransferenciaId] = useState("");
   const [notas, setNotas] = useState("");
-  const [vendedores, setVendedores] = useState<{ id: string; nombre: string }[]>([]);
+  const [vendedores, setVendedores] = useState<{ id: string; nombre: string }[]>(vendedoresIniciales ?? []);
   const [aviso, setAviso] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -217,7 +216,6 @@ export function CheckoutPos({
     setLento(false);
     setPerdido(false);
     setVenta(null);
-    setTicketOffline(null);
     setPendiente(null);
     setImprimiendoSoporte(false);
   }, [abierto, bancoPreseleccionado]);
@@ -229,7 +227,11 @@ export function CheckoutPos({
   }, [abierto, total, venta]);
 
   useEffect(() => {
-    if (!abierto) return;
+    if (vendedoresIniciales?.length) setVendedores(vendedoresIniciales);
+  }, [vendedoresIniciales]);
+
+  useEffect(() => {
+    if (!abierto || !navigator.onLine || offline.estado === "offline") return;
     let activo = true;
     const supabase = createClient();
     supabase
@@ -238,12 +240,12 @@ export function CheckoutPos({
       .eq("activo", true)
       .order("nombre")
       .then(({ data }) => {
-        if (activo) setVendedores(data ?? []);
+        if (activo && data) setVendedores(data);
       });
     return () => {
       activo = false;
     };
-  }, [abierto]);
+  }, [abierto, offline.estado]);
 
   useEffect(() => {
     if (!enviando) {
@@ -420,7 +422,8 @@ export function CheckoutPos({
     setPendiente(null);
 
     const pagos = armarPagos();
-    const recibidoOffline = sumarMontos(pagos.map((pago) => pago.monto_recibido ?? pago.monto));
+    const recibidoLocal = sumarMontos(pagos.map((pago) => pago.monto_recibido ?? pago.monto));
+    const hoy = hoyRD();
     const entrada = {
       terminal_id: terminal.id,
       contacto_defecto_id: cotizacion ? null : (consumidorFinalId ?? terminal.contacto_defecto_id),
@@ -429,21 +432,25 @@ export function CheckoutPos({
       numeracion_id: activa.numeracionId || null,
       vendedor_id: cotizacion ? null : activa.vendedorId || null,
       ...(notas.trim() ? { notas: notas.trim() } : {}),
-      fecha: hoyRD(),
+      fecha: hoy,
       ...(cotizacion ? { cotizacion_id: cotizacion.id } : { lineas: lineasPayload() }),
       pagos,
     };
 
+    // Decisión de Waldy (24-11-2026):
+    // - Ventas de contado normales (Efectivo, Tarjeta, Transferencia, Combinado):
+    //   local-first puro (Opción A) — guarda primero en IndexedDB con el NCF
+    //   consecutivo local, abre «¡Venta completada!» al instante y sube en
+    //   segundo plano con `client_uuid` idempotente (nunca espera ni falla si el
+    //   internet tambalea).
+    // - Ventas a crédito y conversión de cotizaciones: requieren conexión real
+    //   para validar el límite de crédito / evitar facturar dos veces.
+    const requiereConexion = cotizacion !== null || porCobrarVisible;
     let envioRemoto = false;
     try {
-      if (!navigator.onLine || offline.estado === "offline") {
-        // Guardas previas a persistir: se muestran inline sin cerrar el cobro.
-        if (cotizacion) {
-          setError("Conéctate para convertir una cotización y evitar facturarla dos veces.");
-          return;
-        }
-        if (porCobrarVisible) {
-          setError("Conéctate para verificar el crédito del cliente antes de vender a crédito.");
+      if (!requiereConexion) {
+        if (!turno) {
+          setError("Abre un turno antes de registrar una venta.");
           return;
         }
         const cliente = contactos.find((contacto) => contacto.id === activa.contactoId);
@@ -451,46 +458,98 @@ export function CheckoutPos({
           setError("El cliente no está disponible en la caché. Selecciona uno cargado antes de cobrar.");
           return;
         }
+        const numeracion = numeraciones.find((candidata) => candidata.id === activa.numeracionId);
+        if (!numeracion) {
+          setError("Selecciona una numeración válida antes de cobrar.");
+          return;
+        }
         const validada = esquemaVenta.safeParse(entrada);
         if (!validada.success) {
           setError(mensajeValidacion(validada.error));
           return;
         }
+        const creadoEn = new Date().toISOString();
+        const lineasLocales: LineaVenta[] = activa.lineas.map((linea) => ({
+          id: linea.id,
+          producto_id: linea.productoId,
+          producto_nombre: linea.descripcion,
+          referencia: linea.referencia,
+          descripcion: linea.descripcion,
+          cantidad: linea.cantidad,
+          unidad_id: linea.unidadId,
+          unidad_nombre: linea.unidadNombre,
+          factor_base: linea.factorBase,
+          precio: linea.precio,
+          descuento_pct: linea.descuentoPct,
+          itbis_tasa: linea.itbisTasa,
+          impuesto_id: linea.impuestoId,
+          ...calcularLineaPOS({
+            cantidad: linea.cantidad,
+            precio: linea.precio,
+            descuento_pct: linea.descuentoPct,
+            itbis_tasa: linea.itbisTasa,
+          }),
+        }));
+        const vendedorActual = vendedores.find((vendedor) => vendedor.id === activa.vendedorId) ?? null;
         const detalle: Omit<EntradaTicketOffline, "folio"> = {
           empresa,
           cliente,
           plantilla: plantillaTicket,
-          fecha: new Date().toISOString(),
+          fecha: creadoEn,
           ...totales,
-          recibido: recibidoOffline,
-          cambio: centavosATexto(Math.max(0, centavos(recibidoOffline) - centavos(total))),
-          lineas: activa.lineas.map((linea) => ({
-            id: linea.id,
-            producto_id: linea.productoId,
-            producto_nombre: linea.descripcion,
-            referencia: linea.referencia,
-            descripcion: linea.descripcion,
-            cantidad: linea.cantidad,
-            unidad_id: linea.unidadId,
-            unidad_nombre: linea.unidadNombre,
-            factor_base: linea.factorBase,
-            precio: linea.precio,
-            descuento_pct: linea.descuentoPct,
-            itbis_tasa: linea.itbisTasa,
-            impuesto_id: linea.impuestoId,
-            ...calcularLineaPOS({
-              cantidad: linea.cantidad,
-              precio: linea.precio,
-              descuento_pct: linea.descuentoPct,
-              itbis_tasa: linea.itbisTasa,
-            }),
-          })),
+          recibido: recibidoLocal,
+          cambio: centavosATexto(Math.max(0, centavos(recibidoLocal) - centavos(total))),
+          lineas: lineasLocales,
         };
-        const operacion = await offline.encolar("venta", validada.data, { pestana: activa, ticket: detalle });
-        setTicketOffline(armarTicketOffline({ ...detalle, folio: operacion.folio }));
-        carrito.reiniciarTrasVenta();
+        let ventaLocalCreada: VentaPOSResultado | null = null;
+        await offline.encolar(
+          "venta",
+          validada.data,
+          ({ uuid, folio }) => {
+            const ventaLocal = armarVentaLocalResultado({
+              id: uuid,
+              ncf: folio,
+              numeracion,
+              fecha: hoy,
+              creadoEn,
+              terminal: { ...terminal, plantilla_ticket: plantillaTicket },
+              turno,
+              empresa,
+              cliente,
+              vendedor: vendedorActual,
+              cuentas,
+              lineas: lineasLocales,
+              pagos,
+              totales,
+              notas: notas.trim() || null,
+            });
+            ventaLocalCreada = ventaLocal;
+            return {
+              pestana: activa,
+              venta: ventaLocal,
+              numeracion: { id: numeracion.id, prefijo: numeracion.prefijo },
+              ticket: detalle,
+            };
+          },
+          { numeracion, fecha: hoy },
+        );
+        if (ventaLocalCreada) {
+          setVenta(ventaLocalCreada);
+          carrito.reiniciarTrasVenta();
+          toast.add({ type: "success", title: "Venta registrada." });
+        }
         return;
       }
+
+      if (!navigator.onLine || offline.estado === "offline") {
+        setError(
+          cotizacion
+            ? "Conéctate para convertir una cotización y evitar facturarla dos veces."
+            : "Conéctate para verificar el crédito del cliente antes de vender a crédito.",
+        );
+        return;
+      }
+
       envioRemoto = true;
       const resultado = await completarVenta(entrada);
       if (!resultado.ok) {
@@ -509,14 +568,13 @@ export function CheckoutPos({
       router.refresh();
     } catch (causa) {
       if (!envioRemoto) {
-        setPendiente(
+        setError(
           causa instanceof Error
             ? causa.message
-            : "No se pudo guardar. No entregues la venta hasta confirmar el guardado.",
+            : "No se pudo guardar la venta en este dispositivo. Revisa el almacenamiento del navegador.",
         );
       } else {
-        // Timeout o caída de red en envío online: resultado incierto (nunca
-        // ofrecer «Editar venta» como si no se hubiera registrado para evitar doble NCF).
+        // Timeout o caída de red en envío online (crédito/cotización): resultado incierto.
         setPerdido(true);
       }
     } finally {
@@ -594,9 +652,7 @@ export function CheckoutPos({
     <>
       <Dialog open={abierto} onOpenChange={cerrar}>
         <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-[640px]">
-          {ticketOffline ? (
-            <ConfirmacionOffline ticket={ticketOffline} onCerrar={onCerrar} />
-          ) : venta ? (
+          {venta ? (
             <>
               <DialogTitle className="sr-only">Venta registrada</DialogTitle>
               <DialogDescription className="sr-only">La venta se cobró correctamente.</DialogDescription>

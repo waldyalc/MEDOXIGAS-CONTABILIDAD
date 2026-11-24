@@ -2,6 +2,8 @@
 
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
+import { useRouter } from "next/navigation";
+
 import { AlertTriangle, RefreshCw, Trash2 } from "@/components/icons";
 import {
   AlertDialog,
@@ -15,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { Numeracion } from "@/lib/numeraciones/tipos";
 import {
   almacenColaOffline,
   conBloqueoOffline,
@@ -43,10 +46,46 @@ import {
   type SaludConexion,
   textoEstadoOffline,
 } from "@/lib/pos/conexion-offline";
+import { registrarNcfConfirmadoLocal, reservarNcfLocal } from "@/lib/pos/ncf-local";
 import { transportarOperacionOffline } from "@/lib/pos/transporte-offline";
 import { createClient } from "@/lib/supabase/client";
 
 type EstadoCachePOS = "al-dia" | "sincronizando" | "pendiente" | "error";
+
+export interface OpcionesEncolarOffline {
+  folio?: string;
+  numeracion?: Pick<Numeracion, "id" | "prefijo" | "siguiente" | "hasta" | "vence" | "activa">;
+  fecha?: string;
+}
+
+export type SnapshotEncolarOffline =
+  | Record<string, unknown>
+  | ((contexto: { uuid: string; folio: string }) => Record<string, unknown>);
+
+function datosNcfConfirmado(
+  operacion: OperacionOffline,
+): { numeracionId: string; prefijo: string; ncf: string } | null {
+  const resultado = operacion.resultado;
+  if (typeof resultado !== "object" || resultado === null || !("factura" in resultado)) return null;
+  const factura = resultado.factura;
+  if (typeof factura !== "object" || factura === null || !("ncf" in factura) || typeof factura.ncf !== "string") {
+    return null;
+  }
+  const snapshot = operacion.snapshot;
+  if (typeof snapshot !== "object" || snapshot === null || !("numeracion" in snapshot)) return null;
+  const num = snapshot.numeracion;
+  if (
+    typeof num !== "object" ||
+    num === null ||
+    !("id" in num) ||
+    !("prefijo" in num) ||
+    typeof num.id !== "string" ||
+    typeof num.prefijo !== "string"
+  ) {
+    return null;
+  }
+  return { numeracionId: num.id, prefijo: num.prefijo, ncf: factura.ncf };
+}
 
 /**
  * Las cachés locales de productos (`ambito/listaPrecioId`, incluso `ambito/` para
@@ -77,7 +116,12 @@ interface ContextoOffline {
   tokenRecargaCache: number;
   recargarManual: () => Promise<void>;
   abrirPanel: () => void;
-  encolar: (tipo: OperacionOffline["tipo"], payload: unknown, snapshot: unknown) => Promise<OperacionOffline>;
+  encolar: (
+    tipo: OperacionOffline["tipo"],
+    payload: unknown,
+    snapshot: SnapshotEncolarOffline,
+    opciones?: OpcionesEncolarOffline,
+  ) => Promise<OperacionOffline>;
   reintentarOperacion: (uuid: string) => Promise<void>;
   descartarOperacion: (uuid: string) => Promise<void>;
   comprobarCierre: () => Promise<RevisionCierreOffline>;
@@ -97,6 +141,7 @@ export function OfflinePosProvider({
   turnoId: string | null;
   children: ReactNode;
 }) {
+  const router = useRouter();
   const [estado, setEstado] = useState<EstadoConexion>("online");
   const [operaciones, setOperaciones] = useState<OperacionOffline[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +162,7 @@ export function OfflinePosProvider({
   const reprepararPendiente = useRef(false);
   const prepararWorkerRef = useRef<(() => Promise<void>) | null>(null);
   const sondearRef = useRef<(() => Promise<void>) | null>(null);
+  const aplicarSondeoRef = useRef<((respondio: boolean) => boolean) | null>(null);
 
   useEffect(() => {
     turnoVigente.current = turnoId;
@@ -135,6 +181,8 @@ export function OfflinePosProvider({
   const sincronizar = useCallback(async () => {
     if (ocupado.current || !salud.current.conectado) return;
     ocupado.current = true;
+    let huboTransitorio = false;
+    let huboConfirmada = false;
     try {
       await conBloqueoOffline(ambito, async () => {
         const filas = await refrescar();
@@ -145,9 +193,19 @@ export function OfflinePosProvider({
           return;
         }
         setEstado("sincronizando");
-        await sincronizarColaOffline(almacenColaOffline, ambito, (operacion) =>
+        const resumen = await sincronizarColaOffline(almacenColaOffline, ambito, (operacion) =>
           transportarOperacionOffline(operacion, terminalId),
         );
+        for (const confirmada of resumen.confirmadas) {
+          const datos = datosNcfConfirmado(confirmada);
+          if (datos) {
+            await registrarNcfConfirmadoLocal(ambito, datos.numeracionId, datos.prefijo, datos.ncf).catch(
+              () => undefined,
+            );
+          }
+        }
+        huboConfirmada = resumen.confirmadas.length > 0;
+        huboTransitorio = resumen.transitorios > 0;
         await refrescar();
         setEstado(salud.current.conectado ? "online" : "offline");
         canal.current?.postMessage("actualizado");
@@ -158,7 +216,16 @@ export function OfflinePosProvider({
     } finally {
       ocupado.current = false;
     }
-  }, [ambito, refrescar, terminalId]);
+    if (huboConfirmada && navigator.onLine) {
+      router.refresh();
+    }
+    if (huboTransitorio) {
+      // Un fallo/timeout al subir cuenta como señal de red degradada y dispara
+      // sondeo inmediato para pasar a «Sin conexión» en ~15 s si la red murió.
+      aplicarSondeoRef.current?.(false);
+      void sondearRef.current?.();
+    }
+  }, [ambito, refrescar, router, terminalId]);
 
   useEffect(() => {
     let vigente = true;
@@ -218,6 +285,7 @@ export function OfflinePosProvider({
 
     // El navegador ya sabe que está sin red: «Sin conexión» sale de inmediato.
     if (!navigator.onLine) aplicarOfflineInmediato();
+    aplicarSondeoRef.current = aplicarSondeo;
     sondearRef.current = sondear;
     void refrescar().catch(() => {
       setError("No se puede guardar en este navegador. No cobres offline hasta habilitar IndexedDB.");
@@ -244,6 +312,7 @@ export function OfflinePosProvider({
       document.removeEventListener("visibilitychange", alCambiarVisibilidad);
       broadcast.close();
       canal.current = null;
+      aplicarSondeoRef.current = null;
       sondearRef.current = null;
     };
   }, [ambito, refrescar, sincronizar]);
@@ -271,6 +340,19 @@ export function OfflinePosProvider({
   const pendientes = operaciones.filter((operacion) => operacion.estado !== "sincronizada").length;
   const porSubir = operaciones.filter((operacion) => operacion.estado === "pendiente").length;
   const fallidas = operaciones.filter((operacion) => operacion.estado === "fallida").length;
+
+  // Mientras haya ventas pendientes por subir, sondea/reintenta cada 5 s para
+  // que un corte breve (5 s de internet malo) se recupere casi al instante y un
+  // corte real pase a «Sin conexión» en ~15 s sin esperar 45 s.
+  useEffect(() => {
+    if (porSubir === 0) return;
+    const id = window.setInterval(() => {
+      if (!navigator.onLine) return;
+      if (salud.current.conectado) void sincronizar();
+      else void sondearRef.current?.();
+    }, 5_000);
+    return () => window.clearInterval(id);
+  }, [porSubir, sincronizar]);
 
   useEffect(() => {
     if (!pendientes) return;
@@ -352,22 +434,50 @@ export function OfflinePosProvider({
     // con el turno nuevo para que la recarga offline no restaure uno viejo.
   }, [ambito, turnoId]);
 
-  async function encolar(tipo: OperacionOffline["tipo"], payload: unknown, snapshot: unknown) {
-    if (!turnoId || !preparado) throw new Error("Prepara el POS con un turno abierto antes de cobrar offline.");
-    return conBloqueoOffline(ambito, async () => {
-      const operacion = nuevaOperacionOffline({
-        ambito,
-        turnoId,
-        tipo,
-        payload,
-        snapshot,
-        secuencia: await siguienteSecuenciaOffline(ambito),
-      });
-      await almacenColaOffline.guardar(operacion);
-      setOperaciones((actuales) => [...actuales.filter((fila) => fila.uuid !== operacion.uuid), operacion]);
+  async function encolar(
+    tipo: OperacionOffline["tipo"],
+    payload: unknown,
+    snapshot: SnapshotEncolarOffline,
+    opciones?: OpcionesEncolarOffline,
+  ) {
+    if (!turnoId) throw new Error("Abre un turno antes de registrar la operación.");
+    const operacion = await conBloqueoOffline(ambito, async () => {
+      const uuid = crypto.randomUUID();
+      let folio = opciones?.folio;
+      if (opciones?.numeracion) {
+        const reserva = await reservarNcfLocal(
+          ambito,
+          opciones.numeracion,
+          opciones.fecha ?? new Date().toISOString().slice(0, 10),
+        );
+        folio = reserva.ncf;
+      }
+      const folioFinal = folio && folio.trim() !== "" ? folio.trim() : `POS-LOCAL-${uuid}`;
+      const snapshotFinal = typeof snapshot === "function" ? snapshot({ uuid, folio: folioFinal }) : snapshot;
+      const creada = nuevaOperacionOffline(
+        {
+          ambito,
+          turnoId,
+          tipo,
+          payload,
+          snapshot: snapshotFinal,
+          secuencia: await siguienteSecuenciaOffline(ambito),
+        },
+        uuid,
+        folioFinal,
+      );
+      await almacenColaOffline.guardar(creada);
+      setOperaciones((actuales) => [...actuales.filter((fila) => fila.uuid !== creada.uuid), creada]);
+      setPreparado(true);
       canal.current?.postMessage("actualizado");
-      return operacion;
+      return creada;
     });
+    // Local-first (Opción A): dispara la subida al servidor en segundo plano sin
+    // hacer esperar el cobro ni la impresión.
+    if (navigator.onLine && salud.current.conectado) {
+      void sincronizar();
+    }
+    return operacion;
   }
 
   async function comprobarCierre(): Promise<RevisionCierreOffline> {

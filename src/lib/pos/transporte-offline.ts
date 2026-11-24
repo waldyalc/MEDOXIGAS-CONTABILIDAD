@@ -83,6 +83,30 @@ const SIN_CONFIRMACION = "No se recibió confirmación del servidor. Se reintent
 const SESION_VENCIDA =
   "Tu sesión expiró o no tienes permiso en esta terminal. Vuelve a iniciar sesión; la operación quedó guardada y se reintentará sola.";
 
+/**
+ * Límite máximo por intento de subida en segundo plano: si la red muere sin
+ * disparar `window.offline`, no dejamos la sincronización colgada un minuto;
+ * a los 10 s se corta como fallo transitorio y se reintenta con el mismo UUID.
+ */
+export const TIMEOUT_SINCRONIZACION_MS = 10_000;
+
+function conTimeout<T>(promesa: PromiseLike<T>, ms: number): Promise<T> {
+  let temporizador: ReturnType<typeof setTimeout> | undefined;
+  return new Promise<T>((resolve, reject) => {
+    temporizador = setTimeout(() => reject(new Error("timeout_sincronizacion")), ms);
+    Promise.resolve(promesa).then(
+      (valor) => {
+        if (temporizador !== undefined) clearTimeout(temporizador);
+        resolve(valor);
+      },
+      (error) => {
+        if (temporizador !== undefined) clearTimeout(temporizador);
+        reject(error);
+      },
+    );
+  });
+}
+
 async function refrescarSesion(cliente: ClienteSupabase): Promise<boolean> {
   try {
     const { data, error } = await cliente.auth.refreshSession();
@@ -139,10 +163,10 @@ export const transportarOperacionOffline: TransporteOffline = async (operacion, 
         payload,
       },
     };
-    let respuesta = await cliente.rpc("pos_sincronizar_operacion", argumentos);
+    let respuesta = await conTimeout(cliente.rpc("pos_sincronizar_operacion", argumentos), TIMEOUT_SINCRONIZACION_MS);
     if (respuesta.error && clasificarErrorOffline(respuesta.error.code) === "sesion") {
       if (await refrescarSesion(cliente)) {
-        respuesta = await cliente.rpc("pos_sincronizar_operacion", argumentos);
+        respuesta = await conTimeout(cliente.rpc("pos_sincronizar_operacion", argumentos), TIMEOUT_SINCRONIZACION_MS);
       }
       if (respuesta.error && clasificarErrorOffline(respuesta.error.code) === "sesion") {
         return { ok: false, transitorio: true, sesionRequerida: true, error: SESION_VENCIDA };

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { nuevaOperacionOffline, type OperacionOffline, sincronizarColaOffline } from "./cola-offline";
-import { transportarOperacionOffline } from "./transporte-offline";
+import { TIMEOUT_SINCRONIZACION_MS, transportarOperacionOffline } from "./transporte-offline";
 
 const rpc = vi.fn();
 const refreshSession = vi.fn();
@@ -192,5 +192,18 @@ describe("transporte offline con pos_sincronizar_operacion", () => {
     }
     expect(rpc).toHaveBeenCalledTimes(2);
     expect(refreshSession).not.toHaveBeenCalled();
+  });
+
+  it("corta una subida colgada al superar TIMEOUT_SINCRONIZACION_MS como error transitorio", async () => {
+    vi.useFakeTimers();
+    try {
+      rpc.mockReturnValueOnce(new Promise(() => undefined));
+      const promesa = transportarOperacionOffline(venta(), TERMINAL);
+      await vi.advanceTimersByTimeAsync(TIMEOUT_SINCRONIZACION_MS + 50);
+      const resultado = await promesa;
+      expect(resultado).toMatchObject({ ok: false, transitorio: true });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

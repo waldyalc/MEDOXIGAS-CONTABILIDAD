@@ -210,8 +210,8 @@ export interface DocumentoCartaCotizacionPOS {
 
 const ETIQUETAS_METODO: Record<MetodoPOS, string> = {
   efectivo: "Efectivo",
-  tarjeta_debito: "Tarjeta débito",
-  tarjeta_credito: "Tarjeta crédito",
+  tarjeta_debito: "Tarjeta",
+  tarjeta_credito: "Tarjeta",
   transferencia: "Transferencia",
 };
 

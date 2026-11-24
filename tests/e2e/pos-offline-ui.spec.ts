@@ -112,9 +112,9 @@ test("ZZTEST: tres ventas offline, recarga, sincronización real, NCF y cuadre",
     const etiqueta = (await cobrar.textContent()) ?? "";
     cobrado += Number(/([\d,.]+)/.exec(etiqueta)?.[1]?.replaceAll(",", "") ?? "0");
     await cobrar.click();
-    await expect(dialogo.getByRole("heading", { name: "Venta guardada en este dispositivo" })).toBeVisible();
-    await expect(dialogo.getByText(/Folio: POS-LOCAL-/)).toBeVisible();
-    await expect(dialogo.getByText(/NCF|Comprobante provisional/)).toHaveCount(0);
+    await expect(dialogo.getByRole("heading", { name: "¡Venta completada!" })).toBeVisible();
+    await expect(dialogo.getByText(/^[BE]\d{10}$/)).toBeVisible();
+    await expect(dialogo.getByText(/POS-LOCAL-/)).toHaveCount(0);
     if (numero === 1) await captura(page, "ticket-folio");
     await dialogo.getByRole("button", { name: "Nueva venta", exact: true }).click();
   }
@@ -133,7 +133,7 @@ test("ZZTEST: tres ventas offline, recarga, sincronización real, NCF y cuadre",
   await page.reload();
   await expect(barraOffline).toBeVisible({ timeout: 20_000 });
   await barraOffline.click();
-  await expect(page.getByRole("dialog").getByText(/Folio: POS-LOCAL-/)).toHaveCount(3);
+  await expect(page.getByRole("dialog").getByText(/Folio: [BE]\d{10}/)).toHaveCount(3);
   await captura(page, "panel-sync");
 
   await context.route("**/rest/v1/rpc/pos_sincronizar_operacion", (ruta) => ruta.abort("failed"));

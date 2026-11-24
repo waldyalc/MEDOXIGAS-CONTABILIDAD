@@ -60,11 +60,12 @@ export type ResultadoEnvioOffline =
 export function nuevaOperacionOffline(
   entrada: Pick<OperacionOffline, "ambito" | "tipo" | "turnoId" | "payload" | "snapshot" | "secuencia">,
   uuid = crypto.randomUUID(),
+  folio?: string,
 ): OperacionOffline {
   return structuredClone({
     ...entrada,
     uuid,
-    folio: `POS-LOCAL-${uuid}`,
+    folio: folio && folio.trim() !== "" ? folio.trim() : `POS-LOCAL-${uuid}`,
     estado: "pendiente",
     intentos: 0,
     proximoIntento: 0,
@@ -125,14 +126,22 @@ export function revisionCierreOffline(
   return { impedimento, aviso, porSubir, fallidas };
 }
 
-type PasoColaOffline = "seguir" | "detener";
+export interface ResumenSincronizacionOffline {
+  confirmadas: OperacionOffline[];
+  transitorios: number;
+  fallidas: number;
+}
+
+type ResultadoPasoColaOffline =
+  | { paso: "seguir"; confirmada?: OperacionOffline; fallida?: boolean }
+  | { paso: "detener"; transitorio: true };
 
 async function procesarOperacionOffline(
   almacen: AlmacenColaOffline,
   operacion: OperacionOffline,
   enviar: (operacion: OperacionOffline) => Promise<ResultadoEnvioOffline>,
   ahora: () => number,
-): Promise<PasoColaOffline> {
+): Promise<ResultadoPasoColaOffline> {
   let respuesta: ResultadoEnvioOffline;
   try {
     respuesta = await enviar(structuredClone(operacion));
@@ -149,17 +158,18 @@ async function procesarOperacionOffline(
       error: respuesta.error,
     });
     // Un fallo de red conserva el orden; un rechazo de negocio no debe frenar las demás ventas.
-    return respuesta.transitorio ? "detener" : "seguir";
+    return respuesta.transitorio ? { paso: "detener", transitorio: true } : { paso: "seguir", fallida: true };
   }
-  await almacen.guardar({
+  const confirmada: OperacionOffline = {
     ...operacion,
     intentos,
     estado: "sincronizada",
     proximoIntento: 0,
     error: null,
     resultado: respuesta.resultado,
-  });
-  return "seguir";
+  };
+  await almacen.guardar(confirmada);
+  return { paso: "seguir", confirmada };
 }
 
 export async function sincronizarColaOffline(
@@ -167,15 +177,24 @@ export async function sincronizarColaOffline(
   ambito: string,
   enviar: (operacion: OperacionOffline) => Promise<ResultadoEnvioOffline>,
   ahora = Date.now,
-): Promise<void> {
+): Promise<ResumenSincronizacionOffline> {
   const operaciones = (await almacen.listar(ambito))
     .filter((operacion) => operacion.estado !== "sincronizada")
     .sort((a, b) => a.secuencia - b.secuencia || a.uuid.localeCompare(b.uuid));
 
+  const resumen: ResumenSincronizacionOffline = { confirmadas: [], transitorios: 0, fallidas: 0 };
+
   for (const operacion of operaciones) {
     // Una operación rechazada no puede trancar la cola: queda visible y se salta.
     if (operacion.estado === "fallida") continue;
-    if (operacion.proximoIntento > ahora()) return;
-    if ((await procesarOperacionOffline(almacen, operacion, enviar, ahora)) === "detener") return;
+    if (operacion.proximoIntento > ahora()) return resumen;
+    const resultado = await procesarOperacionOffline(almacen, operacion, enviar, ahora);
+    if (resultado.paso === "detener") {
+      resumen.transitorios += 1;
+      return resumen;
+    }
+    if (resultado.confirmada) resumen.confirmadas.push(resultado.confirmada);
+    if (resultado.fallida) resumen.fallidas += 1;
   }
+  return resumen;
 }
