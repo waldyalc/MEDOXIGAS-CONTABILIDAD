@@ -47,6 +47,12 @@ describe("estado de conexión del pie del POS", () => {
     }
   });
 
+  it("si el navegador ya sabe que no hay red, el pie pasa a «Sin conexión» al instante", () => {
+    const salud = registrarSondeo(SALUD_CONEXION_INICIAL, false, true);
+    expect(salud).toEqual({ fallos: FALLOS_PARA_OFFLINE, conectado: false });
+    expect(estadoTrasSondeo("online", salud.conectado)).toBe("offline");
+  });
+
   it("un sondeo lento durante una subida no interrumpe «Subiendo ventas…»", () => {
     const salud = registrarSondeo(SALUD_CONEXION_INICIAL, false);
     expect(estadoTrasSondeo("sincronizando", salud.conectado)).toBe("sincronizando");
@@ -84,6 +90,17 @@ describe("estado de conexión del pie del POS", () => {
     );
   });
 
+  it("un error de almacenamiento se ve en el pie, no queda escondido en «Preparando…»", () => {
+    const aviso = "No se puede guardar en este navegador. No cobres offline hasta habilitar IndexedDB.";
+    expect(textoEstadoOffline({ estado: "online", porSubir: 0, fallidas: 0, preparado: false, error: aviso })).toBe(
+      aviso,
+    );
+    // El aviso de almacenamiento gana también al «Sin conexión»: sin IndexedDB no hay POS offline.
+    expect(textoEstadoOffline({ estado: "offline", porSubir: 0, fallidas: 0, preparado: false, error: aviso })).toBe(
+      aviso,
+    );
+  });
+
   it("el provider decide el estado con la máquina de sondeos y no con un fallo suelto", () => {
     const provider = leer("src/app/(pos)/pos/_components/offline-pos-provider.tsx");
     expect(provider).toContain("registrarSondeo");
@@ -93,6 +110,14 @@ describe("estado de conexión del pie del POS", () => {
     expect(provider).not.toContain('setEstado("error")');
     expect(provider).not.toContain("hayProblema");
     expect(provider).not.toContain('if (error) return "Error al subir');
+  });
+
+  it("el pie recibe el error de almacenamiento y el «sin red» del navegador", () => {
+    const provider = leer("src/app/(pos)/pos/_components/offline-pos-provider.tsx");
+    // `error` tiene que llegar a textoEstadoOffline o el pie no puede avisarlo.
+    expect(provider).toContain("preparado, error");
+    // Y registrarSondeo recibe el navigator.onLine para el «Sin conexión» inmediato.
+    expect(provider).toContain("respondio, !navigator.onLine");
   });
 
   it("el latido pega a un estático del CDN, no a /login", () => {

@@ -29,9 +29,15 @@ export interface SaludConexion {
 
 export const SALUD_CONEXION_INICIAL: SaludConexion = { fallos: 0, conectado: true };
 
-/** Un fallo suelto no cambia el estado; el umbral sí. Un acierto lo resetea. */
-export function registrarSondeo(salud: SaludConexion, respondio: boolean): SaludConexion {
+/**
+ * Un fallo suelto no cambia el estado; el umbral sí. Un acierto lo resetea.
+ * `sinRed` es el `!navigator.onLine` del navegador: eso no es un sondeo
+ * fallido sino el sistema diciendo que no hay red — el pie pasa a
+ * «Sin conexión» de inmediato, sin esperar los 3 fallos.
+ */
+export function registrarSondeo(salud: SaludConexion, respondio: boolean, sinRed = false): SaludConexion {
   if (respondio) return { ...SALUD_CONEXION_INICIAL };
+  if (sinRed) return { fallos: FALLOS_PARA_OFFLINE, conectado: false };
   const fallos = Math.min(salud.fallos + 1, FALLOS_PARA_OFFLINE);
   return { fallos, conectado: fallos < FALLOS_PARA_OFFLINE };
 }
@@ -47,16 +53,20 @@ export function textoEstadoOffline({
   porSubir,
   fallidas,
   preparado,
+  error = null,
 }: {
   estado: EstadoConexion;
   porSubir: number;
   fallidas: number;
   preparado: boolean;
+  error?: string | null;
 }): string {
   if (fallidas > 0) {
     const etiqueta = fallidas === 1 ? "venta con problema" : "ventas con problema";
     return `Error al subir — ${fallidas} ${etiqueta}${porSubir > 0 ? ` · ${porSubir} por subir` : ""}`;
   }
+  // Sin almacenamiento local no hay POS offline: el aviso va en el pie, no solo en el panel.
+  if (!preparado && error) return error;
   if (estado === "sincronizando") return `Subiendo ventas… ${porSubir} por subir`;
   if (estado === "offline") return `Sin conexión — ${porSubir} ${porSubir === 1 ? "venta" : "ventas"} por subir`;
   if (!preparado) return "Preparando la cola local…";
