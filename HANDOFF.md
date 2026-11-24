@@ -1,5 +1,16 @@
 # Handoff — Medoxigas Contabilidad
 
+## POS 100% operativo sin internet — 3 tareas integradas (rama `feat/pos-modo-offline-alegra` @ `a9f1e59`, 24-11-2026)
+
+Tres subagentes (DeepSeek V4.1 Flash 1017) en worktrees disjuntos, integrados y verificados por el Orquestador (sin merge a `main`; espera OK de Waldy):
+
+- **Tarea 1 — Inventario y clientes 100% locales (`catalogo-local.ts`, `contactos-offline.ts`, `vender-pos.tsx`, `selector-contacto.tsx`, `dialogo-nuevo-contacto.tsx`, `consultas.ts`):** catálogo completo descargado por lotes a IndexedDB con búsqueda 0 ms (nombre, referencia/escáner, categorías, favoritos) y descuento visual de stock por ventas pendientes; todos los clientes paginados sin tope de 1,000 con búsqueda 0 ms por nombre/RNC; **`+ Nuevo` crea cliente sin internet** — la cola FIFO crea el contacto en Supabase antes de subir sus ventas y enlaza el ID real.
+- **Tarea 2 — App local con 5 rutas, PWA y logo offline (`public/pos-sw.js`, `src/app/manifest.ts`, `offline-pos-provider.tsx`, `menu-pos.tsx`, `barra-superior-pos.tsx`, `conexion-offline.ts`):** el Service Worker cachea las 5 pantallas del POS (`/pos`, `/pos/historial`, `/pos/pagos`, `/pos/turnos`, `/pos/devoluciones`), sus JS/CSS y el logo Medoxigas para imprimir sin red; navegación con timeout de 3 s → copia local; `manifest.ts` instala «Medoxigas POS» como app (start `/pos`, standalone, teal `#00b19d`); `navigator.storage.persist()` protege la cola; aviso cuando la sesión vence.
+- **Tarea 3 — Vistas locales de ventas, turnos, pagos y devoluciones (`cache-vistas-offline.ts` + componentes de `historial`, `turnos`, `pagos`, `devoluciones`):** últimas 30 ventas con detalle y ticket en IndexedDB para **ver y reimprimir tickets sin internet**; turno actual suma ventas pendientes en vivo; listados de Pagos y Devoluciones servidos del caché local.
+- **Fix del Orquestador (`src/proxy.ts` + candado en `conexion-offline.test.ts`):** el matcher del proxy redirigía `/manifest.webmanifest` y `/pos-sw.js` a `/login` (la PWA no se instalaba ni el SW registraba); excluidos del middleware y candado que evalúa el matcher real contra rutas públicas/privadas.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (**1,788 tests**), `pnpm build` en verde. Preview del worktree en **http://localhost:3012** (Tailscale `:3012`), build de producción.
+- **Capturas:** `/root/referencias/capturas-terminadas/2026-11-24-pos-offline/` — las 5 rutas del POS en claro/oscuro/móvil (15 PNG).
+
 ## POS Local-First + NCF consecutivo + Checkout simplificado (rama `feat/pos-modo-offline-alegra`, 24-11-2026)
 
 Evolución directa tras pruebas en vivo con Waldy (sin merge a `main`; espera OK de Waldy):
