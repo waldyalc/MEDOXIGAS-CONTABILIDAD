@@ -1,5 +1,12 @@
 # Handoff — Medoxigas Contabilidad
 
+## Contacto: un solo diálogo de alta y POS sin Proveedor (rama `fix/contacto-dialogo-crear-unificado`)
+
+- **Contactos:** «Nuevo contacto» abre `DialogoNuevoContacto` (Cliente/Proveedor, identificación + DGII, Municipio/Provincia, dirección, correo y teléfono) con `tipoInicial="cliente"`; al crear cierra y refresca la lista con `router.refresh()`. La edición de la lista, la ficha y el enlace «Formulario avanzado» (`#nuevo`) siguen con `FormularioContacto`, único lugar del «Límite de crédito».
+- **POS:** `DialogoNuevoContacto` gana `permitirProveedor` (por defecto `true`). Con `false` oculta la fila de toggles (como el «Nuevo contacto» de Alegra POS), bloquea `alternarProveedor`, `guardar("proveedor"|"ambos")` y fuerza el tipo `cliente`. Se aplica a la instancia directa y al `SelectorContacto` de `panel-factura`, y al alta de cliente del diálogo de pagos del POS. Facturas y compras del dashboard no cambian.
+- **Candados:** `src/components/contactos/dialogo-nuevo-contacto.test.tsx` renderiza `SelectorTipoContacto` y falla si con la restricción aparece «Proveedor»; `src/lib/contactos/dialogo-nuevo-contacto.test.ts` fija el alta de Contactos, el formulario completo para editar y las dos vías del POS.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1728) y `pnpm build` en verde. Capturas en `/root/referencias/capturas-terminadas/2026-11-24-contacto-dialogo-unificado/` (Contactos claro/oscuro/móvil, POS directo y desde el selector, y la factura de venta con sus dos toggles).
+
 ## Cierre del orquestador POS — punto de partida del orquestador nuevo (23-11-2026, MSG-55)
 
 ### Qué quedó en `main`

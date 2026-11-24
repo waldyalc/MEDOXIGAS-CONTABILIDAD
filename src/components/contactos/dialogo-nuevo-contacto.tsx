@@ -47,6 +47,8 @@ interface Props {
   tipoInicial: "cliente" | "proveedor";
   nombreInicial?: string;
   onCreado: (contacto: ContactoCreado) => void;
+  /** En el POS solo se crea Cliente: oculta el toggle Proveedor y bloquea proveedor/ambos. */
+  permitirProveedor?: boolean;
 }
 
 const OPCIONES_IDENTIFICACION = TIPOS_IDENTIFICACION.map((tipo) => ({
@@ -54,9 +56,60 @@ const OPCIONES_IDENTIFICACION = TIPOS_IDENTIFICACION.map((tipo) => ({
   label: tipo.etiqueta,
 }));
 
-export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombreInicial = "", onCreado }: Props) {
-  const [esCliente, setEsCliente] = useState(tipoInicial === "cliente");
-  const [esProveedor, setEsProveedor] = useState(tipoInicial === "proveedor");
+export function SelectorTipoContacto({
+  permitirProveedor,
+  esCliente,
+  esProveedor,
+  onCliente,
+  onProveedor,
+}: {
+  permitirProveedor: boolean;
+  esCliente: boolean;
+  esProveedor: boolean;
+  onCliente: () => void;
+  onProveedor: () => void;
+}) {
+  // En el POS solo se crea Cliente: sin la fila de toggles, como el «Nuevo contacto» de Alegra POS.
+  if (!permitirProveedor) return null;
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Button
+        type="button"
+        variant={esCliente ? "default" : "outline"}
+        aria-pressed={esCliente}
+        onClick={onCliente}
+        className="justify-center gap-2"
+      >
+        {esCliente ? <Check /> : null}
+        Cliente
+      </Button>
+      <Button
+        type="button"
+        variant={esProveedor ? "default" : "outline"}
+        aria-pressed={esProveedor}
+        onClick={onProveedor}
+        className="justify-center gap-2"
+      >
+        {esProveedor ? <Check /> : null}
+        Proveedor
+      </Button>
+    </div>
+  );
+}
+
+export function DialogoNuevoContacto({
+  abierto,
+  onOpenChange,
+  tipoInicial,
+  nombreInicial = "",
+  onCreado,
+  permitirProveedor = true,
+}: Props) {
+  const clienteInicial = permitirProveedor ? tipoInicial === "cliente" : true;
+  const proveedorInicial = permitirProveedor && tipoInicial === "proveedor";
+  const [esCliente, setEsCliente] = useState(clienteInicial);
+  const [esProveedor, setEsProveedor] = useState(proveedorInicial);
   const [tipoIdentificacion, setTipoIdentificacion] = useState<TipoIdentificacion>("rnc");
   const [numero, setNumero] = useState("");
   const [nombre, setNombre] = useState("");
@@ -75,8 +128,8 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
   const valores = useRef({ nombre: "" });
 
   const hayCambios =
-    esCliente !== (tipoInicial === "cliente") ||
-    esProveedor !== (tipoInicial === "proveedor") ||
+    esCliente !== clienteInicial ||
+    esProveedor !== proveedorInicial ||
     tipoIdentificacion !== "rnc" ||
     numero.trim() !== "" ||
     normalizarNombre(nombre) !== normalizarNombre(nombreInicial) ||
@@ -91,8 +144,8 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
 
   useEffect(() => {
     if (abierto && !estabaAbierto.current) {
-      setEsCliente(tipoInicial === "cliente");
-      setEsProveedor(tipoInicial === "proveedor");
+      setEsCliente(clienteInicial);
+      setEsProveedor(proveedorInicial);
       setTipoIdentificacion("rnc");
       setNumero("");
       setNombre(nombreInicial);
@@ -110,7 +163,7 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
       limpiar();
     }
     estabaAbierto.current = abierto;
-  }, [abierto, nombreInicial, tipoInicial, limpiar]);
+  }, [abierto, nombreInicial, clienteInicial, proveedorInicial, limpiar]);
 
   function completarConDgii(datos: DatosContribuyenteDgii): string {
     const { campos, mensaje: texto } = completarConDatosDgii(datos, valores.current, autoRellenado.current);
@@ -138,6 +191,7 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
   }
 
   function alternarProveedor() {
+    if (!permitirProveedor) return;
     if (esProveedor && !esCliente) return;
     setDuplicado(null);
     setEsProveedor((actual) => !actual);
@@ -156,6 +210,7 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
   }
 
   function guardar(tipo: "cliente" | "proveedor" | "ambos", permitirDuplicado: boolean) {
+    if (!permitirProveedor && tipo !== "cliente") return;
     if (enVuelo.current) return;
     enVuelo.current = true;
 
@@ -198,6 +253,11 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
     });
   }
 
+  function tipoSeleccionado(): "cliente" | "proveedor" | "ambos" | null {
+    if (!permitirProveedor) return "cliente";
+    return tipoContactoDesde(esCliente, esProveedor);
+  }
+
   function enviar(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     if (enVuelo.current) return;
@@ -215,7 +275,7 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
       return;
     }
 
-    const tipo = tipoContactoDesde(esCliente, esProveedor);
+    const tipo = tipoSeleccionado();
     if (!tipo) {
       setError("Marca Cliente o Proveedor.");
       return;
@@ -225,7 +285,7 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
   }
 
   function crearDeTodasFormas() {
-    const tipo = tipoContactoDesde(esCliente, esProveedor);
+    const tipo = tipoSeleccionado();
     if (!tipo) return;
     setDuplicado(null);
     guardar(tipo, true);
@@ -260,28 +320,13 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
           </DialogHeader>
 
           <form onSubmit={enviar} className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant={esCliente ? "default" : "outline"}
-                aria-pressed={esCliente}
-                onClick={alternarCliente}
-                className="justify-center gap-2"
-              >
-                {esCliente ? <Check /> : null}
-                Cliente
-              </Button>
-              <Button
-                type="button"
-                variant={esProveedor ? "default" : "outline"}
-                aria-pressed={esProveedor}
-                onClick={alternarProveedor}
-                className="justify-center gap-2"
-              >
-                {esProveedor ? <Check /> : null}
-                Proveedor
-              </Button>
-            </div>
+            <SelectorTipoContacto
+              permitirProveedor={permitirProveedor}
+              esCliente={esCliente}
+              esProveedor={esProveedor}
+              onCliente={alternarCliente}
+              onProveedor={alternarProveedor}
+            />
 
             <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
               <FormField htmlFor="contacto-tipo-identificacion" label="Tipo de identificación" required>

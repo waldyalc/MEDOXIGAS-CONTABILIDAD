@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { AvatarInicial } from "@/components/avatar-inicial";
+import { DialogoNuevoContacto } from "@/components/contactos/dialogo-nuevo-contacto";
 import { FormularioContacto } from "@/components/contactos/formulario-contacto";
 import { Enlace } from "@/components/enlace";
 import { Pencil, Plus } from "@/components/icons";
@@ -85,11 +86,13 @@ export function ContactosCliente({
   readonly puedeEditar: boolean;
 }) {
   const router = useRouter();
+  const [dialogoRapidoAbierto, setDialogoRapidoAbierto] = useState(false);
   const [dialogoAbierto, setDialogoAbierto] = useState(false);
   const [contactoEditando, setContactoEditando] = useState<Contacto | null>(null);
 
   useEffect(() => {
     if (window.location.hash === "#nuevo") {
+      setDialogoRapidoAbierto(false);
       setContactoEditando(null);
       setDialogoAbierto(true);
     }
@@ -97,10 +100,12 @@ export function ContactosCliente({
 
   function abrirNuevo() {
     setContactoEditando(null);
-    setDialogoAbierto(true);
+    setDialogoAbierto(false);
+    setDialogoRapidoAbierto(true);
   }
 
   function abrirEditar(contacto: Contacto) {
+    setDialogoRapidoAbierto(false);
     setContactoEditando(contacto);
     setDialogoAbierto(true);
   }
@@ -113,6 +118,11 @@ export function ContactosCliente({
   function cerrarTrasGuardar() {
     setDialogoAbierto(false);
     setContactoEditando(null);
+    router.refresh();
+  }
+
+  function cerrarDialogoRapido() {
+    setDialogoRapidoAbierto(false);
     router.refresh();
   }
 
@@ -219,6 +229,13 @@ export function ContactosCliente({
           />
         </DialogContent>
       </Dialog>
+
+      <DialogoNuevoContacto
+        abierto={dialogoRapidoAbierto}
+        onOpenChange={setDialogoRapidoAbierto}
+        tipoInicial="cliente"
+        onCreado={cerrarDialogoRapido}
+      />
     </ContenedorLista>
   );
 }
