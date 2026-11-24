@@ -101,6 +101,39 @@ describe("una sola Tarjeta y banco destino al transferir", () => {
 });
 
 /**
+ * Decisión de Waldy (24-11-2026): en «Pagar factura» los tres métodos
+ * principales se leen de izquierda a derecha Tarjeta, Transferencia y Efectivo.
+ * La fila de «Otros métodos» (Combinado y Crédito) no cambia.
+ */
+describe("orden de los métodos principales en Pagar factura", () => {
+  const checkout = readFileSync(CHECKOUT, "utf8");
+  const inicio = checkout.indexOf('<div className="grid grid-cols-3 gap-2">');
+  const fin = checkout.indexOf("Otros métodos");
+
+  test("Tarjeta, Transferencia y Efectivo en ese orden de izquierda a derecha", () => {
+    expect(inicio, "No se encontró la fila principal de métodos en «Pagar factura»").toBeGreaterThanOrEqual(0);
+    expect(fin, "No se encontró la separación «Otros métodos» en «Pagar factura»").toBeGreaterThan(inicio);
+
+    const fila = checkout.slice(inicio, fin);
+    const tarjeta = fila.indexOf('titulo="Tarjeta"');
+    const transferencia = fila.indexOf('titulo="Transferencia"');
+    const efectivo = fila.indexOf('titulo="Efectivo"');
+
+    expect(tarjeta, "La fila principal empieza con «Tarjeta» (decisión de Waldy, 24-11-2026)").toBeGreaterThanOrEqual(
+      0,
+    );
+    expect(
+      transferencia,
+      "«Transferencia» va en el centro, después de «Tarjeta» (decisión de Waldy, 24-11-2026)",
+    ).toBeGreaterThan(tarjeta);
+    expect(
+      efectivo,
+      "«Efectivo» va a la derecha, después de «Transferencia» (decisión de Waldy, 24-11-2026)",
+    ).toBeGreaterThan(transferencia);
+  });
+});
+
+/**
  * Decisión de Waldy (24-11-2026): ventas de contado normales van local-first
  * puro (Opción A) con NCF consecutivo local y abren el mismo modal
  * «¡Venta completada!» (sin el preview «Venta guardada en este dispositivo»).

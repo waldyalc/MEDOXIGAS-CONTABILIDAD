@@ -775,12 +775,6 @@ export function CheckoutPos({
                 <>
                   <div className="grid grid-cols-3 gap-2">
                     <Tile
-                      icono={<Banknote aria-hidden="true" />}
-                      titulo="Efectivo"
-                      activo={false}
-                      onClick={() => elegirMetodo("efectivo")}
-                    />
-                    <Tile
                       icono={<CreditCard aria-hidden="true" />}
                       titulo="Tarjeta"
                       activo={false}
@@ -793,6 +787,12 @@ export function CheckoutPos({
                       activo={false}
                       motivo={motivoTransferencia}
                       onClick={() => elegirMetodo("transferencia")}
+                    />
+                    <Tile
+                      icono={<Banknote aria-hidden="true" />}
+                      titulo="Efectivo"
+                      activo={false}
+                      onClick={() => elegirMetodo("efectivo")}
                     />
                   </div>
                   <div className="flex items-center gap-3">
