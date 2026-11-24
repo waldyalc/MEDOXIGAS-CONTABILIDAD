@@ -36,6 +36,15 @@ export function registrarSondeo(salud: SaludConexion, respondio: boolean): Salud
   return { fallos, conectado: fallos < FALLOS_PARA_OFFLINE };
 }
 
+/**
+ * El navegador ya sabe que no hay red (`navigator.onLine === false` o evento
+ * `offline`): el POS pasa a «Sin conexión» al instante, sin esperar los tres
+ * sondeos que solo existen para dudar cuando el navegador cree tener red.
+ */
+export function registrarOfflineInmediato(): SaludConexion {
+  return { fallos: FALLOS_PARA_OFFLINE, conectado: false };
+}
+
 /** Un fallo aislado no toca el estado visible; uno confirmado sí. */
 export function estadoTrasSondeo(estado: EstadoConexion, conectado: boolean): EstadoConexion {
   if (estado === "sincronizando") return estado;
@@ -47,11 +56,13 @@ export function textoEstadoOffline({
   porSubir,
   fallidas,
   preparado,
+  error,
 }: {
   estado: EstadoConexion;
   porSubir: number;
   fallidas: number;
   preparado: boolean;
+  error?: string | null;
 }): string {
   if (fallidas > 0) {
     const etiqueta = fallidas === 1 ? "venta con problema" : "ventas con problema";
@@ -59,6 +70,49 @@ export function textoEstadoOffline({
   }
   if (estado === "sincronizando") return `Subiendo ventas… ${porSubir} por subir`;
   if (estado === "offline") return `Sin conexión — ${porSubir} ${porSubir === 1 ? "venta" : "ventas"} por subir`;
-  if (!preparado) return "Preparando la cola local…";
+  if (!preparado) {
+    // Bug #3: si IndexedDB falló, el pie no puede quedarse en «Preparando…».
+    return error ? "Error de almacenamiento local — sin modo offline" : "Preparando la cola local…";
+  }
   return `${porSubir} ${porSubir === 1 ? "operación" : "operaciones"} por subir · En línea`;
+}
+
+export type EstadoPopoverSincronizacion = "sincronizando" | "pendiente" | "al-dia";
+
+export interface TextoPopoverSincronizacion {
+  estado: EstadoPopoverSincronizacion;
+  titulo: string;
+  descripcion: string;
+}
+
+const TEXTOS_POPOVER_SINCRONIZACION: Record<EstadoPopoverSincronizacion, { titulo: string; descripcion: string }> = {
+  sincronizando: {
+    titulo: "Sincronizando",
+    descripcion: "Estamos guardando las ventas que hiciste sin conexión, en un momento estará todo listo.",
+  },
+  pendiente: {
+    titulo: "Sincronización pendiente",
+    descripcion:
+      "Te recomendamos revisar las ventas pendientes por sincronizar para evitar la pérdida de su información.",
+  },
+  "al-dia": {
+    titulo: "Sincronización al día",
+    descripcion: "Todo está disponible para que registres tus ventas",
+  },
+};
+
+/** Título y descripción del popover de sincronización, copiados de Alegra POS. */
+export function estadoPopoverSincronizacion({
+  estado,
+  porSubir,
+  fallidas,
+}: {
+  estado: EstadoConexion;
+  porSubir: number;
+  fallidas: number;
+}): TextoPopoverSincronizacion {
+  let clave: EstadoPopoverSincronizacion = "al-dia";
+  if (estado === "sincronizando") clave = "sincronizando";
+  else if (porSubir > 0 || fallidas > 0) clave = "pendiente";
+  return { estado: clave, ...TEXTOS_POPOVER_SINCRONIZACION[clave] };
 }

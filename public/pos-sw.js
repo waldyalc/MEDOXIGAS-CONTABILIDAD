@@ -102,6 +102,17 @@ self.addEventListener("fetch", (evento) => {
       try {
         const respuesta = await fetch(solicitud);
         if (recurso && respuesta.ok && cache) await cache.put(solicitud, respuesta.clone());
+        // Cada navegación buena a /pos refresca el HTML cacheado: así el turno
+        // y la terminal guardados coinciden con los de esta sesión.
+        if (
+          documento &&
+          respuesta.ok &&
+          !respuesta.redirected &&
+          cache &&
+          respuesta.headers.get("content-type")?.includes("text/html")
+        ) {
+          await cache.put(new URL("/pos", self.location.origin), respuesta.clone());
+        }
         if (documento && (respuesta.redirected || !respuesta.ok)) await limpiar();
         return respuesta;
       } catch (causa) {

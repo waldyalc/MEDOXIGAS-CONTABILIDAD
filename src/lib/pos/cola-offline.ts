@@ -82,12 +82,23 @@ export function programarReintentoOffline(operacion: OperacionOffline): Operacio
   return { ...operacion, estado: "pendiente", error: null, proximoIntento: 0 };
 }
 
-/** Aviso del cierre cuando quedan ventas que el servidor rechazó: no bloquean, pero no subirán. */
+/** Aviso histórico de fallidas; con el cierre estricto ya no se puede cerrar con ellas. */
 export function avisoCierreOffline(fallidas: number): string | null {
   if (fallidas <= 0) return null;
   return fallidas === 1
     ? "1 venta con problema no subirá. Queda guardada en este dispositivo."
     : `${fallidas} ventas con problema no subirán. Quedan guardadas en este dispositivo.`;
+}
+
+export const MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR = "Debes sincronizar tu información antes de poder cerrar turno";
+export const MENSAJE_SIN_CONEXION_CIERRE = "Sin conexión a internet. No puedes cerrar el turno sin conexión.";
+
+/** Bloqueo local del cierre: no es un fallo de red y el diálogo debe mostrar su mensaje tal cual. */
+export class ErrorImpedimentoCierreOffline extends Error {
+  constructor(mensaje: string) {
+    super(mensaje);
+    this.name = "ErrorImpedimentoCierreOffline";
+  }
 }
 
 export interface RevisionCierreOffline {
@@ -98,8 +109,9 @@ export interface RevisionCierreOffline {
 }
 
 /**
- * El cierre se bloquea solo mientras haya ventas por subir; una venta rechazada
- * (fallida) no impide cerrar el turno, pero el cajero debe ver el aviso.
+ * Cierre estricto como Alegra: no se cierra el turno con ventas pendientes ni
+ * con ventas rechazadas, y tampoco sin conexión. Primero se sube o se resuelve
+ * cada venta y después se cierra con la caja cuadrada.
  */
 export function revisionCierreOffline(
   operaciones: Pick<OperacionOffline, "estado">[],
@@ -108,23 +120,9 @@ export function revisionCierreOffline(
   const porSubir = operaciones.filter((operacion) => operacion.estado === "pendiente").length;
   const fallidas = operaciones.filter((operacion) => operacion.estado === "fallida").length;
   const aviso = avisoCierreOffline(fallidas);
-  if (!conectado) {
-    return {
-      impedimento:
-        porSubir > 0
-          ? `Conéctate para subir ${porSubir} ventas antes de cerrar.`
-          : "Conéctate a internet para cerrar el turno.",
-      aviso,
-      porSubir,
-      fallidas,
-    };
-  }
-  return {
-    impedimento: porSubir > 0 ? `Conéctate para subir ${porSubir} ventas antes de cerrar.` : null,
-    aviso,
-    porSubir,
-    fallidas,
-  };
+  const impedimento =
+    porSubir > 0 || fallidas > 0 ? MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR : conectado ? null : MENSAJE_SIN_CONEXION_CIERRE;
+  return { impedimento, aviso, porSubir, fallidas };
 }
 
 type PasoColaOffline = "seguir" | "detener";

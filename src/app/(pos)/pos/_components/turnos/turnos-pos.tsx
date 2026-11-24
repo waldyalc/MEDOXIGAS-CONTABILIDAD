@@ -30,7 +30,6 @@ import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoFechaHora } from "@/lib/formato";
 import { type ParametrosLista, type ResumenPagina, urlLista } from "@/lib/listas/parametros";
 import { compararMontos } from "@/lib/pos/calculo";
-import { avisoCierreOffline } from "@/lib/pos/cola-offline";
 import { armarTicketMovimiento } from "@/lib/pos/impresion";
 import { type CuentasTarjetaCierre, prepararCierre } from "@/lib/pos/impresion-cierre";
 import type {
@@ -43,7 +42,6 @@ import type {
 } from "@/lib/pos/tipos";
 
 import { resumenTurnoPOS, ticketCierrePOS } from "../acciones-pos";
-import { useOfflinePOS } from "../offline-pos-provider";
 import { DialogoMovimiento, type PrellenadoMovimiento } from "../pagos/dialogo-movimiento";
 import type { CuentaPOS } from "../servidor";
 import { DialogoAbrirTurno } from "./dialogo-abrir-turno";
@@ -88,7 +86,6 @@ export function TurnosPos({
   error?: string | null;
 }) {
   const router = useRouter();
-  const offline = useOfflinePOS();
   const [vista, setVista] = useState<ResumenTurnoVista | null>(vistaInicial);
   const [seleccionado, setSeleccionado] = useState<string>(() =>
     vistaInicial ? SELECCION_ACTUAL : (cierres[0]?.id ?? ""),
@@ -447,13 +444,6 @@ export function TurnosPos({
                 </span>
               </div>
             </div>
-          ) : null}
-          {offline.fallidas > 0 ? (
-            <Alert className="border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10">
-              <AlertDescription className="text-amber-900 dark:text-amber-200">
-                {avisoCierreOffline(offline.fallidas)}
-              </AlertDescription>
-            </Alert>
           ) : null}
           <DialogFooter>
             <Button

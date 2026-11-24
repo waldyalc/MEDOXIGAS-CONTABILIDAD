@@ -15,8 +15,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { almacenColaOffline, conBloqueoOffline, siguienteSecuenciaOffline } from "@/lib/pos/almacen-offline";
 import {
+  almacenColaOffline,
+  conBloqueoOffline,
+  leerOffline,
+  siguienteSecuenciaOffline,
+} from "@/lib/pos/almacen-offline";
+import {
+  ErrorImpedimentoCierreOffline,
+  MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR,
   nuevaOperacionOffline,
   type OperacionOffline,
   programarReintentoOffline,
@@ -30,6 +37,7 @@ import {
   type EstadoConexion,
   estadoTrasSondeo,
   RUTA_SONDEO,
+  registrarOfflineInmediato,
   registrarSondeo,
   SALUD_CONEXION_INICIAL,
   type SaludConexion,
@@ -37,6 +45,24 @@ import {
 } from "@/lib/pos/conexion-offline";
 import { transportarOperacionOffline } from "@/lib/pos/transporte-offline";
 import { createClient } from "@/lib/supabase/client";
+
+type EstadoCachePOS = "al-dia" | "sincronizando" | "pendiente" | "error";
+
+/**
+ * Las cachés locales de productos y clientes se guardan en IndexedDB por
+ * ámbito (`usuario/terminal`). Basta con que exista una entrada del ámbito para
+ * que el popover de sincronización pinte la fila como al día sin conexión.
+ */
+async function hayCacheDelAmbito(store: "catalogo" | "contactos", ambito: string): Promise<boolean> {
+  try {
+    for (const clave of [`${ambito}/${store}`, ambito]) {
+      if ((await leerOffline<unknown>(store, clave)) !== undefined) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 interface ContextoOffline {
   ambito: string;
@@ -47,6 +73,12 @@ interface ContextoOffline {
   operaciones: OperacionOffline[];
   error: string | null;
   preparado: boolean;
+  estadoProductos: EstadoCachePOS;
+  estadoClientes: EstadoCachePOS;
+  marcarCacheProductos: (estado: EstadoCachePOS) => void;
+  marcarCacheClientes: (estado: EstadoCachePOS) => void;
+  tokenRecargaCache: number;
+  recargarManual: () => Promise<void>;
   abrirPanel: () => void;
   encolar: (tipo: OperacionOffline["tipo"], payload: unknown, snapshot: unknown) => Promise<OperacionOffline>;
   reintentarOperacion: (uuid: string) => Promise<void>;
@@ -76,9 +108,25 @@ export function OfflinePosProvider({
   const [panel, setPanel] = useState(false);
   const [descartando, setDescartando] = useState<OperacionOffline | null>(null);
   const [recargaLista, setRecargaLista] = useState(false);
+  const [estadoProductos, setEstadoProductos] = useState<EstadoCachePOS>("al-dia");
+  const [estadoClientes, setEstadoClientes] = useState<EstadoCachePOS>("al-dia");
+  const [tokenRecargaCache, setTokenRecargaCache] = useState(0);
   const salud = useRef<SaludConexion>(SALUD_CONEXION_INICIAL);
   const ocupado = useRef(false);
   const canal = useRef<BroadcastChannel | null>(null);
+  const turnoVigente = useRef<string | null>(turnoId);
+  const turnoCacheado = useRef<string | null>(null);
+  const turnoSolicitado = useRef<string | null>(null);
+  const preparandoWorker = useRef(false);
+  const prepararWorkerRef = useRef<(() => Promise<void>) | null>(null);
+  const sondearRef = useRef<(() => Promise<void>) | null>(null);
+
+  useEffect(() => {
+    turnoVigente.current = turnoId;
+  }, [turnoId]);
+
+  const marcarCacheProductos = useCallback((nuevo: EstadoCachePOS) => setEstadoProductos(nuevo), []);
+  const marcarCacheClientes = useCallback((nuevo: EstadoCachePOS) => setEstadoClientes(nuevo), []);
 
   const refrescar = useCallback(async () => {
     const filas = await almacenColaOffline.listar(ambito);
@@ -120,10 +168,20 @@ export function OfflinePosProvider({
     let ultimoSondeo = 0;
     const controlador = new AbortController();
 
+    function aplicarOfflineInmediato() {
+      salud.current = registrarOfflineInmediato();
+      setEstado((actual) => estadoTrasSondeo(actual, false));
+    }
+
     function aplicarSondeo(respondio: boolean): boolean {
+      const estabaConectado = salud.current.conectado;
       salud.current = registrarSondeo(salud.current, respondio);
       const conectado = salud.current.conectado;
       setEstado((actual) => estadoTrasSondeo(actual, conectado));
+      // Si vuelve la red y el worker quedó con el HTML de otro turno, se re-cachea.
+      if (conectado && !estabaConectado && turnoCacheado.current !== turnoVigente.current) {
+        void prepararWorkerRef.current?.();
+      }
       return conectado;
     }
 
@@ -149,13 +207,27 @@ export function OfflinePosProvider({
       if (!aplicarSondeo(respondio)) return;
       await sincronizar();
     }
+
+    function alVolverOnline() {
+      if (turnoCacheado.current !== turnoVigente.current) void prepararWorkerRef.current?.();
+      void sondear();
+    }
+
+    function alPerderConexion() {
+      aplicarOfflineInmediato();
+      void sondear();
+    }
+
+    // El navegador ya sabe que está sin red: «Sin conexión» sale de inmediato.
+    if (!navigator.onLine) aplicarOfflineInmediato();
+    sondearRef.current = sondear;
     void refrescar().catch(() => {
       setError("No se puede guardar en este navegador. No cobres offline hasta habilitar IndexedDB.");
     });
     void sondear();
     const intervalo = window.setInterval(() => void sondear(), 15_000);
-    window.addEventListener("online", sondear);
-    window.addEventListener("offline", sondear);
+    window.addEventListener("online", alVolverOnline);
+    window.addEventListener("offline", alPerderConexion);
     // Al volver a la pestaña se sondea de inmediato: si el navegador la frenó
     // en segundo plano, el pie no se queda pegado en «Sin conexión».
     const alCambiarVisibilidad = () => {
@@ -169,13 +241,34 @@ export function OfflinePosProvider({
       vigente = false;
       controlador.abort();
       window.clearInterval(intervalo);
-      window.removeEventListener("online", sondear);
-      window.removeEventListener("offline", sondear);
+      window.removeEventListener("online", alVolverOnline);
+      window.removeEventListener("offline", alPerderConexion);
       document.removeEventListener("visibilitychange", alCambiarVisibilidad);
       broadcast.close();
       canal.current = null;
+      sondearRef.current = null;
     };
   }, [ambito, refrescar, sincronizar]);
+
+  // Estado inicial de las cachés de productos y clientes: sin conexión se
+  // revisa IndexedDB; en línea quedan «al día» hasta que la descarga marque otra cosa.
+  useEffect(() => {
+    let vigente = true;
+    async function revisarCache() {
+      if (navigator.onLine) return;
+      const [productos, clientes] = await Promise.all([
+        hayCacheDelAmbito("catalogo", ambito),
+        hayCacheDelAmbito("contactos", ambito),
+      ]);
+      if (!vigente) return;
+      setEstadoProductos(productos ? "al-dia" : "pendiente");
+      setEstadoClientes(clientes ? "al-dia" : "pendiente");
+    }
+    void revisarCache();
+    return () => {
+      vigente = false;
+    };
+  }, [ambito]);
 
   const pendientes = operaciones.filter((operacion) => operacion.estado !== "sincronizada").length;
   const porSubir = operaciones.filter((operacion) => operacion.estado === "pendiente").length;
@@ -197,6 +290,8 @@ export function OfflinePosProvider({
     function recibir(evento: MessageEvent) {
       if (!vigente || evento.data?.ambito !== ambito) return;
       if (evento.data.tipo === "POS_CACHE_LISTO") {
+        // El worker acaba de cachear /pos: queda atado al turno que se le pidió.
+        turnoCacheado.current = turnoSolicitado.current;
         setRecargaLista(true);
         setAvisoRecarga(null);
       }
@@ -207,13 +302,18 @@ export function OfflinePosProvider({
     }
     navigator.serviceWorker.addEventListener("message", recibir);
     async function prepararWorker() {
-      if (!navigator.onLine) {
-        navigator.serviceWorker.controller?.postMessage({ tipo: "COMPROBAR", ambito });
-        return;
-      }
-      await navigator.serviceWorker.register("/pos-sw.js", { scope: "/pos" });
-      const registro = await navigator.serviceWorker.ready;
-      if (vigente)
+      if (preparandoWorker.current) return;
+      preparandoWorker.current = true;
+      try {
+        if (!navigator.onLine) {
+          turnoSolicitado.current = null;
+          navigator.serviceWorker.controller?.postMessage({ tipo: "COMPROBAR", ambito });
+          return;
+        }
+        await navigator.serviceWorker.register("/pos-sw.js", { scope: "/pos" });
+        const registro = await navigator.serviceWorker.ready;
+        if (!vigente) return;
+        turnoSolicitado.current = turnoId;
         registro.active?.postMessage({
           tipo: "PREPARAR",
           ambito,
@@ -222,7 +322,11 @@ export function OfflinePosProvider({
             ...Array.from(document.scripts, (script) => script.src),
           ],
         });
+      } finally {
+        preparandoWorker.current = false;
+      }
     }
+    prepararWorkerRef.current = prepararWorker;
     void prepararWorker().catch(() =>
       setAvisoRecarga("No se pudo preparar la recarga offline. Mantén esta pestaña abierta."),
     );
@@ -231,10 +335,13 @@ export function OfflinePosProvider({
     });
     return () => {
       vigente = false;
+      prepararWorkerRef.current = null;
       navigator.serviceWorker.removeEventListener("message", recibir);
       data.subscription.unsubscribe();
     };
-  }, [ambito]);
+    // turnoId: al abrir o cambiar de turno sin recargar, /pos se vuelve a cachear
+    // con el turno nuevo para que la recarga offline no restaure uno viejo.
+  }, [ambito, turnoId]);
 
   async function encolar(tipo: OperacionOffline["tipo"], payload: unknown, snapshot: unknown) {
     if (!turnoId || !preparado) throw new Error("Prepara el POS con un turno abierto antes de cobrar offline.");
@@ -262,7 +369,7 @@ export function OfflinePosProvider({
   async function conCierreSeguro<T>(accion: () => Promise<T>): Promise<T> {
     return conBloqueoOffline(ambito, async () => {
       const revision = await comprobarCierre();
-      if (revision.impedimento) throw new Error(revision.impedimento);
+      if (revision.impedimento) throw new ErrorImpedimentoCierreOffline(revision.impedimento);
       return accion();
     });
   }
@@ -318,6 +425,22 @@ export function OfflinePosProvider({
     }
   }
 
+  /**
+   * Botón «Sincronizar ahora» del popover: reintenta la cola (incluidas las
+   * fallidas), vuelve a sondear la conexión y pide refrescar las cachés de
+   * productos y clientes subiendo `tokenRecargaCache`.
+   */
+  async function recargarManual(): Promise<void> {
+    setTokenRecargaCache((token) => token + 1);
+    if (!navigator.onLine) {
+      salud.current = registrarOfflineInmediato();
+      setEstado((actual) => estadoTrasSondeo(actual, false));
+      return;
+    }
+    await reintentar();
+    await sondearRef.current?.();
+  }
+
   return (
     <Contexto.Provider
       value={{
@@ -329,6 +452,12 @@ export function OfflinePosProvider({
         operaciones,
         error,
         preparado,
+        estadoProductos,
+        estadoClientes,
+        marcarCacheProductos,
+        marcarCacheClientes,
+        tokenRecargaCache,
+        recargarManual,
         abrirPanel: () => setPanel(true),
         encolar,
         reintentarOperacion,
@@ -347,9 +476,9 @@ export function OfflinePosProvider({
             </DialogDescription>
           </DialogHeader>
 
-          {porSubir > 0 ? (
+          {porSubir > 0 || fallidas > 0 ? (
             <p className="text-destructive text-sm font-medium">
-              {`Conéctate para subir ${porSubir} ventas antes de cerrar el turno.`}
+              {`${MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR}. Reintenta o descarta las ventas con problema y sube las pendientes.`}
             </p>
           ) : null}
 
@@ -363,7 +492,7 @@ export function OfflinePosProvider({
                 </Badge>
               </div>
               <p className="text-pos-texto-suave text-xs">
-                El servidor rechazó estas ventas. Puedes reintentarlas o descartarlas; no bloquean el cierre del turno.
+                El servidor rechazó estas ventas. Debes reintentarlas o descartarlas antes de cerrar el turno.
               </p>
               <ul className="flex flex-col gap-2">
                 {operaciones
@@ -534,8 +663,8 @@ export function useOfflinePOS() {
 }
 
 export function EstadoOfflinePOS() {
-  const { estado, porSubir, fallidas, preparado, abrirPanel } = useOfflinePOS();
-  const texto = textoEstadoOffline({ estado, porSubir, fallidas, preparado });
+  const { estado, porSubir, fallidas, preparado, error, abrirPanel } = useOfflinePOS();
+  const texto = textoEstadoOffline({ estado, porSubir, fallidas, preparado, error });
   return (
     <button
       type="button"
