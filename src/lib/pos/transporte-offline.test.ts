@@ -6,15 +6,27 @@ import { TIMEOUT_SINCRONIZACION_MS, transportarOperacionOffline } from "./transp
 const rpc = vi.fn();
 const refreshSession = vi.fn();
 
+const contactosOffline = vi.hoisted(() => ({
+  sincronizar: vi.fn(),
+  resolver: vi.fn(),
+}));
+
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({ rpc, auth: { refreshSession } }),
+}));
+
+vi.mock("./contactos-offline", () => ({
+  sincronizarContactosPendientesOffline: contactosOffline.sincronizar,
+  resolverContactoIdOffline: contactosOffline.resolver,
 }));
 
 const TERMINAL = "11111111-1111-4111-8111-111111111111";
 const PRODUCTO = "22222222-2222-4222-8222-222222222222";
 const TURNO = "88888888-8888-4888-8888-888888888888";
+const CLIENTE_TEMPORAL = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+const CLIENTE_SERVIDOR = "99999999-9999-4999-8999-999999999999";
 
-function venta(secuencia = 1) {
+function venta(secuencia = 1, contactoId: string | null = null) {
   return nuevaOperacionOffline({
     ambito: `usuario/${TERMINAL}`,
     tipo: "venta",
@@ -23,7 +35,7 @@ function venta(secuencia = 1) {
     payload: {
       terminal_id: TERMINAL,
       contacto_defecto_id: null,
-      contacto_id: null,
+      contacto_id: contactoId,
       lista_precio_id: null,
       numeracion_id: null,
       vendedor_id: null,
@@ -64,6 +76,34 @@ describe("transporte offline con pos_sincronizar_operacion", () => {
   beforeEach(() => {
     rpc.mockReset();
     refreshSession.mockReset();
+    contactosOffline.sincronizar.mockReset().mockResolvedValue({ ok: true, sincronizados: 0 });
+    contactosOffline.resolver
+      .mockReset()
+      .mockImplementation(async (_ambito: string, id: string) => ({ estado: "original", id }));
+  });
+
+  it("espera sin marcar fallida cuando el cliente nuevo todavía no subió", async () => {
+    contactosOffline.resolver.mockResolvedValueOnce({ estado: "pendiente" });
+    const resultado = await transportarOperacionOffline(venta(1, CLIENTE_TEMPORAL), TERMINAL);
+
+    expect(resultado).toMatchObject({ ok: false, transitorio: true });
+    expect(resultado.ok ? "" : resultado.error).toContain("Esperando sincronizar el cliente nuevo");
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("reescribe el contacto temporal por el UUID del servidor y conserva el client_uuid", async () => {
+    contactosOffline.resolver.mockResolvedValueOnce({ estado: "resuelto", id: CLIENTE_SERVIDOR });
+    rpc.mockResolvedValueOnce(VENTA_CONFIRMADA);
+    const operacion = venta(1, CLIENTE_TEMPORAL);
+
+    const resultado = await transportarOperacionOffline(operacion, TERMINAL);
+
+    expect(resultado.ok).toBe(true);
+    expect(contactosOffline.sincronizar).toHaveBeenCalledWith(operacion.ambito);
+    expect(contactosOffline.resolver).toHaveBeenCalledWith(operacion.ambito, CLIENTE_TEMPORAL);
+    expect(rpc.mock.calls[0]?.[1]).toMatchObject({
+      p: { client_uuid: operacion.uuid, payload: { contacto_id: CLIENTE_SERVIDOR } },
+    });
   });
 
   it("envía el UUID y el payload de la RPC de venta en una sola llamada directa", async () => {
