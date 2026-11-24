@@ -263,9 +263,7 @@ export function VenderPos({
               (!categoria || producto.categoria_id === categoria) &&
               (!texto || `${producto.nombre} ${producto.referencia ?? ""}`.toLocaleLowerCase("es").includes(texto)),
           );
-          const precios: Record<string, string> = {};
-          for (const producto of guardado.productos) precios[producto.producto_id] = producto.precio;
-          carritoRef.current.aplicarPreciosDeLista(precios);
+          carritoRef.current.aplicarPreciosDeLista(guardado.productos);
           setCatalogo(datos);
           setHayMas(false);
           setErrorCatalogo(null);
@@ -298,9 +296,7 @@ export function VenderPos({
         setErrorCatalogo(null);
 
         if (datos.length > 0) {
-          const precios: Record<string, string> = {};
-          for (const producto of datos) precios[producto.producto_id] = producto.precio;
-          carritoRef.current.aplicarPreciosDeLista(precios);
+          carritoRef.current.aplicarPreciosDeLista(datos);
         }
       } catch {
         if (solicitud.current === numero) {

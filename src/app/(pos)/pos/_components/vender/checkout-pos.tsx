@@ -263,8 +263,8 @@ export function CheckoutPos({
     sinCaja ||
     activa.lineas.length === 0 ||
     (modo !== "credito" && sumaAplicada <= 0) ||
-    excedeOtro ||
-    excedeCombinado ||
+    ((modo === "tarjeta_debito" || modo === "tarjeta_credito" || modo === "transferencia") && excedeOtro) ||
+    (modo === "combinado" && excedeCombinado) ||
     (modo === "combinado" && (filas.length === 0 || filaCombinadaInvalida)) ||
     (modo === "efectivo" && !simpleEfectivo);
 
@@ -327,7 +327,10 @@ export function CheckoutPos({
       descripcion: linea.descripcion,
       cantidad: linea.cantidad,
       unidad_id: linea.unidadId,
-      precio: linea.precio,
+      // Sin precio manual el servidor lo resuelve con `_precio_lista` al
+      // cobrar: el catálogo paginado (o una lista que acaban de cambiar)
+      // nunca cobra un precio viejo.
+      precio: linea.precioManual ? linea.precio : undefined,
       descuento_pct: linea.descuentoPct,
       itbis_tasa: linea.itbisTasa,
       impuesto_id: linea.impuestoId,

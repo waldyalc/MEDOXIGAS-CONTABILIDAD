@@ -90,6 +90,11 @@ export function TurnosPos({
   const router = useRouter();
   const offline = useOfflinePOS();
   const [vista, setVista] = useState<ResumenTurnoVista | null>(vistaInicial);
+  // El servidor manda: tras «Reintentar» o un router.refresh() el resumen
+  // que llega por props reemplaza al inicial, que si no se queda viejo.
+  useEffect(() => {
+    setVista(vistaInicial);
+  }, [vistaInicial]);
   const [seleccionado, setSeleccionado] = useState<string>(() =>
     vistaInicial ? SELECCION_ACTUAL : (cierres[0]?.id ?? ""),
   );
