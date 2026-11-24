@@ -13,7 +13,6 @@ import type { ProductoPOS } from "@/lib/pos/tipos";
 import { BuscadorCatalogoPos } from "./buscador-catalogo-pos";
 import { useImagenesCatalogo } from "./imagenes-catalogo-pos";
 import { TarjetaProductoPos } from "./tarjeta-producto-pos";
-import { TarjetaVentaSimplePos } from "./tarjeta-venta-simple-pos";
 
 const TODAS = "__todas";
 
@@ -41,7 +40,6 @@ export function CatalogoPos({
   onVerMas,
   onAgregar,
   onFavorito,
-  onVentaSimple,
   esFavorito,
   limpiarToken,
 }: {
@@ -68,7 +66,6 @@ export function CatalogoPos({
   onVerMas: () => void;
   onAgregar: (producto: ProductoPOS) => void;
   onFavorito: (producto: ProductoPOS) => void;
-  onVentaSimple: () => void;
   esFavorito: (producto: ProductoPOS) => boolean;
   limpiarToken?: number;
 }) {
@@ -209,7 +206,6 @@ export function CatalogoPos({
 
         {!vacio ? (
           <div className="flex flex-wrap content-start items-start justify-around pt-3">
-            <TarjetaVentaSimplePos onClick={onVentaSimple} />
             {productos.map((producto) => (
               <TarjetaProductoPos
                 key={producto.producto_id}
