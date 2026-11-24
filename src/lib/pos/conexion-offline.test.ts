@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { config as configProxy } from "@/proxy";
+
 import {
   estadoPopoverSincronizacion,
   estadoTrasSondeo,
@@ -208,5 +210,18 @@ describe("estado de conexión del pie del POS", () => {
     expect(manifiesto, "La app instalada debe abrir directo en la caja").toContain('start_url: "/pos"');
     expect(manifiesto, "El color de la PWA es el teal del POS (#00b19d)").toContain("#00b19d");
     expect(manifiesto, "La app instalada se abre sin barra del navegador").toContain('display: "standalone"');
+  });
+
+  it("el manifest, el Service Worker y el logo no pasan por la puerta de login", () => {
+    const patron = new RegExp(`^${configProxy.matcher[0]}$`);
+    for (const ruta of ["/manifest.webmanifest", "/pos-sw.js", RUTA_SONDEO]) {
+      expect(
+        patron.test(ruta),
+        `${ruta} entra al proxy y acaba redirigido a /login: la PWA, el SW o el latido no funcionarían.`,
+      ).toBe(false);
+    }
+    for (const ruta of ["/pos", "/pos/historial", "/dashboard", "/login"]) {
+      expect(patron.test(ruta), `${ruta} quedó fuera del proxy y abriría sin sesión`).toBe(true);
+    }
   });
 });
