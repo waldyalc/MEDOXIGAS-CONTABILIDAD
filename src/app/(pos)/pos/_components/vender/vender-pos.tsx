@@ -34,7 +34,6 @@ import { CatalogoPos } from "./catalogo-pos";
 import { CheckoutPos } from "./checkout-pos";
 import { ConfirmacionVenta } from "./confirmacion-venta";
 import { DialogoCargarCotizacion } from "./dialogo-cargar-cotizacion";
-import { DialogoVentaSimple } from "./dialogo-venta-simple";
 import { PanelFactura } from "./panel-factura";
 import { useFavoritosPOS } from "./use-favoritos-pos";
 
@@ -126,7 +125,6 @@ export function VenderPos({
   const [tokenLimpiar, setTokenLimpiar] = useState(0);
   const [anuncio, setAnuncio] = useState("");
   const [checkoutAbierto, setCheckoutAbierto] = useState(false);
-  const [simpleAbierto, setSimpleAbierto] = useState(false);
   const [cargarCotizacionAbierto, setCargarCotizacionAbierto] = useState(false);
   const [abrirTurnoAbierto, setAbrirTurnoAbierto] = useState(false);
   const [sheetAbierto, setSheetAbierto] = useState(false);
@@ -184,12 +182,7 @@ export function VenderPos({
     !sinCaja &&
     !(estadoConexion === "offline" && errorCatalogo !== null);
   const hayModal =
-    checkoutAbierto ||
-    simpleAbierto ||
-    cargarCotizacionAbierto ||
-    abrirTurnoAbierto ||
-    sheetAbierto ||
-    confirmacionCotizacion !== null;
+    checkoutAbierto || cargarCotizacionAbierto || abrirTurnoAbierto || sheetAbierto || confirmacionCotizacion !== null;
 
   // Los contactos del servidor mandan; lo creado en este dispositivo y aún
   // sin refrescar se conserva.
@@ -535,11 +528,6 @@ export function VenderPos({
       }
       if (hayModal) return;
 
-      if (evento.key === "F4") {
-        evento.preventDefault();
-        if (!carrito.activa.cotizacion) setSimpleAbierto(true);
-      }
-
       if (evento.key === "F8") {
         evento.preventDefault();
         if (puedeCobrar) setCheckoutAbierto(true);
@@ -558,7 +546,7 @@ export function VenderPos({
 
     window.addEventListener("keydown", alPresionar);
     return () => window.removeEventListener("keydown", alPresionar);
-  }, [carrito.activa.cotizacion, hayModal, puedeCobrar]);
+  }, [hayModal, puedeCobrar]);
 
   function onEnter(texto: string): boolean {
     const resaltadoActual = resaltado >= 0 ? catalogoVisible[resaltado] : undefined;
@@ -735,7 +723,6 @@ export function VenderPos({
             onVerMas={() => void cargarCatalogo(false)}
             onAgregar={agregar}
             onFavorito={alternarFavoritoProducto}
-            onVentaSimple={() => setSimpleAbierto(true)}
             esFavorito={esFavorito}
             limpiarToken={tokenLimpiar}
           />
@@ -757,7 +744,6 @@ export function VenderPos({
               puedeEscribir
               sinCaja={sinCaja}
               onCobrar={() => setCheckoutAbierto(true)}
-              onVentaSimple={() => setSimpleAbierto(true)}
               onCargarCotizacion={() => setCargarCotizacionAbierto(true)}
               onGuardarCotizacion={() => void guardarCotizacion()}
               onCancelarVenta={() => inputRef.current?.focus()}
@@ -816,10 +802,6 @@ export function VenderPos({
                   setSheetAbierto(false);
                   setCheckoutAbierto(true);
                 }}
-                onVentaSimple={() => {
-                  setSheetAbierto(false);
-                  setSimpleAbierto(true);
-                }}
                 onCargarCotizacion={() => {
                   setSheetAbierto(false);
                   setCargarCotizacionAbierto(true);
@@ -858,16 +840,6 @@ export function VenderPos({
         plantillaFactura={plantillaFactura}
         plantillaCotizacion={plantillaCotizacion}
         onVerHistorial={verHistorial}
-      />
-
-      <DialogoVentaSimple
-        abierto={simpleAbierto}
-        onCerrar={() => {
-          setSimpleAbierto(false);
-          inputRef.current?.focus();
-        }}
-        impuestos={impuestos}
-        bloqueado={carrito.activa.cotizacion !== null}
       />
 
       <DialogoCargarCotizacion

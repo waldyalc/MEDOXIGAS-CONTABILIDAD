@@ -56,7 +56,6 @@ interface ValorCarrito {
   activa: PestanaVenta;
   hayLineas: boolean;
   agregarProducto: (producto: ProductoPOS) => void;
-  agregarLineaLibre: (entrada: { descripcion: string; monto: Decimal; itbisTasa: Decimal }) => void;
   actualizarLinea: (lineaId: string, cambios: Partial<LineaCarrito>) => void;
   cambiarCantidad: (lineaId: string, cantidad: Decimal) => void;
   quitarLinea: (lineaId: string) => void;
@@ -348,54 +347,6 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
     [cambiarActiva],
   );
 
-  const agregarLineaLibre = useCallback(
-    (entrada: { descripcion: string; monto: Decimal; itbisTasa: Decimal }) => {
-      cambiarActiva((pestana) => {
-        if (pestana.cotizacion) return pestana;
-        const nueva: LineaCarrito = {
-          id: nuevoId(),
-          productoId: null,
-          descripcion: entrada.descripcion,
-          referencia: null,
-          cantidad: "1",
-          unidadId: null,
-          unidadNombre: null,
-          unidadBase: null,
-          factorBase: null,
-          precio: entrada.monto,
-          precioBase: entrada.monto,
-          precioManual: true,
-          descuentoPct: "0",
-          itbisTasa: entrada.itbisTasa,
-          impuestoId: null,
-          unidades: [],
-          tipo: "servicio",
-        };
-
-        const existente = pestana.lineas.find(
-          (linea) =>
-            linea.productoId === null &&
-            linea.descripcion === nueva.descripcion &&
-            linea.precio === nueva.precio &&
-            linea.itbisTasa === nueva.itbisTasa &&
-            linea.descuentoPct === "0",
-        );
-
-        if (existente) {
-          return {
-            ...pestana,
-            lineas: pestana.lineas.map((linea) =>
-              linea.id === existente.id ? { ...linea, cantidad: sumarMontos([linea.cantidad, "1"]) } : linea,
-            ),
-          };
-        }
-
-        return { ...pestana, lineas: [...pestana.lineas, nueva] };
-      });
-    },
-    [cambiarActiva],
-  );
-
   const actualizarLinea = useCallback(
     (lineaId: string, cambios: Partial<LineaCarrito>) => {
       cambiarActiva((pestana) => {
@@ -665,7 +616,6 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
     activa,
     hayLineas,
     agregarProducto,
-    agregarLineaLibre,
     actualizarLinea,
     cambiarCantidad,
     quitarLinea,

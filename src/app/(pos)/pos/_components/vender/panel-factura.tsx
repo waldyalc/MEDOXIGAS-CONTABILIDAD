@@ -11,7 +11,6 @@ import {
   FolderOpen,
   MoreHorizontal,
   Pencil,
-  Percent,
   Printer,
   Receipt,
   SlidersHorizontal,
@@ -85,7 +84,6 @@ export interface PanelFacturaProps {
   impuestos: Impuesto[];
   puedeEscribir: boolean;
   onCobrar: () => void;
-  onVentaSimple: () => void;
   onCargarCotizacion: () => void;
   onGuardarCotizacion: () => void;
   onCancelarVenta: () => void;
@@ -121,7 +119,6 @@ export function PanelFactura({
   impuestos,
   puedeEscribir,
   onCobrar,
-  onVentaSimple,
   onCargarCotizacion,
   onGuardarCotizacion,
   onCancelarVenta,
@@ -270,17 +267,6 @@ export function PanelFactura({
             variant="ghost"
             size="icon"
             className="hover:text-pos-texto size-10"
-            title="Venta rápida"
-            aria-label="Venta rápida"
-            onClick={onVentaSimple}
-            disabled={cotizacion !== null || !puedeEscribir}
-          >
-            <Percent className="size-5" aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hover:text-pos-texto size-10"
             title="Imprimir vista previa"
             aria-label="Imprimir vista previa"
             onClick={() => setVistaPrevia("prefactura")}
@@ -303,11 +289,6 @@ export function PanelFactura({
               <SlidersHorizontal className="size-5" aria-hidden="true" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuItem disabled={cotizacion !== null || !puedeEscribir} onClick={onVentaSimple}>
-                <Zap aria-hidden="true" />
-                <span className="flex-1">Venta simple</span>
-                <kbd className="text-muted-foreground text-[10px]">F4</kbd>
-              </DropdownMenuItem>
               <DropdownMenuItem disabled={cotizacion === null} onClick={() => setVistaPrevia("cotizacion")}>
                 <Printer aria-hidden="true" />
                 Imprimir cotización
