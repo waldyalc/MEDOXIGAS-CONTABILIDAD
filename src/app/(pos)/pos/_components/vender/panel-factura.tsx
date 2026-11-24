@@ -55,6 +55,7 @@ import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { sumarMontos } from "@/lib/pos/calculo";
 import { esComprobanteCreditoFiscal, esConsumidorFinalPOS } from "@/lib/pos/consumidor-final";
+import type { DatosContactoRapidoOffline } from "@/lib/pos/contactos-offline";
 import { armarTicketCotizacionDocumento, armarTicketPrefactura, type TicketPOSPayload } from "@/lib/pos/impresion";
 import type { LineaVenta, PlantillaTicket } from "@/lib/pos/tipos";
 
@@ -102,6 +103,8 @@ export interface PanelFacturaProps {
    * el cliente sigue disponible.
    */
   onContactoCreado?: (contacto: ContactoCreado) => void;
+  /** POS: crea el cliente en el dispositivo cuando no hay red. */
+  onGuardarClienteOffline?: (datos: DatosContactoRapidoOffline) => Promise<ContactoCreado>;
   sinCaja?: boolean;
   idPanel?: string;
 }
@@ -127,6 +130,7 @@ export function PanelFactura({
   guardandoCotizacion,
   errorCotizacion,
   onContactoCreado,
+  onGuardarClienteOffline,
   sinCaja = false,
   idPanel = "panel-factura-pos",
 }: PanelFacturaProps) {
@@ -381,6 +385,9 @@ export function PanelFactura({
             tipoInicial="cliente"
             showClear={false}
             mostrarRncEnValor
+            modoLocal
+            onGuardarOffline={onGuardarClienteOffline}
+            onContactoCreado={onContactoCreado}
             acciones={(contacto) =>
               contacto ? (
                 <>
@@ -627,6 +634,7 @@ export function PanelFactura({
         abierto={nuevoCliente}
         onOpenChange={setNuevoCliente}
         tipoInicial="cliente"
+        onGuardarOffline={onGuardarClienteOffline}
         onCreado={(contacto) => {
           onContactoCreado?.(contacto);
           carrito.setContacto(contacto.id);
