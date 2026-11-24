@@ -45,6 +45,89 @@ function numeroVenta(venta: VentaLocalHistorial): string {
   return "Venta en este dispositivo";
 }
 
+function BannerEstadoOffline({
+  venta,
+  reintentoBloqueado,
+  onReintentar,
+  onEditar,
+  onImprimir,
+  onDescartar,
+}: {
+  venta: VentaLocalHistorial;
+  reintentoBloqueado: boolean;
+  onReintentar: () => void;
+  onEditar: () => void;
+  onImprimir: () => void;
+  onDescartar: () => void;
+}) {
+  if (venta.estado === "error") {
+    return (
+      <div className="flex flex-col gap-3 rounded-xl border border-rose-300 bg-rose-50 p-4 dark:border-rose-500/40 dark:bg-rose-500/10">
+        <div className="flex items-start gap-2">
+          <CircleAlert className="mt-0.5 size-5 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden="true" />
+          <div className="flex flex-col gap-1">
+            <p className="text-pos-texto text-sm font-semibold">No se pudo sincronizar la venta</p>
+            <p className="text-pos-texto-suave text-sm">
+              {venta.motivo ?? "Ocurrió un error al sincronizar esta venta."}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            className="bg-pos-primario hover:bg-pos-primario-hover h-10 gap-1.5 text-white"
+            disabled={reintentoBloqueado}
+            onClick={onReintentar}
+          >
+            <RefreshCw aria-hidden="true" />
+            Reintentar sincronización
+          </Button>
+          <Button variant="outline" className="h-10 gap-1.5" onClick={onEditar}>
+            <Pencil aria-hidden="true" />
+            Editar venta
+          </Button>
+          <Button variant="outline" className="h-10 gap-1.5" onClick={onImprimir}>
+            <Printer aria-hidden="true" />
+            Imprimir ticket
+          </Button>
+          <Button variant="ghost" className="text-destructive h-10 gap-1.5" onClick={onDescartar}>
+            <Trash2 aria-hidden="true" />
+            Descartar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  if (venta.estado === "sincronizando") {
+    return (
+      <div className="flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-500/40 dark:bg-amber-500/10">
+        <div className="flex items-start gap-2">
+          <Clock className="mt-0.5 size-5 shrink-0 text-amber-500" aria-hidden="true" />
+          <div className="flex flex-col gap-1">
+            <p className="text-pos-texto text-sm font-semibold">Sincronizando</p>
+            <p className="text-pos-texto-suave text-sm">
+              {`La venta está guardada en este dispositivo con el número temporal ${venta.folio}. Se subirá automáticamente al tener conexión.`}
+            </p>
+          </div>
+        </div>
+        <div>
+          <Button variant="outline" className="h-10 gap-1.5" onClick={onImprimir}>
+            <Printer aria-hidden="true" />
+            Imprimir ticket
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-500/40 dark:bg-emerald-500/10">
+      <CheckCircle2 className="size-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+      <p className="text-pos-texto text-sm font-semibold">
+        {venta.ncf ? `Venta sincronizada con NCF ${venta.ncf}` : "Venta sincronizada en el servidor"}
+      </p>
+    </div>
+  );
+}
+
 /**
  * Detalle de una venta que todavía vive en este dispositivo (cola offline).
  * Permite reintentar la subida, editarla en el carrito, imprimir el ticket de
@@ -102,66 +185,14 @@ export function DetalleVentaOffline({
             </div>
           </div>
 
-          {venta.estado === "error" ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-rose-300 bg-rose-50 p-4 dark:border-rose-500/40 dark:bg-rose-500/10">
-              <div className="flex items-start gap-2">
-                <CircleAlert className="mt-0.5 size-5 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden="true" />
-                <div className="flex flex-col gap-1">
-                  <p className="text-pos-texto text-sm font-semibold">No se pudo sincronizar la venta</p>
-                  <p className="text-pos-texto-suave text-sm">
-                    {venta.motivo ?? "Ocurrió un error al sincronizar esta venta."}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  className="bg-pos-primario hover:bg-pos-primario-hover h-10 gap-1.5 text-white"
-                  disabled={reintentoBloqueado}
-                  onClick={onReintentar}
-                >
-                  <RefreshCw aria-hidden="true" />
-                  Reintentar sincronización
-                </Button>
-                <Button variant="outline" className="h-10 gap-1.5" onClick={onEditar}>
-                  <Pencil aria-hidden="true" />
-                  Editar venta
-                </Button>
-                <Button variant="outline" className="h-10 gap-1.5" onClick={() => setImprimiendo(true)}>
-                  <Printer aria-hidden="true" />
-                  Imprimir ticket
-                </Button>
-                <Button variant="ghost" className="text-destructive h-10 gap-1.5" onClick={() => setDescartando(true)}>
-                  <Trash2 aria-hidden="true" />
-                  Descartar
-                </Button>
-              </div>
-            </div>
-          ) : venta.estado === "sincronizando" ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-500/40 dark:bg-amber-500/10">
-              <div className="flex items-start gap-2">
-                <Clock className="mt-0.5 size-5 shrink-0 text-amber-500" aria-hidden="true" />
-                <div className="flex flex-col gap-1">
-                  <p className="text-pos-texto text-sm font-semibold">Sincronizando</p>
-                  <p className="text-pos-texto-suave text-sm">
-                    {`La venta está guardada en este dispositivo con el número temporal ${venta.folio}. Se subirá automáticamente al tener conexión.`}
-                  </p>
-                </div>
-              </div>
-              <div>
-                <Button variant="outline" className="h-10 gap-1.5" onClick={() => setImprimiendo(true)}>
-                  <Printer aria-hidden="true" />
-                  Imprimir ticket
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-500/40 dark:bg-emerald-500/10">
-              <CheckCircle2 className="size-5 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-              <p className="text-pos-texto text-sm font-semibold">
-                {venta.ncf ? `Venta sincronizada con NCF ${venta.ncf}` : "Venta sincronizada en el servidor"}
-              </p>
-            </div>
-          )}
+          <BannerEstadoOffline
+            venta={venta}
+            reintentoBloqueado={reintentoBloqueado}
+            onReintentar={onReintentar}
+            onEditar={onEditar}
+            onImprimir={() => setImprimiendo(true)}
+            onDescartar={() => setDescartando(true)}
+          />
 
           <section className="flex flex-col gap-1 text-sm">
             <p className="text-pos-texto font-medium">{venta.cliente.nombre}</p>

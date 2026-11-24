@@ -101,7 +101,17 @@ export function VenderPos({
 }) {
   const router = useRouter();
   const carrito = useCarritoPOS();
-  const { ambito, estado: estadoConexion } = useOfflinePOS();
+  const {
+    ambito,
+    estado: estadoConexion,
+    marcarCacheProductos,
+    marcarCacheClientes,
+    tokenRecargaCache,
+  } = useOfflinePOS();
+  const marcarProductosRef = useRef(marcarCacheProductos);
+  marcarProductosRef.current = marcarCacheProductos;
+  const marcarClientesRef = useRef(marcarCacheClientes);
+  marcarClientesRef.current = marcarCacheClientes;
   const [catalogo, setCatalogo] = useState<ProductoPOS[]>(productos);
   const [cargando, setCargando] = useState(false);
   const [cargandoMas, setCargandoMas] = useState(false);
@@ -222,7 +232,9 @@ export function VenderPos({
   // Escrituras locales baratas: no paginan el catálogo ni dependen del refresco.
   useEffect(() => {
     if (!contactosHidratados) return;
-    void guardarOffline("contactos", ambito, listaContactos).catch(() => undefined);
+    void guardarOffline("contactos", ambito, listaContactos)
+      .then(() => marcarClientesRef.current("al-dia"))
+      .catch(() => marcarClientesRef.current("error"));
   }, [ambito, contactosHidratados, listaContactos]);
 
   useEffect(() => {
@@ -248,6 +260,7 @@ export function VenderPos({
 
     const generacion = generacionCatalogo.current + 1;
     generacionCatalogo.current = generacion;
+    marcarProductosRef.current("sincronizando");
     const completo = await cargarCatalogoCompletoOffline({
       obtenerLote: (offset, limit) =>
         buscarCatalogoPOS({
@@ -258,12 +271,25 @@ export function VenderPos({
         }),
       guardar: (valor) =>
         conBloqueoOffline(`${ambito}/catalogo`, () => guardarOffline("catalogo", `${ambito}/${listaPrecioId}`, valor)),
-      sigueVigente: () => generacionCatalogo.current === generacion,
+      sigueVigente: () => generacionCatalogo.current === generacion && navigator.onLine,
     }).catch(() => false);
 
-    if (!completo && generacionCatalogo.current === generacion) {
-      setErrorCatalogo("No se pudo preparar el catálogo offline. Mantén la conexión hasta completar la preparación.");
+    if (generacionCatalogo.current !== generacion) return;
+    if (completo) {
+      marcarProductosRef.current("al-dia");
+      return;
     }
+    // Si la red cayó a mitad, conservamos el caché previo en IndexedDB sin
+    // bloquear el cobro offline si ya había catálogo guardado.
+    const previo = await leerOffline<{ productos: ProductoPOS[] }>("catalogo", `${ambito}/${listaPrecioId}`).catch(
+      () => undefined,
+    );
+    if (previo?.productos.length) {
+      marcarProductosRef.current("al-dia");
+      return;
+    }
+    marcarProductosRef.current(navigator.onLine ? "error" : "pendiente");
+    setAvisoCatalogo("No se pudo preparar el catálogo offline. Mantén la conexión hasta completar la preparación.");
   }, [ambito, terminal.id, listaPrecioId]);
 
   useEffect(() => {
@@ -279,6 +305,12 @@ export function VenderPos({
     conexionPrevia.current = estadoConexion;
     if (anterior === "offline" && estadoConexion !== "offline") void prepararCatalogo();
   }, [estadoConexion, prepararCatalogo]);
+
+  // Botón manual «Sincronizar ahora» del popover superior: refresca el catálogo.
+  useEffect(() => {
+    if (tokenRecargaCache === 0) return;
+    void prepararCatalogo();
+  }, [tokenRecargaCache, prepararCatalogo]);
 
   function onContactoCreado(contacto: ContactoCreado) {
     const resumen: ContactoResumen = {

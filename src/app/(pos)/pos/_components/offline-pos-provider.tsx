@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import {
   almacenColaOffline,
   conBloqueoOffline,
-  leerOffline,
+  existeClaveOfflinePorPrefijo,
   siguienteSecuenciaOffline,
 } from "@/lib/pos/almacen-offline";
 import {
@@ -49,16 +49,13 @@ import { createClient } from "@/lib/supabase/client";
 type EstadoCachePOS = "al-dia" | "sincronizando" | "pendiente" | "error";
 
 /**
- * Las cachés locales de productos y clientes se guardan en IndexedDB por
- * ámbito (`usuario/terminal`). Basta con que exista una entrada del ámbito para
- * que el popover de sincronización pinte la fila como al día sin conexión.
+ * Las cachés locales de productos (`ambito/listaPrecioId`, incluso `ambito/` para
+ * precio base) y clientes (`ambito`) se comprueban por prefijo para que el
+ * popover pinte «Al día» al recargar sin conexión.
  */
 async function hayCacheDelAmbito(store: "catalogo" | "contactos", ambito: string): Promise<boolean> {
   try {
-    for (const clave of [`${ambito}/${store}`, ambito]) {
-      if ((await leerOffline<unknown>(store, clave)) !== undefined) return true;
-    }
-    return false;
+    return await existeClaveOfflinePorPrefijo(store, ambito);
   } catch {
     return false;
   }
@@ -437,8 +434,10 @@ export function OfflinePosProvider({
       setEstado((actual) => estadoTrasSondeo(actual, false));
       return;
     }
-    await reintentar();
+    // Sondear primero actualiza `salud.current.conectado` si acabamos de volver
+    // en línea, para que `reintentar()` no salga temprano por `!conectado`.
     await sondearRef.current?.();
+    await reintentar();
   }
 
   return (
@@ -669,7 +668,7 @@ export function EstadoOfflinePOS() {
     <button
       type="button"
       onClick={abrirPanel}
-      className="text-pos-texto-suave hover:text-pos-primario min-w-0 cursor-pointer truncate px-2 text-xs"
+      className="text-pos-texto-suave hover:text-pos-primario hidden min-w-0 cursor-pointer items-center truncate px-2 text-xs sm:inline-flex"
       aria-live="polite"
     >
       {texto}

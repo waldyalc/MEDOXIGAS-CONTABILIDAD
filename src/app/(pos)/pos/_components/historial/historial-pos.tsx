@@ -77,6 +77,14 @@ export function HistorialPos({
   const items = useMemo(() => combinarHistorialPOS(filas, ventasLocales), [filas, ventasLocales]);
   const seleccion = items.find((item) => idDeItemHistorial(item) === detalleId) ?? null;
 
+  // Si llegamos desde «Revisar pendientes» o sin filas del servidor, selecciona
+  // automáticamente la primera venta visible para mostrar su detalle y acciones.
+  useEffect(() => {
+    if (detalleId !== null || items.length === 0) return;
+    const primero = items[0];
+    if (primero) setDetalleId(idDeItemHistorial(primero));
+  }, [detalleId, items]);
+
   const sincronizadas = offline.operaciones.filter(
     (operacion) => operacion.tipo === "venta" && operacion.estado === "sincronizada",
   ).length;

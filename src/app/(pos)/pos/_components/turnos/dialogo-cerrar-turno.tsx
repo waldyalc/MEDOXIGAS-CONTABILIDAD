@@ -239,7 +239,7 @@ export function DialogoCerrarTurno({
           {cierreBloqueado ? (
             <div
               role="alert"
-              className="sticky bottom-0 z-10 -mx-4 -mb-4 rounded-b-xl border-t border-rose-500 bg-rose-600 px-4 py-3 text-sm font-semibold text-white"
+              className="sticky bottom-0 z-10 rounded-lg border border-rose-500 bg-rose-600 px-4 py-3 text-sm font-semibold text-white"
             >
               {mensajeBloqueo}
             </div>
@@ -256,7 +256,7 @@ export function DialogoCerrarTurno({
             Cancelar
           </Button>
           <Button
-            className="h-12"
+            className="bg-pos-primario hover:bg-pos-primario-hover h-12 text-white"
             onClick={() => void cerrar()}
             disabled={enviando || esperadoNegativo || cierreBloqueado}
           >

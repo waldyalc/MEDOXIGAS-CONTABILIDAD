@@ -124,7 +124,9 @@ test("ZZTEST: tres ventas offline, recarga, sincronización real, NCF y cuadre",
   await captura(page, "offline-pendientes");
 
   await page.getByRole("button", { name: "Cerrar turno" }).click();
-  await expect(page.getByText("Conéctate para subir 3 ventas antes de cerrar", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("Debes sincronizar tu información antes de poder cerrar turno", { exact: true }),
+  ).toBeVisible();
   await captura(page, "cierre-bloqueado");
   await page.keyboard.press("Escape");
 

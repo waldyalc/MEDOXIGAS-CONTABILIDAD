@@ -79,7 +79,12 @@ function FilaServidor({
         onClick={() => onSeleccionar(fila.id)}
       >
         <span className="flex w-full items-center justify-between gap-2">
-          <span className="truncate text-sm font-medium">{fila.ncf ?? `Factura No ${fila.numero}`}</span>
+          <span className="flex min-w-0 items-center gap-1.5">
+            {fila.estado !== "anulada" ? (
+              <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+            ) : null}
+            <span className="truncate text-sm font-medium">{fila.ncf ?? `Factura No ${fila.numero}`}</span>
+          </span>
           <span className="shrink-0 text-sm font-semibold tabular-nums">{formatoMoneda(fila.total)}</span>
         </span>
         <span className="flex w-full items-center justify-between gap-2">

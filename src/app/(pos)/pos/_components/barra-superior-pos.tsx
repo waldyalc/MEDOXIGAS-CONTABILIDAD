@@ -130,7 +130,7 @@ export function BarraSuperiorPos() {
             </button>
           </div>
 
-          {resumen.estado === "pendiente" ? (
+          {hayPendientes ? (
             <div className="border-pos-linea border-b p-3">
               <Link
                 href="/pos/historial"
