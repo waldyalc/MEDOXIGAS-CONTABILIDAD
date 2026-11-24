@@ -172,4 +172,41 @@ describe("estado de conexión del pie del POS", () => {
     expect(provider).not.toContain('setError("La recarga offline no está preparada');
     expect(provider).not.toContain('setError("No se pudo preparar la recarga offline');
   });
+
+  it("el Service Worker guarda las cinco pantallas del POS y corta la red a los 3 s", () => {
+    const sw = leer("public/pos-sw.js");
+    const inicio = sw.indexOf("const RUTAS_POS");
+    const bloque = sw.slice(inicio, sw.indexOf("];", inicio));
+    for (const ruta of ["/pos", "/pos/historial", "/pos/pagos", "/pos/turnos", "/pos/devoluciones"]) {
+      expect(
+        bloque,
+        `Falta ${ruta} en RUTAS_POS: esa pantalla del menú no abriría sin internet (Tarea 2 de 3).`,
+      ).toContain(`"${ruta}"`);
+    }
+    expect(sw, "La navegación cacheada debe cortar la red a los 3 s y servir la copia local").toContain(
+      "AbortController",
+    );
+    expect(sw, "El timeout de red debe ser de 3,000 ms, no el de la subida de ventas").toContain(
+      "const ESPERA_RED = 3_000;",
+    );
+    expect(sw, "Una ruta secundaria caída no puede romper toda la preparación").toContain("Promise.allSettled");
+    expect(sw, "El logo de la empresa se guarda en ASSETS con su fallo aislado").toContain("guardarLogo");
+  });
+
+  it("el provider pide disco persistente y avisa cuando la sesión vence", () => {
+    const provider = leer("src/app/(pos)/pos/_components/offline-pos-provider.tsx");
+    expect(provider, "Sin navigator.storage.persist el navegador puede borrar la cola offline").toContain(
+      "navigator.storage?.persist?.()",
+    );
+    expect(provider, "El contexto debe exponer sesionRequerida para el aviso de la barra").toContain("sesionRequerida");
+    expect(provider, "El logo de la empresa viaja al Service Worker para cachearlo").toContain("logoUrl");
+  });
+
+  it("la PWA del POS se instala y arranca en /pos con el teal de Alegra", () => {
+    expect(existsSync(join(process.cwd(), "src", "app", "manifest.ts")), "Falta src/app/manifest.ts").toBe(true);
+    const manifiesto = leer("src/app/manifest.ts");
+    expect(manifiesto, "La app instalada debe abrir directo en la caja").toContain('start_url: "/pos"');
+    expect(manifiesto, "El color de la PWA es el teal del POS (#00b19d)").toContain("#00b19d");
+    expect(manifiesto, "La app instalada se abre sin barra del navegador").toContain('display: "standalone"');
+  });
 });
