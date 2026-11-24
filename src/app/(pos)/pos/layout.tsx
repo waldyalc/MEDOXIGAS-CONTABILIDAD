@@ -47,6 +47,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
       ambito={`${data.claims.sub}/${terminal.id}`}
       terminalId={terminal.id}
       turnoId={turno?.id ?? null}
+      logoUrl={empresa?.logo_url ?? null}
     >
       <CarritoPosProvider
         key={terminal.id}

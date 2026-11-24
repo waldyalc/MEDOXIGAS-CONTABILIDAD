@@ -28,6 +28,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 import { EstadoTurnoPos } from "./estado-turno-pos";
 import { claseIconoMenu, itemMenuActivo, itemMenuBase, itemMenuColapsado } from "./menu-pos-estilos";
+import { useOfflinePOS } from "./offline-pos-provider";
 import { SalirPos } from "./salir-pos";
 import { SelectorTerminal } from "./selector-terminal";
 import { UsuarioPos } from "./usuario-pos";
@@ -87,8 +88,10 @@ export function MenuPos({ empresa, terminales, terminal, turno, usuario }: MenuP
   const [sobre, setSobre] = useState(false);
   const [focoDentro, setFocoDentro] = useState(false);
   const [movilAbierto, setMovilAbierto] = useState(false);
+  const { estado } = useOfflinePOS();
 
   const expandido = fijado || sobre || focoDentro;
+  const sinConexion = estado === "offline";
   const nombre = empresa.nombre?.trim() || "Punto de venta";
 
   return (
@@ -145,6 +148,7 @@ export function MenuPos({ empresa, terminales, terminal, turno, usuario }: MenuP
             expandido={expandido}
             fijado={fijado}
             mostrarPin
+            sinConexion={sinConexion}
             onAlternarFijado={() => setFijado((actual) => !actual)}
           />
         </aside>
@@ -167,6 +171,7 @@ export function MenuPos({ empresa, terminales, terminal, turno, usuario }: MenuP
               turno={turno}
               usuario={usuario}
               expandido
+              sinConexion={sinConexion}
               onNavegar={() => setMovilAbierto(false)}
             />
           </div>
@@ -185,12 +190,14 @@ function ContenidoMenuPos({
   expandido,
   fijado = false,
   mostrarPin = false,
+  sinConexion = false,
   onAlternarFijado,
   onNavegar,
 }: MenuPosProps & {
   expandido: boolean;
   fijado?: boolean;
   mostrarPin?: boolean;
+  sinConexion?: boolean;
   onAlternarFijado?: () => void;
   onNavegar?: () => void;
 }) {
@@ -237,6 +244,7 @@ function ContenidoMenuPos({
               item={item}
               activo={esActivo(pathname, item.href)}
               expandido={expandido}
+              sinConexion={sinConexion}
               onNavegar={onNavegar}
             />
           ))}
@@ -248,7 +256,14 @@ function ContenidoMenuPos({
 
         <ul className="flex flex-col gap-0.5">
           {ITEMS_CONTABILIDAD.map((item) => (
-            <ItemEnlace key={item.id} item={item} activo={false} expandido={expandido} onNavegar={onNavegar} />
+            <ItemEnlace
+              key={item.id}
+              item={item}
+              activo={false}
+              expandido={expandido}
+              sinConexion={sinConexion}
+              onNavegar={onNavegar}
+            />
           ))}
         </ul>
       </nav>
@@ -267,30 +282,53 @@ function ItemEnlace({
   item,
   activo,
   expandido,
+  sinConexion,
   onNavegar,
 }: {
   item: ItemEnlacePOS;
   activo: boolean;
   expandido: boolean;
+  sinConexion: boolean;
   onNavegar?: () => void;
 }) {
+  const clase = cn(itemMenuBase, activo && itemMenuActivo, !expandido && itemMenuColapsado);
+  const contenido = (
+    <>
+      <IconoItem icono={item.icono} activo={activo} />
+      <span className={cn("min-w-0 flex-1 truncate", !expandido && "hidden")}>{item.etiqueta}</span>
+      {item.externo && expandido ? (
+        <ArrowUpRight className="dark:text-sidebar-foreground/50 size-4 shrink-0 text-slate-400" aria-hidden="true" />
+      ) : null}
+    </>
+  );
+
   return (
     <li>
-      <Link
-        href={item.href}
-        target={item.externo ? "_blank" : undefined}
-        rel={item.externo ? "noreferrer" : undefined}
-        aria-current={activo ? "page" : undefined}
-        title={item.etiqueta}
-        className={cn(itemMenuBase, activo && itemMenuActivo, !expandido && itemMenuColapsado)}
-        onClick={onNavegar}
-      >
-        <IconoItem icono={item.icono} activo={activo} />
-        <span className={cn("min-w-0 flex-1 truncate", !expandido && "hidden")}>{item.etiqueta}</span>
-        {item.externo && expandido ? (
-          <ArrowUpRight className="dark:text-sidebar-foreground/50 size-4 shrink-0 text-slate-400" aria-hidden="true" />
-        ) : null}
-      </Link>
+      {sinConexion && !item.externo ? (
+        // Sin red, un `<a>` abre el HTML cacheado del Service Worker: el fetch
+        // RSC de `<Link>` (`?_rsc=…`) no está en caché y dejaría el menú colgado.
+        <a
+          href={item.href}
+          aria-current={activo ? "page" : undefined}
+          title={item.etiqueta}
+          className={clase}
+          onClick={onNavegar}
+        >
+          {contenido}
+        </a>
+      ) : (
+        <Link
+          href={item.href}
+          target={item.externo ? "_blank" : undefined}
+          rel={item.externo ? "noreferrer" : undefined}
+          aria-current={activo ? "page" : undefined}
+          title={item.etiqueta}
+          className={clase}
+          onClick={onNavegar}
+        >
+          {contenido}
+        </Link>
+      )}
     </li>
   );
 }

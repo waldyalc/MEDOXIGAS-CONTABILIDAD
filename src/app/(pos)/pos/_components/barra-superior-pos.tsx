@@ -69,6 +69,18 @@ export function BarraSuperiorPos() {
 
   return (
     <div className="border-pos-linea dark:bg-card flex h-12 shrink-0 items-center justify-end gap-2 border-b bg-white px-4 print:hidden">
+      {offline.sesionRequerida ? (
+        <div
+          role="status"
+          className="mr-auto flex h-8 min-w-0 items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-2 text-xs text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200"
+        >
+          <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
+          <span className="truncate">Tu sesión expiró; tus ventas siguen guardadas.</span>
+          <a href="/login" className="shrink-0 font-semibold underline underline-offset-2">
+            Iniciar sesión
+          </a>
+        </div>
+      ) : null}
       <Popover open={redAbierta} onOpenChange={setRedAbierta}>
         <PopoverTrigger
           className={cn(
@@ -153,16 +165,13 @@ export function BarraSuperiorPos() {
           {hayPendientes ? (
             <div className="border-pos-linea border-b p-3">
               {sinConexion ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSyncAbierta(false);
-                    offline.abrirPanel();
-                  }}
-                  className="bg-pos-primario hover:bg-pos-primario-hover flex h-9 w-full items-center justify-center rounded-lg text-sm font-medium text-white transition-colors"
+                <a
+                  href="/pos/historial"
+                  onClick={() => setSyncAbierta(false)}
+                  className="bg-pos-primario hover:bg-pos-primario-hover flex h-9 items-center justify-center rounded-lg text-sm font-medium text-white transition-colors"
                 >
                   Revisar pendientes
-                </button>
+                </a>
               ) : (
                 <Link
                   href="/pos/historial"
