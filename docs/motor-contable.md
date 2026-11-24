@@ -33,6 +33,10 @@ Notas:
 - La factura de proveedor sube la cantidad del producto y recalcula su costo
   promedio ponderado.
 - Los pagos actualizan `pagado` y el estado (`pagada` cuando `pagado = total`).
+- El cobro de una nota de débito de venta (`nota_debito_id`) usa el mismo
+  asiento (Dr caja/banco / Cr CxC), no toca `facturas.pagado` y su saldo se
+  calcula con los pagos activos ligados a la nota; al anular el pago el saldo
+  reaparece en `reporte_cxc`.
 - La anulación invierte el asiento con fecha de hoy y `origen_tipo =
   'anulacion'`; no borra el original y deja el documento en `anulada`.
 

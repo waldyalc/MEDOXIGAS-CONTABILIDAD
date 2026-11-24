@@ -1,5 +1,17 @@
 # Handoff — Medoxigas Contabilidad
 
+## Fix: notas de débito cobrables en CxC y conversión B14/B15/B16 (rama `fix/nd-cobrables-y-convertir-b14`)
+
+Trabajo de subagente ejecutor. Solo SQL y pgTAP: sin cambios de TypeScript, pantallas ni datos.
+
+- **Bug A (High):** la ND de venta (B03) debitaba CxC (1103) pero quedaba fuera de `reporte_cxc` y `registrar_pago_recibido` no la cobraba. Ahora `pagos_recibidos` gana `nota_debito_id` (FK a `notas_debito_venta`, con CHECK `pagos_recibidos_documento_unico`: factura o nota, nunca las dos) y `registrar_pago_recibido` acepta `nota_debito_id` en lugar de `factura_id`, con el mismo asiento Dr caja/banco / Cr CxC, sin retenciones. El pagado de la nota **no se duplica**: se calcula con los pagos activos ligados a ella, así que anular el pago devuelve el saldo solo.
+- **`reporte_cxc`:** `union all` de facturas con saldo y notas de débito activas. Una fila por documento (en `factura_id` va el id de la factura o de la nota, la firma no cambia), la nota vence en su fecha.
+- **Bug B (Medium):** `convertir_a_factura` acepta `01, 02, 14, 15, 16`; `crear_factura` ya decidía la numeración por la serie (`numeraciones.tipo_comprobante`), no por el tipo del documento origen.
+- **Migración:** `supabase/migrations/20261126151000_fix_nd_cobrables_y_convertir.sql` (aditiva y reintentable).
+- **Candado pgTAP:** `supabase/tests/fix_nd_cobrables_convertir_test.sql` (36 asserts): ND visible en CxC con su saldo; pago parcial y total; asiento contra 1103; errores de sobrepago, doble documento y cliente ajeno; anulación devuelve el saldo; conversión con B14/B15/B16 usa la serie correcta; comprobante inexistente sigue rechazado; lector no cobra. Con las funciones viejas falla (9 `not ok` y error en el cobro de la ND).
+- **Pendiente al fusionar:** regenerar `src/lib/supabase/types.ts` con `pnpm db:types` (la columna nueva cambia el esquema que compara el job `db` de CI). El formulario de pagos todavía no ofrece notas de débito: solo se habilitó la RPC.
+- **Verificación:** `bash scripts/pgtap-local.sh` en verde (suite completa), `pnpm typecheck`, `pnpm check`, `pnpm test` (1,724) y `pnpm build` en verde. Sin push ni merge.
+
 ## Cierre del orquestador POS — punto de partida del orquestador nuevo (23-11-2026, MSG-55)
 
 ### Qué quedó en `main`
