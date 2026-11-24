@@ -15,12 +15,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
 import type { Empresa } from "@/lib/facturacion/tipos";
 import { formatoDia, formatoFechaHora } from "@/lib/formato";
+import { guardarDetalleVentaOffline, leerDetalleVentaOffline } from "@/lib/pos/cache-vistas-offline";
 import { armarCartaFactura, armarTicketFactura } from "@/lib/pos/impresion";
 import type { PlantillaTicket, VentaPOSResultado } from "@/lib/pos/tipos";
 
 import { detalleVentaPOS, ticketVentaPOS } from "../acciones-pos";
 import { capitalizar, etiquetaMetodoDB } from "../formato-pos";
+import { useOfflinePOS } from "../offline-pos-provider";
 import type { DetalleVentaPOS } from "../tipos";
+
+const MENSAJE_VENTA_NO_GUARDADA = "Esta venta no está guardada en este dispositivo. Conéctate a internet para verla.";
+const MENSAJE_TICKET_NO_GUARDADO =
+  "Esta venta no está guardada en este dispositivo. Conéctate a internet para imprimirla.";
 
 export function DetalleVentaPos({
   facturaId,
@@ -38,6 +44,7 @@ export function DetalleVentaPos({
   puedeEscribir: boolean;
 }) {
   const router = useRouter();
+  const offline = useOfflinePOS();
   const [detalle, setDetalle] = useState<DetalleVentaPOS | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,23 +53,53 @@ export function DetalleVentaPos({
     { tipo: "ticket"; datos: VentaPOSResultado } | { tipo: "carta"; datos: VentaPOSResultado } | null
   >(null);
 
-  const cargar = useCallback(async (id: string) => {
-    setCargando(true);
-    setError(null);
-    try {
-      const resultado = await detalleVentaPOS(id);
-      if (!resultado.ok) {
-        setError(resultado.error);
-        return;
+  const cargar = useCallback(
+    async (id: string) => {
+      setCargando(true);
+      setError(null);
+      const sinRed = offline.estado === "offline" || !navigator.onLine;
+      try {
+        if (!sinRed) {
+          try {
+            const resultado = await detalleVentaPOS(id);
+            if (resultado.ok && resultado.data) {
+              setDetalle(resultado.data);
+              // Conserva el ticket ya guardado para reimprimir sin conexión.
+              const cache = await leerDetalleVentaOffline(offline.ambito, id).catch(() => undefined);
+              if (cache) {
+                await guardarDetalleVentaOffline(offline.ambito, id, {
+                  detalle: resultado.data,
+                  ticket: cache.ticket,
+                }).catch(() => undefined);
+              }
+              return;
+            }
+            const cache = await leerDetalleVentaOffline(offline.ambito, id).catch(() => undefined);
+            if (cache) {
+              setDetalle(cache.detalle);
+              return;
+            }
+            setError(resultado.ok ? "No se pudo cargar la venta." : capitalizar(resultado.error));
+            return;
+          } catch {
+            // Red caída a mitad: se intenta el respaldo local antes de fallar.
+          }
+        }
+
+        const cache = await leerDetalleVentaOffline(offline.ambito, id).catch(() => undefined);
+        if (cache) {
+          setDetalle(cache.detalle);
+          return;
+        }
+        setError(
+          sinRed ? MENSAJE_VENTA_NO_GUARDADA : "No se pudo cargar la venta. Revisa tu conexión e inténtalo de nuevo.",
+        );
+      } finally {
+        setCargando(false);
       }
-      setDetalle(resultado.data);
-      if (!resultado.data) setError("No se pudo cargar la venta.");
-    } catch {
-      setError("No se pudo cargar la venta. Revisa tu conexión e inténtalo de nuevo.");
-    } finally {
-      setCargando(false);
-    }
-  }, []);
+    },
+    [offline.ambito, offline.estado],
+  );
 
   useEffect(() => {
     if (!facturaId) {
@@ -77,12 +114,35 @@ export function DetalleVentaPos({
     if (!facturaId) return;
     setImprimiendo(tipo);
     try {
-      const resultado = await ticketVentaPOS(facturaId);
-      if (!resultado.ok || !resultado.data) {
-        setError(resultado.ok ? "No se pudo cargar la venta." : capitalizar(resultado.error));
+      let mensaje: string | null = null;
+      if (offline.estado !== "offline" && navigator.onLine) {
+        try {
+          const resultado = await ticketVentaPOS(facturaId);
+          if (resultado.ok && resultado.data) {
+            setTrabajo({ tipo, datos: resultado.data });
+            // Guarda el ticket junto al detalle ya cargado (o al cacheado).
+            const detalleParaCache =
+              detalle ?? (await leerDetalleVentaOffline(offline.ambito, facturaId).catch(() => undefined))?.detalle;
+            if (detalleParaCache) {
+              await guardarDetalleVentaOffline(offline.ambito, facturaId, {
+                detalle: detalleParaCache,
+                ticket: resultado.data,
+              }).catch(() => undefined);
+            }
+            return;
+          }
+          mensaje = resultado.ok ? "No se pudo cargar la venta." : capitalizar(resultado.error);
+        } catch {
+          mensaje = "No se pudo conectar con el servidor.";
+        }
+      }
+
+      const cache = await leerDetalleVentaOffline(offline.ambito, facturaId).catch(() => undefined);
+      if (cache) {
+        setTrabajo({ tipo, datos: cache.ticket });
         return;
       }
-      setTrabajo({ tipo, datos: resultado.data });
+      setError(mensaje ?? MENSAJE_TICKET_NO_GUARDADO);
     } finally {
       setImprimiendo(null);
     }

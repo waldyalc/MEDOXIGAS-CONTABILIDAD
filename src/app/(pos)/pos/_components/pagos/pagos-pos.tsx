@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,6 +29,7 @@ import { toast } from "@/components/ui/toast";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoFechaHora } from "@/lib/formato";
 import { leerTamano, leerTexto, type ParametrosLista, type ResumenPagina, urlLista } from "@/lib/listas/parametros";
+import { guardarVistaPagosOffline, leerVistaPagosOffline } from "@/lib/pos/cache-vistas-offline";
 import type { PagoPOSFila } from "@/lib/pos/consultas";
 import { armarTicketMovimiento } from "@/lib/pos/impresion";
 import type {
@@ -39,6 +40,7 @@ import type {
 } from "@/lib/pos/tipos";
 
 import { resumenTurnoPOS } from "../acciones-pos";
+import { useOfflinePOS } from "../offline-pos-provider";
 import type { CuentaPOS } from "../servidor";
 import { DetallePago } from "./detalle-pago";
 import { DialogoMovimiento, type PrellenadoMovimiento } from "./dialogo-movimiento";
@@ -75,24 +77,54 @@ export function PagosPos({
   error?: string | null;
 }) {
   const router = useRouter();
+  const offline = useOfflinePOS();
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(filas[0]?.id ?? null);
   const [hojaAbierta, setHojaAbierta] = useState(false);
   const [movimientoAbierto, setMovimientoAbierto] = useState(false);
   const [prellenado, setPrellenado] = useState<PrellenadoMovimiento | null>(null);
   const [recibo, setRecibo] = useState<MovimientoTurnoPOSResultado | null>(null);
   const [imprimiendo, setImprimiendo] = useState<string | null>(null);
+  const [filasCache, setFilasCache] = useState<PagoPOSFila[]>([]);
   const [trabajo, setTrabajo] = useState<{ datos: MovimientoTurnoPOSResultado; incluirEsperado: boolean } | null>(null);
+
+  // Sin red (o con el servidor caído) se pinta lo último guardado del tipo
+  // seleccionado (ingresos o egresos), nunca un error falso de conexión.
+  const debeHidratar = offline.estado === "offline" || (Boolean(error) && filas.length === 0);
+
+  useEffect(() => {
+    if (!debeHidratar) return;
+    let vigente = true;
+    void leerVistaPagosOffline(offline.ambito, tipo)
+      .then((guardada) => {
+        if (vigente) setFilasCache(guardada?.filas ?? []);
+      })
+      .catch(() => undefined);
+    return () => {
+      vigente = false;
+    };
+  }, [debeHidratar, offline.ambito, tipo]);
+
+  useEffect(() => {
+    if (debeHidratar || filas.length === 0) return;
+    void guardarVistaPagosOffline(offline.ambito, tipo, filas).catch(() => undefined);
+  }, [debeHidratar, filas, offline.ambito, tipo]);
+
+  const filasVisibles = useMemo(
+    () => (debeHidratar && filas.length === 0 ? filasCache : filas),
+    [debeHidratar, filas, filasCache],
+  );
+  const errorVisible = debeHidratar && filasVisibles.length > 0 ? null : (error ?? null);
 
   useEffect(() => {
     setSeleccionadoId((actual) =>
-      actual && filas.some((fila) => fila.id === actual) ? actual : (filas[0]?.id ?? null),
+      actual && filasVisibles.some((fila) => fila.id === actual) ? actual : (filasVisibles[0]?.id ?? null),
     );
-  }, [filas]);
+  }, [filasVisibles]);
 
-  const seleccionado = filas.find((fila) => fila.id === seleccionadoId) ?? null;
+  const seleccionado = filasVisibles.find((fila) => fila.id === seleccionadoId) ?? null;
   const plantilla = vista?.terminal.plantilla_ticket ?? terminal.plantilla_ticket;
   const turnoVivo = turnoAbierto && vista?.turno.estado === "abierto";
-  const puedeRegistrar = puedeEscribir && turnoVivo;
+  const puedeRegistrar = puedeEscribir && turnoVivo && !debeHidratar;
   const cajaNombre = cuentas.find((cuenta) => cuenta.id === terminal.cuenta_efectivo_id)?.nombre ?? null;
   const filtrada = leerTexto(params, "q") !== "";
 
@@ -175,10 +207,10 @@ export function PagosPos({
         }
       />
 
-      {error ? (
+      {errorVisible ? (
         <Alert variant="destructive">
           <AlertDescription className="flex flex-wrap items-center gap-2">
-            {error}
+            {errorVisible}
             <Button variant="outline" size="sm" onClick={() => router.refresh()}>
               Reintentar
             </Button>
@@ -186,7 +218,15 @@ export function PagosPos({
         </Alert>
       ) : null}
 
-      {puedeEscribir && !turnoAbierto ? (
+      {errorVisible === null && debeHidratar ? (
+        <Alert>
+          <AlertDescription>
+            Mostrando los pagos guardados en este dispositivo. Se actualizarán al recuperar la conexión.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {puedeEscribir && !turnoAbierto && !debeHidratar ? (
         <Alert>
           <AlertDescription className="flex flex-wrap items-center gap-2">
             {`No hay un turno abierto en ${terminal.nombre}. Abre uno para registrar movimientos.`}
@@ -216,7 +256,7 @@ export function PagosPos({
 
         <div className="grid lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:divide-x lg:divide-border">
           <ListaPagos
-            filas={filas}
+            filas={filasVisibles}
             seleccionadoId={seleccionado?.id ?? null}
             onSeleccionar={seleccionar}
             tipo={tipo}
