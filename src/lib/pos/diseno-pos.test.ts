@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 const SRC = join(process.cwd(), "src");
@@ -26,7 +26,6 @@ const PENDIENTES = [
   "_components/menu-pos.tsx",
   "_components/pagos/lista-pagos.tsx",
   "_components/vender/confirmacion-venta.tsx",
-  "_components/vender/dialogo-venta-simple.tsx",
 ];
 
 function listar(directorio: string): string[] {
@@ -334,6 +333,39 @@ describe("diseño POS estilo Alegra", () => {
     expect(archivo, "La pestaña conserva el fondo blanco").toContain("bg-white");
     expect(archivo, "La pestaña conserva el dark mode").toContain("dark:bg-card");
     expect(archivo, "La barra conserva el botón + de nueva venta").toContain('aria-label="Nueva venta"');
+  });
+
+  it("«Venta simple» no vuelve al POS: ni tarjeta, ni diálogo, ni atajo F4", () => {
+    for (const archivo of ["tarjeta-venta-simple-pos.tsx", "dialogo-venta-simple.tsx"]) {
+      expect(
+        existsSync(join(POS, "_components", "vender", archivo)),
+        `Waldy eliminó «Venta simple» del POS (24-11-2026): ${archivo} no existe y no se revive.`,
+      ).toBe(false);
+    }
+
+    const prohibido = [
+      "Venta simple",
+      "Venta rápida",
+      "TarjetaVentaSimplePos",
+      "DialogoVentaSimple",
+      "onVentaSimple",
+      "agregarLineaLibre",
+      "F4",
+    ];
+    for (const archivo of [
+      "_components/vender/catalogo-pos.tsx",
+      "_components/vender/panel-factura.tsx",
+      "_components/vender/vender-pos.tsx",
+      "_components/carrito-pos-provider.tsx",
+    ]) {
+      const codigo = readFileSync(join(POS, archivo), "utf8");
+      for (const texto of prohibido) {
+        expect(
+          codigo,
+          `«Venta simple» y su atajo F4 no vuelven al POS (decisión de Waldy, 24-11-2026): quita «${texto}» de ${archivo}.`,
+        ).not.toContain(texto);
+      }
+    }
   });
 
   it("globals.css define la paleta POS (--pos-*) en claro y oscuro", () => {
