@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -18,16 +18,20 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/components/ui/toast";
 import { leerTamano, type ParametrosLista, type ResumenPagina } from "@/lib/listas/parametros";
+import { guardarVistaDevolucionesOffline, leerVistaDevolucionesOffline } from "@/lib/pos/cache-vistas-offline";
 import { armarTicketDevolucion } from "@/lib/pos/impresion";
 import type { DevolucionPOSResultado, PlantillaTicket } from "@/lib/pos/tipos";
 
 import { detalleDevolucionPOS, ticketDevolucionPOS } from "../acciones-pos";
 import { capitalizar } from "../formato-pos";
+import { useOfflinePOS } from "../offline-pos-provider";
 import type { DevolucionPOSDetalle, DevolucionPOSFila } from "../tipos";
 import { DetalleDevolucionPos } from "./detalle-devolucion-pos";
 import { FiltrosDevoluciones } from "./filtros-devoluciones";
 import { ListaDevoluciones } from "./lista-devoluciones";
 import { WizardDevolucion } from "./wizard-devolucion";
+
+const MENSAJE_DEVOLUCION_OFFLINE = "Conéctate a internet para registrar una devolución o nota de crédito.";
 
 export function DevolucionesPos({
   filas,
@@ -63,7 +67,9 @@ export function DevolucionesPos({
   error?: string | null;
 }) {
   const router = useRouter();
+  const offline = useOfflinePOS();
   const [wizardAbierto, setWizardAbierto] = useState(Boolean(facturaInicial && turno && !sinCaja));
+  const [avisoOffline, setAvisoOffline] = useState<string | null>(null);
   const [detalleId, setDetalleId] = useState<string | null>(() => filas[0]?.id ?? null);
   const [detalleMovil, setDetalleMovil] = useState(false);
   const [detalle, setDetalle] = useState<DevolucionPOSDetalle | null>(null);
@@ -71,24 +77,85 @@ export function DevolucionesPos({
   const [errorDetalle, setErrorDetalle] = useState<string | null>(null);
   const [trabajo, setTrabajo] = useState<DevolucionPOSResultado | null>(null);
   const [imprimiendo, setImprimiendo] = useState<string | null>(null);
+  const [filasCache, setFilasCache] = useState<DevolucionPOSFila[]>([]);
 
-  const cargarDetalle = useCallback(async (id: string) => {
-    setCargandoDetalle(true);
-    setErrorDetalle(null);
-    try {
-      const resultado = await detalleDevolucionPOS(id);
-      if (!resultado.ok) {
-        setErrorDetalle(capitalizar(resultado.error));
+  // Sin red (o con el servidor caído) se pinta lo último guardado; registrar
+  // una devolución sí exige conexión porque consulta la factura en el servidor.
+  const debeHidratar = offline.estado === "offline" || (Boolean(error) && filas.length === 0);
+  const requiereConexion = offline.estado === "offline";
+
+  useEffect(() => {
+    if (!debeHidratar) return;
+    let vigente = true;
+    void leerVistaDevolucionesOffline(offline.ambito)
+      .then((guardada) => {
+        if (vigente) setFilasCache(guardada?.filas ?? []);
+      })
+      .catch(() => undefined);
+    return () => {
+      vigente = false;
+    };
+  }, [debeHidratar, offline.ambito]);
+
+  useEffect(() => {
+    if (debeHidratar || filas.length === 0) return;
+    void guardarVistaDevolucionesOffline(offline.ambito, filas).catch(() => undefined);
+  }, [debeHidratar, filas, offline.ambito]);
+
+  useEffect(() => {
+    if (!requiereConexion || !wizardAbierto) return;
+    setWizardAbierto(false);
+    setAvisoOffline(MENSAJE_DEVOLUCION_OFFLINE);
+  }, [requiereConexion, wizardAbierto]);
+
+  const filasVisibles = useMemo(
+    () => (debeHidratar && filas.length === 0 ? filasCache : filas),
+    [debeHidratar, filas, filasCache],
+  );
+  const errorVisible = debeHidratar && filasVisibles.length > 0 ? null : (error ?? null);
+
+  function abrirWizard() {
+    if (requiereConexion) {
+      setAvisoOffline(MENSAJE_DEVOLUCION_OFFLINE);
+      return;
+    }
+    setAvisoOffline(null);
+    setWizardAbierto(true);
+  }
+
+  function tituloNuevaDevolucion(): string | undefined {
+    if (requiereConexion) return MENSAJE_DEVOLUCION_OFFLINE;
+    if (sinCaja) return "La terminal no tiene una cuenta de efectivo activa.";
+    if (!turno) return "Abre un turno para devolver.";
+    return undefined;
+  }
+
+  const cargarDetalle = useCallback(
+    async (id: string) => {
+      setCargandoDetalle(true);
+      setErrorDetalle(null);
+      if (offline.estado === "offline" || !navigator.onLine) {
+        setDetalle(null);
+        setErrorDetalle("Conéctate a internet para ver el detalle de esta devolución.");
+        setCargandoDetalle(false);
         return;
       }
-      setDetalle(resultado.data);
-      if (!resultado.data) setErrorDetalle("No se pudo cargar la devolución.");
-    } catch {
-      setErrorDetalle("No se pudo cargar la devolución. Revisa tu conexión.");
-    } finally {
-      setCargandoDetalle(false);
-    }
-  }, []);
+      try {
+        const resultado = await detalleDevolucionPOS(id);
+        if (!resultado.ok) {
+          setErrorDetalle(capitalizar(resultado.error));
+          return;
+        }
+        setDetalle(resultado.data);
+        if (!resultado.data) setErrorDetalle("No se pudo cargar la devolución.");
+      } catch {
+        setErrorDetalle("No se pudo cargar la devolución. Revisa tu conexión.");
+      } finally {
+        setCargandoDetalle(false);
+      }
+    },
+    [offline.estado],
+  );
 
   useEffect(() => {
     if (!detalleId) {
@@ -128,16 +195,12 @@ export function DevolucionesPos({
         subtitulo="Notas de crédito creadas desde el punto de venta."
         acciones={
           puedeEscribir ? (
-            <span
-              title={
-                sinCaja
-                  ? "La terminal no tiene una cuenta de efectivo activa."
-                  : turno
-                    ? undefined
-                    : "Abre un turno para devolver."
-              }
-            >
-              <Button className="h-10 gap-1.5" disabled={!turno || sinCaja} onClick={() => setWizardAbierto(true)}>
+            <span title={tituloNuevaDevolucion()}>
+              <Button
+                className="h-10 gap-1.5"
+                disabled={!requiereConexion && (!turno || sinCaja)}
+                onClick={abrirWizard}
+              >
                 <RotateCcw aria-hidden="true" />
                 Nueva devolución
               </Button>
@@ -146,7 +209,13 @@ export function DevolucionesPos({
         }
       />
 
-      {sinCaja ? (
+      {avisoOffline ? (
+        <Alert>
+          <AlertDescription>{avisoOffline}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {sinCaja && !debeHidratar ? (
         <Alert variant="destructive">
           <AlertDescription>
             {`La terminal ${terminal.nombre} no tiene una cuenta de efectivo activa. Corrige la configuración en Contabilidad.`}
@@ -154,28 +223,38 @@ export function DevolucionesPos({
         </Alert>
       ) : null}
 
-      {turno === null ? (
+      {turno === null && !debeHidratar ? (
         <Alert variant="destructive">
           <AlertDescription>{`No hay un turno abierto en ${terminal.nombre}. Abre un turno para devolver.`}</AlertDescription>
         </Alert>
       ) : null}
 
-      {error ? (
+      {errorVisible ? (
         <Alert variant="destructive">
           <AlertDescription className="flex flex-wrap items-center gap-2">
-            {error}
+            {errorVisible}
             <Button variant="outline" size="sm" onClick={() => router.refresh()}>
               Reintentar
             </Button>
           </AlertDescription>
         </Alert>
-      ) : (
+      ) : null}
+
+      {errorVisible === null && debeHidratar ? (
+        <Alert>
+          <AlertDescription>
+            Mostrando las devoluciones guardadas en este dispositivo. Se actualizarán al recuperar la conexión.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {errorVisible ? null : (
         <TarjetaLista className="flex flex-col" data-lista="pos-devoluciones">
           <BarraLista className="h-auto flex-wrap py-2">
             <FiltrosDevoluciones params={params} desde={desde} hasta={hasta} />
           </BarraLista>
 
-          {filas.length === 0 ? (
+          {filasVisibles.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-4 py-16 text-center">
               <Undo2 className="text-muted-foreground size-8" aria-hidden="true" />
               {hayFiltros ? (
@@ -190,7 +269,7 @@ export function DevolucionesPos({
                     Las notas de crédito creadas desde el punto de venta aparecerán aquí.
                   </p>
                   {turno && !sinCaja && puedeEscribir ? (
-                    <Button className="mt-2 h-10" onClick={() => setWizardAbierto(true)}>
+                    <Button className="mt-2 h-10" onClick={abrirWizard}>
                       Nueva devolución
                     </Button>
                   ) : null}
@@ -206,22 +285,24 @@ export function DevolucionesPos({
                 )}
               >
                 <ListaDevoluciones
-                  filas={filas}
+                  filas={filasVisibles}
                   seleccionado={detalleId}
                   imprimiendo={imprimiendo}
                   onSeleccionar={seleccionar}
                   onImprimir={(fila) => void imprimir(fila)}
                 />
                 <div className="border-border mt-auto border-t px-3 py-2">
-                  <PaginadorLista
-                    base="/pos/devoluciones"
-                    params={params}
-                    resumen={resumen}
-                    opciones={[25, 50, 100]}
-                    tamano={leerTamano(params)}
-                    botonesExtremos={false}
-                    className="text-xs"
-                  />
+                  {debeHidratar ? null : (
+                    <PaginadorLista
+                      base="/pos/devoluciones"
+                      params={params}
+                      resumen={resumen}
+                      opciones={[25, 50, 100]}
+                      tamano={leerTamano(params)}
+                      botonesExtremos={false}
+                      className="text-xs"
+                    />
+                  )}
                 </div>
               </div>
 
