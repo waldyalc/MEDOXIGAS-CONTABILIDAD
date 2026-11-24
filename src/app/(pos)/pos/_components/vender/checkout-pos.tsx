@@ -16,11 +16,14 @@ import {
   Landmark,
   Loader2,
   Plus,
+  Printer,
   Split,
   Trash2,
   Wallet,
   X,
 } from "@/components/icons";
+import { ImpresionPos } from "@/components/pos/impresion-pos";
+import { TicketPos } from "@/components/pos/ticket-pos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,8 +54,13 @@ import {
 } from "@/lib/pos/calculo";
 import { esConsumidorFinalPOS } from "@/lib/pos/consumidor-final";
 import { esquemaVenta, MAXIMO_PAGOS_VENTA, mensajeValidacion } from "@/lib/pos/esquemas";
-import { armarTicketOffline, type EntradaTicketOffline, type TicketPOSPayload } from "@/lib/pos/impresion";
-import type { MetodoPOS, PlantillaTicket, VentaPOSResultado } from "@/lib/pos/tipos";
+import {
+  armarTicketOffline,
+  armarTicketPrefactura,
+  type EntradaTicketOffline,
+  type TicketPOSPayload,
+} from "@/lib/pos/impresion";
+import type { LineaVenta, MetodoPOS, PlantillaTicket, VentaPOSResultado } from "@/lib/pos/tipos";
 import { createClient } from "@/lib/supabase/client";
 
 import { useCarritoPOS } from "../carrito-pos-provider";
@@ -139,12 +147,14 @@ export function CheckoutPos({
   const [filas, setFilas] = useState<FilaCombinada[]>([]);
   const [notas, setNotas] = useState("");
   const [vendedores, setVendedores] = useState<{ id: string; nombre: string }[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [lento, setLento] = useState(false);
   const [perdido, setPerdido] = useState(false);
   const [venta, setVenta] = useState<VentaPOSResultado | null>(null);
+  /** Motivo por el que la venta no se guardó; abre «Venta pendiente de guardar». */
+  const [pendiente, setPendiente] = useState<string | null>(null);
+  const [imprimiendoSoporte, setImprimiendoSoporte] = useState(false);
 
   const total = totales.total;
   const cotizacion = activa.cotizacion;
@@ -165,12 +175,13 @@ export function CheckoutPos({
     setModo("efectivo");
     setFilas([]);
     setNotas("");
-    setError(null);
     setAviso(false);
     setLento(false);
     setPerdido(false);
     setVenta(null);
     setTicketOffline(null);
+    setPendiente(null);
+    setImprimiendoSoporte(false);
   }, [abierto]);
 
   useEffect(() => {
@@ -342,8 +353,8 @@ export function CheckoutPos({
     }
     setAviso(false);
     setEnviando(true);
-    setError(null);
     setPerdido(false);
+    setPendiente(null);
 
     const pagos = armarPagos();
     const recibidoOffline = sumarMontos(pagos.map((pago) => pago.monto_recibido ?? pago.monto));
@@ -409,7 +420,7 @@ export function CheckoutPos({
       envioRemoto = true;
       const resultado = await completarVenta(entrada);
       if (!resultado.ok) {
-        setError(capitalizar(resultado.error));
+        setPendiente(capitalizar(resultado.error));
         return;
       }
       setVenta(resultado.data);
@@ -418,13 +429,14 @@ export function CheckoutPos({
       router.refresh();
     } catch (causa) {
       if (!envioRemoto) {
-        setError(
+        setPendiente(
           causa instanceof Error
             ? causa.message
             : "No se pudo guardar. No entregues la venta hasta confirmar el guardado.",
         );
       } else {
         setPerdido(true);
+        setPendiente("No sabemos si la venta se registró. Revisa el Historial antes de volver a cobrar.");
       }
     } finally {
       setEnviando(false);
@@ -450,6 +462,53 @@ export function CheckoutPos({
     />
   );
 
+  // Ticket de soporte de una venta que no se pudo guardar: prefactura sin NCF.
+  const clienteSoporte = contactos.find((contacto) => contacto.id === activa.contactoId) ?? null;
+  const vendedorSoporte = vendedores.find((vendedor) => vendedor.id === activa.vendedorId) ?? null;
+  const lineasSoporte: LineaVenta[] = activa.lineas.map((linea) => {
+    const totalesLinea = calcularLineaPOS({
+      cantidad: linea.cantidad,
+      precio: linea.precio,
+      descuento_pct: linea.descuentoPct,
+      itbis_tasa: linea.itbisTasa,
+    });
+
+    return {
+      id: linea.id,
+      producto_id: linea.productoId,
+      producto_nombre: null,
+      referencia: linea.referencia,
+      descripcion: linea.descripcion,
+      cantidad: linea.cantidad,
+      unidad_id: linea.unidadId,
+      unidad_nombre: linea.unidadNombre,
+      factor_base: linea.factorBase,
+      precio: linea.precio,
+      descuento_pct: linea.descuentoPct,
+      itbis_tasa: linea.itbisTasa,
+      impuesto_id: linea.impuestoId,
+      subtotal: totalesLinea.subtotal,
+      itbis: totalesLinea.itbis,
+      total: totalesLinea.total,
+    };
+  });
+  const ticketSoporte =
+    pendiente === null
+      ? null
+      : armarTicketPrefactura(
+          {
+            empresa,
+            contacto: clienteSoporte
+              ? { nombre: clienteSoporte.nombre, rnc_cedula: clienteSoporte.rnc_cedula, direccion: null }
+              : null,
+            lineas: lineasSoporte,
+            totales: { ...totales, otros_impuestos: "0", propina: "0" },
+            vendedor: vendedorSoporte,
+            fecha: hoyRD(),
+          },
+          plantillaTicket,
+        );
+
   return (
     <>
       <Dialog open={abierto} onOpenChange={cerrar}>
@@ -470,6 +529,37 @@ export function CheckoutPos({
                 onVerHistorial={onVerHistorial}
                 onCerrar={onCerrar}
               />
+            </>
+          ) : pendiente !== null ? (
+            <>
+              <DialogHeader className="gap-1">
+                <DialogTitle className="text-pos-texto text-2xl font-semibold">Venta pendiente de guardar</DialogTitle>
+                <DialogDescription className="text-pos-texto-suave text-sm">
+                  Tu venta no se ha guardado. Puedes imprimir esta factura como soporte, pero recuerda que debes editar
+                  la venta para completar el registro.
+                </DialogDescription>
+              </DialogHeader>
+
+              <Alert variant="destructive">
+                <AlertDescription>{pendiente}</AlertDescription>
+              </Alert>
+
+              <DialogFooter className="-mx-4 mt-2 -mb-4 flex-row justify-end gap-2 rounded-b-xl border-0 bg-transparent p-4">
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-[8px] px-5 text-sm"
+                  onClick={() => setImprimiendoSoporte(true)}
+                >
+                  <Printer aria-hidden="true" />
+                  Imprimir ticket
+                </Button>
+                <Button
+                  className="bg-pos-primario hover:bg-pos-primario-hover h-10 rounded-[8px] px-5 text-sm text-white"
+                  onClick={onCerrar}
+                >
+                  Editar venta
+                </Button>
+              </DialogFooter>
             </>
           ) : (
             <>
@@ -512,12 +602,6 @@ export function CheckoutPos({
                   {cotizacion ? `Cotización No ${cotizacion.numero}` : carrito.activa.nombre}
                 </span>
               </div>
-
-              {error ? (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              ) : null}
 
               {sinCaja ? (
                 <Alert variant="destructive">
@@ -847,6 +931,16 @@ export function CheckoutPos({
           )}
         </DialogContent>
       </Dialog>
+
+      {imprimiendoSoporte && ticketSoporte ? (
+        <ImpresionPos
+          titulo="venta-pendiente-de-guardar"
+          ancho={ticketSoporte.diseno.ancho_mm}
+          onCerrar={() => setImprimiendoSoporte(false)}
+        >
+          <TicketPos payload={ticketSoporte} />
+        </ImpresionPos>
+      ) : null}
 
       {aviso
         ? createPortal(
