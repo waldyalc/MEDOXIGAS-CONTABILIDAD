@@ -108,6 +108,7 @@ const RUTAS_DOCUMENTO_ORIGEN: Record<string, (id: string) => string> = {
   nota_credito_compra: rutaNotaCreditoCompra,
   nota_debito: rutaNotaDebitoVenta,
   conciliacion: rutaConciliacion,
+  ajuste_inventario: rutaAjusteInventario,
 };
 
 export function rutaOrigenAsiento(tipo: string, origenId: string | null, asientoId: string): string | null {

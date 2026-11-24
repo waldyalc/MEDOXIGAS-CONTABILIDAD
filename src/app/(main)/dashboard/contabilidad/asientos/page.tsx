@@ -20,6 +20,7 @@ import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { getAsientosLista, normalizarFecha } from "@/lib/asientos/consultas";
+import { etiquetaOrigen } from "@/lib/asientos/origenes";
 import type { AsientoLista } from "@/lib/asientos/tipos";
 import { getPerfil } from "@/lib/auth/rol";
 import { rutaAsiento, rutaOrigenAsiento } from "@/lib/enlaces";
@@ -28,17 +29,6 @@ import { formatoDia } from "@/lib/formato";
 import { leerOpcionesLista, type OpcionesLista, type ParametrosLista, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 
 const RUTA = "/dashboard/contabilidad/asientos";
-
-const ORIGENES: Record<string, string> = {
-  factura: "Factura",
-  pago_recibido: "Pago recibido",
-  factura_proveedor: "Compra",
-  pago_proveedor: "Pago a proveedor",
-  gasto_menor: "Gasto",
-  manual: "Manual",
-  saldo_inicial: "Saldos iniciales",
-  anulacion: "Anulación",
-};
 
 interface Props {
   searchParams: Promise<ParametrosLista>;
@@ -70,8 +60,8 @@ const columnas: readonly ColumnaLista<AsientoLista>[] = [
     encabezado: "Origen",
     celda: (asiento) => {
       const hrefOrigen = rutaOrigenAsiento(asiento.origen_tipo, asiento.origen_id, asiento.id);
-      const etiquetaOrigen = ORIGENES[asiento.origen_tipo] ?? asiento.origen_tipo;
-      return hrefOrigen ? <Enlace href={hrefOrigen}>{etiquetaOrigen}</Enlace> : etiquetaOrigen;
+      const etiquetaOrigenAsiento = etiquetaOrigen(asiento.origen_tipo);
+      return hrefOrigen ? <Enlace href={hrefOrigen}>{etiquetaOrigenAsiento}</Enlace> : etiquetaOrigenAsiento;
     },
   },
   {
