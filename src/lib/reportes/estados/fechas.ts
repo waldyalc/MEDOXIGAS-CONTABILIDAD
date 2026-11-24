@@ -77,14 +77,27 @@ export function parsearBusqueda(params: ParametrosFecha): string {
   return valor?.trim() ?? "";
 }
 
-export function etiquetaMes(iso: string): string {
-  const mes = Number(iso.slice(5, 7));
-  return `${MESES[mes - 1] ?? ""}, ${iso.slice(0, 4)}`;
-}
-
 export function etiquetaDia(iso: string): string {
   const anio = iso.slice(0, 4);
   const mes = Number(iso.slice(5, 7));
   const dia = iso.slice(8, 10);
   return `${dia} ${MESES[mes - 1] ?? ""}, ${anio}`;
+}
+
+/** Rótulo compacto de una columna con rango: «1 Ago - 30 Sep, 2026». */
+export function etiquetaRangoCorto(desde: string, hasta: string): string {
+  if (desde === hasta) return etiquetaDia(desde);
+
+  const anioInicio = desde.slice(0, 4);
+  const anioFin = hasta.slice(0, 4);
+  const mesInicio = MESES[Number(desde.slice(5, 7)) - 1] ?? "";
+  const mesFin = MESES[Number(hasta.slice(5, 7)) - 1] ?? "";
+  const diaInicio = Number(desde.slice(8, 10));
+  const diaFin = Number(hasta.slice(8, 10));
+
+  if (anioInicio !== anioFin) {
+    return `${diaInicio} ${mesInicio}, ${anioInicio} - ${diaFin} ${mesFin}, ${anioFin}`;
+  }
+
+  return `${diaInicio} ${mesInicio} - ${diaFin} ${mesFin}, ${anioFin}`;
 }

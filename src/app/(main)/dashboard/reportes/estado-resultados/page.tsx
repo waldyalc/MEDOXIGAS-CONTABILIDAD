@@ -3,7 +3,12 @@ import { z } from "zod";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCentrosCostoActivos } from "@/lib/centros-costo/consultas";
 import { obtenerEstadoResultadosComparativo } from "@/lib/reportes/estados/consultas";
-import { etiquetaMes, parsearBusqueda, parsearVista, restarAnio } from "@/lib/reportes/estados/fechas";
+import {
+  compararPeriodoAnioAnterior,
+  etiquetaRangoCorto,
+  parsearBusqueda,
+  parsearVista,
+} from "@/lib/reportes/estados/fechas";
 import { generarResumenResultados } from "@/lib/reportes/estados/resumen";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 
@@ -35,8 +40,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
     }),
   ]);
 
-  const rotuloActual = etiquetaMes(hasta);
-  const rotuloAnterior = etiquetaMes(restarAnio(hasta));
+  const anterior = compararPeriodoAnioAnterior(desde, hasta);
+  const rotuloActual = etiquetaRangoCorto(desde, hasta);
+  const rotuloAnterior = etiquetaRangoCorto(anterior.desde, anterior.hasta);
   const rotuloPorcentaje = "% de Ingresos";
   const etiquetaRango = rotuloComparativo(desde, hasta);
   const parametros: ParametroOculto[] = [
@@ -61,7 +67,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         descripcion="Conoce tu desempeño financiero y obtén insumos para tomar decisiones inteligentes."
         migas={[
           { etiqueta: "Reportes", href: "/dashboard/reportes" },
-          { etiqueta: "Contables", href: "/dashboard/reportes" },
+          { etiqueta: "Contables", href: "/dashboard/reportes?categoria=Contables" },
           { etiqueta: "Estado de resultados" },
         ]}
         acciones={
