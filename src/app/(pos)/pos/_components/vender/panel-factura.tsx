@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 
-import { DialogoNuevoContacto } from "@/components/contactos/dialogo-nuevo-contacto";
+import { type ContactoCreado, DialogoNuevoContacto } from "@/components/contactos/dialogo-nuevo-contacto";
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import {
   AlertTriangle,
@@ -98,6 +98,12 @@ export interface PanelFacturaProps {
   onImprimir: (doc: { titulo: string; payload: TicketPOSPayload }) => void;
   guardandoCotizacion: boolean;
   errorCotizacion: string | null;
+  /**
+   * Se avisa antes de seleccionar el cliente para que el POS guarde el
+   * contacto recién creado en su lista y en IndexedDB: si se recarga sin red,
+   * el cliente sigue disponible.
+   */
+  onContactoCreado?: (contacto: ContactoCreado) => void;
   sinCaja?: boolean;
   idPanel?: string;
 }
@@ -123,6 +129,7 @@ export function PanelFactura({
   onImprimir,
   guardandoCotizacion,
   errorCotizacion,
+  onContactoCreado,
   sinCaja = false,
   idPanel = "panel-factura-pos",
 }: PanelFacturaProps) {
@@ -640,6 +647,7 @@ export function PanelFactura({
         onOpenChange={setNuevoCliente}
         tipoInicial="cliente"
         onCreado={(contacto) => {
+          onContactoCreado?.(contacto);
           carrito.setContacto(contacto.id);
           setNuevoCliente(false);
           onAnunciar(`Cliente ${contacto.nombre} creado y seleccionado.`);
