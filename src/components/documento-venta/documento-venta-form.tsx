@@ -1104,6 +1104,7 @@ interface BasePapelFormulario {
   fecha: string;
   vencimiento: string;
   lineas: DocumentoLinea[];
+  /** Subtotal neto (bruto − descuento), como se guarda en la base. */
   subtotal: number;
   descuento: number;
   itbis: number;
@@ -1275,7 +1276,8 @@ function VistaPreviaDocumento({
     fecha,
     vencimiento: conVencimiento ? vencimiento : fecha,
     lineas: lineasParaPapel(lineas, calculadas, productos),
-    subtotal: centavosAValor(totales.subtotalCentavos),
+    // La base y el papel guardan/muestran el subtotal neto; el papel le suma el descuento.
+    subtotal: centavosAValor(totales.subtotalCentavos - totales.descuentoCentavos),
     descuento: centavosAValor(totales.descuentoCentavos),
     itbis: centavosAValor(totales.itbisCentavos),
     total: centavosAValor(totales.totalCentavos),

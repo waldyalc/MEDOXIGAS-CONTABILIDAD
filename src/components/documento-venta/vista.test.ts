@@ -118,7 +118,7 @@ describe("permisos de la vista", () => {
   });
 
   test("factura cobrada no permite agregar pago ni nota de crédito", () => {
-    expect(permisosDeFactura("abierta", 0, true)).toEqual({
+    expect(permisosDeFactura("abierta", 0, true, { tienePagos: true })).toEqual({
       pagar: false,
       notaCredito: false,
       notaDebito: true,
@@ -128,6 +128,15 @@ describe("permisos de la vista", () => {
       editar: false,
       clonar: true,
     });
+  });
+
+  test("factura sin pagos permite nota de crédito aunque el saldo sea cero", () => {
+    expect(permisosDeFactura("abierta", 0, true, { tienePagos: false }).notaCredito).toBe(true);
+  });
+
+  test("no se puede anular una factura con notas de crédito o débito activas", () => {
+    expect(permisosDeFactura("abierta", 500, true, { tieneNotasActivas: true }).anular).toBe(false);
+    expect(permisosDeFactura("abierta", 500, true, { tieneNotasActivas: false }).anular).toBe(true);
   });
 
   test("factura anulada o lector no puede nada salvo clonar", () => {

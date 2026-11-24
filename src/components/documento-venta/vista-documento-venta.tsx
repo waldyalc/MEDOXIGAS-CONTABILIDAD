@@ -85,7 +85,8 @@ import {
   rutaProducto,
 } from "@/lib/enlaces";
 import { anularFactura, obtenerMotivosAnulacion } from "@/lib/facturacion/acciones";
-import { tituloTipoComprobante } from "@/lib/facturacion/comprobantes";
+import { subtotalBruto } from "@/lib/facturacion/calculo";
+import { etiquetaTipoComprobante, tituloTipoComprobante } from "@/lib/facturacion/comprobantes";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
 import type {
   AsientoVista,
@@ -131,10 +132,10 @@ const METODOS_PAGO: Record<PagoFacturaVista["metodo"], string> = {
   cheque: "Cheque",
 };
 
-const COMPROBANTES = [
-  { value: "02", label: "02 Consumo" },
-  { value: "01", label: "01 Crédito fiscal" },
-] as const;
+const COMPROBANTES = ["02", "01", "14", "15", "16"].map((valor) => ({
+  value: valor,
+  label: etiquetaTipoComprobante(valor),
+}));
 
 const BOTON_ICONO = "size-10 rounded-[10px] border-slate-400/40";
 const BOTON_TEXTO = "h-9 rounded-[10px] border-slate-400/40 px-4";
@@ -440,7 +441,7 @@ function TotalesDocumento({
       <div className="text-muted-foreground w-80 max-w-full text-base">
         <div className="flex h-6 items-center justify-between gap-4">
           <span>Subtotal</span>
-          <span className="tabular-nums">{formatoMoneda(subtotal)}</span>
+          <span className="tabular-nums">{formatoMoneda(subtotalBruto(subtotal, descuento))}</span>
         </div>
         <div className="flex h-6 items-center justify-between gap-4">
           <span>Descuento</span>
@@ -1203,6 +1204,7 @@ function DialogoAnular({
   abierto,
   onOpenChange,
   ncf,
+  fechaDocumento,
   pendiente,
   error,
   motivos,
@@ -1213,6 +1215,7 @@ function DialogoAnular({
   abierto: boolean;
   onOpenChange: (abierto: boolean) => void;
   ncf: string | null;
+  fechaDocumento: string;
   pendiente: boolean;
   error: string | null;
   motivos: readonly OpcionSelect[];
@@ -1234,7 +1237,7 @@ function DialogoAnular({
 
         <form id="formulario-anular-factura" onSubmit={onAnular} className="flex flex-col gap-4">
           <FormField htmlFor="fecha-anulacion" label="Fecha de anulación" required>
-            <DatePickerCampo id="fecha-anulacion" name="fecha" defaultValue={hoyRd()} />
+            <DatePickerCampo id="fecha-anulacion" name="fecha" defaultValue={hoyRd()} min={fechaDocumento} />
           </FormField>
 
           <FormField htmlFor="motivo-anulacion" label="Motivo de anulación" required>
@@ -1348,6 +1351,7 @@ function prepararVista(props: Props): VistaPreparada | null {
   const resumen = factura ? resumenFactura(factura) : null;
   const saldoPorCobrar = resumen?.porCobrar ?? 0;
   const tipo = props.tipo;
+  const notasActivas = [...notasCredito, ...notasDebito].some((nota) => nota.estado !== "anulada");
 
   return {
     factura,
@@ -1372,7 +1376,10 @@ function prepararVista(props: Props): VistaPreparada | null {
     descuento: factura ? factura.descuento : descuentoDeLineas(lineas),
     permisos:
       props.tipo === "factura"
-        ? permisosDeFactura(base.estado, saldoPorCobrar, props.puedeEscribir)
+        ? permisosDeFactura(base.estado, saldoPorCobrar, props.puedeEscribir, {
+            tieneNotasActivas: notasActivas,
+            tienePagos: (factura?.pagado ?? 0) > 0,
+          })
         : permisosDeDocumento(base.estado, props.puedeEscribir, props.tipo),
     titulo: factura
       ? `${tituloTipoComprobante(factura.tipo_comprobante)}${factura.ncf ? ` NCF ${factura.ncf}` : ""}`
@@ -1519,6 +1526,10 @@ function useAccionesVista({
 
     if (!fecha) {
       setError("Selecciona la fecha de anulación.");
+      return;
+    }
+    if (fecha < factura.fecha) {
+      setError("La fecha de anulación no puede ser anterior a la fecha de la factura.");
       return;
     }
     if (fecha > hoyRd()) {
@@ -1692,6 +1703,7 @@ export function VistaDocumentoVenta(props: Props) {
         abierto={acciones.anularAbierto}
         onOpenChange={acciones.cambiarAnular}
         ncf={factura?.ncf ?? null}
+        fechaDocumento={factura?.fecha ?? base.fecha}
         pendiente={acciones.pendiente}
         error={acciones.error}
         motivos={acciones.motivos}

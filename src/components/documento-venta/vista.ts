@@ -52,15 +52,27 @@ function sinPermisos(): PermisosVista {
   };
 }
 
-export function permisosDeFactura(estado: string, porCobrar: number, puedeEscribir: boolean): PermisosVista {
+export interface OpcionesPermisosFactura {
+  /** La factura tiene notas de crédito o de débito activas: la anulación se bloquea. */
+  tieneNotasActivas?: boolean;
+  /** La factura tiene pagos recibidos: la nota de crédito solo aplica si queda saldo. */
+  tienePagos?: boolean;
+}
+
+export function permisosDeFactura(
+  estado: string,
+  porCobrar: number,
+  puedeEscribir: boolean,
+  opciones: OpcionesPermisosFactura = {},
+): PermisosVista {
   if (!puedeEscribir) return sinPermisos();
   if (estado === "anulada") return { ...sinPermisos(), clonar: true };
 
   return {
     pagar: estado === "abierta" && porCobrar > 0,
-    notaCredito: porCobrar > 0,
+    notaCredito: !opciones.tienePagos || porCobrar > 0,
     notaDebito: true,
-    anular: true,
+    anular: !opciones.tieneNotasActivas,
     convertir: false,
     convertirEnConduce: false,
     editar: false,

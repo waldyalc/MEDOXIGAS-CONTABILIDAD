@@ -7,6 +7,7 @@ import {
   centavosAValor,
   parsearCantidad,
   parsearCentavos,
+  subtotalBruto,
   valorACentavos,
 } from "./calculo";
 
@@ -120,5 +121,20 @@ describe("totales de la factura", () => {
     expect(parsearCantidad("2,25")).toBe(2.25);
     expect(parsearCantidad("0")).toBe(0);
     expect(parsearCantidad(undefined)).toBe(0);
+  });
+});
+
+describe("subtotalBruto", () => {
+  test("devuelve el bruto que se muestra junto a la fila Descuento", () => {
+    // La base guarda 323.10 neto y 35.90 de descuento: la vista muestra RD$359.00.
+    expect(subtotalBruto(323.1, 35.9)).toBe(359);
+  });
+
+  test("sin descuento deja el subtotal igual", () => {
+    expect(subtotalBruto(1000, 0)).toBe(1000);
+  });
+
+  test("suma en centavos enteros, sin arrastrar flotantes", () => {
+    expect(subtotalBruto(0.1, 0.2)).toBe(0.3);
   });
 });
