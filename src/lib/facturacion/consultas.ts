@@ -59,18 +59,26 @@ export const getEmpresa = cache(async (): Promise<Empresa | null> => {
   return data;
 });
 
+/**
+ * Todos los clientes activos, sin el tope de 1,000 filas de PostgREST: el POS
+ * los guarda completos en IndexedDB y busca en local sin pedir nada al servidor.
+ */
 export async function getContactosClientes(): Promise<ContactoResumen[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("contactos")
-    .select("id, nombre, rnc_cedula, direccion, telefono, lista_precio_id")
-    .eq("activo", true)
-    .in("tipo", ["cliente", "ambos"])
-    .order("nombre")
-    .returns<ContactoResumen[]>();
+  const { data, error } = await paginarConsulta((inicio, fin) =>
+    supabase
+      .from("contactos")
+      .select("id, nombre, rnc_cedula, direccion, telefono, lista_precio_id")
+      .eq("activo", true)
+      .in("tipo", ["cliente", "ambos"])
+      .order("nombre")
+      .order("id")
+      .range(inicio, fin)
+      .returns<ContactoResumen[]>(),
+  );
 
   if (error) throw new Error(error.message);
-  return data;
+  return data ?? [];
 }
 
 export async function getProductosActivos(): Promise<ProductoResumen[]> {
