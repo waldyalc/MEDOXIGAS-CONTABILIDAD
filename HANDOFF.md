@@ -39,6 +39,41 @@ Todo el trabajo del POS tipo Alegra más la infraestructura de agentes, en tres 
 - Vercel: producción desplegada; MSG-52 (construir solo `main`) queda por configurar en el panel o por API (Ignorar Build Step: `if [ "$VERCEL_GIT_COMMIT_REF" = "main" ]; then exit 1; else exit 0; fi`).
 - Preview oficial: https://medoxigas-agentes.tail25e53a.ts.net → `medoxigas-preview.service` (`pnpm start`, puerto 3010; rebuild + restart tras mergear).
 
+## Contabilidad: cierre anual de resultados corregido (rama `fix/contab-cierre-resultados`, auditoría 24-11-2026)
+
+Auditoría de `main`: el cierre anual no cerraba los 12 meses, permitía cerrar
+el año en curso y el asiento de cierre dejaba el Estado de Resultados del año
+en RD$0.00.
+
+- **Migración nueva** `supabase/migrations/20261126140000_fix_cierre_resultados.sql`
+  (`create or replace` de los cuerpos originales; ninguna migración aplicada se
+  editó):
+  - `cerrar_resultados_anio`: rechaza `p_anio >= año actual` (22023) y usa el
+    año anterior como default; después de crear el asiento de cierre marca los
+    12 meses del año en `periodos_contables` (los ya cerrados conservan su
+    fecha y usuario).
+  - `_validar_periodo_abierto` y `reabrir_periodo`: rechazan cualquier
+    fecha/periodo de un año presente en `cierres_resultados` (23514), aunque
+    sus meses se reabran por SQL. Se bloquean así los asientos huérfanos.
+  - `reporte_estado_resultados` y `reporte_estado_resultados_centro`: excluyen
+    el asiento de cierre por `cierres_resultados.asiento_id`. El asiento sigue
+    en el libro diario y conserva `origen_tipo = 'manual'` (compatible con
+    `anular_documento` y el CHECK vigente).
+- **Panel** (`panel-periodos.tsx` + `puedeCerrarResultados` en
+  `src/lib/periodos/validacion.ts`): «Cerrar resultados del año» se bloquea
+  para el año en curso y los futuros, y el aviso dice que el cierre también
+  marca los 12 meses.
+- **Candados:** `supabase/tests/cierre_resultados_anio_test.sql` (15 asserts:
+  año en curso/futuro, 12 meses cerrados, P&G del año/centro/diciembre sin el
+  asiento de cierre, asiento bloqueado con los meses reabiertos, reapertura
+  bloqueada e idempotencia); `periodos_cierre_test.sql` actualizado para usar
+  un año terminado y probar el aislamiento mayo/junio antes del cierre;
+  `src/lib/periodos/cierre-resultados.test.ts` fija la regla y el aviso del
+  panel.
+- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1729 passed, 3
+  skipped) y `scripts/pgtap-local.sh` (suite completa en verde) en verde. Sin
+  push ni merge; la migración no se aplicó al remoto.
+
 ## POS 18: la estrella marcada se ve rellena (rama `fix/pos-favoritos-estrella-rellena`, MSG-31)
 
 Corrección de Waldy sobre el PR #128: en las capturas la estrella marcada se veía igual que la vacía.
