@@ -90,6 +90,8 @@ interface ValorCarrito {
   quitarCotizacion: () => void;
   vaciarPestana: () => void;
   reiniciarTrasVenta: () => void;
+  /** Vuelve a cargar en el carrito una venta offline fallida para editarla y recobrarla. */
+  cargarVentaOffline: (pestana: unknown) => void;
   aplicarPreciosDeLista: (precios: Record<string, Decimal>) => void;
   cantidadDeProducto: (productoId: string) => number;
   totales: TotalesCarritoPOS;
@@ -126,6 +128,59 @@ function siguienteNombre(pestanas: readonly PestanaVenta[]): string {
   let numero = 1;
   while (usados.has(`Venta ${numero}`)) numero += 1;
   return `Venta ${numero}`;
+}
+
+function esCadenaONulo(valor: unknown): boolean {
+  return typeof valor === "string" || valor === null;
+}
+
+/** Lo guardado en IndexedDB es `unknown`: se valida antes de tocar el carrito. */
+function esLineaCarrito(valor: unknown): valor is LineaCarrito {
+  if (typeof valor !== "object" || valor === null) return false;
+  const campos = valor as Record<string, unknown>;
+
+  return (
+    typeof campos.id === "string" &&
+    esCadenaONulo(campos.productoId) &&
+    typeof campos.descripcion === "string" &&
+    esCadenaONulo(campos.referencia) &&
+    typeof campos.cantidad === "string" &&
+    esCadenaONulo(campos.unidadId) &&
+    esCadenaONulo(campos.unidadNombre) &&
+    esCadenaONulo(campos.unidadBase) &&
+    esCadenaONulo(campos.factorBase) &&
+    typeof campos.precio === "string" &&
+    esCadenaONulo(campos.precioBase) &&
+    typeof campos.precioManual === "boolean" &&
+    typeof campos.descuentoPct === "string" &&
+    typeof campos.itbisTasa === "string" &&
+    esCadenaONulo(campos.impuestoId) &&
+    Array.isArray(campos.unidades) &&
+    typeof campos.tipo === "string"
+  );
+}
+
+function leerPestanaOffline(valor: unknown): PestanaVenta | null {
+  if (typeof valor !== "object" || valor === null) return null;
+  const campos = valor as Record<string, unknown>;
+  if (typeof campos.id !== "string" || !Array.isArray(campos.lineas)) return null;
+
+  const lineas: LineaCarrito[] = [];
+  for (const item of campos.lineas) {
+    if (!esLineaCarrito(item)) return null;
+    lineas.push(item);
+  }
+
+  return {
+    id: campos.id,
+    nombre: typeof campos.nombre === "string" ? campos.nombre : "Venta",
+    lineas,
+    contactoId: typeof campos.contactoId === "string" ? campos.contactoId : "",
+    listaPrecioId: typeof campos.listaPrecioId === "string" ? campos.listaPrecioId : "",
+    numeracionId: typeof campos.numeracionId === "string" ? campos.numeracionId : "",
+    vendedorId: typeof campos.vendedorId === "string" ? campos.vendedorId : "",
+    cotizacion: null,
+  };
 }
 
 export function totalesDeLinea(linea: LineaCarrito): TotalesLineaPOS {
@@ -498,6 +553,47 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
     }));
   }, [cambiarActiva, defaults]);
 
+  /**
+   * Una venta offline fallida vuelve al carrito tal como se cobró (líneas,
+   * cliente, lista, numeración y vendedor) para corregirla y recobrarla. Va a
+   * la pestaña activa si está vacía; si no, a una pestaña nueva, y si ya no
+   * caben pestañas reemplaza la activa.
+   */
+  const cargarVentaOffline = useCallback(
+    (valor: unknown) => {
+      const origen = leerPestanaOffline(valor);
+      if (!origen) return;
+
+      const contenido = {
+        lineas: origen.lineas.map((linea) => ({ ...linea, id: nuevoId() })),
+        cotizacion: null,
+        contactoId: origen.contactoId,
+        listaPrecioId: origen.listaPrecioId,
+        numeracionId: origen.numeracionId || defaults.numeracionId,
+        vendedorId: origen.vendedorId,
+      };
+
+      const actual = pestanas.find((pestana) => pestana.id === activaId) ?? pestanas[0];
+      if (!actual) return;
+
+      if (actual.lineas.length === 0 && actual.cotizacion === null) {
+        setPestanas(pestanas.map((pestana) => (pestana.id === actual.id ? { ...pestana, ...contenido } : pestana)));
+        return;
+      }
+
+      if (pestanas.length < MAXIMO_PESTANAS) {
+        const nombre = origen.nombre.trim() === "" ? siguienteNombre(pestanas) : origen.nombre;
+        const nueva: PestanaVenta = { ...crearPestana(nombre, defaults), ...contenido };
+        setPestanas([...pestanas, nueva]);
+        setActivaId(nueva.id);
+        return;
+      }
+
+      setPestanas(pestanas.map((pestana) => (pestana.id === actual.id ? { ...pestana, ...contenido } : pestana)));
+    },
+    [activaId, defaults, pestanas],
+  );
+
   const aplicarPreciosDeLista = useCallback(
     (precios: Record<string, Decimal>) => {
       cambiarActiva((pestana) => {
@@ -585,6 +681,7 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
     quitarCotizacion,
     vaciarPestana,
     reiniciarTrasVenta,
+    cargarVentaOffline,
     aplicarPreciosDeLista,
     cantidadDeProducto,
     totales,

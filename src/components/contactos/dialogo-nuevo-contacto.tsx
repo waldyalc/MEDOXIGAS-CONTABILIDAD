@@ -39,6 +39,9 @@ export interface ContactoCreado {
   id: string;
   nombre: string;
   rnc_cedula: string | null;
+  /** Datos extra que el POS necesita para pintar y guardar el cliente sin volver al servidor. */
+  direccion?: string | null;
+  telefono?: string | null;
 }
 
 interface Props {
@@ -189,7 +192,13 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
           return;
         }
 
-        onCreado({ id: resultado.id, nombre: datos.nombre, rnc_cedula: datos.rnc_cedula });
+        onCreado({
+          id: resultado.id,
+          nombre: datos.nombre,
+          rnc_cedula: datos.rnc_cedula,
+          direccion: direccion.trim() || null,
+          telefono: telefono.trim() || null,
+        });
       } catch {
         setError("No se pudo guardar el contacto. Intenta de nuevo.");
       } finally {

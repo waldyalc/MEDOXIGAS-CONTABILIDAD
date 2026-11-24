@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -18,11 +18,20 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import type { Empresa } from "@/lib/facturacion/tipos";
 import { leerTamano, type ParametrosLista, type ResumenPagina } from "@/lib/listas/parametros";
+import {
+  combinarHistorialPOS,
+  idDeItemHistorial,
+  proyectarVentasLocales,
+  type VentaLocalHistorial,
+} from "@/lib/pos/historial-offline";
 import { armarTicketFactura } from "@/lib/pos/impresion";
 import type { HistorialPOSFila, PlantillaTicket, VentaPOSResultado } from "@/lib/pos/tipos";
 
 import { ticketVentaPOS } from "../acciones-pos";
+import { useCarritoPOS } from "../carrito-pos-provider";
 import { capitalizar } from "../formato-pos";
+import { useOfflinePOS } from "../offline-pos-provider";
+import { DetalleVentaOffline } from "./detalle-venta-offline";
 import { DetalleVentaPos } from "./detalle-venta-pos";
 import { FiltrosHistorial } from "./filtros-historial";
 import { ListaVentas } from "./lista-ventas";
@@ -55,10 +64,29 @@ export function HistorialPos({
   error?: string | null;
 }) {
   const router = useRouter();
+  const offline = useOfflinePOS();
+  const carrito = useCarritoPOS();
   const [detalleId, setDetalleId] = useState<string | null>(() => filas[0]?.id ?? null);
   const [detalleMovil, setDetalleMovil] = useState(false);
   const [imprimiendo, setImprimiendo] = useState<string | null>(null);
   const [trabajo, setTrabajo] = useState<VentaPOSResultado | null>(null);
+
+  // Las ventas guardadas en este dispositivo se suman a las del servidor sin
+  // duplicar las que ya subieron.
+  const ventasLocales = useMemo(() => proyectarVentasLocales(offline.operaciones, filas), [filas, offline.operaciones]);
+  const items = useMemo(() => combinarHistorialPOS(filas, ventasLocales), [filas, ventasLocales]);
+  const seleccion = items.find((item) => idDeItemHistorial(item) === detalleId) ?? null;
+
+  const sincronizadas = offline.operaciones.filter(
+    (operacion) => operacion.tipo === "venta" && operacion.estado === "sincronizada",
+  ).length;
+  const sincronizadasPrevias = useRef(sincronizadas);
+
+  // Cuando una venta sube, se recarga la factura real con su NCF definitivo.
+  useEffect(() => {
+    if (sincronizadas > sincronizadasPrevias.current) router.refresh();
+    sincronizadasPrevias.current = sincronizadas;
+  }, [router, sincronizadas]);
 
   async function imprimir(fila: HistorialPOSFila) {
     setImprimiendo(fila.id);
@@ -81,6 +109,13 @@ export function HistorialPos({
   function seleccionar(id: string) {
     setDetalleId(id);
     setDetalleMovil(true);
+  }
+
+  /** Devuelve la venta al carrito, borra la copia fallida y abre el POS para recobrarla. */
+  async function editarVentaLocal(venta: VentaLocalHistorial) {
+    carrito.cargarVentaOffline(venta.pestana);
+    if (venta.estado === "error") await offline.descartarOperacion(venta.uuid);
+    router.push("/pos");
   }
 
   return (
@@ -110,7 +145,7 @@ export function HistorialPos({
             <FiltrosHistorial params={params} desde={desde} hasta={hasta} terminales={terminales} />
           </BarraLista>
 
-          {filas.length === 0 ? (
+          {items.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-4 py-16 text-center">
               <ReceiptText className="text-muted-foreground size-8" aria-hidden="true" />
               {hayFiltros ? (
@@ -139,7 +174,7 @@ export function HistorialPos({
                 )}
               >
                 <ListaVentas
-                  filas={filas}
+                  items={items}
                   seleccionado={detalleId}
                   imprimiendo={imprimiendo}
                   onSeleccionar={seleccionar}
@@ -168,17 +203,29 @@ export function HistorialPos({
                     <ArrowLeft aria-hidden="true" />
                     Ventas
                   </Button>
-                  <DetalleVentaPos
-                    facturaId={detalleId}
-                    onCerrar={() => {
-                      setDetalleId(null);
-                      setDetalleMovil(false);
-                    }}
-                    empresa={empresa}
-                    plantillaTicket={plantillaTicket}
-                    plantillaFactura={plantillaFactura}
-                    puedeEscribir={puedeEscribir}
-                  />
+                  {seleccion?.origen === "local" ? (
+                    <DetalleVentaOffline
+                      venta={seleccion.venta}
+                      empresa={empresa}
+                      plantillaTicket={plantillaTicket}
+                      estado={offline.estado}
+                      onReintentar={() => void offline.reintentarOperacion(seleccion.venta.uuid)}
+                      onEditar={() => void editarVentaLocal(seleccion.venta)}
+                      onDescartar={() => void offline.descartarOperacion(seleccion.venta.uuid)}
+                    />
+                  ) : (
+                    <DetalleVentaPos
+                      facturaId={seleccion?.origen === "servidor" ? seleccion.fila.id : null}
+                      onCerrar={() => {
+                        setDetalleId(null);
+                        setDetalleMovil(false);
+                      }}
+                      empresa={empresa}
+                      plantillaTicket={plantillaTicket}
+                      plantillaFactura={plantillaFactura}
+                      puedeEscribir={puedeEscribir}
+                    />
+                  )}
                 </div>
               </div>
             </div>

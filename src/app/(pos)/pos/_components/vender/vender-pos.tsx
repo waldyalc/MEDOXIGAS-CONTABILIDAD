@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
+import type { ContactoCreado } from "@/components/contactos/dialogo-nuevo-contacto";
 import { ReceiptText } from "@/components/icons";
 import { ImpresionPos } from "@/components/pos/impresion-pos";
 import { TicketPos } from "@/components/pos/ticket-pos";
@@ -17,6 +18,7 @@ import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { crearCotizacionPOS } from "@/lib/pos/acciones";
 import { conBloqueoOffline, guardarOffline, leerOffline } from "@/lib/pos/almacen-offline";
+import { cargarCatalogoCompletoOffline } from "@/lib/pos/cache-catalogo-offline";
 import { enlaceCotizacionPOS, payloadCotizacionPOS } from "@/lib/pos/cotizaciones";
 import { filtrarFavoritosPOS } from "@/lib/pos/favoritos";
 import type { TicketPOSPayload } from "@/lib/pos/impresion";
@@ -130,6 +132,8 @@ export function VenderPos({
   const [impresionDoc, setImpresionDoc] = useState<{ titulo: string; payload: TicketPOSPayload } | null>(null);
   const [esEscritorio, setEsEscritorio] = useState(false);
   const [turnoActual, setTurnoActual] = useState(turno);
+  const [listaContactos, setListaContactos] = useState<ContactoResumen[]>(contactos);
+  const [contactosHidratados, setContactosHidratados] = useState(false);
 
   useEffect(() => {
     setTurnoActual(turno);
@@ -154,6 +158,12 @@ export function VenderPos({
   carritoRef.current = carrito;
   const catalogoRef = useRef(catalogo);
   catalogoRef.current = catalogo;
+  const contactosRef = useRef(listaContactos);
+  contactosRef.current = listaContactos;
+  const estadoConexionRef = useRef(estadoConexion);
+  estadoConexionRef.current = estadoConexion;
+  const generacionCatalogo = useRef(0);
+  const conexionPrevia = useRef(estadoConexion);
 
   const numeracionValida = numeraciones.some((numeracion) => numeracion.id === carrito.activa.numeracionId);
   const sinCaja = !cuentas.some((cuenta) => cuenta.id === terminal.cuenta_efectivo_id);
@@ -171,65 +181,127 @@ export function VenderPos({
     sheetAbierto ||
     confirmacionCotizacion !== null;
 
+  // Los contactos del servidor mandan; lo creado en este dispositivo y aún
+  // sin refrescar se conserva.
   useEffect(() => {
-    if (estadoConexion === "offline" || !navigator.onLine) return;
-    let vigente = true;
-    async function prepararCache() {
-      await guardarOffline("contactos", ambito, contactos);
-      await guardarOffline("config", `${ambito}/venta`, {
-        terminal,
-        turno,
-        empresa,
-        numeraciones,
-        listas,
-        cuentas,
-        vendedores,
-      });
-      const acumulados: ProductoPOS[] = [];
-      for (let offset = 0; vigente && navigator.onLine; offset += TAMANO_LOTE) {
-        const respuesta = await buscarCatalogoPOS({
-          terminal_id: terminal.id,
-          ...(listaPrecioId ? { lista_precio_id: listaPrecioId } : {}),
-          limit: TAMANO_LOTE,
-          offset,
-        });
-        if (!respuesta.ok || !vigente) return;
-        acumulados.push(...respuesta.data);
-        await conBloqueoOffline(`${ambito}/catalogo`, () =>
-          guardarOffline("catalogo", `${ambito}/${listaPrecioId}`, {
-            productos: acumulados,
-            actualizado: new Date().toISOString(),
-            completo: respuesta.data.length < TAMANO_LOTE,
-          }),
-        );
-        if (respuesta.data.length < TAMANO_LOTE) return;
+    setListaContactos((actuales) => {
+      const porId = new Map(contactos.map((contacto) => [contacto.id, contacto]));
+      for (const local of actuales) {
+        if (!porId.has(local.id)) porId.set(local.id, local);
       }
+      return [...porId.values()];
+    });
+  }, [contactos]);
+
+  // Sin red, los clientes creados antes de recargar viven solo en IndexedDB.
+  useEffect(() => {
+    if (estadoConexion !== "offline" && navigator.onLine) {
+      setContactosHidratados(true);
+      return;
     }
-    void prepararCache().catch(() =>
-      setErrorCatalogo("No se pudo preparar el catálogo offline. Mantén la conexión hasta completar la preparación."),
-    );
+    let vigente = true;
+    void (async () => {
+      const guardados = await leerOffline<ContactoResumen[]>("contactos", ambito).catch(() => undefined);
+      if (!vigente) return;
+      if (guardados?.length) {
+        setListaContactos((actuales) => {
+          const porId = new Map(actuales.map((contacto) => [contacto.id, contacto]));
+          for (const guardado of guardados) {
+            if (!porId.has(guardado.id)) porId.set(guardado.id, guardado);
+          }
+          return [...porId.values()];
+        });
+      }
+      setContactosHidratados(true);
+    })();
     return () => {
       vigente = false;
     };
-  }, [
-    ambito,
-    estadoConexion,
-    listaPrecioId,
-    terminal,
-    turno,
-    empresa,
-    numeraciones,
-    listas,
-    cuentas,
-    vendedores,
-    contactos,
-  ]);
+  }, [ambito, estadoConexion]);
+
+  // Escrituras locales baratas: no paginan el catálogo ni dependen del refresco.
+  useEffect(() => {
+    if (!contactosHidratados) return;
+    void guardarOffline("contactos", ambito, listaContactos).catch(() => undefined);
+  }, [ambito, contactosHidratados, listaContactos]);
+
+  useEffect(() => {
+    void guardarOffline("config", `${ambito}/venta`, {
+      terminal,
+      turno,
+      empresa,
+      numeraciones,
+      listas,
+      cuentas,
+      vendedores,
+    }).catch(() => undefined);
+  }, [ambito, terminal, turno, empresa, numeraciones, listas, cuentas, vendedores]);
+
+  /**
+   * Descarga el catálogo completo y lo guarda una sola vez, al final: si la red
+   * cae a mitad, el catálogo offline anterior queda intacto. Solo depende de
+   * ámbito, terminal y lista, así que `router.refresh()` tras cada venta no la
+   * reinicia.
+   */
+  const prepararCatalogo = useCallback(async () => {
+    if (estadoConexionRef.current === "offline" || !navigator.onLine) return;
+
+    const generacion = generacionCatalogo.current + 1;
+    generacionCatalogo.current = generacion;
+    const completo = await cargarCatalogoCompletoOffline({
+      obtenerLote: (offset, limit) =>
+        buscarCatalogoPOS({
+          terminal_id: terminal.id,
+          ...(listaPrecioId ? { lista_precio_id: listaPrecioId } : {}),
+          limit,
+          offset,
+        }),
+      guardar: (valor) =>
+        conBloqueoOffline(`${ambito}/catalogo`, () => guardarOffline("catalogo", `${ambito}/${listaPrecioId}`, valor)),
+      sigueVigente: () => generacionCatalogo.current === generacion,
+    }).catch(() => false);
+
+    if (!completo && generacionCatalogo.current === generacion) {
+      setErrorCatalogo("No se pudo preparar el catálogo offline. Mantén la conexión hasta completar la preparación.");
+    }
+  }, [ambito, terminal.id, listaPrecioId]);
+
+  useEffect(() => {
+    void prepararCatalogo();
+    return () => {
+      generacionCatalogo.current += 1;
+    };
+  }, [prepararCatalogo]);
+
+  // Al recuperar la conexión se completa el catálogo que quedó pendiente.
+  useEffect(() => {
+    const anterior = conexionPrevia.current;
+    conexionPrevia.current = estadoConexion;
+    if (anterior === "offline" && estadoConexion !== "offline") void prepararCatalogo();
+  }, [estadoConexion, prepararCatalogo]);
+
+  function onContactoCreado(contacto: ContactoCreado) {
+    const resumen: ContactoResumen = {
+      id: contacto.id,
+      nombre: contacto.nombre,
+      rnc_cedula: contacto.rnc_cedula,
+      direccion: contacto.direccion ?? null,
+      telefono: contacto.telefono ?? null,
+    };
+    const actualizados = [...contactosRef.current.filter((actual) => actual.id !== resumen.id), resumen];
+    contactosRef.current = actualizados;
+    setListaContactos(actualizados);
+    void guardarOffline("contactos", ambito, actualizados).catch(() =>
+      setAvisoCatalogo("El cliente se creó, pero no se pudo guardar en este dispositivo."),
+    );
+  }
+
   // El carrito siempre tiene un cliente (el de la terminal o el que se elija):
   // «Cargar cotización» muestra solo las suyas, como Alegra.
   const contactoDelCarrito = carrito.activa.contactoId;
   const filtroCotizacionId = contactoDelCarrito === "" ? undefined : contactoDelCarrito;
   const filtroCotizacionNombre = filtroCotizacionId
-    ? (contactos.find((contacto) => contacto.id === filtroCotizacionId)?.nombre ?? null)
+    ? (listaContactos.find((contacto) => contacto.id === filtroCotizacionId)?.nombre ?? null)
     : null;
 
   const cargarCatalogo = useCallback(
@@ -647,7 +719,7 @@ export function VenderPos({
               numeraciones={numeraciones}
               listas={listas}
               vendedores={vendedores}
-              contactos={contactos}
+              contactos={listaContactos}
               consumidorFinalId={consumidorFinalId}
               impuestos={impuestos}
               puedeEscribir
@@ -659,6 +731,7 @@ export function VenderPos({
               onCancelarVenta={() => inputRef.current?.focus()}
               onAnunciar={setAnuncio}
               onImprimir={setImpresionDoc}
+              onContactoCreado={onContactoCreado}
               guardandoCotizacion={guardandoCotizacion}
               errorCotizacion={errorCotizacion}
             />
@@ -701,7 +774,7 @@ export function VenderPos({
                 numeraciones={numeraciones}
                 listas={listas}
                 vendedores={vendedores}
-                contactos={contactos}
+                contactos={listaContactos}
                 consumidorFinalId={consumidorFinalId}
                 impuestos={impuestos}
                 puedeEscribir
@@ -726,6 +799,7 @@ export function VenderPos({
                 }}
                 onAnunciar={setAnuncio}
                 onImprimir={setImpresionDoc}
+                onContactoCreado={onContactoCreado}
                 guardandoCotizacion={guardandoCotizacion}
                 errorCotizacion={errorCotizacion}
               />
@@ -746,7 +820,7 @@ export function VenderPos({
         turno={turnoActual}
         empresa={empresa}
         cuentas={cuentas}
-        contactos={contactos}
+        contactos={listaContactos}
         consumidorFinalId={consumidorFinalId}
         plantillaTicket={terminal.plantilla_ticket}
         plantillaFactura={plantillaFactura}
