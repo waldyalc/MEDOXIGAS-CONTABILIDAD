@@ -1,5 +1,17 @@
 # Handoff — Medoxigas Contabilidad
 
+## Factura, NC y ND: totales, anulación y series (rama `fix/factura-ui-totales-y-anular`, 24-11-2026)
+
+Mitades de UI de seis bugs de la auditoría de facturación. **Solo TS/TSX**: sin migraciones ni SQL.
+
+- **Subtotal bruto junto a Descuento (bug 3):** la base guarda `subtotal` neto (`bruto − descuento`) y la vista/impresión lo mostraban tal cual al lado de la fila Descuento, así que Subtotal + impuestos no cuadraba con el Total. Nuevo `subtotalBruto()` en `src/lib/facturacion/calculo.ts` (suma en centavos) usado por `vista-documento-venta.tsx`, `documento-papel.tsx` y el papel de la ND; `nota-credito-form.tsx` ahora renderiza la fila Descuento cuando `totales.descuentoCentavos > 0`. La vista previa del formulario de factura pasa el subtotal neto al papel (antes le pasaba el bruto y el papel lo habría contado dos veces).
+- **CDT 2 % y propina 10 % en B03/B04 (bug 4):** `getNotaCreditoVista` y `getNotaDebitoVista` piden `otros_impuestos` y `propina`; las tipos y las cuatro vistas (página y papel de NC y ND) usan `filasTotalesNota()` (`src/lib/facturacion/totales-nota.ts`), que arma Subtotal bruto, Descuento (solo si > 0), ITBIS, Otros impuestos (solo si > 0) y Propina (solo si > 0), en el mismo orden que la factura y el ticket POS.
+- **Anulación y tope de NC (bugs 1 y 7):** `permisosDeFactura()` recibe opciones `tieneNotasActivas` y `tienePagos`. Con cualquier nota de crédito o débito activa el botón Anular se deshabilita (la vista ya traía las notas de `getFacturaVista`, no hace falta consulta extra); la nota de crédito queda en `saldo > 0` cuando la factura tiene pagos y disponible cuando no se ha cobrado nada.
+- **Fecha de anulación (bug 6):** el diálogo valida `fecha >= factura.fecha` con mensaje en español y el calendario deshabilita los días anteriores (`DatePicker`/`DatePickerCampo` aceptan `min`/`max`). El 608 ya filtraba por `fecha_anulacion` (`anulados.ts`) y exporta la fecha del comprobante, que es lo que pide la DGII: no se tocó.
+- **Convertir a factura (bug 8):** el diálogo ofrece los cinco NCF (02, 01, 14, 15, 16) tomando la etiqueta de `etiquetaTipoComprobante`. La validación de series sigue en la RPC (otro agente).
+- **Hoy en RD (bug 9):** `facturas-tabla.tsx` compara el vencimiento con `hoyRd()` y no con `toISOString()` (UTC daba el día siguiente de noche en RD).
+- **Candados:** `src/lib/facturacion/totales-factura-ui.test.ts` (fuente de las seis mitades de UI), `totales-nota.test.ts` y los casos nuevos de `calculo.test.ts`, `vista.test.ts` y `documento-papel.test.tsx`. Verificado con `pnpm typecheck`, `pnpm check`, `pnpm test` y `pnpm build`.
+
 ## Cierre del orquestador POS — punto de partida del orquestador nuevo (23-11-2026, MSG-55)
 
 ### Qué quedó en `main`

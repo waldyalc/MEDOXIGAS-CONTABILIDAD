@@ -9,6 +9,7 @@ import type { FacturaFila } from "@/lib/facturacion/consultas";
 import { formatoMoneda, saldoDeFactura } from "@/lib/facturacion/formato";
 import type { EstadoFactura } from "@/lib/facturacion/tipos";
 import { formatoDia } from "@/lib/formato";
+import { hoyRd } from "@/lib/reportes/fechas";
 
 const ETIQUETAS: Record<EstadoFactura, string> = {
   abierta: "Por cobrar",
@@ -32,7 +33,7 @@ export function FacturasTabla({
   /** CTA del vacío; la página solo la pasa si el rol puede crear. */
   accion?: ReactNode;
 }) {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyRd();
 
   const columnas: readonly ColumnaLista<FacturaFila>[] = [
     {
