@@ -3,6 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   type AlmacenColaOffline,
   demoraReintentoOffline,
+  ErrorImpedimentoCierreOffline,
+  MENSAJE_SIN_CONEXION_CIERRE,
+  MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR,
   nuevaOperacionOffline,
   type OperacionOffline,
   programarReintentoOffline,
@@ -125,33 +128,49 @@ describe("cola offline POS", () => {
     expect(filas.get(venta.uuid)?.estado).toBe("sincronizada");
   });
 
-  it("las fallidas no bloquean el cierre pero se avisan; las pendientes sí lo bloquean", () => {
+  it("cierre estricto: bloquea con pendientes, con fallidas y sin conexión; solo permite la cola limpia", () => {
     const fallida = { estado: "fallida" as const };
     const pendiente = { estado: "pendiente" as const };
     const sincronizada = { estado: "sincronizada" as const };
 
-    expect(revisionCierreOffline([fallida, sincronizada], true)).toEqual({
-      impedimento: null,
-      aviso: "1 venta con problema no subirá. Queda guardada en este dispositivo.",
-      porSubir: 0,
-      fallidas: 1,
+    expect(revisionCierreOffline([pendiente], true)).toEqual({
+      impedimento: MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR,
+      aviso: null,
+      porSubir: 1,
+      fallidas: 0,
     });
-    expect(revisionCierreOffline([fallida, fallida, sincronizada], true).aviso).toBe(
-      "2 ventas con problema no subirán. Quedan guardadas en este dispositivo.",
+    expect(revisionCierreOffline([fallida, sincronizada], true).impedimento).toBe(
+      "Debes sincronizar tu información antes de poder cerrar turno",
     );
-    expect(revisionCierreOffline([pendiente, fallida], true).impedimento).toBe(
-      "Conéctate para subir 1 ventas antes de cerrar.",
-    );
-    expect(revisionCierreOffline([pendiente], false).impedimento).toBe(
-      "Conéctate para subir 1 ventas antes de cerrar.",
-    );
-    expect(revisionCierreOffline([], false).impedimento).toBe("Conéctate a internet para cerrar el turno.");
+    expect(revisionCierreOffline([fallida, fallida, sincronizada], true)).toMatchObject({
+      impedimento: MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR,
+      porSubir: 0,
+      fallidas: 2,
+    });
+    expect(revisionCierreOffline([pendiente, fallida], false).impedimento).toBe(MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR);
+
+    expect(revisionCierreOffline([sincronizada], false)).toEqual({
+      impedimento: MENSAJE_SIN_CONEXION_CIERRE,
+      aviso: null,
+      porSubir: 0,
+      fallidas: 0,
+    });
     expect(revisionCierreOffline([], true)).toEqual({
       impedimento: null,
       aviso: null,
       porSubir: 0,
       fallidas: 0,
     });
+  });
+
+  it("ErrorImpedimentoCierreOffline conserva el nombre y el mensaje local", () => {
+    const error = new ErrorImpedimentoCierreOffline(MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR);
+    expect(error).toBeInstanceOf(Error);
+    expect(error.name).toBe("ErrorImpedimentoCierreOffline");
+    expect(error.message).toBe("Debes sincronizar tu información antes de poder cerrar turno");
+    expect(new ErrorImpedimentoCierreOffline(MENSAJE_SIN_CONEXION_CIERRE).message).toBe(
+      "Sin conexión a internet. No puedes cerrar el turno sin conexión.",
+    );
   });
 
   it("procesa tres ventas en orden y no incluye la cola de otro usuario", async () => {

@@ -107,19 +107,63 @@ describe("integración offline con la RPC idempotente", () => {
     expect(reset).toContain("'pos_sync_operaciones',");
   });
 
-  it("bloquea el cierre solo con ventas por subir y avisa las que tienen problema", () => {
+  it("cierre estricto: bloquea pendientes, fallidas y falta de conexión con el texto de Alegra", () => {
     const barra = leer("src/app/(pos)/pos/_components/vender/barra-inferior-pos.tsx");
-    expect(barra).toContain("Conéctate para subir ${offline.porSubir} ventas antes de cerrar");
+    expect(barra).toContain("MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR");
+    expect(barra).toContain("MENSAJE_SIN_CONEXION_CIERRE");
+    expect(barra).toContain("offline.pendientes > 0");
+    expect(barra).not.toContain("offline.porSubir > 0");
+
     const panel = leer("src/app/(pos)/pos/_components/offline-pos-provider.tsx");
-    expect(panel).toContain("Conéctate para subir ${porSubir} ventas antes de cerrar el turno.");
+    expect(panel).toContain("MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR");
     expect(panel).toContain("Ventas con problema");
     expect(panel).toContain("Sí, descartar");
+    expect(panel).toContain("ErrorImpedimentoCierreOffline");
+
     const dialogo = leer("src/app/(pos)/pos/_components/turnos/dialogo-cerrar-turno.tsx");
-    expect(dialogo).toContain("cierreBloqueado");
-    expect(dialogo).toContain("offline.porSubir > 0");
-    expect(dialogo).not.toContain("offline.pendientes > 0");
-    expect(dialogo).toContain("avisoCierreOffline(offline.fallidas)");
+    for (const texto of [
+      "cierreBloqueado",
+      "offline.pendientes > 0",
+      "MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR",
+      "MENSAJE_SIN_CONEXION_CIERRE",
+      "ErrorImpedimentoCierreOffline",
+      "setError(mensajeBloqueo)",
+      'role="alert"',
+      "bg-rose-600",
+      '"Guardar"',
+      "Guardando…",
+    ]) {
+      expect(dialogo, `Falta «${texto}» en el cierre estricto del turno`).toContain(texto);
+    }
     expect(dialogo).toContain("disabled={enviando || esperadoNegativo || cierreBloqueado}");
+    expect(dialogo).not.toContain("El cierre del turno no se bloquea");
+    expect(dialogo).not.toContain("avisoCierreOffline");
+  });
+
+  it("la barra superior del POS muestra el estado de red y el popover de sincronización de Alegra", () => {
+    const layout = leer("src/app/(pos)/pos/layout.tsx");
+    expect(layout).toContain("<BarraSuperiorPos />");
+    expect(layout).toContain("flex min-h-0 min-w-0 flex-1 flex-col");
+
+    const barra = leer("src/app/(pos)/pos/_components/barra-superior-pos.tsx");
+    for (const texto of [
+      "Disponible",
+      "Sin conexión",
+      "Punto de venta disponible",
+      "Puedes seguir registrando ventas",
+      "Estado de sincronización",
+      "Sincronizar ahora",
+      "Revisar pendientes",
+      "estadoPopoverSincronizacion",
+      "estadoProductos",
+      "estadoClientes",
+      "recargarManual",
+    ]) {
+      expect(barra, `Falta «${texto}» en la barra superior del POS`).toContain(texto);
+    }
+    expect(barra).toContain("bg-slate-900");
+    expect(barra).toContain("bg-pos-primario");
+    expect(barra).toContain("print:hidden");
   });
 
   it("el service worker solo sirve GET de POS y assets, y nunca toca IndexedDB", () => {
@@ -132,5 +176,8 @@ describe("integración offline con la RPC idempotente", () => {
     expect(sw).not.toContain("indexedDB");
     expect(sw).not.toContain("medoxigas-pos-offline");
     expect(sw).not.toContain('caches.delete("medoxigas-pos-offline")');
+    // Bug #1: cada navegación buena a /pos refresca el HTML con el turno actual.
+    expect(sw).toContain('respuesta.headers.get("content-type")?.includes("text/html")');
+    expect(sw).toContain('await cache.put(new URL("/pos", self.location.origin), respuesta.clone())');
   });
 });
