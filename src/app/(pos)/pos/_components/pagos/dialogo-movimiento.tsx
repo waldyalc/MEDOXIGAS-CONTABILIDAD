@@ -402,6 +402,7 @@ export function DialogoMovimiento({
                         valor={contactoId}
                         onCambio={(contacto) => setContactoId(contacto?.id ?? "")}
                         tipoInicial={esIngreso ? "cliente" : "proveedor"}
+                        permitirProveedor={!esIngreso}
                         placeholder="Seleccionar"
                         className="bg-card has-[[data-slot=input-group-control]:focus-visible]:border-pos-primario has-[[data-slot=input-group-control]:focus-visible]:ring-pos-primario/30 h-12 w-full rounded-[10px] text-base"
                       />

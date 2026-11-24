@@ -391,6 +391,7 @@ export function PanelFactura({
             valor={activa.contactoId}
             onCambio={(contacto) => carrito.setContacto(contacto?.id ?? "")}
             tipoInicial="cliente"
+            permitirProveedor={false}
             showClear={false}
             mostrarRncEnValor
             acciones={(contacto) =>
@@ -639,6 +640,7 @@ export function PanelFactura({
         abierto={nuevoCliente}
         onOpenChange={setNuevoCliente}
         tipoInicial="cliente"
+        permitirProveedor={false}
         onCreado={(contacto) => {
           carrito.setContacto(contacto.id);
           setNuevoCliente(false);

@@ -43,6 +43,8 @@ interface Props {
   mostrarRncEnValor?: boolean;
   /** Acciones junto a la flecha (lápiz y X en el POS); no reemplazan la flecha. */
   acciones?: (contacto: ContactoOpcion | null) => ReactNode;
+  /** Pasa la restricción al diálogo rápido: `false` solo permite crear Cliente (POS). */
+  permitirProveedor?: boolean;
   "aria-label"?: string;
   "aria-invalid"?: boolean;
   "aria-describedby"?: string;
@@ -60,6 +62,7 @@ export function SelectorContacto({
   showClear = true,
   mostrarRncEnValor = false,
   acciones,
+  permitirProveedor = true,
   "aria-label": ariaLabel,
   "aria-invalid": ariaInvalid,
   "aria-describedby": ariaDescribedBy,
@@ -234,6 +237,7 @@ export function SelectorContacto({
           tipoInicial={tipoInicial}
           nombreInicial={busqueda}
           onCreado={crear}
+          permitirProveedor={permitirProveedor}
         />
       ) : null}
     </>
