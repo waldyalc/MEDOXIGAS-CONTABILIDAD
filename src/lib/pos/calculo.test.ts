@@ -237,6 +237,21 @@ describe("armarPagosCombinadoPOS", () => {
     ]);
   });
 
+  test("conserva el banco destino de cada transferencia, aunque sean bancos distintos", () => {
+    const pagos = armarPagosCombinadoPOS(
+      [
+        { metodo: "transferencia", monto: "600.00", cuenta_id: "banco-bhd" },
+        { metodo: "transferencia", monto: "400.00", cuenta_id: "banco-popular" },
+      ],
+      false,
+    );
+
+    expect(pagos).toEqual([
+      { metodo: "transferencia", monto: "600.00", cuenta_id: "banco-bhd" },
+      { metodo: "transferencia", monto: "400.00", cuenta_id: "banco-popular" },
+    ]);
+  });
+
   test("si queda crédito el efectivo se declara recibido por su monto", () => {
     const pagos = armarPagosCombinadoPOS(
       [

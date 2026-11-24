@@ -19,7 +19,6 @@ import {
   Printer,
   Split,
   Trash2,
-  Wallet,
   X,
 } from "@/components/icons";
 import { ImpresionPos } from "@/components/pos/impresion-pos";
@@ -64,23 +63,37 @@ import type { LineaVenta, MetodoPOS, PlantillaTicket, VentaPOSResultado } from "
 import { createClient } from "@/lib/supabase/client";
 
 import { useCarritoPOS } from "../carrito-pos-provider";
-import { capitalizar, ETIQUETAS_METODO, formatoMonedaPOS, hoyRD, textoAMonto } from "../formato-pos";
+import { capitalizar, formatoMonedaPOS, hoyRD, textoAMonto } from "../formato-pos";
 import { useOfflinePOS } from "../offline-pos-provider";
 import { ConfirmacionOffline } from "./confirmacion-offline";
 import { ConfirmacionVenta } from "./confirmacion-venta";
 
-type ModoCobro = MetodoPOS | "combinado" | "credito";
+type ModoCobro = "efectivo" | "tarjeta" | "transferencia" | "combinado" | "credito";
+type MetodoCombinadoPOS = "efectivo" | "tarjeta" | "transferencia";
 
 interface FilaCombinada {
   id: string;
   metodo: MetodoPOS;
   monto: string;
   recibido: string;
+  /** Banco destino cuando el método es transferencia. */
+  cuenta_id: string;
 }
 
-const METODOS_COMBINADOS: MetodoPOS[] = ["efectivo", "tarjeta_debito", "tarjeta_credito", "transferencia"];
+const METODOS_COMBINADOS: MetodoCombinadoPOS[] = ["efectivo", "tarjeta", "transferencia"];
+
+const ETIQUETAS_COMBINADO: Record<MetodoCombinadoPOS, string> = {
+  efectivo: "Efectivo",
+  tarjeta: "Tarjeta",
+  transferencia: "Transferencia",
+};
 
 const NINGUNO = "__ninguno";
+
+/** Agrupa las dos tarjetas del backend en la opción única «Tarjeta». */
+function metodoCombinadoVisible(metodo: MetodoPOS): MetodoCombinadoPOS {
+  return metodo === "tarjeta_credito" || metodo === "tarjeta_debito" ? "tarjeta" : metodo;
+}
 
 function nuevoId(): string {
   return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -127,7 +140,7 @@ export function CheckoutPos({
   };
   turno: { id: string; numero: number } | null;
   empresa: Empresa | null;
-  cuentas: { id: string; nombre: string }[];
+  cuentas: { id: string; nombre: string; es_caja_banco?: boolean; tipo_banco?: string | null }[];
   contactos: ContactoBuscado[];
   consumidorFinalId: string | null;
   plantillaTicket: PlantillaTicket;
@@ -145,6 +158,7 @@ export function CheckoutPos({
   const [recibido, setRecibido] = useState("");
   const [aplicado, setAplicado] = useState("");
   const [filas, setFilas] = useState<FilaCombinada[]>([]);
+  const [bancoTransferenciaId, setBancoTransferenciaId] = useState("");
   const [notas, setNotas] = useState("");
   const [vendedores, setVendedores] = useState<{ id: string; nombre: string }[]>([]);
   const [aviso, setAviso] = useState(false);
@@ -163,11 +177,32 @@ export function CheckoutPos({
   const nombreCuenta = (id: string | null) =>
     id ? (cuentas.find((cuenta) => cuenta.id === id)?.nombre ?? null) : null;
   const cuentasActivas = useMemo(() => new Set(cuentas.map((cuenta) => cuenta.id)), [cuentas]);
+  const cuentasBanco = useMemo(() => {
+    const bancos = cuentas.filter((cuenta) => cuenta.es_caja_banco === true && cuenta.tipo_banco === "banco");
+    if (bancos.length > 0) return bancos;
+    const respaldo = cuentas.find((cuenta) => cuenta.id === terminal.cuenta_transferencia_id);
+    return respaldo ? [respaldo] : [];
+  }, [cuentas, terminal.cuenta_transferencia_id]);
+  const bancoPreseleccionado = useMemo(() => {
+    if (cuentasBanco.length === 1) return cuentasBanco[0]?.id ?? "";
+    const delTerminal = terminal.cuenta_transferencia_id;
+    return delTerminal && cuentasBanco.some((cuenta) => cuenta.id === delTerminal) ? delTerminal : "";
+  }, [cuentasBanco, terminal.cuenta_transferencia_id]);
 
-  const cuentaDebito = terminal.cuenta_tarjeta_debito_id && cuentasActivas.has(terminal.cuenta_tarjeta_debito_id);
-  const cuentaCredito = terminal.cuenta_tarjeta_credito_id && cuentasActivas.has(terminal.cuenta_tarjeta_credito_id);
-  const cuentaTransferencia = terminal.cuenta_transferencia_id && cuentasActivas.has(terminal.cuenta_transferencia_id);
-  const hayCombinado = [cuentaDebito, cuentaCredito, cuentaTransferencia].some(Boolean);
+  const cuentaTarjetaCredito =
+    terminal.cuenta_tarjeta_credito_id && cuentasActivas.has(terminal.cuenta_tarjeta_credito_id)
+      ? terminal.cuenta_tarjeta_credito_id
+      : null;
+  const cuentaTarjetaDebito =
+    terminal.cuenta_tarjeta_debito_id && cuentasActivas.has(terminal.cuenta_tarjeta_debito_id)
+      ? terminal.cuenta_tarjeta_debito_id
+      : null;
+  const cuentaTarjetaId = cuentaTarjetaCredito ?? cuentaTarjetaDebito;
+  const metodoTarjetaBackend: MetodoPOS = cuentaTarjetaCredito ? "tarjeta_credito" : "tarjeta_debito";
+  const motivoTarjeta = cuentaTarjetaId ? null : "La terminal no tiene una cuenta configurada para tarjeta.";
+
+  const hayTransferencia = cuentasBanco.length > 0;
+  const hayCombinado = Boolean(cuentaTarjetaId) || hayTransferencia;
   const sinCaja = !cuentasActivas.has(terminal.cuenta_efectivo_id);
 
   useEffect(() => {
@@ -175,6 +210,7 @@ export function CheckoutPos({
     setVista("metodos");
     setModo("efectivo");
     setFilas([]);
+    setBancoTransferenciaId(bancoPreseleccionado);
     setNotas("");
     setAviso(false);
     setError(null);
@@ -184,7 +220,7 @@ export function CheckoutPos({
     setTicketOffline(null);
     setPendiente(null);
     setImprimiendoSoporte(false);
-  }, [abierto]);
+  }, [abierto, bancoPreseleccionado]);
 
   useEffect(() => {
     if (!abierto || venta) return;
@@ -253,11 +289,9 @@ export function CheckoutPos({
   const cambioVisible =
     (modo === "efectivo" && centavos(cambioEfectivo) > 0) || (modo === "combinado" && centavos(cambioCombinado) > 0);
 
-  const motivoDebito = cuentaDebito ? null : "La terminal no tiene una cuenta configurada para tarjeta débito.";
-  const motivoCredito = cuentaCredito ? null : "La terminal no tiene una cuenta configurada para tarjeta crédito.";
-  const motivoTransferencia = cuentaTransferencia
+  const motivoTransferencia = hayTransferencia
     ? null
-    : "La terminal no tiene una cuenta configurada para transferencia.";
+    : "No hay cuentas bancarias activas configuradas para transferencia.";
 
   const sumaAplicada =
     modo === "credito"
@@ -269,6 +303,7 @@ export function CheckoutPos({
           : centavos(aplicadoOtro);
 
   const filaCombinadaInvalida = totalesCombinados.invalido;
+  const bancoCombinadoPendiente = filas.some((fila) => fila.metodo === "transferencia" && fila.cuenta_id === "");
 
   const ctaDeshabilitado =
     enviando ||
@@ -278,7 +313,8 @@ export function CheckoutPos({
     (modo !== "credito" && sumaAplicada <= 0) ||
     excedeOtro ||
     excedeCombinado ||
-    (modo === "combinado" && (filas.length === 0 || filaCombinadaInvalida)) ||
+    (modo === "transferencia" && bancoTransferenciaId === "") ||
+    (modo === "combinado" && (filas.length === 0 || filaCombinadaInvalida || bancoCombinadoPendiente)) ||
     (modo === "efectivo" && !simpleEfectivo);
 
   const etiquetaCta =
@@ -297,7 +333,14 @@ export function CheckoutPos({
   function elegirMetodo(nuevo: ModoCobro) {
     setModo(nuevo);
     setVista("detalle");
+    if (nuevo === "transferencia") setBancoTransferenciaId((actual) => actual || bancoPreseleccionado);
     if (nuevo === "combinado" && filas.length === 0) agregarFila();
+  }
+
+  function cuentaInicialDe(metodo: MetodoCombinadoPOS): string {
+    if (metodo === "tarjeta") return cuentaTarjetaId ?? "";
+    if (metodo === "transferencia") return bancoTransferenciaId || bancoPreseleccionado;
+    return "";
   }
 
   function agregarFila() {
@@ -309,14 +352,22 @@ export function CheckoutPos({
       Math.max(0, centavos(total) - centavos(sumarMontos(filas.map((fila) => fila.monto || "0")))),
     );
     const monto = centavos(restante) > 0 ? restante : "";
-    setFilas((actuales) => [...actuales, { id: nuevoId(), metodo, monto, recibido: monto }]);
+    setFilas((actuales) => [
+      ...actuales,
+      {
+        id: nuevoId(),
+        metodo: metodo === "tarjeta" ? metodoTarjetaBackend : metodo,
+        monto,
+        recibido: monto,
+        cuenta_id: cuentaInicialDe(metodo),
+      },
+    ]);
   }
 
-  function metodoDisponible(metodo: MetodoPOS): boolean {
+  function metodoDisponible(metodo: MetodoCombinadoPOS): boolean {
     if (metodo === "efectivo") return true;
-    if (metodo === "tarjeta_debito") return Boolean(cuentaDebito);
-    if (metodo === "tarjeta_credito") return Boolean(cuentaCredito);
-    return Boolean(cuentaTransferencia);
+    if (metodo === "tarjeta") return Boolean(cuentaTarjetaId);
+    return hayTransferencia;
   }
 
   function armarPagos(): PagoPOSArmado[] {
@@ -331,7 +382,16 @@ export function CheckoutPos({
         },
       ];
     }
-    return [{ metodo: modo, monto: aplicadoOtro }];
+    if (modo === "tarjeta") {
+      return [
+        {
+          metodo: metodoTarjetaBackend,
+          monto: aplicadoOtro,
+          ...(cuentaTarjetaId ? { cuenta_id: cuentaTarjetaId } : {}),
+        },
+      ];
+    }
+    return [{ metodo: "transferencia", monto: aplicadoOtro, cuenta_id: bancoTransferenciaId }];
   }
 
   function lineasPayload() {
@@ -666,10 +726,10 @@ export function CheckoutPos({
                     />
                     <Tile
                       icono={<CreditCard aria-hidden="true" />}
-                      titulo="Tarjeta crédito"
+                      titulo="Tarjeta"
                       activo={false}
-                      motivo={motivoCredito}
-                      onClick={() => elegirMetodo("tarjeta_credito")}
+                      motivo={motivoTarjeta}
+                      onClick={() => elegirMetodo("tarjeta")}
                     />
                     <Tile
                       icono={<Landmark aria-hidden="true" />}
@@ -684,14 +744,7 @@ export function CheckoutPos({
                     <span className="text-pos-texto-suave text-xs">Otros métodos</span>
                     <span className="bg-pos-linea h-px flex-1" aria-hidden="true" />
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Tile
-                      icono={<Wallet aria-hidden="true" />}
-                      titulo="Tarjeta débito"
-                      activo={false}
-                      motivo={motivoDebito}
-                      onClick={() => elegirMetodo("tarjeta_debito")}
-                    />
+                  <div className="grid grid-cols-2 gap-2">
                     <Tile
                       icono={<Split aria-hidden="true" />}
                       titulo="Combinado"
@@ -761,7 +814,7 @@ export function CheckoutPos({
                     </div>
                   ) : null}
 
-                  {modo === "tarjeta_debito" || modo === "tarjeta_credito" || modo === "transferencia" ? (
+                  {modo === "tarjeta" || modo === "transferencia" ? (
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="flex flex-col gap-2">
                         <div className="flex flex-col gap-1">
@@ -784,6 +837,33 @@ export function CheckoutPos({
                             La suma de los pagos no puede exceder el total de la venta.
                           </p>
                         ) : null}
+                        {modo === "transferencia" ? (
+                          <div className="flex flex-col gap-2">
+                            <Label>Banco destino *</Label>
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                              {cuentasBanco.map((cuenta) => (
+                                <button
+                                  key={cuenta.id}
+                                  type="button"
+                                  aria-pressed={bancoTransferenciaId === cuenta.id}
+                                  onClick={() => setBancoTransferenciaId(cuenta.id)}
+                                  className={cn(
+                                    "flex items-center gap-2 rounded-lg border p-3 text-left text-sm font-medium transition-colors",
+                                    bancoTransferenciaId === cuenta.id
+                                      ? "border-pos-primario bg-pos-acento text-pos-acento-texto"
+                                      : "border-border hover:bg-muted",
+                                  )}
+                                >
+                                  <Landmark className="size-4 shrink-0" aria-hidden="true" />
+                                  {cuenta.nombre}
+                                </button>
+                              ))}
+                            </div>
+                            {bancoTransferenciaId === "" ? (
+                              <p className="text-destructive text-xs">Selecciona el banco destino.</p>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                       {camposCobro}
                     </div>
@@ -792,16 +872,16 @@ export function CheckoutPos({
                   {modo === "combinado" ? (
                     <div className="flex flex-col gap-2">
                       {filas.map((fila) => {
-                        const metodo = fila.metodo;
+                        const metodoVisible = metodoCombinadoVisible(fila.metodo);
                         const opciones = METODOS_COMBINADOS.filter(
-                          (candidato) => candidato === fila.metodo || metodoDisponible(candidato),
-                        ).map((candidato) => ({ value: candidato, label: ETIQUETAS_METODO[candidato] }));
+                          (candidato) => candidato === metodoVisible || metodoDisponible(candidato),
+                        ).map((candidato) => ({ value: candidato, label: ETIQUETAS_COMBINADO[candidato] }));
                         return (
                           <div key={fila.id} className="border-border flex flex-col gap-2 rounded-lg border p-2">
                             <div className="flex items-center gap-2">
                               <Select
                                 items={opciones}
-                                value={metodo}
+                                value={metodoVisible}
                                 onValueChange={(valor) => {
                                   if (!valor) return;
                                   setFilas((actuales) =>
@@ -809,8 +889,9 @@ export function CheckoutPos({
                                       actual.id === fila.id
                                         ? {
                                             ...actual,
-                                            metodo: valor,
+                                            metodo: valor === "tarjeta" ? metodoTarjetaBackend : valor,
                                             recibido: valor === "efectivo" ? actual.monto : "0.00",
+                                            cuenta_id: cuentaInicialDe(valor),
                                           }
                                         : actual,
                                     ),
@@ -835,7 +916,7 @@ export function CheckoutPos({
                                 <InputGroupInput
                                   value={fila.monto}
                                   inputMode="decimal"
-                                  aria-label={`Monto de ${ETIQUETAS_METODO[fila.metodo]}`}
+                                  aria-label={`Monto de ${ETIQUETAS_COMBINADO[metodoVisible]}`}
                                   onChange={(evento) =>
                                     setFilas((actuales) =>
                                       actuales.map((actual) =>
@@ -858,6 +939,44 @@ export function CheckoutPos({
                                 <Trash2 aria-hidden="true" />
                               </Button>
                             </div>
+
+                            {fila.metodo === "transferencia" ? (
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor={`banco-${fila.id}`} className="text-xs">
+                                  Banco destino *
+                                </Label>
+                                <Select
+                                  items={[
+                                    { value: NINGUNO, label: "Seleccionar banco" },
+                                    ...cuentasBanco.map((cuenta) => ({ value: cuenta.id, label: cuenta.nombre })),
+                                  ]}
+                                  value={fila.cuenta_id === "" ? NINGUNO : fila.cuenta_id}
+                                  onValueChange={(valor) => {
+                                    const cuentaId = !valor || valor === NINGUNO ? "" : valor;
+                                    setFilas((actuales) =>
+                                      actuales.map((actual) =>
+                                        actual.id === fila.id ? { ...actual, cuenta_id: cuentaId } : actual,
+                                      ),
+                                    );
+                                  }}
+                                >
+                                  <SelectTrigger id={`banco-${fila.id}`} className="h-10" aria-label="Banco destino">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent alignItemWithTrigger={false}>
+                                    <SelectItem value={NINGUNO}>Seleccionar banco</SelectItem>
+                                    {cuentasBanco.map((cuenta) => (
+                                      <SelectItem key={cuenta.id} value={cuenta.id}>
+                                        {cuenta.nombre}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {fila.cuenta_id === "" ? (
+                                  <p className="text-destructive text-xs">Selecciona el banco destino.</p>
+                                ) : null}
+                              </div>
+                            ) : null}
 
                             {fila.metodo === "efectivo" ? (
                               <div className="flex items-center gap-2">
@@ -897,7 +1016,7 @@ export function CheckoutPos({
                             ) : null}
 
                             <p className="text-muted-foreground text-xs">
-                              Cuenta: {nombreCuenta(cuentaDeMetodo(fila.metodo, terminal)) ?? "—"}
+                              Cuenta: {nombreCuenta(cuentaDeFila(fila, terminal, cuentaTarjetaId)) ?? "—"}
                             </p>
                           </div>
                         );
@@ -926,6 +1045,9 @@ export function CheckoutPos({
                       ) : null}
                       {filaCombinadaInvalida ? (
                         <p className="text-destructive text-xs">Completa cada fila con un monto mayor a cero.</p>
+                      ) : null}
+                      {bancoCombinadoPendiente ? (
+                        <p className="text-destructive text-xs">Selecciona el banco destino de cada transferencia.</p>
                       ) : null}
 
                       {camposCobro}
@@ -1000,19 +1122,14 @@ export function CheckoutPos({
   );
 }
 
-function cuentaDeMetodo(
-  metodo: MetodoPOS,
-  terminal: {
-    cuenta_efectivo_id: string;
-    cuenta_tarjeta_debito_id: string | null;
-    cuenta_tarjeta_credito_id: string | null;
-    cuenta_transferencia_id: string | null;
-  },
+function cuentaDeFila(
+  fila: FilaCombinada,
+  terminal: { cuenta_efectivo_id: string },
+  cuentaTarjetaId: string | null,
 ): string | null {
-  if (metodo === "efectivo") return terminal.cuenta_efectivo_id;
-  if (metodo === "tarjeta_debito") return terminal.cuenta_tarjeta_debito_id;
-  if (metodo === "tarjeta_credito") return terminal.cuenta_tarjeta_credito_id;
-  return terminal.cuenta_transferencia_id;
+  if (fila.metodo === "efectivo") return terminal.cuenta_efectivo_id;
+  if (fila.metodo === "transferencia") return fila.cuenta_id === "" ? null : fila.cuenta_id;
+  return cuentaTarjetaId;
 }
 
 function CamposCobro({

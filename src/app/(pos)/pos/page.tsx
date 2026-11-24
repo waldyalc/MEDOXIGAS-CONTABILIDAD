@@ -92,7 +92,12 @@ export default async function Page() {
       vendedores={vendedores}
       contactos={contactos}
       consumidorFinalId={consumidorFinalId}
-      cuentas={cuentas.map((cuenta) => ({ id: cuenta.id, nombre: cuenta.nombre }))}
+      cuentas={cuentas.map((cuenta) => ({
+        id: cuenta.id,
+        nombre: cuenta.nombre,
+        es_caja_banco: cuenta.es_caja_banco,
+        tipo_banco: cuenta.tipo_banco,
+      }))}
       plantillaFactura={plantillaFactura}
       plantillaCotizacion={plantillaCotizacion}
     />

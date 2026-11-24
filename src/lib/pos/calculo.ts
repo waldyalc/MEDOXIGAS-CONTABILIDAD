@@ -182,6 +182,8 @@ export interface FilaPagoCombinadoPOS {
   monto: Decimal;
   /** Solo efectivo: lo que entrega el cliente. */
   recibido?: Decimal | null;
+  /** Cuenta bancaria que recibe la transferencia o el pago con tarjeta. */
+  cuenta_id?: string | null;
 }
 
 export interface TotalesPagoCombinadoPOS {
@@ -251,6 +253,7 @@ export interface PagoPOSArmado {
   metodo: MetodoPOS;
   monto: Decimal;
   monto_recibido?: Decimal;
+  cuenta_id?: string | null;
 }
 
 /**
@@ -265,7 +268,9 @@ export function armarPagosCombinadoPOS(filas: readonly FilaPagoCombinadoPOS[], h
       const montoCentavos = centavosDeDecimal(fila.monto) ?? 0;
       const monto = centavosATexto(montoCentavos);
 
-      if (fila.metodo !== "efectivo") return { metodo: fila.metodo, monto };
+      if (fila.metodo !== "efectivo") {
+        return { metodo: fila.metodo, monto, ...(fila.cuenta_id ? { cuenta_id: fila.cuenta_id } : {}) };
+      }
 
       const recibidoCentavos = Math.max(0, centavosDeDecimal(fila.recibido) ?? 0);
       return {
