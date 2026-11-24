@@ -63,3 +63,29 @@ describe("cobro combinado con el mismo método repetido", () => {
     );
   });
 });
+
+/**
+ * Decisión de Waldy (24-11-2026): el modal Pagar factura muestra una sola
+ * opción «Tarjeta» (la terminal decide crédito o débito) y la transferencia
+ * pregunta a qué banco fue, enviando su `cuenta_id` al backend.
+ */
+describe("una sola Tarjeta y banco destino al transferir", () => {
+  const checkout = readFileSync(CHECKOUT, "utf8");
+
+  test("ya no hay dos tarjetas separadas y la opción unificada se llama «Tarjeta»", () => {
+    expect(checkout, "Une «Tarjeta crédito» y «Tarjeta débito» en la opción única «Tarjeta»").not.toContain(
+      "Tarjeta crédito",
+    );
+    expect(checkout, "Une «Tarjeta crédito» y «Tarjeta débito» en la opción única «Tarjeta»").not.toContain(
+      "Tarjeta débito",
+    );
+    expect(checkout, "La opción unificada se llama «Tarjeta»").toContain('titulo="Tarjeta"');
+  });
+
+  test("la transferencia elige el banco destino y manda su cuenta_id", () => {
+    expect(checkout, "El modal debe pedir el banco destino de la transferencia").toContain("Banco destino");
+    expect(checkout, "El pago por transferencia envía el cuenta_id del banco elegido").toContain(
+      "cuenta_id: bancoTransferenciaId",
+    );
+  });
+});
