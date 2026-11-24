@@ -7,6 +7,7 @@ import { almacenColaOffline, guardarOffline, leerOffline } from "@/lib/pos/almac
 import { calcularLineaPOS, sumarMontos, type TotalesCarritoPOS, type TotalesLineaPOS } from "@/lib/pos/calculo";
 import { contactoDePestanaRestaurada } from "@/lib/pos/consumidor-final";
 import { eliminarPestanaDe, ID_PESTANA_PRINCIPAL, renombrarPestanaEn } from "@/lib/pos/pestanas-venta";
+import { preciosDeListaALineas } from "@/lib/pos/precios-carrito";
 import type { Decimal, ProductoPOS } from "@/lib/pos/tipos";
 
 import { useOfflinePOS } from "./offline-pos-provider";
@@ -90,7 +91,7 @@ interface ValorCarrito {
   quitarCotizacion: () => void;
   vaciarPestana: () => void;
   reiniciarTrasVenta: () => void;
-  aplicarPreciosDeLista: (precios: Record<string, Decimal>) => void;
+  aplicarPreciosDeLista: (productos: readonly ProductoPOS[]) => void;
   cantidadDeProducto: (productoId: string) => number;
   totales: TotalesCarritoPOS;
 }
@@ -499,17 +500,10 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
   }, [cambiarActiva, defaults]);
 
   const aplicarPreciosDeLista = useCallback(
-    (precios: Record<string, Decimal>) => {
+    (productos: readonly ProductoPOS[]) => {
       cambiarActiva((pestana) => {
         if (pestana.cotizacion) return pestana;
-        return {
-          ...pestana,
-          lineas: pestana.lineas.map((linea) => {
-            if (linea.precioManual || !linea.productoId || linea.unidadId !== null) return linea;
-            const precio = precios[linea.productoId];
-            return precio ? { ...linea, precio, precioBase: precio } : linea;
-          }),
-        };
+        return { ...pestana, lineas: preciosDeListaALineas(pestana.lineas, productos) };
       });
     },
     [cambiarActiva],

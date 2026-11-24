@@ -63,3 +63,29 @@ describe("cobro combinado con el mismo método repetido", () => {
     );
   });
 });
+
+/**
+ * Candado (auditoría POS, 24-11-2026): un monto excedido en tarjeta o en el
+ * combinado no puede dejar «Cobrar» deshabilitado en efectivo o crédito —
+ * sus flags solo pesan en el modo donde vive el input que los produce.
+ */
+describe("exceso de un método no bloquea «Cobrar» en los demás", () => {
+  const checkout = readFileSync(CHECKOUT, "utf8");
+
+  test("excedeOtro solo deshabilita en tarjeta/transferencia", () => {
+    expect(
+      checkout,
+      "excedeOtro viene del input de tarjeta/transferencia: solo puede bloquear en esos modos",
+    ).toContain('(modo === "tarjeta_debito" || modo === "tarjeta_credito" || modo === "transferencia") && excedeOtro');
+    expect(checkout, "excedeOtro suelto en ctaDeshabilitado era el bug: bloqueaba todos los métodos").not.toContain(
+      "excedeOtro ||",
+    );
+  });
+
+  test("excedeCombinado solo deshabilita en el combinado", () => {
+    expect(checkout, "excedeCombinado es del modo combinado solamente").toContain(
+      '(modo === "combinado" && excedeCombinado)',
+    );
+    expect(checkout, "excedeCombinado suelto bloqueaba los demás métodos").not.toContain("excedeCombinado ||");
+  });
+});
