@@ -1,5 +1,14 @@
 # Handoff — Medoxigas Contabilidad
 
+## Esqueletos de carga en las cinco pantallas del POS (24-11-2026, regla de Waldy)
+
+Waldy: entrar a un módulo aparecía «sin nada» y el click parecía frisarse mientras llegaban los datos. El POS no tenía ningún `loading.tsx`; los módulos de Contabilidad sí.
+
+- **`src/app/(pos)/pos/_components/esqueletos-pos.tsx`:** esqueletos espejo de cada maqueta real — `EsqueletoVenderPOS` (buscador + chips + rejilla de productos + panel de factura), `EsqueletoListaDetallePOS` (maestro-detalle con filtros, para Ventas y Devoluciones), `EsqueletoTurnosPOS` (cierres + resumen del turno), `EsqueletoPagosPOS` (pestañas + buscador + recibos).
+- **5 `loading.tsx`:** `pos/`, `pos/historial/`, `pos/pagos/`, `pos/turnos/`, `pos/devoluciones/`. Como el menú ya navega con `Link` y el shell persiste, la navegación responde al instante y el esqueleto cubre la espera del stream.
+- **Candado:** `src/lib/pos/esqueletos-pos.test.ts` exige los 5 `loading.tsx` con su esqueleto y el archivo compartido.
+- **Verificación:** typecheck, tests (1,848) y build en verde; capturas del esqueleto en vivo capturadas en plena navegación del preview oficial en `/root/referencias/capturas-terminadas/2026-11-24-esqueletos-pos/`.
+
 ## Preview único consolidado en `feat/pos-alegra-exacto` (24-11-2026, regla de Waldy)
 
 Waldy pidió **un solo preview para siempre**: https://medoxigas-agentes.tail25e53a.ts.net — sirve `feat/pos-alegra-exacto`, la rama que consolida `main` + todo el trabajo del VPS. Al abrirlo vio que el menú aún mostraba «Bandeja de entrada» y «Mis tareas» (la limpieza `6545bd6` vivía solo en `fix/sidebar-menu-limpieza`/`preview/menu-fechas`): bug de consolidación.
