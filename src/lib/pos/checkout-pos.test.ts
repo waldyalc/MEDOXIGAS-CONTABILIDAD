@@ -1,9 +1,19 @@
 import { describe, expect, test } from "vitest";
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const CHECKOUT = join(process.cwd(), "src", "app", "(pos)", "pos", "_components", "vender", "checkout-pos.tsx");
+const CONFIRMACION_OFFLINE = join(
+  process.cwd(),
+  "src",
+  "app",
+  "(pos)",
+  "pos",
+  "_components",
+  "vender",
+  "confirmacion-offline.tsx",
+);
 
 /**
  * Candado del Punto 8 del PLAN POS 2: la X y «Cancelar» del modal Pagar
@@ -76,7 +86,7 @@ describe("exceso de un método no bloquea «Cobrar» en los demás", () => {
     expect(
       checkout,
       "excedeOtro viene del input de tarjeta/transferencia: solo puede bloquear en esos modos",
-    ).toContain('(modo === "tarjeta_debito" || modo === "tarjeta_credito" || modo === "transferencia") && excedeOtro');
+    ).toContain('(modo === "tarjeta" || modo === "transferencia") && excedeOtro');
     expect(checkout, "excedeOtro suelto en ctaDeshabilitado era el bug: bloqueaba todos los métodos").not.toContain(
       "excedeOtro ||",
     );
@@ -87,5 +97,89 @@ describe("exceso de un método no bloquea «Cobrar» en los demás", () => {
       '(modo === "combinado" && excedeCombinado)',
     );
     expect(checkout, "excedeCombinado suelto bloqueaba los demás métodos").not.toContain("excedeCombinado ||");
+  });
+});
+
+/**
+ * Decisión de Waldy (24-11-2026): el modal Pagar factura muestra una sola
+ * opción «Tarjeta» (la terminal decide crédito o débito) y la transferencia
+ * pregunta a qué banco fue, enviando su `cuenta_id` al backend.
+ */
+describe("una sola Tarjeta y banco destino al transferir", () => {
+  const checkout = readFileSync(CHECKOUT, "utf8");
+
+  test("ya no hay dos tarjetas separadas y la opción unificada se llama «Tarjeta»", () => {
+    expect(checkout, "Une «Tarjeta crédito» y «Tarjeta débito» en la opción única «Tarjeta»").not.toContain(
+      "Tarjeta crédito",
+    );
+    expect(checkout, "Une «Tarjeta crédito» y «Tarjeta débito» en la opción única «Tarjeta»").not.toContain(
+      "Tarjeta débito",
+    );
+    expect(checkout, "La opción unificada se llama «Tarjeta»").toContain('titulo="Tarjeta"');
+  });
+
+  test("la transferencia elige el banco destino y manda su cuenta_id", () => {
+    expect(checkout, "El modal debe pedir el banco destino de la transferencia").toContain("Banco destino");
+    expect(checkout, "El pago por transferencia envía el cuenta_id del banco elegido").toContain(
+      "cuenta_id: bancoTransferenciaId",
+    );
+  });
+});
+
+/**
+ * Decisión de Waldy (24-11-2026): en «Pagar factura» los tres métodos
+ * principales se leen de izquierda a derecha Tarjeta, Transferencia y Efectivo.
+ * La fila de «Otros métodos» (Combinado y Crédito) no cambia.
+ */
+describe("orden de los métodos principales en Pagar factura", () => {
+  const checkout = readFileSync(CHECKOUT, "utf8");
+  const inicio = checkout.indexOf('<div className="grid grid-cols-3 gap-2">');
+  const fin = checkout.indexOf("Otros métodos");
+
+  test("Tarjeta, Transferencia y Efectivo en ese orden de izquierda a derecha", () => {
+    expect(inicio, "No se encontró la fila principal de métodos en «Pagar factura»").toBeGreaterThanOrEqual(0);
+    expect(fin, "No se encontró la separación «Otros métodos» en «Pagar factura»").toBeGreaterThan(inicio);
+
+    const fila = checkout.slice(inicio, fin);
+    const tarjeta = fila.indexOf('titulo="Tarjeta"');
+    const transferencia = fila.indexOf('titulo="Transferencia"');
+    const efectivo = fila.indexOf('titulo="Efectivo"');
+
+    expect(tarjeta, "La fila principal empieza con «Tarjeta» (decisión de Waldy, 24-11-2026)").toBeGreaterThanOrEqual(
+      0,
+    );
+    expect(
+      transferencia,
+      "«Transferencia» va en el centro, después de «Tarjeta» (decisión de Waldy, 24-11-2026)",
+    ).toBeGreaterThan(tarjeta);
+    expect(
+      efectivo,
+      "«Efectivo» va a la derecha, después de «Transferencia» (decisión de Waldy, 24-11-2026)",
+    ).toBeGreaterThan(transferencia);
+  });
+});
+
+/**
+ * Decisión de Waldy (24-11-2026): ventas de contado normales van local-first
+ * puro (Opción A) con NCF consecutivo local y abren el mismo modal
+ * «¡Venta completada!» (sin el preview «Venta guardada en este dispositivo»).
+ * Crédito y cotizaciones siguen pidiendo conexión.
+ */
+describe("POS local-first y modal único ¡Venta completada!", () => {
+  const checkout = readFileSync(CHECKOUT, "utf8");
+
+  test("no existe ni se revive el preview viejo ConfirmacionOffline", () => {
+    expect(
+      existsSync(CONFIRMACION_OFFLINE),
+      "ConfirmacionOffline fue eliminado: las ventas locales muestran el mismo modal ConfirmacionVenta",
+    ).toBe(false);
+    expect(checkout).not.toContain("ConfirmacionOffline");
+    expect(checkout).not.toContain("armarTicketOffline");
+  });
+
+  test("las ventas de contado van primero al dispositivo con NCF local y crédito/cotización piden conexión", () => {
+    expect(checkout).toContain("const requiereConexion = cotizacion !== null || porCobrarVisible");
+    expect(checkout).toContain("armarVentaLocalResultado");
+    expect(checkout).toContain("{ numeracion, fecha: hoy }");
   });
 });

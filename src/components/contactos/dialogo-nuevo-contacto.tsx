@@ -32,6 +32,7 @@ import { normalizarNombre } from "@/lib/contactos/contactos";
 import type { DuplicadoContacto } from "@/lib/contactos/duplicados";
 import { completarConDatosDgii } from "@/lib/dgii/completar";
 import type { DatosContribuyenteDgii } from "@/lib/dgii/consulta";
+import type { DatosContactoRapidoOffline } from "@/lib/pos/contactos-offline";
 
 import { BotonAutocompletarDgii, MensajeDgii, useConsultaDgii } from "./consulta-dgii";
 
@@ -39,6 +40,9 @@ export interface ContactoCreado {
   id: string;
   nombre: string;
   rnc_cedula: string | null;
+  /** Datos extra que el POS necesita para pintar y guardar el cliente sin volver al servidor. */
+  direccion?: string | null;
+  telefono?: string | null;
 }
 
 interface Props {
@@ -49,6 +53,11 @@ interface Props {
   onCreado: (contacto: ContactoCreado) => void;
   /** En el POS solo se crea Cliente: oculta el toggle Proveedor y bloquea proveedor/ambos. */
   permitirProveedor?: boolean;
+  /**
+   * POS: guarda el cliente en el dispositivo cuando no hay red (o la llamada
+   * falla por red) y lo devuelve para seleccionarlo al instante.
+   */
+  onGuardarOffline?: (datos: DatosContactoRapidoOffline) => Promise<ContactoCreado>;
 }
 
 const OPCIONES_IDENTIFICACION = TIPOS_IDENTIFICACION.map((tipo) => ({
@@ -98,6 +107,14 @@ export function SelectorTipoContacto({
   );
 }
 
+function sinConexion(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
+function pareceErrorDeRed(mensaje: string): boolean {
+  return /fetch|network|conexi[oó]n|internet|timeout|timed out|load failed/i.test(mensaje);
+}
+
 export function DialogoNuevoContacto({
   abierto,
   onOpenChange,
@@ -105,6 +122,7 @@ export function DialogoNuevoContacto({
   nombreInicial = "",
   onCreado,
   permitirProveedor = true,
+  onGuardarOffline,
 }: Props) {
   const clienteInicial = permitirProveedor ? tipoInicial === "cliente" : true;
   const proveedorInicial = permitirProveedor && tipoInicial === "proveedor";
@@ -197,14 +215,17 @@ export function DialogoNuevoContacto({
     setEsProveedor((actual) => !actual);
   }
 
-  async function avisarDuplicado(datos: { nombre: string; rnc_cedula: string | null }) {
+  async function guardarEnDispositivo(datos: DatosContactoRapidoOffline): Promise<boolean> {
+    if (!onGuardarOffline) return false;
     try {
-      const existente = await buscarContactoDuplicado(datos);
-      if (existente === null) return false;
-      setDuplicado(existente);
+      onCreado(await onGuardarOffline(datos));
       return true;
-    } catch {
-      setError("No se pudo verificar si el contacto ya existe. Intenta de nuevo.");
+    } catch (error) {
+      setError(
+        error instanceof Error && error.message !== ""
+          ? error.message
+          : "No se pudo guardar el cliente en este dispositivo. Intenta de nuevo.",
+      );
       return true;
     }
   }
@@ -219,6 +240,16 @@ export function DialogoNuevoContacto({
       nombre: normalizarNombre(nombre),
       rnc_cedula: identificacion === "" ? null : identificacion,
     };
+    const datosOffline: DatosContactoRapidoOffline = {
+      tipo,
+      tipo_identificacion: tipoIdentificacion,
+      rnc_cedula: datos.rnc_cedula,
+      nombre: datos.nombre,
+      municipio_provincia: municipio.trim() === "" ? null : municipio.trim(),
+      direccion: direccion.trim() === "" ? null : direccion.trim(),
+      correo: correo.trim() === "" ? null : correo.trim(),
+      telefono: telefono.trim() === "" ? null : telefono.trim(),
+    };
 
     const formData = new FormData();
     formData.set("tipo", tipo);
@@ -232,10 +263,26 @@ export function DialogoNuevoContacto({
 
     iniciar(async () => {
       try {
-        if (!permitirDuplicado && (await avisarDuplicado(datos))) return;
+        if (sinConexion() && (await guardarEnDispositivo(datosOffline))) return;
+
+        if (!permitirDuplicado) {
+          let existente: DuplicadoContacto | null;
+          try {
+            existente = await buscarContactoDuplicado(datos);
+          } catch {
+            if (await guardarEnDispositivo(datosOffline)) return;
+            setError("No se pudo verificar si el contacto ya existe. Intenta de nuevo.");
+            return;
+          }
+          if (existente) {
+            setDuplicado(existente);
+            return;
+          }
+        }
 
         const resultado = await crearContacto(formData);
         if (!resultado.ok) {
+          if (pareceErrorDeRed(resultado.error) && (await guardarEnDispositivo(datosOffline))) return;
           setError(resultado.error);
           return;
         }
@@ -244,8 +291,15 @@ export function DialogoNuevoContacto({
           return;
         }
 
-        onCreado({ id: resultado.id, nombre: datos.nombre, rnc_cedula: datos.rnc_cedula });
+        onCreado({
+          id: resultado.id,
+          nombre: datos.nombre,
+          rnc_cedula: datos.rnc_cedula,
+          direccion: direccion.trim() || null,
+          telefono: telefono.trim() || null,
+        });
       } catch {
+        if (await guardarEnDispositivo(datosOffline)) return;
         setError("No se pudo guardar el contacto. Intenta de nuevo.");
       } finally {
         enVuelo.current = false;
@@ -364,7 +418,10 @@ export function DialogoNuevoContacto({
                     setDuplicado(null);
                     limpiar();
                   }}
-                  onBlur={() => consultarEnDgii(true)}
+                  onBlur={() => {
+                    if (sinConexion()) return;
+                    consultarEnDgii(true);
+                  }}
                   className={FORM_INPUT}
                 />
                 <div className="mt-1">

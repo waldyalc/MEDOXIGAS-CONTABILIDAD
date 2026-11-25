@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -29,8 +29,12 @@ import { toast } from "@/components/ui/toast";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { formatoFechaHora } from "@/lib/formato";
 import { type ParametrosLista, type ResumenPagina, urlLista } from "@/lib/listas/parametros";
+import {
+  guardarVistaTurnosOffline,
+  leerVistaTurnosOffline,
+  sumarVentasLocalesAResumenTurno,
+} from "@/lib/pos/cache-vistas-offline";
 import { compararMontos } from "@/lib/pos/calculo";
-import { avisoCierreOffline } from "@/lib/pos/cola-offline";
 import { armarTicketMovimiento } from "@/lib/pos/impresion";
 import { type CuentasTarjetaCierre, prepararCierre } from "@/lib/pos/impresion-cierre";
 import type {
@@ -111,39 +115,102 @@ export function TurnosPos({
   const [recibo, setRecibo] = useState<MovimientoTurnoPOSResultado | null>(null);
   const [reciboHistorico, setReciboHistorico] = useState<MovimientoTurnoPOS | null>(null);
   const [imprimiendo, setImprimiendo] = useState(false);
+  const [cierresCache, setCierresCache] = useState<TurnoPOS[]>([]);
+  const [cacheListo, setCacheListo] = useState(false);
   const [trabajo, setTrabajo] = useState<
     | { tipo: "cierre"; datos: CierreTurnoPOS }
     | { tipo: "recibo"; datos: MovimientoTurnoPOSResultado; incluirEsperado: boolean }
     | null
   >(null);
 
+  // Sin red (o con el servidor caído) se muestra el último turno y los cierres
+  // guardados en este dispositivo, nunca un error falso de conexión.
+  const debeHidratar = offline.estado === "offline" || (Boolean(error) && !vistaInicial && cierres.length === 0);
+  const cierresVisibles = debeHidratar && cierres.length === 0 ? cierresCache : cierres;
+
+  useEffect(() => {
+    if (!debeHidratar) return;
+    let vigente = true;
+    setCacheListo(false);
+    void leerVistaTurnosOffline(offline.ambito)
+      .then((guardada) => {
+        if (!vigente || !guardada) return;
+        setCierresCache(guardada.cierres);
+        if (guardada.vistaInicial) {
+          setVista((actual) => actual ?? guardada.vistaInicial);
+          setSeleccionado((actual) => (actual === "" ? SELECCION_ACTUAL : actual));
+          return;
+        }
+        setSeleccionado((actual) => (actual === "" ? (guardada.cierres[0]?.id ?? "") : actual));
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (vigente) setCacheListo(true);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [debeHidratar, offline.ambito]);
+
+  // En línea con datos reales se guarda el turno y los cierres para la próxima caída.
+  useEffect(() => {
+    if (debeHidratar || (!vista && cierres.length === 0)) return;
+    void guardarVistaTurnosOffline(offline.ambito, { vistaInicial: vista, cierres }).catch(() => undefined);
+  }, [cierres, debeHidratar, offline.ambito, vista]);
+
   const turno = vista?.turno ?? null;
   const esActual = seleccionado === SELECCION_ACTUAL;
-  const abierto = esActual && turnoAbierto && turno?.estado === "abierto";
+  const abierto = esActual && turno?.estado === "abierto" && (turnoAbierto || debeHidratar);
+  const puedeOperar = puedeEscribir && !debeHidratar;
   const plantilla = vista?.terminal.plantilla_ticket ?? terminal.plantilla_ticket;
   const sinCaja = !cuentas.some((cuenta) => cuenta.id === terminal.cuenta_efectivo_id);
-  const vistaDetalle = esActual ? vista : detalle && detalle.turno.id === seleccionado ? detalle : null;
+  const sinCajaVisible = sinCaja && !debeHidratar;
+  const errorVisible = error && !vista && cierresVisibles.length === 0 ? error : null;
+
+  // Las ventas pendientes del turno abierto todavía no están en el resumen del
+  // servidor: se suman en vivo para que el efectivo esperado sea el real.
+  const sumaPendientes = useMemo(() => {
+    if (!vista || !esActual || vista.turno.estado !== "abierto") {
+      return { resumen: vista?.resumen ?? null, pendientesSumadas: 0 };
+    }
+    return sumarVentasLocalesAResumenTurno(vista.resumen, offline.operaciones, vista.turno.id);
+  }, [esActual, offline.operaciones, vista]);
+  const pendientesMostrados = esActual ? sumaPendientes.pendientesSumadas : 0;
+
+  const vistaConPendientes = vista && sumaPendientes.resumen ? { ...vista, resumen: sumaPendientes.resumen } : vista;
+  const detalleSeleccionado = detalle && detalle.turno.id === seleccionado ? detalle : null;
+  const vistaDetalle = esActual ? vistaConPendientes : detalleSeleccionado;
 
   function actualizarResumen(resumen: ResumenTurnoVista["resumen"]) {
     setVista((actual) => (actual ? { ...actual, resumen } : actual));
   }
 
-  const cargarCierre = useCallback(async (id: string) => {
-    setSolicitado(id);
-    setDetalleCargando(id);
-    setDetalle(null);
-    setDetalleError(null);
-    try {
-      const resultado = await resumenTurnoPOS(id);
-      if (!resultado.ok || !resultado.data) {
-        setDetalleError(resultado.ok ? "El turno no existe." : resultado.error);
+  const cargarCierre = useCallback(
+    async (id: string) => {
+      setSolicitado(id);
+      setDetalleCargando(id);
+      setDetalle(null);
+      setDetalleError(null);
+      if (offline.estado === "offline" || !navigator.onLine) {
+        setDetalleCargando(null);
+        setDetalleError("Conéctate a internet para ver el detalle de este cierre anterior.");
         return;
       }
-      setDetalle(resultado.data);
-    } finally {
-      setDetalleCargando(null);
-    }
-  }, []);
+      try {
+        const resultado = await resumenTurnoPOS(id);
+        if (!resultado.ok || !resultado.data) {
+          setDetalleError(resultado.ok ? "El turno no existe." : resultado.error);
+          return;
+        }
+        setDetalle(resultado.data);
+      } catch {
+        setDetalleError("No se pudo cargar el cierre. Revisa tu conexión e inténtalo de nuevo.");
+      } finally {
+        setDetalleCargando(null);
+      }
+    },
+    [offline.estado],
+  );
 
   function seleccionar(clave: string) {
     setSeleccionado(clave);
@@ -212,7 +279,7 @@ export function TurnosPos({
 
   const accionesDetalle = vistaDetalle ? (
     <>
-      {abierto && puedeEscribir ? (
+      {abierto && puedeOperar ? (
         <>
           <Button
             variant="outline"
@@ -230,7 +297,7 @@ export function TurnosPos({
           </Button>
         </>
       ) : null}
-      {esActual && !abierto && puedeEscribir ? (
+      {esActual && !abierto && puedeOperar ? (
         <Button className="h-10 gap-1.5" onClick={() => setAbrirAbierto(true)}>
           <Plus aria-hidden="true" />
           Abrir turno
@@ -249,10 +316,10 @@ export function TurnosPos({
     <ContenedorLista className="p-4 md:p-6">
       <EncabezadoPagina titulo="Turnos" subtitulo="Abre, opera y cierra la caja de esta terminal." />
 
-      {error ? (
+      {errorVisible ? (
         <Alert variant="destructive">
           <AlertDescription className="flex flex-wrap items-center gap-2">
-            {error}
+            {errorVisible}
             <Button variant="outline" size="sm" onClick={() => router.refresh()}>
               Reintentar
             </Button>
@@ -260,7 +327,15 @@ export function TurnosPos({
         </Alert>
       ) : null}
 
-      {sinCaja ? (
+      {errorVisible === null && debeHidratar ? (
+        <Alert>
+          <AlertDescription>
+            Mostrando el turno y los cierres guardados en este dispositivo. Se actualizarán al recuperar la conexión.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {sinCajaVisible ? (
         <Alert variant="destructive">
           <AlertDescription className="flex flex-wrap items-center gap-2">
             {`La terminal ${terminal.nombre} no tiene una cuenta de efectivo activa.`}
@@ -308,7 +383,7 @@ export function TurnosPos({
 
           <ListaTurnos
             actual={vista?.turno ?? null}
-            cierres={cierres}
+            cierres={cierresVisibles}
             terminales={terminales}
             todas={todas}
             seleccionado={seleccionado}
@@ -334,7 +409,12 @@ export function TurnosPos({
               Turnos
             </Button>
 
-            {seleccionado !== SELECCION_ACTUAL && seleccionado !== "" && !vistaDetalle ? (
+            {debeHidratar && !cacheListo ? (
+              <div className="text-muted-foreground flex items-center gap-2 py-16 text-sm">
+                <Loader2 className="animate-spin" aria-hidden="true" />
+                Cargando los turnos guardados…
+              </div>
+            ) : seleccionado !== SELECCION_ACTUAL && seleccionado !== "" && !vistaDetalle ? (
               detalleError ? (
                 <div className="flex flex-col items-start gap-2">
                   <p className="text-destructive text-sm">{detalleError}</p>
@@ -350,6 +430,13 @@ export function TurnosPos({
               )
             ) : vistaDetalle ? (
               <>
+                {pendientesMostrados > 0 ? (
+                  <p className="text-muted-foreground text-xs">
+                    {pendientesMostrados === 1
+                      ? "Incluye 1 venta pendiente de sincronizar."
+                      : `Incluye ${pendientesMostrados} ventas pendientes de sincronizar.`}
+                  </p>
+                ) : null}
                 <ResumenTurno vista={vistaDetalle} acciones={accionesDetalle} />
 
                 <section>
@@ -358,7 +445,7 @@ export function TurnosPos({
                     movimientos={vistaDetalle.resumen.movimientos}
                     onVer={verRecibo}
                     onInverso={inverso}
-                    permitirInverso={abierto === true && puedeEscribir}
+                    permitirInverso={abierto === true && puedeOperar}
                   />
                 </section>
               </>
@@ -369,7 +456,7 @@ export function TurnosPos({
                 <p className="text-muted-foreground text-sm">
                   Abre un turno con la base inicial para empezar a vender.
                 </p>
-                {puedeEscribir ? (
+                {puedeOperar ? (
                   <Button className="mt-2 h-12" onClick={() => setAbrirAbierto(true)}>
                     Abrir turno
                   </Button>
@@ -392,7 +479,7 @@ export function TurnosPos({
         }}
       />
 
-      {turno && vista ? (
+      {turno && vista && !debeHidratar ? (
         <DialogoMovimiento
           abierto={movimientoAbierto}
           onCerrar={() => {
@@ -413,7 +500,7 @@ export function TurnosPos({
         />
       ) : null}
 
-      {turno && vista ? (
+      {turno && vista && !debeHidratar ? (
         <DialogoCerrarTurno
           abierto={cerrarAbierto}
           onCerrar={() => setCerrarAbierto(false)}
@@ -452,13 +539,6 @@ export function TurnosPos({
                 </span>
               </div>
             </div>
-          ) : null}
-          {offline.fallidas > 0 ? (
-            <Alert className="border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10">
-              <AlertDescription className="text-amber-900 dark:text-amber-200">
-                {avisoCierreOffline(offline.fallidas)}
-              </AlertDescription>
-            </Alert>
           ) : null}
           <DialogFooter>
             <Button

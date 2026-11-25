@@ -36,14 +36,27 @@ describe("bandeja de ventas con problema del POS", () => {
     expect(provider).toContain("abrirPanel");
   });
 
-  it("el cierre no se bloquea por fallidas y muestra el aviso antes y después de cerrar", () => {
+  it("el cierre estricto bloquea también las ventas con problema, con barra roja y mensaje exacto", () => {
     const dialogo = leer("src/app/(pos)/pos/_components/turnos/dialogo-cerrar-turno.tsx");
-    expect(dialogo).toContain("offline.porSubir > 0");
-    expect(dialogo).not.toContain("offline.pendientes > 0");
-    expect(dialogo).toContain("avisoCierreOffline(offline.fallidas)");
-    expect(dialogo).toContain("no se sumarán al cuadre");
+    expect(dialogo).toContain("offline.pendientes > 0");
+    expect(dialogo).toContain("MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR");
+    expect(dialogo).toContain('role="alert"');
+    expect(dialogo).toContain("bg-rose-600");
+    expect(dialogo).toContain("ErrorImpedimentoCierreOffline");
+    expect(dialogo).toContain("setError(mensajeBloqueo)");
+    expect(dialogo).toContain('"Guardar"');
+    expect(dialogo).not.toContain("El cierre del turno no se bloquea");
+    expect(dialogo).not.toContain("avisoCierreOffline");
 
     const turnos = leer("src/app/(pos)/pos/_components/turnos/turnos-pos.tsx");
-    expect(turnos).toContain("avisoCierreOffline(offline.fallidas)");
+    expect(turnos).not.toContain("avisoCierreOffline");
+    expect(turnos).not.toContain("no se sumarán al cuadre");
+  });
+
+  it("el panel de sincronización pide resolver las ventas con problema antes de cerrar", () => {
+    const provider = leer("src/app/(pos)/pos/_components/offline-pos-provider.tsx");
+    expect(provider).toContain("MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR");
+    expect(provider).toContain("antes de cerrar el turno");
+    expect(provider).not.toContain("no bloquean el cierre del turno");
   });
 });

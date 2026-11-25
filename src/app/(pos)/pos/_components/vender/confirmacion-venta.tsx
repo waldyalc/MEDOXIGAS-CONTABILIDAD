@@ -103,7 +103,7 @@ export function ConfirmacionVenta({
 
   return (
     <div className="flex flex-col items-center gap-4 text-center">
-      <div className="border-primary text-primary flex size-16 items-center justify-center rounded-full border-2">
+      <div className="border-pos-primario text-pos-primario flex size-16 items-center justify-center rounded-full border-2">
         <Check className="size-8" strokeWidth={2.5} aria-hidden="true" />
       </div>
 
@@ -115,7 +115,7 @@ export function ConfirmacionVenta({
         {venta ? (
           <p className="text-sm">
             <span className="font-medium">{venta.factura.ncf ?? `Factura No ${venta.factura.numero}`}</span>
-            {venta.factura.ncf ? ` · Factura No ${venta.factura.numero}` : ""}
+            {venta.factura.ncf && venta.factura.numero > 0 ? ` · Factura No ${venta.factura.numero}` : ""}
           </p>
         ) : null}
         {cotizacion ? <p className="text-sm font-medium">{`Cotización No ${cotizacion.cotizacion.numero}`}</p> : null}
@@ -144,20 +144,24 @@ export function ConfirmacionVenta({
           Imprimir ticket
         </Button>
         {puedeCarta ? botonCarta : <span title="Falta el nombre de la empresa en Configuración.">{botonCarta}</span>}
-        <Button className="h-11" onClick={onNuevaVenta}>
+        <Button className="bg-pos-primario hover:bg-pos-primario-hover h-11 text-white" onClick={onNuevaVenta}>
           Nueva venta
         </Button>
       </div>
 
       <div className="flex items-center justify-center gap-2">
         {venta ? (
-          <Button variant="link" className="h-9 px-2" onClick={() => onVerHistorial(venta.factura.ncf)}>
+          <Button
+            variant="link"
+            className="text-pos-primario h-9 px-2"
+            onClick={() => onVerHistorial(venta.factura.ncf)}
+          >
             Ver en el historial
           </Button>
         ) : (
           <Button
             variant="link"
-            className="h-9 px-2"
+            className="text-pos-primario h-9 px-2"
             render={<a href="/dashboard/cotizaciones" target="_blank" rel="noreferrer" />}
           >
             Ver en Contabilidad

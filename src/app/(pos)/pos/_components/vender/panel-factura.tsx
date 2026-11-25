@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 
-import { DialogoNuevoContacto } from "@/components/contactos/dialogo-nuevo-contacto";
+import { type ContactoCreado, DialogoNuevoContacto } from "@/components/contactos/dialogo-nuevo-contacto";
 import { SelectorContacto } from "@/components/contactos/selector-contacto";
 import {
   AlertTriangle,
@@ -11,7 +11,6 @@ import {
   FolderOpen,
   MoreHorizontal,
   Pencil,
-  Percent,
   Printer,
   Receipt,
   SlidersHorizontal,
@@ -56,6 +55,7 @@ import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { sumarMontos } from "@/lib/pos/calculo";
 import { esComprobanteCreditoFiscal, esConsumidorFinalPOS } from "@/lib/pos/consumidor-final";
+import type { DatosContactoRapidoOffline } from "@/lib/pos/contactos-offline";
 import { armarTicketCotizacionDocumento, armarTicketPrefactura, type TicketPOSPayload } from "@/lib/pos/impresion";
 import type { LineaVenta, PlantillaTicket } from "@/lib/pos/tipos";
 
@@ -85,7 +85,6 @@ export interface PanelFacturaProps {
   impuestos: Impuesto[];
   puedeEscribir: boolean;
   onCobrar: () => void;
-  onVentaSimple: () => void;
   onCargarCotizacion: () => void;
   onGuardarCotizacion: () => void;
   onCancelarVenta: () => void;
@@ -98,6 +97,14 @@ export interface PanelFacturaProps {
   onImprimir: (doc: { titulo: string; payload: TicketPOSPayload }) => void;
   guardandoCotizacion: boolean;
   errorCotizacion: string | null;
+  /**
+   * Se avisa antes de seleccionar el cliente para que el POS guarde el
+   * contacto recién creado en su lista y en IndexedDB: si se recarga sin red,
+   * el cliente sigue disponible.
+   */
+  onContactoCreado?: (contacto: ContactoCreado) => void;
+  /** POS: crea el cliente en el dispositivo cuando no hay red. */
+  onGuardarClienteOffline?: (datos: DatosContactoRapidoOffline) => Promise<ContactoCreado>;
   sinCaja?: boolean;
   idPanel?: string;
 }
@@ -115,7 +122,6 @@ export function PanelFactura({
   impuestos,
   puedeEscribir,
   onCobrar,
-  onVentaSimple,
   onCargarCotizacion,
   onGuardarCotizacion,
   onCancelarVenta,
@@ -123,6 +129,8 @@ export function PanelFactura({
   onImprimir,
   guardandoCotizacion,
   errorCotizacion,
+  onContactoCreado,
+  onGuardarClienteOffline,
   sinCaja = false,
   idPanel = "panel-factura-pos",
 }: PanelFacturaProps) {
@@ -263,17 +271,6 @@ export function PanelFactura({
             variant="ghost"
             size="icon"
             className="hover:text-pos-texto size-10"
-            title="Venta rápida"
-            aria-label="Venta rápida"
-            onClick={onVentaSimple}
-            disabled={cotizacion !== null || !puedeEscribir}
-          >
-            <Percent className="size-5" aria-hidden="true" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hover:text-pos-texto size-10"
             title="Imprimir vista previa"
             aria-label="Imprimir vista previa"
             onClick={() => setVistaPrevia("prefactura")}
@@ -296,11 +293,6 @@ export function PanelFactura({
               <SlidersHorizontal className="size-5" aria-hidden="true" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuItem disabled={cotizacion !== null || !puedeEscribir} onClick={onVentaSimple}>
-                <Zap aria-hidden="true" />
-                <span className="flex-1">Venta simple</span>
-                <kbd className="text-muted-foreground text-[10px]">F4</kbd>
-              </DropdownMenuItem>
               <DropdownMenuItem disabled={cotizacion === null} onClick={() => setVistaPrevia("cotizacion")}>
                 <Printer aria-hidden="true" />
                 Imprimir cotización
@@ -394,6 +386,9 @@ export function PanelFactura({
             permitirProveedor={false}
             showClear={false}
             mostrarRncEnValor
+            modoLocal
+            onGuardarOffline={onGuardarClienteOffline}
+            onContactoCreado={onContactoCreado}
             acciones={(contacto) =>
               contacto ? (
                 <>
@@ -641,7 +636,9 @@ export function PanelFactura({
         onOpenChange={setNuevoCliente}
         tipoInicial="cliente"
         permitirProveedor={false}
+        onGuardarOffline={onGuardarClienteOffline}
         onCreado={(contacto) => {
+          onContactoCreado?.(contacto);
           carrito.setContacto(contacto.id);
           setNuevoCliente(false);
           onAnunciar(`Cliente ${contacto.nombre} creado y seleccionado.`);

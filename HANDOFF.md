@@ -1,5 +1,57 @@
 # Handoff — Medoxigas Contabilidad
 
+
+## POS 100% operativo sin internet — 3 tareas integradas (rama `feat/pos-modo-offline-alegra` @ `a9f1e59`, 24-11-2026)
+
+Tres subagentes (DeepSeek V4.1 Flash 1017) en worktrees disjuntos, integrados y verificados por el Orquestador (sin merge a `main`; espera OK de Waldy):
+
+- **Tarea 1 — Inventario y clientes 100% locales (`catalogo-local.ts`, `contactos-offline.ts`, `vender-pos.tsx`, `selector-contacto.tsx`, `dialogo-nuevo-contacto.tsx`, `consultas.ts`):** catálogo completo descargado por lotes a IndexedDB con búsqueda 0 ms (nombre, referencia/escáner, categorías, favoritos) y descuento visual de stock por ventas pendientes; todos los clientes paginados sin tope de 1,000 con búsqueda 0 ms por nombre/RNC; **`+ Nuevo` crea cliente sin internet** — la cola FIFO crea el contacto en Supabase antes de subir sus ventas y enlaza el ID real.
+- **Tarea 2 — App local con 5 rutas, PWA y logo offline (`public/pos-sw.js`, `src/app/manifest.ts`, `offline-pos-provider.tsx`, `menu-pos.tsx`, `barra-superior-pos.tsx`, `conexion-offline.ts`):** el Service Worker cachea las 5 pantallas del POS (`/pos`, `/pos/historial`, `/pos/pagos`, `/pos/turnos`, `/pos/devoluciones`), sus JS/CSS y el logo Medoxigas para imprimir sin red; navegación con timeout de 3 s → copia local; `manifest.ts` instala «Medoxigas POS» como app (start `/pos`, standalone, teal `#00b19d`); `navigator.storage.persist()` protege la cola; aviso cuando la sesión vence.
+- **Tarea 3 — Vistas locales de ventas, turnos, pagos y devoluciones (`cache-vistas-offline.ts` + componentes de `historial`, `turnos`, `pagos`, `devoluciones`):** últimas 30 ventas con detalle y ticket en IndexedDB para **ver y reimprimir tickets sin internet**; turno actual suma ventas pendientes en vivo; listados de Pagos y Devoluciones servidos del caché local.
+- **Fix del Orquestador (`src/proxy.ts` + candado en `conexion-offline.test.ts`):** el matcher del proxy redirigía `/manifest.webmanifest` y `/pos-sw.js` a `/login` (la PWA no se instalaba ni el SW registraba); excluidos del middleware y candado que evalúa el matcher real contra rutas públicas/privadas.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (**1,788 tests**), `pnpm build` en verde. Preview del worktree en **http://localhost:3012** (Tailscale `:3012`), build de producción.
+- **Capturas:** `/root/referencias/capturas-terminadas/2026-11-24-pos-offline/` — las 5 rutas del POS en claro/oscuro/móvil (15 PNG).
+
+## POS Local-First + NCF consecutivo + Checkout simplificado (rama `feat/pos-modo-offline-alegra`, 24-11-2026)
+
+Evolución directa tras pruebas en vivo con Waldy (sin merge a `main`; espera OK de Waldy):
+
+- **Local-first puro (Opción A) con subida en segundo plano (`checkout-pos.tsx`, `offline-pos-provider.tsx`, `transporte-offline.ts`, `barra-superior-pos.tsx`):**
+  - Toda venta de contado normal (Efectivo, Tarjeta, Transferencia, Combinado) se guarda primero en IndexedDB con `client_uuid` idempotente y abre **`¡Venta completada!`** en < 50 ms (sin esperar red ni mostrar «No sabemos si la venta se registró» cuando el internet tambalea).
+  - La subida a `pos_sincronizar_operacion` corre al instante en segundo plano con timeout de 10 s (`TIMEOUT_SINCRONIZACION_MS`), reintentos automáticos cada 5 s mientras haya pendientes y detección de caída real en ~15 s. El popover superior no interrumpe una venta normal que sube rápido; solo se abre automático al reconectar con pendientes, ante errores reales o demoras > 4 s.
+  - Crédito y conversión de cotizaciones siguen pidiendo conexión para validar límite de crédito y evitar doble facturación.
+- **NCF consecutivo local (`ncf-local.ts`, `venta-local.ts`, `cola-offline.ts`, `vender-pos.tsx`):**
+  - El dispositivo mantiene el contador local (`siguiente`) por numeración en IndexedDB (sincronizado al alza con el servidor y con cada NCF confirmado) y emite el siguiente comprobante real (`B0200000XXX`, `B0100000XXX`, etc.) sin folios `POS-LOCAL-*`. Si otra caja facturó en paralelo, al sincronizar el servidor asigna el siguiente libre y actualiza el historial.
+- **Modal único `¡Venta completada!` (`confirmacion-venta.tsx`, `detalle-venta-offline.tsx`):**
+  - Eliminado `confirmacion-offline.tsx` («Venta guardada en este dispositivo» + preview incrustado). Las ventas locales arman una `VentaPOSResultado` completa (`armarVentaLocalResultado`) y usan exactamente el mismo modal `¡Venta completada!` (migrado a teal `--pos-primario`), el mismo ticket térmico oficial (`armarTicketFactura`) y el mismo PDF Carta (`armarCartaFactura`).
+- **Checkout y catálogo simplificados (integrados desde `t3/1ffa8b8e` y `t3/pos-tarjeta-unica-transferencia-banco`):**
+  - Eliminada la opción «Venta simple» (tarjeta, diálogo, atajo `F4`, `agregarLineaLibre` + candado en `diseno-pos.test.ts`).
+  - Unificadas «Tarjeta crédito» y «Tarjeta débito» en una sola opción **«Tarjeta»** (en cobro simple, combinado y ticket).
+  - En **Transferencia** (y por fila en **Combinado**), botones clicables de **Banco destino \*** con las cuentas bancarias activas reales (`es_caja_banco && tipo_banco === "banco"`) enviando su `cuenta_id` al backend.
+
+## POS Modo Sin Internet (Offline) estilo Alegra + 5 bugs offline (rama `feat/pos-modo-offline-alegra`, 24-11-2026)
+
+Implementación completa del plan `PLAN-MODO-OFFLINE-POS.md` (sin merge a `main`; espera OK de Waldy):
+
+- **Barra superior y popover de sincronización (`barra-superior-pos.tsx`, `layout.tsx`, `conexion-offline.ts`):**
+  - Indicador `Disponible` / `Sin conexión` en la esquina superior derecha del POS con transición inmediata (<1 s) ante `navigator.onLine === false` o evento `offline` (incluso durante `sincronizando`, vía `registrarOfflineInmediato()` + `estadoTrasSondeo(..., forzar: true)`).
+  - Popover de 3 estados (`Sincronizando`, `Sincronización pendiente` + botón **Revisar pendientes**, `Sincronización al día`), 3 filas (`Ventas`, `Productos`, `Clientes`) con estado real de IndexedDB y botón manual **Sincronizar ahora**. Offline, «Revisar pendientes» abre la cola local para no salir a una ruta no cacheada; online navega a `/pos/historial`.
+- **Historial de ventas offline + modal «Venta pendiente de guardar» (`historial-offline.ts`, `historial-pos.tsx`, `lista-ventas.tsx`, `detalle-venta-offline.tsx`, `checkout-pos.tsx`, `carrito-pos-provider.tsx`):**
+  - `/pos/historial` combina ventas locales y sincronizadas (página 1, respetando filtros `q`/`desde`/`hasta`/`estado`/`terminal` y ventana de gracia de 5 min para sincronizadas aún no refrescadas): amarillo **Sincronizando** + folio temporal, `✓` verde + NCF definitivo, rojo `!` **Error** con banner **«No se pudo sincronizar la venta»**, **Reintentar sincronización**, **Editar venta** (validado con retorno booleano antes de descartar la copia fallida), **Imprimir ticket** y **Descartar**.
+  - En caja (`CheckoutPos`): fallos definitivos de guardado/rechazo muestran el modal **«Venta pendiente de guardar»** con **Imprimir ticket** (prefactura sin NCF) y **Editar venta**; timeouts/caídas de red tras envío remoto conservan el aviso de resultado incierto con **Ver Historial** para evitar doble cobro/NCF.
+- **Cierre de turno estricto estilo Alegra (`cola-offline.ts`, `dialogo-cerrar-turno.tsx`, `barra-inferior-pos.tsx`):**
+  - Prohíbe cerrar turno sin internet y con ventas pendientes o con error (`pendientes > 0`), mostrando la barra roja fija **«Debes sincronizar tu información antes de poder cerrar turno»** (o sin conexión) con botón **Guardar** deshabilitado.
+- **5 bugs offline corregidos:**
+  1. `pos-sw.js` + `offline-pos-provider.tsx`: refresca el HTML de `/pos` en navegaciones buenas (aislando errores de cuota en `cache.put`), incluye `turnoId` en `prepararWorker` + mensajes `PREPARAR`/`POS_CACHE_LISTO` y serializa preparaciones con `generacionPreparacion` + re-preparación pendiente.
+  2. `cache-catalogo-offline.ts` + `vender-pos.tsx`: acumula todos los lotes de 50 productos en memoria y escribe IndexedDB una sola vez al finalizar (`completo: true`), preservando el caché previo ante fallo a mitad; dependencias estabilizadas en `[ambito, terminal.id, listaPrecioId]`.
+  3. `conexion-offline.ts` + `offline-pos-provider.tsx`: `textoEstadoOffline` informa error de almacenamiento cuando `!preparado && error`.
+  4. `dialogo-nuevo-contacto.tsx` + `vender-pos.tsx` + `panel-factura.tsx`: contacto nuevo (`+ Nuevo`) se agrega a `listaContactos` en estado, se guarda en IndexedDB y se hidrata offline.
+  5. `cola-offline.ts` + `dialogo-cerrar-turno.tsx`: propaga `ErrorImpedimentoCierreOffline` antes de invocar la RPC sin mostrar el mensaje engañoso de resultado incierto.
+- **Revisión independiente y evidencia:**
+  - Auditado por **DeepSeek V4.1 Flash 1017** (`docs/revisiones/20261124-pos-modo-offline.md`); los 7 hallazgos bloqueantes/medios fueron corregidos y re-verificados.
+  - Verificación: `pnpm typecheck`, `pnpm check`, `pnpm test`, `pnpm build` y E2E real `tests/e2e/pos-offline-modo-sin-internet.spec.ts` en verde.
+  - Capturas en `/root/referencias/capturas-terminadas/2026-11-24-pos-offline/` (claro/oscuro/móvil + 6 estados del flujo offline/sync/historial).
+
 ## Factura, NC y ND: totales, anulación y series (rama `fix/factura-ui-totales-y-anular`, 24-11-2026)
 
 Mitades de UI de seis bugs de la auditoría de facturación. **Solo TS/TSX**: sin migraciones ni SQL.

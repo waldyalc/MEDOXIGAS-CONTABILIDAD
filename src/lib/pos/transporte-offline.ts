@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/supabase/types";
 
 import type { OperacionOffline, ResultadoEnvioOffline } from "./cola-offline";
+import { resolverContactoIdOffline, sincronizarContactosPendientesOffline } from "./contactos-offline";
 import { esquemaMovimientoTurno, esquemaVenta } from "./esquemas";
 import { esquemasRpcPOS } from "./mapeo";
 import { payloadVentaCompleta } from "./payload-venta";
@@ -82,6 +83,31 @@ type ClienteSupabase = ReturnType<typeof createClient>;
 const SIN_CONFIRMACION = "No se recibió confirmación del servidor. Se reintentará con el mismo folio; no se duplica.";
 const SESION_VENCIDA =
   "Tu sesión expiró o no tienes permiso en esta terminal. Vuelve a iniciar sesión; la operación quedó guardada y se reintentará sola.";
+const CLIENTE_PENDIENTE = "Esperando sincronizar el cliente nuevo antes de subir la venta.";
+
+/**
+ * Límite máximo por intento de subida en segundo plano: si la red muere sin
+ * disparar `window.offline`, no dejamos la sincronización colgada un minuto;
+ * a los 10 s se corta como fallo transitorio y se reintenta con el mismo UUID.
+ */
+export const TIMEOUT_SINCRONIZACION_MS = 10_000;
+
+function conTimeout<T>(promesa: PromiseLike<T>, ms: number): Promise<T> {
+  let temporizador: ReturnType<typeof setTimeout> | undefined;
+  return new Promise<T>((resolve, reject) => {
+    temporizador = setTimeout(() => reject(new Error("timeout_sincronizacion")), ms);
+    Promise.resolve(promesa).then(
+      (valor) => {
+        if (temporizador !== undefined) clearTimeout(temporizador);
+        resolve(valor);
+      },
+      (error) => {
+        if (temporizador !== undefined) clearTimeout(temporizador);
+        reject(error);
+      },
+    );
+  });
+}
 
 async function refrescarSesion(cliente: ClienteSupabase): Promise<boolean> {
   try {
@@ -96,6 +122,7 @@ async function refrescarSesion(cliente: ClienteSupabase): Promise<boolean> {
 function prepararPayload(
   operacion: OperacionOffline,
   terminalId: string,
+  contactoResuelto: string | null,
 ): { valido: true; payload: Json } | { valido: false; error: string } {
   if (operacion.tipo === "venta") {
     const validada = esquemaVenta.safeParse(operacion.payload);
@@ -108,7 +135,8 @@ function prepararPayload(
     if (validada.data.terminal_id !== terminalId) {
       return { valido: false, error: "La venta pertenece a otra terminal. No se envió." };
     }
-    return { valido: true, payload: payloadVentaCompleta(validada.data) };
+    const datos = contactoResuelto ? { ...validada.data, contacto_id: contactoResuelto } : validada.data;
+    return { valido: true, payload: payloadVentaCompleta(datos) };
   }
   const validada = esquemaMovimientoTurno.safeParse(operacion.payload);
   if (!validada.success) {
@@ -123,8 +151,37 @@ function prepararPayload(
   return { valido: true, payload: validada.data };
 }
 
+/**
+ * El cliente de una venta pudo crearse sin red y llevar un `tempId`. La cola
+ * de clientes se sube primero y la venta espera (transitoria, con el mismo
+ * UUID) hasta que ese `tempId` tenga su UUID real: así nunca se marca fallida
+ * por «contacto no encontrado».
+ */
+async function contactoIdParaEnviar(
+  operacion: OperacionOffline,
+): Promise<{ esperar: true; error: string } | { esperar: false; contactoId: string | null }> {
+  if (operacion.tipo !== "venta") return { esperar: false, contactoId: null };
+
+  await sincronizarContactosPendientesOffline(operacion.ambito).catch(() => undefined);
+
+  const payload = operacion.payload;
+  if (typeof payload !== "object" || payload === null || !("contacto_id" in payload)) {
+    return { esperar: false, contactoId: null };
+  }
+  const contactoId = payload.contacto_id;
+  if (typeof contactoId !== "string" || contactoId === "") return { esperar: false, contactoId: null };
+
+  const resolucion = await resolverContactoIdOffline(operacion.ambito, contactoId).catch(() => undefined);
+  if (resolucion?.estado === "pendiente") return { esperar: true, error: CLIENTE_PENDIENTE };
+  if (resolucion?.estado === "resuelto") return { esperar: false, contactoId: resolucion.id };
+  return { esperar: false, contactoId: null };
+}
+
 export const transportarOperacionOffline: TransporteOffline = async (operacion, terminalId) => {
-  const preparado = prepararPayload(operacion, terminalId);
+  const contacto = await contactoIdParaEnviar(operacion);
+  if (contacto.esperar) return { ok: false, transitorio: true, error: contacto.error };
+
+  const preparado = prepararPayload(operacion, terminalId, contacto.contactoId);
   if (!preparado.valido) return { ok: false, transitorio: false, error: preparado.error };
   const payload = preparado.payload;
 
@@ -139,10 +196,10 @@ export const transportarOperacionOffline: TransporteOffline = async (operacion, 
         payload,
       },
     };
-    let respuesta = await cliente.rpc("pos_sincronizar_operacion", argumentos);
+    let respuesta = await conTimeout(cliente.rpc("pos_sincronizar_operacion", argumentos), TIMEOUT_SINCRONIZACION_MS);
     if (respuesta.error && clasificarErrorOffline(respuesta.error.code) === "sesion") {
       if (await refrescarSesion(cliente)) {
-        respuesta = await cliente.rpc("pos_sincronizar_operacion", argumentos);
+        respuesta = await conTimeout(cliente.rpc("pos_sincronizar_operacion", argumentos), TIMEOUT_SINCRONIZACION_MS);
       }
       if (respuesta.error && clasificarErrorOffline(respuesta.error.code) === "sesion") {
         return { ok: false, transitorio: true, sesionRequerida: true, error: SESION_VENCIDA };
