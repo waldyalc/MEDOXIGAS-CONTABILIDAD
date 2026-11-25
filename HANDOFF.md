@@ -1,5 +1,13 @@
 # Handoff — Medoxigas Contabilidad
 
+## Preview único consolidado en `feat/pos-alegra-exacto` (24-11-2026, regla de Waldy)
+
+Waldy pidió **un solo preview para siempre**: https://medoxigas-agentes.tail25e53a.ts.net — sirve `feat/pos-alegra-exacto`, la rama que consolida `main` + todo el trabajo del VPS. Al abrirlo vio que el menú aún mostraba «Bandeja de entrada» y «Mis tareas» (la limpieza `6545bd6` vivía solo en `fix/sidebar-menu-limpieza`/`preview/menu-fechas`): bug de consolidación.
+
+- **Merge en `feat/pos-alegra-exacto` @ `ce6f8c7`:** `main` (a881637, PRs #145–149) + `preview/menu-fechas` (49 commits: limpieza del menú lateral sin Bandeja/Mis tareas, tarjeta Reportes DGII, fixes de factura NC/ND/anulación/totales B03-B04/series, contabilidad, contacto unificado, dedup RNC) + `feat/pos-modo-offline-alegra` (POS 100% offline: local-first, SW+5 rutas+PWA, vistas locales, fix del proxy).
+- **Conflictos resueltos (11 archivos):** unión de ambas features — `permitirProveedor` + `onGuardarOffline`/`modoLocal` en `selector-contacto.tsx` y `dialogo-nuevo-contacto.tsx`; `estabaConectado` + `sinRed` en `offline-pos-provider.tsx`; firma `aplicarPreciosDeLista(productos)` de menu-fechas (`preciosDeListaALineas` refresca unidades) + `cargarVentaOffline` de la rama offline; `ctaDeshabilitado` con compuertas por modo unificado `tarjeta` + requisitos de banco destino; `textoEstadoOffline` devuelve el error real de almacenamiento (conducta de main) y su candado quedó ajustado; HANDOFF con todas las secciones.
+- **Verificación:** typecheck, check, **1,846 tests** y `pnpm build` en verde; `systemctl restart medoxigas-preview` → 200 en `/login`, `/manifest.webmanifest` y `/pos-sw.js`.
+- **AGENTS.md:** sección «Preview oficial» reescrita — un solo enlace permanente; los puertos 3011+ quedan solo para verificación interna de agentes y nunca se le pasan a Waldy.
 
 ## POS 100% operativo sin internet — 3 tareas integradas (rama `feat/pos-modo-offline-alegra` @ `a9f1e59`, 24-11-2026)
 

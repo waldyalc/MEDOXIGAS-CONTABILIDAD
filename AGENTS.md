@@ -139,12 +139,14 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 - El Orquestador revisa el diff, verifica los checks reales de CI y luego integra a `main`.
 - Nunca force-push, nunca `--no-verify`, nunca reescribir historia publicada. Ver skill `flujo-git`.
 
-## Preview oficial en el VPS
+## Preview oficial en el VPS — UNO solo (regla de Waldy, 24-11-2026)
 
-- **Enlace oficial:** https://medoxigas-agentes.tail25e53a.ts.net (solo abre desde equipos con Tailscale). Es donde **Waldy revisa los cambios** en vivo.
-- Por dentro es el servicio systemd `medoxigas-preview.service`: corre `pnpm start` en el puerto **3010** desde `/root/MEDOXIGAS-CONTABILIDAD` (sirve el último `pnpm build`; hay que rebuild tras mergear), contra la base de **producción** (solo lectura con usuarios ZZTEST).
-- **Nunca** levantes otro dev server en el puerto 3010 ni mates ese servicio. Si hay que reiniciarlo: `systemctl restart medoxigas-preview`.
-- Un worktree que quiera su propio preview usa otro puerto (**3011 en adelante**).
+- **Hay UN solo enlace de preview y es para siempre:** https://medoxigas-agentes.tail25e53a.ts.net (solo abre desde equipos con Tailscale). Es **el único que Waldy abre y revisa**; no le pases nunca otra URL con otro puerto.
+- **La rama que sirve es `feat/pos-alegra-exacto` = el "main" del preview:** contiene `main` más **TODOS** los cambios hechos en el VPS. Cada vez que una tarea se integra, se mergea su rama a `feat/pos-alegra-exacto` (nunca se le borra trabajo; si falta algo que Waldy ya aprobó — como un menú o una pantalla — es un bug de consolidación y se arregla mergeando lo que falte).
+- Por dentro es el servicio systemd `medoxigas-preview.service`: corre `pnpm start` en el puerto **3010** desde `/root/MEDOXIGAS-CONTABILIDAD` (sirve el último `pnpm build`; hay que rebuild tras cada merge), contra la base de **producción** (solo lectura con usuarios ZZTEST).
+- **Flujo tras integrar:** mergear a `feat/pos-alegra-exacto` → `pnpm build` → `systemctl restart medoxigas-preview` → comprobar que responde 200.
+- **Nunca** levantes otro dev server en el puerto 3010 ni mates ese servicio.
+- Los puertos 3011+ son solo para verificación de desarrollo de un worktree (tests, capturas internas del agente); **nunca se le pasan a Waldy como preview**.
 - El login es con los usuarios **ZZTEST** de `.env.pruebas` (las claves nunca van en el repo ni en prompts).
 
 ## Vercel y producción
@@ -152,7 +154,7 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 - Vercel construye SOLO los cambios en `main`. Las ramas y los PR NO generan preview en Vercel; para revisar se usa el preview del VPS (puerto 3010).
 - Vercel tiene un límite de builds seguidos (build-rate-limit). No se unen muchas ramas a `main` de golpe; si un build se rechaza, Vercel no lo reintenta solo y hay que disparar otro.
 - Nada se une a `main`, se publica, se promueve en Vercel ni cambia variables de entorno sin el OK de Waldy en el chat.
-- El trabajo se consolida en la rama del POS (`feat/pos-alegra-exacto`) y se publica de una sola vez cuando Waldy lo apruebe.
+- El trabajo se consolida en `feat/pos-alegra-exacto` (la rama del preview único) y se publica a `main` de una sola vez cuando Waldy lo apruebe.
 
 ## Candados: cada corrección se vuelve un test o una regla
 
@@ -193,7 +195,7 @@ Candados que ya existen:
 
 «Al terminar una tarea, todo agente debe tomar capturas de pantalla de lo que hizo (en el preview) y entregarlas con su informe; el orquestador, al juntar, actualiza el preview y reporta las capturas».
 
-- **Preview oficial:** http://127.0.0.1:3010 (puerto 3010). Al juntar, el Orquestador hace `git pull` de `feat/pos-alegra-exacto`, `pnpm build` y `systemctl restart medoxigas-preview`, y comprueba que responde 200.
+- **Preview oficial:** http://127.0.0.1:3010 (puerto 3010, el único preview que ve Waldy). Al juntar, el Orquestador mergea a `feat/pos-alegra-exacto` (la rama consolidada con todo el trabajo del VPS), `pnpm build` y `systemctl restart medoxigas-preview`, y comprueba que responde 200.
 - **Cómo se toman:** con el script único **`pnpm captura --ruta /pos --salida <carpeta> [--base http://localhost:3010]`** (`src/scripts/captura.ts`): entra como **ZZTEST** (credenciales de `.env.pruebas`, storageState en `/root/.medoxigas/` fuera del repo, se renueva solo), toma claro 1440 px, oscuro 1440 px y móvil 390 px, y **falla ante errores de consola o HTTP 5xx**. Todos los agentes usan este script; nada de scripts de captura improvisados.
 - **Dónde se guardan:** `/root/referencias/capturas-terminadas/<fecha>-<punto>.png`, fuera del repo (defecto del script: `/root/referencias/capturas-terminadas/<fecha>`). El informe del Orquestador lista la ruta y una línea de qué muestra cada una.
 - **Seguridad:** no se commitean claves ni datos sensibles; las capturas sí pueden incluir datos de prueba de ZZTEST.
