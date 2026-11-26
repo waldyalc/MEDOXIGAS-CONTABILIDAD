@@ -5,8 +5,11 @@ import {
   ATAJOS_RANGO,
   etiquetaFecha,
   etiquetaRango,
+  fechaAyer,
   fechaFinAnioAnterior,
   fechaFinMesAnterior,
+  fechaFinSemanaAnterior,
+  fechaFinTrimestreAnterior,
   rangoAnioAnterior,
   rangoAyer,
   rangoEstaSemana,
@@ -17,6 +20,7 @@ import {
   rangoMesAnterior,
   rangoSemanaAnterior,
   rangoTrimestreAnterior,
+  rangoUltimos30Dias,
 } from "./rangos";
 
 describe("atajos de rango", () => {
@@ -56,6 +60,11 @@ describe("atajos de rango", () => {
     expect(rangoMesAnterior("2024-03-10")).toEqual({ desde: "2024-02-01", hasta: "2024-02-29" });
   });
 
+  it("últimos 30 días incluye hoy como el día 30", () => {
+    expect(rangoUltimos30Dias("2026-11-30")).toEqual({ desde: "2026-11-01", hasta: "2026-11-30" });
+    expect(rangoUltimos30Dias("2026-01-15")).toEqual({ desde: "2025-12-17", hasta: "2026-01-15" });
+  });
+
   it("cada trimestre del año", () => {
     expect(rangoEsteTrimestre("2026-01-15")).toEqual({ desde: "2026-01-01", hasta: "2026-03-31" });
     expect(rangoEsteTrimestre("2026-04-01")).toEqual({ desde: "2026-04-01", hasta: "2026-06-30" });
@@ -70,8 +79,15 @@ describe("atajos de rango", () => {
 });
 
 describe("atajos de una fecha", () => {
-  it("hoy", () => {
+  it("hoy y ayer", () => {
     expect(ATAJOS_FECHA[0]?.obtener("2026-11-13")).toBe("2026-11-13");
+    expect(fechaAyer("2026-11-13")).toBe("2026-11-12");
+    expect(fechaAyer("2026-01-01")).toBe("2025-12-31");
+  });
+
+  it("fin de semana anterior usa el domingo de la semana completa previa", () => {
+    expect(fechaFinSemanaAnterior("2026-11-13")).toBe("2026-11-08");
+    expect(fechaFinSemanaAnterior("2026-01-04")).toBe("2025-12-28");
   });
 
   it("fin de mes anterior", () => {
@@ -80,8 +96,24 @@ describe("atajos de una fecha", () => {
     expect(fechaFinMesAnterior("2024-03-01")).toBe("2024-02-29");
   });
 
+  it("fin de trimestre anterior", () => {
+    expect(fechaFinTrimestreAnterior("2026-11-13")).toBe("2026-09-30");
+    expect(fechaFinTrimestreAnterior("2026-01-15")).toBe("2025-12-31");
+  });
+
   it("fin de año anterior", () => {
     expect(fechaFinAnioAnterior("2026-11-13")).toBe("2025-12-31");
+  });
+
+  it("incluye todos los cortes útiles para reportes contables", () => {
+    expect(ATAJOS_FECHA.map((atajo) => atajo.etiqueta)).toEqual([
+      "Hoy",
+      "Ayer",
+      "Fin de semana anterior",
+      "Fin de mes anterior",
+      "Fin de trimestre anterior",
+      "Fin de año anterior",
+    ]);
   });
 });
 
@@ -102,6 +134,7 @@ describe("etiquetas", () => {
       "Semana anterior",
       "Este mes",
       "Mes anterior",
+      "Últimos 30 días",
       "Este trimestre",
       "Trimestre anterior",
       "Este año",

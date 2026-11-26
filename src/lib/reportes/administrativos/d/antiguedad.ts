@@ -63,6 +63,10 @@ export function filtrarCartera(filas: readonly FilaCartera[], filtros: FiltrosCa
   return filas.filter((fila) => coincideFiltros(fila, filtros));
 }
 
+export function filtrarPorPeriodoEmision(filas: readonly FilaCartera[], desde: string, hasta: string): FilaCartera[] {
+  return filas.filter((fila) => dentroDe(fila.creado, desde, hasta));
+}
+
 export function totalCartera(filas: readonly FilaCartera[]): number {
   return filas.reduce((total, fila) => total + fila.saldo, 0);
 }

@@ -81,6 +81,12 @@ export function rangoMesAnterior(hoy: string): RangoFechas {
   return crearRango(startOfMonth(anterior), endOfMonth(anterior));
 }
 
+/** Últimos 30 días calendario incluyendo hoy. */
+export function rangoUltimos30Dias(hoy: string): RangoFechas {
+  const fecha = aFecha(hoy);
+  return crearRango(subDays(fecha, 29), fecha);
+}
+
 export function rangoEsteTrimestre(hoy: string): RangoFechas {
   const fecha = aFecha(hoy);
   return crearRango(startOfQuarter(fecha), endOfQuarter(fecha));
@@ -106,8 +112,21 @@ export function fechaHoy(hoy: string): string {
   return hoy;
 }
 
+export function fechaAyer(hoy: string): string {
+  return aIso(subDays(aFecha(hoy), 1));
+}
+
+/** Domingo de la semana completa anterior (semana de lunes a domingo). */
+export function fechaFinSemanaAnterior(hoy: string): string {
+  return aIso(endOfWeek(subWeeks(aFecha(hoy), 1), { weekStartsOn: 1 }));
+}
+
 export function fechaFinMesAnterior(hoy: string): string {
   return aIso(endOfMonth(subMonths(aFecha(hoy), 1)));
+}
+
+export function fechaFinTrimestreAnterior(hoy: string): string {
+  return aIso(endOfQuarter(subQuarters(aFecha(hoy), 1)));
 }
 
 export function fechaFinAnioAnterior(hoy: string): string {
@@ -128,6 +147,7 @@ export const ATAJOS_RANGO: readonly AtajoRango[] = [
   { id: "semana-anterior", etiqueta: "Semana anterior", obtener: rangoSemanaAnterior },
   { id: "este-mes", etiqueta: "Este mes", obtener: rangoEsteMes },
   { id: "mes-anterior", etiqueta: "Mes anterior", obtener: rangoMesAnterior },
+  { id: "ultimos-30-dias", etiqueta: "Últimos 30 días", obtener: rangoUltimos30Dias },
   { id: "este-trimestre", etiqueta: "Este trimestre", obtener: rangoEsteTrimestre },
   { id: "trimestre-anterior", etiqueta: "Trimestre anterior", obtener: rangoTrimestreAnterior },
   { id: "este-anio", etiqueta: "Este año", obtener: rangoEsteAnio },
@@ -143,7 +163,10 @@ export interface AtajoFecha {
 
 export const ATAJOS_FECHA: readonly AtajoFecha[] = [
   { id: "hoy", etiqueta: "Hoy", obtener: fechaHoy },
+  { id: "ayer", etiqueta: "Ayer", obtener: fechaAyer },
+  { id: "fin-semana-anterior", etiqueta: "Fin de semana anterior", obtener: fechaFinSemanaAnterior },
   { id: "fin-mes-anterior", etiqueta: "Fin de mes anterior", obtener: fechaFinMesAnterior },
+  { id: "fin-trimestre-anterior", etiqueta: "Fin de trimestre anterior", obtener: fechaFinTrimestreAnterior },
   { id: "fin-anio-anterior", etiqueta: "Fin de año anterior", obtener: fechaFinAnioAnterior },
 ];
 

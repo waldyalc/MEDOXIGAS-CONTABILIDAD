@@ -9,8 +9,9 @@ import {
   leerParametro,
   leerVista,
   paginar,
+  resolverPeriodoCartera,
 } from "@/lib/reportes/administrativos/d/parametros";
-import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
+import { hoyRd, type ParametrosFecha } from "@/lib/reportes/fechas";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
@@ -19,6 +20,7 @@ import { FiltrosCartera } from "../cxc/_components/filtros-cartera";
 import { Paginador } from "../cxc/_components/paginador";
 import { PestanasAntiguedad } from "../cxc/_components/pestanas-antiguedad";
 import { TablaCuentasPorPagar } from "../cxc/_components/tabla-cartera";
+import { TarjetaPeriodoCartera } from "../cxc/_components/tarjeta-periodo-cartera";
 import { TarjetaTotal } from "../cxc/_components/tarjeta-total";
 
 const BASE = "/dashboard/reportes/cxp";
@@ -26,7 +28,7 @@ const POR_PAGINA = 20;
 
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosFecha> }) {
   const params = await searchParams;
-  const { desde, hasta } = parsearRango(params);
+  const { desde, hasta } = resolverPeriodoCartera(params, hoyRd());
   const { filas, error } = await obtenerCarteraCxp(desde, hasta);
 
   const vista = leerVista(params);
@@ -51,7 +53,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const nombreArchivo = `cuentas-por-pagar-${desde}-${hasta}${vista === "todas" ? "" : `-${vista}`}`;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <EncabezadoReporte
         titulo="Cuentas por pagar"
         descripcion="Conoce las deudas que tienes registradas y lleva un control de tus pagos pendientes."
@@ -65,8 +67,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         acciones={<BotonDescargar tabla={tabla} nombreArchivo={nombreArchivo} />}
       />
 
-      <FiltrosCartera
-        tipo="pagar"
+      <TarjetaPeriodoCartera
         desde={desde}
         hasta={hasta}
         vista={vista}
@@ -84,9 +85,20 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
       <TarjetaTotal etiqueta="Total por pagar" total={totalPorPagar} />
 
-      <p className="text-muted-foreground -mt-3 text-sm print:hidden">
-        Las pestañas agrupan las facturas por días vencidos a la fecha de corte.
-      </p>
+      <FiltrosCartera
+        tipo="pagar"
+        base={BASE}
+        params={params}
+        desde={desde}
+        hasta={hasta}
+        vista={vista}
+        ncf={filtros.ncf}
+        contacto={filtros.contacto}
+        creacionDesde={filtros.creacionDesde}
+        creacionHasta={filtros.creacionHasta}
+        vencimientoDesde={filtros.vencimientoDesde}
+        vencimientoHasta={filtros.vencimientoHasta}
+      />
 
       <Card className="py-0">
         <CardContent className="p-0">
