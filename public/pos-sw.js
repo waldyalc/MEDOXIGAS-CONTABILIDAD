@@ -201,6 +201,50 @@ async function redConEspera(solicitud) {
   }
 }
 
+function esPeticionRscPos(solicitud, url) {
+  return (
+    url.origin === self.location.origin &&
+    RUTAS_POS.includes(url.pathname) &&
+    (solicitud.headers.get("RSC") === "1" || url.searchParams.has("_rsc"))
+  );
+}
+
+async function copiaRscCacheada(solicitud, url) {
+  try {
+    return (await caches.match(solicitud)) ?? (await caches.match(url.href)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function avisarRedDegradada() {
+  try {
+    const clientes = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const cliente of clientes) cliente.postMessage({ tipo: "POS_RED_DEGRADADA" });
+  } catch {
+    // Sin clientes controlados no hay aviso que entregar; la respuesta ya se cortó.
+  }
+}
+
+/**
+ * Las navegaciones internas de Next piden el payload RSC con `?_rsc`. Si la red
+ * queda colgada, ese fetch no puede esperar el timeout TCP del sistema: se corta
+ * a los 3 s y se avisa para que el sondeo confirme la caída sin congelar la caja.
+ */
+async function servirRscPos(evento, solicitud, url) {
+  const guardada = await copiaRscCacheada(solicitud, url);
+  if (self.navigator && self.navigator.onLine === false) {
+    if (!guardada) evento.waitUntil(avisarRedDegradada());
+    return guardada ?? Response.error();
+  }
+  try {
+    return await redConEspera(solicitud);
+  } catch {
+    evento.waitUntil(avisarRedDegradada());
+    return guardada ?? Response.error();
+  }
+}
+
 /**
  * Solo las cinco pantallas exactas del menú, nunca por prefijo: `/pos/algo` no
  * tiene copia local. La caja (`/pos`) se evalúa primero porque es la que abre
@@ -291,6 +335,10 @@ self.addEventListener("fetch", (evento) => {
   const solicitud = evento.request;
   if (solicitud.method !== "GET") return;
   const url = new URL(solicitud.url);
+  if (esPeticionRscPos(solicitud, url)) {
+    evento.respondWith(servirRscPos(evento, solicitud, url));
+    return;
+  }
   if (esNavegacionPos(solicitud, url)) {
     evento.respondWith(servirDocumento(evento, solicitud, url));
     return;
