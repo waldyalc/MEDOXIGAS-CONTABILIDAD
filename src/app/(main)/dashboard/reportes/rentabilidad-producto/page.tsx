@@ -2,24 +2,25 @@ import Link from "next/link";
 
 import { TrendingUp } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
+import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaProducto } from "@/lib/enlaces";
+import { leerTamanoConDefecto, resumirPagina, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import { formatearRd } from "@/lib/reportes/dinero";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 import { agruparRentabilidad, paginar, parsearPagina, resumirRentabilidad } from "@/lib/reportes/ventas/v2/calculo";
 import { obtenerLineasVenta } from "@/lib/reportes/ventas/v2/consultas";
-import { urlRentabilidadProducto } from "@/lib/reportes/ventas/v2/enlaces";
 import { tablaRentabilidadProducto } from "@/lib/reportes/ventas/v2/tablas";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
 import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { SelectorRangoFechas } from "../_components/selector-fechas";
-import { PaginacionReporte } from "../ventas-producto/_components/paginacion-reporte";
 
-const TAMANO_PAGINA = 10;
+const TAMANO_DEFECTO = 20;
+const BASE = "/dashboard/reportes/rentabilidad-producto";
 
 const PORCENTAJE = new Intl.NumberFormat("es-DO", {
   maximumFractionDigits: 2,
@@ -33,10 +34,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const { lineas, error } = await obtenerLineasVenta(desde, hasta);
   const filas = agruparRentabilidad(lineas);
   const totales = resumirRentabilidad(filas);
-  const paginado = paginar(filas, pagina, TAMANO_PAGINA);
+  const tamano = leerTamanoConDefecto(params, TAMANO_DEFECTO);
+  const paginado = paginar(filas, pagina, tamano);
+  const resumenPagina = resumirPagina(paginado.pagina, tamano, filas.length);
   const tabla = tablaRentabilidadProducto(filas, totales, desde, hasta);
-
-  const enlacePagina = (destino: number) => urlRentabilidadProducto({ desde, hasta, pagina: destino });
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,15 +132,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                   ))}
                 </TableBody>
               </Table>
+              <PaginadorLista
+                base={BASE}
+                params={params}
+                resumen={resumenPagina}
+                tamano={tamano}
+                opciones={TAMANOS_PAGINA}
+                className="print:hidden"
+              />
             </CardContent>
           </Card>
-
-          <PaginacionReporte
-            pagina={paginado.pagina}
-            totalPaginas={paginado.totalPaginas}
-            anterior={paginado.pagina > 1 ? enlacePagina(paginado.pagina - 1) : null}
-            siguiente={paginado.pagina < paginado.totalPaginas ? enlacePagina(paginado.pagina + 1) : null}
-          />
         </div>
       )}
     </div>

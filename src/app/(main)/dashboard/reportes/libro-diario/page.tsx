@@ -1,35 +1,41 @@
 import { Enlace } from "@/components/enlace";
 import { BookOpen } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
+import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaAsiento, rutaContacto, rutaCuenta } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
+import { leerTamanoConDefecto, resumirPagina, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import { formatearRd } from "@/lib/reportes/dinero";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 import { obtenerMovimientos } from "@/lib/reportes/libros/consultas";
 import { calcularLibroDiario } from "@/lib/reportes/libros/libro-diario";
-import { leerEntero, normalizarOrigenes } from "@/lib/reportes/libros/parametros";
+import { leerEntero, leerTexto, normalizarOrigenes } from "@/lib/reportes/libros/parametros";
 
 import { AlertaError } from "../_components/alerta-error";
 import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { EstadoAsiento } from "../_components/libros/estado-asiento";
 import { FiltroLibroDiario } from "../_components/libros/filtro-libro-diario";
-import { PaginacionLibro } from "../_components/libros/paginacion-libro";
 
-const OPCIONES_POR_PAGINA = [10, 25, 50];
+function leerTamanoLibro(params: ParametrosFecha): number {
+  const tamano = leerTexto(params.tamano) ?? leerTexto(params.porPagina) ?? "";
+  return leerTamanoConDefecto({ ...params, tamano }, 10);
+}
 
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosFecha> }) {
   const params = await searchParams;
   const { desde, hasta } = parsearRango(params);
   const origenes = normalizarOrigenes(params.origen);
-  const solicitado = leerEntero(params.porPagina, 10, 10, 50);
-  const porPagina = OPCIONES_POR_PAGINA.includes(solicitado) ? solicitado : 10;
+  const tamano = leerTamanoLibro(params);
   const pagina = leerEntero(params.pagina, 1, 1, 100000);
 
   const { filas, error } = await obtenerMovimientos({ desde, hasta, origenes });
-  const libro = calcularLibroDiario(filas, { pagina, porPagina });
+  const libro = calcularLibroDiario(filas, { pagina, porPagina: tamano });
+  const resumenPagina = resumirPagina(libro.pagina, tamano, libro.totalFilas);
+  const parametrosPaginacion: ParametrosFecha = { ...params, tamano: String(tamano) };
+  delete parametrosPaginacion.porPagina;
 
   return (
     <div className="flex flex-col gap-6">
@@ -40,7 +46,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         hasta={hasta}
       />
 
-      <FiltroLibroDiario desde={desde} hasta={hasta} origenes={origenes} porPagina={porPagina} />
+      <FiltroLibroDiario desde={desde} hasta={hasta} origenes={origenes} tamano={tamano} />
 
       {error ? <AlertaError mensaje={error} /> : null}
 
@@ -106,17 +112,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                   ))}
                 </TableBody>
               </Table>
+              <PaginadorLista
+                base="/dashboard/reportes/libro-diario"
+                params={parametrosPaginacion}
+                resumen={resumenPagina}
+                tamano={tamano}
+                opciones={TAMANOS_PAGINA}
+                className="print:hidden"
+              />
             </CardContent>
           </Card>
-
-          <PaginacionLibro
-            ruta="/dashboard/reportes/libro-diario"
-            parametros={{ desde, hasta, origen: origenes, porPagina }}
-            pagina={libro.pagina}
-            porPagina={libro.porPagina}
-            totalPaginas={libro.totalPaginas}
-            rangoTexto={libro.rangoTexto}
-          />
         </div>
       )}
     </div>

@@ -23,6 +23,7 @@ import {
   hoyEnRd,
   type RangoFechas,
 } from "@/lib/fechas/rangos";
+import { notificarCargaReporte } from "@/lib/reportes/carga-transicion";
 
 const FORMATO_ISO = "yyyy-MM-dd";
 
@@ -67,6 +68,7 @@ function navegar(router: ReturnType<typeof useRouter>, pathname: string, cambios
 
   parametros.delete("pagina");
   const consulta = parametros.toString();
+  notificarCargaReporte("tabla");
   router.push(consulta === "" ? pathname : `${pathname}?${consulta}`);
 }
 

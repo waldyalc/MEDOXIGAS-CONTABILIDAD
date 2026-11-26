@@ -217,4 +217,14 @@ describe("candados del proveedor", () => {
     expect(fuente).toContain('data-testid="skeleton-carga-reporte"');
     expect(fuente).toContain('aria-busy="true"');
   });
+
+  it("los filtros que navegan con router avisan el skeleton antes de router.push", () => {
+    const reportes = join(process.cwd(), "src", "app", "(main)", "dashboard", "reportes");
+    const selector = readFileSync(join(reportes, "_components", "selector-fechas.tsx"), "utf8");
+    const estados = readFileSync(join(reportes, "_components", "estados", "filtros-estados.tsx"), "utf8");
+
+    for (const fuenteFiltro of [selector, estados]) {
+      expect(fuenteFiltro).toMatch(/notificarCargaReporte\("tabla"\);\s+router\.push/);
+    }
+  });
 });

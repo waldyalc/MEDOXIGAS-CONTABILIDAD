@@ -2,18 +2,13 @@ import Link from "next/link";
 
 import { ArrowLeftRight } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
+import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto, rutaCuenta, rutaGasto, rutaPagoProveedor, rutaPagoRecibido } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
+import { leerTamanoConDefecto, resumirPagina, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import { obtenerTransacciones } from "@/lib/reportes/administrativos/e/consultas";
 import { tablaTransacciones } from "@/lib/reportes/administrativos/e/tablas";
 import {
@@ -40,15 +35,6 @@ function urlMovimiento(movimiento: MovimientoTransaccion): string {
   if (movimiento.origen === "pago_recibido") return rutaPagoRecibido(movimiento.id);
   if (movimiento.origen === "pago_proveedor") return rutaPagoProveedor(movimiento.id);
   return rutaGasto(movimiento.id);
-}
-
-function urlPagina(pagina: number, filtros: Record<string, string>): string {
-  const parametros = new URLSearchParams();
-  for (const [clave, valor] of Object.entries(filtros)) {
-    if (valor !== "") parametros.set(clave, valor);
-  }
-  parametros.set("pagina", String(pagina));
-  return `/dashboard/reportes/transacciones?${parametros.toString()}`;
 }
 
 function FilaTransaccion({ movimiento }: { movimiento: MovimientoTransaccion }) {
@@ -85,45 +71,6 @@ function FilaTransaccion({ movimiento }: { movimiento: MovimientoTransaccion }) 
   );
 }
 
-interface PaginacionProps {
-  pagina: number;
-  totalPaginas: number;
-  filtros: Record<string, string>;
-}
-
-function PaginacionTransacciones({ pagina, totalPaginas, filtros }: PaginacionProps) {
-  const hayAnterior = pagina > 1;
-  const haySiguiente = pagina < totalPaginas;
-
-  return (
-    <Pagination className="print:hidden">
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            href={hayAnterior ? urlPagina(pagina - 1, filtros) : undefined}
-            aria-disabled={!hayAnterior}
-            tabIndex={hayAnterior ? undefined : -1}
-            className={hayAnterior ? undefined : "pointer-events-none opacity-50"}
-          />
-        </PaginationItem>
-        <PaginationItem>
-          <span className="text-muted-foreground px-3 text-sm tabular-nums">
-            Página {pagina} de {totalPaginas}
-          </span>
-        </PaginationItem>
-        <PaginationItem>
-          <PaginationNext
-            href={haySiguiente ? urlPagina(pagina + 1, filtros) : undefined}
-            aria-disabled={!haySiguiente}
-            tabIndex={haySiguiente ? undefined : -1}
-            className={haySiguiente ? undefined : "pointer-events-none opacity-50"}
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
-  );
-}
-
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosFecha> }) {
   const parametros = await searchParams;
   const { desde, hasta } = parsearRango(parametros);
@@ -135,13 +82,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const valor = leerParametro(parametros.valor);
   const valorCentavos = valor === "" ? null : centavos(valor);
   const pagina = Number.parseInt(leerParametro(parametros.pagina), 10) || 1;
+  const tamano = leerTamanoConDefecto(parametros, 25);
 
   const { movimientos, error } = await obtenerTransacciones(desde, hasta);
   const filtradas = filtrarTransacciones(movimientos, { comprobante, fecha, estado, tipo, valorCentavos });
   const totales = totalesTransacciones(filtradas);
-  const { filas, pagina: paginaActual, totalPaginas, total } = paginarTransacciones(filtradas, pagina);
+  const { filas, pagina: paginaActual, total } = paginarTransacciones(filtradas, pagina, tamano);
+  const resumenPagina = resumirPagina(paginaActual, tamano, total);
   const tabla = tablaTransacciones(filtradas, totales, desde, hasta);
-  const filtrosUrl: Record<string, string> = { desde, hasta, comprobante, fecha, estado, tipo, valor };
 
   return (
     <div className="flex flex-col gap-6">
@@ -206,14 +154,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                   </TableRow>
                 </TableFooter>
               </Table>
+              <PaginadorLista
+                base="/dashboard/reportes/transacciones"
+                params={parametros}
+                resumen={resumenPagina}
+                tamano={tamano}
+                opciones={TAMANOS_PAGINA}
+                className="print:hidden"
+              />
             </CardContent>
           </Card>
 
           <p className="text-muted-foreground text-sm">No incluye transferencias entre bancos.</p>
-
-          {total > 0 ? (
-            <PaginacionTransacciones pagina={paginaActual} totalPaginas={totalPaginas} filtros={filtrosUrl} />
-          ) : null}
         </div>
       )}
     </div>

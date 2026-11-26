@@ -2,10 +2,12 @@ import Link from "next/link";
 
 import { Package } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
+import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaProducto } from "@/lib/enlaces";
+import { leerTamanoConDefecto, resumirPagina, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import { formatearRd } from "@/lib/reportes/dinero";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 import {
@@ -17,16 +19,15 @@ import {
   resumirVentas,
 } from "@/lib/reportes/ventas/v2/calculo";
 import { obtenerLineasVenta } from "@/lib/reportes/ventas/v2/consultas";
-import { urlVentasProducto } from "@/lib/reportes/ventas/v2/enlaces";
 import { tablaVentasProducto } from "@/lib/reportes/ventas/v2/tablas";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
 import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { FiltroVentas } from "./_components/filtro-ventas";
-import { PaginacionReporte } from "./_components/paginacion-reporte";
 
-const TAMANO_PAGINA = 20;
+const TAMANO_DEFECTO = 20;
+const BASE = "/dashboard/reportes/ventas-producto";
 
 const CANTIDAD = new Intl.NumberFormat("es-DO", {
   minimumFractionDigits: 2,
@@ -42,10 +43,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const { lineas, error } = await obtenerLineasVenta(desde, hasta);
   const filas = filtrarVentas(agruparVentasPorProducto(lineas), busqueda);
   const totales = resumirVentas(filas);
-  const paginado = paginar(filas, pagina, TAMANO_PAGINA);
+  const tamano = leerTamanoConDefecto(params, TAMANO_DEFECTO);
+  const paginado = paginar(filas, pagina, tamano);
+  const resumenPagina = resumirPagina(paginado.pagina, tamano, filas.length);
   const tabla = tablaVentasProducto(filas, totales, desde, hasta);
-
-  const enlacePagina = (destino: number) => urlVentasProducto({ desde, hasta, busqueda, pagina: destino });
 
   return (
     <div className="flex flex-col gap-6">
@@ -130,15 +131,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                   ))}
                 </TableBody>
               </Table>
+              <PaginadorLista
+                base={BASE}
+                params={params}
+                resumen={resumenPagina}
+                tamano={tamano}
+                opciones={TAMANOS_PAGINA}
+                className="print:hidden"
+              />
             </CardContent>
           </Card>
-
-          <PaginacionReporte
-            pagina={paginado.pagina}
-            totalPaginas={paginado.totalPaginas}
-            anterior={paginado.pagina > 1 ? enlacePagina(paginado.pagina - 1) : null}
-            siguiente={paginado.pagina < paginado.totalPaginas ? enlacePagina(paginado.pagina + 1) : null}
-          />
         </div>
       )}
     </div>

@@ -101,4 +101,10 @@ describe("urlLista", () => {
     expect(url).toBe(`${base}?q=nuevo`);
     expect(urlLista(base, {}, { q: "", pagina: null })).toBe(base);
   });
+
+  test("conserva todos los valores repetidos de un filtro múltiple", () => {
+    expect(urlLista(base, { origen: ["factura", "manual"], pagina: "2" }, { pagina: "3" })).toBe(
+      `${base}?origen=factura&origen=manual&pagina=3`,
+    );
+  });
 });

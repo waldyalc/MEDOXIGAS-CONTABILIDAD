@@ -8,10 +8,10 @@ interface Props {
   desde: string;
   hasta: string;
   origenes: readonly string[];
-  porPagina: number;
+  tamano: number;
 }
 
-export function FiltroLibroDiario({ desde, hasta, origenes, porPagina }: Props) {
+export function FiltroLibroDiario({ desde, hasta, origenes, tamano }: Props) {
   return (
     <form method="get" className="ring-foreground/10 flex flex-col gap-4 rounded-xl p-4 ring-1 print:hidden">
       <div className="flex flex-wrap items-end gap-4">
@@ -35,7 +35,7 @@ export function FiltroLibroDiario({ desde, hasta, origenes, porPagina }: Props) 
           </div>
         </fieldset>
 
-        <input type="hidden" name="porPagina" value={porPagina} />
+        <input type="hidden" name="tamano" value={tamano} />
 
         <Button type="submit" variant="secondary">
           Aplicar

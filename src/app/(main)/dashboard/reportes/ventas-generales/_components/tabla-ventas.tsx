@@ -2,28 +2,26 @@ import Link from "next/link";
 
 import { cn } from "cn";
 
-import { ChevronLeft, ChevronRight, ShoppingCart } from "@/components/icons";
+import { ShoppingCart } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
+import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto, rutaFactura } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
+import { resumirPagina, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import { formatearRd } from "@/lib/reportes/dinero";
+import type { ParametrosFecha } from "@/lib/reportes/fechas";
 import { ALMACEN_PRINCIPAL } from "@/lib/reportes/ventas/v1/calculos";
-import { urlVentas } from "@/lib/reportes/ventas/v1/filtros";
-import type { FiltrosVentasUrl, PaginaVentas, VentaCalculada } from "@/lib/reportes/ventas/v1/tipos";
-
-const POR_PAGINA = 10;
+import type { PaginaVentas, VentaCalculada } from "@/lib/reportes/ventas/v1/tipos";
 
 interface Props {
   ruta: string;
-  desde: string;
-  hasta: string;
-  filtros: FiltrosVentasUrl;
+  params: ParametrosFecha;
   pagina: PaginaVentas;
+  tamano: number;
   porAlmacen?: boolean;
 }
 
@@ -73,7 +71,7 @@ function FilaVenta({ venta, porAlmacen }: { venta: VentaCalculada; porAlmacen: b
   );
 }
 
-export function TablaVentas({ ruta, desde, hasta, filtros, pagina, porAlmacen = false }: Props) {
+export function TablaVentas({ ruta, params, pagina, tamano, porAlmacen = false }: Props) {
   const encabezados = [
     { titulo: "Documento" },
     { titulo: "Cliente" },
@@ -101,15 +99,12 @@ export function TablaVentas({ ruta, desde, hasta, filtros, pagina, porAlmacen = 
     );
   }
 
-  const hrefAnterior = urlVentas(ruta, { desde, hasta, ...filtros, pagina: pagina.pagina - 1 });
-  const hrefSiguiente = urlVentas(ruta, { desde, hasta, ...filtros, pagina: pagina.pagina + 1 });
-  const inicio = (pagina.pagina - 1) * POR_PAGINA + 1;
-  const fin = inicio + pagina.filas.length - 1;
+  const resumenPagina = resumirPagina(pagina.pagina, tamano, pagina.totalFilas);
 
   return (
-    <div className="flex flex-col gap-3">
-      <Card className="py-0">
-        <CardContent className="overflow-x-auto p-0">
+    <Card className="py-0">
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -129,31 +124,16 @@ export function TablaVentas({ ruta, desde, hasta, filtros, pagina, porAlmacen = 
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-muted-foreground text-sm">
-          Mostrando {inicio}–{fin} de {pagina.totalFilas}
-        </p>
-        <div className="flex items-center gap-2">
-          {pagina.pagina > 1 ? (
-            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={hrefAnterior} />}>
-              <ChevronLeft />
-              Anterior
-            </Button>
-          ) : null}
-          <span className="text-muted-foreground text-sm">
-            Página {pagina.pagina} de {pagina.totalPaginas}
-          </span>
-          {pagina.pagina < pagina.totalPaginas ? (
-            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={hrefSiguiente} />}>
-              Siguiente
-              <ChevronRight />
-            </Button>
-          ) : null}
         </div>
-      </div>
-    </div>
+        <PaginadorLista
+          base={ruta}
+          params={params}
+          resumen={resumenPagina}
+          tamano={tamano}
+          opciones={TAMANOS_PAGINA}
+          className="print:hidden"
+        />
+      </CardContent>
+    </Card>
   );
 }

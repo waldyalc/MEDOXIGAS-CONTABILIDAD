@@ -1,5 +1,6 @@
 import { BarraLista, ContenedorLista, TarjetaLista } from "@/components/listas/tabla-lista";
 import { formatoDia } from "@/lib/formato";
+import { leerTamanoConDefecto } from "@/lib/listas/parametros";
 import { filtrarCompras, totalesCompras } from "@/lib/reportes/administrativos/d/compras";
 import { obtenerCompras } from "@/lib/reportes/administrativos/d/consultas";
 import { tablaCompras } from "@/lib/reportes/administrativos/d/exportar";
@@ -15,7 +16,7 @@ import { TablaCompras } from "./_components/tabla-compras";
 import { TotalesCompras } from "./_components/totales-compras";
 
 const BASE = "/dashboard/reportes/compras";
-const POR_PAGINA = 10;
+const TAMANO_DEFECTO = 20;
 
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosFecha> }) {
   const params = await searchParams;
@@ -25,8 +26,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
   const filtradas = filtrarCompras(filas, { proveedor });
   const totales = totalesCompras(filtradas);
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
-  const pagina = paginar(filtradas, leerPagina(params, totalPaginas), POR_PAGINA);
+  const tamano = leerTamanoConDefecto(params, TAMANO_DEFECTO);
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / tamano));
+  const pagina = paginar(filtradas, leerPagina(params, totalPaginas), tamano);
 
   const tabla = tablaCompras(filtradas, `Del ${formatoDia(desde)} al ${formatoDia(hasta)}`);
   const nombreArchivo = `compras-${desde}-${hasta}`;
@@ -54,19 +56,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
         <TablaCompras filas={pagina.filas} />
 
-        {pagina.total > 0 ? (
-          <div className="border-border border-t px-4 py-3 print:hidden">
-            <Paginador
-              base={BASE}
-              params={params}
-              pagina={pagina.pagina}
-              totalPaginas={pagina.totalPaginas}
-              inicio={pagina.inicio}
-              fin={pagina.fin}
-              total={pagina.total}
-            />
-          </div>
-        ) : null}
+        <Paginador
+          base={BASE}
+          params={params}
+          pagina={pagina.pagina}
+          totalPaginas={pagina.totalPaginas}
+          inicio={pagina.inicio}
+          fin={pagina.fin}
+          total={pagina.total}
+          tamano={tamano}
+        />
       </TarjetaLista>
     </ContenedorLista>
   );

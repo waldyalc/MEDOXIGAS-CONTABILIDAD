@@ -76,6 +76,17 @@ export function resumirPagina(pagina: number, tamano: number, total: number): Re
   };
 }
 
+function agregarParametro(busqueda: URLSearchParams, clave: string, valor: string | string[] | undefined): void {
+  if (Array.isArray(valor)) {
+    for (const item of valor) {
+      if (item !== "") busqueda.append(clave, item);
+    }
+    return;
+  }
+
+  if (valor != null && valor !== "") busqueda.set(clave, valor);
+}
+
 /**
  * Arma la URL de la lista conservando página, tamaño y búsqueda. Un cambio con
  * valor `null` o vacío elimina el parámetro.
@@ -85,8 +96,7 @@ export function urlLista(base: string, params: ParametrosLista, cambios: Record<
 
   for (const [clave, valor] of Object.entries(params)) {
     if (Object.hasOwn(cambios, clave)) continue;
-    const texto = Array.isArray(valor) ? valor[0] : valor;
-    if (texto != null && texto !== "") busqueda.set(clave, texto);
+    agregarParametro(busqueda, clave, valor);
   }
 
   for (const [clave, valor] of Object.entries(cambios)) {
