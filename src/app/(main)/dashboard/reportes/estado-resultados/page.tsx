@@ -9,17 +9,15 @@ import {
   parsearBusqueda,
   parsearVista,
 } from "@/lib/reportes/estados/fechas";
-import { generarResumenResultados } from "@/lib/reportes/estados/resumen";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 
 import { AlertaError } from "../_components/alerta-error";
 import { BotonDescargar } from "../_components/boton-descargar";
 import { EncabezadoReporte } from "../_components/encabezado-reporte";
-import { EncabezadoTablaComparativa, type ParametroOculto } from "../_components/estados/encabezado-tabla-comparativa";
+import type { ParametroOculto } from "../_components/estados/encabezado-tabla-comparativa";
 import { FiltrosEstados } from "../_components/estados/filtros-estados";
 import { TablaComparativa } from "../_components/estados/tabla-comparativa";
 import { tablaEstadoResultados } from "./_components/exportar";
-import { ResumenEstado } from "./_components/resumen-estado";
 import { rotuloComparativo } from "./_components/rotulo-comparativo";
 
 const RUTA = "/dashboard/reportes/estado-resultados";
@@ -91,24 +89,22 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
 
       {error ? <AlertaError mensaje={error} /> : null}
 
-      {reporte ? <ResumenEstado texto={generarResumenResultados(reporte.filas)} /> : null}
-
       {reporte ? (
         <Card className="gap-0 py-0">
           <CardContent className="p-0">
-            <EncabezadoTablaComparativa
-              accion={RUTA}
-              etiquetaRango={etiquetaRango}
-              busqueda={busqueda}
-              parametros={parametros}
-            />
             <TablaComparativa
               filas={reporte.filas}
-              rotuloCuenta="Cuenta contable"
+              rotuloCuenta=""
               rotuloActual={rotuloActual}
               rotuloAnterior={rotuloAnterior}
               rotuloPorcentaje={rotuloPorcentaje}
               expandible
+              encabezado={{
+                accion: RUTA,
+                etiquetaRango,
+                busqueda,
+                parametros,
+              }}
             />
           </CardContent>
         </Card>

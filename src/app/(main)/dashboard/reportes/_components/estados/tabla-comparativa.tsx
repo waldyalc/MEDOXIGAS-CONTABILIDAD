@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import { cn } from "cn";
 
 import { Enlace } from "@/components/enlace";
 import { ChevronDown } from "@/components/icons";
-import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader } from "@/components/ui/table";
 import { rutaCuenta } from "@/lib/enlaces";
 import { formatearRd } from "@/lib/reportes/dinero";
 import type { FilaReporte } from "@/lib/reportes/estados/tipos";
+
+import {
+  type ConfiguracionEncabezadoTablaComparativa,
+  EncabezadoTablaComparativa,
+} from "./encabezado-tabla-comparativa";
 
 interface Props {
   filas: readonly FilaReporte[];
@@ -24,6 +28,8 @@ interface Props {
    * estado de resultados). Sin esta prop la tabla se ve como siempre.
    */
   expandible?: boolean;
+  /** Barra superior interna de la tarjeta (buscador, árbol y rango), como en Alegra. */
+  encabezado?: ConfiguracionEncabezadoTablaComparativa;
 }
 
 /** % de Ingresos: siempre 2 decimales, como en Alegra ("112.82%"). */
@@ -31,9 +37,29 @@ function formatoPorcentaje(valor: number): string {
   return `${valor.toFixed(2)}%`;
 }
 
-/** Var. Relativa: entero con signo implícito ("0%", "-15%"), como en Alegra. */
-function formatoVariacion(valor: number): string {
-  return `${Math.round(valor)}%`;
+/** Var. Relativa: hasta 2 decimales, sin forzar decimales en enteros ("-41.64%", "-100%", "0%"). */
+export function formatoVariacion(valor: number): string {
+  const redondeado = Math.round(valor * 100) / 100;
+  const limpio = Object.is(redondeado, -0) ? 0 : redondeado;
+  return `${limpio
+    .toFixed(2)
+    .replace(/\.00$/, "")
+    .replace(/(\.\d)0$/, "$1")}%`;
+}
+
+/** Estado siguiente del botón de árbol: si queda una cuenta abierta, contrae todo; si no, expande todo. */
+export function alternarTodasLasCuentas(
+  contraidos: ReadonlySet<string>,
+  claves: readonly string[],
+): ReadonlySet<string> {
+  const hayAbiertas = claves.some((clave) => !contraidos.has(clave));
+  return new Set(hayAbiertas ? claves : []);
+}
+
+function claseVariacion(valor: number): string | null {
+  if (valor > 0) return "text-emerald-600 dark:text-emerald-400";
+  if (valor < 0) return "text-rose-600 dark:text-rose-400";
+  return null;
 }
 
 function nivelDe(fila: FilaReporte): number {
@@ -47,6 +73,20 @@ interface Agrupacion {
   ancestros: ReadonlyMap<string, readonly string[]>;
 }
 
+interface EntradaPila {
+  clave: string;
+  nivel: number;
+  cadena: readonly string[];
+}
+
+function podarPila(pila: EntradaPila[], nivel: number) {
+  while (pila.length > 0) {
+    const tope = pila.at(-1);
+    if (tope == null || tope.nivel < nivel) break;
+    pila.pop();
+  }
+}
+
 /**
  * El árbol del reporte se lee en una pasada: cada grupo contiene a las filas
  * que le siguen con un nivel mayor, hasta el próximo total/sección.
@@ -54,7 +94,7 @@ interface Agrupacion {
 function agrupar(filas: readonly FilaReporte[]): Agrupacion {
   const hijas = new Map<string, number>();
   const ancestros = new Map<string, readonly string[]>();
-  const pila: { clave: string; nivel: number; cadena: readonly string[] }[] = [];
+  const pila: EntradaPila[] = [];
 
   for (const fila of filas) {
     if (fila.clase === "total" || fila.clase === "titulo") {
@@ -63,7 +103,7 @@ function agrupar(filas: readonly FilaReporte[]): Agrupacion {
     }
 
     const nivel = nivelDe(fila);
-    while (pila.length > 0 && (pila.at(-1)?.nivel ?? 0) >= nivel) pila.pop();
+    podarPila(pila, nivel);
 
     const tope = pila.at(-1);
     if (tope != null) {
@@ -83,7 +123,7 @@ function agrupar(filas: readonly FilaReporte[]): Agrupacion {
 
 function CeldaCuenta({ fila }: { fila: FilaReporte }) {
   return fila.cuentaId ? (
-    <Enlace href={rutaCuenta(fila.cuentaId)} className="text-inherit">
+    <Enlace href={rutaCuenta(fila.cuentaId)} className="block max-w-[225px] break-words text-inherit">
       {fila.nombre}
     </Enlace>
   ) : (
@@ -91,46 +131,33 @@ function CeldaCuenta({ fila }: { fila: FilaReporte }) {
   );
 }
 
+const CELDA_NUMERICA = "h-12 px-4 py-0 text-right text-xs whitespace-nowrap tabular-nums";
+
 function Montos({ fila }: { fila: FilaReporte }) {
   const total = fila.clase === "total";
   /* Alegra pinta en rojo los importes de las hojas «contra» (devoluciones);
      las hojas de gasto/costo van en negro aunque se muestran con signo -. */
-  const periodo = fila.contra ? "text-rose-700" : null;
+  const periodo = fila.contra ? "text-rose-600 dark:text-rose-400" : null;
+  const variacionAbsoluta = claseVariacion(fila.variacionAbsoluta);
+  const variacionRelativa = claseVariacion(fila.variacionRelativa);
   return (
     <>
-      <TableCell className={cn("text-right text-xs whitespace-nowrap tabular-nums", periodo, total && "font-semibold")}>
+      <TableCell className={cn(CELDA_NUMERICA, periodo, total && "font-semibold")}>
         {formatearRd(fila.actual)}
       </TableCell>
-      <TableCell
-        className={cn(
-          "text-right text-xs whitespace-nowrap tabular-nums",
-          total ? "font-semibold" : "text-muted-foreground",
-        )}
-      >
+      <TableCell className={cn(CELDA_NUMERICA, total && "font-semibold")}>
         {formatoPorcentaje(fila.porcentajeActual)}
       </TableCell>
-      <TableCell className={cn("text-right text-xs whitespace-nowrap tabular-nums", periodo, total && "font-semibold")}>
+      <TableCell className={cn(CELDA_NUMERICA, periodo, total && "font-semibold")}>
         {formatearRd(fila.anterior)}
       </TableCell>
-      <TableCell
-        className={cn(
-          "text-right text-xs whitespace-nowrap tabular-nums",
-          total ? "font-semibold" : "text-muted-foreground",
-        )}
-      >
+      <TableCell className={cn(CELDA_NUMERICA, total && "font-semibold")}>
         {formatoPorcentaje(fila.porcentajeAnterior)}
       </TableCell>
-      <TableCell
-        className={cn(
-          "text-right text-xs whitespace-nowrap tabular-nums",
-          fila.variacionAbsoluta > 0 && "text-green-700",
-          fila.variacionAbsoluta < 0 && "text-rose-700",
-          total && "font-semibold",
-        )}
-      >
+      <TableCell className={cn(CELDA_NUMERICA, variacionAbsoluta, total && "font-semibold")}>
         {formatearRd(fila.variacionAbsoluta)}
       </TableCell>
-      <TableCell className={cn("text-right text-xs whitespace-nowrap tabular-nums", total && "font-semibold")}>
+      <TableCell className={cn(CELDA_NUMERICA, variacionRelativa, total && "font-semibold")}>
         {formatoVariacion(fila.variacionRelativa)}
       </TableCell>
     </>
@@ -145,45 +172,78 @@ interface FilaProps {
   onAlternar: (clave: string) => void;
 }
 
+const FILA_BASE = "border-b border-border/60 bg-card hover:bg-transparent dark:hover:bg-transparent";
+
+function ControlExpansion({ fila, conChevron, abierto, onAlternar }: Omit<FilaProps, "oculta">) {
+  if (fila.clase === "total") return null;
+  if (!conChevron) return <span aria-hidden="true" className="inline-block size-8 shrink-0" />;
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-sm"
+      className="size-8 shrink-0 bg-transparent text-slate-600 hover:bg-transparent hover:text-slate-900 aria-expanded:bg-transparent dark:text-slate-300 dark:hover:bg-transparent dark:hover:text-slate-100 print:hidden"
+      aria-expanded={abierto}
+      aria-label={`${abierto ? "Contraer" : "Expandir"} ${fila.nombre}`}
+      onClick={() => onAlternar(fila.clave)}
+    >
+      <ChevronDown className={cn("size-4 transition-transform", abierto ? null : "-rotate-90")} />
+    </Button>
+  );
+}
+
+function claseNombre(fila: FilaReporte, nivel: number): string {
+  if (fila.clase === "total") return "text-sm font-semibold";
+  const peso = fila.clase === "grupo" && nivel === 0 ? "font-semibold" : "font-normal";
+  return cn("text-[13px]", peso);
+}
+
 function FilaComparativa({ fila, conChevron, abierto, oculta, onAlternar }: FilaProps) {
   const nivel = nivelDe(fila);
   const total = fila.clase === "total";
 
   return (
-    <FilaNavegable
-      href={fila.cuentaId ? rutaCuenta(fila.cuentaId) : null}
-      className={cn(total && "bg-slate-50 hover:bg-slate-50", oculta && "hidden print:table-row")}
+    <tr
+      className={cn(
+        FILA_BASE,
+        total && "bg-muted/35 hover:bg-muted/35 dark:bg-muted/25 dark:hover:bg-muted/25",
+        oculta && "hidden print:table-row",
+      )}
     >
-      <TableCell className="pl-4">
-        <div className="flex items-center gap-1" style={{ paddingLeft: `${nivel * 2}rem` }}>
-          {conChevron ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              className="text-muted-foreground -ml-2 shrink-0 print:hidden"
-              aria-expanded={abierto}
-              aria-label={`${abierto ? "Contraer" : "Expandir"} ${fila.nombre}`}
-              onClick={() => onAlternar(fila.clave)}
-            >
-              <ChevronDown className={cn("transition-transform", abierto ? null : "-rotate-90")} />
-            </Button>
-          ) : (
-            <span aria-hidden="true" className="-ml-2 inline-block w-6 shrink-0" />
-          )}
-          <span
-            className={cn(
-              "text-xs",
-              (fila.clase === "grupo" && nivel === 0) || total ? "font-semibold" : null,
-              total && "text-sm",
-            )}
-          >
+      <TableCell className="h-12 px-4 py-0">
+        <div className="flex h-full items-center gap-2" style={{ paddingLeft: `${nivel * 2}rem` }}>
+          <ControlExpansion fila={fila} conChevron={conChevron} abierto={abierto} onAlternar={onAlternar} />
+          <span className={cn("block max-w-[225px] break-words", claseNombre(fila, nivel))}>
             <CeldaCuenta fila={fila} />
           </span>
         </div>
       </TableCell>
       <Montos fila={fila} />
-    </FilaNavegable>
+    </tr>
+  );
+}
+
+function DivisorVertical() {
+  return <span aria-hidden="true" className="bg-border/70 absolute top-2 right-0 bottom-2 w-px" />;
+}
+
+function EncabezadoColumna({
+  children,
+  clase,
+  divisor = true,
+}: {
+  children: ReactNode;
+  clase?: string;
+  divisor?: boolean;
+}) {
+  return (
+    <TableHead
+      className={cn("text-muted-foreground relative h-10 px-4 text-right text-xs font-medium whitespace-nowrap", clase)}
+    >
+      {children}
+      {divisor ? <DivisorVertical /> : null}
+    </TableHead>
   );
 }
 
@@ -194,9 +254,14 @@ export function TablaComparativa({
   rotuloAnterior,
   rotuloPorcentaje,
   expandible = false,
+  encabezado,
 }: Props) {
   const [contraidos, setContraidos] = useState<ReadonlySet<string>>(() => new Set());
   const { hijas, ancestros } = agrupar(filas);
+  const clavesConHijas = expandible
+    ? filas.filter((fila) => fila.clase === "grupo" && (hijas.get(fila.clave) ?? 0) > 0).map((fila) => fila.clave)
+    : [];
+  const todasContraidas = clavesConHijas.length > 0 && clavesConHijas.every((clave) => contraidos.has(clave));
 
   function alternar(clave: string) {
     setContraidos((previos) => {
@@ -207,46 +272,61 @@ export function TablaComparativa({
     });
   }
 
+  function alternarTodas() {
+    setContraidos((previos) => alternarTodasLasCuentas(previos, clavesConHijas));
+  }
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="text-muted-foreground min-w-[280px] pl-4">{rotuloCuenta}</TableHead>
-          <TableHead className="text-muted-foreground text-right whitespace-nowrap">{rotuloActual}</TableHead>
-          <TableHead className="text-muted-foreground text-right whitespace-nowrap">{rotuloPorcentaje}</TableHead>
-          <TableHead className="text-muted-foreground text-right whitespace-nowrap">{rotuloAnterior}</TableHead>
-          <TableHead className="text-muted-foreground text-right whitespace-nowrap">{rotuloPorcentaje}</TableHead>
-          <TableHead className="text-muted-foreground text-right whitespace-nowrap">Var. Absoluta</TableHead>
-          <TableHead className="text-muted-foreground text-right whitespace-nowrap">Var. Relativa (%)</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {filas.map((fila) => {
-          if (fila.clase === "titulo") {
+    <>
+      {encabezado ? (
+        <EncabezadoTablaComparativa
+          {...encabezado}
+          todasContraidas={todasContraidas}
+          onAlternarTodas={clavesConHijas.length > 0 ? alternarTodas : undefined}
+        />
+      ) : null}
+      <Table className="min-w-[1235px]">
+        <TableHeader className="bg-card">
+          <tr className="border-border bg-card border-b">
+            <EncabezadoColumna clase="w-[350px] min-w-[350px] text-left">{rotuloCuenta || "\u00A0"}</EncabezadoColumna>
+            <EncabezadoColumna clase="min-w-[150px]">{rotuloActual}</EncabezadoColumna>
+            <EncabezadoColumna clase="min-w-[140px]">{rotuloPorcentaje}</EncabezadoColumna>
+            <EncabezadoColumna clase="min-w-[150px]">{rotuloAnterior}</EncabezadoColumna>
+            <EncabezadoColumna clase="min-w-[140px]">{rotuloPorcentaje}</EncabezadoColumna>
+            <EncabezadoColumna clase="min-w-[150px]">Var. Absoluta</EncabezadoColumna>
+            <EncabezadoColumna clase="min-w-[155px]" divisor={false}>
+              Var. Relativa (%)
+            </EncabezadoColumna>
+          </tr>
+        </TableHeader>
+        <TableBody>
+          {filas.map((fila) => {
+            if (fila.clase === "titulo") {
+              return (
+                <tr key={fila.clave} className={FILA_BASE}>
+                  <TableCell colSpan={7} className="h-12 px-4 py-0 text-[13px] font-semibold">
+                    {fila.nombre}
+                  </TableCell>
+                </tr>
+              );
+            }
+
+            const conChevron = expandible && fila.clase === "grupo" && (hijas.get(fila.clave) ?? 0) > 0;
+            const oculta = (ancestros.get(fila.clave) ?? []).some((clave) => contraidos.has(clave));
+
             return (
-              <TableRow key={fila.clave} className="bg-muted/50 hover:bg-muted/50">
-                <TableCell colSpan={7} className="px-4 font-semibold">
-                  {fila.nombre}
-                </TableCell>
-              </TableRow>
+              <FilaComparativa
+                key={fila.clave}
+                fila={fila}
+                conChevron={conChevron}
+                abierto={conChevron && !contraidos.has(fila.clave)}
+                oculta={oculta}
+                onAlternar={alternar}
+              />
             );
-          }
-
-          const conChevron = expandible && fila.clase === "grupo" && (hijas.get(fila.clave) ?? 0) > 0;
-          const oculta = (ancestros.get(fila.clave) ?? []).some((clave) => contraidos.has(clave));
-
-          return (
-            <FilaComparativa
-              key={fila.clave}
-              fila={fila}
-              conChevron={conChevron}
-              abierto={conChevron && !contraidos.has(fila.clave)}
-              oculta={oculta}
-              onAlternar={alternar}
-            />
-          );
-        })}
-      </TableBody>
-    </Table>
+          })}
+        </TableBody>
+      </Table>
+    </>
   );
 }

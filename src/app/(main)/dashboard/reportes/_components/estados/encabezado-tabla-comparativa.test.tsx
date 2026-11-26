@@ -28,4 +28,38 @@ describe("EncabezadoTablaComparativa", () => {
     expect(html).toContain('name="vista" value="detallado"');
     expect(html).toContain("Del 1 al 30 de noviembre: Comparativo 2026 - 2025");
   });
+
+  it("muestra el botón limpio de contraer/expandir todas las cuentas cuando la tabla lo controla", () => {
+    const html = renderToStaticMarkup(
+      <EncabezadoTablaComparativa
+        accion="/dashboard/reportes/estado-resultados"
+        etiquetaRango="Del 1 de enero al 31 de diciembre: Comparativo 2026 - 2025"
+        busqueda=""
+        todasContraidas={false}
+        onAlternarTodas={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('aria-label="Contraer todas las cuentas"');
+    expect(html).toContain('aria-expanded="true"');
+    expect(html).toContain('title="Contraer todas las cuentas"');
+    expect(html).toContain("hover:bg-transparent");
+    expect(html).toContain("aria-expanded:bg-transparent");
+    expect(html).not.toContain("bg-muted");
+  });
+
+  it("cambia la etiqueta a expandir cuando todas las cuentas están contraídas", () => {
+    const html = renderToStaticMarkup(
+      <EncabezadoTablaComparativa
+        accion="/dashboard/reportes/estado-resultados"
+        etiquetaRango="Del 1 de enero al 31 de diciembre: Comparativo 2026 - 2025"
+        busqueda=""
+        todasContraidas
+        onAlternarTodas={() => undefined}
+      />,
+    );
+
+    expect(html).toContain('aria-label="Expandir todas las cuentas"');
+    expect(html).toContain("rotate-180");
+  });
 });
