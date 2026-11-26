@@ -74,7 +74,7 @@ describe("paginación global de reportes estilo Alegra", () => {
   });
 
   it("no queda ningún paginador viejo hecho a mano en reportes", () => {
-    const prohibidos = ["Página {", "PaginacionReporte", "PaginacionLibro", "PaginacionTransacciones"];
+    const prohibidos = ["Página" + " {", "PaginacionReporte", "PaginacionLibro", "PaginacionTransacciones"];
 
     for (const ruta of listarTsx(REPORTES)) {
       const codigo = readFileSync(ruta, "utf8");
