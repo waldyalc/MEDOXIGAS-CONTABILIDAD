@@ -1,4 +1,5 @@
 import { formatoDia } from "@/lib/formato";
+import { leerTamanoConDefecto } from "@/lib/listas/parametros";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 import {
   agruparSerie,
@@ -20,6 +21,7 @@ import { TablaVentas } from "../ventas-generales/_components/tabla-ventas";
 import { TarjetasVentas } from "../ventas-generales/_components/tarjetas-ventas";
 
 const RUTA = "/dashboard/reportes/ventas-almacen";
+const TAMANO_DEFECTO = 20;
 
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosFecha> }) {
   const params = await searchParams;
@@ -30,7 +32,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const ventas = filtrarVentas(calcularVentas(facturas, clientes), filtros);
   const totales = calcularTotales(ventas);
   const serie = agruparSerie(ventas, filtros.grafico);
-  const pagina = paginar(ventas, filtros.pagina);
+  const tamano = leerTamanoConDefecto(params, TAMANO_DEFECTO);
+  const pagina = paginar(ventas, filtros.pagina, tamano);
   const subtitulo = `Periodo: ${formatoDia(desde)} al ${formatoDia(hasta)}`;
   const tabla = crearTablaVentasAlmacen(ventas, subtitulo);
 
@@ -65,7 +68,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         hrefMensual={urlVentas(RUTA, { desde, hasta, ...filtros, grafico: "mensual", pagina: 1 })}
       />
 
-      <TablaVentas ruta={RUTA} desde={desde} hasta={hasta} filtros={filtros} pagina={pagina} porAlmacen />
+      <TablaVentas ruta={RUTA} params={params} pagina={pagina} tamano={tamano} porAlmacen />
     </div>
   );
 }

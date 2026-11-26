@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Users } from "@/components/icons";
 import { FilaNavegable } from "@/components/listas/fila-navegable";
+import { PaginadorLista } from "@/components/listas/paginador-lista";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
@@ -10,19 +11,18 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaContacto } from "@/lib/enlaces";
 import { formatoEntero } from "@/lib/formato";
+import { leerTamanoConDefecto, resumirPagina, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import { formatearRd } from "@/lib/reportes/dinero";
 import type { FilaReporte, TablaReporte } from "@/lib/reportes/exportar/tipos";
 import type { ParametrosFecha } from "@/lib/reportes/fechas";
 import { parsearRango } from "@/lib/reportes/fechas";
 import { obtenerVentasCliente } from "@/lib/reportes/ventas/v3/consultas";
-import { urlVentasCliente } from "@/lib/reportes/ventas/v3/enlaces";
 import { parsearBusqueda, parsearPagina } from "@/lib/reportes/ventas/v3/parametros";
 import {
   calcularVentasPorCliente,
   filtrarClientes,
   paginar,
   resumirClientes,
-  totalPaginas,
 } from "@/lib/reportes/ventas/v3/ventas-cliente";
 
 import { AlertaError } from "../_components/alerta-error";
@@ -31,7 +31,8 @@ import { EncabezadoReporte } from "../_components/encabezado-reporte";
 import { SelectorRangoFechas } from "../_components/selector-fechas";
 import { GraficosClientes } from "./_components/graficos-clientes";
 
-const POR_PAGINA = 10;
+const TAMANO_DEFECTO = 30;
+const BASE = "/dashboard/reportes/ventas-cliente";
 
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosFecha> }) {
   const params = await searchParams;
@@ -41,9 +42,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const resumen = calcularVentasPorCliente(filas);
   const clientes = filtrarClientes(resumen.clientes, busqueda);
   const totales = resumirClientes(clientes);
-  const paginas = totalPaginas(clientes.length, POR_PAGINA);
-  const pagina = parsearPagina(params, clientes.length, POR_PAGINA);
-  const visibles = paginar(clientes, pagina, POR_PAGINA);
+  const tamano = leerTamanoConDefecto(params, TAMANO_DEFECTO);
+  const pagina = parsearPagina(params, clientes.length, tamano);
+  const visibles = paginar(clientes, pagina, tamano);
+  const resumenPagina = resumirPagina(pagina, tamano, clientes.length);
 
   const filasTabla: FilaReporte[] = clientes.map((cliente) => ({
     celdas: {
@@ -177,44 +179,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                   </TableRow>
                 </TableFooter>
               </Table>
+              <PaginadorLista
+                base={BASE}
+                params={params}
+                resumen={resumenPagina}
+                tamano={tamano}
+                opciones={TAMANOS_PAGINA}
+                className="print:hidden"
+              />
             </CardContent>
           </Card>
-
-          {paginas > 1 ? (
-            <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-              <p className="text-muted-foreground text-sm">
-                Página {pagina} de {paginas} · {formatoEntero(clientes.length)} clientes
-              </p>
-              <div className="flex gap-2">
-                {pagina > 1 ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    render={<Link href={urlVentasCliente({ desde, hasta, q: busqueda, pagina: pagina - 1 })} />}
-                  >
-                    Anterior
-                  </Button>
-                ) : (
-                  <Button variant="outline" size="sm" disabled>
-                    Anterior
-                  </Button>
-                )}
-                {pagina < paginas ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    render={<Link href={urlVentasCliente({ desde, hasta, q: busqueda, pagina: pagina + 1 })} />}
-                  >
-                    Siguiente
-                  </Button>
-                ) : (
-                  <Button variant="outline" size="sm" disabled>
-                    Siguiente
-                  </Button>
-                )}
-              </div>
-            </div>
-          ) : null}
         </div>
       )}
     </div>
