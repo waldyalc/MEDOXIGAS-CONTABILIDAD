@@ -15,6 +15,7 @@ import {
   diasEntre,
   diasVencida,
   filtrarCartera,
+  filtrarPorPeriodoEmision,
   saldoCartera,
   totalCartera,
   totalesPorVista,
@@ -22,7 +23,14 @@ import {
 import { filtrarCompras, totalesCompras } from "./compras";
 import { tablaCompras, tablaCuentasPorCobrar, tablaCuentasPorPagar, tablaInventario } from "./exportar";
 import { calcularTotalLinea, cantidadALaFecha, filtrarInventario, totalInventario } from "./inventario";
-import { leerFechaParametro, leerPagina, leerVista, paginar, urlConParametros } from "./parametros";
+import {
+  leerFechaParametro,
+  leerPagina,
+  leerVista,
+  paginar,
+  resolverPeriodoCartera,
+  urlConParametros,
+} from "./parametros";
 import type { FilaCartera, FilaCompra, FilaInventario, FiltrosCartera } from "./tipos";
 
 function cartera(overrides: Partial<FilaCartera> = {}): FilaCartera {
@@ -106,6 +114,22 @@ describe("antigüedad de la cartera", () => {
     expect(filtrarCartera(filas, { ...FILTROS, vista: "no-vencidas" }).map((fila) => fila.id)).toEqual(["f1"]);
   });
 
+  test("filtra el período por fecha de emisión incluyendo los extremos", () => {
+    const filas = [
+      cartera({ id: "antes", creado: "2025-12-31" }),
+      cartera({ id: "inicio", creado: "2026-01-01" }),
+      cartera({ id: "dentro", creado: "2026-06-15" }),
+      cartera({ id: "fin", creado: "2026-12-31" }),
+      cartera({ id: "despues", creado: "2027-01-01" }),
+    ];
+
+    expect(filtrarPorPeriodoEmision(filas, "2026-01-01", "2026-12-31").map((fila) => fila.id)).toEqual([
+      "inicio",
+      "dentro",
+      "fin",
+    ]);
+  });
+
   test("suma el saldo total y el de cada vista", () => {
     const filas = [cartera(), cartera({ id: "f2", saldo: 100000, vista: "vencidas-91", diasVencida: 100 })];
 
@@ -141,6 +165,27 @@ describe("parámetros de URL", () => {
     expect(urlConParametros("/ruta", params, { pagina: null, vista: null })).toBe(
       "/ruta?desde=2026-11-01&hasta=2026-11-30&ncf=B01",
     );
+  });
+
+  test("resuelve el período de cartera al año actual por defecto", () => {
+    expect(resolverPeriodoCartera({}, "2026-11-26")).toEqual({ desde: "2026-01-01", hasta: "2026-12-31" });
+    expect(resolverPeriodoCartera({ desde: "2026-02-01", hasta: "2026-02-28" }, "2026-11-26")).toEqual({
+      desde: "2026-02-01",
+      hasta: "2026-02-28",
+    });
+  });
+
+  test("el período de cartera conserva enlaces antiguos de CxC con creación explícita", () => {
+    expect(
+      resolverPeriodoCartera(
+        { hasta: "2026-11-30", creacion_desde: "2026-11-01", creacion_hasta: "2026-11-30" },
+        "2026-11-26",
+      ),
+    ).toEqual({ desde: "2026-11-01", hasta: "2026-11-30" });
+    expect(resolverPeriodoCartera({ hasta: "2025-12-31" }, "2026-11-26")).toEqual({
+      desde: "2025-01-01",
+      hasta: "2025-12-31",
+    });
   });
 });
 

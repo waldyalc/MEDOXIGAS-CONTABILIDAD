@@ -1,4 +1,5 @@
-import type { ParametrosFecha } from "@/lib/reportes/fechas";
+import { rangoEsteAnio } from "@/lib/fechas/rangos";
+import type { ParametrosFecha, RangoFechas } from "@/lib/reportes/fechas";
 
 import { VISTAS_ANTIGUEDAD, type VistaAntiguedad } from "./tipos";
 
@@ -16,6 +17,23 @@ export function leerFechaParametro(params: ParametrosFecha, clave: string): stri
 
   const fecha = new Date(`${texto}T00:00:00Z`);
   return Number.isNaN(fecha.getTime()) || fecha.toISOString().slice(0, 10) !== texto ? null : texto;
+}
+
+/**
+ * Resuelve el período de CxC/CxP. Sin parámetros usa el año actual; los enlaces
+ * antiguos de CxC que solo traían `hasta` y `creacion_desde` conservan ese inicio.
+ */
+export function resolverPeriodoCartera(params: ParametrosFecha, hoy: string): RangoFechas {
+  const defecto = rangoEsteAnio(hoy);
+  const hastaUrl = leerFechaParametro(params, "hasta");
+  const hasta = hastaUrl ?? defecto.hasta;
+  const inicioDelAnioHasta = `${hasta.slice(0, 4)}-01-01`;
+  const desde =
+    leerFechaParametro(params, "desde") ??
+    leerFechaParametro(params, "creacion_desde") ??
+    (hastaUrl ? inicioDelAnioHasta : defecto.desde);
+
+  return desde <= hasta ? { desde, hasta } : defecto;
 }
 
 export function leerVista(params: ParametrosFecha): VistaAntiguedad {
