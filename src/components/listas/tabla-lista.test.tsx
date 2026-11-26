@@ -64,10 +64,12 @@ describe("TablaLista con columnas de texto largo", () => {
     const [proveedor, total] = atributosCeldas(html);
 
     expect(proveedor).toContain("whitespace-normal");
+    expect(proveedor).toContain("min-w-[155px]");
     expect(proveedor).toContain("max-w-[210px]");
     expect(proveedor).not.toContain("whitespace-nowrap");
     expect(html).toContain("line-clamp-2");
-    expect(html).toContain("wrap-anywhere");
+    expect(html).toContain("break-words");
+    expect(html).not.toContain("wrap-anywhere");
     expect(html).toContain(`title="${NOMBRE_LARGO}"`);
     expect(html).toContain("/dashboard/contactos/1");
     expect(html).not.toContain("<button");
@@ -85,7 +87,7 @@ describe("TablaLista con columnas de texto largo", () => {
     ]);
     const [celdaNcf] = atributosCeldas(html);
 
-    expect(celdaNcf).toContain("max-w-[165px]");
+    expect(celdaNcf).toContain("max-w-[140px]");
     expect(celdaNcf).toContain("whitespace-normal");
     expect(html).toContain("truncate");
     expect(html).toContain(`title="${ncf}"`);

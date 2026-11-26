@@ -71,7 +71,7 @@ function lineasTruncado<T>(columna: ColumnaLista<T>): 1 | 2 | null {
 }
 
 function claseAnchoTexto(clave: string): string {
-  return clave === "ncf" ? "max-w-[165px]" : "max-w-[210px]";
+  return clave === "ncf" ? "max-w-[140px]" : "min-w-[155px] max-w-[210px]";
 }
 
 export function TarjetaLista({
@@ -119,10 +119,10 @@ export function EstadoVacioLista(props: VacioLista) {
   );
 }
 
-/** Aire del patrón: 14 px por celda y 20 px en los bordes de la fila. */
+/** Aire del patrón: 10 px por celda y 16 px en los bordes para evitar scroll horizontal en 9 columnas. */
 function clasesEspaciado(compacta: boolean, esPrimera: boolean, esUltima: boolean): string {
-  if (compacta) return "px-3";
-  return cn("px-3.5", esPrimera && "pl-5", esUltima && "pr-5");
+  if (compacta) return "px-2.5";
+  return cn("px-2.5", esPrimera && "pl-4", esUltima && "pr-4");
 }
 
 function FilaLista<T>({

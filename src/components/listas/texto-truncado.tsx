@@ -35,11 +35,7 @@ export function TextoTruncado({
   className?: string;
 }) {
   const textoCompleto = texto === undefined ? extraerTextoPlano(children) : texto.trim();
-  const clases = cn(
-    "min-w-0 leading-snug break-words wrap-anywhere",
-    lineas === 1 ? "block truncate" : "line-clamp-2",
-    className,
-  );
+  const clases = cn("min-w-0 leading-snug break-words", lineas === 1 ? "block truncate" : "line-clamp-2", className);
 
   const umbralTooltip = lineas === 1 ? UMBRAL_TOOLTIP_UNA_LINEA : UMBRAL_TOOLTIP_DOS_LINEAS;
 
