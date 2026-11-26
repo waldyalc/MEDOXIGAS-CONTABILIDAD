@@ -3,8 +3,6 @@
 import * as React from "react";
 
 import { Search } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import type { Rol } from "@/lib/auth/rol";
 
 import { VentanaBusqueda } from "../busqueda/ventana-busqueda";
@@ -18,10 +16,10 @@ interface Props {
 }
 
 /**
- * Disparador de la búsqueda global del topbar (§1.13): la barra de 36 px con
- * su `Kbd`, el botón de móvil y el atajo global ⌘K/Ctrl+K. Los recientes, las
- * categorías, los resultados, los estados y el teclado los maneja
- * `VentanaBusqueda`; aquí solo queda la apertura.
+ * Disparador de la búsqueda global del topbar — copia exacta de Alegra
+ * (`max-w-[475px]`, `h-8` / 32 px, fondo blanco, borde `slate-200`, hover
+ * `slate-400` sin azul, lupa 16 px y texto «Buscar» sin badges `Ctrl K`).
+ * El atajo global ⌘K / Ctrl+K sigue activo en teclado.
  */
 export function BusquedaGlobal({ rol }: Props) {
   const [abierto, setAbierto] = React.useState(false);
@@ -52,28 +50,23 @@ export function BusquedaGlobal({ rol }: Props) {
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon"
+      <button
+        type="button"
         onClick={abrir}
-        aria-label="Buscar en Medoxigas Contabilidad"
-        className="md:hidden"
+        aria-label="Abrir búsqueda"
+        className="flex size-10 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 focus-visible:outline-none md:hidden dark:text-slate-400 dark:hover:bg-white/[0.06]"
       >
-        <Search />
-      </Button>
+        <Search className="size-5 stroke-[1.5]" aria-hidden="true" />
+      </button>
 
       <button
         type="button"
         onClick={abrir}
-        aria-label={`Buscar en Medoxigas Contabilidad (${atajo}K)`}
-        className="hover:border-ring/60 focus-visible:border-ring focus-visible:ring-ring/50 dark:border-input dark:bg-input/30 dark:hover:bg-input/50 hidden h-9 w-full max-w-xl items-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-3 text-sm text-[#94A3B8] transition-colors hover:bg-slate-100 focus-visible:ring-3 focus-visible:outline-none md:flex"
+        aria-label={`Buscar (${atajo}K)`}
+        className="dark:border-border dark:bg-background/60 dark:text-muted-foreground dark:hover:border-muted-foreground/50 dark:focus-visible:border-muted-foreground/50 hidden h-8 w-full max-w-[475px] cursor-pointer items-center gap-2 rounded-[8px] border border-slate-200 bg-white pr-1 pl-2 text-sm font-normal text-slate-400 transition-colors hover:border-slate-400 focus-visible:border-slate-400 focus-visible:outline-none md:flex"
       >
-        <Search className="size-4 shrink-0" />
-        <span className="flex-1 truncate text-left">Buscar…</span>
-        <KbdGroup className="shrink-0">
-          <Kbd>{atajo}</Kbd>
-          <Kbd>K</Kbd>
-        </KbdGroup>
+        <Search className="dark:text-muted-foreground size-4 shrink-0 stroke-[1.5] text-slate-400" aria-hidden="true" />
+        <span className="flex-1 truncate text-left">Buscar</span>
       </button>
 
       <VentanaBusqueda abierto={abierto} onCambiarApertura={setAbierto} rol={rol} />
