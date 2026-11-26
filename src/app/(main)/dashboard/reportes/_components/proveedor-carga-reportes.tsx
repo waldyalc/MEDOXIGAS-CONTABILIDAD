@@ -224,7 +224,7 @@ export function ProveedorCargaReportes({ children }: { children: ReactNode }) {
       </Suspense>
       {carga.cargando ? (
         <div
-          className="bg-primary pointer-events-none absolute inset-x-0 top-0 z-40 h-0.5 animate-pulse"
+          className="bg-primary pointer-events-none absolute -inset-x-4 -top-4 z-40 h-0.5 animate-pulse md:-inset-x-6 md:-top-6"
           aria-hidden="true"
         />
       ) : null}
