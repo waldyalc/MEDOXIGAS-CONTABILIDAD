@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { cn } from "cn";
 
 import { FilaNavegable } from "@/components/listas/fila-navegable";
+import { TextoTruncado } from "@/components/listas/texto-truncado";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export type TonoPill = "exito" | "pendiente" | "peligro" | "neutro" | "info";
@@ -16,6 +17,7 @@ export interface ColumnaLista<T> {
   alineacion?: Alineacion;
   /** Ancho y responsive: "w-24", "hidden lg:table-cell". */
   className?: string;
+  truncar?: boolean | "1" | "2";
 }
 
 export interface VacioLista {
@@ -41,6 +43,36 @@ const TONOS_PILL: Record<TonoPill, string> = {
   neutro: "bg-slate-100 text-slate-600 dark:bg-slate-500/15 dark:text-slate-300",
   info: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400",
 };
+
+const CLAVES_TEXTO_LARGO = new Set([
+  "proveedor",
+  "cliente",
+  "contacto",
+  "tercero",
+  "nombre",
+  "descripcion",
+  "concepto",
+  "producto",
+  "almacen",
+  "categoria",
+  "motivo",
+  "cuenta",
+  "vendedor",
+  "referencia",
+  "ncf",
+]);
+
+function lineasTruncado<T>(columna: ColumnaLista<T>): 1 | 2 | null {
+  if (columna.truncar === false) return null;
+  if (columna.truncar === "1") return 1;
+  if (columna.truncar === "2") return 2;
+  if (columna.truncar !== true && !CLAVES_TEXTO_LARGO.has(columna.clave)) return null;
+  return columna.clave === "ncf" ? 1 : 2;
+}
+
+function claseAnchoTexto(clave: string): string {
+  return clave === "ncf" ? "max-w-[165px]" : "max-w-[210px]";
+}
 
 export function TarjetaLista({
   children,
@@ -87,10 +119,10 @@ export function EstadoVacioLista(props: VacioLista) {
   );
 }
 
-/** Aire del patrón: 20 px por celda y 24 px en los bordes de la fila. */
+/** Aire del patrón: 14 px por celda y 20 px en los bordes de la fila. */
 function clasesEspaciado(compacta: boolean, esPrimera: boolean, esUltima: boolean): string {
-  if (compacta) return "px-4";
-  return cn("px-5", esPrimera && "pl-6", esUltima && "pr-6");
+  if (compacta) return "px-3";
+  return cn("px-3.5", esPrimera && "pl-5", esUltima && "pr-5");
 }
 
 function FilaLista<T>({
@@ -121,18 +153,27 @@ function FilaLista<T>({
       ) : null}
       {columnas.map((columna, indice) => {
         const posicion = indice + (seleccion ? 1 : 0);
+        const lineas = lineasTruncado(columna);
+        const contenido = columna.celda(fila);
         return (
           <TableCell
             key={columna.clave}
             className={cn(
               compacta ? "text-[13px]" : "text-sm",
               clasesEspaciado(compacta, posicion === 0, posicion === totalCeldas - 1),
-              "whitespace-nowrap text-slate-700 dark:text-slate-300",
+              "text-slate-700 dark:text-slate-300",
               ALINEACION[columna.alineacion ?? "izquierda"],
               columna.className,
+              lineas ? cn("py-2 whitespace-normal", claseAnchoTexto(columna.clave)) : "whitespace-nowrap",
             )}
           >
-            {columna.celda(fila)}
+            {lineas ? (
+              <TextoTruncado lineas={lineas} className={claseAnchoTexto(columna.clave)}>
+                {contenido}
+              </TextoTruncado>
+            ) : (
+              contenido
+            )}
           </TableCell>
         );
       })}
@@ -196,6 +237,7 @@ export function TablaLista<T>({
           ) : null}
           {columnas.map((columna, indice) => {
             const posicion = indice + (seleccion ? 1 : 0);
+            const lineas = lineasTruncado(columna);
             return (
               <TableHead
                 key={columna.clave}
@@ -205,6 +247,7 @@ export function TablaLista<T>({
                   clasesEspaciado(false, posicion === 0, posicion === colSpan - 1),
                   ALINEACION[columna.alineacion ?? "izquierda"],
                   columna.className,
+                  lineas ? claseAnchoTexto(columna.clave) : null,
                 )}
               >
                 {columna.encabezado}
