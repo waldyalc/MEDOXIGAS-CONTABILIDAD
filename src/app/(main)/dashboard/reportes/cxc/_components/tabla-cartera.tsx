@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { cn } from "cn";
+
 import { FilaNavegable } from "@/components/listas/fila-navegable";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { rutaCompra, rutaContacto, rutaFactura } from "@/lib/enlaces";
@@ -56,7 +58,9 @@ export function TablaCuentasPorCobrar({ filas, mensajeVacio }: { filas: FilaCart
                 <Contacto fila={fila} />
               </TableCell>
               <TableCell>{formatoDia(fila.creado)}</TableCell>
-              <TableCell>{formatoDia(fila.vencimiento)}</TableCell>
+              <TableCell className={cn(fila.diasVencida > 0 && "font-medium text-rose-600 dark:text-rose-400")}>
+                {formatoDia(fila.vencimiento)}
+              </TableCell>
               <TableCell className="text-right tabular-nums">{formatearRd(fila.total)}</TableCell>
               <TableCell className="text-right tabular-nums">{formatearRd(fila.pagado)}</TableCell>
               <TableCell className="text-right font-medium tabular-nums">{formatearRd(fila.saldo)}</TableCell>
@@ -101,7 +105,9 @@ export function TablaCuentasPorPagar({ filas, mensajeVacio }: { filas: FilaCarte
                 <Contacto fila={fila} />
               </TableCell>
               <TableCell>{formatoDia(fila.creado)}</TableCell>
-              <TableCell>{formatoDia(fila.vencimiento)}</TableCell>
+              <TableCell className={cn(fila.diasVencida > 0 && "font-medium text-rose-600 dark:text-rose-400")}>
+                {formatoDia(fila.vencimiento)}
+              </TableCell>
               <TableCell className="text-right tabular-nums">{formatearRd(fila.total)}</TableCell>
               <TableCell className="text-right tabular-nums">{formatearRd(fila.pagado)}</TableCell>
               <TableCell className="text-right font-medium tabular-nums">{formatearRd(fila.saldo)}</TableCell>
