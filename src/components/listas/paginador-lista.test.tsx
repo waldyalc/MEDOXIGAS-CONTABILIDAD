@@ -131,6 +131,18 @@ describe("PaginadorLista estilo Alegra", () => {
     expect(router.push).toHaveBeenCalledWith("/dashboard/contactos?pagina=3", { scroll: false });
   });
 
+  it("confirmar al perder el foco también navega a la página escrita", async () => {
+    const contenedor = await renderizarPaginador();
+    const input = inputPagina(contenedor);
+
+    await escribir(input, "2");
+    await act(async () => {
+      input.dispatchEvent(new window.FocusEvent("focusout", { bubbles: true }));
+    });
+
+    expect(router.push).toHaveBeenCalledWith("/dashboard/contactos?pagina=2", { scroll: false });
+  });
+
   it("al confirmar un número fuera de rango salta a los extremos válidos", async () => {
     const contenedor = await renderizarPaginador();
     const input = inputPagina(contenedor);
