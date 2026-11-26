@@ -44,7 +44,10 @@ import {
   calcularProgresoHabilitacion,
   calcularSiguienteDesdeEncf,
   DOMINIO_BASE_ECF_DEFECTO,
+  DOMINIO_BASE_ECF_PROPIO,
+  EMPRESAS_PILOTO_ECF,
   type EmisorEcf,
+  type EmpresaPilotoEcfId,
   type EstadoPasoHabilitacion,
   ETIQUETA_AMBIENTE,
   ETIQUETA_ESTADO_PASO,
@@ -77,6 +80,12 @@ interface PortalEcfClienteProps {
 function textoOGuion(valor: string | null): string {
   const limpio = valor?.trim() ?? "";
   return limpio === "" ? "Sin configurar" : limpio;
+}
+
+function emisorParaPiloto(empresa: EmisorEcf | null, pilotoId: EmpresaPilotoEcfId): EmisorEcf {
+  const piloto = EMPRESAS_PILOTO_ECF[pilotoId];
+  if (pilotoId === "medoxigas" && empresa) return { ...empresa, nombre: piloto.nombre, rnc: piloto.rnc };
+  return { nombre: piloto.nombre, rnc: piloto.rnc, direccion: null, telefono: null, correo: null };
 }
 
 function OpcionSegmentada({
@@ -770,6 +779,14 @@ function PasoUrls({
           onChange={(evento) => onDominio(evento.target.value)}
           className="mt-2"
         />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={() => onDominio(DOMINIO_BASE_ECF_DEFECTO)}>
+            Usar Vercel
+          </Button>
+          <Button type="button" variant="ghost" size="sm" onClick={() => onDominio(DOMINIO_BASE_ECF_PROPIO)}>
+            Usar app.medoxigas.com
+          </Button>
+        </div>
         <p className="text-muted-foreground mt-2 text-xs">
           Usa un dominio propio con HTTPS (recomendado) y subruta por RNC para soportar múltiples empresas del grupo
           (Medoxigas y Oxymat) en el mismo despliegue.
@@ -1182,7 +1199,10 @@ export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: P
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
   const [errorCopiado, setErrorCopiado] = useState<string | null>(null);
   const [ultimoEncf, setUltimoEncf] = useState("");
+  const [empresaPilotoId, setEmpresaPilotoId] = useState<EmpresaPilotoEcfId>("oxymat");
 
+  const pilotoActivo = EMPRESAS_PILOTO_ECF[empresaPilotoId];
+  const emisorActivo = emisorParaPiloto(empresa, empresaPilotoId);
   const progreso = calcularProgresoHabilitacion(modalidad);
   const pasoSeleccionado = PASOS_HABILITACION.find((paso) => paso.id === pasoActivo);
   const indiceActivo = PASOS_HABILITACION.findIndex((paso) => paso.id === pasoActivo);
@@ -1198,7 +1218,10 @@ export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: P
         await onEjecutarPruebas();
         return;
       }
-      const resultado = await ejecutarSimulacionEcfAction(ambiente);
+      const resultado = await ejecutarSimulacionEcfAction(ambiente, {
+        rnc: pilotoActivo.rnc,
+        razonSocial: pilotoActivo.nombre,
+      });
       if (!resultado.ok) {
         setErrorPruebas(resultado.error);
         return;
@@ -1262,13 +1285,28 @@ export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: P
               <Building2 className="size-5" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{empresa?.nombre ?? "Empresa sin configurar"}</p>
-              <p className="text-muted-foreground text-xs">RNC: {empresa?.rnc ?? "Sin configurar"}</p>
+              <p className="truncate text-sm font-semibold">{emisorActivo.nombre}</p>
+              <p className="text-muted-foreground text-xs">RNC: {emisorActivo.rnc ?? "Sin configurar"}</p>
             </div>
           </div>
-          <p className="text-muted-foreground mt-auto truncate text-xs">
-            {empresa?.correo ?? "Completa los datos fiscales antes de postular."}
-          </p>
+          <div className="bg-muted mt-auto grid grid-cols-2 gap-1 rounded-xl p-1">
+            {Object.values(EMPRESAS_PILOTO_ECF).map((piloto) => (
+              <OpcionSegmentada
+                key={piloto.id}
+                activa={empresaPilotoId === piloto.id}
+                onClick={() => {
+                  setEmpresaPilotoId(piloto.id);
+                  setResumenSimulacion(null);
+                  setErrorPruebas(null);
+                }}
+                className="px-2 text-center"
+              >
+                <span className="block text-[11px]">{piloto.id === "oxymat" ? "OXYMAT" : "MEDOXIGAS"}</span>
+                <span className="block text-[10px] font-normal opacity-80">{piloto.rnc}</span>
+              </OpcionSegmentada>
+            ))}
+          </div>
+          <p className="text-muted-foreground truncate text-xs">{pilotoActivo.alias}</p>
         </TarjetaEstado>
 
         <TarjetaEstado titulo="Modalidad">
@@ -1315,7 +1353,7 @@ export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: P
             <div className="border-border mt-5 border-t pt-5">
               <PanelPaso
                 pasoActivo={pasoActivo}
-                empresa={empresa}
+                empresa={emisorActivo}
                 modalidad={modalidad}
                 nombreCertificado={nombreCertificado}
                 contrasenaCertificado={contrasenaCertificado}
