@@ -13,12 +13,13 @@ interface Props {
   comparar: boolean;
 }
 
-const CANTIDAD_ANIOS = 10;
+const ANIO_MINIMO = 2000;
 
 export function FiltrosAnual({ anio, anioActual, comparar }: Props) {
   const [compararAnterior, setCompararAnterior] = useState(comparar);
+  const cantidadAnios = Math.max(1, anioActual - ANIO_MINIMO + 1);
   const anios = Array.from(
-    new Set([anio, ...Array.from({ length: CANTIDAD_ANIOS }, (_, indice) => anioActual - indice)]),
+    new Set([anio, ...Array.from({ length: cantidadAnios }, (_, indice) => anioActual - indice)]),
   ).sort((a, b) => b - a);
 
   return (
