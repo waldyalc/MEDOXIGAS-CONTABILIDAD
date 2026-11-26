@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { formatoDia } from "@/lib/formato";
+import { leerTamanoConDefecto } from "@/lib/listas/parametros";
 import {
   filtrarCartera,
   filtrarPorPeriodoEmision,
@@ -29,7 +30,7 @@ import { TarjetaPeriodoCartera } from "./_components/tarjeta-periodo-cartera";
 import { TarjetaTotal } from "./_components/tarjeta-total";
 
 const BASE = "/dashboard/reportes/cxc";
-const POR_PAGINA = 20;
+const TAMANO_DEFECTO = 20;
 
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosFecha> }) {
   const params = await searchParams;
@@ -52,8 +53,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const filasPeriodo = filtrarPorPeriodoEmision(filas, desde, hasta);
   const filtradas = filtrarCartera(filasPeriodo, filtros);
   const totalPorCobrar = totalCartera(filtradas);
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
-  const pagina = paginar(filtradas, leerPagina(params, totalPaginas), POR_PAGINA);
+  const tamano = leerTamanoConDefecto(params, TAMANO_DEFECTO);
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / tamano));
+  const pagina = paginar(filtradas, leerPagina(params, totalPaginas), tamano);
 
   const tabla = tablaCuentasPorCobrar(filtradas, `Del ${formatoDia(desde)} al ${formatoDia(hasta)}`);
   const nombreArchivo = `cuentas-por-cobrar-${desde}-${hasta}${vista === "todas" ? "" : `-${vista}`}`;
@@ -109,18 +111,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
       <Card className="py-0">
         <CardContent className="p-0">
           <TablaCuentasPorCobrar filas={pagina.filas} mensajeVacio="¡No tienes facturas pendientes por cobrar!" />
+          <Paginador
+            base={BASE}
+            params={params}
+            pagina={pagina.pagina}
+            totalPaginas={pagina.totalPaginas}
+            inicio={pagina.inicio}
+            fin={pagina.fin}
+            total={pagina.total}
+            tamano={tamano}
+          />
         </CardContent>
       </Card>
-
-      <Paginador
-        base={BASE}
-        params={params}
-        pagina={pagina.pagina}
-        totalPaginas={pagina.totalPaginas}
-        inicio={pagina.inicio}
-        fin={pagina.fin}
-        total={pagina.total}
-      />
     </div>
   );
 }
