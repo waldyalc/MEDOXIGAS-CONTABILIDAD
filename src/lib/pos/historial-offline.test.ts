@@ -242,7 +242,7 @@ describe("pantallas de ventas offline", () => {
     expect(detalle, "El reintento se deshabilita sin conexión o mientras sincroniza").toContain(
       'estado === "offline" || estado === "sincronizando"',
     );
-    expect(detalle, "El detalle no usa el azul de Medoxigas").not.toMatch(
+    expect(detalle, "El detalle no toma la marca directa: usa tokens pos-*").not.toMatch(
       /#1e56c7|--primary|(?:bg|text|border)-primary\b/,
     );
   });

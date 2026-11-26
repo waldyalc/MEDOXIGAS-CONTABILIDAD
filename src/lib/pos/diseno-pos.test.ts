@@ -8,24 +8,12 @@ const POS = join(SRC, "app", "(pos)", "pos");
 const GLOBALS = join(SRC, "app", "globals.css");
 
 /**
- * Candado del rediseño Alegra del POS (decisión de Waldy, 22-11-2026):
- * el POS se ve como Alegra — teal #00b19d y tokens `--pos-*` propios — y
- * nunca usa el `--primary` azul de Medoxigas ni el hex `#1e56c7`.
- *
- * PENDIENTES: archivos que hoy todavía usan el azul y se migran después.
- * La lista SOLO PUEDE ENCOGERSE: al migrar un archivo se borra de aquí;
- * agregarlo de vuelta rompe el test. Archivo nuevo con `--primary` también
- * rompe el test (no está en la lista).
+ * Candado del rediseño Alegra del POS: copia la estructura de Alegra, pero el
+ * acento sale de los tokens `--pos-*`, que heredan el color global de marca
+ * (decisión de Waldy, 26-11-2026). Los componentes del POS nunca toman
+ * `--primary` directo ni hardcodean hexes de marca: así `--brand-primary`
+ * rebrandea ERP, POS y PWA desde un solo lugar.
  */
-const PENDIENTES = [
-  "_components/devoluciones/confirmacion-devolucion.tsx",
-  "_components/devoluciones/wizard-devolucion.tsx",
-  "_components/estado-turno-pos.tsx",
-  "_components/historial/detalle-venta-pos.tsx",
-  "_components/menu-pos-estilos.ts",
-  "_components/menu-pos.tsx",
-  "_components/pagos/lista-pagos.tsx",
-];
 
 function listar(directorio: string): string[] {
   return readdirSync(directorio, { withFileTypes: true }).flatMap((entrada) => {
@@ -40,7 +28,8 @@ function rutaRelativa(ruta: string) {
 }
 
 const ARCHIVOS = listar(POS);
-const MARCA_AZUL = /#1e56c7|--primary|(?:bg|text|border|ring|fill|stroke|from|to|via|shadow|outline)-primary\b/;
+const MARCA_DIRECTA =
+  /#1e56c7|--primary|--color-primary|(?:bg|text|border|ring|fill|stroke|from|to|via|shadow|outline)-primary\b/;
 
 describe("diseño POS estilo Alegra", () => {
   it("el turno y las ventas pendientes viven en la barra inferior, no sobre el catálogo", () => {
@@ -172,26 +161,22 @@ describe("diseño POS estilo Alegra", () => {
     );
   });
 
-  it("el shell del POS enfoca en teal, no en el azul del sistema", () => {
+  it("el shell del POS enfoca con el color global de marca", () => {
     const layout = readFileSync(join(POS, "layout.tsx"), "utf8");
     expect(
       layout,
-      "El wrapper del POS debe fijar --ring a --pos-primario para que buscador, selects y botones enfoquen en teal",
+      "El wrapper del POS debe fijar --ring a --pos-primario para que buscador, selects y botones enfoquen con la marca",
     ).toContain("[--ring:var(--pos-primario)]");
     expect(layout, "El comentario del riel debe decir 52 px, la medida real de Alegra").not.toContain("56 px");
   });
 
-  it("los archivos del POS no usan --primary ni #1e56c7 salvo los pendientes", () => {
-    const infractores = ARCHIVOS.filter((ruta) => MARCA_AZUL.test(readFileSync(ruta, "utf8"))).map(rutaRelativa);
-    const nuevos = infractores.filter((archivo) => !PENDIENTES.includes(archivo));
+  it("los archivos del POS usan tokens pos-* y nunca --primary ni hexes de marca", () => {
+    const infractores = ARCHIVOS.filter((ruta) => MARCA_DIRECTA.test(readFileSync(ruta, "utf8"))).map(rutaRelativa);
 
     expect(
-      nuevos,
-      `Estos archivos usan el azul de Medoxigas; cámbialos por tokens pos-*: ${nuevos.join(", ")}`,
+      infractores,
+      `Estos archivos toman la marca directa; cámbialos por tokens pos-* para que --brand-primary los rebrandee: ${infractores.join(", ")}`,
     ).toEqual([]);
-    expect(infractores, "La lista PENDIENTES tiene archivos de más o alguno ya está migrado: actualízala").toEqual(
-      [...PENDIENTES].sort(),
-    );
   });
 
   it("«Nuevo pago» del POS es el de Alegra (tarjeta de tipo + formulario), no el «Registrar movimiento» viejo", () => {
@@ -328,7 +313,7 @@ describe("diseño POS estilo Alegra", () => {
 
     expect(archivo, "La pestaña mide 160 px como Alegra").toContain("w-[160px]");
     expect(archivo, "La pestaña conserva el icono Basket").toContain("Basket");
-    expect(archivo, "La pestaña activa conserva el borde teal").toContain("border-b-pos-primario");
+    expect(archivo, "La pestaña activa conserva el borde de marca").toContain("border-b-pos-primario");
     expect(archivo, "La pestaña conserva el fondo blanco").toContain("bg-white");
     expect(archivo, "La pestaña conserva el dark mode").toContain("dark:bg-card");
     expect(archivo, "La barra conserva el botón + de nueva venta").toContain('aria-label="Nueva venta"');
@@ -386,7 +371,13 @@ describe("diseño POS estilo Alegra", () => {
       expect(css, `Falta ${token} en globals.css`).toContain(`${token}:`);
       expect(css, `Falta el alias --color-${token.slice(2)} en @theme`).toContain(`--color-${token.slice(2)}:`);
     }
-    expect(css, "El teal de Alegra #00b19d debe estar en globals.css").toContain("#00b19d");
+    expect(css, "globals.css debe exponer el color global de marca").toContain("--brand-primary: #1e56c7;");
+    expect(css, "El POS deriva su color principal de --primary, que a su vez sale de --brand-primary").toContain(
+      "--pos-primario: var(--primary);",
+    );
+    expect(css, "No puede quedar el teal de Alegra en la paleta del POS").not.toMatch(
+      /#00b19d|#008e79|#ccfbf1|#00c9b3|#5eead4|#30aba9|181\.912/i,
+    );
   });
 
   it("el ticket de 80 mm usa @page con alto fijo y el orden de Alegra", () => {
