@@ -103,6 +103,7 @@ import { type Impuesto, resumenImpuestos } from "@/lib/impuestos/tipos";
 
 import { AsientoContable } from "./asiento-contable";
 import { nombreArchivoPapel } from "./papel";
+import { TarjetaEmisionEcf } from "./tarjeta-emision-ecf";
 import {
   descuentoDeLineas,
   estadoDeDocumento,
@@ -1578,6 +1579,24 @@ function useAccionesVista({
   };
 }
 
+function TarjetaEmisionFactura({
+  props,
+  factura,
+  contacto,
+  puedeEscribir,
+}: {
+  props: Props;
+  factura: FacturaDetalle | null;
+  contacto: ContactoResumen;
+  puedeEscribir: boolean;
+}) {
+  if (props.tipo !== "factura" || !factura) return null;
+  return (
+    <TarjetaEmisionEcf factura={factura} envio={props.datos.envio} contacto={contacto} puedeEscribir={puedeEscribir} />
+  );
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: El detalle reúne documento, acciones fiscales, pestañas e impresión en el mismo orquestador visual compartido por facturas, cotizaciones y conduces.
 export function VistaDocumentoVenta(props: Props) {
   const [imprimiendoTicket, setImprimiendoTicket] = useState(false);
   const preparado = prepararVista(props);
@@ -1668,6 +1687,13 @@ export function VistaDocumentoVenta(props: Props) {
         {preparado.resumen ? (
           <ResumenFactura resumen={preparado.resumen} notasCredito={notasCredito} notasDebito={notasDebito} />
         ) : null}
+
+        <TarjetaEmisionFactura
+          props={props}
+          factura={factura}
+          contacto={contacto}
+          puedeEscribir={props.puedeEscribir}
+        />
 
         <DocumentoVentaCard
           empresa={empresa}
