@@ -273,7 +273,7 @@ export function DetalleVentaPos({
                     <p className="text-muted-foreground">Tel.: {detalle.contacto.telefono}</p>
                   ) : null}
                   <a
-                    className="text-primary text-xs hover:underline"
+                    className="text-pos-primario text-xs hover:underline"
                     href={`/dashboard/contactos/${detalle.contacto.id}`}
                     target="_blank"
                     rel="noreferrer"

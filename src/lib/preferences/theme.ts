@@ -1,3 +1,5 @@
+import { COLOR_MARCA_PRIMARIO, COLOR_MARCA_PRIMARIO_OSCURO } from "@/lib/marca";
+
 const THEME_MODE_OPTIONS = [
   { label: "Light", value: "light" },
   { label: "Dark", value: "dark" },
@@ -15,16 +17,16 @@ export const THEME_PRESET_OPTIONS = [
     label: "Medoxigas",
     value: "medoxigas",
     primary: {
-      light: "#1e56c7",
-      dark: "#4d7fd6",
+      light: COLOR_MARCA_PRIMARIO,
+      dark: COLOR_MARCA_PRIMARIO_OSCURO,
     },
   },
   {
     label: "Default",
     value: "default",
     primary: {
-      light: "oklch(0.205 0 0)",
-      dark: "oklch(0.922 0 0)",
+      light: COLOR_MARCA_PRIMARIO,
+      dark: COLOR_MARCA_PRIMARIO_OSCURO,
     },
   },
   {

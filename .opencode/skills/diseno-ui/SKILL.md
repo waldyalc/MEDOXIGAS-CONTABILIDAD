@@ -1,11 +1,11 @@
 ---
 name: diseno-ui
-description: Usar shadcn tal cual (InputGroup, Select, calendario), colores Medoxigas (tokens --pos-* teal en el POS) y copia exacta del diseño de Alegra en todo el sistema, adaptando su HTML/CSS de las capturas a nuestro código.
+description: Usar shadcn tal cual (InputGroup, Select, calendario), color global de marca (tokens --pos-* derivados en el POS) y copia exacta de la estructura de Alegra en todo el sistema, adaptando su HTML/CSS de las capturas a nuestro código.
 ---
 
 # Diseño de la UI
 
-**Copia exacta de Alegra en todo el sistema** (decisión de Waldy, 23-11-2026 — amplía la del 22-11, que solo cubría el POS): se copia su diseño y se puede adaptar su HTML, CSS, estructura y selectores de las capturas al código propio (Tailwind + shadcn). En el POS (`src/app/(pos)/pos/`) el teal `#00b19d` va por los tokens `--pos-*` de `src/app/globals.css` (aliases Tailwind `pos-*`); el candado `src/lib/pos/diseno-pos.test.ts` prohíbe `--primary`/`#1e56c7` ahí. Lo que siempre es nuestro: el **logo Medoxigas** y la marca.
+**Copia exacta de Alegra en todo el sistema** (decisión de Waldy, 23-11-2026 — amplía la del 22-11, que solo cubría el POS): se copia su diseño y se puede adaptar su HTML, CSS, estructura y selectores de las capturas al código propio (Tailwind + shadcn). En el POS (`src/app/(pos)/pos/`) el acento va por los tokens `--pos-*` de `src/app/globals.css` (aliases Tailwind `pos-*`), derivados de `--primary` / `--brand-primary`; el candado `src/lib/pos/diseno-pos.test.ts` prohíbe `--primary` directo y hexes de marca ahí. Lo que siempre es nuestro: el **logo Medoxigas** y la marca.
 
 ## shadcn, tal cual
 
@@ -129,4 +129,4 @@ Estudio en `docs/alegra/` y exports crudos SingleFile fuera del repo en `/root/a
 - `docs/alegra/css-factura/GUIA-DISENO-FACTURA.md`
 - `docs/alegra/css-factura/GUIA-CALENDARIO.md` (capturas `docs/alegra/capturas/calendario-*.png`)
 
-Se copian medidas, colores, estructura y ritmo adaptándolos con Tailwind + shadcn: el azul de Medoxigas en Contabilidad y, en el POS, los tokens `--pos-*` que copian el teal de Alegra exactamente. Los archivos crudos (`index.html`, `styles.css`, `original/`) no están en el repo a propósito.
+Se copian medidas, estructura y ritmo adaptándolos con Tailwind + shadcn: el color global `--brand-primary` en Contabilidad y, en el POS, los tokens `--pos-*` que derivan de ese mismo color. Los archivos crudos (`index.html`, `styles.css`, `original/`) no están en el repo a propósito.

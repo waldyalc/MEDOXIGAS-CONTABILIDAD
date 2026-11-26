@@ -30,20 +30,22 @@ _components/vender/
 ## Tokens
 
 Todo el POS usa los tokens `--pos-*` de `src/app/globals.css` (aliases
-`bg-pos-*`, `text-pos-*`, `border-pos-*`): teal `#00b19d`, hover `#008e79`,
-línea `#e2e8f0`, texto `#212529`, texto suave `#707070`, icono `#94a3b8`, oscuro
-`#1e293b`. El candado `src/lib/pos/diseno-pos.test.ts` prohíbe `--primary` y
-`#1e56c7` en `src/app/(pos)/pos/` (salvo la lista de pendientes que solo puede
-encoger).
+`bg-pos-*`, `text-pos-*`, `border-pos-*`). Desde el 26-11-2026 esos tokens ya no
+son teal: `--pos-primario` deriva de `--primary` / `--brand-primary` y sus
+hover/acentos salen con `color-mix`; línea `#e2e8f0`, texto `#212529`, texto
+suave `#707070`, icono `#94a3b8`, oscuro `#1e293b`. El candado
+`src/lib/pos/diseno-pos.test.ts` prohíbe `--primary` directo y hexes de marca en
+`src/app/(pos)/pos/`.
 
 `layout.tsx` fija `[--ring:var(--pos-primario)]` en el wrapper del POS: buscador,
-selects y botones enfocan en teal sin cambiar el `--ring` azul de Contabilidad.
+selects y botones enfocan con el color global de marca.
 
-Colores puntuales que Alegra usa y no tienen token propio se escriben como
-arbitrarios y con su equivalencia en oscuro cuando aplica: `#30aba9` (insignia de
-favorito), `#e85e42` (Agotado), `#c2c9d6` (Vender deshabilitado), `#cff2f1` /
-`#1a7e7f` (Nuevo producto), `#e5e7eb` (borde de Venta simple), `#f9fafb` (chip
-de inventario), `#d1d5db` (foto vacía).
+Los colores de marca de Alegra nunca se escriben como hex: favorito, selección,
+«Vender», «Nuevo producto», «Inv. N» y «Cerrar turno» usan tokens `--pos-*`.
+Los neutros o semánticos puntuales sí pueden ir arbitrarios con su equivalencia
+en oscuro cuando aplica: `#e85e42` (Agotado), `#c2c9d6` (Vender deshabilitado),
+`#e5e7eb` (borde de Venta simple), `#f9fafb` (chip de inventario), `#d1d5db`
+(foto vacía).
 
 ## Catálogo
 
@@ -59,7 +61,7 @@ de inventario), `#d1d5db` (foto vacía).
   1440, 2 a 1024 y 5 a 1920, con scroll propio.
 - Tarjeta: `border-2`, radio 8, `shadow-[1px_2px_5px_rgba(0,0,0,0.1)]`, zona de
   imagen 196×98, `Tag` de 64 px si no hay foto, chip `Inv. N` de 16 px, nombre de
-  2 líneas en mayúsculas y precio al pie. En carrito: borde teal; el contador de
+  2 líneas en mayúsculas y precio al pie. En carrito: borde de marca; el contador de
   cantidad va en un círculo de 22 px con anillo blanco.
 - «Venta simple» va primera, con el mismo tamaño, borde `#e5e7eb`, círculo de
   100 px y carrito+rayo.
@@ -83,7 +85,7 @@ de inventario), `#d1d5db` (foto vacía).
 
 - `footer` de 44 px, `shrink-0`, de lado a lado bajo catálogo y panel.
 - Izquierda: `PestanasVentaPos` (tab de 160 px con cesta, nombre, borde inferior
-  teal en la activa, menú ⋮ al hover para renombrar/eliminar) y el «+» de 44 px
+  de marca en la activa, menú ⋮ al hover para renombrar/eliminar) y el «+» de 44 px
   para abrir otra venta. La lista es scrolleable si hay muchas ventas; el «+»
   queda pegado a la última pestaña.
 - Derecha: punto de estado + «Turno No N abierto» / «Turno cerrado» y la acción

@@ -221,7 +221,7 @@ describe("pantallas de las vistas offline", () => {
     expect(detalle).toContain("leerDetalleVentaOffline");
     expect(detalle).toContain("guardarDetalleVentaOffline");
     expect(detalle).toContain("Esta venta no está guardada en este dispositivo. Conéctate a internet para verla.");
-    expect(detalle, "El detalle no usa el azul de Medoxigas fuera de lo ya pendiente").not.toMatch(/#1e56c7/);
+    expect(detalle, "El detalle no hardcodea el hex de marca").not.toMatch(/#1e56c7/);
   });
 
   it("Turnos hidrata su caché y suma las ventas pendientes del turno abierto", () => {

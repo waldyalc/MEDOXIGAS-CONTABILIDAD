@@ -102,7 +102,7 @@ export function CatalogoPos({
         </Button>
 
         <Button
-          className="h-10 w-10 shrink-0 justify-center rounded-[10px] bg-[#cff2f1] px-0 text-sm font-medium text-[#1a7e7f] hover:bg-[#cff2f1]/70 hover:text-[#1a7e7f] sm:w-[151px] dark:bg-pos-acento dark:text-pos-acento-texto"
+          className="bg-pos-acento text-pos-acento-texto hover:bg-pos-acento/70 hover:text-pos-acento-texto h-10 w-10 shrink-0 justify-center rounded-[10px] px-0 text-sm font-medium sm:w-[151px]"
           aria-label="Nuevo producto"
           render={<a href="/dashboard/productos/nuevo" target="_blank" rel="noreferrer" />}
         >

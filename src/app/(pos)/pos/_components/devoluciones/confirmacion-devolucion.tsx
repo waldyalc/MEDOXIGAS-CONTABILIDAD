@@ -25,7 +25,7 @@ export function ConfirmacionDevolucion({
 
   return (
     <div className="flex flex-col items-center gap-3 text-center">
-      <div className="bg-primary/10 text-primary flex size-14 items-center justify-center rounded-full">
+      <div className="bg-pos-primario/10 text-pos-primario flex size-14 items-center justify-center rounded-full">
         <CircleCheck className="size-7" aria-hidden="true" />
       </div>
 

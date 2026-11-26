@@ -63,7 +63,7 @@ describe("panel «Más opciones» del carrito POS", () => {
     expect(OVERLAY, "Cada cuadro debe ser cómodo al tacto (mínimo 116 px de alto)").toContain("min-h-[116px]");
     expect(OVERLAY, "El cuerpo va sobre --pos-panel, como el resto del carrito").toContain("bg-pos-panel");
     expect(OVERLAY, "El encabezado debe decir «Más opciones»").toContain("Más opciones");
-    expect(OVERLAY, "El panel debe usar los tokens teal del POS, no el azul del sistema").not.toMatch(
+    expect(OVERLAY, "El panel debe usar los tokens --pos-* de marca, no --primary directo").not.toMatch(
       /#1e56c7|(?:bg|text|border|ring)-primary\b/,
     );
   });

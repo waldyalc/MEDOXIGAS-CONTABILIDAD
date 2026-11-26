@@ -87,7 +87,7 @@ describe("favoritos del POS (MSG-31)", () => {
     expect(filtrarFavoritosPOS(productos, {}).map((item) => item.producto_id)).toEqual(["global", "desmarcado"]);
   });
 
-  it("la tarjeta usa el cuadro teal con estrella y el clic no agrega al carrito", () => {
+  it("la tarjeta usa el cuadro de marca con estrella y el clic no agrega al carrito", () => {
     const tarjeta = leer("src/app/(pos)/pos/_components/vender/tarjeta-producto-pos.tsx");
 
     expect(tarjeta).toContain("aria-pressed={favorito}");
@@ -102,10 +102,12 @@ describe("favoritos del POS (MSG-31)", () => {
       tarjeta,
       "el relleno va por la prop `fill` del ícono: `fill-white`/`fill-current` (clases Tailwind) no rellenan el svg",
     ).not.toMatch(/fill-white|fill-current/);
-    expect(tarjeta, "el cuadro teal usa tokens --pos-* y mide 32 px para el tacto").toContain("bg-pos-primario");
+    expect(tarjeta, "el cuadro de marca usa tokens --pos-* y mide 32 px para el tacto").toContain("bg-pos-primario");
     expect(tarjeta).toContain("size-8");
     expect(tarjeta, "no vuelvas al teal suelto #30aba9").not.toContain("#30aba9");
-    expect(tarjeta, "el POS no usa el azul del sistema").not.toMatch(/--primary|bg-primary|text-primary/);
+    expect(tarjeta, "el POS no toma --primary directo: usa tokens pos-*").not.toMatch(
+      /--primary|bg-primary|text-primary/,
+    );
   });
 
   it("el catálogo conecta la estrella y Vender filtra con la capa local", () => {

@@ -76,7 +76,7 @@ export function TarjetaProductoPos({
         </span>
       ) : null}
 
-      {/* Cuadro teal de Alegra, siempre visible: estrella blanca vacía o rellena. No agrega al carrito. */}
+      {/* Cuadro de marca, siempre visible: estrella blanca vacía o rellena. No agrega al carrito. */}
       <button
         type="button"
         onClick={(evento) => {

@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+import { COLOR_MARCA_PRIMARIO } from "@/lib/marca";
+
 /**
  * PWA del POS: se instala desde el navegador y abre directo en /pos. Los iconos
  * salen de `src/app/icon.tsx` (cuadrado y con los tamaños exactos que declara),
@@ -14,7 +16,7 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: "/",
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: "#00b19d",
+    theme_color: COLOR_MARCA_PRIMARIO,
     icons: [
       { src: "/icon/192", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icon/512", sizes: "512x512", type: "image/png", purpose: "any" },

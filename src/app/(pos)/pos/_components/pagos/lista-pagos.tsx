@@ -59,7 +59,8 @@ export function ListaPagos({
               onClick={() => onSeleccionar(fila)}
               className={cn(
                 "hover:bg-muted/60 flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors",
-                activo && "bg-primary/5 hover:bg-primary/5 shadow-[inset_3px_0_0_0_var(--color-primary)]",
+                activo &&
+                  "bg-pos-primario/5 hover:bg-pos-primario/5 shadow-[inset_3px_0_0_0_var(--color-pos-primario)]",
               )}
             >
               <span className="flex min-w-0 flex-col gap-0.5">

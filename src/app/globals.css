@@ -25,6 +25,7 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-brand-primary: var(--brand-primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -68,11 +69,15 @@
 These serve as the fallback; there is no separate default.css file. */
 :root {
   --radius: 0.625rem;
+  /* Color global de marca del sistema (Medoxigas: #1e56c7).
+     Cambiar este token rebrandea todo el sistema (ERP + POS). */
+  --brand-primary: #1e56c7;
+  --brand-primary-dark: #4d7fd6;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: var(--brand-primary);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -83,20 +88,20 @@ These serve as the fallback; there is no separate default.css file. */
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
+  --ring: var(--brand-primary);
+  --chart-1: var(--brand-primary);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary: var(--brand-primary);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-ring: var(--brand-primary);
 
   /* fonts */
   --font-sans: var(--font-geist);
@@ -104,12 +109,11 @@ These serve as the fallback; there is no separate default.css file. */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
 
-  /* POS: paleta exacta de Alegra (solo dentro de /pos; el resto del sistema
-     conserva los tokens Medoxigas). */
-  --pos-primario: #00b19d;
-  --pos-primario-hover: #008e79;
-  --pos-acento: #ccfbf1;
-  --pos-acento-texto: #008e79;
+  /* POS: los tokens derivan del color global de marca. */
+  --pos-primario: var(--primary);
+  --pos-primario-hover: color-mix(in srgb, var(--primary) 84%, black);
+  --pos-acento: color-mix(in srgb, var(--primary) 12%, white);
+  --pos-acento-texto: color-mix(in srgb, var(--primary) 88%, black);
   --pos-oscuro: #1e293b;
   --pos-linea: #e2e8f0;
   --pos-panel: #f8fafc;
@@ -125,8 +129,8 @@ These serve as the fallback; there is no separate default.css file. */
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: var(--brand-primary-dark);
+  --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -136,26 +140,26 @@ These serve as the fallback; there is no separate default.css file. */
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
+  --ring: var(--brand-primary-dark);
+  --chart-1: var(--brand-primary-dark);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary: var(--brand-primary-dark);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: var(--brand-primary-dark);
 
-  /* POS en oscuro: mismo teal, superficies invertidas. */
-  --pos-primario: #00b19d;
-  --pos-primario-hover: #00c9b3;
-  --pos-acento: oklch(0.777 0.152 181.912 / 18%);
-  --pos-acento-texto: #5eead4;
+  /* POS en oscuro: mismos tokens de marca, superficies invertidas. */
+  --pos-primario: var(--primary);
+  --pos-primario-hover: color-mix(in srgb, var(--primary) 86%, white);
+  --pos-acento: color-mix(in srgb, var(--primary) 20%, transparent);
+  --pos-acento-texto: color-mix(in srgb, var(--primary) 72%, white);
   --pos-oscuro: #1e293b;
   --pos-linea: oklch(1 0 0 / 12%);
   --pos-panel: oklch(0.21 0.034 264.665);

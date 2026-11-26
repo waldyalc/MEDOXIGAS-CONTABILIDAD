@@ -39,7 +39,7 @@ function tarjeta(favorito: boolean) {
   );
 }
 
-/** El primer `svg` de la tarjeta es la estrella del cuadro teal. */
+/** El primer `svg` de la tarjeta es la estrella del cuadro de marca. */
 function estrella(html: string) {
   const svg = /<svg[\s\S]*?<\/svg>/.exec(html);
   expect(svg, "la tarjeta debe dibujar la estrella con un svg").not.toBeNull();

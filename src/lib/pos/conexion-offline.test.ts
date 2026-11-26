@@ -438,11 +438,13 @@ describe("estado de conexión del pie del POS", () => {
     expect(provider, "El logo de la empresa viaja al Service Worker para cachearlo").toContain("logoUrl");
   });
 
-  it("la PWA del POS se instala y arranca en /pos con el teal de Alegra", () => {
+  it("la PWA del POS se instala y arranca en /pos con el color global de marca", () => {
     expect(existsSync(join(process.cwd(), "src", "app", "manifest.ts")), "Falta src/app/manifest.ts").toBe(true);
     const manifiesto = leer("src/app/manifest.ts");
     expect(manifiesto, "La app instalada debe abrir directo en la caja").toContain('start_url: "/pos"');
-    expect(manifiesto, "El color de la PWA es el teal del POS (#00b19d)").toContain("#00b19d");
+    expect(manifiesto, "El color de la PWA sale de la fuente única de marca").toContain(
+      "theme_color: COLOR_MARCA_PRIMARIO",
+    );
     expect(manifiesto, "La app instalada se abre sin barra del navegador").toContain('display: "standalone"');
   });
 
