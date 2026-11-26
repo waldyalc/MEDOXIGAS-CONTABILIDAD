@@ -221,13 +221,8 @@ async function guardarDocumento(cache, url, respuesta) {
   else await cache.put(urlDeRuta(url.pathname), respuesta.clone());
 }
 
-async function servirDocumento(solicitud, url) {
-  const datos = await identidad();
-  if (!datos) return fetch(solicitud);
-  const cache = await caches.open(`${PREFIJO}${datos.ambito}`);
-  const clave = urlDeRuta(url.pathname);
-  const guardada = (await cache.match(clave)) ?? (await cache.match(solicitud));
-  if (!guardada) return fetch(solicitud);
+async function revalidarDocumento(cache, solicitud, url) {
+  if (self.navigator && self.navigator.onLine === false) return null;
   try {
     const respuesta = await redConEspera(solicitud);
     const destino = new URL(respuesta.url, self.location.origin).pathname;
@@ -238,7 +233,7 @@ async function servirDocumento(solicitud, url) {
       await limpiar();
       return respuesta;
     }
-    if (!respuesta.ok) return guardada;
+    if (!respuesta.ok) return null;
     try {
       await guardarDocumento(cache, url, respuesta);
     } catch {
@@ -246,38 +241,50 @@ async function servirDocumento(solicitud, url) {
     }
     return respuesta;
   } catch {
-    return guardada;
+    return null;
   }
 }
 
+/**
+ * Stale-while-revalidate para las 5 pantallas del POS: si existe copia local,
+ * responde al instante (<10 ms, sin bloquear 3 s esperando red) y revalida en
+ * segundo plano con `waitUntil` cuando hay conexión.
+ */
+async function servirDocumento(evento, solicitud, url) {
+  const datos = await identidad();
+  if (!datos) return fetch(solicitud);
+  const cache = await caches.open(`${PREFIJO}${datos.ambito}`);
+  const clave = urlDeRuta(url.pathname);
+  const guardada = (await cache.match(clave)) ?? (await cache.match(solicitud));
+  if (!guardada) return fetch(solicitud);
+  evento.waitUntil(revalidarDocumento(cache, solicitud, url));
+  return guardada;
+}
+
+/**
+ * Cache-first para `/_next/static/*`: son chunks con hash inmutable, así que
+ * si ya están en ASSETS se entregan en ~1 ms sin tocar la red.
+ */
 async function servirRecurso(solicitud) {
   const assets = await caches.open(ASSETS);
+  const guardada = await assets.match(solicitud);
+  if (guardada) return guardada;
+  const respuesta = await fetch(solicitud);
+  // Un fallo de cuota en cache.put nunca debe descartar una respuesta fresca de red.
   try {
-    const respuesta = await fetch(solicitud);
-    // Un fallo de cuota en cache.put nunca debe descartar una respuesta fresca de red.
-    try {
-      if (respuesta.ok) await assets.put(solicitud, respuesta.clone());
-    } catch {
-      // Ignora errores de escritura en Cache Storage sin perder la respuesta real.
-    }
-    return respuesta;
-  } catch (causa) {
-    const guardada = await assets.match(solicitud);
-    if (guardada) return guardada;
-    throw causa;
+    if (respuesta.ok) await assets.put(solicitud, respuesta.clone());
+  } catch {
+    // Ignora errores de escritura en Cache Storage sin perder la respuesta real.
   }
+  return respuesta;
 }
 
-/** Logo de la empresa: si la red falla, se sirve la copia de ASSETS. */
+/** Logo de la empresa e imágenes cacheadas: cache-first para abrir al instante. */
 async function servirImagen(solicitud) {
-  try {
-    return await fetch(solicitud);
-  } catch (causa) {
-    const assets = await caches.open(ASSETS);
-    const guardada = await assets.match(solicitud);
-    if (guardada) return guardada;
-    throw causa;
-  }
+  const assets = await caches.open(ASSETS);
+  const guardada = await assets.match(solicitud);
+  if (guardada) return guardada;
+  return fetch(solicitud);
 }
 
 self.addEventListener("fetch", (evento) => {
@@ -285,7 +292,7 @@ self.addEventListener("fetch", (evento) => {
   if (solicitud.method !== "GET") return;
   const url = new URL(solicitud.url);
   if (esNavegacionPos(solicitud, url)) {
-    evento.respondWith(servirDocumento(solicitud, url));
+    evento.respondWith(servirDocumento(evento, solicitud, url));
     return;
   }
   if (esRecursoEstatico(url)) {

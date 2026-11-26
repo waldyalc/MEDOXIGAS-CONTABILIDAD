@@ -284,17 +284,35 @@ describe("estado de conexión del pie del POS", () => {
 
   it("un 5xx temporal no destruye la copia offline cacheada del POS", () => {
     const sw = leer("public/pos-sw.js");
-    const inicio = sw.indexOf("async function servirDocumento");
+    const inicio = sw.indexOf("async function revalidarDocumento");
     const fin = sw.indexOf("async function servirRecurso", inicio);
     const bloque = sw.slice(inicio, fin);
     expect(bloque).toContain("respuesta.status === 401");
     expect(bloque).toContain("respuesta.status === 403");
     expect(bloque).toContain('respuesta.redirected && destino === "/login"');
-    expect(bloque).toContain("if (!respuesta.ok) return guardada;");
+    expect(bloque).toContain("if (!respuesta.ok) return null;");
     expect(bloque, "La limpieza solo puede ocurrir cuando la sesión realmente venció").not.toContain(
       "if (respuesta.redirected || !respuesta.ok)",
     );
-    expect(bloque.indexOf("if (sesionVencida)")).toBeLessThan(bloque.indexOf("if (!respuesta.ok) return guardada;"));
+    expect(bloque.indexOf("if (sesionVencida)")).toBeLessThan(bloque.indexOf("if (!respuesta.ok) return null;"));
+  });
+
+  it("el Service Worker sirve chunks inmutables y pantallas cacheadas al instante (cache-first / stale-while-revalidate)", () => {
+    const sw = leer("public/pos-sw.js");
+    const inicioDoc = sw.indexOf("async function servirDocumento");
+    const finDoc = sw.indexOf("async function servirRecurso", inicioDoc);
+    const bloqueDoc = sw.slice(inicioDoc, finDoc);
+    expect(bloqueDoc, "Las pantallas cacheadas deben responder al instante y revalidar en waitUntil").toContain(
+      "evento.waitUntil(revalidarDocumento(cache, solicitud, url))",
+    );
+    expect(bloqueDoc).toContain("return guardada;");
+
+    const finRec = sw.indexOf("async function servirImagen", finDoc);
+    const bloqueRec = sw.slice(finDoc, finRec);
+    expect(
+      bloqueRec.indexOf("await assets.match(solicitud)"),
+      "/_next/static/* debe ser cache-first: esperar la red añade segundos offline",
+    ).toBeLessThan(bloqueRec.indexOf("await fetch(solicitud)"));
   });
 
   it("el provider pide disco persistente y avisa cuando la sesión vence", () => {
