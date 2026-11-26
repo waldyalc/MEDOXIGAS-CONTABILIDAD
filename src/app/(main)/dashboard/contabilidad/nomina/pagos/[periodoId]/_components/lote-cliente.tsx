@@ -5,6 +5,7 @@ import { type ReactNode, useState } from "react";
 import Link from "next/link";
 
 import { AvatarInicial } from "@/components/avatar-inicial";
+import { usePagina } from "@/components/ficha/ficha-ui";
 import { Eye, Undo2, Wallet } from "@/components/icons";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
 import {
@@ -22,6 +23,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import type { CuentaCajaBanco } from "@/lib/facturacion/tipos";
 import { formatoDia } from "@/lib/formato";
+import { TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import type { ConfigNomina, PeriodoNomina, ReciboNomina } from "@/lib/nomina/tipos";
 
 import {
@@ -48,7 +50,7 @@ interface Props {
 }
 
 export function LoteCliente({ periodo, recibos, cargos, cuentas, config, puedeEscribir }: Props) {
-  const [pagina, setPagina] = useState(0);
+  const { pagina, setPagina, porPagina, setPorPagina } = usePagina(recibos.length, 25);
   const [pagarTodoAbierto, setPagarTodoAbierto] = useState(false);
   const [reciboPagar, setReciboPagar] = useState<ReciboNomina | null>(null);
   const [reciboAnular, setReciboAnular] = useState<ReciboNomina | null>(null);
@@ -66,7 +68,6 @@ export function LoteCliente({ periodo, recibos, cargos, cuentas, config, puedeEs
   const puedePagarTodo = puedeEscribir && pendientes.length > 0 && todosListos && cuentas.length > 0 && config != null;
   const porcentaje = activos.length === 0 ? 0 : Math.round((pagados.length / activos.length) * 100);
 
-  const porPagina = 25;
   const visibles = recibos.slice(pagina * porPagina, (pagina + 1) * porPagina);
 
   const columnas: readonly ColumnaLista<ReciboNomina>[] = [
@@ -246,17 +247,15 @@ export function LoteCliente({ periodo, recibos, cargos, cuentas, config, puedeEs
             ) : undefined
           }
         />
-        {recibos.length > porPagina ? (
-          <div className="border-border border-t px-4 py-3">
-            <PaginadorLocal
-              total={recibos.length}
-              pagina={pagina}
-              setPagina={setPagina}
-              porPagina={porPagina}
-              etiqueta="recibos"
-            />
-          </div>
-        ) : null}
+        <PaginadorLocal
+          total={recibos.length}
+          pagina={pagina}
+          setPagina={setPagina}
+          porPagina={porPagina}
+          opciones={TAMANOS_PAGINA}
+          onCambiarPorPagina={setPorPagina}
+          etiqueta="recibos"
+        />
       </TarjetaLista>
 
       <p className="text-muted-foreground text-right text-xs">

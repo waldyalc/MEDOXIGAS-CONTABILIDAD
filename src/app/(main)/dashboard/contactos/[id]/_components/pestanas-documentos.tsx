@@ -22,6 +22,7 @@ import {
 } from "@/lib/contactos/ficha";
 import { formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
+import { TAMANOS_PAGINA } from "@/lib/listas/parametros";
 
 const FILAS_POR_PAGINA = 10;
 
@@ -136,8 +137,8 @@ function TablaFicha<T extends Fila>({
       String(fila.numero).includes(texto) ||
       (fila.ncf ?? "").toLowerCase().includes(texto),
   );
-  const { pagina, setPagina } = usePagina(filtradas.length, FILAS_POR_PAGINA);
-  const visibles = filtradas.slice(pagina * FILAS_POR_PAGINA, (pagina + 1) * FILAS_POR_PAGINA);
+  const { pagina, setPagina, porPagina, setPorPagina } = usePagina(filtradas.length, FILAS_POR_PAGINA);
+  const visibles = filtradas.slice(pagina * porPagina, (pagina + 1) * porPagina);
 
   const todas: readonly ColumnaLista<T>[] = [
     {
@@ -184,9 +185,11 @@ function TablaFicha<T extends Fila>({
 
       <PaginadorLocal
         total={filtradas.length}
-        porPagina={FILAS_POR_PAGINA}
+        porPagina={porPagina}
         pagina={pagina}
         setPagina={setPagina}
+        opciones={TAMANOS_PAGINA}
+        onCambiarPorPagina={setPorPagina}
         etiqueta={unidad}
       />
     </div>
