@@ -8,11 +8,10 @@ const SRC = join(process.cwd(), "src");
 const TEAL_ALEGRA = /#00b19d|#008e79|#ccfbf1|#00c9b3|#5eead4|#30aba9|#0a9e9a|#cff2f1|#1a7e7f/i;
 
 /**
- * `dashboard/reportes` pertenece a otra tarea delegada y no se puede tocar aquí.
- * Su categoría Administrativos todavía tiene #30ABA9; esta lista SOLO PUEDE
- * ENCOGERSE. Cuando esa tarea lo migre, borra la ruta de la lista.
+ * Excepciones temporales documentadas. Debe permanecer vacía: el teal de Alegra
+ * no se permite en ningún archivo de `src/`.
  */
-const PENDIENTES_REPORTES = ["app/(main)/dashboard/reportes/_components/datos-reportes.ts"];
+const EXCEPCIONES_TEAL: string[] = [];
 
 function listar(directorio: string): string[] {
   return readdirSync(directorio, { withFileTypes: true }).flatMap((entrada) => {
@@ -90,15 +89,12 @@ describe("color global de marca", () => {
     const infractores = listar(SRC)
       .filter((ruta) => TEAL_ALEGRA.test(readFileSync(ruta, "utf8")))
       .map(rutaRelativa);
-    const nuevos = infractores.filter((ruta) => !PENDIENTES_REPORTES.includes(ruta));
+    const nuevos = infractores.filter((ruta) => !EXCEPCIONES_TEAL.includes(ruta));
 
     expect(
       nuevos,
       `Usa --brand-primary, --primary o los tokens que derivan de ellos; no hex teal de Alegra: ${nuevos.join(", ")}`,
     ).toEqual([]);
-    expect(
-      infractores,
-      "La excepción temporal de reportes solo puede encoger; cuando se migre datos-reportes.ts, bórrala de PENDIENTES_REPORTES",
-    ).toEqual([...PENDIENTES_REPORTES].sort());
+    expect(infractores, "No queda ninguna excepción temporal de teal en src/").toEqual([...EXCEPCIONES_TEAL].sort());
   });
 });

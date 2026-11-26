@@ -8,6 +8,7 @@ import {
   TablerReportMoney,
   TablerStar,
 } from "@/components/icons";
+import { COLOR_MARCA_PRIMARIO } from "@/lib/marca";
 import type { CategoriaReporte } from "@/lib/reportes/catalogo-reportes";
 
 interface MetaCategoria {
@@ -32,8 +33,8 @@ export const META_CATEGORIAS: Record<CategoriaReporte, MetaCategoria> = {
     icono: TablerChartBar,
     descripcion:
       "Haz seguimiento a tus transacciones y obtén información para controlar la salud financiera de tu empresa.",
-    iconoColor: "#30ABA9",
-    iconoFondo: "#D8F4F2",
+    iconoColor: COLOR_MARCA_PRIMARIO,
+    iconoFondo: "#EAF0FC",
   },
   Financieros: {
     icono: TablerCash,
