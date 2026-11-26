@@ -1,12 +1,7 @@
 "use client";
 
-import { cn } from "cn";
-
-import { ChevronLeft, ChevronRight } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const formato = new Intl.NumberFormat("es-DO");
+import { BarraPaginacionAlegra } from "@/components/listas/barra-paginacion";
+import { TAMANOS_PAGINA } from "@/lib/listas/parametros";
 
 interface Props {
   total: number;
@@ -16,9 +11,10 @@ interface Props {
   porPagina?: number;
   /** Sustantivo del contador: "facturas", "documentos", "registros"… */
   etiqueta?: string;
-  /** Ofrece el selector de tamaño solo si se pasa esta lista. */
+  /** Tamaños ofrecidos; las opciones globales de Alegra siempre quedan disponibles. */
   opciones?: readonly number[];
   onCambiarPorPagina?: (porPagina: number) => void;
+  mostrarSelectorTamano?: boolean;
   className?: string;
 }
 
@@ -28,68 +24,33 @@ export function PaginadorLocal({
   setPagina,
   porPagina = 10,
   etiqueta = "registros",
-  opciones,
+  opciones = TAMANOS_PAGINA,
   onCambiarPorPagina,
+  mostrarSelectorTamano = true,
   className,
 }: Props) {
-  const totalPaginas = Math.max(1, Math.ceil(total / porPagina));
+  if (total === 0) return null;
+
+  const tamano = Math.max(1, porPagina);
+  const totalPaginas = Math.max(1, Math.ceil(total / tamano));
   const actual = Math.min(Math.max(pagina, 0), totalPaginas - 1);
-  const inicio = total === 0 ? 0 : actual * porPagina + 1;
-  const fin = Math.min((actual + 1) * porPagina, total);
-  const conSelector = opciones !== undefined && onCambiarPorPagina !== undefined;
+  const inicio = actual * tamano + 1;
+  const fin = Math.min((actual + 1) * tamano, total);
 
   return (
-    <div className={cn("flex flex-wrap items-center justify-between gap-3 text-sm", className)}>
-      <div className="flex flex-wrap items-center gap-2">
-        {conSelector ? (
-          <>
-            <span>Ítems por página</span>
-            <Select
-              value={String(porPagina)}
-              onValueChange={(valor) => {
-                if (valor !== null && valor !== String(porPagina)) onCambiarPorPagina(Number(valor));
-              }}
-            >
-              <SelectTrigger className="h-8 w-20" aria-label="Ítems por página">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent alignItemWithTrigger={false}>
-                {opciones.map((opcion) => (
-                  <SelectItem key={opcion} value={String(opcion)}>
-                    {opcion}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </>
-        ) : null}
-        <p className="text-muted-foreground tabular-nums">
-          Mostrando {formato.format(inicio)}–{formato.format(fin)} de {formato.format(total)} {etiqueta}
-        </p>
-      </div>
-      <div className="flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="icon-sm"
-          disabled={actual === 0}
-          aria-label="Página anterior"
-          onClick={() => setPagina(actual - 1)}
-        >
-          <ChevronLeft />
-        </Button>
-        <span className="text-muted-foreground min-w-28 text-center tabular-nums">
-          Página {formato.format(actual + 1)} de {formato.format(totalPaginas)}
-        </span>
-        <Button
-          variant="outline"
-          size="icon-sm"
-          disabled={actual >= totalPaginas - 1}
-          aria-label="Página siguiente"
-          onClick={() => setPagina(actual + 1)}
-        >
-          <ChevronRight />
-        </Button>
-      </div>
-    </div>
+    <BarraPaginacionAlegra
+      pagina={actual + 1}
+      totalPaginas={totalPaginas}
+      inicio={inicio}
+      fin={fin}
+      total={total}
+      tamano={tamano}
+      opciones={opciones}
+      mostrarSelectorTamano={mostrarSelectorTamano}
+      onCambiarTamano={onCambiarPorPagina}
+      onIrPagina={(destino) => setPagina(destino - 1)}
+      sufijoRango={etiqueta}
+      className={className}
+    />
   );
 }
