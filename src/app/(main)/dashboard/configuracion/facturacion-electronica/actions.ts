@@ -34,14 +34,36 @@ export type ResultadoAccionSimulacion =
 
 const RNC_PRUEBA_DEFECTO = "131999999";
 
+export interface EmisorEcfOverride {
+  rnc: string;
+  razonSocial: string;
+}
+
 function sanitizarRnc(rnc: string | null | undefined): { rnc: string; esPrueba: boolean } {
   const digitos = rnc?.replace(/\D/g, "") ?? "";
   if (/^\d{9}(\d{2})?$/.test(digitos)) return { rnc: digitos, esPrueba: false };
   return { rnc: RNC_PRUEBA_DEFECTO, esPrueba: true };
 }
 
+function resolverEmisor(
+  empresa: { nombre: string; rnc: string | null } | null,
+  emisorOverride?: EmisorEcfOverride,
+): { rnc: string; razonSocial: string; esPrueba: boolean } {
+  const rncOverride = sanitizarRnc(emisorOverride?.rnc);
+  if (emisorOverride && !rncOverride.esPrueba && emisorOverride.razonSocial.trim() !== "") {
+    return { rnc: rncOverride.rnc, razonSocial: emisorOverride.razonSocial.trim(), esPrueba: false };
+  }
+  const empresaSanitizada = sanitizarRnc(empresa?.rnc);
+  return {
+    rnc: empresaSanitizada.rnc,
+    razonSocial: empresa?.nombre?.trim() || "MEDOXIGAS ALC, SRL",
+    esPrueba: empresaSanitizada.esPrueba,
+  };
+}
+
 export async function ejecutarSimulacionEcfAction(
   ambienteUi: AmbienteUiEcf = "testecf",
+  emisorOverride?: EmisorEcfOverride,
 ): Promise<ResultadoAccionSimulacion> {
   const rol = await getRol();
   if (rol !== "admin" && rol !== "contador") {
@@ -62,8 +84,7 @@ export async function ejecutarSimulacionEcfAction(
     return { ok: false, error: `No se pudieron leer los datos del emisor: ${error.message}` };
   }
 
-  const { rnc, esPrueba } = sanitizarRnc(empresa?.rnc);
-  const razonSocial = empresa?.nombre?.trim() || "MEDOXIGAS ALC, SRL";
+  const { rnc, razonSocial, esPrueba } = resolverEmisor(empresa, emisorOverride);
 
   try {
     const resumen = ejecutarSetPruebasSimulacion({

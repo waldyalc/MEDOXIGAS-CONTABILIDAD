@@ -5,6 +5,7 @@ import {
   CHECKLIST_MIGRACION_ALEGRA,
   calcularProgresoHabilitacion,
   calcularSiguienteDesdeEncf,
+  EMPRESAS_PILOTO_ECF,
   esTipoEncf,
   nombreCertificadoDigitalValido,
   PASOS_HABILITACION,
@@ -52,6 +53,21 @@ describe("pasos de habilitación e-CF", () => {
       "E44",
       "E45",
     ]);
+  });
+
+  it("incluye OXYMAT como piloto DGII y Medoxigas como operación principal", () => {
+    expect(EMPRESAS_PILOTO_ECF.oxymat).toEqual({
+      id: "oxymat",
+      nombre: "OXYMAT SRL",
+      alias: "Ferretería (Piloto DGII)",
+      rnc: "131488791",
+    });
+    expect(EMPRESAS_PILOTO_ECF.medoxigas).toEqual({
+      id: "medoxigas",
+      nombre: "MEDOXIGAS ALC, SRL",
+      alias: "Operación principal",
+      rnc: "130893489",
+    });
   });
 
   it("mantiene la guía de migración desde Alegra en 5 pasos", () => {
@@ -141,6 +157,15 @@ describe("candados estructurales del portal e-CF", () => {
     expect(PORTAL).toContain('type="password"');
     expect(PORTAL).toContain("AES-256-GCM");
     expect(PORTAL).not.toMatch(/dangerouslySetInnerHTML|service_role|SUPABASE_SERVICE/);
+  });
+
+  it("el selector de piloto alimenta simulación y URLs multi-RNC", () => {
+    expect(PORTAL).toContain('useState<EmpresaPilotoEcfId>("oxymat")');
+    expect(PORTAL).toContain("EMPRESAS_PILOTO_ECF");
+    expect(PORTAL).toContain("rnc: pilotoActivo.rnc");
+    expect(PORTAL).toContain("razonSocial: pilotoActivo.nombre");
+    expect(PORTAL).toContain("empresa={emisorActivo}");
+    expect(PORTAL).toContain("DOMINIO_BASE_ECF_PROPIO");
   });
 
   it("no usa controles nativos prohibidos ni teal de Alegra", () => {
