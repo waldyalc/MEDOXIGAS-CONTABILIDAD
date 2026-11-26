@@ -3,7 +3,8 @@
 Referencia permanente del proyecto **Medoxigas Contabilidad** (MEDOXIGAS ALC, SRL y OXYMAT / Ferretería, República Dominicana) basada en la **Ley 32-23**, el **Decreto núm. 587-24**, la consulta oficial **CA5032**, el **Informe Técnico e-CF v1.0 (actualización 2026)** y la **Descripción Técnica de Servicios DGII (2026)**.
 
 > **Estado actual de las empresas (confirmado por Waldy, 26-11-2026):**
-> Tanto **MEDOXIGAS ALC, SRL** como **OXYMAT (Ferretería)** ya son **facturadores electrónicos activos** ante la DGII (hoy emiten desde Alegra) y ya cuentan con su **certificado digital `.p12`/`.pfx`** vigente.
+> Tanto **MEDOXIGAS ALC, SRL** (RNC `130893489`) como **OXYMAT SRL** (Ferretería, RNC `131488791`) ya son **facturadores electrónicos activos** ante la DGII (hoy emiten desde Alegra) y ya cuentan con su **certificado digital `.p12`/`.pfx`** vigente.
+> **Empresa piloto elegida por Waldy (26-11-2026):** todas las pruebas reales y la **primera postulación oficial** de Desarrollo Propio (`TesteCF` → `CerteCF` → 14 pasos) se harán primero con **OXYMAT SRL (`RNC 131488791`)**. Solo cuando OXYMAT SRL complete todos los pasos en verde se repetirá el proceso con **MEDOXIGAS ALC, SRL (`130893489`)**.
 > **Regla operativa:** no se toca la producción actual de Alegra mientras construimos, probamos en `TesteCF` y certificamos en `CerteCF`.
 
 ---
