@@ -89,10 +89,21 @@ const defaultPrimary = {
 };
 
 presets.unshift({ label: "Default", value: "default", primary: defaultPrimary });
+presets.sort((a, b) => {
+  if (a.value === "medoxigas") return -1;
+  if (b.value === "medoxigas") return 1;
+  if (a.value === "default") return -1;
+  if (b.value === "default") return 1;
+  return a.label.localeCompare(b.label);
+});
+
+const presetsSerializados = JSON.stringify(presets, null, 2)
+  .replaceAll('"var(--brand-primary)"', "COLOR_MARCA_PRIMARIO")
+  .replaceAll('"var(--brand-primary-dark)"', "COLOR_MARCA_PRIMARIO_OSCURO");
 
 const generatedBlock = `// --- generated:themePresets:start ---
 
-export const THEME_PRESET_OPTIONS = ${JSON.stringify(presets, null, 2)} as const;
+export const THEME_PRESET_OPTIONS = ${presetsSerializados} as const;
 
 export const THEME_PRESET_VALUES = THEME_PRESET_OPTIONS.map((p) => p.value);
 
@@ -101,8 +112,10 @@ export type ThemePreset = (typeof THEME_PRESET_OPTIONS)[number]["value"];
 // --- generated:themePresets:end ---`;
 
 const fileContent = fs.readFileSync(outputPath, "utf8");
+const importMarca = 'import { COLOR_MARCA_PRIMARIO, COLOR_MARCA_PRIMARIO_OSCURO } from "@/lib/marca";\n\n';
+const contenidoBase = fileContent.includes('from "@/lib/marca"') ? fileContent : `${importMarca}${fileContent}`;
 
-const updated = fileContent.replace(
+const updated = contenidoBase.replace(
   /\/\/ --- generated:themePresets:start ---[\s\S]*?\/\/ --- generated:themePresets:end ---/,
   generatedBlock,
 );

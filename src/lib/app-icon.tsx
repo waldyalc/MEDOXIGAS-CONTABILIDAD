@@ -1,5 +1,7 @@
 import { ImageResponse } from "next/og";
 
+import { COLOR_MARCA_PRIMARIO } from "@/lib/marca";
+
 export async function createAppIcon(size: number) {
   return new ImageResponse(
     <div
@@ -9,7 +11,7 @@ export async function createAppIcon(size: number) {
         justifyContent: "center",
         width: "100%",
         height: "100%",
-        background: "#1e56c7",
+        background: COLOR_MARCA_PRIMARIO,
         color: "white",
         fontSize: Math.round(size * 0.42),
         fontWeight: 700,
