@@ -37,6 +37,10 @@ function recursosEstaticos(html) {
     const url = new URL(coincidencia[1].replaceAll("&amp;", "&"), self.location.origin);
     if (esRecursoEstatico(url)) recursos.add(url.href);
   }
+  for (const coincidencia of html.matchAll(/\/_next\/static\/[^\s"'<>\\]+?\.(?:js|css)/g)) {
+    const url = new URL(coincidencia[0], self.location.origin);
+    if (esRecursoEstatico(url)) recursos.add(url.href);
+  }
   return recursos;
 }
 
@@ -226,11 +230,15 @@ async function servirDocumento(solicitud, url) {
   if (!guardada) return fetch(solicitud);
   try {
     const respuesta = await redConEspera(solicitud);
-    if (respuesta.redirected || !respuesta.ok) {
+    const destino = new URL(respuesta.url, self.location.origin).pathname;
+    const sesionVencida =
+      respuesta.status === 401 || respuesta.status === 403 || (respuesta.redirected && destino === "/login");
+    if (sesionVencida) {
       // Sesión vencida: el shell redirige a /login y la copia local ya no sirve.
       await limpiar();
       return respuesta;
     }
+    if (!respuesta.ok) return guardada;
     try {
       await guardarDocumento(cache, url, respuesta);
     } catch {
