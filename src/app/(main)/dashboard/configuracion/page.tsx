@@ -86,6 +86,18 @@ export default async function Page() {
       id: "facturacion",
       titulo: "Facturación",
       tarjetas: [
+        ...(rol === "admin" || rol === "contador"
+          ? [
+              {
+                id: "facturacion-electronica",
+                titulo: "Facturación electrónica",
+                descripcion:
+                  "Habilitación e-CF ante la DGII, certificado digital, pruebas de simulación y migración desde Alegra.",
+                url: "/dashboard/configuracion/facturacion-electronica",
+                icon: ShieldCheck,
+              },
+            ]
+          : []),
         {
           id: "punto-venta",
           titulo: "Punto de venta",
