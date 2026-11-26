@@ -544,9 +544,8 @@ describe("esquemaFiltrosHistorial", () => {
   });
 
   test("rechaza un tamaño no permitido y un rango invertido", () => {
-    expect(errorDe(esquemaFiltrosHistorial.safeParse({ tamano: 30 }))).toBe(
-      "El tamaño de página debe ser 25, 50 o 100.",
-    );
+    expect(errorDe(esquemaFiltrosHistorial.safeParse({ tamano: 7 }))).toBe("El tamaño de página no está disponible.");
+    expect(esquemaFiltrosHistorial.safeParse({ tamano: 30 }).success).toBe(true);
     expect(errorDe(esquemaFiltrosHistorial.safeParse({ desde: "2026-11-20", hasta: "2026-11-01" }))).toBe(
       "La fecha desde no puede ser mayor que la fecha hasta.",
     );

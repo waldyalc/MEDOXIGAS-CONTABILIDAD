@@ -171,7 +171,7 @@ describe("getResumenTurno", () => {
 
 describe("getHistorialPOS", () => {
   test("un filtro inválido devuelve una página vacía sin consultar", async () => {
-    await expect(getHistorialPOS({ tamano: 30 })).resolves.toMatchObject({
+    await expect(getHistorialPOS({ tamano: 7 })).resolves.toMatchObject({
       filas: [],
       resumen: { total: 0, pagina: 1 },
     });

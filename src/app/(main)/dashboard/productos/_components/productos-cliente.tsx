@@ -256,7 +256,6 @@ export function ProductosCliente({
           opciones={TAMANOS_PAGINA}
           mostrarEnVacio
           botonesExtremos={false}
-          className="border-border h-14 border-t px-4 text-slate-700 dark:text-slate-300"
         />
       </TarjetaLista>
 
