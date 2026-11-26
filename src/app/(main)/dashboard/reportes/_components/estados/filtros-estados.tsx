@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import type { CentroCostoOpcion } from "@/lib/centros-costo/tipos";
+import { notificarCargaReporte } from "@/lib/reportes/carga-transicion";
 import type { Vista } from "@/lib/reportes/estados/tipos";
 
 import { SelectorFechaCorte, SelectorRangoFechas } from "../selector-fechas";
@@ -84,6 +85,7 @@ export function FiltrosEstados({
     }
     parametros.delete("pagina");
     const consulta = parametros.toString();
+    notificarCargaReporte("tabla");
     router.push(consulta === "" ? pathname : `${pathname}?${consulta}`);
   }
 

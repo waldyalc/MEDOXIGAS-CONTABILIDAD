@@ -10,6 +10,7 @@ import {
   TAMANOS_PAGINA,
   urlLista,
 } from "@/lib/listas/parametros";
+import { notificarCargaReporte } from "@/lib/reportes/carga-transicion";
 
 interface Props {
   base: string;
@@ -52,13 +53,19 @@ export function PaginadorLista({
   const { pagina, totalPaginas, inicio, fin, total } = resumen;
   const tamanoActual = tamano ?? leerTamano(params);
 
+  function avisarCargaTabla() {
+    if (base.startsWith("/dashboard/reportes")) notificarCargaReporte("tabla");
+  }
+
   function cambiarTamano(nuevoTamano: number) {
     if (nuevoTamano === tamanoActual) return;
+    avisarCargaTabla();
     router.push(urlLista(base, params, { tamano: String(nuevoTamano), pagina: null }), { scroll: false });
   }
 
   function irPagina(destino: number) {
     if (destino === pagina) return;
+    avisarCargaTabla();
     router.push(urlLista(base, params, { pagina: String(destino) }), { scroll: false });
   }
 

@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ParametrosLista, ResumenPagina } from "@/lib/listas/parametros";
+import { EVENTO_CARGA_REPORTE, modoDesdeEventoCarga } from "@/lib/reportes/carga-transicion";
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -43,14 +44,17 @@ afterEach(async () => {
   router.replace.mockClear();
 });
 
-async function renderizarPaginador(params: ParametrosLista = {}, resumen: ResumenPagina = RESUMEN, tamano = 30) {
+async function renderizarPaginador(
+  params: ParametrosLista = {},
+  resumen: ResumenPagina = RESUMEN,
+  tamano = 30,
+  base = "/dashboard/contactos",
+) {
   const contenedor = document.createElement("div");
   document.body.appendChild(contenedor);
   const root = createRoot(contenedor);
   await act(async () => {
-    root.render(
-      <PaginadorLista base="/dashboard/contactos" params={params} resumen={resumen} tamano={tamano} mostrarEnVacio />,
-    );
+    root.render(<PaginadorLista base={base} params={params} resumen={resumen} tamano={tamano} mostrarEnVacio />);
   });
   raices.push({ root, contenedor });
   return contenedor;
@@ -129,6 +133,28 @@ describe("PaginadorLista estilo Alegra", () => {
     await presionarEnter(input);
 
     expect(router.push).toHaveBeenCalledWith("/dashboard/contactos?pagina=3", { scroll: false });
+  });
+
+  it("en reportes dispara el skeleton de tabla al saltar de página", async () => {
+    const eventos: Event[] = [];
+    const capturar = (evento: Event) => {
+      eventos.push(evento);
+    };
+    window.addEventListener(EVENTO_CARGA_REPORTE, capturar);
+
+    try {
+      const contenedor = await renderizarPaginador({}, RESUMEN, 30, "/dashboard/reportes/cxc");
+      const input = inputPagina(contenedor);
+
+      await escribir(input, "3");
+      await presionarEnter(input);
+
+      expect(eventos).toHaveLength(1);
+      expect(modoDesdeEventoCarga(eventos[0] as Event)).toBe("tabla");
+      expect(router.push).toHaveBeenCalledWith("/dashboard/reportes/cxc?pagina=3", { scroll: false });
+    } finally {
+      window.removeEventListener(EVENTO_CARGA_REPORTE, capturar);
+    }
   });
 
   it("confirmar al perder el foco también navega a la página escrita", async () => {
