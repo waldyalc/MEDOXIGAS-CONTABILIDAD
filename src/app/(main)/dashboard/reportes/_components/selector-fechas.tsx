@@ -334,7 +334,7 @@ export function SelectorRangoFechas({ desde, hasta, className, onChange, variant
             </Button>
           }
         />
-        <PopoverContent align="start" sideOffset={6} className="w-auto max-w-[calc(100vw-1rem)] overflow-x-auto p-0">
+        <PopoverContent align="start" sideOffset={6} className="w-auto max-w-[calc(100vw_-_1rem)] overflow-x-auto p-0">
           <div className="flex">
             <PanelAtajos>
               {ATAJOS_RANGO.map((atajo) => (
@@ -436,7 +436,7 @@ export function SelectorFechaCorte({ valor, parametro = "hasta", className }: Fe
             </Button>
           }
         />
-        <PopoverContent align="start" sideOffset={6} className="w-auto max-w-[calc(100vw-1rem)] overflow-x-auto p-0">
+        <PopoverContent align="start" sideOffset={6} className="w-auto max-w-[calc(100vw_-_1rem)] overflow-x-auto p-0">
           <div className="flex">
             <PanelAtajos>
               {ATAJOS_FECHA.map((atajo) => (
@@ -550,7 +550,7 @@ export function SelectorFechaFormulario({
             </Button>
           }
         />
-        <PopoverContent align="start" sideOffset={6} className="w-auto max-w-[calc(100vw-1rem)] overflow-x-auto p-0">
+        <PopoverContent align="start" sideOffset={6} className="w-auto max-w-[calc(100vw_-_1rem)] overflow-x-auto p-0">
           <div className="flex">
             <PanelAtajos>
               {ATAJOS_FECHA.map((atajo) => (

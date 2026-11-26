@@ -135,7 +135,7 @@ export function FiltrosCartera({
             </Button>
           }
         />
-        <PopoverContent align="end" sideOffset={6} className="w-[min(26rem,calc(100vw-1rem))] p-0">
+        <PopoverContent align="end" sideOffset={6} className="w-[min(26rem,calc(100vw_-_1rem))] p-0">
           <form method="get" className="flex flex-col">
             <input type="hidden" name="desde" value={desde} />
             <input type="hidden" name="hasta" value={hasta} />
