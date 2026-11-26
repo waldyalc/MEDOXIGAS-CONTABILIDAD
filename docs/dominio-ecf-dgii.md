@@ -438,6 +438,8 @@ https://medoxigas-contabilidad.vercel.app/api/ecf/fe/recepcion/api/ecf
 https://medoxigas-contabilidad.vercel.app/api/ecf/fe/aprobacioncomercial/api/ecf
 ```
 
+Separación de ambientes receptores: el recurso `/fe/...` no lleva ambiente. Por tanto CerteCF debe registrarse contra un **host público de staging/certificación** con las mismas rutas, y producción contra el host productivo. No se deben mezclar e-CF de prueba y reales en la misma tabla operativa productiva solo porque la ruta coincide. Antes de certificar hay que decidir/crear ese host de staging; la URL productiva se registra en el Directorio FE únicamente en el paso final autorizado.
+
 ### 5.1 `GET /api/ecf/fe/autenticacion/api/semilla`
 
 La autenticación emisor-receptor es **opcional** según DGII; recepción y aprobación comercial son obligatorias. Si se declara autenticación en el Directorio FE, ambos recursos (`semilla` y `validacioncertificado`) deben operar correctamente.

@@ -92,6 +92,7 @@ Nunca se commitea al repo porque contiene XML fiscales, RNC, certificados o dato
 - [ ] El campo titular/`SN` del certificado corresponde al representante autorizado.
 - [ ] Usuario firmante delegado en DGII si usará certificado propio distinto del representante principal.
 - [ ] Dominio público definitivo de Medoxigas para los endpoints receptores.
+- [ ] Host público de staging/certificación con las mismas rutas `/api/ecf/fe/...` para no mezclar pruebas receptoras con producción.
 - [ ] HTTPS válido y endpoints accesibles desde internet.
 - [ ] Inventario de series usadas en Alegra: `E31`, `E32`, `E33`, `E34`, `E41`, `E43`, `E44`, `E45`; incluir `E46` y `E47` solo si la empresa las usa.
 
@@ -360,6 +361,8 @@ Actualizar las URLs productivas de recepción/aprobación/autenticación del con
 - `/api/ecf/fe/aprobacioncomercial/api/ecf`
 
 Verificar inmediatamente desde el directorio DGII que el RNC apunta a las URLs correctas.
+
+Impacto operativo: a partir de ese cambio, los proveedores/emisores que consulten el Directorio FE enviarán los nuevos e-CF a Medoxigas y no necesariamente al buzón/proveedor anterior. Antes del corte hay que revisar el buzón de Alegra, exportar o registrar lo pendiente y dejar una instrucción diaria de revisión durante las primeras semanas para detectar documentos que hayan quedado entrando por el camino viejo.
 
 ### 6.5 Activar producción en Medoxigas
 
