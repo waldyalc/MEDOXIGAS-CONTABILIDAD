@@ -38,6 +38,8 @@ import type { PrevisualizacionNumero } from "@/lib/cotizaciones/numero";
 import type { DocumentoLinea } from "@/lib/cotizaciones/tipos";
 import { centavosAValor, parsearCentavos, type TotalesFactura } from "@/lib/facturacion/calculo";
 import { esTipoComprobante, OPCIONES_TIPO_COMPROBANTE } from "@/lib/facturacion/comprobantes";
+import { esNcfElectronico } from "@/lib/facturacion/emision-ecf";
+import { emitirFacturaEcfAction } from "@/lib/facturacion/emision-ecf-acciones";
 import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import type {
   ContactoResumen,
@@ -69,6 +71,7 @@ import {
   lineaVacia,
   numero,
 } from "./calculo";
+import { CargaEmisionEcf } from "./carga-emision-ecf";
 import { DocumentoPapel } from "./documento-papel";
 import type { ValoresIniciales } from "./prellenado";
 
@@ -1393,6 +1396,7 @@ export function DocumentoVentaForm({
   ];
   const { calculadas, totales } = calcularDocumento(lineas);
   const vistaNcf = conComprobante && numeraciones ? previsualizarNcf({ numeraciones, tipo, fecha }) : null;
+  const facturaElectronica = vistaNcf?.estado === "lista" && esNcfElectronico(vistaNcf.ncf);
   const erroresPorCampo = new Map(errores.map((item) => [claveErrorDocumento(item.campo), item.mensaje]));
   const errorDe = (campo: string) => erroresPorCampo.get(campo);
 
@@ -1523,6 +1527,11 @@ export function DocumentoVentaForm({
       if (!resultado.ok) {
         setError(resultado.error);
         return;
+      }
+
+      if (facturaElectronica) {
+        const emision = await emitirFacturaEcfAction(resultado.id);
+        if (!emision.ok) toast.add({ type: "error", title: "No se pudo emitir a la DGII", description: emision.error });
       }
 
       router.push(`${rutaDestino}/${resultado.id}`);
@@ -1664,6 +1673,8 @@ export function DocumentoVentaForm({
           {textoGuardar}
         </Button>
       </FormActions>
+
+      {pendiente && facturaElectronica ? <CargaEmisionEcf /> : null}
 
       <VistaPreviaDocumento
         abierto={vistaPreviaAbierta}
