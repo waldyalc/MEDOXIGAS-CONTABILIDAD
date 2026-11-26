@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   compararPeriodoAnioAnterior,
   etiquetaDia,
-  etiquetaMes,
+  etiquetaRangoCorto,
   finAnioAnterior,
   inicioAnio,
   parsearBusqueda,
@@ -44,7 +44,13 @@ describe("fechas de los estados financieros", () => {
     expect(parsearHasta({}, "2026-11-13")).toBe("2026-11-13");
     expect(parsearHasta({ hasta: "2026-02-30" }, "2026-11-13")).toBe("2026-11-13");
     expect(parsearHasta({ hasta: "2025-12-31" }, "2026-11-13")).toBe("2025-12-31");
-    expect(etiquetaMes("2026-11-13")).toBe("Nov, 2026");
     expect(etiquetaDia("2026-11-13")).toBe("13 Nov, 2026");
+  });
+
+  test("etiqueta las columnas con el rango real y no con el mes del cierre", () => {
+    expect(etiquetaRangoCorto("2026-09-01", "2026-09-30")).toBe("1 Sep - 30 Sep, 2026");
+    expect(etiquetaRangoCorto("2026-08-01", "2026-09-30")).toBe("1 Ago - 30 Sep, 2026");
+    expect(etiquetaRangoCorto("2025-12-15", "2026-01-31")).toBe("15 Dic, 2025 - 31 Ene, 2026");
+    expect(etiquetaRangoCorto("2026-09-30", "2026-09-30")).toBe("30 Sep, 2026");
   });
 });

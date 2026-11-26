@@ -67,6 +67,23 @@ export async function borrarOffline(store: StoreOffline, clave: string): Promise
   });
 }
 
+/** Comprueba si existe una entrada exacta o con prefijo `ambito/...` en el store. */
+export async function existeClaveOfflinePorPrefijo(store: StoreOffline, prefijo: string): Promise<boolean> {
+  const db = await abrir();
+  return new Promise((resolve, reject) => {
+    const transaccion = db.transaction(store, "readonly");
+    const solicitud = transaccion.objectStore(store).getAllKeys();
+    transaccion.oncomplete = () => {
+      const claves = solicitud.result;
+      resolve(
+        claves.some((clave) => typeof clave === "string" && (clave === prefijo || clave.startsWith(`${prefijo}/`))),
+      );
+    };
+    transaccion.onerror = () => reject(transaccion.error);
+    transaccion.onabort = () => reject(transaccion.error);
+  });
+}
+
 export const almacenColaOffline: AlmacenColaOffline = {
   listar: async (ambito) => {
     const db = await abrir();

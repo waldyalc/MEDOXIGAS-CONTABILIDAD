@@ -32,6 +32,7 @@ import { normalizarNombre } from "@/lib/contactos/contactos";
 import type { DuplicadoContacto } from "@/lib/contactos/duplicados";
 import { completarConDatosDgii } from "@/lib/dgii/completar";
 import type { DatosContribuyenteDgii } from "@/lib/dgii/consulta";
+import type { DatosContactoRapidoOffline } from "@/lib/pos/contactos-offline";
 
 import { BotonAutocompletarDgii, MensajeDgii, useConsultaDgii } from "./consulta-dgii";
 
@@ -39,6 +40,9 @@ export interface ContactoCreado {
   id: string;
   nombre: string;
   rnc_cedula: string | null;
+  /** Datos extra que el POS necesita para pintar y guardar el cliente sin volver al servidor. */
+  direccion?: string | null;
+  telefono?: string | null;
 }
 
 interface Props {
@@ -47,6 +51,13 @@ interface Props {
   tipoInicial: "cliente" | "proveedor";
   nombreInicial?: string;
   onCreado: (contacto: ContactoCreado) => void;
+  /** En el POS solo se crea Cliente: oculta el toggle Proveedor y bloquea proveedor/ambos. */
+  permitirProveedor?: boolean;
+  /**
+   * POS: guarda el cliente en el dispositivo cuando no hay red (o la llamada
+   * falla por red) y lo devuelve para seleccionarlo al instante.
+   */
+  onGuardarOffline?: (datos: DatosContactoRapidoOffline) => Promise<ContactoCreado>;
 }
 
 const OPCIONES_IDENTIFICACION = TIPOS_IDENTIFICACION.map((tipo) => ({
@@ -54,9 +65,69 @@ const OPCIONES_IDENTIFICACION = TIPOS_IDENTIFICACION.map((tipo) => ({
   label: tipo.etiqueta,
 }));
 
-export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombreInicial = "", onCreado }: Props) {
-  const [esCliente, setEsCliente] = useState(tipoInicial === "cliente");
-  const [esProveedor, setEsProveedor] = useState(tipoInicial === "proveedor");
+export function SelectorTipoContacto({
+  permitirProveedor,
+  esCliente,
+  esProveedor,
+  onCliente,
+  onProveedor,
+}: {
+  permitirProveedor: boolean;
+  esCliente: boolean;
+  esProveedor: boolean;
+  onCliente: () => void;
+  onProveedor: () => void;
+}) {
+  // En el POS solo se crea Cliente: sin la fila de toggles, como el «Nuevo contacto» de Alegra POS.
+  if (!permitirProveedor) return null;
+
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Button
+        type="button"
+        variant={esCliente ? "default" : "outline"}
+        aria-pressed={esCliente}
+        onClick={onCliente}
+        className="justify-center gap-2"
+      >
+        {esCliente ? <Check /> : null}
+        Cliente
+      </Button>
+      <Button
+        type="button"
+        variant={esProveedor ? "default" : "outline"}
+        aria-pressed={esProveedor}
+        onClick={onProveedor}
+        className="justify-center gap-2"
+      >
+        {esProveedor ? <Check /> : null}
+        Proveedor
+      </Button>
+    </div>
+  );
+}
+
+function sinConexion(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
+function pareceErrorDeRed(mensaje: string): boolean {
+  return /fetch|network|conexi[oó]n|internet|timeout|timed out|load failed/i.test(mensaje);
+}
+
+export function DialogoNuevoContacto({
+  abierto,
+  onOpenChange,
+  tipoInicial,
+  nombreInicial = "",
+  onCreado,
+  permitirProveedor = true,
+  onGuardarOffline,
+}: Props) {
+  const clienteInicial = permitirProveedor ? tipoInicial === "cliente" : true;
+  const proveedorInicial = permitirProveedor && tipoInicial === "proveedor";
+  const [esCliente, setEsCliente] = useState(clienteInicial);
+  const [esProveedor, setEsProveedor] = useState(proveedorInicial);
   const [tipoIdentificacion, setTipoIdentificacion] = useState<TipoIdentificacion>("rnc");
   const [numero, setNumero] = useState("");
   const [nombre, setNombre] = useState("");
@@ -75,8 +146,8 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
   const valores = useRef({ nombre: "" });
 
   const hayCambios =
-    esCliente !== (tipoInicial === "cliente") ||
-    esProveedor !== (tipoInicial === "proveedor") ||
+    esCliente !== clienteInicial ||
+    esProveedor !== proveedorInicial ||
     tipoIdentificacion !== "rnc" ||
     numero.trim() !== "" ||
     normalizarNombre(nombre) !== normalizarNombre(nombreInicial) ||
@@ -91,8 +162,8 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
 
   useEffect(() => {
     if (abierto && !estabaAbierto.current) {
-      setEsCliente(tipoInicial === "cliente");
-      setEsProveedor(tipoInicial === "proveedor");
+      setEsCliente(clienteInicial);
+      setEsProveedor(proveedorInicial);
       setTipoIdentificacion("rnc");
       setNumero("");
       setNombre(nombreInicial);
@@ -110,7 +181,7 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
       limpiar();
     }
     estabaAbierto.current = abierto;
-  }, [abierto, nombreInicial, tipoInicial, limpiar]);
+  }, [abierto, nombreInicial, clienteInicial, proveedorInicial, limpiar]);
 
   function completarConDgii(datos: DatosContribuyenteDgii): string {
     const { campos, mensaje: texto } = completarConDatosDgii(datos, valores.current, autoRellenado.current);
@@ -138,24 +209,29 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
   }
 
   function alternarProveedor() {
+    if (!permitirProveedor) return;
     if (esProveedor && !esCliente) return;
     setDuplicado(null);
     setEsProveedor((actual) => !actual);
   }
 
-  async function avisarDuplicado(datos: { nombre: string; rnc_cedula: string | null }) {
+  async function guardarEnDispositivo(datos: DatosContactoRapidoOffline): Promise<boolean> {
+    if (!onGuardarOffline) return false;
     try {
-      const existente = await buscarContactoDuplicado(datos);
-      if (existente === null) return false;
-      setDuplicado(existente);
+      onCreado(await onGuardarOffline(datos));
       return true;
-    } catch {
-      setError("No se pudo verificar si el contacto ya existe. Intenta de nuevo.");
+    } catch (error) {
+      setError(
+        error instanceof Error && error.message !== ""
+          ? error.message
+          : "No se pudo guardar el cliente en este dispositivo. Intenta de nuevo.",
+      );
       return true;
     }
   }
 
   function guardar(tipo: "cliente" | "proveedor" | "ambos", permitirDuplicado: boolean) {
+    if (!permitirProveedor && tipo !== "cliente") return;
     if (enVuelo.current) return;
     enVuelo.current = true;
 
@@ -163,6 +239,16 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
     const datos = {
       nombre: normalizarNombre(nombre),
       rnc_cedula: identificacion === "" ? null : identificacion,
+    };
+    const datosOffline: DatosContactoRapidoOffline = {
+      tipo,
+      tipo_identificacion: tipoIdentificacion,
+      rnc_cedula: datos.rnc_cedula,
+      nombre: datos.nombre,
+      municipio_provincia: municipio.trim() === "" ? null : municipio.trim(),
+      direccion: direccion.trim() === "" ? null : direccion.trim(),
+      correo: correo.trim() === "" ? null : correo.trim(),
+      telefono: telefono.trim() === "" ? null : telefono.trim(),
     };
 
     const formData = new FormData();
@@ -177,10 +263,26 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
 
     iniciar(async () => {
       try {
-        if (!permitirDuplicado && (await avisarDuplicado(datos))) return;
+        if (sinConexion() && (await guardarEnDispositivo(datosOffline))) return;
+
+        if (!permitirDuplicado) {
+          let existente: DuplicadoContacto | null;
+          try {
+            existente = await buscarContactoDuplicado(datos);
+          } catch {
+            if (await guardarEnDispositivo(datosOffline)) return;
+            setError("No se pudo verificar si el contacto ya existe. Intenta de nuevo.");
+            return;
+          }
+          if (existente) {
+            setDuplicado(existente);
+            return;
+          }
+        }
 
         const resultado = await crearContacto(formData);
         if (!resultado.ok) {
+          if (pareceErrorDeRed(resultado.error) && (await guardarEnDispositivo(datosOffline))) return;
           setError(resultado.error);
           return;
         }
@@ -189,13 +291,25 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
           return;
         }
 
-        onCreado({ id: resultado.id, nombre: datos.nombre, rnc_cedula: datos.rnc_cedula });
+        onCreado({
+          id: resultado.id,
+          nombre: datos.nombre,
+          rnc_cedula: datos.rnc_cedula,
+          direccion: direccion.trim() || null,
+          telefono: telefono.trim() || null,
+        });
       } catch {
+        if (await guardarEnDispositivo(datosOffline)) return;
         setError("No se pudo guardar el contacto. Intenta de nuevo.");
       } finally {
         enVuelo.current = false;
       }
     });
+  }
+
+  function tipoSeleccionado(): "cliente" | "proveedor" | "ambos" | null {
+    if (!permitirProveedor) return "cliente";
+    return tipoContactoDesde(esCliente, esProveedor);
   }
 
   function enviar(evento: FormEvent<HTMLFormElement>) {
@@ -215,7 +329,7 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
       return;
     }
 
-    const tipo = tipoContactoDesde(esCliente, esProveedor);
+    const tipo = tipoSeleccionado();
     if (!tipo) {
       setError("Marca Cliente o Proveedor.");
       return;
@@ -225,7 +339,7 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
   }
 
   function crearDeTodasFormas() {
-    const tipo = tipoContactoDesde(esCliente, esProveedor);
+    const tipo = tipoSeleccionado();
     if (!tipo) return;
     setDuplicado(null);
     guardar(tipo, true);
@@ -260,28 +374,13 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
           </DialogHeader>
 
           <form onSubmit={enviar} className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                variant={esCliente ? "default" : "outline"}
-                aria-pressed={esCliente}
-                onClick={alternarCliente}
-                className="justify-center gap-2"
-              >
-                {esCliente ? <Check /> : null}
-                Cliente
-              </Button>
-              <Button
-                type="button"
-                variant={esProveedor ? "default" : "outline"}
-                aria-pressed={esProveedor}
-                onClick={alternarProveedor}
-                className="justify-center gap-2"
-              >
-                {esProveedor ? <Check /> : null}
-                Proveedor
-              </Button>
-            </div>
+            <SelectorTipoContacto
+              permitirProveedor={permitirProveedor}
+              esCliente={esCliente}
+              esProveedor={esProveedor}
+              onCliente={alternarCliente}
+              onProveedor={alternarProveedor}
+            />
 
             <div className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
               <FormField htmlFor="contacto-tipo-identificacion" label="Tipo de identificación" required>
@@ -319,7 +418,10 @@ export function DialogoNuevoContacto({ abierto, onOpenChange, tipoInicial, nombr
                     setDuplicado(null);
                     limpiar();
                   }}
-                  onBlur={() => consultarEnDgii(true)}
+                  onBlur={() => {
+                    if (sinConexion()) return;
+                    consultarEnDgii(true);
+                  }}
                   className={FORM_INPUT}
                 />
                 <div className="mt-1">

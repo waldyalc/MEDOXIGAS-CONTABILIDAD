@@ -1,6 +1,8 @@
 import { z } from "zod";
 
+import { ETIQUETAS_DOCUMENTO } from "@/lib/asientos/origenes";
 import {
+  rutaAjusteInventario,
   rutaCompra,
   rutaConciliacion,
   rutaFactura,
@@ -73,29 +75,6 @@ export interface AsientoDetalle {
   lineas: LineaAsiento[];
 }
 
-const ETIQUETAS_DOCUMENTO: Record<string, string> = {
-  factura: "Factura",
-  factura_proveedor: "Compra",
-  pago_recibido: "Pago recibido",
-  pago_proveedor: "Pago a proveedor",
-  gasto_menor: "Gasto",
-  nota_credito_venta: "Nota de crédito",
-  nota_credito_compra: "Nota de crédito de compra",
-  nota_debito: "Nota de débito",
-  transferencia: "Transferencia",
-  deposito: "Depósito",
-  conciliacion: "Conciliación",
-  ajuste_inventario: "Ajuste de inventario",
-  inventario_inicial: "Inventario inicial",
-  manual: "Manual",
-  anulacion: "Anulación",
-  saldo_inicial: "Saldos iniciales",
-  pos_movimiento: "Movimiento de caja POS",
-  pos_diferencia: "Diferencia de cierre POS",
-  nomina: "Nómina",
-  pago_nomina: "Pago de nómina",
-};
-
 const ETIQUETAS_TIPO: Record<string, string> = {
   factura: "factura",
   factura_proveedor: "factura de proveedor",
@@ -139,6 +118,8 @@ function rutaDocumento(tipo: string, id: string): string | null {
       return rutaNotaDebitoVenta(id);
     case "conciliacion":
       return rutaConciliacion(id);
+    case "ajuste_inventario":
+      return rutaAjusteInventario(id);
     default:
       return null;
   }
@@ -176,6 +157,10 @@ async function buscarNumeroDocumento(cliente: Cliente, tipo: string, id: string)
     }
     case "nota_debito": {
       const { data } = await cliente.from("notas_debito_venta").select("numero").eq("id", id).maybeSingle();
+      return data?.numero ?? null;
+    }
+    case "ajuste_inventario": {
+      const { data } = await cliente.from("ajustes_inventario").select("numero").eq("id", id).maybeSingle();
       return data?.numero ?? null;
     }
     default:
@@ -225,15 +210,15 @@ async function resolverOrigen(cliente: Cliente, asiento: AsientoFila): Promise<O
     };
   }
 
-  if (!asiento.origen_id) return { etiqueta: "—", href: null };
+  const etiqueta = ETIQUETAS_DOCUMENTO[asiento.origen_tipo] ?? "—";
+  if (!asiento.origen_id) return { etiqueta, href: null };
 
   const href = rutaDocumento(asiento.origen_tipo, asiento.origen_id);
-  if (!href) return { etiqueta: "—", href: null };
+  if (!href) return { etiqueta, href: null };
 
-  const etiqueta = ETIQUETAS_DOCUMENTO[asiento.origen_tipo];
   const numero = await buscarNumeroDocumento(cliente, asiento.origen_tipo, asiento.origen_id);
 
-  return { etiqueta: etiqueta && numero != null ? `${etiqueta} #${numero}` : "Ver documento", href };
+  return { etiqueta: numero != null ? `${etiqueta} #${numero}` : etiqueta, href };
 }
 
 async function cargarCuentas(cliente: Cliente, ids: string[]): Promise<Map<string, CuentaResumen>> {

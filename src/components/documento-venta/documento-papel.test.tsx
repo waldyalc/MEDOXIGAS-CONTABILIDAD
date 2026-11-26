@@ -130,6 +130,32 @@ describe("papel de la factura", () => {
   it("escribe con dos puntos la etiqueta del vencimiento de la factura", () => {
     expect(renderFactura()).toContain("Vencimiento de la factura:");
   });
+
+  it("muestra el Subtotal bruto cuando hay Descuento, para que Subtotal + ITBIS cuadre con el Total", () => {
+    const html = renderToStaticMarkup(
+      <DocumentoPapel
+        tipo="factura"
+        empresa={null}
+        factura={{
+          ...factura,
+          subtotal: 323.1,
+          descuento: 35.9,
+          itbis: 58.16,
+          total: 381.26,
+        }}
+        lineas={[{ ...linea, descuento_pct: 10, subtotal: 323.1, itbis: 58.16, total: 381.26 }]}
+        contacto={contacto}
+        ncfVence={null}
+        impuestos={[]}
+        mostrarLogo={false}
+      />,
+    );
+
+    expect(html, "Subtotal bruto: 323.10 neto + 35.90 de descuento").toContain("RD$359.00");
+    expect(html).toContain("DESCUENTO");
+    expect(html).toContain("RD$35.90");
+    expect(html).toContain("RD$381.26");
+  });
 });
 
 describe("papel de la cotización", () => {

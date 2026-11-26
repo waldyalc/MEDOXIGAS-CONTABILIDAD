@@ -10,7 +10,6 @@ import { getPerfil } from "@/lib/auth/rol";
 
 import { BusquedaGlobal } from "./_components/header/busqueda-global";
 import { ProfileMenu } from "./_components/header/profile-menu";
-import { ThemeSwitcher } from "./_components/header/theme-switcher";
 
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
   const cookieStore = await cookies();
@@ -46,8 +45,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
               <BusquedaGlobal rol={perfil?.rol ?? null} />
             </div>
             <div className="flex flex-1 items-center justify-end gap-2">
-              <ThemeSwitcher />
-              <ProfileMenu nombre={perfil?.nombre ?? null} correo={perfil?.correo ?? null} />
+              <ProfileMenu nombre={perfil?.nombre ?? null} correo={perfil?.correo ?? null} rol={perfil?.rol ?? null} />
             </div>
           </div>
         </header>

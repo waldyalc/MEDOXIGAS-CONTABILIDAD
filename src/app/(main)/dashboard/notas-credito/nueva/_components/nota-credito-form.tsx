@@ -278,6 +278,12 @@ export function NotaCreditoForm({ datos, fechaHoy }: Props) {
             <span>Subtotal</span>
             <span>{formatoMonedaCentavos(totales.subtotalCentavos)}</span>
           </div>
+          {totales.descuentoCentavos > 0 ? (
+            <div className="flex items-center justify-between">
+              <span>Descuento</span>
+              <span>{formatoMonedaCentavos(totales.descuentoCentavos)}</span>
+            </div>
+          ) : null}
           <div className="flex items-center justify-between">
             <span>Impuestos</span>
             <span>{formatoMonedaCentavos(totales.itbisCentavos)}</span>

@@ -5,6 +5,19 @@ import { join } from "node:path";
 
 const DIALOGO = readFileSync(join(process.cwd(), "src/components/contactos/dialogo-nuevo-contacto.tsx"), "utf8");
 const FORMULARIO = readFileSync(join(process.cwd(), "src/components/contactos/formulario-contacto.tsx"), "utf8");
+const SELECTOR = readFileSync(join(process.cwd(), "src/components/contactos/selector-contacto.tsx"), "utf8");
+const CONTACTOS = readFileSync(
+  join(process.cwd(), "src/app/(main)/dashboard/contactos/_components/contactos-cliente.tsx"),
+  "utf8",
+);
+const PANEL_FACTURA = readFileSync(
+  join(process.cwd(), "src/app/(pos)/pos/_components/vender/panel-factura.tsx"),
+  "utf8",
+);
+const DIALOGO_MOVIMIENTO = readFileSync(
+  join(process.cwd(), "src/app/(pos)/pos/_components/pagos/dialogo-movimiento.tsx"),
+  "utf8",
+);
 
 const MENSAJE_DESCARTE = "Cerrar con cambios debe pedir «¿Descartar los cambios sin guardar?»";
 
@@ -49,5 +62,35 @@ describe("diálogo Nuevo contacto", () => {
     expect(DIALOGO).toMatch(/tipoInicial: "cliente" \| "proveedor";/);
     expect(DIALOGO).toMatch(/nombreInicial\?: string;/);
     expect(DIALOGO).toMatch(/onCreado: \(contacto: ContactoCreado\) => void;/);
+    expect(DIALOGO).toMatch(/permitirProveedor\?: boolean;/);
+  });
+
+  test("el alta de Contactos usa el diálogo rápido; editar sigue en el formulario completo", () => {
+    expect(CONTACTOS).toContain('import { DialogoNuevoContacto } from "@/components/contactos/dialogo-nuevo-contacto"');
+    expect(CONTACTOS).toContain('import { FormularioContacto } from "@/components/contactos/formulario-contacto"');
+    expect(CONTACTOS).toMatch(
+      /function abrirNuevo\(\) \{\s*setContactoEditando\(null\);\s*setDialogoAbierto\(false\);\s*setDialogoRapidoAbierto\(true\);/,
+    );
+    expect(CONTACTOS).toMatch(
+      /<DialogoNuevoContacto\s+abierto=\{dialogoRapidoAbierto\}\s+onOpenChange=\{setDialogoRapidoAbierto\}\s+tipoInicial="cliente"\s+onCreado=\{cerrarDialogoRapido\}/,
+    );
+    expect(CONTACTOS).toMatch(
+      /function cerrarDialogoRapido\(\) \{\s*setDialogoRapidoAbierto\(false\);\s*router\.refresh\(\);/,
+    );
+    expect(CONTACTOS).toContain("contacto={contactoEditando}");
+    expect(CONTACTOS).not.toContain("permitirProveedor");
+  });
+
+  test("en el POS el diálogo rápido solo crea Cliente y bloquea proveedor/ambos", () => {
+    expect(DIALOGO).toContain("if (!permitirProveedor) return null;");
+    expect(DIALOGO).toContain("if (!permitirProveedor) return;");
+    expect(DIALOGO).toContain('if (!permitirProveedor && tipo !== "cliente") return;');
+    expect(DIALOGO).toContain('if (!permitirProveedor) return "cliente";');
+    expect(DIALOGO).toContain('const proveedorInicial = permitirProveedor && tipoInicial === "proveedor";');
+
+    const instanciasPOS = PANEL_FACTURA.match(/permitirProveedor=\{false\}/g) ?? [];
+    expect(instanciasPOS, "PanelFactura debe restringir su selector y su diálogo directo").toHaveLength(2);
+    expect(SELECTOR).toContain("permitirProveedor={permitirProveedor}");
+    expect(DIALOGO_MOVIMIENTO).toContain("permitirProveedor={!esIngreso}");
   });
 });

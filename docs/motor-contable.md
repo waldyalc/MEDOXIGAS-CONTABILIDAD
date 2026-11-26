@@ -21,6 +21,8 @@ usuario no escribe débitos ni créditos.
 | Factura de proveedor (`crear_factura_proveedor`) | 1104 Inventario de mercancía — compra de producto inventariable | 2101 Cuentas por pagar proveedores — total |
 | | 6101 Gastos generales, cuenta de costo del producto o cuenta de la línea — compra de gasto | |
 | | 1105 ITBIS adelantado en compras — ITBIS | |
+| Recosteo de inventario (diseño Kardex, `origen_tipo = 'recosteo_inventario'`) | 5101 Costo de ventas o cuenta de costo del producto — diferencia cuando el costo real supera el provisional | 1104 Inventario de mercancía o cuenta de inventario del producto — la misma diferencia |
+| | 1104 Inventario de mercancía — cuando el costo real es menor | 5101 Costo de ventas — la misma diferencia |
 | Pago a proveedor (`registrar_pago_proveedor`) | 2101 Cuentas por pagar proveedores — monto | 1101 Caja general o 1102 Banco principal — monto |
 | Gasto menor (`crear_gasto_menor`) | 6101 Gastos generales (o la cuenta de gasto indicada) — subtotal | 1106 Caja chica (o la cuenta de caja/banco indicada) — total |
 | | 1105 ITBIS adelantado en compras — ITBIS | |
@@ -31,10 +33,18 @@ Notas:
 - Una factura de venta con `pago` en el mismo JSON llama a
   `registrar_pago_recibido` dentro de la misma transacción.
 - La factura de proveedor sube la cantidad del producto y recalcula su costo
-  promedio ponderado.
+  promedio ponderado. En el diseño del Kardex, si cubre una existencia global
+  negativa, la diferencia entre el costo provisional de la venta en negativo y el
+  costo real se contabiliza como asiento visible `recosteo_inventario`; el contrato
+  completo está en `docs/dominio-kardex-recosteo.md`.
 - Los pagos actualizan `pagado` y el estado (`pagada` cuando `pagado = total`).
-- La anulación invierte el asiento con fecha de hoy y `origen_tipo =
-  'anulacion'`; no borra el original y deja el documento en `anulada`.
+- El cobro de una nota de débito de venta (`nota_debito_id`) usa el mismo
+  asiento (Dr caja/banco / Cr CxC), no toca `facturas.pagado` y su saldo se
+  calcula con los pagos activos ligados a la nota; al anular el pago el saldo
+  reaparece en `reporte_cxc`.
+- La anulación invierte el asiento con la fecha indicada (o la de hoy si se
+  omite) y `origen_tipo = 'anulacion'`; no borra el original y deja el documento
+  en `anulada`.
 
 ## Ejemplo numérico
 
@@ -110,14 +120,16 @@ caja/banco que paga, o la cuenta de gasto de una línea de compra sin producto. 
   semilla son 01/B01, 02/B02 y 13/B13, todas con `hasta = 100000`. El NCF es
   prefijo + 8 dígitos.
 
-Límites conocidos: la anulación se fecha con `current_date`, no con la fecha
-del documento. Anular una compra o un ajuste de **entrada** devuelve la cantidad
-y revierte el costo promedio con la fórmula inversa (compras desde
-`20261113270000`; ajustes de entrada desde `20261117200000`). Si entre el
-movimiento y la anulación hubo ventas u otras compras, la reversión es
-aproximada por el redondeo del promedio móvil. Un ajuste de salida no cambia el
-costo promedio, pero su asiento usa el costo manual de la línea; si difiere del
-promedio, el mayor y `cantidad × costo` se separan.
+Límites conocidos del motor actual: el costo es promedio móvil, no capas. Anular
+una compra o un ajuste de **entrada** devuelve la cantidad y revierte el costo
+promedio con una fórmula inversa; si entre el movimiento y la anulación hubo
+ventas u otras compras, la reversión es una aproximación y puede dejar residuos
+de centavos. Además, antes de implementar el Kardex valorado, una venta en
+negativo no se recostea al entrar la compra real y una entrada de ajuste puede
+contaminar el promedio al mezclar una cantidad negativa en la fórmula. El modelo
+aprobado para corregirlo — `movimientos_inventario`, precisión de 6 decimales,
+residuo exacto al llegar a cero y asientos visibles `recosteo_inventario` — está
+en `docs/dominio-kardex-recosteo.md`.
 
 ## Cómo se prueba
 

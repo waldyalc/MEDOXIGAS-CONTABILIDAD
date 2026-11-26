@@ -2,7 +2,7 @@ import { Info } from "@/components/icons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
 import { obtenerFlujoEfectivo } from "@/lib/reportes/estados/consultas";
-import { etiquetaMes, parsearBusqueda, periodoAnterior } from "@/lib/reportes/estados/fechas";
+import { etiquetaRangoCorto, parsearBusqueda, periodoAnterior } from "@/lib/reportes/estados/fechas";
 import { type ParametrosFecha, parsearRango } from "@/lib/reportes/fechas";
 
 import { AlertaError } from "../_components/alerta-error";
@@ -47,8 +47,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
             <TablaComparativa
               filas={reporte.filas}
               rotuloCuenta="Concepto"
-              rotuloActual={etiquetaMes(hasta)}
-              rotuloAnterior={etiquetaMes(anterior.hasta)}
+              rotuloActual={etiquetaRangoCorto(desde, hasta)}
+              rotuloAnterior={etiquetaRangoCorto(anterior.desde, anterior.hasta)}
               rotuloPorcentaje="Análisis vertical"
             />
           </CardContent>

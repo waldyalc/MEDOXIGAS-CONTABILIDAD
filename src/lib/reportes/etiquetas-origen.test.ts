@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest";
 
+import { ETIQUETAS_DOCUMENTO } from "@/lib/asientos/origenes";
+
 import { ETIQUETAS_ORIGEN } from "./libro-diario";
 import fs from "node:fs";
 import path from "node:path";
@@ -42,11 +44,21 @@ describe("etiquetas de origen de asientos", () => {
     expect(origenes).toContain("pos_diferencia");
     expect(origenes).toContain("nomina");
     expect(origenes).toContain("pago_nomina");
+    expect(origenes).toContain("recosteo_inventario");
   });
 
   test("todo origen del CHECK tiene etiqueta en español", () => {
     const faltantes = origenesDelConstraint().filter((origen) => {
       const etiqueta = ETIQUETAS_ORIGEN[origen];
+      return typeof etiqueta !== "string" || etiqueta.trim() === "";
+    });
+
+    expect(faltantes).toEqual([]);
+  });
+
+  test("el mapa compartido de Asientos cubre los mismos orígenes", () => {
+    const faltantes = origenesDelConstraint().filter((origen) => {
+      const etiqueta = ETIQUETAS_DOCUMENTO[origen];
       return typeof etiqueta !== "string" || etiqueta.trim() === "";
     });
 

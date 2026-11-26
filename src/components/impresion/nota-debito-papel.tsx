@@ -3,6 +3,7 @@ import { cn } from "cn";
 import { FilaDato, FilaTotal, HojaImpresion } from "@/components/impresion/hoja-impresion";
 import { formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
 import type { Empresa } from "@/lib/facturacion/tipos";
+import { filasTotalesNota } from "@/lib/facturacion/totales-nota";
 import { formatoDia } from "@/lib/formato";
 import { etiquetaTipoNotaDebito, type NotaDebitoVista } from "@/lib/notas-debito/tipos";
 
@@ -94,9 +95,9 @@ export function NotaDebitoPapel({
 
       <div className="flex justify-end">
         <div className="w-[210pt] text-[8pt] leading-[13.6pt]">
-          <FilaTotal etiqueta="SUBTOTAL" valor={formatoMoneda(nota.subtotal)} />
-          {nota.descuento > 0 ? <FilaTotal etiqueta="DESCUENTO" valor={formatoMoneda(nota.descuento)} /> : null}
-          <FilaTotal etiqueta="ITBIS" valor={formatoMoneda(nota.itbis)} />
+          {filasTotalesNota(nota).map((fila) => (
+            <FilaTotal key={fila.etiqueta} etiqueta={fila.etiqueta.toUpperCase()} valor={formatoMoneda(fila.valor)} />
+          ))}
           <div className="mt-[3pt] flex justify-between gap-[12pt] border-t border-[#0a2352] pt-[2pt] text-[10pt] font-semibold">
             <span>Total</span>
             <span className="tabular-nums">{formatoMoneda(nota.total)}</span>

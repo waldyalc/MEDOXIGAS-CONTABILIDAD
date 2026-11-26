@@ -20,6 +20,7 @@ import {
   unirContactos,
 } from "@/lib/contactos/seleccion";
 import { esConsumidorFinalPorRnc, etiquetaContactoPOS } from "@/lib/pos/consumidor-final";
+import { type DatosContactoRapidoOffline, filtrarContactosLocal } from "@/lib/pos/contactos-offline";
 
 import { type ContactoCreado, DialogoNuevoContacto } from "./dialogo-nuevo-contacto";
 
@@ -43,6 +44,17 @@ interface Props {
   mostrarRncEnValor?: boolean;
   /** Acciones junto a la flecha (lápiz y X en el POS); no reemplazan la flecha. */
   acciones?: (contacto: ContactoOpcion | null) => ReactNode;
+  /** Pasa la restricción al diálogo rápido: `false` solo permite crear Cliente (POS). */
+  permitirProveedor?: boolean;
+  /**
+   * POS: busca en la lista ya cargada (0 ms) y nunca llama al servidor. El
+   * listado de Contabilidad sigue usando la búsqueda paginada por red.
+   */
+  modoLocal?: boolean;
+  /** POS sin conexión: guarda el cliente recién creado en el dispositivo. */
+  onGuardarOffline?: (datos: DatosContactoRapidoOffline) => Promise<ContactoCreado>;
+  /** Avisa del cliente creado en el diálogo interno para guardarlo en la lista del POS. */
+  onContactoCreado?: (contacto: ContactoCreado) => void;
   "aria-label"?: string;
   "aria-invalid"?: boolean;
   "aria-describedby"?: string;
@@ -60,6 +72,10 @@ export function SelectorContacto({
   showClear = true,
   mostrarRncEnValor = false,
   acciones,
+  permitirProveedor = true,
+  modoLocal = false,
+  onGuardarOffline,
+  onContactoCreado,
   "aria-label": ariaLabel,
   "aria-invalid": ariaInvalid,
   "aria-describedby": ariaDescribedBy,
@@ -80,6 +96,13 @@ export function SelectorContacto({
   const resuelto = useRef<string | null>(null);
 
   useEffect(() => {
+    if (!modoLocal) return;
+    setSeleccionado(valor ? (contactos.find((contacto) => contacto.id === valor) ?? null) : null);
+  }, [modoLocal, contactos, valor]);
+
+  useEffect(() => {
+    if (modoLocal) return;
+
     if (!valor) {
       setSeleccionado(null);
       resuelto.current = null;
@@ -111,9 +134,19 @@ export function SelectorContacto({
     return () => {
       activo = false;
     };
-  }, [valor, tipoInicial, opciones]);
+  }, [valor, tipoInicial, opciones, modoLocal]);
 
   useEffect(() => {
+    if (!modoLocal) return;
+    const actual = valor ? (contactos.find((contacto) => contacto.id === valor) ?? null) : null;
+    setOpciones(unirContactos(filtrarContactosLocal(contactos, busqueda, TAMANO_CONTACTOS), actual));
+    setCargando(false);
+    setTotal(null);
+  }, [modoLocal, contactos, busqueda, valor]);
+
+  useEffect(() => {
+    if (modoLocal) return;
+
     if (!abierto) return;
 
     const consulta = busqueda.trim();
@@ -143,7 +176,7 @@ export function SelectorContacto({
     }, ESPERA_BUSQUEDA_MS);
 
     return () => clearTimeout(temporizador);
-  }, [abierto, busqueda, tipoInicial, valor, seleccionado]);
+  }, [abierto, busqueda, tipoInicial, valor, seleccionado, modoLocal]);
 
   const etiquetaCrear = tipoInicial === "cliente" ? "Crear nuevo cliente" : "Crear nuevo proveedor";
   const permiteCrear = tipoInicial !== "todos";
@@ -157,6 +190,7 @@ export function SelectorContacto({
   }
 
   function crear(contacto: ContactoCreado) {
+    onContactoCreado?.(contacto);
     setOpciones((actuales) => unirContactos(actuales, contacto));
     setDialogoAbierto(false);
     setBusqueda("");
@@ -234,6 +268,8 @@ export function SelectorContacto({
           tipoInicial={tipoInicial}
           nombreInicial={busqueda}
           onCreado={crear}
+          permitirProveedor={permitirProveedor}
+          onGuardarOffline={onGuardarOffline}
         />
       ) : null}
     </>

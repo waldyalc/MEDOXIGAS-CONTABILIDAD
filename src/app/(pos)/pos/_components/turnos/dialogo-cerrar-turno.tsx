@@ -21,7 +21,11 @@ import { toast } from "@/components/ui/toast";
 import { formatoMoneda } from "@/lib/facturacion/formato";
 import { cerrarTurno } from "@/lib/pos/acciones";
 import { centavosATexto, centavosDeDecimal, compararMontos } from "@/lib/pos/calculo";
-import { avisoCierreOffline } from "@/lib/pos/cola-offline";
+import {
+  ErrorImpedimentoCierreOffline,
+  MENSAJE_SIN_CONEXION_CIERRE,
+  MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR,
+} from "@/lib/pos/cola-offline";
 import type { CierreTurnoPOS, ResumenTurnoVista } from "@/lib/pos/tipos";
 
 import { capitalizar, textoAMonto } from "../formato-pos";
@@ -40,12 +44,13 @@ export function DialogoCerrarTurno({
 }) {
   const offline = useOfflinePOS();
   const cierreBloqueado =
-    !offline.preparado || offline.estado === "offline" || offline.estado === "sincronizando" || offline.porSubir > 0;
-  const mensajeOffline =
-    offline.porSubir > 0
-      ? `Conéctate para subir ${offline.porSubir} ventas antes de cerrar`
-      : "Conéctate a internet para cerrar el turno";
-  const avisoFallidas = avisoCierreOffline(offline.fallidas);
+    !offline.preparado || offline.estado === "offline" || offline.estado === "sincronizando" || offline.pendientes > 0;
+  const mensajeBloqueo =
+    offline.pendientes > 0
+      ? MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR
+      : offline.estado === "offline"
+        ? MENSAJE_SIN_CONEXION_CIERRE
+        : MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR;
   const [real, setReal] = useState("");
   const [registrarDiferencia, setRegistrarDiferencia] = useState(true);
   const [observaciones, setObservaciones] = useState("");
@@ -77,6 +82,12 @@ export function DialogoCerrarTurno({
       setError("El efectivo real no puede ser negativo.");
       return;
     }
+    // Bug #5: un bloqueo local se avisa tal cual; nunca se llama la RPC ni se
+    // muestra el mensaje engañoso de «no sabemos si el turno se cerró».
+    if (cierreBloqueado) {
+      setError(mensajeBloqueo);
+      return;
+    }
 
     setEnviando(true);
     setError(null);
@@ -98,8 +109,12 @@ export function DialogoCerrarTurno({
       toast.add({ type: "success", title: "Turno cerrado." });
       onCerrado(resultado.data);
       onCerrar();
-    } catch {
-      setError("No sabemos si el turno se cerró. Revisa Turnos antes de intentarlo de nuevo.");
+    } catch (causa) {
+      setError(
+        causa instanceof ErrorImpedimentoCierreOffline
+          ? causa.message
+          : "No sabemos si el turno se cerró. Revisa Turnos antes de intentarlo de nuevo.",
+      );
     } finally {
       setEnviando(false);
     }
@@ -222,14 +237,12 @@ export function DialogoCerrarTurno({
           <p className="text-muted-foreground text-xs">El turno se cerrará y no se puede reabrir.</p>
 
           {cierreBloqueado ? (
-            <p role="alert">{mensajeOffline}. El cuadre solo incluye operaciones sincronizadas.</p>
-          ) : null}
-          {avisoFallidas ? (
-            <Alert className="border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10">
-              <AlertDescription className="text-amber-900 dark:text-amber-200">
-                {`${avisoFallidas} El cierre del turno no se bloquea, pero estas ventas no se sumarán al cuadre.`}
-              </AlertDescription>
-            </Alert>
+            <div
+              role="alert"
+              className="sticky bottom-0 z-10 rounded-lg border border-rose-500 bg-rose-600 px-4 py-3 text-sm font-semibold text-white"
+            >
+              {mensajeBloqueo}
+            </div>
           ) : null}
           {error ? (
             <Alert variant="destructive">
@@ -243,12 +256,12 @@ export function DialogoCerrarTurno({
             Cancelar
           </Button>
           <Button
-            className="h-12"
+            className="bg-pos-primario hover:bg-pos-primario-hover h-12 text-white"
             onClick={() => void cerrar()}
             disabled={enviando || esperadoNegativo || cierreBloqueado}
           >
             {enviando ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
-            {enviando ? "Cerrando turno…" : "Cerrar turno"}
+            {enviando ? "Guardando…" : "Guardar"}
           </Button>
         </DialogFooter>
       </DialogContent>

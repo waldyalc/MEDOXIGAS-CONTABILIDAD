@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
-
 import { cn } from "cn";
 
 import { toast } from "@/components/ui/toast";
+import { MENSAJE_SIN_CONEXION_CIERRE, MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR } from "@/lib/pos/cola-offline";
 
+import { EnlacePos } from "../enlace-pos";
 import { EstadoOfflinePOS, useOfflinePOS } from "../offline-pos-provider";
 import { PestanasVentaPos } from "./pestanas-venta-pos";
 
@@ -23,10 +23,10 @@ export function BarraInferiorPos({
 }) {
   const abierto = turno !== null;
   const offline = useOfflinePOS();
-  const bloquearCierre = !offline.preparado || offline.estado === "offline" || offline.porSubir > 0;
+  const bloquearCierre = !offline.preparado || offline.estado === "offline" || offline.pendientes > 0;
 
   return (
-    <footer className="border-black/20 bg-slate-100 dark:bg-card dark:border-pos-linea flex h-11 shrink-0 items-stretch justify-between border-t print:hidden">
+    <footer className="dark:bg-card dark:border-pos-linea flex h-11 shrink-0 items-stretch justify-between border-t border-black/20 bg-slate-100 print:hidden">
       <div className="flex min-w-0 flex-1 items-stretch">
         <PestanasVentaPos />
       </div>
@@ -50,10 +50,7 @@ export function BarraInferiorPos({
             onClick={() => {
               toast.add({
                 type: "error",
-                title:
-                  offline.porSubir > 0
-                    ? `Conéctate para subir ${offline.porSubir} ventas antes de cerrar`
-                    : "Conéctate a internet para cerrar el turno",
+                title: offline.pendientes > 0 ? MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR : MENSAJE_SIN_CONEXION_CIERRE,
               });
               offline.abrirPanel();
             }}
@@ -61,9 +58,9 @@ export function BarraInferiorPos({
             Cerrar turno
           </button>
         ) : abierto ? (
-          <Link href="/pos/turnos" className="text-pos-primario hover:text-pos-primario-hover font-medium">
+          <EnlacePos href="/pos/turnos" className="text-pos-primario hover:text-pos-primario-hover font-medium">
             Cerrar turno
-          </Link>
+          </EnlacePos>
         ) : (
           <button
             type="button"

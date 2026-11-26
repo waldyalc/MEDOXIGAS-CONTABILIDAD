@@ -7,10 +7,13 @@ import { getConsumidorFinalId } from "@/lib/pos/consultas";
 import { contactoInicialPOS } from "@/lib/pos/consumidor-final";
 import { createClient } from "@/lib/supabase/server";
 
+import { BarraSuperiorPos } from "./_components/barra-superior-pos";
 import { CarritoPosProvider } from "./_components/carrito-pos-provider";
 import { EstadoPos } from "./_components/estado-pos";
 import { MenuPos } from "./_components/menu-pos";
 import { OfflinePosProvider } from "./_components/offline-pos-provider";
+import { PosSpaProvider } from "./_components/pos-spa-provider";
+import { PosSpaShell } from "./_components/pos-spa-shell";
 import { getContextoPOS } from "./_components/servidor";
 
 /**
@@ -46,6 +49,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
       ambito={`${data.claims.sub}/${terminal.id}`}
       terminalId={terminal.id}
       turnoId={turno?.id ?? null}
+      logoUrl={empresa?.logo_url ?? null}
     >
       <CarritoPosProvider
         key={terminal.id}
@@ -55,27 +59,34 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
           numeracionId: terminal.numeracion_defecto_id,
         }}
       >
-        <div className="bg-background flex h-dvh flex-col overflow-hidden [--ring:var(--pos-primario)] [font-family:var(--font-inter)] lg:flex-row">
-          <MenuPos
-            empresa={{ nombre: empresa?.nombre ?? null, logo_url: empresa?.logo_url ?? null }}
-            terminales={contexto.terminales
-              .filter((candidata) => candidata.activa)
-              .map((candidata) => ({ id: candidata.id, nombre: candidata.nombre }))}
-            terminal={{ id: terminal.id, nombre: terminal.nombre }}
-            turno={
-              turno
-                ? {
-                    numero: turno.numero,
-                    estado: turno.estado,
-                    abierto_en: turno.abierto_en,
-                  }
-                : null
-            }
-            usuario={{ nombre: contexto.perfil.nombre, correo: contexto.perfil.correo }}
-          />
+        <PosSpaProvider>
+          <div className="bg-background flex h-dvh flex-col overflow-hidden [font-family:var(--font-inter)] [--ring:var(--pos-primario)] lg:flex-row">
+            <MenuPos
+              empresa={{ nombre: empresa?.nombre ?? null, logo_url: empresa?.logo_url ?? null }}
+              terminales={contexto.terminales
+                .filter((candidata) => candidata.activa)
+                .map((candidata) => ({ id: candidata.id, nombre: candidata.nombre }))}
+              terminal={{ id: terminal.id, nombre: terminal.nombre }}
+              turno={
+                turno
+                  ? {
+                      numero: turno.numero,
+                      estado: turno.estado,
+                      abierto_en: turno.abierto_en,
+                    }
+                  : null
+              }
+              usuario={{ nombre: contexto.perfil.nombre, correo: contexto.perfil.correo }}
+            />
 
-          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">{children}</main>
-        </div>
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <BarraSuperiorPos />
+              <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+                <PosSpaShell>{children}</PosSpaShell>
+              </main>
+            </div>
+          </div>
+        </PosSpaProvider>
       </CarritoPosProvider>
     </OfflinePosProvider>
   );

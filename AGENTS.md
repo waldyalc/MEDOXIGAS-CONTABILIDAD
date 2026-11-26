@@ -139,12 +139,14 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 - El Orquestador revisa el diff, verifica los checks reales de CI y luego integra a `main`.
 - Nunca force-push, nunca `--no-verify`, nunca reescribir historia publicada. Ver skill `flujo-git`.
 
-## Preview oficial en el VPS
+## Preview oficial en el VPS — UNO solo (regla de Waldy, 24-11-2026)
 
-- **Enlace oficial:** https://medoxigas-agentes.tail25e53a.ts.net (solo abre desde equipos con Tailscale). Es donde **Waldy revisa los cambios** en vivo.
-- Por dentro es el servicio systemd `medoxigas-preview.service`: corre `pnpm start` en el puerto **3010** desde `/root/MEDOXIGAS-CONTABILIDAD` (sirve el último `pnpm build`; hay que rebuild tras mergear), contra la base de **producción** (solo lectura con usuarios ZZTEST).
-- **Nunca** levantes otro dev server en el puerto 3010 ni mates ese servicio. Si hay que reiniciarlo: `systemctl restart medoxigas-preview`.
-- Un worktree que quiera su propio preview usa otro puerto (**3011 en adelante**).
+- **Hay UN solo enlace de preview y es para siempre:** https://medoxigas-agentes.tail25e53a.ts.net (solo abre desde equipos con Tailscale). Es **el único que Waldy abre y revisa**; no le pases nunca otra URL con otro puerto.
+- **La rama que sirve es `feat/pos-alegra-exacto` = el "main" del preview:** contiene `main` más **TODOS** los cambios hechos en el VPS. Cada vez que una tarea se integra, se mergea su rama a `feat/pos-alegra-exacto` (nunca se le borra trabajo; si falta algo que Waldy ya aprobó — como un menú o una pantalla — es un bug de consolidación y se arregla mergeando lo que falte).
+- Por dentro es el servicio systemd `medoxigas-preview.service`: corre `pnpm start` en el puerto **3010** desde `/root/MEDOXIGAS-CONTABILIDAD` (sirve el último `pnpm build`; hay que rebuild tras cada merge), contra la base de **producción** (solo lectura con usuarios ZZTEST).
+- **Flujo tras integrar:** mergear a `feat/pos-alegra-exacto` → `pnpm build` → `systemctl restart medoxigas-preview` → comprobar que responde 200.
+- **Nunca** levantes otro dev server en el puerto 3010 ni mates ese servicio.
+- Los puertos 3011+ son solo para verificación de desarrollo de un worktree (tests, capturas internas del agente); **nunca se le pasan a Waldy como preview**.
 - El login es con los usuarios **ZZTEST** de `.env.pruebas` (las claves nunca van en el repo ni en prompts).
 
 ## Vercel y producción
@@ -152,7 +154,7 @@ Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo:
 - Vercel construye SOLO los cambios en `main`. Las ramas y los PR NO generan preview en Vercel; para revisar se usa el preview del VPS (puerto 3010).
 - Vercel tiene un límite de builds seguidos (build-rate-limit). No se unen muchas ramas a `main` de golpe; si un build se rechaza, Vercel no lo reintenta solo y hay que disparar otro.
 - Nada se une a `main`, se publica, se promueve en Vercel ni cambia variables de entorno sin el OK de Waldy en el chat.
-- El trabajo se consolida en la rama del POS (`feat/pos-alegra-exacto`) y se publica de una sola vez cuando Waldy lo apruebe.
+- El trabajo se consolida en `feat/pos-alegra-exacto` (la rama del preview único) y se publica a `main` de una sola vez cuando Waldy lo apruebe.
 
 ## Candados: cada corrección se vuelve un test o una regla
 
@@ -179,17 +181,21 @@ Candados que ya existen:
 - `src/lib/supabase/reset-virgen.test.ts` — exige que las 64 tablas `public.*` de las migraciones estén clasificadas una sola vez en `docs/pruebas/reset-base-virgen.sql`, dentro de `BEGIN…COMMIT`, sin tocar `perfiles` ni `auth.users`.
 - `tests/e2e/numeraciones.spec.ts` — guardar B16 sin cambios cierra el diálogo y un nombre en blanco muestra el error en español (requiere `E2E_EMAIL`/`E2E_PASSWORD`, como el humo).
 - `supabase/tests/anular_ajuste_costo_test.sql` — anular un ajuste de inventario de entrada devuelve la cantidad y revierte el costo promedio; anular una compra ya lo hacía (`anular_compra_costo_test.sql`).
+- `supabase/tests/fix_actualizar_cuenta_invariantes_test.sql`, `fix_actualizar_numeracion_gastos_menores_test.sql` y `fix_saldos_iniciales_lock_test.sql` — candados de la auditoría de funciones SQL: `actualizar_cuenta` rechaza `acepta_movimientos = false` con líneas y cambio de tipo con subcuentas de otro tipo; editar una serie `00` (prefijo `B`/`B1`) no cruza con los NCF B13 de gastos menores; `registrar_saldos_iniciales` toma `pg_advisory_xact_lock` antes del chequeo de duplicados.
+- `supabase/tests/fix_nc_residuo_credito_test.sql` — varias NC parciales que agotan la línea cuadran exactas (la última toma subtotal/ITBIS como residuo) y una NC manual sobre factura pagada no puede dejar `credito` mayor que `total - pagado - retenido`; solo el reembolso explícito del POS (`permite_saldo_a_favor`) deja saldo a favor.
 - `src/lib/pos/ticket-pdf-carril.test.ts` — el test del ticket 80 mm (Chromium + Poppler) queda fuera de `pnpm test`: exige que `vitest.config.mts` lo excluya, que `pnpm test:pdf` use `vitest.pdf.config.mts` y que el job `ci` de CI no instale navegador ni Poppler (solo el job `pdf`).
 - `src/lib/pos/diseno-pos.test.ts` — el POS usa los tokens `--pos-*` (teal `#00b19d`, copia exacta de Alegra); prohíbe `--primary` y `#1e56c7` en `src/app/(pos)/pos/` con una lista de pendientes que solo puede encoger, y exige la paleta en `globals.css`. Además fija el Punto 1: el turno y las pestañas de ventas van en la barra inferior (`barra-inferior-pos.tsx`), no en una línea sobre el buscador ni dentro del panel, y el Sheet móvil termina 44 px antes para no tapar la barra. El cuerpo del panel usa `--pos-panel` (#f8fafc) con encabezado, bloque superior, renglones y pie blancos, y el shell fija `--ring: var(--pos-primario)` para que el foco sea teal.
+- `src/lib/contactos/dialogo-nuevo-contacto.test.ts` + `src/components/contactos/dialogo-nuevo-contacto.test.tsx` — el alta de Contactos usa `DialogoNuevoContacto` (el formulario completo queda para editar y para «Formulario avanzado»); en el POS el alta de cliente no ofrece «Proveedor» ni guarda proveedor/ambos (`permitirProveedor={false}` en el panel de venta, su selector y el alta de cliente de pagos).
 - `src/lib/pos/mas-opciones.test.ts` + `tests/e2e/pos-mas-opciones.spec.ts` — el ⋯ del carrito abre el panel «Más opciones» a todo el panel (no un dropdown) con los cuadros «Guardar cotización», «Cargar cotización» e «Historial de ventas» desde un arreglo; X y Esc cierran sin tocar la venta.
 - `src/lib/binarios-grandes.test.ts` (+ `src/lib/binarios-permitidos.txt`) — bloquea binarios nuevos >200 KB e imágenes con «alegra» en el nombre o bajo `docs/diseno/alegra-pos/`; lo ya commiteado quedó abuelado en la lista permitida, que solo encoge.
+- `src/lib/facturacion/totales-factura-ui.test.ts` + `totales-nota.test.ts` — la vista y el papel muestran el Subtotal bruto cuando hay Descuento (`subtotalBruto`), las notas B03/B04 incluyen otros impuestos y propina, no se anula una factura con notas activas, la fecha de anulación no es anterior a la factura, convertir a factura ofrece B14/B15/B16 y la tabla de facturas usa `hoyRd()`.
 - `.github/workflows/supabase.yml` — en PR, toda migración nueva en `supabase/migrations/` exige al menos un archivo tocado en `supabase/tests/`.
 
 ## Preview y capturas al terminar (regla de Waldy, 22-11-2026)
 
 «Al terminar una tarea, todo agente debe tomar capturas de pantalla de lo que hizo (en el preview) y entregarlas con su informe; el orquestador, al juntar, actualiza el preview y reporta las capturas».
 
-- **Preview oficial:** http://127.0.0.1:3010 (puerto 3010). Al juntar, el Orquestador hace `git pull` de `feat/pos-alegra-exacto`, `pnpm build` y `systemctl restart medoxigas-preview`, y comprueba que responde 200.
+- **Preview oficial:** http://127.0.0.1:3010 (puerto 3010, el único preview que ve Waldy). Al juntar, el Orquestador mergea a `feat/pos-alegra-exacto` (la rama consolidada con todo el trabajo del VPS), `pnpm build` y `systemctl restart medoxigas-preview`, y comprueba que responde 200.
 - **Cómo se toman:** con el script único **`pnpm captura --ruta /pos --salida <carpeta> [--base http://localhost:3010]`** (`src/scripts/captura.ts`): entra como **ZZTEST** (credenciales de `.env.pruebas`, storageState en `/root/.medoxigas/` fuera del repo, se renueva solo), toma claro 1440 px, oscuro 1440 px y móvil 390 px, y **falla ante errores de consola o HTTP 5xx**. Todos los agentes usan este script; nada de scripts de captura improvisados.
 - **Dónde se guardan:** `/root/referencias/capturas-terminadas/<fecha>-<punto>.png`, fuera del repo (defecto del script: `/root/referencias/capturas-terminadas/<fecha>`). El informe del Orquestador lista la ruta y una línea de qué muestra cada una.
 - **Seguridad:** no se commitean claves ni datos sensibles; las capturas sí pueden incluir datos de prueba de ZZTEST.

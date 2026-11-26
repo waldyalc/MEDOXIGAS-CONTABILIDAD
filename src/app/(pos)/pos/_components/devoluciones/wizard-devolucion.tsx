@@ -408,7 +408,7 @@ export function WizardDevolucion({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {lineasCalculadas.map(({ linea, cantidad, excede, totales }) => {
+                          {lineasCalculadas.map(({ linea, excede, totales }) => {
                             const devuelta = centavosATexto(
                               (centavosDeDecimal(linea.cantidad) ?? 0) - (centavosDeDecimal(linea.pendiente) ?? 0),
                             );
@@ -439,7 +439,7 @@ export function WizardDevolucion({
                                 </TableCell>
                                 <TableCell className="text-right">
                                   <Input
-                                    value={cantidad}
+                                    value={cantidades[linea.id] ?? ""}
                                     inputMode="decimal"
                                     aria-label={`Cantidad a devolver de ${linea.descripcion}`}
                                     aria-invalid={excede}

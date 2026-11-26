@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
+import type { ContactoCreado } from "@/components/contactos/dialogo-nuevo-contacto";
 import { ReceiptText } from "@/components/icons";
 import { ImpresionPos } from "@/components/pos/impresion-pos";
 import { TicketPos } from "@/components/pos/ticket-pos";
@@ -17,9 +18,13 @@ import type { Impuesto } from "@/lib/impuestos/tipos";
 import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { crearCotizacionPOS } from "@/lib/pos/acciones";
 import { conBloqueoOffline, guardarOffline, leerOffline } from "@/lib/pos/almacen-offline";
+import { cargarCatalogoCompletoOffline } from "@/lib/pos/cache-catalogo-offline";
+import { aplicarDescuentoStockLocal, buscarCodigoLocal, filtrarCatalogoLocal } from "@/lib/pos/catalogo-local";
+import { type DatosContactoRapidoOffline, guardarContactoOffline } from "@/lib/pos/contactos-offline";
 import { enlaceCotizacionPOS, payloadCotizacionPOS } from "@/lib/pos/cotizaciones";
 import { filtrarFavoritosPOS } from "@/lib/pos/favoritos";
 import type { TicketPOSPayload } from "@/lib/pos/impresion";
+import { actualizarPisoNcfLocal } from "@/lib/pos/ncf-local";
 import type { CotizacionPOSResultado, PlantillaTicket, ProductoPOS, ProductoPOSCodigo } from "@/lib/pos/tipos";
 
 import { buscarCatalogoPOS, buscarCodigoPOS } from "../acciones-pos";
@@ -32,7 +37,6 @@ import { CatalogoPos } from "./catalogo-pos";
 import { CheckoutPos } from "./checkout-pos";
 import { ConfirmacionVenta } from "./confirmacion-venta";
 import { DialogoCargarCotizacion } from "./dialogo-cargar-cotizacion";
-import { DialogoVentaSimple } from "./dialogo-venta-simple";
 import { PanelFactura } from "./panel-factura";
 import { useFavoritosPOS } from "./use-favoritos-pos";
 
@@ -93,14 +97,27 @@ export function VenderPos({
   vendedores: { id: string; nombre: string }[];
   contactos: ContactoResumen[];
   consumidorFinalId: string | null;
-  cuentas: { id: string; nombre: string }[];
+  cuentas: { id: string; nombre: string; es_caja_banco?: boolean; tipo_banco?: string | null }[];
   plantillaFactura: { mostrarLogo: boolean; notas: string; terminos: string };
   plantillaCotizacion: { mostrarLogo: boolean; notas: string; terminos: string };
 }) {
   const router = useRouter();
   const carrito = useCarritoPOS();
-  const { ambito, estado: estadoConexion } = useOfflinePOS();
-  const [catalogo, setCatalogo] = useState<ProductoPOS[]>(productos);
+  const {
+    ambito,
+    estado: estadoConexion,
+    marcarCacheProductos,
+    marcarCacheClientes,
+    tokenRecargaCache,
+    operaciones,
+  } = useOfflinePOS();
+  const marcarProductosRef = useRef(marcarCacheProductos);
+  marcarProductosRef.current = marcarCacheProductos;
+  const marcarClientesRef = useRef(marcarCacheClientes);
+  marcarClientesRef.current = marcarCacheClientes;
+  const [catalogoServidor, setCatalogoServidor] = useState<ProductoPOS[]>(productos);
+  const [catalogoLocal, setCatalogoLocal] = useState<ProductoPOS[] | null>(null);
+  const [limiteLocal, setLimiteLocal] = useState<{ clave: string; valor: number }>({ clave: "", valor: TAMANO_LOTE });
   const [cargando, setCargando] = useState(false);
   const [cargandoMas, setCargandoMas] = useState(false);
   const [hayMas, setHayMas] = useState(productos.length === TAMANO_LOTE);
@@ -114,7 +131,6 @@ export function VenderPos({
   const [tokenLimpiar, setTokenLimpiar] = useState(0);
   const [anuncio, setAnuncio] = useState("");
   const [checkoutAbierto, setCheckoutAbierto] = useState(false);
-  const [simpleAbierto, setSimpleAbierto] = useState(false);
   const [cargarCotizacionAbierto, setCargarCotizacionAbierto] = useState(false);
   const [abrirTurnoAbierto, setAbrirTurnoAbierto] = useState(false);
   const [sheetAbierto, setSheetAbierto] = useState(false);
@@ -130,6 +146,8 @@ export function VenderPos({
   const [impresionDoc, setImpresionDoc] = useState<{ titulo: string; payload: TicketPOSPayload } | null>(null);
   const [esEscritorio, setEsEscritorio] = useState(false);
   const [turnoActual, setTurnoActual] = useState(turno);
+  const [listaContactos, setListaContactos] = useState<ContactoResumen[]>(contactos);
+  const [contactosHidratados, setContactosHidratados] = useState(false);
 
   useEffect(() => {
     setTurnoActual(turno);
@@ -150,10 +168,21 @@ export function VenderPos({
   const bufferCodigo = useRef("");
   const ultimaTecla = useRef(0);
   const listaPrecioId = carrito.activa.listaPrecioId;
+  const claveCatalogo = `${ambito}/${listaPrecioId}`;
+  const claveCatalogoRef = useRef(claveCatalogo);
+  claveCatalogoRef.current = claveCatalogo;
   const carritoRef = useRef(carrito);
   carritoRef.current = carrito;
-  const catalogoRef = useRef(catalogo);
-  catalogoRef.current = catalogo;
+  const catalogoRef = useRef(catalogoServidor);
+  catalogoRef.current = catalogoServidor;
+  const catalogoLocalRef = useRef<ProductoPOS[] | null>(null);
+  catalogoLocalRef.current = catalogoLocal;
+  const contactosRef = useRef(listaContactos);
+  contactosRef.current = listaContactos;
+  const estadoConexionRef = useRef(estadoConexion);
+  estadoConexionRef.current = estadoConexion;
+  const generacionCatalogo = useRef(0);
+  const conexionPrevia = useRef(estadoConexion);
 
   const numeracionValida = numeraciones.some((numeracion) => numeracion.id === carrito.activa.numeracionId);
   const sinCaja = !cuentas.some((cuenta) => cuenta.id === terminal.cuenta_efectivo_id);
@@ -164,72 +193,187 @@ export function VenderPos({
     !sinCaja &&
     !(estadoConexion === "offline" && errorCatalogo !== null);
   const hayModal =
-    checkoutAbierto ||
-    simpleAbierto ||
-    cargarCotizacionAbierto ||
-    abrirTurnoAbierto ||
-    sheetAbierto ||
-    confirmacionCotizacion !== null;
+    checkoutAbierto || cargarCotizacionAbierto || abrirTurnoAbierto || sheetAbierto || confirmacionCotizacion !== null;
 
+  // Los contactos del servidor mandan; lo creado en este dispositivo y aún
+  // sin refrescar se conserva.
   useEffect(() => {
-    if (estadoConexion === "offline" || !navigator.onLine) return;
-    let vigente = true;
-    async function prepararCache() {
-      await guardarOffline("contactos", ambito, contactos);
-      await guardarOffline("config", `${ambito}/venta`, {
-        terminal,
-        turno,
-        empresa,
-        numeraciones,
-        listas,
-        cuentas,
-        vendedores,
-      });
-      const acumulados: ProductoPOS[] = [];
-      for (let offset = 0; vigente && navigator.onLine; offset += TAMANO_LOTE) {
-        const respuesta = await buscarCatalogoPOS({
-          terminal_id: terminal.id,
-          ...(listaPrecioId ? { lista_precio_id: listaPrecioId } : {}),
-          limit: TAMANO_LOTE,
-          offset,
-        });
-        if (!respuesta.ok || !vigente) return;
-        acumulados.push(...respuesta.data);
-        await conBloqueoOffline(`${ambito}/catalogo`, () =>
-          guardarOffline("catalogo", `${ambito}/${listaPrecioId}`, {
-            productos: acumulados,
-            actualizado: new Date().toISOString(),
-            completo: respuesta.data.length < TAMANO_LOTE,
-          }),
-        );
-        if (respuesta.data.length < TAMANO_LOTE) return;
+    setListaContactos((actuales) => {
+      const porId = new Map(contactos.map((contacto) => [contacto.id, contacto]));
+      for (const local of actuales) {
+        if (!porId.has(local.id)) porId.set(local.id, local);
       }
+      return [...porId.values()];
+    });
+  }, [contactos]);
+
+  // Sin red, los clientes creados antes de recargar viven solo en IndexedDB.
+  useEffect(() => {
+    if (estadoConexion !== "offline" && navigator.onLine) {
+      setContactosHidratados(true);
+      return;
     }
-    void prepararCache().catch(() =>
-      setErrorCatalogo("No se pudo preparar el catálogo offline. Mantén la conexión hasta completar la preparación."),
-    );
+    let vigente = true;
+    void (async () => {
+      const guardados = await leerOffline<ContactoResumen[]>("contactos", ambito).catch(() => undefined);
+      if (!vigente) return;
+      if (guardados?.length) {
+        setListaContactos((actuales) => {
+          const porId = new Map(actuales.map((contacto) => [contacto.id, contacto]));
+          for (const guardado of guardados) {
+            if (!porId.has(guardado.id)) porId.set(guardado.id, guardado);
+          }
+          return [...porId.values()];
+        });
+      }
+      setContactosHidratados(true);
+    })();
     return () => {
       vigente = false;
     };
-  }, [
-    ambito,
-    estadoConexion,
-    listaPrecioId,
-    terminal,
-    turno,
-    empresa,
-    numeraciones,
-    listas,
-    cuentas,
-    vendedores,
-    contactos,
-  ]);
+  }, [ambito, estadoConexion]);
+
+  // Escrituras locales baratas: no paginan el catálogo ni dependen del refresco.
+  useEffect(() => {
+    if (!contactosHidratados) return;
+    void guardarOffline("contactos", ambito, listaContactos)
+      .then(() => marcarClientesRef.current("al-dia"))
+      .catch(() => marcarClientesRef.current("error"));
+  }, [ambito, contactosHidratados, listaContactos]);
+
+  useEffect(() => {
+    void guardarOffline("config", `${ambito}/venta`, {
+      terminal,
+      turno,
+      empresa,
+      numeraciones,
+      listas,
+      cuentas,
+      vendedores,
+    }).catch(() => undefined);
+    void conBloqueoOffline(ambito, () => actualizarPisoNcfLocal(ambito, numeraciones)).catch(() => undefined);
+  }, [ambito, terminal, turno, empresa, numeraciones, listas, cuentas, vendedores]);
+
+  /**
+   * Catálogo completo en memoria para buscar y escanear sin red. Se lee del
+   * caché de IndexedDB al entrar y cada vez que `prepararCatalogo` termina de
+   * descargar; si el almacén no responde, la pantalla sigue con el servidor.
+   */
+  const fijarCatalogoLocal = useCallback(async () => {
+    const guardado = await leerOffline<{ productos: ProductoPOS[] }>("catalogo", claveCatalogo).catch(() => undefined);
+    if (!guardado?.productos.length || claveCatalogoRef.current !== claveCatalogo) return;
+
+    setCatalogoLocal(guardado.productos);
+    solicitud.current += 1;
+    setCargando(false);
+    setCargandoMas(false);
+    setErrorCatalogo(null);
+
+    carritoRef.current.aplicarPreciosDeLista(guardado.productos);
+  }, [claveCatalogo]);
+
+  useEffect(() => {
+    setCatalogoLocal(null);
+    void fijarCatalogoLocal();
+  }, [fijarCatalogoLocal]);
+
+  const fijarCatalogoLocalRef = useRef(fijarCatalogoLocal);
+  fijarCatalogoLocalRef.current = fijarCatalogoLocal;
+
+  /**
+   * Descarga el catálogo completo y lo guarda una sola vez, al final: si la red
+   * cae a mitad, el catálogo offline anterior queda intacto. Solo depende de
+   * ámbito, terminal y lista, así que `router.refresh()` tras cada venta no la
+   * reinicia.
+   */
+  const prepararCatalogo = useCallback(async () => {
+    if (estadoConexionRef.current === "offline" || !navigator.onLine) return;
+
+    const generacion = generacionCatalogo.current + 1;
+    generacionCatalogo.current = generacion;
+    marcarProductosRef.current("sincronizando");
+    const completo = await cargarCatalogoCompletoOffline({
+      obtenerLote: (offset, limit) =>
+        buscarCatalogoPOS({
+          terminal_id: terminal.id,
+          ...(listaPrecioId ? { lista_precio_id: listaPrecioId } : {}),
+          limit,
+          offset,
+        }),
+      guardar: (valor) =>
+        conBloqueoOffline(`${ambito}/catalogo`, () => guardarOffline("catalogo", `${ambito}/${listaPrecioId}`, valor)),
+      sigueVigente: () => generacionCatalogo.current === generacion && navigator.onLine,
+    }).catch(() => false);
+
+    if (generacionCatalogo.current !== generacion) return;
+    if (completo) {
+      marcarProductosRef.current("al-dia");
+      await fijarCatalogoLocalRef.current();
+      return;
+    }
+    // Si la red cayó a mitad, conservamos el caché previo en IndexedDB sin
+    // bloquear el cobro offline si ya había catálogo guardado.
+    const previo = await leerOffline<{ productos: ProductoPOS[] }>("catalogo", `${ambito}/${listaPrecioId}`).catch(
+      () => undefined,
+    );
+    if (previo?.productos.length) {
+      marcarProductosRef.current("al-dia");
+      await fijarCatalogoLocalRef.current();
+      return;
+    }
+    marcarProductosRef.current(navigator.onLine ? "error" : "pendiente");
+    setAvisoCatalogo("No se pudo preparar el catálogo offline. Mantén la conexión hasta completar la preparación.");
+  }, [ambito, terminal.id, listaPrecioId]);
+
+  useEffect(() => {
+    void prepararCatalogo();
+    return () => {
+      generacionCatalogo.current += 1;
+    };
+  }, [prepararCatalogo]);
+
+  // Al recuperar la conexión se completa el catálogo que quedó pendiente.
+  useEffect(() => {
+    const anterior = conexionPrevia.current;
+    conexionPrevia.current = estadoConexion;
+    if (anterior === "offline" && estadoConexion !== "offline") void prepararCatalogo();
+  }, [estadoConexion, prepararCatalogo]);
+
+  // Botón manual «Sincronizar ahora» del popover superior: refresca el catálogo.
+  useEffect(() => {
+    if (tokenRecargaCache === 0) return;
+    void prepararCatalogo();
+  }, [tokenRecargaCache, prepararCatalogo]);
+
+  function onContactoCreado(contacto: ContactoCreado) {
+    const resumen: ContactoResumen = {
+      id: contacto.id,
+      nombre: contacto.nombre,
+      rnc_cedula: contacto.rnc_cedula,
+      direccion: contacto.direccion ?? null,
+      telefono: contacto.telefono ?? null,
+    };
+    const actualizados = [...contactosRef.current.filter((actual) => actual.id !== resumen.id), resumen];
+    contactosRef.current = actualizados;
+    setListaContactos(actualizados);
+    void guardarOffline("contactos", ambito, actualizados).catch(() =>
+      setAvisoCatalogo("El cliente se creó, pero no se pudo guardar en este dispositivo."),
+    );
+  }
+
+  // El cliente nuevo se guarda en el dispositivo y se selecciona al instante;
+  // su `tempId` se reescribe por el UUID del servidor antes de subir la venta.
+  const onGuardarClienteOffline = useCallback(
+    (datos: DatosContactoRapidoOffline) => guardarContactoOffline(ambito, datos),
+    [ambito],
+  );
+
   // El carrito siempre tiene un cliente (el de la terminal o el que se elija):
   // «Cargar cotización» muestra solo las suyas, como Alegra.
   const contactoDelCarrito = carrito.activa.contactoId;
   const filtroCotizacionId = contactoDelCarrito === "" ? undefined : contactoDelCarrito;
   const filtroCotizacionNombre = filtroCotizacionId
-    ? (contactos.find((contacto) => contacto.id === filtroCotizacionId)?.nombre ?? null)
+    ? (listaContactos.find((contacto) => contacto.id === filtroCotizacionId)?.nombre ?? null)
     : null;
 
   const cargarCatalogo = useCallback(
@@ -252,7 +396,7 @@ export function VenderPos({
           );
           if (solicitud.current !== numero) return;
           if (!guardado) {
-            setCatalogo([]);
+            setCatalogoServidor([]);
             setHayMas(false);
             setErrorCatalogo("Esta lista de precios todavía no está guardada para trabajar sin conexión.");
             return;
@@ -263,10 +407,8 @@ export function VenderPos({
               (!categoria || producto.categoria_id === categoria) &&
               (!texto || `${producto.nombre} ${producto.referencia ?? ""}`.toLocaleLowerCase("es").includes(texto)),
           );
-          const precios: Record<string, string> = {};
-          for (const producto of guardado.productos) precios[producto.producto_id] = producto.precio;
-          carritoRef.current.aplicarPreciosDeLista(precios);
-          setCatalogo(datos);
+          carritoRef.current.aplicarPreciosDeLista(guardado.productos);
+          setCatalogoServidor(datos);
           setHayMas(false);
           setErrorCatalogo(null);
           setAvisoCatalogo(
@@ -292,15 +434,13 @@ export function VenderPos({
 
         const datos = resultado.data;
         const siguiente = reiniciar ? datos : [...catalogoRef.current, ...datos];
-        setCatalogo(siguiente);
+        setCatalogoServidor(siguiente);
         setHayMas(datos.length === TAMANO_LOTE);
         setResaltado(datos.length === 1 ? 0 : -1);
         setErrorCatalogo(null);
 
         if (datos.length > 0) {
-          const precios: Record<string, string> = {};
-          for (const producto of datos) precios[producto.producto_id] = producto.precio;
-          carritoRef.current.aplicarPreciosDeLista(precios);
+          carritoRef.current.aplicarPreciosDeLista(datos);
         }
       } catch {
         if (solicitud.current === numero) {
@@ -321,20 +461,55 @@ export function VenderPos({
       primeraCarga.current = true;
       return;
     }
+    // Con el catálogo completo en memoria el filtro es local: nunca se le pide
+    // la búsqueda al servidor ni se queda girando si la red tambalea.
+    if (catalogoLocal !== null) return;
     void cargarCatalogo(true);
-  }, [cargarCatalogo]);
+  }, [cargarCatalogo, catalogoLocal]);
 
   /**
    * El filtro «Favoritos» es local (localStorage + `favorito_pos` global), así
    * que se aplica sobre lo ya cargado; «Ver más» sigue trayendo el resto.
    */
-  const catalogoVisible = useMemo(
+  const claveLimite = `${busqueda}\u0000${categoria}\u0000${favoritos ? "1" : "0"}\u0000${listaPrecioId}`;
+  const limiteVisible = limiteLocal.clave === claveLimite ? limiteLocal.valor : TAMANO_LOTE;
+
+  // Con el catálogo completo en memoria todo se resuelve aquí (0 ms); solo sin
+  // caché local se pinta la página que trajo el servidor.
+  const catalogo = useMemo(() => {
+    if (catalogoLocal === null) return catalogoServidor;
+    return filtrarCatalogoLocal(aplicarDescuentoStockLocal(catalogoLocal, operaciones), { busqueda, categoria });
+  }, [catalogoLocal, operaciones, catalogoServidor, busqueda, categoria]);
+
+  const catalogoFavorito = useMemo(
     () => (favoritos ? filtrarFavoritosPOS(catalogo, favoritosLocales) : catalogo),
     [catalogo, favoritos, favoritosLocales],
   );
 
+  const catalogoVisible = useMemo(
+    () => (catalogoLocal ? catalogoFavorito.slice(0, limiteVisible) : catalogoFavorito),
+    [catalogoLocal, catalogoFavorito, limiteVisible],
+  );
+
+  const hayMasVisible = catalogoLocal ? catalogoFavorito.length > limiteVisible : hayMas;
+
   const buscarCodigo = useCallback(
     async (codigo: string) => {
+      const local = buscarCodigoLocal(catalogoLocalRef.current ?? catalogoRef.current, codigo);
+      if (local) {
+        carritoRef.current.agregarProducto(local);
+        ultimoAgregado.current = local.nombre;
+        inputRef.current?.focus();
+        setBusqueda("");
+        setTokenLimpiar((actual) => actual + 1);
+        return;
+      }
+
+      if (!navigator.onLine) {
+        setAnuncio(`No encontramos un producto con el código «${codigo}».`);
+        return;
+      }
+
       try {
         const resultado = await buscarCodigoPOS({
           codigo,
@@ -431,11 +606,6 @@ export function VenderPos({
       }
       if (hayModal) return;
 
-      if (evento.key === "F4") {
-        evento.preventDefault();
-        if (!carrito.activa.cotizacion) setSimpleAbierto(true);
-      }
-
       if (evento.key === "F8") {
         evento.preventDefault();
         if (puedeCobrar) setCheckoutAbierto(true);
@@ -454,7 +624,7 @@ export function VenderPos({
 
     window.addEventListener("keydown", alPresionar);
     return () => window.removeEventListener("keydown", alPresionar);
-  }, [carrito.activa.cotizacion, hayModal, puedeCobrar]);
+  }, [hayModal, puedeCobrar]);
 
   function onEnter(texto: string): boolean {
     const resaltadoActual = resaltado >= 0 ? catalogoVisible[resaltado] : undefined;
@@ -613,7 +783,7 @@ export function VenderPos({
             busqueda={busqueda}
             cargando={cargando}
             cargandoMas={cargandoMas}
-            hayMas={hayMas}
+            hayMas={hayMasVisible}
             error={errorCatalogo}
             resultados={catalogoVisible.length}
             resaltado={resaltado}
@@ -628,10 +798,12 @@ export function VenderPos({
             onCategoria={setCategoria}
             onLimpiar={limpiar}
             onReintentar={() => void cargarCatalogo(true)}
-            onVerMas={() => void cargarCatalogo(false)}
+            onVerMas={() => {
+              if (catalogoLocal) setLimiteLocal({ clave: claveLimite, valor: limiteVisible + TAMANO_LOTE });
+              else void cargarCatalogo(false);
+            }}
             onAgregar={agregar}
             onFavorito={alternarFavoritoProducto}
-            onVentaSimple={() => setSimpleAbierto(true)}
             esFavorito={esFavorito}
             limpiarToken={tokenLimpiar}
           />
@@ -647,18 +819,19 @@ export function VenderPos({
               numeraciones={numeraciones}
               listas={listas}
               vendedores={vendedores}
-              contactos={contactos}
+              contactos={listaContactos}
               consumidorFinalId={consumidorFinalId}
               impuestos={impuestos}
               puedeEscribir
               sinCaja={sinCaja}
               onCobrar={() => setCheckoutAbierto(true)}
-              onVentaSimple={() => setSimpleAbierto(true)}
               onCargarCotizacion={() => setCargarCotizacionAbierto(true)}
               onGuardarCotizacion={() => void guardarCotizacion()}
               onCancelarVenta={() => inputRef.current?.focus()}
               onAnunciar={setAnuncio}
               onImprimir={setImpresionDoc}
+              onContactoCreado={onContactoCreado}
+              onGuardarClienteOffline={onGuardarClienteOffline}
               guardandoCotizacion={guardandoCotizacion}
               errorCotizacion={errorCotizacion}
             />
@@ -701,7 +874,7 @@ export function VenderPos({
                 numeraciones={numeraciones}
                 listas={listas}
                 vendedores={vendedores}
-                contactos={contactos}
+                contactos={listaContactos}
                 consumidorFinalId={consumidorFinalId}
                 impuestos={impuestos}
                 puedeEscribir
@@ -710,10 +883,6 @@ export function VenderPos({
                 onCobrar={() => {
                   setSheetAbierto(false);
                   setCheckoutAbierto(true);
-                }}
-                onVentaSimple={() => {
-                  setSheetAbierto(false);
-                  setSimpleAbierto(true);
                 }}
                 onCargarCotizacion={() => {
                   setSheetAbierto(false);
@@ -726,6 +895,8 @@ export function VenderPos({
                 }}
                 onAnunciar={setAnuncio}
                 onImprimir={setImpresionDoc}
+                onContactoCreado={onContactoCreado}
+                onGuardarClienteOffline={onGuardarClienteOffline}
                 guardandoCotizacion={guardandoCotizacion}
                 errorCotizacion={errorCotizacion}
               />
@@ -745,23 +916,15 @@ export function VenderPos({
         terminal={terminal}
         turno={turnoActual}
         empresa={empresa}
+        numeraciones={numeraciones}
+        vendedoresIniciales={vendedores}
         cuentas={cuentas}
-        contactos={contactos}
+        contactos={listaContactos}
         consumidorFinalId={consumidorFinalId}
         plantillaTicket={terminal.plantilla_ticket}
         plantillaFactura={plantillaFactura}
         plantillaCotizacion={plantillaCotizacion}
         onVerHistorial={verHistorial}
-      />
-
-      <DialogoVentaSimple
-        abierto={simpleAbierto}
-        onCerrar={() => {
-          setSimpleAbierto(false);
-          inputRef.current?.focus();
-        }}
-        impuestos={impuestos}
-        bloqueado={carrito.activa.cotizacion !== null}
       />
 
       <DialogoCargarCotizacion

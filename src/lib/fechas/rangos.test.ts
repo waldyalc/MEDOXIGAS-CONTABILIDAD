@@ -15,6 +15,8 @@ import {
   rangoEsteTrimestre,
   rangoHoy,
   rangoMesAnterior,
+  rangoSemanaAnterior,
+  rangoTrimestreAnterior,
 } from "./rangos";
 
 describe("atajos de rango", () => {
@@ -32,6 +34,16 @@ describe("atajos de rango", () => {
   it("la semana cruza el cambio de año", () => {
     expect(rangoEstaSemana("2026-01-04")).toEqual({ desde: "2025-12-29", hasta: "2026-01-04" });
     expect(rangoEstaSemana("2026-01-01")).toEqual({ desde: "2025-12-29", hasta: "2026-01-04" });
+  });
+
+  it("la semana anterior va de lunes a domingo", () => {
+    expect(rangoSemanaAnterior("2026-11-13")).toEqual({ desde: "2026-11-02", hasta: "2026-11-08" });
+    expect(rangoSemanaAnterior("2026-01-04")).toEqual({ desde: "2025-12-22", hasta: "2025-12-28" });
+  });
+
+  it("el trimestre anterior es el trimestre calendario completo", () => {
+    expect(rangoTrimestreAnterior("2026-11-13")).toEqual({ desde: "2026-07-01", hasta: "2026-09-30" });
+    expect(rangoTrimestreAnterior("2026-01-15")).toEqual({ desde: "2025-10-01", hasta: "2025-12-31" });
   });
 
   it("este mes y mes anterior", () => {
@@ -79,14 +91,19 @@ describe("etiquetas", () => {
     expect(etiquetaRango({ desde: "2026-11-01", hasta: "2026-11-30" })).toBe("1 nov 2026 – 30 nov 2026");
   });
 
-  it("los atajos mantienen el orden del diseño", () => {
-    expect(ATAJOS_RANGO.map((atajo) => atajo.etiqueta)).toEqual([
+  it("los atajos mantienen el orden de Alegra", () => {
+    expect(
+      ATAJOS_RANGO.map((atajo) => atajo.etiqueta),
+      'el panel debe tener todos los atajos "anterior" de Alegra: Semana anterior y Trimestre anterior, en este orden',
+    ).toEqual([
       "Hoy",
       "Ayer",
       "Esta semana",
+      "Semana anterior",
       "Este mes",
       "Mes anterior",
       "Este trimestre",
+      "Trimestre anterior",
       "Este año",
       "Año anterior",
       "Personalizado",

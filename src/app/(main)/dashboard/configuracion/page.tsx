@@ -6,6 +6,7 @@ import {
   Building2,
   CalendarClock,
   Coins,
+  FileSpreadsheet,
   Hash,
   ListTree,
   type LucideIcon,
@@ -85,6 +86,18 @@ export default async function Page() {
       id: "facturacion",
       titulo: "Facturación",
       tarjetas: [
+        ...(rol === "admin" || rol === "contador"
+          ? [
+              {
+                id: "facturacion-electronica",
+                titulo: "Facturación electrónica",
+                descripcion:
+                  "Habilitación e-CF ante la DGII, certificado digital, pruebas de simulación y migración desde Alegra.",
+                url: "/dashboard/configuracion/facturacion-electronica",
+                icon: ShieldCheck,
+              },
+            ]
+          : []),
         {
           id: "punto-venta",
           titulo: "Punto de venta",
@@ -140,6 +153,17 @@ export default async function Page() {
           url: "/dashboard/configuracion/retenciones",
           icon: ReceiptText,
         },
+        ...(rol === "admin" || rol === "contador"
+          ? [
+              {
+                id: "reportes-dgii",
+                titulo: "Reportes DGII",
+                descripcion: "Clasificación fiscal por cuenta para los formatos 606 y 607.",
+                url: "/dashboard/configuracion/reportes-dgii",
+                icon: FileSpreadsheet,
+              },
+            ]
+          : []),
       ],
     },
     {

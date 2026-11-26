@@ -1,5 +1,123 @@
 # Handoff — Medoxigas Contabilidad
 
+## Esqueletos de carga en las cinco pantallas del POS (24-11-2026, regla de Waldy)
+
+Waldy: entrar a un módulo aparecía «sin nada» y el click parecía frisarse mientras llegaban los datos. El POS no tenía ningún `loading.tsx`; los módulos de Contabilidad sí.
+
+- **`src/app/(pos)/pos/_components/esqueletos-pos.tsx`:** esqueletos espejo de cada maqueta real — `EsqueletoVenderPOS` (buscador + chips + rejilla de productos + panel de factura), `EsqueletoListaDetallePOS` (maestro-detalle con filtros, para Ventas y Devoluciones), `EsqueletoTurnosPOS` (cierres + resumen del turno), `EsqueletoPagosPOS` (pestañas + buscador + recibos).
+- **5 `loading.tsx`:** `pos/`, `pos/historial/`, `pos/pagos/`, `pos/turnos/`, `pos/devoluciones/`. Como el menú ya navega con `Link` y el shell persiste, la navegación responde al instante y el esqueleto cubre la espera del stream.
+- **Candado:** `src/lib/pos/esqueletos-pos.test.ts` exige los 5 `loading.tsx` con su esqueleto y el archivo compartido.
+- **Verificación:** typecheck, tests (1,848) y build en verde; capturas del esqueleto en vivo capturadas en plena navegación del preview oficial en `/root/referencias/capturas-terminadas/2026-11-24-esqueletos-pos/`.
+
+## Preview único consolidado en `feat/pos-alegra-exacto` (24-11-2026, regla de Waldy)
+
+Waldy pidió **un solo preview para siempre**: https://medoxigas-agentes.tail25e53a.ts.net — sirve `feat/pos-alegra-exacto`, la rama que consolida `main` + todo el trabajo del VPS. Al abrirlo vio que el menú aún mostraba «Bandeja de entrada» y «Mis tareas» (la limpieza `6545bd6` vivía solo en `fix/sidebar-menu-limpieza`/`preview/menu-fechas`): bug de consolidación.
+
+- **Merge en `feat/pos-alegra-exacto` @ `ce6f8c7`:** `main` (a881637, PRs #145–149) + `preview/menu-fechas` (49 commits: limpieza del menú lateral sin Bandeja/Mis tareas, tarjeta Reportes DGII, fixes de factura NC/ND/anulación/totales B03-B04/series, contabilidad, contacto unificado, dedup RNC) + `feat/pos-modo-offline-alegra` (POS 100% offline: local-first, SW+5 rutas+PWA, vistas locales, fix del proxy).
+- **Conflictos resueltos (11 archivos):** unión de ambas features — `permitirProveedor` + `onGuardarOffline`/`modoLocal` en `selector-contacto.tsx` y `dialogo-nuevo-contacto.tsx`; `estabaConectado` + `sinRed` en `offline-pos-provider.tsx`; firma `aplicarPreciosDeLista(productos)` de menu-fechas (`preciosDeListaALineas` refresca unidades) + `cargarVentaOffline` de la rama offline; `ctaDeshabilitado` con compuertas por modo unificado `tarjeta` + requisitos de banco destino; `textoEstadoOffline` devuelve el error real de almacenamiento (conducta de main) y su candado quedó ajustado; HANDOFF con todas las secciones.
+- **Verificación:** typecheck, check, **1,846 tests** y `pnpm build` en verde; `systemctl restart medoxigas-preview` → 200 en `/login`, `/manifest.webmanifest` y `/pos-sw.js`.
+- **AGENTS.md:** sección «Preview oficial» reescrita — un solo enlace permanente; los puertos 3011+ quedan solo para verificación interna de agentes y nunca se le pasan a Waldy.
+
+## POS 100% operativo sin internet — 3 tareas integradas (rama `feat/pos-modo-offline-alegra` @ `a9f1e59`, 24-11-2026)
+
+Tres subagentes (DeepSeek V4.1 Flash 1017) en worktrees disjuntos, integrados y verificados por el Orquestador (sin merge a `main`; espera OK de Waldy):
+
+- **Tarea 1 — Inventario y clientes 100% locales (`catalogo-local.ts`, `contactos-offline.ts`, `vender-pos.tsx`, `selector-contacto.tsx`, `dialogo-nuevo-contacto.tsx`, `consultas.ts`):** catálogo completo descargado por lotes a IndexedDB con búsqueda 0 ms (nombre, referencia/escáner, categorías, favoritos) y descuento visual de stock por ventas pendientes; todos los clientes paginados sin tope de 1,000 con búsqueda 0 ms por nombre/RNC; **`+ Nuevo` crea cliente sin internet** — la cola FIFO crea el contacto en Supabase antes de subir sus ventas y enlaza el ID real.
+- **Tarea 2 — App local con 5 rutas, PWA y logo offline (`public/pos-sw.js`, `src/app/manifest.ts`, `offline-pos-provider.tsx`, `menu-pos.tsx`, `barra-superior-pos.tsx`, `conexion-offline.ts`):** el Service Worker cachea las 5 pantallas del POS (`/pos`, `/pos/historial`, `/pos/pagos`, `/pos/turnos`, `/pos/devoluciones`), sus JS/CSS y el logo Medoxigas para imprimir sin red; navegación con timeout de 3 s → copia local; `manifest.ts` instala «Medoxigas POS» como app (start `/pos`, standalone, teal `#00b19d`); `navigator.storage.persist()` protege la cola; aviso cuando la sesión vence.
+- **Tarea 3 — Vistas locales de ventas, turnos, pagos y devoluciones (`cache-vistas-offline.ts` + componentes de `historial`, `turnos`, `pagos`, `devoluciones`):** últimas 30 ventas con detalle y ticket en IndexedDB para **ver y reimprimir tickets sin internet**; turno actual suma ventas pendientes en vivo; listados de Pagos y Devoluciones servidos del caché local.
+- **Fix del Orquestador (`src/proxy.ts` + candado en `conexion-offline.test.ts`):** el matcher del proxy redirigía `/manifest.webmanifest` y `/pos-sw.js` a `/login` (la PWA no se instalaba ni el SW registraba); excluidos del middleware y candado que evalúa el matcher real contra rutas públicas/privadas.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (**1,788 tests**), `pnpm build` en verde. Preview del worktree en **http://localhost:3012** (Tailscale `:3012`), build de producción.
+- **Capturas:** `/root/referencias/capturas-terminadas/2026-11-24-pos-offline/` — las 5 rutas del POS en claro/oscuro/móvil (15 PNG).
+
+## POS Local-First + NCF consecutivo + Checkout simplificado (rama `feat/pos-modo-offline-alegra`, 24-11-2026)
+
+Evolución directa tras pruebas en vivo con Waldy (sin merge a `main`; espera OK de Waldy):
+
+- **Local-first puro (Opción A) con subida en segundo plano (`checkout-pos.tsx`, `offline-pos-provider.tsx`, `transporte-offline.ts`, `barra-superior-pos.tsx`):**
+  - Toda venta de contado normal (Efectivo, Tarjeta, Transferencia, Combinado) se guarda primero en IndexedDB con `client_uuid` idempotente y abre **`¡Venta completada!`** en < 50 ms (sin esperar red ni mostrar «No sabemos si la venta se registró» cuando el internet tambalea).
+  - La subida a `pos_sincronizar_operacion` corre al instante en segundo plano con timeout de 10 s (`TIMEOUT_SINCRONIZACION_MS`), reintentos automáticos cada 5 s mientras haya pendientes y detección de caída real en ~15 s. El popover superior no interrumpe una venta normal que sube rápido; solo se abre automático al reconectar con pendientes, ante errores reales o demoras > 4 s.
+  - Crédito y conversión de cotizaciones siguen pidiendo conexión para validar límite de crédito y evitar doble facturación.
+- **NCF consecutivo local (`ncf-local.ts`, `venta-local.ts`, `cola-offline.ts`, `vender-pos.tsx`):**
+  - El dispositivo mantiene el contador local (`siguiente`) por numeración en IndexedDB (sincronizado al alza con el servidor y con cada NCF confirmado) y emite el siguiente comprobante real (`B0200000XXX`, `B0100000XXX`, etc.) sin folios `POS-LOCAL-*`. Si otra caja facturó en paralelo, al sincronizar el servidor asigna el siguiente libre y actualiza el historial.
+- **Modal único `¡Venta completada!` (`confirmacion-venta.tsx`, `detalle-venta-offline.tsx`):**
+  - Eliminado `confirmacion-offline.tsx` («Venta guardada en este dispositivo» + preview incrustado). Las ventas locales arman una `VentaPOSResultado` completa (`armarVentaLocalResultado`) y usan exactamente el mismo modal `¡Venta completada!` (migrado a teal `--pos-primario`), el mismo ticket térmico oficial (`armarTicketFactura`) y el mismo PDF Carta (`armarCartaFactura`).
+- **Checkout y catálogo simplificados (integrados desde `t3/1ffa8b8e` y `t3/pos-tarjeta-unica-transferencia-banco`):**
+  - Eliminada la opción «Venta simple» (tarjeta, diálogo, atajo `F4`, `agregarLineaLibre` + candado en `diseno-pos.test.ts`).
+  - Unificadas «Tarjeta crédito» y «Tarjeta débito» en una sola opción **«Tarjeta»** (en cobro simple, combinado y ticket).
+  - En **Transferencia** (y por fila en **Combinado**), botones clicables de **Banco destino \*** con las cuentas bancarias activas reales (`es_caja_banco && tipo_banco === "banco"`) enviando su `cuenta_id` al backend.
+
+## POS Modo Sin Internet (Offline) estilo Alegra + 5 bugs offline (rama `feat/pos-modo-offline-alegra`, 24-11-2026)
+
+Implementación completa del plan `PLAN-MODO-OFFLINE-POS.md` (sin merge a `main`; espera OK de Waldy):
+
+- **Barra superior y popover de sincronización (`barra-superior-pos.tsx`, `layout.tsx`, `conexion-offline.ts`):**
+  - Indicador `Disponible` / `Sin conexión` en la esquina superior derecha del POS con transición inmediata (<1 s) ante `navigator.onLine === false` o evento `offline` (incluso durante `sincronizando`, vía `registrarOfflineInmediato()` + `estadoTrasSondeo(..., forzar: true)`).
+  - Popover de 3 estados (`Sincronizando`, `Sincronización pendiente` + botón **Revisar pendientes**, `Sincronización al día`), 3 filas (`Ventas`, `Productos`, `Clientes`) con estado real de IndexedDB y botón manual **Sincronizar ahora**. Offline, «Revisar pendientes» abre la cola local para no salir a una ruta no cacheada; online navega a `/pos/historial`.
+- **Historial de ventas offline + modal «Venta pendiente de guardar» (`historial-offline.ts`, `historial-pos.tsx`, `lista-ventas.tsx`, `detalle-venta-offline.tsx`, `checkout-pos.tsx`, `carrito-pos-provider.tsx`):**
+  - `/pos/historial` combina ventas locales y sincronizadas (página 1, respetando filtros `q`/`desde`/`hasta`/`estado`/`terminal` y ventana de gracia de 5 min para sincronizadas aún no refrescadas): amarillo **Sincronizando** + folio temporal, `✓` verde + NCF definitivo, rojo `!` **Error** con banner **«No se pudo sincronizar la venta»**, **Reintentar sincronización**, **Editar venta** (validado con retorno booleano antes de descartar la copia fallida), **Imprimir ticket** y **Descartar**.
+  - En caja (`CheckoutPos`): fallos definitivos de guardado/rechazo muestran el modal **«Venta pendiente de guardar»** con **Imprimir ticket** (prefactura sin NCF) y **Editar venta**; timeouts/caídas de red tras envío remoto conservan el aviso de resultado incierto con **Ver Historial** para evitar doble cobro/NCF.
+- **Cierre de turno estricto estilo Alegra (`cola-offline.ts`, `dialogo-cerrar-turno.tsx`, `barra-inferior-pos.tsx`):**
+  - Prohíbe cerrar turno sin internet y con ventas pendientes o con error (`pendientes > 0`), mostrando la barra roja fija **«Debes sincronizar tu información antes de poder cerrar turno»** (o sin conexión) con botón **Guardar** deshabilitado.
+- **5 bugs offline corregidos:**
+  1. `pos-sw.js` + `offline-pos-provider.tsx`: refresca el HTML de `/pos` en navegaciones buenas (aislando errores de cuota en `cache.put`), incluye `turnoId` en `prepararWorker` + mensajes `PREPARAR`/`POS_CACHE_LISTO` y serializa preparaciones con `generacionPreparacion` + re-preparación pendiente.
+  2. `cache-catalogo-offline.ts` + `vender-pos.tsx`: acumula todos los lotes de 50 productos en memoria y escribe IndexedDB una sola vez al finalizar (`completo: true`), preservando el caché previo ante fallo a mitad; dependencias estabilizadas en `[ambito, terminal.id, listaPrecioId]`.
+  3. `conexion-offline.ts` + `offline-pos-provider.tsx`: `textoEstadoOffline` informa error de almacenamiento cuando `!preparado && error`.
+  4. `dialogo-nuevo-contacto.tsx` + `vender-pos.tsx` + `panel-factura.tsx`: contacto nuevo (`+ Nuevo`) se agrega a `listaContactos` en estado, se guarda en IndexedDB y se hidrata offline.
+  5. `cola-offline.ts` + `dialogo-cerrar-turno.tsx`: propaga `ErrorImpedimentoCierreOffline` antes de invocar la RPC sin mostrar el mensaje engañoso de resultado incierto.
+- **Revisión independiente y evidencia:**
+  - Auditado por **DeepSeek V4.1 Flash 1017** (`docs/revisiones/20261124-pos-modo-offline.md`); los 7 hallazgos bloqueantes/medios fueron corregidos y re-verificados.
+  - Verificación: `pnpm typecheck`, `pnpm check`, `pnpm test`, `pnpm build` y E2E real `tests/e2e/pos-offline-modo-sin-internet.spec.ts` en verde.
+  - Capturas en `/root/referencias/capturas-terminadas/2026-11-24-pos-offline/` (claro/oscuro/móvil + 6 estados del flujo offline/sync/historial).
+
+## Factura, NC y ND: totales, anulación y series (rama `fix/factura-ui-totales-y-anular`, 24-11-2026)
+
+Mitades de UI de seis bugs de la auditoría de facturación. **Solo TS/TSX**: sin migraciones ni SQL.
+
+- **Subtotal bruto junto a Descuento (bug 3):** la base guarda `subtotal` neto (`bruto − descuento`) y la vista/impresión lo mostraban tal cual al lado de la fila Descuento, así que Subtotal + impuestos no cuadraba con el Total. Nuevo `subtotalBruto()` en `src/lib/facturacion/calculo.ts` (suma en centavos) usado por `vista-documento-venta.tsx`, `documento-papel.tsx` y el papel de la ND; `nota-credito-form.tsx` ahora renderiza la fila Descuento cuando `totales.descuentoCentavos > 0`. La vista previa del formulario de factura pasa el subtotal neto al papel (antes le pasaba el bruto y el papel lo habría contado dos veces).
+- **CDT 2 % y propina 10 % en B03/B04 (bug 4):** `getNotaCreditoVista` y `getNotaDebitoVista` piden `otros_impuestos` y `propina`; las tipos y las cuatro vistas (página y papel de NC y ND) usan `filasTotalesNota()` (`src/lib/facturacion/totales-nota.ts`), que arma Subtotal bruto, Descuento (solo si > 0), ITBIS, Otros impuestos (solo si > 0) y Propina (solo si > 0), en el mismo orden que la factura y el ticket POS.
+- **Anulación y tope de NC (bugs 1 y 7):** `permisosDeFactura()` recibe opciones `tieneNotasActivas` y `tienePagos`. Con cualquier nota de crédito o débito activa el botón Anular se deshabilita (la vista ya traía las notas de `getFacturaVista`, no hace falta consulta extra); la nota de crédito queda en `saldo > 0` cuando la factura tiene pagos y disponible cuando no se ha cobrado nada.
+- **Fecha de anulación (bug 6):** el diálogo valida `fecha >= factura.fecha` con mensaje en español y el calendario deshabilita los días anteriores (`DatePicker`/`DatePickerCampo` aceptan `min`/`max`). El 608 ya filtraba por `fecha_anulacion` (`anulados.ts`) y exporta la fecha del comprobante, que es lo que pide la DGII: no se tocó.
+- **Convertir a factura (bug 8):** el diálogo ofrece los cinco NCF (02, 01, 14, 15, 16) tomando la etiqueta de `etiquetaTipoComprobante`. La validación de series sigue en la RPC (otro agente).
+- **Hoy en RD (bug 9):** `facturas-tabla.tsx` compara el vencimiento con `hoyRd()` y no con `toISOString()` (UTC daba el día siguiente de noche en RD).
+- **Candados:** `src/lib/facturacion/totales-factura-ui.test.ts` (fuente de las seis mitades de UI), `totales-nota.test.ts` y los casos nuevos de `calculo.test.ts`, `vista.test.ts` y `documento-papel.test.tsx`. Verificado con `pnpm typecheck`, `pnpm check`, `pnpm test` y `pnpm build`.
+
+## Fix: notas de débito cobrables en CxC y conversión B14/B15/B16 (rama `t3/nd-cobrables-y-convertir-b14`)
+
+Trabajo de subagente ejecutor. Solo SQL y pgTAP: sin cambios de TypeScript, pantallas ni datos.
+
+- **Bug A (High):** la ND de venta (B03) debitaba CxC (1103) pero quedaba fuera de `reporte_cxc` y `registrar_pago_recibido` no la cobraba. Ahora `pagos_recibidos` gana `nota_debito_id` (FK a `notas_debito_venta`, con CHECK `pagos_recibidos_documento_unico`: factura o nota, nunca las dos) y `registrar_pago_recibido` acepta `nota_debito_id` en lugar de `factura_id`, con el mismo asiento Dr caja/banco / Cr CxC, sin retenciones. El pagado de la nota **no se duplica**: se calcula con los pagos activos ligados a ella, así que anular el pago devuelve el saldo solo.
+- **`reporte_cxc`:** `union all` de facturas con saldo y notas de débito activas. Una fila por documento (en `factura_id` va el id de la factura o de la nota, la firma no cambia), la nota vence en su fecha.
+- **Bug B (Medium):** `convertir_a_factura` acepta `01, 02, 14, 15, 16`; `crear_factura` ya decidía la numeración por la serie (`numeraciones.tipo_comprobante`), no por el tipo del documento origen.
+- **Migración:** `supabase/migrations/20261126151000_fix_nd_cobrables_y_convertir.sql` (aditiva y reintentable).
+- **Candado pgTAP:** `supabase/tests/fix_nd_cobrables_convertir_test.sql` (36 asserts): ND visible en CxC con su saldo; pago parcial y total; asiento contra 1103; errores de sobrepago, doble documento y cliente ajeno; anulación devuelve el saldo; conversión con B14/B15/B16 usa la serie correcta; comprobante inexistente sigue rechazado; lector no cobra. Con las funciones viejas falla (9 `not ok` y error en el cobro de la ND).
+- **Pendiente al fusionar:** regenerar `src/lib/supabase/types.ts` con `pnpm db:types` (la columna nueva cambia el esquema que compara el job `db` de CI). El formulario de pagos todavía no ofrece notas de débito: solo se habilitó la RPC.
+- **Verificación:** `bash scripts/pgtap-local.sh` en verde (suite completa), `pnpm typecheck`, `pnpm check`, `pnpm test` (1,724) y `pnpm build` en verde. Sin push ni merge.
+
+## NC de venta: residuo de parciales y límite de sobrecrédito (24-11-2026)
+
+Rama `fix/nc-parciales-y-sobrecredito`, migración `20261126152000_fix_nc_residuo_y_credito.sql` + pgTAP `fix_nc_residuo_credito_test.sql` (25 asserts). Solo SQL.
+
+- **Bug A (parciales):** al acreditar varias NC parciales sobre la misma línea, el subtotal/ITBIS prorrateado acumulaba ±0.01; la última unidad podía quedar bloqueada por el tope de crédito o la factura quedaba abierta por RD$0.01. Ahora, cuando lo ya acreditado + la cantidad de la NC agota la línea, el subtotal y el ITBIS se toman como **residuo** de la línea original menos lo acreditado por NC activas (`nota_credito_venta_lineas`, estado `activa`). Se reemplaza `_crear_nota_credito_venta_sin_impuestos` completo.
+- **Bug B (sobrecrédito):** una NC manual podía dejar `facturas.credito` mayor que `total - pagado - retenido` (saldo a favor invisible en CxC). Ahora rechaza con `la nota dejaría un crédito de X sobre una factura con Y pendiente`, salvo `permite_saldo_a_favor = true` en el payload. `pos_crear_devolucion` pasa esa marca porque el POS elige el reembolso en pantalla (docs/dominio-pos.md §3.11); la devolución POS sigue igual.
+- **Verificado:** `bash scripts/pgtap-local.sh` en verde (todo el suite; `pos_test.sql` 91 ok) y el test nuevo falla con la función vieja (la tercera NC choca con «el crédito de la nota excede el total de la factura»). `pnpm typecheck`, `pnpm check`, `pnpm test` (1724) en verde. Sin push ni merge.
+
+## Contabilidad: contra-cuentas, buscador y origen de asientos (rama `fix/contab-catalogo-y-asientos`)
+
+Tres bugs del módulo Contabilidad, sin migraciones:
+
+- **Contra-cuentas en el catálogo:** `sumarSaldoHijos` (`src/lib/reportes/contabilidad.ts`) sumaba toda hija al padre, así que `1211 Depreciación acumulada` (activo, crédito) inflaba `12` y `1` en el doble. Ahora la recursión recibe la naturaleza del padre y resta el saldo cuando la hija tiene otra naturaleza (neto en el padre; la hija conserva su saldo). Candado: `src/lib/reportes/contabilidad.test.ts` con depreciación y contra-pasivo.
+- **Buscador de Asientos:** `getAsientosLista` solo filtraba `descripcion` (o `numero` si era numérico). Ahora usa `.or()` con `codigo.ilike` + `descripcion.ilike` y agrega `numero.eq` cuando el término es numérico, con `patronIlike` entre comillas. Placeholder: «Buscar por código, número o descripción…». Candado: `src/lib/asientos/consultas.test.ts`.
+- **Origen de asientos:** el listado tenía 8 etiquetas locales y el detalle otro mapa; los 12 orígenes nuevos salían en snake_case o «—». Se creó `src/lib/asientos/origenes.ts` con los 20 `origen_tipo` del CHECK y `etiquetaOrigen`; listado y detalle lo usan. El detalle enlaza `ajuste_inventario` con `rutaAjusteInventario` (también en `rutaOrigenAsiento`), y si no hay ruta muestra la etiqueta con `href: null`. Candados: `src/lib/asientos/origenes.test.ts` y el chequeo del CHECK en `src/lib/reportes/etiquetas-origen.test.ts`.
+
+Verificado: `pnpm typecheck`, `pnpm check` y `pnpm test` (1736) en verde.
+
+## Contacto: un solo diálogo de alta y POS sin Proveedor (rama `fix/contacto-dialogo-crear-unificado`)
+
+- **Contactos:** «Nuevo contacto» abre `DialogoNuevoContacto` (Cliente/Proveedor, identificación + DGII, Municipio/Provincia, dirección, correo y teléfono) con `tipoInicial="cliente"`; al crear cierra y refresca la lista con `router.refresh()`. La edición de la lista, la ficha y el enlace «Formulario avanzado» (`#nuevo`) siguen con `FormularioContacto`, único lugar del «Límite de crédito».
+- **POS:** `DialogoNuevoContacto` gana `permitirProveedor` (por defecto `true`). Con `false` oculta la fila de toggles (como el «Nuevo contacto» de Alegra POS), bloquea `alternarProveedor`, `guardar("proveedor"|"ambos")` y fuerza el tipo `cliente`. Se aplica a la instancia directa y al `SelectorContacto` de `panel-factura`, y al alta de cliente del diálogo de pagos del POS. Facturas y compras del dashboard no cambian.
+- **Candados:** `src/components/contactos/dialogo-nuevo-contacto.test.tsx` renderiza `SelectorTipoContacto` y falla si con la restricción aparece «Proveedor»; `src/lib/contactos/dialogo-nuevo-contacto.test.ts` fija el alta de Contactos, el formulario completo para editar y las dos vías del POS.
+- **Verificación:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1728) y `pnpm build` en verde. Capturas en `/root/referencias/capturas-terminadas/2026-11-24-contacto-dialogo-unificado/` (Contactos claro/oscuro/móvil, POS directo y desde el selector, y la factura de venta con sus dos toggles).
+
 ## Cierre del orquestador POS — punto de partida del orquestador nuevo (23-11-2026, MSG-55)
 
 ### Qué quedó en `main`
@@ -38,6 +156,51 @@ Todo el trabajo del POS tipo Alegra más la infraestructura de agentes, en tres 
 - Migraciones aplicadas en producción: todas las del repo (`supabase migration list` vs remoto, verificado 23-11). Cero pendientes.
 - Vercel: producción desplegada; MSG-52 (construir solo `main`) queda por configurar en el panel o por API (Ignorar Build Step: `if [ "$VERCEL_GIT_COMMIT_REF" = "main" ]; then exit 1; else exit 0; fi`).
 - Preview oficial: https://medoxigas-agentes.tail25e53a.ts.net → `medoxigas-preview.service` (`pnpm start`, puerto 3010; rebuild + restart tras mergear).
+
+## Contabilidad: cierre anual de resultados corregido (rama `fix/contab-cierre-resultados`, auditoría 24-11-2026)
+
+Auditoría de `main`: el cierre anual no cerraba los 12 meses, permitía cerrar
+el año en curso y el asiento de cierre dejaba el Estado de Resultados del año
+en RD$0.00.
+
+- **Migración nueva** `supabase/migrations/20261126143000_fix_cierre_resultados.sql`
+  (`create or replace` de los cuerpos originales; ninguna migración aplicada se
+  editó):
+  - `cerrar_resultados_anio`: rechaza `p_anio >= año actual` (22023) y usa el
+    año anterior como default; después de crear el asiento de cierre marca los
+    12 meses del año en `periodos_contables` (los ya cerrados conservan su
+    fecha y usuario).
+  - `_validar_periodo_abierto` y `reabrir_periodo`: rechazan cualquier
+    fecha/periodo de un año presente en `cierres_resultados` (23514), aunque
+    sus meses se reabran por SQL. Se bloquean así los asientos huérfanos.
+  - `reporte_estado_resultados` y `reporte_estado_resultados_centro`: excluyen
+    el asiento de cierre por `cierres_resultados.asiento_id`. El asiento sigue
+    en el libro diario y conserva `origen_tipo = 'manual'` (compatible con
+    `anular_documento` y el CHECK vigente).
+- **Panel** (`panel-periodos.tsx` + `puedeCerrarResultados` en
+  `src/lib/periodos/validacion.ts`): «Cerrar resultados del año» se bloquea
+  para el año en curso y los futuros, y el aviso dice que el cierre también
+  marca los 12 meses.
+- **Candados:** `supabase/tests/cierre_resultados_anio_test.sql` (15 asserts:
+  año en curso/futuro, 12 meses cerrados, P&G del año/centro/diciembre sin el
+  asiento de cierre, asiento bloqueado con los meses reabiertos, reapertura
+  bloqueada e idempotencia); `periodos_cierre_test.sql` actualizado para usar
+  un año terminado y probar el aislamiento mayo/junio antes del cierre;
+  `src/lib/periodos/cierre-resultados.test.ts` fija la regla y el aviso del
+  panel.
+- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1729 passed, 3
+  skipped) y `scripts/pgtap-local.sh` (suite completa en verde) en verde. Sin
+  push ni merge; la migración no se aplicó al remoto.
+
+## Auditoría de funciones SQL: 3 bugs de main (rama `fix/contab-funciones-auditoria`)
+
+Corrección de tres funciones aplicadas, en migraciones nuevas con `create or replace` (las viejas no se editan):
+
+- **`actualizar_cuenta`** (`20261126140000_fix_actualizar_cuenta_invariantes.sql`): rechaza poner `acepta_movimientos = false` en una cuenta que ya tiene líneas en `asiento_lineas` (antes `cerrar_resultados_anio` la ignoraba y `anular_documento` fallaba) y rechaza cambiar `tipo` si alguna hija directa tiene otro tipo (corrompía los totales del árbol). Sigue permitiendo renombrar, cambiar banderas de cuentas sin movimientos y agrupar.
+- **`actualizar_numeracion`** (`20261126141000_fix_actualizar_numeracion_gastos_menores.sql`): la subconsulta de `gastos_menores` ahora exige `v_num.tipo_comprobante = '13'`. Con una serie `00` de prefijo corto (`B`, `B1`) entraban los NCF B13 y el `substring(...)::int` bloqueaba o reventaba por cast/overflow. Las demás subconsultas ya filtraban por tipo.
+- **`registrar_saldos_iniciales`** (`20261126142000_fix_saldos_iniciales_lock.sql`): toma `pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('saldos_iniciales'))` antes del chequeo de saldo ya registrado; dos envíos simultáneos de la misma cuenta ya no duplican el saldo.
+- **Candados:** `supabase/tests/fix_actualizar_cuenta_invariantes_test.sql` (14 asserts), `fix_actualizar_numeracion_gastos_menores_test.sql` (8) y `fix_saldos_iniciales_lock_test.sql` (8; incluye el candado estructural sobre `pg_proc.prosrc`). Verificado que los tres fallan con las funciones viejas y pasan con las nuevas.
+- **Verificado:** `pnpm typecheck`, `pnpm check`, `pnpm test` (1724) y `bash scripts/pgtap-local.sh` (todo en verde) en el worktree.
 
 ## POS 18: la estrella marcada se ve rellena (rama `fix/pos-favoritos-estrella-rellena`, MSG-31)
 

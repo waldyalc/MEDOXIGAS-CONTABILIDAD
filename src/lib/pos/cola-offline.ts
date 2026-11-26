@@ -60,11 +60,12 @@ export type ResultadoEnvioOffline =
 export function nuevaOperacionOffline(
   entrada: Pick<OperacionOffline, "ambito" | "tipo" | "turnoId" | "payload" | "snapshot" | "secuencia">,
   uuid = crypto.randomUUID(),
+  folio?: string,
 ): OperacionOffline {
   return structuredClone({
     ...entrada,
     uuid,
-    folio: `POS-LOCAL-${uuid}`,
+    folio: folio && folio.trim() !== "" ? folio.trim() : `POS-LOCAL-${uuid}`,
     estado: "pendiente",
     intentos: 0,
     proximoIntento: 0,
@@ -82,12 +83,23 @@ export function programarReintentoOffline(operacion: OperacionOffline): Operacio
   return { ...operacion, estado: "pendiente", error: null, proximoIntento: 0 };
 }
 
-/** Aviso del cierre cuando quedan ventas que el servidor rechazó: no bloquean, pero no subirán. */
+/** Aviso histórico de fallidas; con el cierre estricto ya no se puede cerrar con ellas. */
 export function avisoCierreOffline(fallidas: number): string | null {
   if (fallidas <= 0) return null;
   return fallidas === 1
     ? "1 venta con problema no subirá. Queda guardada en este dispositivo."
     : `${fallidas} ventas con problema no subirán. Quedan guardadas en este dispositivo.`;
+}
+
+export const MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR = "Debes sincronizar tu información antes de poder cerrar turno";
+export const MENSAJE_SIN_CONEXION_CIERRE = "Sin conexión a internet. No puedes cerrar el turno sin conexión.";
+
+/** Bloqueo local del cierre: no es un fallo de red y el diálogo debe mostrar su mensaje tal cual. */
+export class ErrorImpedimentoCierreOffline extends Error {
+  constructor(mensaje: string) {
+    super(mensaje);
+    this.name = "ErrorImpedimentoCierreOffline";
+  }
 }
 
 export interface RevisionCierreOffline {
@@ -98,8 +110,9 @@ export interface RevisionCierreOffline {
 }
 
 /**
- * El cierre se bloquea solo mientras haya ventas por subir; una venta rechazada
- * (fallida) no impide cerrar el turno, pero el cajero debe ver el aviso.
+ * Cierre estricto como Alegra: no se cierra el turno con ventas pendientes ni
+ * con ventas rechazadas, y tampoco sin conexión. Primero se sube o se resuelve
+ * cada venta y después se cierra con la caja cuadrada.
  */
 export function revisionCierreOffline(
   operaciones: Pick<OperacionOffline, "estado">[],
@@ -108,33 +121,27 @@ export function revisionCierreOffline(
   const porSubir = operaciones.filter((operacion) => operacion.estado === "pendiente").length;
   const fallidas = operaciones.filter((operacion) => operacion.estado === "fallida").length;
   const aviso = avisoCierreOffline(fallidas);
-  if (!conectado) {
-    return {
-      impedimento:
-        porSubir > 0
-          ? `Conéctate para subir ${porSubir} ventas antes de cerrar.`
-          : "Conéctate a internet para cerrar el turno.",
-      aviso,
-      porSubir,
-      fallidas,
-    };
-  }
-  return {
-    impedimento: porSubir > 0 ? `Conéctate para subir ${porSubir} ventas antes de cerrar.` : null,
-    aviso,
-    porSubir,
-    fallidas,
-  };
+  const impedimento =
+    porSubir > 0 || fallidas > 0 ? MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR : conectado ? null : MENSAJE_SIN_CONEXION_CIERRE;
+  return { impedimento, aviso, porSubir, fallidas };
 }
 
-type PasoColaOffline = "seguir" | "detener";
+export interface ResumenSincronizacionOffline {
+  confirmadas: OperacionOffline[];
+  transitorios: number;
+  fallidas: number;
+}
+
+type ResultadoPasoColaOffline =
+  | { paso: "seguir"; confirmada?: OperacionOffline; fallida?: boolean }
+  | { paso: "detener"; transitorio: true };
 
 async function procesarOperacionOffline(
   almacen: AlmacenColaOffline,
   operacion: OperacionOffline,
   enviar: (operacion: OperacionOffline) => Promise<ResultadoEnvioOffline>,
   ahora: () => number,
-): Promise<PasoColaOffline> {
+): Promise<ResultadoPasoColaOffline> {
   let respuesta: ResultadoEnvioOffline;
   try {
     respuesta = await enviar(structuredClone(operacion));
@@ -151,17 +158,18 @@ async function procesarOperacionOffline(
       error: respuesta.error,
     });
     // Un fallo de red conserva el orden; un rechazo de negocio no debe frenar las demás ventas.
-    return respuesta.transitorio ? "detener" : "seguir";
+    return respuesta.transitorio ? { paso: "detener", transitorio: true } : { paso: "seguir", fallida: true };
   }
-  await almacen.guardar({
+  const confirmada: OperacionOffline = {
     ...operacion,
     intentos,
     estado: "sincronizada",
     proximoIntento: 0,
     error: null,
     resultado: respuesta.resultado,
-  });
-  return "seguir";
+  };
+  await almacen.guardar(confirmada);
+  return { paso: "seguir", confirmada };
 }
 
 export async function sincronizarColaOffline(
@@ -169,15 +177,24 @@ export async function sincronizarColaOffline(
   ambito: string,
   enviar: (operacion: OperacionOffline) => Promise<ResultadoEnvioOffline>,
   ahora = Date.now,
-): Promise<void> {
+): Promise<ResumenSincronizacionOffline> {
   const operaciones = (await almacen.listar(ambito))
     .filter((operacion) => operacion.estado !== "sincronizada")
     .sort((a, b) => a.secuencia - b.secuencia || a.uuid.localeCompare(b.uuid));
 
+  const resumen: ResumenSincronizacionOffline = { confirmadas: [], transitorios: 0, fallidas: 0 };
+
   for (const operacion of operaciones) {
     // Una operación rechazada no puede trancar la cola: queda visible y se salta.
     if (operacion.estado === "fallida") continue;
-    if (operacion.proximoIntento > ahora()) return;
-    if ((await procesarOperacionOffline(almacen, operacion, enviar, ahora)) === "detener") return;
+    if (operacion.proximoIntento > ahora()) return resumen;
+    const resultado = await procesarOperacionOffline(almacen, operacion, enviar, ahora);
+    if (resultado.paso === "detener") {
+      resumen.transitorios += 1;
+      return resumen;
+    }
+    if (resultado.confirmada) resumen.confirmadas.push(resultado.confirmada);
+    if (resultado.fallida) resumen.fallidas += 1;
   }
+  return resumen;
 }

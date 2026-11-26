@@ -2,9 +2,7 @@ import {
   type IconoTabler,
   TablerBank,
   TablerCalculator,
-  TablerClipboardCheck,
   TablerCompras,
-  TablerFileInvoice,
   TablerHome,
   TablerInbox,
   TablerIngresos,
@@ -29,6 +27,7 @@ export interface NavSubItem {
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;
+  roles?: Rol[];
 }
 
 interface NavItemBase {
@@ -38,7 +37,6 @@ interface NavItemBase {
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;
-  separadorDespues?: boolean;
   roles: Rol[];
 }
 
@@ -55,7 +53,6 @@ export type NavMainItem = NavMainLinkItem | NavMainParentItem;
 
 export interface NavGroup {
   id: number;
-  label?: string;
   items: NavMainItem[];
 }
 
@@ -70,14 +67,6 @@ export const sidebarItems: NavGroup[] = [
         title: "Inicio",
         url: "/dashboard",
         icon: TablerHome,
-        roles: TODOS_LOS_ROLES,
-      },
-      {
-        id: "bandeja-entrada",
-        title: "Bandeja de entrada",
-        url: "/dashboard",
-        icon: TablerInbox,
-        separadorDespues: true,
         roles: TODOS_LOS_ROLES,
       },
       {
@@ -171,6 +160,13 @@ export const sidebarItems: NavGroup[] = [
             title: "Órdenes de compra",
             url: "/dashboard/ordenes-compra",
             addUrl: "/dashboard/ordenes-compra/nueva",
+          },
+          {
+            id: "recepcion-ecf",
+            title: "Recepción e-CF",
+            url: "/dashboard/compras/recepcion-ecf",
+            icon: TablerInbox,
+            roles: ["admin", "contador"],
           },
         ],
       },
@@ -293,32 +289,12 @@ export const sidebarItems: NavGroup[] = [
         roles: TODOS_LOS_ROLES,
       },
       {
-        id: "mis-tareas",
-        title: "Mis tareas",
-        url: "/dashboard",
-        icon: TablerClipboardCheck,
-        roles: TODOS_LOS_ROLES,
-      },
-      {
         id: "configuracion",
         title: "Configuración",
         url: "/dashboard/configuracion",
         icon: TablerSettings,
         roles: TODOS_LOS_ROLES,
       },
-      {
-        id: "configuracion-reportes-dgii",
-        title: "Reportes DGII",
-        url: "/dashboard/configuracion/reportes-dgii",
-        icon: TablerFileInvoice,
-        roles: ["admin", "contador"],
-      },
-    ],
-  },
-  {
-    id: 2,
-    label: "Descubre más soluciones",
-    items: [
       {
         id: "nomina",
         title: "Nómina",
@@ -373,6 +349,17 @@ export function filtrarItemsPorRol(rol: Rol | null): NavGroup[] {
   if (rol == null) return [];
 
   return sidebarItems
-    .map((grupo) => ({ ...grupo, items: grupo.items.filter((item) => item.roles.includes(rol)) }))
+    .map((grupo) => ({
+      ...grupo,
+      items: grupo.items
+        .filter((item) => item.roles.includes(rol))
+        .map((item) => {
+          if (item.subItems == null) return item;
+          return {
+            ...item,
+            subItems: item.subItems.filter((subItem) => subItem.roles == null || subItem.roles.includes(rol)),
+          };
+        }),
+    }))
     .filter((grupo) => grupo.items.length > 0);
 }

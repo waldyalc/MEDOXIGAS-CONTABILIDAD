@@ -1,11 +1,12 @@
 # POS sin internet (Punto 11)
 
-## Decisiones aprobadas
+## Decisiones aprobadas (actualizado 24-11-2026 — Local-First Opción A)
 
-- NCF opción A: guardar offline sin NCF; asignarlo exclusivamente en servidor al sincronizar.
+- **Local-first puro (Opción A):** toda venta de contado normal (Efectivo, Tarjeta, Transferencia, Combinado) se guarda primero en IndexedDB con `client_uuid` idempotente, muestra al instante el mismo modal **`¡Venta completada!`** (sin preview incrustado ni «Venta guardada en este dispositivo») y sube en segundo plano a `pos_sincronizar_operacion` con timeout de 10 s y reintentos cada 5 s. Así el cobro e impresión nunca se trancan cuando el internet tambalea o tarda en caer.
+- **NCF consecutivo local (Opción A):** el dispositivo mantiene el contador local (`siguiente`) por numeración en IndexedDB (`config` → `${ambito}/ncf`) y asigna el siguiente comprobante real (`B0200000XXX`, `B0100000XXX`, etc.) al cobrar, imprimiendo el ticket térmico oficial (`armarTicketFactura`) y el PDF Carta (`armarCartaFactura`) sin folios `POS-LOCAL-*`. Al sincronizar en orden, si nadie más facturó esa serie en paralelo, el servidor confirma el mismo NCF; si otra caja facturó en paralelo, el servidor asigna el siguiente libre y actualiza el historial.
+- **Crédito y cotizaciones:** siguen pidiendo conexión en línea para validar el límite de crédito del cliente y evitar facturar dos veces la misma cotización.
 - Fecha fiscal: día de sincronización en America/Santo_Domingo.
-- Ticket offline: **Folio: POS-LOCAL-<UUID>**, título «Venta», sin NCF ni leyenda «Comprobante provisional».
-- Inventario: descontar al sincronizar, respetando `vende_negativo`; un rechazo deja la venta fallida visible para reintentarla o descartarla con confirmación explícita del cajero.
+- Inventario: descontar al sincronizar, respetando `vende_negativo`; un rechazo deja la venta fallida visible en el popover y en `/pos/historial` para reintentarla, editarla o descartarla con confirmación explícita del cajero.
 - Service worker mínimo, no PWA completa.
 - No se certifica cumplimiento DGII/e-CF con este trabajo. Firma, envío electrónico y contingencia fiscal siguen fuera de este alcance.
 
@@ -97,14 +98,10 @@ y se exige revisar Historial, evitando un segundo cobro por cambio de conexión.
 
 ## Cierre
 
-- La barra inferior impide navegar al cierre sin conexión o con ventas por
-  subir y explica «Conéctate para subir N ventas antes de cerrar».
-- Las ventas con problema **no bloquean** el cierre: el diálogo de cierre muestra
-  el aviso ámbar «N ventas con problema no subirán» y el cierre se completa; el
-  cuadre solo incluye lo sincronizado.
-- El panel de sincronización separa «por subir» de «con problema» y permite
-  reintentar o descartar cada fallida.
-- El diálogo de cierre vuelve a consultar IndexedDB antes de llamar a la RPC y comparte Web Lock con la cola.
+- Cierre estricto estilo Alegra: la barra inferior y el diálogo de cierre impiden cerrar el turno sin conexión o mientras haya ventas pendientes o con problema sin resolver.
+- Con ventas pendientes o con error, el modal de cierre muestra la barra roja fija «Debes sincronizar tu información antes de poder cerrar turno» y mantiene deshabilitado el botón **Guardar**.
+- Sin conexión a internet, muestra la barra roja fija «Sin conexión a internet. No puedes cerrar el turno sin conexión.» y mantiene deshabilitado **Guardar**.
+- El diálogo de cierre vuelve a consultar IndexedDB bajo Web Lock antes de llamar a la RPC y propaga cualquier bloqueo local (`ErrorImpedimentoCierreOffline`) sin mostrar el aviso de resultado incierto.
 - El cuadre de servidor incluye únicamente documentos ya sincronizados.
 - Límite: la RPC actual no puede conocer operaciones que otro dispositivo nunca le envió. No se presenta el control cliente como una garantía servidor entre equipos.
 

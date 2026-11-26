@@ -70,8 +70,9 @@ Cuentas de 1 o 2 dígitos: `acepta_movimientos=false`. 1101, 1102 y 1106: `es_ca
   Asiento: Dr CxC (total) / Cr Ventas por cuenta de ingreso del producto (subtotal neto) / Cr ITBIS por pagar (itbis);
   por cada línea inventariable: Dr Costo de ventas / Cr Inventario (cantidad*costo) y baja `productos.cantidad`.
   Si trae `pago`, llama a `registrar_pago_recibido` con esa factura.
-- `registrar_pago_recibido(p jsonb)`: `{factura_id?, contacto_id?, fecha, cuenta_id, metodo, monto, notas?}`. Monto no puede pasar del saldo.
-  Asiento: Dr caja/banco / Cr CxC. Actualiza `facturas.pagado` y estado ('pagada' si pagado=total).
+- `registrar_pago_recibido(p jsonb)`: `{factura_id? | nota_debito_id?, contacto_id?, fecha, cuenta_id, metodo, monto, notas?}`. Monto no puede pasar del saldo.
+  Asiento: Dr caja/banco / Cr CxC. Actualiza `facturas.pagado` y estado ('pagada' si pagado=total). El cobro de una nota de débito
+  de venta usa `nota_debito_id` (nunca los dos ids a la vez) y su saldo se calcula con los pagos activos ligados a la nota.
 - `crear_factura_proveedor(p jsonb)`: `{ncf?, contacto_id, fecha, vencimiento, notas?, lineas:[{producto_id? | cuenta_id?, descripcion?, cantidad, costo, itbis_tasa?}]}`.
   Asiento: Dr Inventario (producto inventariable: sube cantidad y recalcula costo promedio) o Dr cuenta de gasto / Dr ITBIS adelantado / Cr CxP.
 - `registrar_pago_proveedor(p jsonb)`: `{factura_proveedor_id, fecha, cuenta_id, metodo, monto}`. Asiento: Dr CxP / Cr caja/banco.
@@ -87,3 +88,5 @@ Cuentas de 1 o 2 dígitos: `acepta_movimientos=false`. 1101, 1102 y 1106: `es_ca
 - `reporte_balance_comprobacion(p_desde date, p_hasta date)` → cuenta_codigo, cuenta_nombre, tipo, debitos, creditos, saldo (según naturaleza).
 - `reporte_estado_resultados(p_desde date, p_hasta date)` → tipo ('ingreso','costo','gasto'), cuenta_codigo, cuenta_nombre, monto.
 - `reporte_cxc(p_fecha date)` → contacto_id, contacto_nombre, factura_id, numero, ncf, fecha, vencimiento, total, pagado, saldo, dias_vencida.
+  Devuelve una fila por factura con saldo y otra por nota de débito de venta activa; en `factura_id` va el id del documento
+  (factura o nota). La nota de débito no tiene vencimiento propio: vence en su fecha.

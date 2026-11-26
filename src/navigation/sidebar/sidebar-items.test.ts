@@ -3,10 +3,11 @@ import { describe, expect, test } from "vitest";
 import type { Rol } from "@/lib/auth/rol";
 
 import { filtrarItemsPorRol, sidebarItems } from "./sidebar-items";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const MODULOS = [
   "inicio",
-  "bandeja-entrada",
   "ingresos",
   "compras",
   "contactos",
@@ -14,13 +15,10 @@ const MODULOS = [
   "bancos",
   "contabilidad",
   "reportes",
-  "mis-tareas",
   "configuracion",
   "nomina",
   "punto-venta",
 ];
-
-const MODULOS_CON_DGII = [...MODULOS.slice(0, 11), "configuracion-reportes-dgii", ...MODULOS.slice(11)];
 
 function ids(rol: Rol | null) {
   return filtrarItemsPorRol(rol).flatMap((grupo) => grupo.items.map((item) => item.id));
@@ -31,16 +29,11 @@ function items(rol: Rol) {
 }
 
 describe("filtrarItemsPorRol", () => {
-  for (const rol of ["admin", "contador"] as const) {
-    test(`${rol} ve todos los módulos y la clasificación DGII`, () => {
-      expect(ids(rol)).toEqual(MODULOS_CON_DGII);
+  for (const rol of ["admin", "contador", "lector"] as const) {
+    test(`${rol} ve el menú plano completo`, () => {
+      expect(ids(rol)).toEqual(MODULOS);
     });
   }
-
-  test("lector ve los módulos de solo lectura y no la clasificación DGII", () => {
-    expect(ids("lector")).toEqual(MODULOS);
-    expect(ids("lector")).not.toContain("configuracion-reportes-dgii");
-  });
 
   test("sin rol no ve nada", () => {
     expect(filtrarItemsPorRol(null)).toEqual([]);
@@ -92,6 +85,7 @@ describe("filtrarItemsPorRol", () => {
       "/dashboard/pagos-recurrentes",
       "/dashboard/compras/notas-credito",
       "/dashboard/ordenes-compra",
+      "/dashboard/compras/recepcion-ecf",
     ]);
 
     const inventario = items("admin").find((item) => item.id === "inventario");
@@ -161,12 +155,12 @@ describe("filtrarItemsPorRol", () => {
     expect(catalogo?.addUrl).toBeUndefined();
   });
 
-  test("solo Bandeja de entrada lleva separador después, como en Alegra", () => {
-    expect(
-      items("admin")
-        .filter((item) => item.separadorDespues)
-        .map((item) => item.id),
-    ).toEqual(["bandeja-entrada"]);
+  test("ningún ítem declara separador después", () => {
+    for (const item of items("admin")) {
+      expect(item, "el menú va plano: no reintroduzcas separadores entre módulos").not.toHaveProperty(
+        "separadorDespues",
+      );
+    }
   });
 
   test("POS abre /pos en otra pestaña y lo ven los tres roles", () => {
@@ -181,8 +175,32 @@ describe("filtrarItemsPorRol", () => {
     }
   });
 
-  test("el menú se divide como Alegra: principal sin etiqueta y «Descubre más soluciones»", () => {
-    expect(sidebarItems.map((grupo) => grupo.label)).toEqual([undefined, "Descubre más soluciones"]);
-    expect(sidebarItems[1]?.items.map((item) => item.id)).toEqual(["nomina", "punto-venta"]);
+  test("el menú es un solo grupo plano, sin etiquetas", () => {
+    expect(
+      sidebarItems,
+      "el menú es plano: no reintroduzcas grupos ni etiquetas tipo «Descubre más soluciones»",
+    ).toHaveLength(1);
+    expect(sidebarItems[0], "el grupo único no lleva etiqueta").not.toHaveProperty("label");
+    expect(sidebarItems[0]?.items.map((item) => item.id)).toEqual(MODULOS);
+  });
+
+  test("Reportes DGII ya no vive en el menú: se entra como tarjeta de Configuración", () => {
+    for (const rol of ["admin", "contador", "lector"] as const) {
+      expect(ids(rol), "Reportes DGII se abre desde /dashboard/configuracion, no desde el menú").not.toContain(
+        "configuracion-reportes-dgii",
+      );
+    }
+  });
+
+  test("Configuración conserva la tarjeta de Reportes DGII", () => {
+    const pagina = readFileSync(
+      join(process.cwd(), "src", "app", "(main)", "dashboard", "configuracion", "page.tsx"),
+      "utf8",
+    );
+
+    expect(
+      pagina,
+      'la tarjeta «Reportes DGII» debe seguir en Configuración con url: "/dashboard/configuracion/reportes-dgii"',
+    ).toContain('url: "/dashboard/configuracion/reportes-dgii"');
   });
 });

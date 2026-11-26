@@ -71,9 +71,9 @@ begin
 end $$;
 
 -- ===========================================================================
--- 0.1) INVENTARIO DE LAS 83 TABLAS DE public
+-- 0.1) INVENTARIO DE LAS 86 TABLAS DE public
 -- ===========================================================================
--- 64 se vacían (paso 1) y 19 se conservan (paso 3). Los marcadores
+-- 66 se vacían (paso 1) y 20 se conservan (paso 3). Los marcadores
 -- @conservar son el candado: src/lib/supabase/reset-virgen.test.ts compara
 -- esta lista + el TRUNCATE contra TODAS las tablas de supabase/migrations y
 -- falla si una tabla queda sin clasificar.
@@ -93,6 +93,9 @@ end $$;
 -- @conservar public.tipos_entrada_diario
 -- @conservar public.motivos_anulacion
 -- @conservar public.pos_terminales
+-- La configuración e-CF por RNC (incluye certificados cifrados) es configuración
+-- real de la empresa y se conserva; los envíos/recibidos sí son evidencia de prueba.
+-- @conservar public.ecf_config
 -- Nómina: parámetros, conceptos y mapeo contable son catálogos y se
 -- conservan. `nomina_config_empresa` también lleva marcador @conservar, pero
 -- referencia `contactos` (que se vacía en el paso 1): el CASCADE del TRUNCATE
@@ -139,6 +142,8 @@ truncate table
   public.conteos_inventario,
   public.cotizacion_lineas,
   public.cotizaciones,
+  public.ecf_envios,
+  public.ecf_recibidos,
   public.empleado_novedades_recurrentes,
   public.empleados,
   public.existencias,
@@ -150,6 +155,7 @@ truncate table
   public.facturas_proveedor_lineas,
   public.facturas_recurrentes,
   public.gastos_menores,
+  public.movimientos_inventario,
   public.nomina_periodos,
   public.nomina_recibo_lineas,
   public.nomina_recibos,
@@ -505,6 +511,8 @@ begin
     'conteos_inventario',
     'cotizacion_lineas',
     'cotizaciones',
+    'ecf_envios',
+    'ecf_recibidos',
     'empleado_novedades_recurrentes',
     'empleados',
     'existencias',
@@ -516,6 +524,7 @@ begin
     'facturas_proveedor_lineas',
     'facturas_recurrentes',
     'gastos_menores',
+    'movimientos_inventario',
     'nomina_periodos',
     'nomina_recibo_lineas',
     'nomina_recibos',
@@ -637,6 +646,8 @@ from (
   union all select 'conteos_inventario', count(*) from public.conteos_inventario
   union all select 'cotizacion_lineas', count(*) from public.cotizacion_lineas
   union all select 'cotizaciones', count(*) from public.cotizaciones
+  union all select 'ecf_envios', count(*) from public.ecf_envios
+  union all select 'ecf_recibidos', count(*) from public.ecf_recibidos
   union all select 'empleado_novedades_recurrentes', count(*) from public.empleado_novedades_recurrentes
   union all select 'empleados', count(*) from public.empleados
   union all select 'existencias', count(*) from public.existencias
@@ -648,6 +659,7 @@ from (
   union all select 'facturas_proveedor_lineas', count(*) from public.facturas_proveedor_lineas
   union all select 'facturas_recurrentes', count(*) from public.facturas_recurrentes
   union all select 'gastos_menores', count(*) from public.gastos_menores
+  union all select 'movimientos_inventario', count(*) from public.movimientos_inventario
   union all select 'nomina_periodos', count(*) from public.nomina_periodos
   union all select 'nomina_recibo_lineas', count(*) from public.nomina_recibo_lineas
   union all select 'nomina_recibos', count(*) from public.nomina_recibos
@@ -700,6 +712,7 @@ union all select 'listas_precios', count(*), 'exactamente 1 (principal)' from pu
 union all select 'numeraciones', count(*), 'exactamente 8 (B01…B16)' from public.numeraciones
 union all select 'tipos_entrada_diario', count(*), 'exactamente 13' from public.tipos_entrada_diario
 union all select 'pos_terminales', count(*), 'terminales del POS restauradas' from public.pos_terminales
+union all select 'ecf_config', count(*), 'configuración e-CF por RNC conservada' from public.ecf_config
 union all select 'nomina_parametros_rd', count(*), '2026 sembrado (>= 1)' from public.nomina_parametros_rd
 union all select 'nomina_config_empresa', count(*), '0 tras el reset (CASCADE de contactos); se recrea al guardar' from public.nomina_config_empresa
 union all select 'nomina_conceptos', count(*), 'semilla = 40' from public.nomina_conceptos

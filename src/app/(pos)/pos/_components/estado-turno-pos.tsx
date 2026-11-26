@@ -1,7 +1,6 @@
-import Link from "next/link";
-
 import { cn } from "cn";
 
+import { EnlacePos } from "./enlace-pos";
 import { itemMenuColapsado } from "./menu-pos-estilos";
 
 type TurnoBadge = { numero: number; estado: "abierto" | "cerrado"; abierto_en: string } | null;
@@ -61,7 +60,7 @@ export function EstadoTurnoPos({
 
   if (colapsado) {
     return (
-      <Link
+      <EnlacePos
         href="/pos/turnos"
         title={titulo}
         aria-label={largo}
@@ -69,12 +68,12 @@ export function EstadoTurnoPos({
         onClick={onNavegar}
       >
         <PuntoEstado turno={turno} abierto={abierto} />
-      </Link>
+      </EnlacePos>
     );
   }
 
   return (
-    <Link
+    <EnlacePos
       href="/pos/turnos"
       title={titulo}
       className={cn(
@@ -88,7 +87,7 @@ export function EstadoTurnoPos({
       <PuntoEstado turno={turno} abierto={abierto} />
       <span className="min-w-0 flex-1 truncate">{compacto && turno ? corto : largo}</span>
       {turno ? <PillEstado abierto={abierto} /> : null}
-    </Link>
+    </EnlacePos>
   );
 }
 

@@ -18,9 +18,13 @@ export async function updateSession(request: NextRequest) {
   const esLogin = ruta.startsWith("/login");
   const esCallback = ruta === "/auth/callback";
   const esIcono = /^\/(?:apple-)?icon(?:-[A-Za-z0-9]+|\/[^/]+)?$/.test(ruta);
-  const esPublica = esLogin || esCallback || esIcono;
+  const esReceptorEcf =
+    /^\/api\/ecf\/\d{9}(?:\d{2})?\/fe\/(?:autenticacion\/api\/(?:semilla|validacioncertificado)|(?:recepcion|aprobacioncomercial)\/api\/ecf)$/.test(
+      ruta,
+    );
+  const esPublica = esLogin || esCallback || esIcono || esReceptorEcf;
 
-  if (esIcono) return NextResponse.next({ request });
+  if (esIcono || esReceptorEcf) return NextResponse.next({ request });
 
   if (!url || !key) {
     if (esPublica) return NextResponse.next({ request });

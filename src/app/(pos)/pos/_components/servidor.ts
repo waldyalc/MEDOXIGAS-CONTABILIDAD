@@ -110,6 +110,7 @@ export interface CuentaPOS {
   nombre: string;
   tipo: string;
   es_caja_banco: boolean;
+  tipo_banco: string | null;
 }
 
 /** Cuentas de detalle activas que aceptan movimientos (turno y gastos). */
@@ -117,7 +118,7 @@ export async function getCuentasPOS(): Promise<CuentaPOS[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("cuentas")
-    .select("id, codigo, nombre, tipo, es_caja_banco")
+    .select("id, codigo, nombre, tipo, es_caja_banco, tipo_banco")
     .eq("activa", true)
     .eq("acepta_movimientos", true)
     .order("codigo")

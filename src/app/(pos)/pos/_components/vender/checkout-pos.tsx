@@ -16,11 +16,13 @@ import {
   Landmark,
   Loader2,
   Plus,
+  Printer,
   Split,
   Trash2,
-  Wallet,
   X,
 } from "@/components/icons";
+import { ImpresionPos } from "@/components/pos/impresion-pos";
+import { TicketPos } from "@/components/pos/ticket-pos";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { ContactoBuscado } from "@/lib/contactos/seleccion";
 import type { Empresa } from "@/lib/facturacion/tipos";
+import type { Numeracion } from "@/lib/numeraciones/tipos";
 import { completarVenta } from "@/lib/pos/acciones";
 import {
   armarPagosCombinadoPOS,
@@ -51,28 +54,42 @@ import {
 } from "@/lib/pos/calculo";
 import { esConsumidorFinalPOS } from "@/lib/pos/consumidor-final";
 import { esquemaVenta, MAXIMO_PAGOS_VENTA, mensajeValidacion } from "@/lib/pos/esquemas";
-import { armarTicketOffline, type EntradaTicketOffline, type TicketPOSPayload } from "@/lib/pos/impresion";
-import type { MetodoPOS, PlantillaTicket, VentaPOSResultado } from "@/lib/pos/tipos";
+import { armarTicketPrefactura, type EntradaTicketOffline } from "@/lib/pos/impresion";
+import type { LineaVenta, MetodoPOS, PlantillaTicket, VentaPOSResultado } from "@/lib/pos/tipos";
+import { armarVentaLocalResultado } from "@/lib/pos/venta-local";
 import { createClient } from "@/lib/supabase/client";
 
 import { useCarritoPOS } from "../carrito-pos-provider";
-import { capitalizar, ETIQUETAS_METODO, formatoMonedaPOS, hoyRD, textoAMonto } from "../formato-pos";
+import { capitalizar, formatoMonedaPOS, hoyRD, textoAMonto } from "../formato-pos";
 import { useOfflinePOS } from "../offline-pos-provider";
-import { ConfirmacionOffline } from "./confirmacion-offline";
 import { ConfirmacionVenta } from "./confirmacion-venta";
 
-type ModoCobro = MetodoPOS | "combinado" | "credito";
+type ModoCobro = "efectivo" | "tarjeta" | "transferencia" | "combinado" | "credito";
+type MetodoCombinadoPOS = "efectivo" | "tarjeta" | "transferencia";
 
 interface FilaCombinada {
   id: string;
   metodo: MetodoPOS;
   monto: string;
   recibido: string;
+  /** Banco destino cuando el método es transferencia. */
+  cuenta_id: string;
 }
 
-const METODOS_COMBINADOS: MetodoPOS[] = ["efectivo", "tarjeta_debito", "tarjeta_credito", "transferencia"];
+const METODOS_COMBINADOS: MetodoCombinadoPOS[] = ["efectivo", "tarjeta", "transferencia"];
+
+const ETIQUETAS_COMBINADO: Record<MetodoCombinadoPOS, string> = {
+  efectivo: "Efectivo",
+  tarjeta: "Tarjeta",
+  transferencia: "Transferencia",
+};
 
 const NINGUNO = "__ninguno";
+
+/** Agrupa las dos tarjetas del backend en la opción única «Tarjeta». */
+function metodoCombinadoVisible(metodo: MetodoPOS): MetodoCombinadoPOS {
+  return metodo === "tarjeta_credito" || metodo === "tarjeta_debito" ? "tarjeta" : metodo;
+}
 
 function nuevoId(): string {
   return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -98,6 +115,8 @@ export function CheckoutPos({
   terminal,
   turno,
   empresa,
+  numeraciones,
+  vendedoresIniciales,
   cuentas,
   contactos,
   consumidorFinalId,
@@ -119,8 +138,10 @@ export function CheckoutPos({
   };
   turno: { id: string; numero: number } | null;
   empresa: Empresa | null;
-  cuentas: { id: string; nombre: string }[];
-  contactos: ContactoBuscado[];
+  numeraciones: Numeracion[];
+  vendedoresIniciales?: { id: string; nombre: string }[];
+  cuentas: { id: string; nombre: string; es_caja_banco?: boolean; tipo_banco?: string | null }[];
+  contactos: (ContactoBuscado & { direccion?: string | null; telefono?: string | null })[];
   consumidorFinalId: string | null;
   plantillaTicket: PlantillaTicket;
   plantillaFactura: { mostrarLogo: boolean; notas: string; terminos: string };
@@ -130,21 +151,24 @@ export function CheckoutPos({
   const router = useRouter();
   const carrito = useCarritoPOS();
   const offline = useOfflinePOS();
-  const [ticketOffline, setTicketOffline] = useState<TicketPOSPayload | null>(null);
   const { activa, totales } = carrito;
   const [vista, setVista] = useState<"metodos" | "detalle">("metodos");
   const [modo, setModo] = useState<ModoCobro>("efectivo");
   const [recibido, setRecibido] = useState("");
   const [aplicado, setAplicado] = useState("");
   const [filas, setFilas] = useState<FilaCombinada[]>([]);
+  const [bancoTransferenciaId, setBancoTransferenciaId] = useState("");
   const [notas, setNotas] = useState("");
-  const [vendedores, setVendedores] = useState<{ id: string; nombre: string }[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [vendedores, setVendedores] = useState<{ id: string; nombre: string }[]>(vendedoresIniciales ?? []);
   const [aviso, setAviso] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [lento, setLento] = useState(false);
   const [perdido, setPerdido] = useState(false);
   const [venta, setVenta] = useState<VentaPOSResultado | null>(null);
+  /** Motivo por el que la venta definitivamente no se guardó; abre «Venta pendiente de guardar». */
+  const [pendiente, setPendiente] = useState<string | null>(null);
+  const [imprimiendoSoporte, setImprimiendoSoporte] = useState(false);
 
   const total = totales.total;
   const cotizacion = activa.cotizacion;
@@ -152,11 +176,32 @@ export function CheckoutPos({
   const nombreCuenta = (id: string | null) =>
     id ? (cuentas.find((cuenta) => cuenta.id === id)?.nombre ?? null) : null;
   const cuentasActivas = useMemo(() => new Set(cuentas.map((cuenta) => cuenta.id)), [cuentas]);
+  const cuentasBanco = useMemo(() => {
+    const bancos = cuentas.filter((cuenta) => cuenta.es_caja_banco === true && cuenta.tipo_banco === "banco");
+    if (bancos.length > 0) return bancos;
+    const respaldo = cuentas.find((cuenta) => cuenta.id === terminal.cuenta_transferencia_id);
+    return respaldo ? [respaldo] : [];
+  }, [cuentas, terminal.cuenta_transferencia_id]);
+  const bancoPreseleccionado = useMemo(() => {
+    if (cuentasBanco.length === 1) return cuentasBanco[0]?.id ?? "";
+    const delTerminal = terminal.cuenta_transferencia_id;
+    return delTerminal && cuentasBanco.some((cuenta) => cuenta.id === delTerminal) ? delTerminal : "";
+  }, [cuentasBanco, terminal.cuenta_transferencia_id]);
 
-  const cuentaDebito = terminal.cuenta_tarjeta_debito_id && cuentasActivas.has(terminal.cuenta_tarjeta_debito_id);
-  const cuentaCredito = terminal.cuenta_tarjeta_credito_id && cuentasActivas.has(terminal.cuenta_tarjeta_credito_id);
-  const cuentaTransferencia = terminal.cuenta_transferencia_id && cuentasActivas.has(terminal.cuenta_transferencia_id);
-  const hayCombinado = [cuentaDebito, cuentaCredito, cuentaTransferencia].some(Boolean);
+  const cuentaTarjetaCredito =
+    terminal.cuenta_tarjeta_credito_id && cuentasActivas.has(terminal.cuenta_tarjeta_credito_id)
+      ? terminal.cuenta_tarjeta_credito_id
+      : null;
+  const cuentaTarjetaDebito =
+    terminal.cuenta_tarjeta_debito_id && cuentasActivas.has(terminal.cuenta_tarjeta_debito_id)
+      ? terminal.cuenta_tarjeta_debito_id
+      : null;
+  const cuentaTarjetaId = cuentaTarjetaCredito ?? cuentaTarjetaDebito;
+  const metodoTarjetaBackend: MetodoPOS = cuentaTarjetaCredito ? "tarjeta_credito" : "tarjeta_debito";
+  const motivoTarjeta = cuentaTarjetaId ? null : "La terminal no tiene una cuenta configurada para tarjeta.";
+
+  const hayTransferencia = cuentasBanco.length > 0;
+  const hayCombinado = Boolean(cuentaTarjetaId) || hayTransferencia;
   const sinCaja = !cuentasActivas.has(terminal.cuenta_efectivo_id);
 
   useEffect(() => {
@@ -164,14 +209,16 @@ export function CheckoutPos({
     setVista("metodos");
     setModo("efectivo");
     setFilas([]);
+    setBancoTransferenciaId(bancoPreseleccionado);
     setNotas("");
-    setError(null);
     setAviso(false);
+    setError(null);
     setLento(false);
     setPerdido(false);
     setVenta(null);
-    setTicketOffline(null);
-  }, [abierto]);
+    setPendiente(null);
+    setImprimiendoSoporte(false);
+  }, [abierto, bancoPreseleccionado]);
 
   useEffect(() => {
     if (!abierto || venta) return;
@@ -180,7 +227,11 @@ export function CheckoutPos({
   }, [abierto, total, venta]);
 
   useEffect(() => {
-    if (!abierto) return;
+    if (vendedoresIniciales?.length) setVendedores(vendedoresIniciales);
+  }, [vendedoresIniciales]);
+
+  useEffect(() => {
+    if (!abierto || !navigator.onLine || offline.estado === "offline") return;
     let activo = true;
     const supabase = createClient();
     supabase
@@ -189,12 +240,12 @@ export function CheckoutPos({
       .eq("activo", true)
       .order("nombre")
       .then(({ data }) => {
-        if (activo) setVendedores(data ?? []);
+        if (activo && data) setVendedores(data);
       });
     return () => {
       activo = false;
     };
-  }, [abierto]);
+  }, [abierto, offline.estado]);
 
   useEffect(() => {
     if (!enviando) {
@@ -240,11 +291,9 @@ export function CheckoutPos({
   const cambioVisible =
     (modo === "efectivo" && centavos(cambioEfectivo) > 0) || (modo === "combinado" && centavos(cambioCombinado) > 0);
 
-  const motivoDebito = cuentaDebito ? null : "La terminal no tiene una cuenta configurada para tarjeta débito.";
-  const motivoCredito = cuentaCredito ? null : "La terminal no tiene una cuenta configurada para tarjeta crédito.";
-  const motivoTransferencia = cuentaTransferencia
+  const motivoTransferencia = hayTransferencia
     ? null
-    : "La terminal no tiene una cuenta configurada para transferencia.";
+    : "No hay cuentas bancarias activas configuradas para transferencia.";
 
   const sumaAplicada =
     modo === "credito"
@@ -256,6 +305,7 @@ export function CheckoutPos({
           : centavos(aplicadoOtro);
 
   const filaCombinadaInvalida = totalesCombinados.invalido;
+  const bancoCombinadoPendiente = filas.some((fila) => fila.metodo === "transferencia" && fila.cuenta_id === "");
 
   const ctaDeshabilitado =
     enviando ||
@@ -263,9 +313,10 @@ export function CheckoutPos({
     sinCaja ||
     activa.lineas.length === 0 ||
     (modo !== "credito" && sumaAplicada <= 0) ||
-    excedeOtro ||
-    excedeCombinado ||
-    (modo === "combinado" && (filas.length === 0 || filaCombinadaInvalida)) ||
+    ((modo === "tarjeta" || modo === "transferencia") && excedeOtro) ||
+    (modo === "combinado" && excedeCombinado) ||
+    (modo === "transferencia" && bancoTransferenciaId === "") ||
+    (modo === "combinado" && (filas.length === 0 || filaCombinadaInvalida || bancoCombinadoPendiente)) ||
     (modo === "efectivo" && !simpleEfectivo);
 
   const etiquetaCta =
@@ -284,7 +335,14 @@ export function CheckoutPos({
   function elegirMetodo(nuevo: ModoCobro) {
     setModo(nuevo);
     setVista("detalle");
+    if (nuevo === "transferencia") setBancoTransferenciaId((actual) => actual || bancoPreseleccionado);
     if (nuevo === "combinado" && filas.length === 0) agregarFila();
+  }
+
+  function cuentaInicialDe(metodo: MetodoCombinadoPOS): string {
+    if (metodo === "tarjeta") return cuentaTarjetaId ?? "";
+    if (metodo === "transferencia") return bancoTransferenciaId || bancoPreseleccionado;
+    return "";
   }
 
   function agregarFila() {
@@ -296,14 +354,22 @@ export function CheckoutPos({
       Math.max(0, centavos(total) - centavos(sumarMontos(filas.map((fila) => fila.monto || "0")))),
     );
     const monto = centavos(restante) > 0 ? restante : "";
-    setFilas((actuales) => [...actuales, { id: nuevoId(), metodo, monto, recibido: monto }]);
+    setFilas((actuales) => [
+      ...actuales,
+      {
+        id: nuevoId(),
+        metodo: metodo === "tarjeta" ? metodoTarjetaBackend : metodo,
+        monto,
+        recibido: monto,
+        cuenta_id: cuentaInicialDe(metodo),
+      },
+    ]);
   }
 
-  function metodoDisponible(metodo: MetodoPOS): boolean {
+  function metodoDisponible(metodo: MetodoCombinadoPOS): boolean {
     if (metodo === "efectivo") return true;
-    if (metodo === "tarjeta_debito") return Boolean(cuentaDebito);
-    if (metodo === "tarjeta_credito") return Boolean(cuentaCredito);
-    return Boolean(cuentaTransferencia);
+    if (metodo === "tarjeta") return Boolean(cuentaTarjetaId);
+    return hayTransferencia;
   }
 
   function armarPagos(): PagoPOSArmado[] {
@@ -318,7 +384,16 @@ export function CheckoutPos({
         },
       ];
     }
-    return [{ metodo: modo, monto: aplicadoOtro }];
+    if (modo === "tarjeta") {
+      return [
+        {
+          metodo: metodoTarjetaBackend,
+          monto: aplicadoOtro,
+          ...(cuentaTarjetaId ? { cuenta_id: cuentaTarjetaId } : {}),
+        },
+      ];
+    }
+    return [{ metodo: "transferencia", monto: aplicadoOtro, cuenta_id: bancoTransferenciaId }];
   }
 
   function lineasPayload() {
@@ -327,7 +402,10 @@ export function CheckoutPos({
       descripcion: linea.descripcion,
       cantidad: linea.cantidad,
       unidad_id: linea.unidadId,
-      precio: linea.precio,
+      // Sin precio manual el servidor lo resuelve con `_precio_lista` al
+      // cobrar: el catálogo paginado (o una lista que acaban de cambiar)
+      // nunca cobra un precio viejo.
+      precio: linea.precioManual ? linea.precio : undefined,
       descuento_pct: linea.descuentoPct,
       itbis_tasa: linea.itbisTasa,
       impuesto_id: linea.impuestoId,
@@ -341,12 +419,14 @@ export function CheckoutPos({
       return;
     }
     setAviso(false);
-    setEnviando(true);
     setError(null);
+    setEnviando(true);
     setPerdido(false);
+    setPendiente(null);
 
     const pagos = armarPagos();
-    const recibidoOffline = sumarMontos(pagos.map((pago) => pago.monto_recibido ?? pago.monto));
+    const recibidoLocal = sumarMontos(pagos.map((pago) => pago.monto_recibido ?? pago.monto));
+    const hoy = hoyRD();
     const entrada = {
       terminal_id: terminal.id,
       contacto_defecto_id: cotizacion ? null : (consumidorFinalId ?? terminal.contacto_defecto_id),
@@ -355,61 +435,134 @@ export function CheckoutPos({
       numeracion_id: activa.numeracionId || null,
       vendedor_id: cotizacion ? null : activa.vendedorId || null,
       ...(notas.trim() ? { notas: notas.trim() } : {}),
-      fecha: hoyRD(),
+      fecha: hoy,
       ...(cotizacion ? { cotizacion_id: cotizacion.id } : { lineas: lineasPayload() }),
       pagos,
     };
 
+    // Decisión de Waldy (24-11-2026):
+    // - Ventas de contado normales (Efectivo, Tarjeta, Transferencia, Combinado):
+    //   local-first puro (Opción A) — guarda primero en IndexedDB con el NCF
+    //   consecutivo local, abre «¡Venta completada!» al instante y sube en
+    //   segundo plano con `client_uuid` idempotente (nunca espera ni falla si el
+    //   internet tambalea).
+    // - Ventas a crédito y conversión de cotizaciones: requieren conexión real
+    //   para validar el límite de crédito / evitar facturar dos veces.
+    const requiereConexion = cotizacion !== null || porCobrarVisible;
     let envioRemoto = false;
     try {
-      if (!navigator.onLine || offline.estado === "offline") {
-        if (cotizacion) throw new Error("Conéctate para convertir una cotización y evitar facturarla dos veces.");
-        if (porCobrarVisible)
-          throw new Error("Conéctate para verificar el crédito del cliente antes de vender a crédito.");
+      if (!requiereConexion) {
+        if (!turno) {
+          setError("Abre un turno antes de registrar una venta.");
+          return;
+        }
         const cliente = contactos.find((contacto) => contacto.id === activa.contactoId);
-        if (!cliente)
-          throw new Error("El cliente no está disponible en la caché. Selecciona uno cargado antes de cobrar.");
+        if (!cliente) {
+          setError("El cliente no está disponible en la caché. Selecciona uno cargado antes de cobrar.");
+          return;
+        }
+        const numeracion = numeraciones.find((candidata) => candidata.id === activa.numeracionId);
+        if (!numeracion) {
+          setError("Selecciona una numeración válida antes de cobrar.");
+          return;
+        }
         const validada = esquemaVenta.safeParse(entrada);
-        if (!validada.success) throw new Error(mensajeValidacion(validada.error));
+        if (!validada.success) {
+          setError(mensajeValidacion(validada.error));
+          return;
+        }
+        const creadoEn = new Date().toISOString();
+        const lineasLocales: LineaVenta[] = activa.lineas.map((linea) => ({
+          id: linea.id,
+          producto_id: linea.productoId,
+          producto_nombre: linea.descripcion,
+          referencia: linea.referencia,
+          descripcion: linea.descripcion,
+          cantidad: linea.cantidad,
+          unidad_id: linea.unidadId,
+          unidad_nombre: linea.unidadNombre,
+          factor_base: linea.factorBase,
+          precio: linea.precio,
+          descuento_pct: linea.descuentoPct,
+          itbis_tasa: linea.itbisTasa,
+          impuesto_id: linea.impuestoId,
+          ...calcularLineaPOS({
+            cantidad: linea.cantidad,
+            precio: linea.precio,
+            descuento_pct: linea.descuentoPct,
+            itbis_tasa: linea.itbisTasa,
+          }),
+        }));
+        const vendedorActual = vendedores.find((vendedor) => vendedor.id === activa.vendedorId) ?? null;
         const detalle: Omit<EntradaTicketOffline, "folio"> = {
           empresa,
           cliente,
           plantilla: plantillaTicket,
-          fecha: new Date().toISOString(),
+          fecha: creadoEn,
           ...totales,
-          recibido: recibidoOffline,
-          cambio: centavosATexto(Math.max(0, centavos(recibidoOffline) - centavos(total))),
-          lineas: activa.lineas.map((linea) => ({
-            id: linea.id,
-            producto_id: linea.productoId,
-            producto_nombre: linea.descripcion,
-            referencia: linea.referencia,
-            descripcion: linea.descripcion,
-            cantidad: linea.cantidad,
-            unidad_id: linea.unidadId,
-            unidad_nombre: linea.unidadNombre,
-            factor_base: linea.factorBase,
-            precio: linea.precio,
-            descuento_pct: linea.descuentoPct,
-            itbis_tasa: linea.itbisTasa,
-            impuesto_id: linea.impuestoId,
-            ...calcularLineaPOS({
-              cantidad: linea.cantidad,
-              precio: linea.precio,
-              descuento_pct: linea.descuentoPct,
-              itbis_tasa: linea.itbisTasa,
-            }),
-          })),
+          recibido: recibidoLocal,
+          cambio: centavosATexto(Math.max(0, centavos(recibidoLocal) - centavos(total))),
+          lineas: lineasLocales,
         };
-        const operacion = await offline.encolar("venta", validada.data, { pestana: activa, ticket: detalle });
-        setTicketOffline(armarTicketOffline({ ...detalle, folio: operacion.folio }));
-        carrito.reiniciarTrasVenta();
+        let ventaLocalCreada: VentaPOSResultado | null = null;
+        await offline.encolar(
+          "venta",
+          validada.data,
+          ({ uuid, folio }) => {
+            const ventaLocal = armarVentaLocalResultado({
+              id: uuid,
+              ncf: folio,
+              numeracion,
+              fecha: hoy,
+              creadoEn,
+              terminal: { ...terminal, plantilla_ticket: plantillaTicket },
+              turno,
+              empresa,
+              cliente,
+              vendedor: vendedorActual,
+              cuentas,
+              lineas: lineasLocales,
+              pagos,
+              totales,
+              notas: notas.trim() || null,
+            });
+            ventaLocalCreada = ventaLocal;
+            return {
+              pestana: activa,
+              venta: ventaLocal,
+              numeracion: { id: numeracion.id, prefijo: numeracion.prefijo },
+              ticket: detalle,
+            };
+          },
+          { numeracion, fecha: hoy },
+        );
+        if (ventaLocalCreada) {
+          setVenta(ventaLocalCreada);
+          carrito.reiniciarTrasVenta();
+          toast.add({ type: "success", title: "Venta registrada." });
+        }
         return;
       }
+
+      if (!navigator.onLine || offline.estado === "offline") {
+        setError(
+          cotizacion
+            ? "Conéctate para convertir una cotización y evitar facturarla dos veces."
+            : "Conéctate para verificar el crédito del cliente antes de vender a crédito.",
+        );
+        return;
+      }
+
       envioRemoto = true;
       const resultado = await completarVenta(entrada);
       if (!resultado.ok) {
-        setError(capitalizar(resultado.error));
+        // Si la respuesta falla al parsear tras un posible commit en servidor,
+        // es resultado incierto: exigir revisar Historial para evitar doble cobro.
+        if (resultado.error.toLowerCase().includes("formato esperado")) {
+          setPerdido(true);
+          return;
+        }
+        setPendiente(capitalizar(resultado.error));
         return;
       }
       setVenta(resultado.data);
@@ -421,9 +574,10 @@ export function CheckoutPos({
         setError(
           causa instanceof Error
             ? causa.message
-            : "No se pudo guardar. No entregues la venta hasta confirmar el guardado.",
+            : "No se pudo guardar la venta en este dispositivo. Revisa el almacenamiento del navegador.",
         );
       } else {
+        // Timeout o caída de red en envío online (crédito/cotización): resultado incierto.
         setPerdido(true);
       }
     } finally {
@@ -450,13 +604,58 @@ export function CheckoutPos({
     />
   );
 
+  // Ticket de soporte de una venta que no se pudo guardar: prefactura sin NCF.
+  const clienteSoporte = contactos.find((contacto) => contacto.id === activa.contactoId) ?? null;
+  const vendedorSoporte = vendedores.find((vendedor) => vendedor.id === activa.vendedorId) ?? null;
+  const lineasSoporte: LineaVenta[] = activa.lineas.map((linea) => {
+    const totalesLinea = calcularLineaPOS({
+      cantidad: linea.cantidad,
+      precio: linea.precio,
+      descuento_pct: linea.descuentoPct,
+      itbis_tasa: linea.itbisTasa,
+    });
+
+    return {
+      id: linea.id,
+      producto_id: linea.productoId,
+      producto_nombre: null,
+      referencia: linea.referencia,
+      descripcion: linea.descripcion,
+      cantidad: linea.cantidad,
+      unidad_id: linea.unidadId,
+      unidad_nombre: linea.unidadNombre,
+      factor_base: linea.factorBase,
+      precio: linea.precio,
+      descuento_pct: linea.descuentoPct,
+      itbis_tasa: linea.itbisTasa,
+      impuesto_id: linea.impuestoId,
+      subtotal: totalesLinea.subtotal,
+      itbis: totalesLinea.itbis,
+      total: totalesLinea.total,
+    };
+  });
+  const ticketSoporte =
+    pendiente === null
+      ? null
+      : armarTicketPrefactura(
+          {
+            empresa,
+            contacto: clienteSoporte
+              ? { nombre: clienteSoporte.nombre, rnc_cedula: clienteSoporte.rnc_cedula, direccion: null }
+              : null,
+            lineas: lineasSoporte,
+            totales: { ...totales, otros_impuestos: "0", propina: "0" },
+            vendedor: vendedorSoporte,
+            fecha: hoyRD(),
+          },
+          plantillaTicket,
+        );
+
   return (
     <>
       <Dialog open={abierto} onOpenChange={cerrar}>
         <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-[640px]">
-          {ticketOffline ? (
-            <ConfirmacionOffline ticket={ticketOffline} onCerrar={onCerrar} />
-          ) : venta ? (
+          {venta ? (
             <>
               <DialogTitle className="sr-only">Venta registrada</DialogTitle>
               <DialogDescription className="sr-only">La venta se cobró correctamente.</DialogDescription>
@@ -470,6 +669,37 @@ export function CheckoutPos({
                 onVerHistorial={onVerHistorial}
                 onCerrar={onCerrar}
               />
+            </>
+          ) : pendiente !== null ? (
+            <>
+              <DialogHeader className="gap-1">
+                <DialogTitle className="text-pos-texto text-2xl font-semibold">Venta pendiente de guardar</DialogTitle>
+                <DialogDescription className="text-pos-texto-suave text-sm">
+                  Tu venta no se ha guardado. Puedes imprimir esta factura como soporte, pero recuerda que debes editar
+                  la venta para completar el registro.
+                </DialogDescription>
+              </DialogHeader>
+
+              <Alert variant="destructive">
+                <AlertDescription>{pendiente}</AlertDescription>
+              </Alert>
+
+              <DialogFooter className="-mx-4 mt-2 -mb-4 flex-row justify-end gap-2 rounded-b-xl border-0 bg-transparent p-4">
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-[8px] px-5 text-sm"
+                  onClick={() => setImprimiendoSoporte(true)}
+                >
+                  <Printer aria-hidden="true" />
+                  Imprimir ticket
+                </Button>
+                <Button
+                  className="bg-pos-primario hover:bg-pos-primario-hover h-10 rounded-[8px] px-5 text-sm text-white"
+                  onClick={onCerrar}
+                >
+                  Editar venta
+                </Button>
+              </DialogFooter>
             </>
           ) : (
             <>
@@ -548,17 +778,11 @@ export function CheckoutPos({
                 <>
                   <div className="grid grid-cols-3 gap-2">
                     <Tile
-                      icono={<Banknote aria-hidden="true" />}
-                      titulo="Efectivo"
-                      activo={false}
-                      onClick={() => elegirMetodo("efectivo")}
-                    />
-                    <Tile
                       icono={<CreditCard aria-hidden="true" />}
-                      titulo="Tarjeta crédito"
+                      titulo="Tarjeta"
                       activo={false}
-                      motivo={motivoCredito}
-                      onClick={() => elegirMetodo("tarjeta_credito")}
+                      motivo={motivoTarjeta}
+                      onClick={() => elegirMetodo("tarjeta")}
                     />
                     <Tile
                       icono={<Landmark aria-hidden="true" />}
@@ -567,20 +791,19 @@ export function CheckoutPos({
                       motivo={motivoTransferencia}
                       onClick={() => elegirMetodo("transferencia")}
                     />
+                    <Tile
+                      icono={<Banknote aria-hidden="true" />}
+                      titulo="Efectivo"
+                      activo={false}
+                      onClick={() => elegirMetodo("efectivo")}
+                    />
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="bg-pos-linea h-px flex-1" aria-hidden="true" />
                     <span className="text-pos-texto-suave text-xs">Otros métodos</span>
                     <span className="bg-pos-linea h-px flex-1" aria-hidden="true" />
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Tile
-                      icono={<Wallet aria-hidden="true" />}
-                      titulo="Tarjeta débito"
-                      activo={false}
-                      motivo={motivoDebito}
-                      onClick={() => elegirMetodo("tarjeta_debito")}
-                    />
+                  <div className="grid grid-cols-2 gap-2">
                     <Tile
                       icono={<Split aria-hidden="true" />}
                       titulo="Combinado"
@@ -650,7 +873,7 @@ export function CheckoutPos({
                     </div>
                   ) : null}
 
-                  {modo === "tarjeta_debito" || modo === "tarjeta_credito" || modo === "transferencia" ? (
+                  {modo === "tarjeta" || modo === "transferencia" ? (
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="flex flex-col gap-2">
                         <div className="flex flex-col gap-1">
@@ -673,6 +896,33 @@ export function CheckoutPos({
                             La suma de los pagos no puede exceder el total de la venta.
                           </p>
                         ) : null}
+                        {modo === "transferencia" ? (
+                          <div className="flex flex-col gap-2">
+                            <Label>Banco destino *</Label>
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                              {cuentasBanco.map((cuenta) => (
+                                <button
+                                  key={cuenta.id}
+                                  type="button"
+                                  aria-pressed={bancoTransferenciaId === cuenta.id}
+                                  onClick={() => setBancoTransferenciaId(cuenta.id)}
+                                  className={cn(
+                                    "flex items-center gap-2 rounded-lg border p-3 text-left text-sm font-medium transition-colors",
+                                    bancoTransferenciaId === cuenta.id
+                                      ? "border-pos-primario bg-pos-acento text-pos-acento-texto"
+                                      : "border-border hover:bg-muted",
+                                  )}
+                                >
+                                  <Landmark className="size-4 shrink-0" aria-hidden="true" />
+                                  {cuenta.nombre}
+                                </button>
+                              ))}
+                            </div>
+                            {bancoTransferenciaId === "" ? (
+                              <p className="text-destructive text-xs">Selecciona el banco destino.</p>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                       {camposCobro}
                     </div>
@@ -681,16 +931,16 @@ export function CheckoutPos({
                   {modo === "combinado" ? (
                     <div className="flex flex-col gap-2">
                       {filas.map((fila) => {
-                        const metodo = fila.metodo;
+                        const metodoVisible = metodoCombinadoVisible(fila.metodo);
                         const opciones = METODOS_COMBINADOS.filter(
-                          (candidato) => candidato === fila.metodo || metodoDisponible(candidato),
-                        ).map((candidato) => ({ value: candidato, label: ETIQUETAS_METODO[candidato] }));
+                          (candidato) => candidato === metodoVisible || metodoDisponible(candidato),
+                        ).map((candidato) => ({ value: candidato, label: ETIQUETAS_COMBINADO[candidato] }));
                         return (
                           <div key={fila.id} className="border-border flex flex-col gap-2 rounded-lg border p-2">
                             <div className="flex items-center gap-2">
                               <Select
                                 items={opciones}
-                                value={metodo}
+                                value={metodoVisible}
                                 onValueChange={(valor) => {
                                   if (!valor) return;
                                   setFilas((actuales) =>
@@ -698,8 +948,9 @@ export function CheckoutPos({
                                       actual.id === fila.id
                                         ? {
                                             ...actual,
-                                            metodo: valor,
+                                            metodo: valor === "tarjeta" ? metodoTarjetaBackend : valor,
                                             recibido: valor === "efectivo" ? actual.monto : "0.00",
+                                            cuenta_id: cuentaInicialDe(valor),
                                           }
                                         : actual,
                                     ),
@@ -724,7 +975,7 @@ export function CheckoutPos({
                                 <InputGroupInput
                                   value={fila.monto}
                                   inputMode="decimal"
-                                  aria-label={`Monto de ${ETIQUETAS_METODO[fila.metodo]}`}
+                                  aria-label={`Monto de ${ETIQUETAS_COMBINADO[metodoVisible]}`}
                                   onChange={(evento) =>
                                     setFilas((actuales) =>
                                       actuales.map((actual) =>
@@ -747,6 +998,44 @@ export function CheckoutPos({
                                 <Trash2 aria-hidden="true" />
                               </Button>
                             </div>
+
+                            {fila.metodo === "transferencia" ? (
+                              <div className="flex flex-col gap-1">
+                                <Label htmlFor={`banco-${fila.id}`} className="text-xs">
+                                  Banco destino *
+                                </Label>
+                                <Select
+                                  items={[
+                                    { value: NINGUNO, label: "Seleccionar banco" },
+                                    ...cuentasBanco.map((cuenta) => ({ value: cuenta.id, label: cuenta.nombre })),
+                                  ]}
+                                  value={fila.cuenta_id === "" ? NINGUNO : fila.cuenta_id}
+                                  onValueChange={(valor) => {
+                                    const cuentaId = !valor || valor === NINGUNO ? "" : valor;
+                                    setFilas((actuales) =>
+                                      actuales.map((actual) =>
+                                        actual.id === fila.id ? { ...actual, cuenta_id: cuentaId } : actual,
+                                      ),
+                                    );
+                                  }}
+                                >
+                                  <SelectTrigger id={`banco-${fila.id}`} className="h-10" aria-label="Banco destino">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent alignItemWithTrigger={false}>
+                                    <SelectItem value={NINGUNO}>Seleccionar banco</SelectItem>
+                                    {cuentasBanco.map((cuenta) => (
+                                      <SelectItem key={cuenta.id} value={cuenta.id}>
+                                        {cuenta.nombre}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {fila.cuenta_id === "" ? (
+                                  <p className="text-destructive text-xs">Selecciona el banco destino.</p>
+                                ) : null}
+                              </div>
+                            ) : null}
 
                             {fila.metodo === "efectivo" ? (
                               <div className="flex items-center gap-2">
@@ -786,7 +1075,7 @@ export function CheckoutPos({
                             ) : null}
 
                             <p className="text-muted-foreground text-xs">
-                              Cuenta: {nombreCuenta(cuentaDeMetodo(fila.metodo, terminal)) ?? "—"}
+                              Cuenta: {nombreCuenta(cuentaDeFila(fila, terminal, cuentaTarjetaId)) ?? "—"}
                             </p>
                           </div>
                         );
@@ -815,6 +1104,9 @@ export function CheckoutPos({
                       ) : null}
                       {filaCombinadaInvalida ? (
                         <p className="text-destructive text-xs">Completa cada fila con un monto mayor a cero.</p>
+                      ) : null}
+                      {bancoCombinadoPendiente ? (
+                        <p className="text-destructive text-xs">Selecciona el banco destino de cada transferencia.</p>
                       ) : null}
 
                       {camposCobro}
@@ -848,6 +1140,16 @@ export function CheckoutPos({
         </DialogContent>
       </Dialog>
 
+      {imprimiendoSoporte && ticketSoporte ? (
+        <ImpresionPos
+          titulo="venta-pendiente-de-guardar"
+          ancho={ticketSoporte.diseno.ancho_mm}
+          onCerrar={() => setImprimiendoSoporte(false)}
+        >
+          <TicketPos payload={ticketSoporte} />
+        </ImpresionPos>
+      ) : null}
+
       {aviso
         ? createPortal(
             <div
@@ -879,19 +1181,14 @@ export function CheckoutPos({
   );
 }
 
-function cuentaDeMetodo(
-  metodo: MetodoPOS,
-  terminal: {
-    cuenta_efectivo_id: string;
-    cuenta_tarjeta_debito_id: string | null;
-    cuenta_tarjeta_credito_id: string | null;
-    cuenta_transferencia_id: string | null;
-  },
+function cuentaDeFila(
+  fila: FilaCombinada,
+  terminal: { cuenta_efectivo_id: string },
+  cuentaTarjetaId: string | null,
 ): string | null {
-  if (metodo === "efectivo") return terminal.cuenta_efectivo_id;
-  if (metodo === "tarjeta_debito") return terminal.cuenta_tarjeta_debito_id;
-  if (metodo === "tarjeta_credito") return terminal.cuenta_tarjeta_credito_id;
-  return terminal.cuenta_transferencia_id;
+  if (fila.metodo === "efectivo") return terminal.cuenta_efectivo_id;
+  if (fila.metodo === "transferencia") return fila.cuenta_id === "" ? null : fila.cuenta_id;
+  return cuentaTarjetaId;
 }
 
 function CamposCobro({

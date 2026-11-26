@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "cn";
@@ -26,8 +25,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
+import { EnlacePos } from "./enlace-pos";
 import { EstadoTurnoPos } from "./estado-turno-pos";
 import { claseIconoMenu, itemMenuActivo, itemMenuBase, itemMenuColapsado } from "./menu-pos-estilos";
+import { usePosSpaOpcional } from "./pos-spa-provider";
 import { SalirPos } from "./salir-pos";
 import { SelectorTerminal } from "./selector-terminal";
 import { UsuarioPos } from "./usuario-pos";
@@ -195,6 +196,8 @@ function ContenidoMenuPos({
   onNavegar?: () => void;
 }) {
   const pathname = usePathname();
+  const spa = usePosSpaOpcional();
+  const rutaActiva = spa?.rutaActiva ?? pathname;
   const nombre = empresa.nombre?.trim() || "Punto de venta";
 
   return (
@@ -235,7 +238,7 @@ function ContenidoMenuPos({
             <ItemEnlace
               key={item.id}
               item={item}
-              activo={esActivo(pathname, item.href)}
+              activo={esActivo(rutaActiva, item.href)}
               expandido={expandido}
               onNavegar={onNavegar}
             />
@@ -274,23 +277,31 @@ function ItemEnlace({
   expandido: boolean;
   onNavegar?: () => void;
 }) {
+  const clase = cn(itemMenuBase, activo && itemMenuActivo, !expandido && itemMenuColapsado);
+  const contenido = (
+    <>
+      <IconoItem icono={item.icono} activo={activo} />
+      <span className={cn("min-w-0 flex-1 truncate", !expandido && "hidden")}>{item.etiqueta}</span>
+      {item.externo && expandido ? (
+        <ArrowUpRight className="dark:text-sidebar-foreground/50 size-4 shrink-0 text-slate-400" aria-hidden="true" />
+      ) : null}
+    </>
+  );
+
   return (
     <li>
-      <Link
+      <EnlacePos
         href={item.href}
+        externo={item.externo}
         target={item.externo ? "_blank" : undefined}
         rel={item.externo ? "noreferrer" : undefined}
         aria-current={activo ? "page" : undefined}
         title={item.etiqueta}
-        className={cn(itemMenuBase, activo && itemMenuActivo, !expandido && itemMenuColapsado)}
+        className={clase}
         onClick={onNavegar}
       >
-        <IconoItem icono={item.icono} activo={activo} />
-        <span className={cn("min-w-0 flex-1 truncate", !expandido && "hidden")}>{item.etiqueta}</span>
-        {item.externo && expandido ? (
-          <ArrowUpRight className="dark:text-sidebar-foreground/50 size-4 shrink-0 text-slate-400" aria-hidden="true" />
-        ) : null}
-      </Link>
+        {contenido}
+      </EnlacePos>
     </li>
   );
 }

@@ -8,11 +8,9 @@ import Link from "next/link";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { cn } from "cn";
 
-import { AvatarInicial } from "@/components/avatar-inicial";
 import { PanelLeftIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { SidebarContent, SidebarFooter, SidebarHeader, useSidebar } from "@/components/ui/sidebar";
-import { APP_CONFIG } from "@/config/app-config";
+import { SidebarContent, SidebarHeader, useSidebar } from "@/components/ui/sidebar";
 import type { Perfil } from "@/lib/auth/rol";
 import { filtrarItemsPorRol } from "@/navigation/sidebar/sidebar-items";
 
@@ -106,32 +104,6 @@ export function AppSidebar({ perfil, className }: AppSidebarProps) {
       <SidebarContent className="gap-2 px-3 pt-4 pb-2">
         <NavMain items={grupos} />
       </SidebarContent>
-      <SidebarFooter className="dark:border-sidebar-border mt-auto gap-1 border-t border-slate-200 p-2">
-        <div className="flex min-w-0 items-center gap-2 px-2 py-1">
-          <AvatarInicial nombre={perfil?.nombre} correo={perfil?.correo} size="sm" />
-          <div className="min-w-0">
-            <p className="dark:text-sidebar-foreground truncate text-sm leading-[21px] font-medium text-slate-700">
-              {perfil?.nombre?.trim() || perfil?.correo || "Sin sesión"}
-            </p>
-            {perfil?.nombre?.trim() ? (
-              <p className="dark:text-sidebar-foreground/60 truncate text-xs leading-4 text-slate-500">
-                {perfil.correo}
-              </p>
-            ) : null}
-          </div>
-        </div>
-        <div className="dark:text-sidebar-foreground/60 flex items-center justify-between px-2 text-xs leading-4 text-slate-500 group-data-[state=collapsed]:hidden">
-          <span>v{APP_CONFIG.version}</span>
-          <a
-            href="https://github.com/waldyalc/MEDOXIGAS-CONTABILIDAD/issues"
-            target="_blank"
-            rel="noreferrer"
-            className="dark:hover:text-sidebar-foreground hover:text-slate-900 hover:underline"
-          >
-            Soporte
-          </a>
-        </div>
-      </SidebarFooter>
     </>
   );
 
