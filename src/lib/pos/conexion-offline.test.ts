@@ -216,6 +216,85 @@ describe("estado de conexión del pie del POS", () => {
     );
     expect(sw, "Una ruta secundaria caída no puede romper toda la preparación").toContain("Promise.allSettled");
     expect(sw, "El logo de la empresa se guarda en ASSETS con su fallo aislado").toContain("guardarLogo");
+    expect(sw, "Los chunks referenciados dentro del payload RSC también deben entrar al caché").toContain(
+      String.raw`\/_next\/static\/[^\s"'<>\\]+?\.(?:js|css)/g`,
+    );
+  });
+
+  it("el aviso beforeunload protege cerrar la pestaña, pero se omite en navegación interna del POS", () => {
+    const offline = leer("src/app/(pos)/pos/_components/offline-pos-provider.tsx");
+    const carrito = leer("src/app/(pos)/pos/_components/carrito-pos-provider.tsx");
+    for (const [nombre, fuente] of [
+      ["offline-pos-provider.tsx", offline],
+      ["carrito-pos-provider.tsx", carrito],
+    ] as const) {
+      expect(fuente, `${nombre} debe importar el candado de navegación interna`).toContain(
+        'from "@/lib/pos/navegacion-interna"',
+      );
+      expect(fuente, `${nombre} debe omitir el popup solo en navegación interna`).toContain(
+        "if (esNavegacionInternaPos()) return;",
+      );
+      expect(fuente, `${nombre} debe seguir protegiendo el cierre de la pestaña`).toContain("evento.preventDefault();");
+      expect(fuente, `${nombre} debe conservar returnValue para el diálogo nativo`).toContain(
+        'evento.returnValue = "";',
+      );
+      expect(fuente.indexOf("if (esNavegacionInternaPos()) return;")).toBeLessThan(
+        fuente.indexOf("evento.preventDefault();"),
+      );
+    }
+  });
+
+  it("todos los enlaces internos del POS pasan por EnlacePos", () => {
+    const enlace = leer("src/app/(pos)/pos/_components/enlace-pos.tsx");
+    expect(enlace).toContain('"use client"');
+    expect(enlace).toContain('estado === "offline" && !externo');
+    expect(enlace).toContain("<a {...props} href={href} onClick={alHacerClick} />");
+    expect(enlace).toContain("<Link {...props} href={href} onClick={alHacerClick} />");
+    for (const modificador of [
+      "evento.metaKey",
+      "evento.ctrlKey",
+      "evento.shiftKey",
+      "evento.altKey",
+      "evento.button !== 0",
+    ]) {
+      expect(enlace, `EnlacePos debe respetar ${modificador} para abrir en otra pestaña`).toContain(modificador);
+    }
+    const marca = enlace.indexOf("marcarNavegacionInternaPos();");
+    const clickDelConsumidor = enlace.indexOf("onClick?.(evento)");
+    expect(marca).toBeGreaterThanOrEqual(0);
+    expect(clickDelConsumidor).toBeGreaterThanOrEqual(0);
+    expect(marca, "La marca tiene que existir antes de que el <a> dispare beforeunload").toBeLessThan(
+      clickDelConsumidor,
+    );
+
+    const archivos = [
+      "src/app/(pos)/pos/_components/menu-pos.tsx",
+      "src/app/(pos)/pos/_components/estado-turno-pos.tsx",
+      "src/app/(pos)/pos/_components/barra-superior-pos.tsx",
+      "src/app/(pos)/pos/_components/vender/barra-inferior-pos.tsx",
+      "src/app/(pos)/pos/_components/vender/mas-opciones-pos.tsx",
+      "src/app/(pos)/pos/_components/pagos/pagos-pos.tsx",
+    ];
+    for (const ruta of archivos) {
+      const fuente = leer(ruta);
+      expect(fuente, `${ruta} debe usar EnlacePos`).toContain("EnlacePos");
+      expect(fuente, `${ruta} no debe navegar internamente con Link crudo`).not.toContain('from "next/link"');
+    }
+  });
+
+  it("un 5xx temporal no destruye la copia offline cacheada del POS", () => {
+    const sw = leer("public/pos-sw.js");
+    const inicio = sw.indexOf("async function servirDocumento");
+    const fin = sw.indexOf("async function servirRecurso", inicio);
+    const bloque = sw.slice(inicio, fin);
+    expect(bloque).toContain("respuesta.status === 401");
+    expect(bloque).toContain("respuesta.status === 403");
+    expect(bloque).toContain('respuesta.redirected && destino === "/login"');
+    expect(bloque).toContain("if (!respuesta.ok) return guardada;");
+    expect(bloque, "La limpieza solo puede ocurrir cuando la sesión realmente venció").not.toContain(
+      "if (respuesta.redirected || !respuesta.ok)",
+    );
+    expect(bloque.indexOf("if (sesionVencida)")).toBeLessThan(bloque.indexOf("if (!respuesta.ok) return guardada;"));
   });
 
   it("el provider pide disco persistente y avisa cuando la sesión vence", () => {
