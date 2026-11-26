@@ -13,17 +13,21 @@ import {
 import { ejecutarSetPruebasSimulacion } from "./pruebas-simulacion";
 import type { DocumentoEcfInput, LineaEcfInput, TipoEcf } from "./tipos";
 import { TIPOS_ECF } from "./tipos";
+import { validarXmlContraEsquemaDgii } from "./validador-xsd";
 import {
+  calcularToleranciaGlobalDgii,
   escapeXml,
   esElegibleRfce,
   formatearFechaDgii,
   formatearFechaHoraDgii,
   formatearMontoDgii,
+  formatearPrecioDgii,
   generarXmlAcecf,
   generarXmlAnecf,
   generarXmlArecf,
   generarXmlEcf,
   generarXmlRfce,
+  TOLERANCIA_LINEA_DGII,
   validarDocumentoEcf,
 } from "./xml";
 import { X509Certificate } from "node:crypto";
@@ -674,5 +678,75 @@ describe("set de pruebas DGII simulado", () => {
         certificadoPem: par.certificadoPem,
       }),
     ).toThrow("clave privada y el certificado juntos");
+  });
+});
+
+describe("campos avanzados XSD nivel 2", () => {
+  it("emite descuentos, recargos, retenciones, propina legal, ajuste global y otra moneda en orden válido", () => {
+    const doc = documentoBase();
+    doc.lineas = [
+      lineaBase({
+        cantidad: 1,
+        precioUnitario: 123.4567,
+        descuento: 10,
+        subDescuentos: [{ tipo: "$", monto: 10 }],
+        recargo: 5,
+        subRecargos: [{ tipo: "$", monto: 5 }],
+        retencion: { indicadorAgenteRetencion: "1", montoItbisRetenido: 5, montoIsrRetenido: 10 },
+        montoItem: 118.4567,
+      }),
+    ];
+    doc.descuentosORecargos = [
+      {
+        numeroLinea: 1,
+        tipoAjuste: "D",
+        descripcion: "Descuento comercial global",
+        tipoValor: "$",
+        valor: 5,
+        monto: 5,
+        indicadorFacturacion: "1",
+      },
+    ];
+    doc.totales = {
+      ...doc.totales,
+      montoGravadoI1: 113.46,
+      totalItbis1: 20.42,
+      totalItbis: 20.42,
+      montoImpuestoAdicional: 11.35,
+      impuestosAdicionales: [{ tipoImpuesto: "001", otrosImpuestosAdicionales: 11.35 }],
+      montoTotal: 145.23,
+      totalItbisRetenido: 5,
+      totalIsrRetencion: 10,
+    };
+    doc.otraMoneda = {
+      tipoMoneda: "USD",
+      tipoCambio: 58.5,
+      montoGravadoTotalOtraMoneda: 1.94,
+      montoExentoOtraMoneda: 0,
+      totalItbisOtraMoneda: 0.35,
+      montoTotalOtraMoneda: 2.48,
+    };
+
+    const xml = generarXmlEcf(doc);
+    expect(xml).toContain("<PrecioUnitarioItem>123.4567</PrecioUnitarioItem>");
+    expect(xml.indexOf("<DescuentoMonto>10.00</DescuentoMonto>")).toBeLessThan(xml.indexOf("<TablaSubDescuento>"));
+    expect(xml.indexOf("<RecargoMonto>5.00</RecargoMonto>")).toBeLessThan(xml.indexOf("<TablaSubRecargo>"));
+    expect(xml).toContain("<TipoImpuesto>001</TipoImpuesto>");
+    expect(xml).toContain("<DescuentosORecargos>");
+    expect(xml).toContain("<TotalITBISRetenido>5.00</TotalITBISRetenido>");
+    expect(xml).toContain("<TotalISRRetencion>10.00</TotalISRRetencion>");
+    expect(xml).toContain("<TipoMoneda>USD</TipoMoneda>");
+    const xsd = validarXmlContraEsquemaDgii(xml, "ECF");
+    expect(xsd.errores).toEqual([]);
+    expect(xsd.valido).toBe(true);
+  });
+
+  it("formatea precios hasta cuatro decimales y expone tolerancias del Decreto 587-24", () => {
+    expect(formatearPrecioDgii(10)).toBe("10.00");
+    expect(formatearPrecioDgii(10.2)).toBe("10.20");
+    expect(formatearPrecioDgii(10.2345)).toBe("10.2345");
+    expect(formatearPrecioDgii(10.23)).toBe("10.23");
+    expect(TOLERANCIA_LINEA_DGII).toBe(1);
+    expect(calcularToleranciaGlobalDgii(5)).toBe(5);
   });
 });
