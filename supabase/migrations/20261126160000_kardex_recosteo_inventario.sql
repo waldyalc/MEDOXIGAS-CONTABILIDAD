@@ -2488,7 +2488,7 @@ begin
           order by cc.componente_id
         loop
           v_cantidad_componente := round(v_componente.cantidad * v_cantidad_base, 2);
-          select coalesce(sum(-mi.valor_movimiento), 0)
+          select sum(-mi.valor_movimiento)
           into v_valor_exacto
           from public.movimientos_inventario mi
           where mi.origen_tipo = 'factura'
@@ -2497,7 +2497,7 @@ begin
             and mi.tipo = 'salida'
             and not mi.es_recosteo;
 
-          if v_valor_exacto = 0 then
+          if v_valor_exacto is null then
             select round(coalesce(nullif(pr.costo_promedio, 0), pr.costo, 0), 6)
             into v_costo_referencia
             from public.productos pr
@@ -2513,7 +2513,7 @@ begin
           );
         end loop;
       elsif v_producto_inventariable then
-        select coalesce(sum(-mi.valor_movimiento), 0)
+        select sum(-mi.valor_movimiento)
         into v_valor_exacto
         from public.movimientos_inventario mi
         where mi.origen_tipo = 'factura'
@@ -2522,7 +2522,7 @@ begin
           and mi.tipo = 'salida'
           and not mi.es_recosteo;
 
-        if v_valor_exacto = 0 then
+        if v_valor_exacto is null then
           v_valor_exacto := round(v_linea_resumen.costo_estimado, 2);
         end if;
 
@@ -2590,7 +2590,7 @@ begin
             order by cc.componente_id
           loop
             v_cantidad_componente := round(v_componente.cantidad * v_cantidad_base, 2);
-            select coalesce(sum(mi.valor_movimiento), 0)
+            select sum(mi.valor_movimiento)
             into v_valor_exacto
             from public.movimientos_inventario mi
             where mi.origen_tipo = 'nota_credito_venta'
@@ -2599,7 +2599,7 @@ begin
               and mi.tipo = 'entrada'
               and not mi.es_recosteo;
 
-            if v_valor_exacto = 0 then
+            if v_valor_exacto is null then
               select round(coalesce(nullif(pr.costo_promedio, 0), pr.costo, 0), 6)
               into v_costo_referencia
               from public.productos pr
@@ -2615,7 +2615,7 @@ begin
             );
           end loop;
         elsif v_producto_inventariable then
-          select coalesce(sum(mi.valor_movimiento), 0)
+          select sum(mi.valor_movimiento)
           into v_valor_exacto
           from public.movimientos_inventario mi
           where mi.origen_tipo = 'nota_credito_venta'
@@ -2624,7 +2624,7 @@ begin
             and mi.tipo = 'entrada'
             and not mi.es_recosteo;
 
-          if v_valor_exacto = 0 then
+          if v_valor_exacto is null then
             v_valor_exacto := round(v_linea_resumen.costo_estimado, 2);
           end if;
 
@@ -2753,7 +2753,7 @@ begin
         continue;
       end if;
 
-      select coalesce(sum(mi.valor_movimiento), 0)
+      select sum(mi.valor_movimiento)
       into v_valor_exacto
       from public.movimientos_inventario mi
       where mi.origen_tipo = 'factura_proveedor'
@@ -2762,7 +2762,7 @@ begin
         and mi.tipo = 'entrada'
         and not mi.es_recosteo;
 
-      if v_valor_exacto = 0 then
+      if v_valor_exacto is null then
         v_valor_exacto := round(v_linea_resumen.valor_original, 2);
       end if;
 
@@ -3151,7 +3151,7 @@ begin
         group by nl.producto_id
         order by nl.producto_id
       loop
-        select coalesce(sum(-mi.valor_movimiento), 0)
+        select sum(-mi.valor_movimiento)
         into v_cantidad_actual
         from public.movimientos_inventario mi
         where mi.origen_tipo = 'nota_credito_compra'
@@ -3160,7 +3160,7 @@ begin
           and mi.tipo = 'salida'
           and not mi.es_recosteo;
 
-        if v_cantidad_actual = 0 then
+        if v_cantidad_actual is null then
           v_cantidad_actual := round(v_costo_linea, 2);
         end if;
 
@@ -3260,6 +3260,234 @@ $function$;
 
 revoke all on function public._anular_documento_base(text, uuid) from public, anon, authenticated;
 
+-- ---------------------------------------------------------------------------
+-- Transferencias: no cambian el valor global ni generan asiento, pero sí son
+-- parte del Kardex por almacén. Se registran dos filas de valor 0.00.
+-- ---------------------------------------------------------------------------
+
+create or replace function public._registrar_transferencia_inventario(
+  p_fecha date,
+  p_producto_id uuid,
+  p_almacen_origen_id uuid,
+  p_almacen_destino_id uuid,
+  p_cantidad numeric,
+  p_origen_tipo text,
+  p_documento_id uuid,
+  p_descripcion text
+)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_producto public.productos%rowtype;
+  q_actual numeric(14,2);
+  v_actual numeric(14,2);
+  c_ref numeric(16,6);
+begin
+  select * into v_producto
+  from public.productos pr
+  where pr.id = p_producto_id;
+
+  if not found or not v_producto.inventariable then
+    return;
+  end if;
+
+  q_actual := round(coalesce(v_producto.cantidad, 0), 2);
+  v_actual := round(coalesce(v_producto.valor_inventario, 0), 2);
+  c_ref := round(coalesce(nullif(v_producto.costo_promedio, 0), v_producto.costo, 0), 6);
+
+  perform public._registrar_movimiento_inventario(
+    p_fecha, p_producto_id, p_almacen_origen_id, 'salida', p_origen_tipo, p_documento_id,
+    null, null, p_descripcion, -p_cantidad, q_actual, q_actual,
+    c_ref, c_ref, c_ref, 0, v_actual, v_actual, false
+  );
+
+  perform public._registrar_movimiento_inventario(
+    p_fecha, p_producto_id, p_almacen_destino_id, 'entrada', p_origen_tipo, p_documento_id,
+    null, null, p_descripcion, p_cantidad, q_actual, q_actual,
+    c_ref, c_ref, c_ref, 0, v_actual, v_actual, false
+  );
+end;
+$$;
+
+revoke all on function public._registrar_transferencia_inventario(date, uuid, uuid, uuid, numeric, text, uuid, text)
+  from public, anon, authenticated;
+
+create or replace function public.crear_transferencia_inventario(p jsonb)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_rol text;
+  v_id uuid;
+  v_fecha date;
+  v_origen uuid;
+  v_destino uuid;
+  v_observaciones text;
+  v_lineas jsonb;
+  v_linea jsonb;
+  v_producto public.productos%rowtype;
+  v_producto_id uuid;
+  v_cantidad numeric(14,2);
+  v_disponible numeric(14,2);
+begin
+  v_rol := public.rol_actual();
+  if v_rol is null or v_rol not in ('admin', 'contador') then
+    raise exception 'sin permiso' using errcode = '42501';
+  end if;
+
+  if p is null then
+    raise exception 'datos de la transferencia requeridos' using errcode = '22023';
+  end if;
+
+  v_origen := nullif(p->>'origen_id', '')::uuid;
+  v_destino := nullif(p->>'destino_id', '')::uuid;
+
+  if v_origen is null or v_destino is null then
+    raise exception 'selecciona el almacén de origen y el de destino' using errcode = '22023';
+  end if;
+  if v_origen = v_destino then
+    raise exception 'el almacén de origen y destino deben ser distintos' using errcode = '22023';
+  end if;
+
+  if not exists (select 1 from public.almacenes a where a.id = v_origen and a.activo) then
+    raise exception 'almacén de origen no encontrado o inactivo' using errcode = '22023';
+  end if;
+  if not exists (select 1 from public.almacenes a where a.id = v_destino and a.activo) then
+    raise exception 'almacén de destino no encontrado o inactivo' using errcode = '22023';
+  end if;
+
+  v_fecha := coalesce((p->>'fecha')::date, current_date);
+  v_observaciones := nullif(trim(coalesce(p->>'observaciones', '')), '');
+
+  v_lineas := coalesce(p->'lineas', '[]'::jsonb);
+  if jsonb_typeof(v_lineas) <> 'array' or jsonb_array_length(v_lineas) = 0 then
+    raise exception 'la transferencia requiere al menos un producto' using errcode = '22023';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(v_lineas) e
+    group by e->>'producto_id'
+    having count(*) > 1
+  ) then
+    raise exception 'no repitas el mismo producto en la transferencia' using errcode = '22023';
+  end if;
+
+  insert into public.transferencias_inventario (fecha, origen_id, destino_id, observaciones)
+  values (v_fecha, v_origen, v_destino, v_observaciones)
+  returning id into v_id;
+
+  for v_linea in select * from jsonb_array_elements(v_lineas) loop
+    v_producto_id := nullif(v_linea->>'producto_id', '')::uuid;
+    if v_producto_id is null then
+      raise exception 'cada línea requiere un producto' using errcode = '22023';
+    end if;
+
+    select * into v_producto
+    from public.productos pr
+    where pr.id = v_producto_id and pr.activo;
+
+    if not found then
+      raise exception 'producto no encontrado o inactivo' using errcode = '22023';
+    end if;
+    if not v_producto.inventariable then
+      raise exception 'el producto % no controla inventario', v_producto.nombre using errcode = '22023';
+    end if;
+
+    v_cantidad := round(coalesce((v_linea->>'cantidad')::numeric, 0), 2);
+    if v_cantidad <= 0 then
+      raise exception 'la cantidad a transferir debe ser mayor a cero' using errcode = '22023';
+    end if;
+
+    select e.cantidad into v_disponible
+    from public.existencias e
+    where e.producto_id = v_producto_id and e.almacen_id = v_origen
+    for update;
+
+    if coalesce(v_disponible, 0) < v_cantidad then
+      raise exception 'no hay existencia suficiente de % en el almacén de origen', v_producto.nombre
+        using errcode = '22023';
+    end if;
+
+    insert into public.transferencia_inventario_lineas (transferencia_id, producto_id, cantidad)
+    values (v_id, v_producto_id, v_cantidad);
+
+    perform public._sumar_existencia(v_producto_id, v_origen, -v_cantidad);
+    perform public._sumar_existencia(v_producto_id, v_destino, v_cantidad);
+    perform public._registrar_transferencia_inventario(
+      v_fecha, v_producto_id, v_origen, v_destino, v_cantidad,
+      'transferencia_inventario', v_id,
+      'Transferencia #' || (select t.numero from public.transferencias_inventario t where t.id = v_id)::text
+    );
+  end loop;
+
+  return v_id;
+end;
+$$;;
+
+revoke all on function public.crear_transferencia_inventario(jsonb) from public, anon, authenticated;
+grant execute on function public.crear_transferencia_inventario(jsonb) to authenticated;
+
+create or replace function public.anular_transferencia_inventario(p_id uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_rol text;
+  v_transferencia public.transferencias_inventario%rowtype;
+  v_linea public.transferencia_inventario_lineas%rowtype;
+begin
+  v_rol := public.rol_actual();
+  if v_rol is null or v_rol not in ('admin', 'contador') then
+    raise exception 'sin permiso' using errcode = '42501';
+  end if;
+
+  if p_id is null then
+    raise exception 'la transferencia es obligatoria' using errcode = '22023';
+  end if;
+
+  select * into v_transferencia
+  from public.transferencias_inventario t
+  where t.id = p_id
+  for update;
+
+  if not found then
+    raise exception 'transferencia no encontrada' using errcode = '22023';
+  end if;
+  if v_transferencia.estado = 'anulada' then
+    raise exception 'la transferencia ya está anulada' using errcode = '22023';
+  end if;
+
+  for v_linea in
+    select * from public.transferencia_inventario_lineas tl
+    where tl.transferencia_id = p_id
+    order by tl.id
+  loop
+    perform public._sumar_existencia(v_linea.producto_id, v_transferencia.destino_id, -v_linea.cantidad);
+    perform public._sumar_existencia(v_linea.producto_id, v_transferencia.origen_id, v_linea.cantidad);
+    perform public._registrar_transferencia_inventario(
+      v_transferencia.fecha, v_linea.producto_id, v_transferencia.destino_id, v_transferencia.origen_id,
+      v_linea.cantidad, 'anulacion', p_id,
+      'Anulación transferencia #' || v_transferencia.numero::text
+    );
+  end loop;
+
+  update public.transferencias_inventario set estado = 'anulada' where id = p_id;
+
+  return p_id;
+end;
+$$;;
+
+revoke all on function public.anular_transferencia_inventario(uuid) from public, anon, authenticated;
+grant execute on function public.anular_transferencia_inventario(uuid) to authenticated;
+
 -- Productos: inventario inicial visible en Kardex
 CREATE OR REPLACE FUNCTION public.crear_producto(p jsonb)
  RETURNS uuid
@@ -3323,9 +3551,14 @@ declare
   v_id uuid;
   v_producto public.productos%rowtype;
   v_asiento public.asientos%rowtype;
-  v_movimiento_id uuid;
   v_cantidad_inicial numeric(14,2);
   v_valor numeric(14,2);
+  v_q_mov numeric(14,2);
+  v_v_mov numeric(14,2);
+  v_q_objetivo numeric(14,2);
+  v_v_objetivo numeric(14,2);
+  v_delta_q numeric(14,2);
+  v_delta_v numeric(14,2);
 begin
   v_id := public._actualizar_producto_con_inventario_inicial(p_id, p);
   perform public._producto_guardar_ferreteria(v_id, p, false);
@@ -3335,6 +3568,13 @@ begin
   where pr.id = v_id;
 
   if not found or not v_producto.inventariable then
+    return v_id;
+  end if;
+
+  -- Una edición normal (nombre, precio, cuentas, unidades) no recalcula la
+  -- valoración acumulada. Solo cantidad/costo son la edición especial de la
+  -- carga inicial que la migración de inventario inicial ya contabiliza.
+  if not (p ? 'cantidad' or p ? 'costo') then
     return v_id;
   end if;
 
@@ -3364,32 +3604,37 @@ begin
     where e.producto_id = v_id
       and e.almacen_id = v_producto.almacen_id;
 
-    select mi.id into v_movimiento_id
+    -- El Kardex es append-only incluso cuando la edición corrige la carga
+    -- inicial: nunca se reescribe la fila original; se agrega el delta.
+    v_q_objetivo := round(coalesce(v_cantidad_inicial, v_producto.cantidad), 2);
+    v_v_objetivo := round(v_q_objetivo * coalesce(v_producto.costo, 0), 2);
+
+    select
+      round(coalesce(sum(mi.cantidad), 0), 2),
+      round(coalesce(sum(mi.valor_movimiento), 0), 2)
+    into v_q_mov, v_v_mov
     from public.movimientos_inventario mi
     where mi.origen_tipo = 'inventario_inicial'
-      and mi.origen_id = v_id
-    order by mi.creado_en, mi.id
-    limit 1;
+      and mi.origen_id = v_id;
 
-    if v_movimiento_id is not null then
-      update public.movimientos_inventario mi
-      set fecha = v_asiento.fecha,
-          asiento_id = v_asiento.id,
-          cantidad = coalesce(v_cantidad_inicial, v_producto.cantidad),
-          cantidad_despues = coalesce(v_cantidad_inicial, v_producto.cantidad),
-          costo_unitario = round(coalesce(v_producto.costo, 0), 6),
-          costo_promedio_despues = round(coalesce(v_producto.costo, 0), 6),
-          valor_movimiento = round(coalesce(v_cantidad_inicial, v_producto.cantidad) * coalesce(v_producto.costo, 0), 2),
-          valor_despues = round(coalesce(v_cantidad_inicial, v_producto.cantidad) * coalesce(v_producto.costo, 0), 2)
-      where mi.id = v_movimiento_id;
-    elsif coalesce(v_cantidad_inicial, v_producto.cantidad) <> 0 then
+    v_delta_q := round(v_q_objetivo - coalesce(v_q_mov, 0), 2);
+    v_delta_v := round(v_v_objetivo - coalesce(v_v_mov, 0), 2);
+
+    if v_delta_q <> 0 or v_delta_v <> 0 then
       perform public._registrar_movimiento_inventario(
-        v_asiento.fecha, v_id, v_producto.almacen_id, 'entrada', 'inventario_inicial', v_id,
-        v_asiento.id, null, 'Inventario inicial: ' || left(v_producto.nombre, 70),
-        coalesce(v_cantidad_inicial, v_producto.cantidad), 0, coalesce(v_cantidad_inicial, v_producto.cantidad),
-        round(coalesce(v_producto.costo, 0), 6), 0, round(coalesce(v_producto.costo, 0), 6),
-        round(coalesce(v_cantidad_inicial, v_producto.cantidad) * coalesce(v_producto.costo, 0), 2),
-        0, round(coalesce(v_cantidad_inicial, v_producto.cantidad) * coalesce(v_producto.costo, 0), 2), false
+        v_asiento.fecha, v_id, v_producto.almacen_id,
+        case
+          when v_delta_q < 0 then 'salida'
+          when v_delta_q = 0 then 'recosteo'
+          else 'entrada'
+        end,
+        'inventario_inicial', v_id,
+        v_asiento.id, null, 'Corrección inventario inicial: ' || left(v_producto.nombre, 60),
+        v_delta_q, v_producto.cantidad - v_delta_q, v_producto.cantidad,
+        case when v_delta_q <> 0 then round(v_delta_v / v_delta_q, 6) else 0 end,
+        round(coalesce(v_producto.costo, 0), 6), round(coalesce(v_producto.costo, 0), 6),
+        v_delta_v, round(v_valor - v_delta_v, 2), v_valor,
+        v_delta_q = 0 and v_delta_v <> 0
       );
     end if;
   end if;
@@ -3536,6 +3781,7 @@ as $$
   left join ultimo u on u.producto_id = pr.id
   left join primero_posterior fp on fp.producto_id = pr.id
   where pr.inventariable
+    and pr.creado_en::date <= coalesce(p_fecha, current_date)
   order by pr.nombre, pr.id;
 $$;
 
@@ -3623,22 +3869,28 @@ as $$
   ),
   negativos as (
     select
-      count(*)::int as total,
-      coalesce(jsonb_agg(jsonb_build_object(
-        'id', x.id,
-        'nombre', x.nombre,
-        'referencia', x.referencia,
-        'cantidad', x.cantidad,
-        'costo', x.costo,
-        'valor_inventario', x.valor_inventario
-      ) order by x.cantidad), '[]'::jsonb) as items
-    from (
-      select pr.id, pr.nombre, pr.referencia, pr.cantidad, pr.costo, pr.valor_inventario
-      from public.productos pr
-      where pr.inventariable and pr.cantidad < 0
-      order by pr.cantidad, pr.nombre
-      limit 20
-    ) x
+      (
+        select count(*)::int
+        from public.productos pr
+        where pr.inventariable and pr.cantidad < 0
+      ) as total,
+      coalesce((
+        select jsonb_agg(jsonb_build_object(
+          'id', x.id,
+          'nombre', x.nombre,
+          'referencia', x.referencia,
+          'cantidad', x.cantidad,
+          'costo', x.costo,
+          'valor_inventario', x.valor_inventario
+        ) order by x.cantidad)
+        from (
+          select pr.id, pr.nombre, pr.referencia, pr.cantidad, pr.costo, pr.valor_inventario
+          from public.productos pr
+          where pr.inventariable and pr.cantidad < 0
+          order by pr.cantidad, pr.nombre
+          limit 20
+        ) x
+      ), '[]'::jsonb) as items
   ),
   costo_cero as (
     select count(*)::int as total
