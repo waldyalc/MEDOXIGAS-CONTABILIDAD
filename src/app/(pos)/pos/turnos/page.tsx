@@ -4,6 +4,7 @@ import { leerPagina, leerTamano, leerTexto, type ResultadoPagina, resumirPagina 
 import { getResumenTurno } from "@/lib/pos/consultas";
 import type { ResumenTurnoVista, TurnoPOS } from "@/lib/pos/tipos";
 
+import { HidratadorSnapshotPos } from "../_components/pos-spa-shell";
 import {
   type CuentaPOS,
   getCierresPOS,
@@ -56,29 +57,34 @@ export default async function Page({
     error = error ?? "No se pudo cargar el turno. Revisa tu conexión e inténtalo de nuevo.";
   }
 
+  const props = {
+    terminal: {
+      id: terminal.id,
+      nombre: terminal.nombre,
+      cuenta_efectivo_id: terminal.cuenta_efectivo_id,
+      plantilla_ticket: terminal.plantilla_ticket,
+    },
+    vistaInicial: vista,
+    turnoAbierto: contexto.turno !== null,
+    cuentas,
+    cierres: cierres.filas,
+    resumenPagina: cierres.resumen,
+    terminales: terminales.map((candidata) => ({
+      id: candidata.id,
+      nombre: candidata.nombre,
+      cuenta_tarjeta_debito_id: candidata.cuenta_tarjeta_debito_id,
+      cuenta_tarjeta_credito_id: candidata.cuenta_tarjeta_credito_id,
+    })),
+    todas,
+    params,
+    puedeEscribir: contexto.perfil.rol !== "lector",
+    error,
+  };
+
   return (
-    <TurnosPos
-      terminal={{
-        id: terminal.id,
-        nombre: terminal.nombre,
-        cuenta_efectivo_id: terminal.cuenta_efectivo_id,
-        plantilla_ticket: terminal.plantilla_ticket,
-      }}
-      vistaInicial={vista}
-      turnoAbierto={contexto.turno !== null}
-      cuentas={cuentas}
-      cierres={cierres.filas}
-      resumenPagina={cierres.resumen}
-      terminales={terminales.map((candidata) => ({
-        id: candidata.id,
-        nombre: candidata.nombre,
-        cuenta_tarjeta_debito_id: candidata.cuenta_tarjeta_debito_id,
-        cuenta_tarjeta_credito_id: candidata.cuenta_tarjeta_credito_id,
-      }))}
-      todas={todas}
-      params={params}
-      puedeEscribir={contexto.perfil.rol !== "lector"}
-      error={error}
-    />
+    <>
+      <HidratadorSnapshotPos vista="turnos" datos={{ ...props, actualizadoEn: Date.now() }} />
+      <TurnosPos {...props} />
+    </>
   );
 }

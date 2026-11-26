@@ -8,6 +8,7 @@ import type { HistorialPOSFila } from "@/lib/pos/tipos";
 
 import { hoyRD, primerDiaMesRD } from "../_components/formato-pos";
 import { HistorialPos } from "../_components/historial/historial-pos";
+import { HidratadorSnapshotPos } from "../_components/pos-spa-shell";
 import { getContextoPOS, getTerminalesSeguro } from "../_components/servidor";
 
 const ESTADOS = new Set(["pagada", "abierta", "anulada"]);
@@ -61,20 +62,25 @@ export default async function Page({
     error = "No se pudo cargar el historial. Revisa tu conexión e inténtalo de nuevo.";
   }
 
+  const props = {
+    filas: historial.filas,
+    resumen: historial.resumen,
+    params,
+    terminales: terminales.map((candidata) => ({ id: candidata.id, nombre: candidata.nombre })),
+    desde,
+    hasta,
+    empresa,
+    plantillaTicket: terminal.plantilla_ticket,
+    plantillaFactura,
+    puedeEscribir: contexto.perfil.rol !== "lector",
+    hayFiltros: Boolean(q || estadoTexto || terminalParam || desdeParam || hastaParam || limpio),
+    error,
+  };
+
   return (
-    <HistorialPos
-      filas={historial.filas}
-      resumen={historial.resumen}
-      params={params}
-      terminales={terminales.map((candidata) => ({ id: candidata.id, nombre: candidata.nombre }))}
-      desde={desde}
-      hasta={hasta}
-      empresa={empresa}
-      plantillaTicket={terminal.plantilla_ticket}
-      plantillaFactura={plantillaFactura}
-      puedeEscribir={contexto.perfil.rol !== "lector"}
-      hayFiltros={Boolean(q || estadoTexto || terminalParam || desdeParam || hastaParam || limpio)}
-      error={error}
-    />
+    <>
+      <HidratadorSnapshotPos vista="historial" datos={{ ...props, actualizadoEn: Date.now() }} />
+      <HistorialPos {...props} />
+    </>
   );
 }
