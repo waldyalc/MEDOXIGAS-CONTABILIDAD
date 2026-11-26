@@ -4,6 +4,7 @@ import {
   TablerCalculator,
   TablerCompras,
   TablerHome,
+  TablerInbox,
   TablerIngresos,
   TablerNomina,
   TablerPackage,
@@ -26,6 +27,7 @@ export interface NavSubItem {
   badge?: NavBadge;
   disabled?: boolean;
   newTab?: boolean;
+  roles?: Rol[];
 }
 
 interface NavItemBase {
@@ -158,6 +160,13 @@ export const sidebarItems: NavGroup[] = [
             title: "Órdenes de compra",
             url: "/dashboard/ordenes-compra",
             addUrl: "/dashboard/ordenes-compra/nueva",
+          },
+          {
+            id: "recepcion-ecf",
+            title: "Recepción e-CF",
+            url: "/dashboard/compras/recepcion-ecf",
+            icon: TablerInbox,
+            roles: ["admin", "contador"],
           },
         ],
       },
@@ -340,6 +349,17 @@ export function filtrarItemsPorRol(rol: Rol | null): NavGroup[] {
   if (rol == null) return [];
 
   return sidebarItems
-    .map((grupo) => ({ ...grupo, items: grupo.items.filter((item) => item.roles.includes(rol)) }))
+    .map((grupo) => ({
+      ...grupo,
+      items: grupo.items
+        .filter((item) => item.roles.includes(rol))
+        .map((item) => {
+          if (item.subItems == null) return item;
+          return {
+            ...item,
+            subItems: item.subItems.filter((subItem) => subItem.roles == null || subItem.roles.includes(rol)),
+          };
+        }),
+    }))
     .filter((grupo) => grupo.items.length > 0);
 }
