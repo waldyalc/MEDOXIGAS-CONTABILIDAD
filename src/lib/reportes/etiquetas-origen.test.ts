@@ -44,6 +44,7 @@ describe("etiquetas de origen de asientos", () => {
     expect(origenes).toContain("pos_diferencia");
     expect(origenes).toContain("nomina");
     expect(origenes).toContain("pago_nomina");
+    expect(origenes).toContain("recosteo_inventario");
   });
 
   test("todo origen del CHECK tiene etiqueta en español", () => {

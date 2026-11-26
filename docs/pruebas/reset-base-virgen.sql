@@ -150,6 +150,7 @@ truncate table
   public.facturas_proveedor_lineas,
   public.facturas_recurrentes,
   public.gastos_menores,
+  public.movimientos_inventario,
   public.nomina_periodos,
   public.nomina_recibo_lineas,
   public.nomina_recibos,
@@ -516,6 +517,7 @@ begin
     'facturas_proveedor_lineas',
     'facturas_recurrentes',
     'gastos_menores',
+    'movimientos_inventario',
     'nomina_periodos',
     'nomina_recibo_lineas',
     'nomina_recibos',
@@ -648,6 +650,7 @@ from (
   union all select 'facturas_proveedor_lineas', count(*) from public.facturas_proveedor_lineas
   union all select 'facturas_recurrentes', count(*) from public.facturas_recurrentes
   union all select 'gastos_menores', count(*) from public.gastos_menores
+  union all select 'movimientos_inventario', count(*) from public.movimientos_inventario
   union all select 'nomina_periodos', count(*) from public.nomina_periodos
   union all select 'nomina_recibo_lineas', count(*) from public.nomina_recibo_lineas
   union all select 'nomina_recibos', count(*) from public.nomina_recibos

@@ -22,6 +22,7 @@ export const ETIQUETAS_ORIGEN: Record<string, string> = {
   pos_diferencia: "Diferencia de cierre POS",
   nomina: "Nómina",
   pago_nomina: "Pago de nómina",
+  recosteo_inventario: "Recosteo de inventario",
 };
 
 export interface LineaLibroDiario {

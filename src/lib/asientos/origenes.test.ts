@@ -17,6 +17,7 @@ describe("etiquetaOrigen", () => {
     expect(etiquetaOrigen("nomina")).toBe("Nómina");
     expect(etiquetaOrigen("pago_nomina")).toBe("Pago de nómina");
     expect(etiquetaOrigen("nota_credito_venta")).toBe("Nota de crédito");
+    expect(etiquetaOrigen("recosteo_inventario")).toBe("Recosteo de inventario");
   });
 
   test("conserva la clave cruda si la base trae un origen desconocido", () => {
@@ -48,7 +49,7 @@ describe("mapa de etiquetas compartido", () => {
     expect(fuente).toContain("ajuste_inventario: rutaAjusteInventario");
   });
 
-  test("el mapa declara los 20 orígenes del CHECK de la base", () => {
-    expect(Object.keys(ETIQUETAS_DOCUMENTO)).toHaveLength(20);
+  test("el mapa declara los 21 orígenes del CHECK de la base", () => {
+    expect(Object.keys(ETIQUETAS_DOCUMENTO)).toHaveLength(21);
   });
 });
