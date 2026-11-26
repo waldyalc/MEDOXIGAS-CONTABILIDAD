@@ -66,14 +66,21 @@ describe("pasos de habilitación e-CF", () => {
     expect(CHECKLIST_MIGRACION_ALEGRA[4]?.descripcion).toContain("último + 1");
   });
 
-  it("calcula las 4 URLs de servicios sin doble slash final", () => {
+  it("calcula las 4 URLs de servicios sin doble slash final y con soporte multi-RNC", () => {
     const urls = urlsServiciosEcf("https://ejemplo.test/");
     expect(urls).toHaveLength(4);
     expect(urls.map((servicio) => servicio.url)).toEqual([
       "https://ejemplo.test/api/ecf/fe/autenticacion/api/semilla",
-      "https://ejemplo.test/api/ecf/fe/autenticacion/api/validarcertificado",
+      "https://ejemplo.test/api/ecf/fe/autenticacion/api/validacioncertificado",
       "https://ejemplo.test/api/ecf/fe/recepcion/api/ecf",
       "https://ejemplo.test/api/ecf/fe/aprobacioncomercial/api/ecf",
+    ]);
+    const urlsRnc = urlsServiciosEcf("https://app.medoxigas.com/", "131-99999-9");
+    expect(urlsRnc.map((servicio) => servicio.url)).toEqual([
+      "https://app.medoxigas.com/api/ecf/131999999/fe/autenticacion/api/semilla",
+      "https://app.medoxigas.com/api/ecf/131999999/fe/autenticacion/api/validacioncertificado",
+      "https://app.medoxigas.com/api/ecf/131999999/fe/recepcion/api/ecf",
+      "https://app.medoxigas.com/api/ecf/131999999/fe/aprobacioncomercial/api/ecf",
     ]);
   });
 
@@ -123,9 +130,10 @@ describe("candados estructurales del portal e-CF", () => {
     expect(PAGINA).toContain('.eq("activa", true)');
   });
 
-  it("el portal deja el handler del motor sin tocar src/lib/ecf", () => {
-    expect(PORTAL).toContain("onEjecutarPruebas?: () => void | Promise<void>");
+  it("el portal ejecuta el motor solo vía Server Action sin importar node:crypto en cliente", () => {
+    expect(PORTAL).toContain("ejecutarSimulacionEcfAction");
     expect(PORTAL).not.toContain("@/lib/ecf");
+    expect(PORTAL).not.toContain("node:crypto");
   });
 
   it("protege certificado, contraseña y secretos en el cliente", () => {

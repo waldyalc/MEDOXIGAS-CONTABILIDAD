@@ -36,6 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
+import { ejecutarSimulacionEcfAction, type ResumenSimulacionSerializado } from "../actions";
 import {
   type AmbienteEcf,
   CASOS_PRUEBA_DGII,
@@ -390,29 +391,135 @@ function PasoCertificado({
   );
 }
 
+function BadgeEstadoCaso({ estado }: { estado?: "aprobado" | "fallido" }) {
+  if (estado === "aprobado") {
+    return <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">Aprobado</Badge>;
+  }
+  if (estado === "fallido") {
+    return <Badge variant="destructive">Fallido</Badge>;
+  }
+  return (
+    <Badge variant="outline" className="text-muted-foreground">
+      Pendiente
+    </Badge>
+  );
+}
+
+function InspectorCasoSimulacion({
+  casoActual,
+  verRfce,
+  onVerRfce,
+}: {
+  casoActual: ResumenSimulacionSerializado["casos"][number] | null;
+  verRfce: boolean;
+  onVerRfce: (valor: boolean) => void;
+}) {
+  const tieneRfce = Boolean(casoActual?.xmlRfce);
+  const xmlVisible =
+    tieneRfce && verRfce
+      ? (casoActual?.xmlRfce ?? "")
+      : (casoActual?.xmlFirmado ?? "<ECF>\n  <!-- Ejecuta el set para generar y firmar los 9 XML reales -->\n</ECF>");
+
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <CardTitle>
+              {casoActual
+                ? `Caso ${casoActual.numeroCaso}: ${casoActual.nombre}`
+                : "Inspector de XML firmado y Código QR"}
+            </CardTitle>
+            <CardDescription>
+              {casoActual
+                ? "Haz clic en cualquier fila de la tabla para inspeccionar su XMLDSig, DigestValue y URL QR oficial."
+                : "Al ejecutar el set verás el e-NCF, código de seguridad, DigestValue, QR y XML firmado real de cada caso."}
+            </CardDescription>
+          </div>
+          {tieneRfce ? (
+            <div className="bg-muted flex gap-1 rounded-lg p-1">
+              <OpcionSegmentada activa={!verRfce} onClick={() => onVerRfce(false)}>
+                XML e-CF
+              </OpcionSegmentada>
+              <OpcionSegmentada activa={verRfce} onClick={() => onVerRfce(true)}>
+                XML RFCE (&lt;250k)
+              </OpcionSegmentada>
+            </div>
+          ) : null}
+        </div>
+      </CardHeader>
+      <CardContent className="grid gap-4 xl:grid-cols-[1fr_1.35fr]">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+          <div className="rounded-lg border p-3">
+            <p className="text-muted-foreground text-xs">e-NCF</p>
+            <p className="mt-1 font-mono text-sm font-medium">{casoActual?.encf ?? "—"}</p>
+          </div>
+          <div className="rounded-lg border p-3">
+            <p className="text-muted-foreground text-xs">Código de Seguridad (6 caracteres)</p>
+            <p className="mt-1 font-mono text-sm font-semibold">{casoActual?.codigoSeguridad ?? "—"}</p>
+          </div>
+          <div className="rounded-lg border p-3 sm:col-span-2 xl:col-span-1">
+            <p className="text-muted-foreground text-xs">DigestValue (SHA-256 C14N)</p>
+            <p className="mt-1 font-mono text-xs break-all">{casoActual?.digestValue ?? "—"}</p>
+          </div>
+          <div className="rounded-lg border p-3 sm:col-span-2 xl:col-span-1">
+            <p className="text-muted-foreground text-xs">URL QR oficial DGII</p>
+            <p className="mt-1 font-mono text-xs break-all">{casoActual?.urlQr ?? "Pendiente de generar"}</p>
+          </div>
+        </div>
+        <div className="rounded-lg border bg-slate-950 p-3 text-slate-50 dark:bg-black/40">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-xs font-medium">
+              {tieneRfce && verRfce ? "Visor de XML RFCE firmado" : "Visor de XML e-CF firmado"}
+            </span>
+            <Badge variant="outline" className="border-slate-600 text-slate-300">
+              {casoActual ? "XMLDSig RSA-SHA256 verificado" : "Sin ejecutar"}
+            </Badge>
+          </div>
+          <pre className="max-h-72 overflow-auto font-mono text-xs leading-5 break-all whitespace-pre-wrap">
+            {xmlVisible}
+          </pre>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function PasoPruebas({
-  preparado,
+  resumen,
+  casoSeleccionadoIndex,
+  verRfce,
   ejecutando,
   error,
+  onSeleccionarCaso,
+  onVerRfce,
   onEjecutar,
 }: {
-  preparado: boolean;
+  resumen: ResumenSimulacionSerializado | null;
+  casoSeleccionadoIndex: number;
+  verRfce: boolean;
   ejecutando: boolean;
   error: string | null;
+  onSeleccionarCaso: (indice: number) => void;
+  onVerRfce: (valor: boolean) => void;
   onEjecutar: () => void;
 }) {
-  let textoBoton = "Preparar set de pruebas";
-  if (ejecutando) textoBoton = "Preparando…";
-  else if (preparado) textoBoton = "Volver a preparar";
+  let textoBoton = "Ejecutar set de pruebas (9 casos)";
+  if (ejecutando) textoBoton = "Firmando y verificando…";
+  else if (resumen) textoBoton = "Volver a ejecutar simulación";
+
+  const casoActual = resumen?.casos[casoSeleccionadoIndex] ?? resumen?.casos[0] ?? null;
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="max-w-2xl">
-          <p className="text-sm font-medium">Los 9 casos oficiales quedan listos para conectarse al motor e-CF.</p>
+          <p className="text-sm font-medium">
+            Generación, firma XMLDSig (RSA-SHA256) y verificación criptográfica real en servidor.
+          </p>
           <p className="text-muted-foreground mt-1 text-xs">
-            Esta pantalla prepara la vista y la estructura; no envía comprobantes a la DGII hasta conectar la Server
-            Action del motor.
+            Ejecuta los 9 casos del set de simulación localmente con un certificado X.509 v3 de prueba, sin enviar nada
+            a producción ni tocar Alegra.
           </p>
         </div>
         <Button type="button" onClick={onEjecutar} disabled={ejecutando}>
@@ -424,8 +531,23 @@ function PasoPruebas({
       {error ? (
         <Alert variant="destructive">
           <TriangleAlert />
-          <AlertTitle>No se pudo preparar el set</AlertTitle>
+          <AlertTitle>No se pudo ejecutar el set de simulación</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {resumen ? (
+        <Alert className="border-emerald-200 bg-emerald-50/70 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/35 dark:text-emerald-100">
+          <CheckCircle2 />
+          <AlertTitle>
+            Simulación completada: {resumen.aprobados}/{resumen.totalCasos} aprobados en {resumen.duracionMs} ms
+          </AlertTitle>
+          <AlertDescription>
+            Emisor {resumen.razonSocial} (RNC {resumen.rncEmisor}
+            {resumen.rncEsDePrueba ? " — RNC de prueba" : ""}) · Ambiente {resumen.ambiente.toUpperCase()} · Certificado
+            X.509 v3 serie <span className="font-mono">{resumen.certificado.numeroSerie.slice(0, 12)}…</span> (firma
+            verificada criptográficamente).
+          </AlertDescription>
         </Alert>
       ) : null}
 
@@ -435,72 +557,53 @@ function PasoPruebas({
             <TableRow>
               <TableHead>Caso</TableHead>
               <TableHead>Descripción</TableHead>
-              <TableHead>Objetivo</TableHead>
+              <TableHead>e-NCF / Cód. Seg.</TableHead>
               <TableHead>Estado</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {CASOS_PRUEBA_DGII.map((caso) => (
-              <TableRow key={caso.id}>
-                <TableCell className="font-medium whitespace-nowrap">{caso.tipo}</TableCell>
-                <TableCell className="whitespace-normal">{caso.descripcion}</TableCell>
-                <TableCell className="text-muted-foreground text-xs whitespace-normal">{caso.objetivo}</TableCell>
-                <TableCell>
-                  {preparado ? (
-                    <Badge variant="secondary">Preparado</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-muted-foreground">
-                      Pendiente
-                    </Badge>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
+            {CASOS_PRUEBA_DGII.map((caso, indice) => {
+              const resultado = resumen?.casos[indice];
+              const seleccionado = resumen !== null && indice === casoSeleccionadoIndex;
+              return (
+                <TableRow
+                  key={caso.id}
+                  onClick={() => {
+                    if (resumen) {
+                      onSeleccionarCaso(indice);
+                      onVerRfce(false);
+                    }
+                  }}
+                  className={cn(resumen && "cursor-pointer", seleccionado && "bg-secondary/60")}
+                >
+                  <TableCell className="font-medium whitespace-nowrap">{caso.tipo}</TableCell>
+                  <TableCell className="whitespace-normal">
+                    <span className="block">{caso.descripcion}</span>
+                    <span className="text-muted-foreground block text-xs">{caso.objetivo}</span>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs whitespace-nowrap">
+                    {resultado ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span>{resultado.encf}</span>
+                        <span className="text-muted-foreground">
+                          Cód.: {resultado.codigoSeguridad ?? "—"} · {resultado.duracionMs} ms
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <BadgeEstadoCaso estado={resultado?.estado} />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
 
-      <Card size="sm">
-        <CardHeader>
-          <CardTitle>Vista de resultados lista para conectar</CardTitle>
-          <CardDescription>
-            Cuando el motor esté integrado, aquí se verán el e-NCF, código de seguridad, QR y XML de cada envío.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 xl:grid-cols-[1fr_1.2fr]">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <div className="rounded-lg border p-3">
-              <p className="text-muted-foreground text-xs">e-NCF</p>
-              <p className="mt-1 font-mono text-sm font-medium">{preparado ? MUESTRA_IMPRESION.encf : "—"}</p>
-            </div>
-            <div className="rounded-lg border p-3">
-              <p className="text-muted-foreground text-xs">Código de Seguridad</p>
-              <p className="mt-1 font-mono text-sm font-medium">
-                {preparado ? MUESTRA_IMPRESION.codigoSeguridad : "—"}
-              </p>
-            </div>
-            <div className="rounded-lg border p-3 sm:col-span-2 xl:col-span-1">
-              <p className="text-muted-foreground text-xs">URL QR</p>
-              <p className="mt-1 font-mono text-xs break-all">
-                {preparado ? MUESTRA_IMPRESION.urlQr : "Pendiente de generar"}
-              </p>
-            </div>
-          </div>
-          <div className="rounded-lg border bg-slate-950 p-3 text-slate-50 dark:bg-black/40">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-xs font-medium">Visor de XML</span>
-              <Badge variant="outline" className="border-slate-600 text-slate-300">
-                {preparado ? "Ejemplo local" : "Sin datos"}
-              </Badge>
-            </div>
-            <pre className="overflow-x-auto font-mono text-xs leading-5 whitespace-pre">
-              {preparado
-                ? `<ECF>\n  <Encabezado>\n    <Emisor>\n      <RNCEmisor>000000000</RNCEmisor>\n      <eNCF>${MUESTRA_IMPRESION.encf}</eNCF>\n    </Emisor>\n  </Encabezado>\n</ECF>`
-                : "<ECF>\n  <!-- El XML firmado aparecerá aquí -->\n</ECF>"}
-            </pre>
-          </div>
-        </CardContent>
-      </Card>
+      <InspectorCasoSimulacion casoActual={casoActual} verRfce={verRfce} onVerRfce={onVerRfce} />
     </div>
   );
 }
@@ -641,23 +744,25 @@ function PasoRepresentaciones() {
 
 function PasoUrls({
   dominio,
+  rncEmisor,
   copiadoId,
   errorCopiado,
   onDominio,
   onCopiar,
 }: {
   dominio: string;
+  rncEmisor: string | null;
   copiadoId: string | null;
   errorCopiado: string | null;
   onDominio: (valor: string) => void;
   onCopiar: (id: string, url: string) => void;
 }) {
-  const urls = urlsServiciosEcf(dominio);
+  const urls = urlsServiciosEcf(dominio, rncEmisor);
 
   return (
     <div className="flex flex-col gap-5">
       <div className="max-w-2xl">
-        <Label htmlFor="dominio-base-ecf">Dominio base configurable</Label>
+        <Label htmlFor="dominio-base-ecf">Dominio base configurable (ej.: https://app.medoxigas.com)</Label>
         <Input
           id="dominio-base-ecf"
           type="url"
@@ -666,8 +771,8 @@ function PasoUrls({
           className="mt-2"
         />
         <p className="text-muted-foreground mt-2 text-xs">
-          Se usa para calcular las URLs que se copiarán en la OFV. Cambiarlo aquí no cambia el despliegue real de
-          Vercel.
+          Usa un dominio propio con HTTPS (recomendado) y subruta por RNC para soportar múltiples empresas del grupo
+          (Medoxigas y Oxymat) en el mismo despliegue.
         </p>
       </div>
 
@@ -970,7 +1075,9 @@ function PanelPaso({
   modalidad,
   nombreCertificado,
   contrasenaCertificado,
-  pruebasPreparadas,
+  resumenSimulacion,
+  casoSeleccionadoIndex,
+  verRfce,
   ejecutandoPruebas,
   errorPruebas,
   declaracionConfirmada,
@@ -981,6 +1088,8 @@ function PanelPaso({
   ultimoEncf,
   onCertificado,
   onContrasena,
+  onSeleccionarCaso,
+  onVerRfce,
   onEjecutarPruebas,
   onDeclaracion,
   onDominioBase,
@@ -992,7 +1101,9 @@ function PanelPaso({
   modalidad: ModalidadHabilitacion;
   nombreCertificado: string;
   contrasenaCertificado: string;
-  pruebasPreparadas: boolean;
+  resumenSimulacion: ResumenSimulacionSerializado | null;
+  casoSeleccionadoIndex: number;
+  verRfce: boolean;
   ejecutandoPruebas: boolean;
   errorPruebas: string | null;
   declaracionConfirmada: boolean;
@@ -1003,6 +1114,8 @@ function PanelPaso({
   ultimoEncf: string;
   onCertificado: (nombre: string) => void;
   onContrasena: (valor: string) => void;
+  onSeleccionarCaso: (indice: number) => void;
+  onVerRfce: (valor: boolean) => void;
   onEjecutarPruebas: () => void;
   onDeclaracion: (valor: boolean) => void;
   onDominioBase: (valor: string) => void;
@@ -1024,9 +1137,13 @@ function PanelPaso({
   if (pasoActivo === "pruebas") {
     return (
       <PasoPruebas
-        preparado={pruebasPreparadas}
+        resumen={resumenSimulacion}
+        casoSeleccionadoIndex={casoSeleccionadoIndex}
+        verRfce={verRfce}
         ejecutando={ejecutandoPruebas}
         error={errorPruebas}
+        onSeleccionarCaso={onSeleccionarCaso}
+        onVerRfce={onVerRfce}
         onEjecutar={onEjecutarPruebas}
       />
     );
@@ -1036,6 +1153,7 @@ function PanelPaso({
     return (
       <PasoUrls
         dominio={dominioBase}
+        rncEmisor={empresa?.rnc ?? null}
         copiadoId={copiadoId}
         errorCopiado={errorCopiado}
         onDominio={onDominioBase}
@@ -1054,7 +1172,9 @@ export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: P
   const [pasoActivo, setPasoActivo] = useState<PasoHabilitacionId>("certificado");
   const [nombreCertificado, setNombreCertificado] = useState("");
   const [contrasenaCertificado, setContrasenaCertificado] = useState("");
-  const [pruebasPreparadas, setPruebasPreparadas] = useState(false);
+  const [resumenSimulacion, setResumenSimulacion] = useState<ResumenSimulacionSerializado | null>(null);
+  const [casoSeleccionadoIndex, setCasoSeleccionadoIndex] = useState(0);
+  const [verRfce, setVerRfce] = useState(false);
   const [ejecutandoPruebas, setEjecutandoPruebas] = useState(false);
   const [errorPruebas, setErrorPruebas] = useState<string | null>(null);
   const [declaracionConfirmada, setDeclaracionConfirmada] = useState(false);
@@ -1072,15 +1192,20 @@ export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: P
 
   async function manejarEjecutarPruebas() {
     setErrorPruebas(null);
-    if (!onEjecutarPruebas) {
-      setPruebasPreparadas(true);
-      return;
-    }
-
     setEjecutandoPruebas(true);
     try {
-      await onEjecutarPruebas();
-      setPruebasPreparadas(true);
+      if (onEjecutarPruebas) {
+        await onEjecutarPruebas();
+        return;
+      }
+      const resultado = await ejecutarSimulacionEcfAction(ambiente);
+      if (!resultado.ok) {
+        setErrorPruebas(resultado.error);
+        return;
+      }
+      setResumenSimulacion(resultado.resumen);
+      setCasoSeleccionadoIndex(0);
+      setVerRfce(false);
     } catch {
       setErrorPruebas("La acción del motor e-CF no pudo completarse. Revisa la bitácora del servidor.");
     } finally {
@@ -1194,7 +1319,9 @@ export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: P
                 modalidad={modalidad}
                 nombreCertificado={nombreCertificado}
                 contrasenaCertificado={contrasenaCertificado}
-                pruebasPreparadas={pruebasPreparadas}
+                resumenSimulacion={resumenSimulacion}
+                casoSeleccionadoIndex={casoSeleccionadoIndex}
+                verRfce={verRfce}
                 ejecutandoPruebas={ejecutandoPruebas}
                 errorPruebas={errorPruebas}
                 declaracionConfirmada={declaracionConfirmada}
@@ -1205,6 +1332,8 @@ export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: P
                 ultimoEncf={ultimoEncf}
                 onCertificado={setNombreCertificado}
                 onContrasena={setContrasenaCertificado}
+                onSeleccionarCaso={setCasoSeleccionadoIndex}
+                onVerRfce={setVerRfce}
                 onEjecutarPruebas={() => {
                   void manejarEjecutarPruebas();
                 }}

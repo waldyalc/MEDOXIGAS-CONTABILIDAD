@@ -5,6 +5,7 @@ export interface EndpointsDgii {
   validarSemilla: string;
   recepcionEcf: string;
   recepcionRfce: string;
+  consultaRfce: string;
   consultaResultado: string;
   consultaEstado: string;
   anulacion: string;
@@ -36,12 +37,13 @@ export function endpointsDgii(ambiente: AmbienteEcf): EndpointsDgii {
     semilla: `https://ecf.dgii.gov.do/${ambiente}/autenticacion/api/autenticacion/semilla`,
     validarSemilla: `https://ecf.dgii.gov.do/${ambiente}/autenticacion/api/autenticacion/validarsemilla`,
     recepcionEcf: `https://ecf.dgii.gov.do/${ambiente}/recepcion/api/facturaselectronicas`,
-    recepcionRfce: `https://fc.dgii.gov.do/${ambiente}/recepcionfc/api/facturas/resumen`,
+    recepcionRfce: `https://fc.dgii.gov.do/${ambiente}/recepcionfc/api/recepcion/ecf`,
+    consultaRfce: `https://fc.dgii.gov.do/${ambiente}/consultarfce/api/Consultas/Consulta`,
     consultaResultado: `https://ecf.dgii.gov.do/${ambiente}/consultaresultado/api/consultas/estado`,
     consultaEstado: `https://ecf.dgii.gov.do/${ambiente}/consultaestado/api/consultas/estado`,
     anulacion: `https://ecf.dgii.gov.do/${ambiente}/anulacionrangos/api/operaciones/anularrango`,
-    consultaTimbre: `https://ecf.dgii.gov.do/${ambiente}/consultatimbre`,
-    consultaTimbreRfce: `https://ecf.dgii.gov.do/${ambiente}/consultatimbrefc`,
+    consultaTimbre: `https://ecf.dgii.gov.do/${ambiente}/ConsultaTimbre`,
+    consultaTimbreRfce: `https://fc.dgii.gov.do/${ambiente}/ConsultaTimbreFC`,
   };
 }
 
@@ -57,26 +59,38 @@ function parametro(nombre: string, valor: string | number): string {
 
 export function construirUrlQrDgii(parametros: ParametrosQrDgii): string {
   const endpoints = endpointsDgii(parametros.ambiente);
-  const base = parametros.esRfce ? endpoints.consultaTimbreRfce : endpoints.consultaTimbre;
-  const query = [
-    parametro("RncEmisor", parametros.rncEmisor),
-    parametro("RncComprador", parametros.rncComprador),
+  if (parametros.esRfce) {
+    const queryRfce = [
+      parametro("RncEmisor", parametros.rncEmisor),
+      parametro("ENCF", parametros.encf),
+      parametro("MontoTotal", parametros.montoTotal),
+      parametro("CodigoSeguridad", parametros.codigoSeguridad),
+    ].join("&");
+    return `${endpoints.consultaTimbreRfce}?${queryRfce}`;
+  }
+  const pares: string[] = [parametro("RncEmisor", parametros.rncEmisor)];
+  if (parametros.rncComprador.trim() !== "") {
+    pares.push(parametro("RncComprador", parametros.rncComprador.trim()));
+  }
+  pares.push(
     parametro("ENCF", parametros.encf),
     parametro("FechaEmision", parametros.fechaEmision),
     parametro("MontoTotal", parametros.montoTotal),
     parametro("FechaFirma", parametros.fechaFirma),
     parametro("CodigoSeguridad", parametros.codigoSeguridad),
-  ].join("&");
-  return `${base}?${query}`;
+  );
+  return `${endpoints.consultaTimbre}?${pares.join("&")}`;
 }
 
-export function construirUrlsServiciosPropios(origenBase: string): UrlsServiciosPropios {
+export function construirUrlsServiciosPropios(origenBase: string, rnc?: string): UrlsServiciosPropios {
   const origen = origenBase.replace(/\/+$/, "");
   if (origen === "") throw new Error("El origen base de los servicios propios no puede estar vacío");
+  const rncLimpio = rnc?.replace(/\D/g, "") ?? "";
+  const prefijo = rncLimpio !== "" ? `${origen}/api/ecf/${rncLimpio}` : origen;
   return {
-    semilla: `${origen}/fe/autenticacion/api/semilla`,
-    validacionCertificado: `${origen}/fe/autenticacion/api/validacioncertificado`,
-    recepcionEcf: `${origen}/fe/recepcion/api/ecf`,
-    aprobacionComercial: `${origen}/fe/aprobacioncomercial/api/ecf`,
+    semilla: `${prefijo}/fe/autenticacion/api/semilla`,
+    validacionCertificado: `${prefijo}/fe/autenticacion/api/validacioncertificado`,
+    recepcionEcf: `${prefijo}/fe/recepcion/api/ecf`,
+    aprobacionComercial: `${prefijo}/fe/aprobacioncomercial/api/ecf`,
   };
 }

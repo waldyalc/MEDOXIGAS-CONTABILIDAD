@@ -127,7 +127,8 @@ describe("tipos y endpoints DGII", () => {
       "https://ecf.dgii.gov.do/testecf/autenticacion/api/autenticacion/validarsemilla",
     );
     expect(endpoints.recepcionEcf).toBe("https://ecf.dgii.gov.do/testecf/recepcion/api/facturaselectronicas");
-    expect(endpoints.recepcionRfce).toBe("https://fc.dgii.gov.do/testecf/recepcionfc/api/facturas/resumen");
+    expect(endpoints.recepcionRfce).toBe("https://fc.dgii.gov.do/testecf/recepcionfc/api/recepcion/ecf");
+    expect(endpoints.consultaRfce).toBe("https://fc.dgii.gov.do/testecf/consultarfce/api/Consultas/Consulta");
     expect(endpoints.consultaResultado).toBe("https://ecf.dgii.gov.do/testecf/consultaresultado/api/consultas/estado");
     expect(endpoints.consultaEstado).toBe("https://ecf.dgii.gov.do/testecf/consultaestado/api/consultas/estado");
     expect(endpoints.anulacion).toBe("https://ecf.dgii.gov.do/testecf/anulacionrangos/api/operaciones/anularrango");
@@ -147,7 +148,7 @@ describe("tipos y endpoints DGII", () => {
       esRfce: false,
     });
     expect(url).toBe(
-      "https://ecf.dgii.gov.do/testecf/consultatimbre?RncEmisor=131999999&RncComprador=130999999&ENCF=E310000000001&FechaEmision=26-11-2026&MontoTotal=1180.00&FechaFirma=26-11-2026%2010%3A00%3A00&CodigoSeguridad=ab%2B%2F%3Dx",
+      "https://ecf.dgii.gov.do/testecf/ConsultaTimbre?RncEmisor=131999999&RncComprador=130999999&ENCF=E310000000001&FechaEmision=26-11-2026&MontoTotal=1180.00&FechaFirma=26-11-2026%2010%3A00%3A00&CodigoSeguridad=ab%2B%2F%3Dx",
     );
     const urlRfce = construirUrlQrDgii({
       ambiente: "certecf",
@@ -155,21 +156,28 @@ describe("tipos y endpoints DGII", () => {
       rncComprador: "",
       encf: "E320000000001",
       fechaEmision: "26-11-2026",
-      montoTotal: 1180,
+      montoTotal: "1180.00",
       fechaFirma: "26-11-2026 10:00:00",
-      codigoSeguridad: "abc123",
+      codigoSeguridad: "ab+/12",
       esRfce: true,
     });
-    expect(urlRfce).toContain("https://ecf.dgii.gov.do/certecf/consultatimbrefc?");
-    expect(urlRfce).toContain("CodigoSeguridad=abc123");
+    expect(urlRfce).toBe(
+      "https://fc.dgii.gov.do/certecf/ConsultaTimbreFC?RncEmisor=131999999&ENCF=E320000000001&MontoTotal=1180.00&CodigoSeguridad=ab%2B%2F12",
+    );
   });
 
-  it("construye las cuatro URLs de servicios propios para la OFV", () => {
+  it("construye las cuatro URLs de servicios propios para la OFV con y sin RNC", () => {
     expect(construirUrlsServiciosPropios("https://facturacion.example.com/")).toEqual({
       semilla: "https://facturacion.example.com/fe/autenticacion/api/semilla",
       validacionCertificado: "https://facturacion.example.com/fe/autenticacion/api/validacioncertificado",
       recepcionEcf: "https://facturacion.example.com/fe/recepcion/api/ecf",
       aprobacionComercial: "https://facturacion.example.com/fe/aprobacioncomercial/api/ecf",
+    });
+    expect(construirUrlsServiciosPropios("https://app.medoxigas.com/", "131-99999-9")).toEqual({
+      semilla: "https://app.medoxigas.com/api/ecf/131999999/fe/autenticacion/api/semilla",
+      validacionCertificado: "https://app.medoxigas.com/api/ecf/131999999/fe/autenticacion/api/validacioncertificado",
+      recepcionEcf: "https://app.medoxigas.com/api/ecf/131999999/fe/recepcion/api/ecf",
+      aprobacionComercial: "https://app.medoxigas.com/api/ecf/131999999/fe/aprobacioncomercial/api/ecf",
     });
   });
 });

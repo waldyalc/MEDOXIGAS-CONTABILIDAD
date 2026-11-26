@@ -213,32 +213,37 @@ export function normalizarDominioBaseEcf(dominio: string): string {
   return limpio === "" ? DOMINIO_BASE_ECF_DEFECTO : limpio;
 }
 
-export function urlsServiciosEcf(dominioBase = DOMINIO_BASE_ECF_DEFECTO): readonly ServicioEcfUrl[] {
+export function urlsServiciosEcf(
+  dominioBase = DOMINIO_BASE_ECF_DEFECTO,
+  rnc?: string | null,
+): readonly ServicioEcfUrl[] {
   const base = normalizarDominioBaseEcf(dominioBase);
+  const rncLimpio = rnc?.replace(/\D/g, "") ?? "";
+  const prefijoRnc = rncLimpio !== "" ? `/api/ecf/${rncLimpio}` : "/api/ecf";
   const servicios = [
     {
       id: "semilla",
       titulo: "Semilla",
       descripcion: "Autenticación inicial para solicitar el token de la DGII.",
-      ruta: "/api/ecf/fe/autenticacion/api/semilla",
+      ruta: `${prefijoRnc}/fe/autenticacion/api/semilla`,
     },
     {
       id: "validacion-certificado",
       titulo: "Validación de Certificado",
       descripcion: "Validación del certificado digital asociado al emisor.",
-      ruta: "/api/ecf/fe/autenticacion/api/validarcertificado",
+      ruta: `${prefijoRnc}/fe/autenticacion/api/validacioncertificado`,
     },
     {
       id: "recepcion-ecf",
       titulo: "Recepción e-CF",
       descripcion: "Recepción de comprobantes electrónicos de proveedores.",
-      ruta: "/api/ecf/fe/recepcion/api/ecf",
+      ruta: `${prefijoRnc}/fe/recepcion/api/ecf`,
     },
     {
       id: "aprobacion-comercial",
       titulo: "Aprobación Comercial",
       descripcion: "Recepción de aprobaciones o rechazos comerciales.",
-      ruta: "/api/ecf/fe/aprobacioncomercial/api/ecf",
+      ruta: `${prefijoRnc}/fe/aprobacioncomercial/api/ecf`,
     },
   ];
 
