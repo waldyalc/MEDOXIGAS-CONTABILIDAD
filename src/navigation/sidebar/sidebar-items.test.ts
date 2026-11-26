@@ -85,6 +85,7 @@ describe("filtrarItemsPorRol", () => {
       "/dashboard/pagos-recurrentes",
       "/dashboard/compras/notas-credito",
       "/dashboard/ordenes-compra",
+      "/dashboard/compras/recepcion-ecf",
     ]);
 
     const inventario = items("admin").find((item) => item.id === "inventario");
