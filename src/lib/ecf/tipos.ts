@@ -108,10 +108,25 @@ export interface ComprobanteEcfInput {
   tipoIngresos: TipoIngresosEcf;
   tipoPago: TipoPagoEcf;
   indicadorMontoGravado?: IndicadorMontoGravadoEcf;
+  indicadorNotaCredito?: "0" | "1";
   ncfModificado?: string;
   fechaNcfModificado?: string;
   codigoModificacion?: string;
   fechaHoraFirma?: string;
+}
+
+export type TipoValorAjusteEcf = "$" | "%";
+
+export interface SubAjusteEcfInput {
+  tipo: TipoValorAjusteEcf;
+  porcentaje?: number;
+  monto?: number;
+}
+
+export interface RetencionLineaEcfInput {
+  indicadorAgenteRetencion: "1" | "2";
+  montoItbisRetenido?: number;
+  montoIsrRetenido?: number;
 }
 
 export interface LineaEcfInput {
@@ -122,9 +137,21 @@ export interface LineaEcfInput {
   unidadMedida?: string;
   precioUnitario: number;
   descuento?: number;
+  subDescuentos?: SubAjusteEcfInput[];
+  recargo?: number;
+  subRecargos?: SubAjusteEcfInput[];
+  retencion?: RetencionLineaEcfInput;
   itbisTasa: ItbisTasaEcf;
   montoItem: number;
   indicadorBienoServicio?: IndicadorBienoServicioEcf;
+}
+
+export interface ImpuestoAdicionalEcfInput {
+  tipoImpuesto: string;
+  tasaImpuestoAdicional?: number;
+  montoImpuestoSelectivoConsumoEspecifico?: number;
+  montoImpuestoSelectivoConsumoAdvalorem?: number;
+  otrosImpuestosAdicionales?: number;
 }
 
 export interface TotalesEcfInput {
@@ -136,7 +163,30 @@ export interface TotalesEcfInput {
   totalItbis2: number;
   totalItbis3?: number;
   totalItbis: number;
+  montoImpuestoAdicional?: number;
+  impuestosAdicionales?: ImpuestoAdicionalEcfInput[];
   montoTotal: number;
+  totalItbisRetenido?: number;
+  totalIsrRetencion?: number;
+}
+
+export interface DescuentoORecargoGlobalEcfInput {
+  numeroLinea: number;
+  tipoAjuste: "D" | "R";
+  descripcion?: string;
+  tipoValor: TipoValorAjusteEcf;
+  valor?: number;
+  monto: number;
+  indicadorFacturacion?: IndicadorFacturacionEcf;
+}
+
+export interface OtraMonedaEcfInput {
+  tipoMoneda: string;
+  tipoCambio: number;
+  montoGravadoTotalOtraMoneda?: number;
+  montoExentoOtraMoneda?: number;
+  totalItbisOtraMoneda?: number;
+  montoTotalOtraMoneda: number;
 }
 
 export interface DocumentoEcfInput {
@@ -145,6 +195,15 @@ export interface DocumentoEcfInput {
   comprobante: ComprobanteEcfInput;
   lineas: LineaEcfInput[];
   totales: TotalesEcfInput;
+  descuentosORecargos?: DescuentoORecargoGlobalEcfInput[];
+  otraMoneda?: OtraMonedaEcfInput;
+}
+
+export interface CasoExcelDgii {
+  casoPrueba: string;
+  numeroFila: number;
+  documento: DocumentoEcfInput;
+  columnasNoReconocidas: string[];
 }
 
 export interface MetadatosCertificado {

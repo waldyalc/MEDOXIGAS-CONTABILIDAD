@@ -16,6 +16,7 @@ import type {
   TipoEcf,
   TotalesEcfInput,
 } from "./tipos";
+import { validarXmlContraEsquemaDgii } from "./validador-xsd";
 import {
   esElegibleRfce,
   formatearFechaDgii,
@@ -287,6 +288,7 @@ function extraerFechaFirma(xml: string): string {
   return xml.match(/<FechaHoraFirma>([^<]+)<\/FechaHoraFirma>/)?.[1] ?? "26-11-2026 10:00:00";
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: cada caso debe validar documento, XML, firma, XSD y RFCE en una secuencia auditada
 function ejecutarCaso(
   caso: CasoSetPruebas,
   clavePrivadaPem: string,
@@ -310,6 +312,8 @@ function ejecutarCaso(
     const firma = firmarXmlDsig(xml, clavePrivadaPem, certificadoPem);
     const verificacion = verificarFirmaXmlDsig(firma.xmlFirmado);
     if (!verificacion.valida) throw new Error(verificacion.motivo ?? "La firma del e-CF no verificó");
+    const validacionXsd = validarXmlContraEsquemaDgii(firma.xmlFirmado, "ECF");
+    if (!validacionXsd.valido) throw new Error(`XSD e-CF: ${validacionXsd.errores.join("; ")}`);
 
     let xmlRfce: string | undefined;
     if (caso.incluirRfce) {
@@ -318,6 +322,8 @@ function ejecutarCaso(
       const firmaRfce = firmarXmlDsig(resumen, clavePrivadaPem, certificadoPem);
       const verificacionRfce = verificarFirmaXmlDsig(firmaRfce.xmlFirmado);
       if (!verificacionRfce.valida) throw new Error(verificacionRfce.motivo ?? "La firma del RFCE no verificó");
+      const validacionXsdRfce = validarXmlContraEsquemaDgii(firmaRfce.xmlFirmado, "RFCE");
+      if (!validacionXsdRfce.valido) throw new Error(`XSD RFCE: ${validacionXsdRfce.errores.join("; ")}`);
       xmlRfce = firmaRfce.xmlFirmado;
     }
 
