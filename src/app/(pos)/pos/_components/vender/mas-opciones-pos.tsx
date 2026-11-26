@@ -2,10 +2,10 @@
 
 import { useEffect, useRef } from "react";
 
-import Link from "next/link";
-
 import { type LucideIcon, X } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+
+import { EnlacePos } from "../enlace-pos";
 
 /**
  * Una opción del panel «Más opciones». La cuadrícula se arma con este arreglo:
@@ -80,9 +80,9 @@ export function MasOpcionesPos({ opciones, onCerrar }: { opciones: OpcionMasOpci
 
             if (href) {
               return (
-                <Link key={id} href={href} className={CUADRO}>
+                <EnlacePos key={id} href={href} className={CUADRO}>
                   {contenido}
-                </Link>
+                </EnlacePos>
               );
             }
 

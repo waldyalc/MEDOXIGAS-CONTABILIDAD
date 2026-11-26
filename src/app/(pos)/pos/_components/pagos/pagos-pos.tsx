@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Plus, Printer } from "@/components/icons";
@@ -40,6 +39,7 @@ import type {
 } from "@/lib/pos/tipos";
 
 import { resumenTurnoPOS } from "../acciones-pos";
+import { EnlacePos } from "../enlace-pos";
 import { useOfflinePOS } from "../offline-pos-provider";
 import type { CuentaPOS } from "../servidor";
 import { DetallePago } from "./detalle-pago";
@@ -230,7 +230,7 @@ export function PagosPos({
         <Alert>
           <AlertDescription className="flex flex-wrap items-center gap-2">
             {`No hay un turno abierto en ${terminal.nombre}. Abre uno para registrar movimientos.`}
-            <Button variant="outline" size="sm" render={<Link href="/pos/turnos" />}>
+            <Button variant="outline" size="sm" render={<EnlacePos href="/pos/turnos" />}>
               Ir a Turnos
             </Button>
           </AlertDescription>

@@ -2,7 +2,6 @@
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "cn";
@@ -11,6 +10,7 @@ import { CheckCircle2, CircleAlert, Clock, Loader2, RefreshCw, Wifi, WifiOff } f
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { estadoPopoverSincronizacion } from "@/lib/pos/conexion-offline";
 
+import { EnlacePos } from "./enlace-pos";
 import { useOfflinePOS } from "./offline-pos-provider";
 
 type EstadoCachePOS = "al-dia" | "sincronizando" | "pendiente" | "error";
@@ -164,23 +164,13 @@ export function BarraSuperiorPos() {
 
           {hayPendientes ? (
             <div className="border-pos-linea border-b p-3">
-              {sinConexion ? (
-                <a
-                  href="/pos/historial"
-                  onClick={() => setSyncAbierta(false)}
-                  className="bg-pos-primario hover:bg-pos-primario-hover flex h-9 items-center justify-center rounded-lg text-sm font-medium text-white transition-colors"
-                >
-                  Revisar pendientes
-                </a>
-              ) : (
-                <Link
-                  href="/pos/historial"
-                  onClick={() => setSyncAbierta(false)}
-                  className="bg-pos-primario hover:bg-pos-primario-hover flex h-9 items-center justify-center rounded-lg text-sm font-medium text-white transition-colors"
-                >
-                  Revisar pendientes
-                </Link>
-              )}
+              <EnlacePos
+                href="/pos/historial"
+                onClick={() => setSyncAbierta(false)}
+                className="bg-pos-primario hover:bg-pos-primario-hover flex h-9 items-center justify-center rounded-lg text-sm font-medium text-white transition-colors"
+              >
+                Revisar pendientes
+              </EnlacePos>
             </div>
           ) : null}
 

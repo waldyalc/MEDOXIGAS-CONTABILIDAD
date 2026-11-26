@@ -6,6 +6,7 @@ import type { UnidadPos } from "@/lib/inventario/ferreteria/tipos";
 import { almacenColaOffline, guardarOffline, leerOffline } from "@/lib/pos/almacen-offline";
 import { calcularLineaPOS, sumarMontos, type TotalesCarritoPOS, type TotalesLineaPOS } from "@/lib/pos/calculo";
 import { contactoDePestanaRestaurada } from "@/lib/pos/consumidor-final";
+import { esNavegacionInternaPos } from "@/lib/pos/navegacion-interna";
 import { eliminarPestanaDe, ID_PESTANA_PRINCIPAL, renombrarPestanaEn } from "@/lib/pos/pestanas-venta";
 import { preciosDeListaALineas } from "@/lib/pos/precios-carrito";
 import type { Decimal, ProductoPOS } from "@/lib/pos/tipos";
@@ -562,6 +563,7 @@ export function CarritoPosProvider({ defaults, children }: { defaults: DefaultsV
     if (!hayLineas) return;
 
     function avisar(evento: BeforeUnloadEvent) {
+      if (esNavegacionInternaPos()) return;
       evento.preventDefault();
       evento.returnValue = "";
     }

@@ -1,12 +1,11 @@
 "use client";
 
-import Link from "next/link";
-
 import { cn } from "cn";
 
 import { toast } from "@/components/ui/toast";
 import { MENSAJE_SIN_CONEXION_CIERRE, MENSAJE_SINCRONIZAR_ANTES_DE_CERRAR } from "@/lib/pos/cola-offline";
 
+import { EnlacePos } from "../enlace-pos";
 import { EstadoOfflinePOS, useOfflinePOS } from "../offline-pos-provider";
 import { PestanasVentaPos } from "./pestanas-venta-pos";
 
@@ -59,9 +58,9 @@ export function BarraInferiorPos({
             Cerrar turno
           </button>
         ) : abierto ? (
-          <Link href="/pos/turnos" className="text-pos-primario hover:text-pos-primario-hover font-medium">
+          <EnlacePos href="/pos/turnos" className="text-pos-primario hover:text-pos-primario-hover font-medium">
             Cerrar turno
-          </Link>
+          </EnlacePos>
         ) : (
           <button
             type="button"

@@ -46,6 +46,7 @@ import {
   type SaludConexion,
   textoEstadoOffline,
 } from "@/lib/pos/conexion-offline";
+import { esNavegacionInternaPos } from "@/lib/pos/navegacion-interna";
 import { registrarNcfConfirmadoLocal, reservarNcfLocal } from "@/lib/pos/ncf-local";
 import { type ResultadoTransporteOffline, transportarOperacionOffline } from "@/lib/pos/transporte-offline";
 import { createClient } from "@/lib/supabase/client";
@@ -394,6 +395,7 @@ export function OfflinePosProvider({
   useEffect(() => {
     if (!pendientes) return;
     const avisar = (evento: BeforeUnloadEvent) => {
+      if (esNavegacionInternaPos()) return;
       evento.preventDefault();
       evento.returnValue = "";
     };
