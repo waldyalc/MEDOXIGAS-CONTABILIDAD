@@ -29,6 +29,42 @@ export interface SaludConexion {
 
 export const SALUD_CONEXION_INICIAL: SaludConexion = { fallos: 0, conectado: true };
 
+export function claveEstadoConexionSesion(ambito: string): string {
+  return `pos:conexion:${ambito}`;
+}
+
+export function leerEstadoConexionInicial(
+  ambito: string,
+  almacenamiento?: Pick<Storage, "getItem"> | null,
+  navegadorEnLinea = true,
+): { estado: EstadoConexion; salud: SaludConexion } {
+  if (!navegadorEnLinea) return { estado: "offline", salud: registrarOfflineInmediato() };
+  let guardado: string | null = null;
+  try {
+    guardado = almacenamiento?.getItem(claveEstadoConexionSesion(ambito)) ?? null;
+  } catch {
+    guardado = null;
+  }
+  if (guardado === "offline") {
+    return { estado: "offline", salud: { fallos: FALLOS_PARA_OFFLINE, conectado: false } };
+  }
+  return { estado: "online", salud: { ...SALUD_CONEXION_INICIAL } };
+}
+
+export function guardarEstadoConexionSesion(
+  ambito: string,
+  conectado: boolean,
+  almacenamiento?: Pick<Storage, "setItem" | "removeItem"> | null,
+): void {
+  const clave = claveEstadoConexionSesion(ambito);
+  try {
+    if (conectado) almacenamiento?.removeItem(clave);
+    else almacenamiento?.setItem(clave, "offline");
+  } catch {
+    // El POS sigue funcionando aunque el navegador bloquee sessionStorage.
+  }
+}
+
 /**
  * Un fallo suelto no cambia el estado; el umbral sí. Un acierto lo resetea.
  * `sinRed` es el `!navigator.onLine` del navegador: eso no es un sondeo

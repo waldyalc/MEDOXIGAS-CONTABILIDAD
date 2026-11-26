@@ -39,6 +39,8 @@ import {
 import {
   type EstadoConexion,
   estadoTrasSondeo,
+  guardarEstadoConexionSesion,
+  leerEstadoConexionInicial,
   RUTA_SONDEO,
   registrarOfflineInmediato,
   registrarSondeo,
@@ -112,6 +114,31 @@ function resolucionSesionRequerida(sesionEnPasada: boolean, intentos: number, tr
   return null;
 }
 
+function almacenamientoSesionSeguro(): Storage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+async function registrarNcfsConfirmadosLocal(ambito: string, confirmadas: OperacionOffline[]): Promise<void> {
+  for (const confirmada of confirmadas) {
+    const datos = datosNcfConfirmado(confirmada);
+    if (!datos) continue;
+    await registrarNcfConfirmadoLocal(ambito, datos.numeracionId, datos.prefijo, datos.ncf).catch(() => undefined);
+  }
+}
+
+function estadoConexionVisible(saludConexion: SaludConexion): EstadoConexion {
+  return saludConexion.conectado ? "online" : "offline";
+}
+
+function mensajeErrorCola(causa: unknown): string {
+  return causa instanceof Error ? causa.message : "No se pudo leer la cola local.";
+}
+
 interface ContextoOffline {
   ambito: string;
   estado: EstadoConexion;
@@ -171,13 +198,13 @@ export function OfflinePosProvider({
   const [estadoClientes, setEstadoClientes] = useState<EstadoCachePOS>("al-dia");
   const [tokenRecargaCache, setTokenRecargaCache] = useState(0);
   const salud = useRef<SaludConexion>(SALUD_CONEXION_INICIAL);
-  const ocupado = useRef(false);
+  const ocupado = useRef<boolean>(false);
   const canal = useRef<BroadcastChannel | null>(null);
   const turnoVigente = useRef<string | null>(turnoId);
   const turnoCacheado = useRef<string | null>(null);
   const logoVigente = useRef<string | null>(logoUrl);
-  const preparandoWorker = useRef(false);
-  const reprepararPendiente = useRef(false);
+  const preparandoWorker = useRef<boolean>(false);
+  const reprepararPendiente = useRef<boolean>(false);
   const prepararWorkerRef = useRef<(() => Promise<void>) | null>(null);
   const sondearRef = useRef<(() => Promise<void>) | null>(null);
   const aplicarSondeoRef = useRef<((respondio: boolean) => boolean) | null>(null);
@@ -219,38 +246,32 @@ export function OfflinePosProvider({
       if (resultado.sesionRequerida) sesionEnPasada = true;
       return resultado;
     }
+    async function procesarCola(): Promise<void> {
+      const filas = await refrescar();
+      // La cola local respondió: cualquier aviso de almacenamiento quedó atrás.
+      setError(null);
+      if (!filas.some((fila) => fila.estado === "pendiente")) {
+        setEstado(estadoConexionVisible(salud.current));
+        return;
+      }
+      setEstado("sincronizando");
+      const resumen = await sincronizarColaOffline(almacenColaOffline, ambito, enviar);
+      await registrarNcfsConfirmadosLocal(ambito, resumen.confirmadas);
+      huboConfirmada = resumen.confirmadas.length > 0;
+      huboTransitorio = resumen.transitorios > 0;
+      // El aviso de sesión vencida manda mientras no haya un envío limpio: al
+      // volver a entrar, la cola se sube sola y el aviso desaparece.
+      const sesion = resolucionSesionRequerida(sesionEnPasada, intentosEnvio, huboTransitorio);
+      if (sesion !== null) setSesionRequerida(sesion);
+      await refrescar();
+      setEstado(estadoConexionVisible(salud.current));
+      canal.current?.postMessage("actualizado");
+    }
     try {
-      await conBloqueoOffline(ambito, async () => {
-        const filas = await refrescar();
-        // La cola local respondió: cualquier aviso de almacenamiento quedó atrás.
-        setError(null);
-        if (!filas.some((fila) => fila.estado === "pendiente")) {
-          setEstado(salud.current.conectado ? "online" : "offline");
-          return;
-        }
-        setEstado("sincronizando");
-        const resumen = await sincronizarColaOffline(almacenColaOffline, ambito, enviar);
-        for (const confirmada of resumen.confirmadas) {
-          const datos = datosNcfConfirmado(confirmada);
-          if (datos) {
-            await registrarNcfConfirmadoLocal(ambito, datos.numeracionId, datos.prefijo, datos.ncf).catch(
-              () => undefined,
-            );
-          }
-        }
-        huboConfirmada = resumen.confirmadas.length > 0;
-        huboTransitorio = resumen.transitorios > 0;
-        // El aviso de sesión vencida manda mientras no haya un envío limpio: al
-        // volver a entrar, la cola se sube sola y el aviso desaparece.
-        const sesion = resolucionSesionRequerida(sesionEnPasada, intentosEnvio, huboTransitorio);
-        if (sesion !== null) setSesionRequerida(sesion);
-        await refrescar();
-        setEstado(salud.current.conectado ? "online" : "offline");
-        canal.current?.postMessage("actualizado");
-      });
+      await conBloqueoOffline(ambito, procesarCola);
     } catch (causa) {
-      setError(causa instanceof Error ? causa.message : "No se pudo leer la cola local.");
-      setEstado(salud.current.conectado ? "online" : "offline");
+      setError(mensajeErrorCola(causa));
+      setEstado(estadoConexionVisible(salud.current));
     } finally {
       ocupado.current = false;
     }
@@ -268,10 +289,32 @@ export function OfflinePosProvider({
   useEffect(() => {
     let vigente = true;
     let ultimoSondeo = 0;
+    let sondeoAcelerado: number | null = null;
     const controlador = new AbortController();
+
+    function limpiarSondeoAcelerado() {
+      if (sondeoAcelerado === null) return;
+      window.clearTimeout(sondeoAcelerado);
+      sondeoAcelerado = null;
+    }
+
+    function programarSondeoAcelerado() {
+      if (!salud.current.conectado || salud.current.fallos === 0) return;
+      if (sondeoAcelerado !== null) window.clearTimeout(sondeoAcelerado);
+      sondeoAcelerado = window.setTimeout(() => {
+        sondeoAcelerado = null;
+        void sondear();
+      }, 5_000);
+    }
+
+    function persistirEstadoConexion() {
+      guardarEstadoConexionSesion(ambito, salud.current.conectado, almacenamientoSesionSeguro());
+    }
 
     function aplicarOfflineInmediato() {
       salud.current = registrarOfflineInmediato();
+      persistirEstadoConexion();
+      limpiarSondeoAcelerado();
       // Forzar transición inmediata incluso si había una subida en curso.
       setEstado((actual) => estadoTrasSondeo(actual, false, true));
     }
@@ -279,8 +322,11 @@ export function OfflinePosProvider({
     function aplicarSondeo(respondio: boolean): boolean {
       const estabaConectado = salud.current.conectado;
       salud.current = registrarSondeo(salud.current, respondio, !navigator.onLine);
+      persistirEstadoConexion();
       const conectado = salud.current.conectado;
       setEstado((actual) => estadoTrasSondeo(actual, conectado));
+      if (conectado && salud.current.fallos > 0) programarSondeoAcelerado();
+      else limpiarSondeoAcelerado();
       // Si vuelve la red y el worker quedó con el HTML de otro turno, se re-cachea.
       if (conectado && !estabaConectado && turnoCacheado.current !== turnoVigente.current) {
         void prepararWorkerRef.current?.();
@@ -293,7 +339,7 @@ export function OfflinePosProvider({
       const respuesta = await fetch(RUTA_SONDEO, {
         method: "HEAD",
         cache: "no-store",
-        signal: AbortSignal.any([controlador.signal, AbortSignal.timeout(5_000)]),
+        signal: AbortSignal.any([controlador.signal, AbortSignal.timeout(4_000)]),
       });
       return respuesta.ok;
     }
@@ -321,8 +367,10 @@ export function OfflinePosProvider({
       void sondear();
     }
 
-    // El navegador ya sabe que está sin red: «Sin conexión» sale de inmediato.
-    if (!navigator.onLine) aplicarOfflineInmediato();
+    const inicial = leerEstadoConexionInicial(ambito, almacenamientoSesionSeguro(), navigator.onLine);
+    salud.current = inicial.salud;
+    // Un offline confirmado no vuelve a verde hasta que el sondeo real responda bien.
+    if (inicial.estado === "offline") aplicarOfflineInmediato();
     aplicarSondeoRef.current = aplicarSondeo;
     sondearRef.current = sondear;
     void refrescar().catch(() => {
@@ -345,6 +393,7 @@ export function OfflinePosProvider({
       vigente = false;
       controlador.abort();
       window.clearInterval(intervalo);
+      limpiarSondeoAcelerado();
       window.removeEventListener("online", alVolverOnline);
       window.removeEventListener("offline", alPerderConexion);
       document.removeEventListener("visibilitychange", alCambiarVisibilidad);
@@ -406,21 +455,34 @@ export function OfflinePosProvider({
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
     let vigente = true;
+    function recibirCacheListo(turnoRespuesta: string | null) {
+      // Solo aceptamos el listo si corresponde al turno actualmente vigente.
+      if (turnoRespuesta !== turnoVigente.current && navigator.onLine) return;
+      turnoCacheado.current = turnoRespuesta;
+      setRecargaLista(true);
+      setAvisoRecarga(null);
+    }
+
+    function recibirCacheError(turnoRespuesta: string | null) {
+      if (turnoRespuesta !== turnoVigente.current) return;
+      setRecargaLista(false);
+      setAvisoRecarga("La recarga offline no está preparada. Mantén esta pestaña abierta hasta recuperar conexión.");
+    }
+
+    function recibirRedDegradada() {
+      aplicarSondeoRef.current?.(false);
+      void sondearRef.current?.();
+    }
+
     function recibir(evento: MessageEvent) {
-      if (!vigente || evento.data?.ambito !== ambito) return;
+      if (evento.data?.tipo === "POS_RED_DEGRADADA") {
+        recibirRedDegradada();
+        return;
+      }
+      if (evento.data?.ambito !== ambito) return;
       const turnoRespuesta: string | null = evento.data.turnoId ?? null;
-      if (evento.data.tipo === "POS_CACHE_LISTO") {
-        // Solo aceptamos el listo si corresponde al turno actualmente vigente.
-        if (turnoRespuesta !== turnoVigente.current && navigator.onLine) return;
-        turnoCacheado.current = turnoRespuesta;
-        setRecargaLista(true);
-        setAvisoRecarga(null);
-      }
-      if (evento.data.tipo === "POS_CACHE_ERROR") {
-        if (turnoRespuesta !== turnoVigente.current) return;
-        setRecargaLista(false);
-        setAvisoRecarga("La recarga offline no está preparada. Mantén esta pestaña abierta hasta recuperar conexión.");
-      }
+      if (evento.data.tipo === "POS_CACHE_LISTO") recibirCacheListo(turnoRespuesta);
+      if (evento.data.tipo === "POS_CACHE_ERROR") recibirCacheError(turnoRespuesta);
     }
     navigator.serviceWorker.addEventListener("message", recibir);
     async function prepararWorker() {
@@ -544,7 +606,7 @@ export function OfflinePosProvider({
 
   async function refrescarEstado(): Promise<void> {
     await refrescar();
-    setEstado(salud.current.conectado ? "online" : "offline");
+    setEstado(estadoConexionVisible(salud.current));
   }
 
   async function reintentarOperacion(uuid: string) {
@@ -602,6 +664,7 @@ export function OfflinePosProvider({
     setTokenRecargaCache((token) => token + 1);
     if (!navigator.onLine) {
       salud.current = registrarOfflineInmediato();
+      guardarEstadoConexionSesion(ambito, false, almacenamientoSesionSeguro());
       setEstado((actual) => estadoTrasSondeo(actual, false, true));
       return;
     }

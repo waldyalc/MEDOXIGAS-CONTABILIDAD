@@ -3,9 +3,12 @@ import { describe, expect, it } from "vitest";
 import { config as configProxy } from "@/proxy";
 
 import {
+  claveEstadoConexionSesion,
   estadoPopoverSincronizacion,
   estadoTrasSondeo,
   FALLOS_PARA_OFFLINE,
+  guardarEstadoConexionSesion,
+  leerEstadoConexionInicial,
   RUTA_SONDEO,
   registrarOfflineInmediato,
   registrarSondeo,
@@ -16,6 +19,20 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const leer = (ruta: string) => readFileSync(join(process.cwd(), ruta), "utf8");
+
+function crearAlmacenamientoPrueba() {
+  const datos = new Map<string, string>();
+  return {
+    datos,
+    getItem: (clave: string) => datos.get(clave) ?? null,
+    setItem: (clave: string, valor: string) => {
+      datos.set(clave, valor);
+    },
+    removeItem: (clave: string) => {
+      datos.delete(clave);
+    },
+  };
+}
 
 describe("estado de conexión del pie del POS", () => {
   it("un fallo aislado del sondeo no cambia el estado mostrado", () => {
@@ -49,6 +66,67 @@ describe("estado de conexión del pie del POS", () => {
       salud = registrarSondeo(salud, respondio);
       expect(salud.conectado).toBe(true);
     }
+  });
+
+  it("uno o dos fallos aislados mantienen la conexión para tolerar un retraso de 10–15 s", () => {
+    let salud = { ...SALUD_CONEXION_INICIAL };
+    salud = registrarSondeo(salud, false);
+    expect(salud).toEqual({ fallos: 1, conectado: true });
+    salud = registrarSondeo(salud, false);
+    expect(salud).toEqual({ fallos: 2, conectado: true });
+    expect(estadoTrasSondeo("online", salud.conectado)).toBe("online");
+  });
+
+  it("arranca offline cuando sessionStorage ya tenía un offline confirmado", () => {
+    const almacenamiento = crearAlmacenamientoPrueba();
+    const clave = claveEstadoConexionSesion("empresa/terminal-1");
+    expect(clave).toBe("pos:conexion:empresa/terminal-1");
+    almacenamiento.setItem(clave, "offline");
+    expect(leerEstadoConexionInicial("empresa/terminal-1", almacenamiento, true)).toEqual({
+      estado: "offline",
+      salud: { fallos: FALLOS_PARA_OFFLINE, conectado: false },
+    });
+  });
+
+  it("el estado inicial respeta el navegador sin red y arranca en línea sin marca guardada", () => {
+    const almacenamiento = crearAlmacenamientoPrueba();
+    expect(leerEstadoConexionInicial("empresa/terminal-1", almacenamiento, false)).toEqual({
+      estado: "offline",
+      salud: { fallos: FALLOS_PARA_OFFLINE, conectado: false },
+    });
+    expect(leerEstadoConexionInicial("empresa/terminal-1", almacenamiento, true)).toEqual({
+      estado: "online",
+      salud: SALUD_CONEXION_INICIAL,
+    });
+  });
+
+  it("guarda el offline confirmado y lo limpia al reconectar", () => {
+    const almacenamiento = crearAlmacenamientoPrueba();
+    const clave = claveEstadoConexionSesion("empresa/terminal-1");
+    guardarEstadoConexionSesion("empresa/terminal-1", false, almacenamiento);
+    expect(almacenamiento.getItem(clave)).toBe("offline");
+    expect(leerEstadoConexionInicial("empresa/terminal-1", almacenamiento, true).estado).toBe("offline");
+    guardarEstadoConexionSesion("empresa/terminal-1", true, almacenamiento);
+    expect(almacenamiento.getItem(clave)).toBeNull();
+    expect(leerEstadoConexionInicial("empresa/terminal-1", almacenamiento, true).estado).toBe("online");
+  });
+
+  it("tolera sessionStorage nulo o bloqueado sin romper el arranque del POS", () => {
+    const bloqueado = {
+      getItem: () => {
+        throw new Error("bloqueado");
+      },
+      setItem: () => {
+        throw new Error("bloqueado");
+      },
+      removeItem: () => {
+        throw new Error("bloqueado");
+      },
+    };
+    expect(leerEstadoConexionInicial("empresa/terminal-1", null, true).estado).toBe("online");
+    expect(leerEstadoConexionInicial("empresa/terminal-1", bloqueado, true).estado).toBe("online");
+    expect(() => guardarEstadoConexionSesion("empresa/terminal-1", false, bloqueado)).not.toThrow();
+    expect(() => guardarEstadoConexionSesion("empresa/terminal-1", true, null)).not.toThrow();
   });
 
   it("si el navegador ya sabe que no hay red, el pie pasa a «Sin conexión» al instante", () => {
@@ -196,6 +274,42 @@ describe("estado de conexión del pie del POS", () => {
     expect(provider).toContain("avisoRecarga");
     expect(provider).not.toContain('setError("La recarga offline no está preparada');
     expect(provider).not.toContain('setError("No se pudo preparar la recarga offline');
+  });
+
+  it("el provider restaura un offline confirmado y acelera el sondeo sin bajar la tolerancia", () => {
+    const provider = leer("src/app/(pos)/pos/_components/offline-pos-provider.tsx");
+    expect(provider).toContain("leerEstadoConexionInicial");
+    expect(provider).toContain("guardarEstadoConexionSesion");
+    expect(provider).toContain("window.sessionStorage");
+    expect(provider).toContain('if (inicial.estado === "offline") aplicarOfflineInmediato();');
+    expect(provider).toContain("POS_RED_DEGRADADA");
+    expect(provider).toContain("recibirRedDegradada");
+    expect(provider).toContain("programarSondeoAcelerado");
+    expect(provider).toContain("AbortSignal.timeout(4_000)");
+    expect(provider).not.toContain("AbortSignal.timeout(5_000)");
+  });
+
+  it("las peticiones RSC de las pantallas del POS pasan por el cortacircuito del Service Worker", () => {
+    const sw = leer("public/pos-sw.js");
+    expect(sw).toContain("function esPeticionRscPos(solicitud, url)");
+    expect(sw).toContain("RUTAS_POS.includes(url.pathname)");
+    expect(sw).toContain('solicitud.headers.get("RSC") === "1"');
+    expect(sw).toContain('url.searchParams.has("_rsc")');
+    expect(sw).toContain("async function servirRscPos(evento, solicitud, url)");
+    expect(sw).toContain("self.navigator && self.navigator.onLine === false");
+    expect(sw).toContain("return await redConEspera(solicitud);");
+    expect(sw).toContain("POS_RED_DEGRADADA");
+    expect(sw).toContain("Response.error()");
+    const inicioFetch = sw.indexOf('self.addEventListener("fetch"');
+    const bloqueFetch = sw.slice(inicioFetch);
+    const posRsc = bloqueFetch.indexOf("esPeticionRscPos(solicitud, url)");
+    const posNavegacion = bloqueFetch.indexOf("esNavegacionPos(solicitud, url)");
+    const posEstatico = bloqueFetch.indexOf("esRecursoEstatico(url)");
+    expect(posRsc).toBeGreaterThanOrEqual(0);
+    expect(posNavegacion).toBeGreaterThanOrEqual(0);
+    expect(posEstatico).toBeGreaterThanOrEqual(0);
+    expect(posRsc).toBeLessThan(posNavegacion);
+    expect(posRsc).toBeLessThan(posEstatico);
   });
 
   it("el Service Worker guarda las cinco pantallas del POS y corta la red a los 3 s", () => {
