@@ -1,16 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { cn } from "cn";
-
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "@/components/icons";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { type ParametrosLista, type ResumenPagina, TAMANO_PAGINA_DEFECTO, urlLista } from "@/lib/listas/parametros";
-
-const formato = new Intl.NumberFormat("es-DO");
+import { BarraPaginacionAlegra } from "@/components/listas/barra-paginacion";
+import {
+  leerTamano,
+  type ParametrosLista,
+  type ResumenPagina,
+  TAMANOS_PAGINA,
+  urlLista,
+} from "@/lib/listas/parametros";
 
 interface Props {
   base: string;
@@ -19,91 +18,18 @@ interface Props {
   className?: string;
   /** Texto que precede al selector de tamaño, p. ej. "Ítems por página". */
   etiqueta?: string;
-  /** Tamaño actual de la página. Default 25 (no cambia el de las listas existentes). */
+  /** Tamaño actual de la página; por defecto se lee de la URL. */
   tamano?: number;
-  /** Ofrece el selector de tamaño solo si se pasa esta lista. */
+  /** Tamaños ofrecidos; las opciones globales de Alegra siempre quedan disponibles. */
   opciones?: readonly number[];
   /** Permite ocultar el pie desde la página. */
   visible?: boolean;
   /** Con total 0 el pie se conserva (búsqueda sin resultados), como en Facturas. */
   mostrarEnVacio?: boolean;
-  /** ‹‹ ›› en los extremos. Default true para no cambiar las listas existentes. */
+  /** ‹‹ ›› en los extremos. */
   botonesExtremos?: boolean;
-}
-
-function TextoRango({ inicio, fin, total, prefijo }: { inicio: number; fin: number; total: number; prefijo?: string }) {
-  return (
-    <p className="text-muted-foreground tabular-nums">
-      {prefijo ? `${prefijo} ` : null}
-      {formato.format(inicio)}–{formato.format(fin)} de {formato.format(total)}
-    </p>
-  );
-}
-
-function ControlesPagina({
-  pagina,
-  totalPaginas,
-  anterior,
-  siguiente,
-  primera,
-  ultima,
-  botonesExtremos,
-}: {
-  pagina: number;
-  totalPaginas: number;
-  anterior: string | null;
-  siguiente: string | null;
-  primera: string | null;
-  ultima: string | null;
-  botonesExtremos: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-1">
-      {botonesExtremos ? (
-        <Button
-          variant="outline"
-          size="icon-sm"
-          disabled={primera === null}
-          aria-label="Primera página"
-          render={primera ? <Link href={primera} prefetch={false} /> : undefined}
-        >
-          <ChevronsLeft />
-        </Button>
-      ) : null}
-      <Button
-        variant="outline"
-        size="icon-sm"
-        disabled={anterior === null}
-        aria-label="Página anterior"
-        render={anterior ? <Link href={anterior} prefetch={false} /> : undefined}
-      >
-        <ChevronLeft />
-      </Button>
-      <span className="text-muted-foreground min-w-28 text-center tabular-nums">
-        Página {formato.format(pagina)} de {formato.format(totalPaginas)}
-      </span>
-      <Button
-        variant="outline"
-        size="icon-sm"
-        disabled={siguiente === null}
-        aria-label="Página siguiente"
-        render={siguiente ? <Link href={siguiente} prefetch={false} /> : undefined}
-      >
-        <ChevronRight />
-      </Button>
-      {botonesExtremos ? (
-        <Button
-          variant="outline"
-          size="icon-sm"
-          disabled={ultima === null}
-          aria-label="Última página"
-          render={ultima ? <Link href={ultima} prefetch={false} /> : undefined}
-        >
-          <ChevronsRight />
-        </Button>
-      ) : null}
-    </div>
-  );
+  /** Permite ocultar el selector cuando una lista especial no cambia de tamaño. */
+  mostrarSelectorTamano?: boolean;
 }
 
 export function PaginadorLista({
@@ -111,59 +37,47 @@ export function PaginadorLista({
   params,
   resumen,
   className,
-  etiqueta = "Ítems por página",
-  tamano = TAMANO_PAGINA_DEFECTO,
-  opciones,
+  etiqueta = "Ítems por página:",
+  tamano,
+  opciones = TAMANOS_PAGINA,
   visible = true,
   mostrarEnVacio = false,
-  botonesExtremos = true,
+  botonesExtremos = false,
+  mostrarSelectorTamano = true,
 }: Props) {
   const router = useRouter();
 
   if (!visible || (resumen.total === 0 && !mostrarEnVacio)) return null;
 
   const { pagina, totalPaginas, inicio, fin, total } = resumen;
-  const anterior = pagina > 1 ? urlLista(base, params, { pagina: String(pagina - 1) }) : null;
-  const siguiente = pagina < totalPaginas ? urlLista(base, params, { pagina: String(pagina + 1) }) : null;
-  const primera = pagina > 1 ? urlLista(base, params, { pagina: "1" }) : null;
-  const ultima = pagina < totalPaginas ? urlLista(base, params, { pagina: String(totalPaginas) }) : null;
+  const tamanoActual = tamano ?? leerTamano(params);
 
-  function cambiarTamano(valor: string | null) {
-    if (valor === null || valor === String(tamano)) return;
-    router.replace(urlLista(base, params, { tamano: valor, pagina: null }), { scroll: false });
+  function cambiarTamano(nuevoTamano: number) {
+    if (nuevoTamano === tamanoActual) return;
+    router.push(urlLista(base, params, { tamano: String(nuevoTamano), pagina: null }), { scroll: false });
+  }
+
+  function irPagina(destino: number) {
+    if (destino === pagina) return;
+    router.push(urlLista(base, params, { pagina: String(destino) }), { scroll: false });
   }
 
   return (
-    <div className={cn("flex flex-wrap items-center justify-between gap-3 text-sm", className)}>
-      {opciones ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <span>{etiqueta}</span>
-          <Select value={String(tamano)} onValueChange={cambiarTamano}>
-            <SelectTrigger className="h-8 w-20" aria-label={etiqueta}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent alignItemWithTrigger={false}>
-              {opciones.map((opcion) => (
-                <SelectItem key={opcion} value={String(opcion)}>
-                  {opcion}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <TextoRango inicio={inicio} fin={fin} total={total} />
-        </div>
-      ) : (
-        <TextoRango prefijo="Mostrando" inicio={inicio} fin={fin} total={total} />
-      )}
-      <ControlesPagina
-        pagina={pagina}
-        totalPaginas={totalPaginas}
-        anterior={anterior}
-        siguiente={siguiente}
-        primera={primera}
-        ultima={ultima}
-        botonesExtremos={botonesExtremos}
-      />
-    </div>
+    <BarraPaginacionAlegra
+      pagina={pagina}
+      totalPaginas={totalPaginas}
+      inicio={inicio}
+      fin={fin}
+      total={total}
+      tamano={tamanoActual}
+      opciones={opciones}
+      mostrarSelectorTamano={mostrarSelectorTamano}
+      onCambiarTamano={cambiarTamano}
+      onIrPagina={irPagina}
+      hrefPagina={(destino) => urlLista(base, params, { pagina: String(destino) })}
+      etiquetaTamano={etiqueta}
+      botonesExtremos={botonesExtremos}
+      className={className}
+    />
   );
 }

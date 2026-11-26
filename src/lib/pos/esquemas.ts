@@ -654,7 +654,7 @@ export const esquemaFiltrosHistorial = z
       .number({ message: "El tamaño de página debe ser un número." })
       .int({ message: "El tamaño de página debe ser un entero." })
       .refine((valor) => TAMANOS_PAGINA.some((tamano) => tamano === valor), {
-        message: "El tamaño de página debe ser 25, 50 o 100.",
+        message: "El tamaño de página no está disponible.",
       })
       .default(TAMANO_PAGINA_DEFECTO),
   })

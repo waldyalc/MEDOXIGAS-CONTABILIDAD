@@ -5,6 +5,7 @@ import { type FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { DatePicker, DatePickerCampo } from "@/components/date-picker";
+import { usePagina } from "@/components/ficha/ficha-ui";
 import { FORM_INPUT, FORM_SELECT, FormField } from "@/components/formularios/formulario";
 import { Hash, Loader2, Pencil, Plus } from "@/components/icons";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { formatoDia, formatoEntero } from "@/lib/formato";
+import { TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import { actualizarNumeracion, crearNumeracion } from "@/lib/numeraciones/acciones";
 import { type Numeracion, TIPO_SIN_NCF } from "@/lib/numeraciones/tipos";
 
@@ -319,13 +321,11 @@ export function NumeracionesCliente({
   const [editando, setEditando] = useState<Numeracion | null>(null);
   const [creando, setCreando] = useState(false);
   const [tipo, setTipo] = useState("");
-  const [pagina, setPagina] = useState(0);
 
   const opciones = opcionesTipoDocumento(numeraciones);
   const filtradas = tipo === "" ? numeraciones : numeraciones.filter((fila) => fila.tipo_comprobante === tipo);
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
-  const paginaActual = Math.min(pagina, totalPaginas - 1);
-  const visibles = filtradas.slice(paginaActual * POR_PAGINA, (paginaActual + 1) * POR_PAGINA);
+  const { pagina: paginaActual, setPagina, porPagina, setPorPagina } = usePagina(filtradas.length, POR_PAGINA);
+  const visibles = filtradas.slice(paginaActual * porPagina, (paginaActual + 1) * porPagina);
 
   function cambiarDialogo(abierto: boolean) {
     if (!abierto) setEditando(null);
@@ -412,9 +412,10 @@ export function NumeracionesCliente({
           total={filtradas.length}
           pagina={paginaActual}
           setPagina={setPagina}
-          porPagina={POR_PAGINA}
+          porPagina={porPagina}
+          opciones={TAMANOS_PAGINA}
+          onCambiarPorPagina={setPorPagina}
           etiqueta="numeraciones"
-          className="border-border h-14 border-t px-4 text-slate-700 dark:text-slate-300"
         />
       </TarjetaLista>
 

@@ -4,9 +4,11 @@ import {
   leerOpcionesLista,
   leerPagina,
   leerTamano,
+  leerTamanoConDefecto,
   rangoPagina,
   resumirPagina,
   TAMANO_PAGINA_DEFECTO,
+  TAMANOS_PAGINA,
   urlLista,
 } from "./parametros";
 
@@ -23,11 +25,20 @@ describe("parámetros de lista", () => {
     expect(leerPagina({ pagina: ["4"] })).toBe(4);
   });
 
-  test("solo admite los tamaños de página ofrecidos", () => {
-    expect(leerTamano({ tamano: "50" })).toBe(50);
-    expect(leerTamano({ tamano: "100" })).toBe(100);
+  test("admite exactamente los tamaños de página de Alegra", () => {
+    expect(TAMANOS_PAGINA).toEqual([10, 20, 25, 30, 50, 100]);
+    for (const tamano of TAMANOS_PAGINA) {
+      expect(leerTamano({ tamano: String(tamano) })).toBe(tamano);
+    }
     expect(leerTamano({ tamano: "7" })).toBe(TAMANO_PAGINA_DEFECTO);
     expect(leerTamano({ tamano: "abc" })).toBe(TAMANO_PAGINA_DEFECTO);
+  });
+
+  test("lee el tamaño con un defecto y opciones propios para reportes", () => {
+    expect(leerTamanoConDefecto({ tamano: "20" }, 10, [10, 20, 30])).toBe(20);
+    expect(leerTamanoConDefecto({ tamano: "50" }, 10, [10, 20, 30])).toBe(10);
+    expect(leerTamanoConDefecto({}, 30, [10, 20])).toBe(30);
+    expect(leerTamanoConDefecto({ tamano: "30" }, 30, [10, 20])).toBe(30);
   });
 
   test("recorta la búsqueda a 100 caracteres", () => {

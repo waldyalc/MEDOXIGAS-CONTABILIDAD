@@ -13,6 +13,7 @@ import { etiquetaEstadoDocumento } from "@/lib/contactos/ficha";
 import { rutaCompra, rutaConduce, rutaContacto, rutaCotizacion, rutaFactura } from "@/lib/enlaces";
 import { formatoCantidad, formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
+import { TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import {
   type DocumentoComercialFicha,
   type DocumentoFicha,
@@ -103,8 +104,8 @@ export function ListaBuscable<T extends DocumentoNumerado>({
 }) {
   const [busqueda, setBusqueda] = useState("");
   const filtradas = filtrarPorNumero(filas, busqueda);
-  const { pagina, setPagina } = usePagina(filtradas.length, POR_PAGINA);
-  const visibles = filtradas.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA);
+  const { pagina, setPagina, porPagina, setPorPagina } = usePagina(filtradas.length, POR_PAGINA);
+  const visibles = filtradas.slice(pagina * porPagina, (pagina + 1) * porPagina);
 
   return (
     <div className="flex flex-col gap-5">
@@ -123,9 +124,11 @@ export function ListaBuscable<T extends DocumentoNumerado>({
       {children(visibles, busqueda.trim() !== "")}
       <PaginadorLocal
         total={filtradas.length}
-        porPagina={POR_PAGINA}
+        porPagina={porPagina}
         pagina={pagina}
         setPagina={setPagina}
+        opciones={TAMANOS_PAGINA}
+        onCambiarPorPagina={setPorPagina}
         etiqueta={unidad}
       />
     </div>

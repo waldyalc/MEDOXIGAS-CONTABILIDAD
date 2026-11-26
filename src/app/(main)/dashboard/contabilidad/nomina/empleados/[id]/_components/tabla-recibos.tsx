@@ -7,6 +7,7 @@ import { PaginadorLocal } from "@/components/listas/paginador-local";
 import { type ColumnaLista, PillEstado, TablaLista } from "@/components/listas/tabla-lista";
 import { Button } from "@/components/ui/button";
 import { formatoMoneda } from "@/lib/facturacion/formato";
+import { TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import type { PeriodoNomina, ReciboNomina } from "@/lib/nomina/tipos";
 
 import {
@@ -97,8 +98,8 @@ export function TablaRecibos({
   filas: readonly FilaReciboEmpleado[];
   puedeEscribir: boolean;
 }) {
-  const { pagina, setPagina } = usePagina(filas.length, POR_PAGINA);
-  const visibles = filas.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA);
+  const { pagina, setPagina, porPagina, setPorPagina } = usePagina(filas.length, POR_PAGINA);
+  const visibles = filas.slice(pagina * porPagina, (pagina + 1) * porPagina);
 
   return (
     <div className="flex flex-col gap-4">
@@ -122,15 +123,15 @@ export function TablaRecibos({
           ),
         }}
       />
-      {filas.length > POR_PAGINA ? (
-        <PaginadorLocal
-          total={filas.length}
-          pagina={pagina}
-          setPagina={setPagina}
-          porPagina={POR_PAGINA}
-          etiqueta="recibos"
-        />
-      ) : null}
+      <PaginadorLocal
+        total={filas.length}
+        pagina={pagina}
+        setPagina={setPagina}
+        porPagina={porPagina}
+        opciones={TAMANOS_PAGINA}
+        onCambiarPorPagina={setPorPagina}
+        etiqueta="recibos"
+      />
     </div>
   );
 }

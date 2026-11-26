@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { usePathname, useRouter } from "next/navigation";
 
+import { usePagina } from "@/components/ficha/ficha-ui";
 import { Download, Search, TriangleAlert } from "@/components/icons";
 import { PaginadorLocal } from "@/components/listas/paginador-local";
 import { BarraLista, TarjetaLista } from "@/components/listas/tabla-lista";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Almacen } from "@/lib/inventario/tipos";
+import { TAMANOS_PAGINA } from "@/lib/listas/parametros";
 
 import {
   csvStockBajo,
@@ -26,7 +28,6 @@ import { TablaStockBajo } from "./tabla-stock-bajo";
 import { TarjetasStockBajo } from "./tarjetas-stock-bajo";
 
 const POR_PAGINA = 25;
-const TAMANOS = [25, 50, 100] as const;
 
 interface Props {
   readonly filas: readonly FilaStockBajo[];
@@ -40,13 +41,10 @@ export function StockBajoCliente({ filas, almacenes, almacenId, almacenNombre, e
   const router = useRouter();
   const pathname = usePathname();
   const [busqueda, setBusqueda] = useState("");
-  const [porPagina, setPorPagina] = useState<number>(POR_PAGINA);
-  const [pagina, setPagina] = useState(0);
 
   const filtradas = useMemo(() => filtrarStockBajo(filas, busqueda), [filas, busqueda]);
   const resumen = useMemo(() => resumirStock(filtradas), [filtradas]);
-  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
-  const paginaActual = Math.min(pagina, totalPaginas - 1);
+  const { pagina: paginaActual, setPagina, porPagina, setPorPagina } = usePagina(filtradas.length, POR_PAGINA);
   const visibles = filtradas.slice(paginaActual * porPagina, (paginaActual + 1) * porPagina);
   const opcionesAlmacen = almacenes.map((almacen) => ({ value: almacen.id, label: almacen.nombre }));
 
@@ -121,20 +119,15 @@ export function StockBajoCliente({ filas, almacenes, almacenId, almacenNombre, e
 
             <TablaStockBajo filas={visibles} buscando={busqueda.trim() !== ""} />
 
-            <div className="border-border border-t px-4 py-3">
-              <PaginadorLocal
-                total={filtradas.length}
-                pagina={paginaActual}
-                setPagina={setPagina}
-                porPagina={porPagina}
-                etiqueta="productos"
-                opciones={TAMANOS}
-                onCambiarPorPagina={(tamano) => {
-                  setPorPagina(tamano);
-                  setPagina(0);
-                }}
-              />
-            </div>
+            <PaginadorLocal
+              total={filtradas.length}
+              pagina={paginaActual}
+              setPagina={setPagina}
+              porPagina={porPagina}
+              etiqueta="productos"
+              opciones={TAMANOS_PAGINA}
+              onCambiarPorPagina={setPorPagina}
+            />
           </TarjetaLista>
         </>
       )}

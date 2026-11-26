@@ -32,9 +32,10 @@ import {
   validarAdjunto,
 } from "@/lib/adjuntos/adjuntos";
 import { formatoFechaHora } from "@/lib/formato";
+import { TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import { createClient } from "@/lib/supabase/client";
 
-const ADJUNTOS_POR_PAGINA = 8;
+const ADJUNTOS_POR_PAGINA = 10;
 
 const COLUMNAS: readonly ColumnaLista<AdjuntoItem>[] = [
   {
@@ -96,8 +97,8 @@ export function SeccionAdjuntos({ adjuntos, entidadTipo, entidadId, puedeEscribi
   const [borrando, setBorrando] = useState<AdjuntoItem | null>(null);
   const [errorBorrado, setErrorBorrado] = useState<string | null>(null);
   const [pendiente, iniciar] = useTransition();
-  const { pagina, setPagina } = usePagina(adjuntos.length, ADJUNTOS_POR_PAGINA);
-  const visibles = adjuntos.slice(pagina * ADJUNTOS_POR_PAGINA, (pagina + 1) * ADJUNTOS_POR_PAGINA);
+  const { pagina, setPagina, porPagina, setPorPagina } = usePagina(adjuntos.length, ADJUNTOS_POR_PAGINA);
+  const visibles = adjuntos.slice(pagina * porPagina, (pagina + 1) * porPagina);
 
   async function subir(evento: ChangeEvent<HTMLInputElement>) {
     const archivo = evento.target.files?.[0] ?? null;
@@ -248,15 +249,15 @@ export function SeccionAdjuntos({ adjuntos, entidadTipo, entidadId, puedeEscribi
         )}
       />
 
-      {adjuntos.length > ADJUNTOS_POR_PAGINA ? (
-        <PaginadorLocal
-          total={adjuntos.length}
-          pagina={pagina}
-          setPagina={setPagina}
-          porPagina={ADJUNTOS_POR_PAGINA}
-          etiqueta="adjuntos"
-        />
-      ) : null}
+      <PaginadorLocal
+        total={adjuntos.length}
+        pagina={pagina}
+        setPagina={setPagina}
+        porPagina={porPagina}
+        opciones={TAMANOS_PAGINA}
+        onCambiarPorPagina={setPorPagina}
+        etiqueta="adjuntos"
+      />
 
       <AlertDialog
         open={borrando !== null}

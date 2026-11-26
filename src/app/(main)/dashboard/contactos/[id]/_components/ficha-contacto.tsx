@@ -93,6 +93,7 @@ import {
 import { formatoMoneda, formatoMonedaCentavos } from "@/lib/facturacion/formato";
 import { formatoDia } from "@/lib/formato";
 import type { ListaPrecio } from "@/lib/inventario/tipos";
+import { TAMANOS_PAGINA } from "@/lib/listas/parametros";
 
 import {
   type ClaseEstado,
@@ -599,8 +600,8 @@ function PestanaTabla({
     if (filtroTipo !== "todos" && fila.tipo !== filtroTipo) return false;
     return coincidenTexto(fila, texto);
   });
-  const { pagina, setPagina } = usePagina(filtradas.length, TX_POR_PAGINA);
-  const visibles = filtradas.slice(pagina * TX_POR_PAGINA, (pagina + 1) * TX_POR_PAGINA);
+  const { pagina, setPagina, porPagina, setPorPagina } = usePagina(filtradas.length, TX_POR_PAGINA);
+  const visibles = filtradas.slice(pagina * porPagina, (pagina + 1) * porPagina);
 
   return (
     <div className="flex flex-col gap-5">
@@ -619,9 +620,11 @@ function PestanaTabla({
       <TablaMovimientos filas={visibles} unidad={unidad} />
       <PaginadorLocal
         total={filtradas.length}
-        porPagina={TX_POR_PAGINA}
+        porPagina={porPagina}
         pagina={pagina}
         setPagina={setPagina}
+        opciones={TAMANOS_PAGINA}
+        onCambiarPorPagina={setPorPagina}
         etiqueta={unidad}
       />
     </div>

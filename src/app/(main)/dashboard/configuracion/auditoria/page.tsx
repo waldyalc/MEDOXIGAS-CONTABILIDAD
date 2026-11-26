@@ -5,7 +5,13 @@ import { BarraLista, ContenedorLista, TarjetaLista } from "@/components/listas/t
 import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { consultarAuditoria } from "@/lib/auditoria/consultas";
 import { getRol } from "@/lib/auth/rol";
-import { leerPagina, leerTamano, leerTexto, type ParametrosLista, resumirPagina } from "@/lib/listas/parametros";
+import {
+  leerOpcionesLista,
+  leerTexto,
+  type ParametrosLista,
+  resumirPagina,
+  TAMANOS_PAGINA,
+} from "@/lib/listas/parametros";
 
 import { AuditoriaTabla } from "./_components/auditoria-tabla";
 import { FiltroAuditoria } from "./_components/filtro-auditoria";
@@ -26,8 +32,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const accion = leerTexto(params, "accion");
   const desde = leerTexto(params, "desde");
   const hasta = leerTexto(params, "hasta");
-  const pagina = leerPagina(params);
-  const tamano = leerTamano(params);
+  const { pagina, tamano } = leerOpcionesLista(params);
 
   const respuesta = await consultarAuditoria({
     entidad,
@@ -80,9 +85,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
               base={RUTA}
               params={params}
               resumen={resumen}
+              tamano={tamano}
+              opciones={TAMANOS_PAGINA}
               mostrarEnVacio
               botonesExtremos={false}
-              className="border-border h-14 border-t px-4 text-slate-700 dark:text-slate-300"
             />
           </>
         )}

@@ -35,10 +35,20 @@ export function MetaItem({ icono, texto }: { readonly icono: ReactNode; readonly
   );
 }
 
-export function usePagina(total: number, porPagina: number): { pagina: number; setPagina: (p: number) => void } {
+export function usePagina(
+  total: number,
+  porPaginaInicial: number,
+): { pagina: number; setPagina: (p: number) => void; porPagina: number; setPorPagina: (porPagina: number) => void } {
   const [pagina, setPagina] = useState(0);
+  const [porPagina, setPorPaginaInterno] = useState(porPaginaInicial);
   const paginas = Math.max(1, Math.ceil(total / porPagina));
-  return { pagina: Math.min(pagina, paginas - 1), setPagina };
+
+  function setPorPagina(nuevoPorPagina: number) {
+    setPorPaginaInterno(Math.max(1, nuevoPorPagina));
+    setPagina(0);
+  }
+
+  return { pagina: Math.min(pagina, paginas - 1), setPagina, porPagina, setPorPagina };
 }
 
 export function PiePagina({

@@ -1,5 +1,5 @@
 export const TAMANO_PAGINA_DEFECTO = 25;
-export const TAMANOS_PAGINA = [25, 50, 100] as const;
+export const TAMANOS_PAGINA = [10, 20, 25, 30, 50, 100] as const;
 
 export type ParametrosLista = Record<string, string | string[] | undefined>;
 
@@ -35,9 +35,18 @@ export function leerPagina(params: ParametrosLista): number {
   return Number.isInteger(numero) && numero > 0 ? numero : 1;
 }
 
-export function leerTamano(params: ParametrosLista): number {
+export function leerTamanoConDefecto(
+  params: ParametrosLista,
+  defecto: number,
+  opciones: readonly number[] = TAMANOS_PAGINA,
+): number {
   const numero = Number(leerTexto(params, "tamano"));
-  return TAMANOS_PAGINA.find((tamano) => tamano === numero) ?? TAMANO_PAGINA_DEFECTO;
+  const permitidos = opciones.includes(defecto) ? opciones : [...opciones, defecto];
+  return permitidos.find((tamano) => tamano === numero) ?? defecto;
+}
+
+export function leerTamano(params: ParametrosLista): number {
+  return leerTamanoConDefecto(params, TAMANO_PAGINA_DEFECTO, TAMANOS_PAGINA);
 }
 
 export function leerOpcionesLista(params: ParametrosLista): OpcionesLista {

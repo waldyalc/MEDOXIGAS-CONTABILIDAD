@@ -18,6 +18,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import type { MovimientoBanco } from "@/lib/bancos/movimientos";
 import { rutaContacto } from "@/lib/enlaces";
 import { formatoDia } from "@/lib/formato";
+import { TAMANOS_PAGINA } from "@/lib/listas/parametros";
 import { formatearRd } from "@/lib/reportes/dinero";
 
 interface Props {
@@ -45,8 +46,7 @@ export function PanelMovimientos({
   const router = useRouter();
   const [fechaDesde, setFechaDesde] = useState(desde);
   const [fechaHasta, setFechaHasta] = useState(hasta);
-  const [porPagina, setPorPagina] = useState(10);
-  const { pagina, setPagina } = usePagina(movimientos.length, porPagina);
+  const { pagina, setPagina, porPagina, setPorPagina } = usePagina(movimientos.length, 10);
   const visibles = movimientos.slice(pagina * porPagina, (pagina + 1) * porPagina);
   const hayFiltro = desde !== "" || hasta !== "";
 
@@ -206,17 +206,15 @@ export function PanelMovimientos({
         }
       />
 
-      <div className="border-border border-t px-4 py-3">
-        <PaginadorLocal
-          total={movimientos.length}
-          pagina={pagina}
-          setPagina={setPagina}
-          porPagina={porPagina}
-          onCambiarPorPagina={setPorPagina}
-          opciones={[10, 25, 50]}
-          etiqueta="movimientos"
-        />
-      </div>
+      <PaginadorLocal
+        total={movimientos.length}
+        pagina={pagina}
+        setPagina={setPagina}
+        porPagina={porPagina}
+        onCambiarPorPagina={setPorPagina}
+        opciones={TAMANOS_PAGINA}
+        etiqueta="movimientos"
+      />
     </TarjetaLista>
   );
 }
