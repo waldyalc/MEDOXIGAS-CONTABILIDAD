@@ -24,6 +24,7 @@ export const ETIQUETAS_DOCUMENTO: Record<string, string> = {
   pos_diferencia: "Diferencia de cierre POS",
   nomina: "Nómina",
   pago_nomina: "Pago de nómina",
+  recosteo_inventario: "Recosteo de inventario",
 };
 
 /** Etiqueta legible del origen; si la base trae uno desconocido, la clave cruda. */
