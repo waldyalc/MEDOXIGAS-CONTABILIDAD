@@ -1197,6 +1197,242 @@ export type Database = {
           },
         ]
       }
+      ecf_config: {
+        Row: {
+          activo: boolean
+          ambiente: string
+          cert_cifrado: string | null
+          cert_huella_sha256: string | null
+          cert_numero_serie: string | null
+          cert_pass_cifrada: string | null
+          cert_titular: string | null
+          cert_valido_hasta: string | null
+          created_at: string
+          dominio_base: string | null
+          razon_social: string
+          rnc: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activo?: boolean
+          ambiente?: string
+          cert_cifrado?: string | null
+          cert_huella_sha256?: string | null
+          cert_numero_serie?: string | null
+          cert_pass_cifrada?: string | null
+          cert_titular?: string | null
+          cert_valido_hasta?: string | null
+          created_at?: string
+          dominio_base?: string | null
+          razon_social: string
+          rnc: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activo?: boolean
+          ambiente?: string
+          cert_cifrado?: string | null
+          cert_huella_sha256?: string | null
+          cert_numero_serie?: string | null
+          cert_pass_cifrada?: string | null
+          cert_titular?: string | null
+          cert_valido_hasta?: string | null
+          created_at?: string
+          dominio_base?: string | null
+          razon_social?: string
+          rnc?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ecf_envios: {
+        Row: {
+          ambiente: string
+          codigo_seguridad: string | null
+          contingencia_offline: boolean
+          created_at: string
+          documento_id: string | null
+          documento_tipo: string
+          encf: string
+          es_rfce: boolean
+          estado: string
+          fecha_hora_firma: string | null
+          id: string
+          intentos: number
+          mensajes: string[] | null
+          proximo_reintento_at: string | null
+          respuesta_dgii: Json | null
+          rnc_emisor: string
+          secuencia_utilizada: boolean | null
+          tipo_ecf: string
+          track_id: string | null
+          ultimo_intento_at: string | null
+          updated_at: string
+          url_qr: string | null
+          xml_firmado: string | null
+          xml_rfce: string | null
+        }
+        Insert: {
+          ambiente?: string
+          codigo_seguridad?: string | null
+          contingencia_offline?: boolean
+          created_at?: string
+          documento_id?: string | null
+          documento_tipo: string
+          encf: string
+          es_rfce?: boolean
+          estado: string
+          fecha_hora_firma?: string | null
+          id?: string
+          intentos?: number
+          mensajes?: string[] | null
+          proximo_reintento_at?: string | null
+          respuesta_dgii?: Json | null
+          rnc_emisor: string
+          secuencia_utilizada?: boolean | null
+          tipo_ecf: string
+          track_id?: string | null
+          ultimo_intento_at?: string | null
+          updated_at?: string
+          url_qr?: string | null
+          xml_firmado?: string | null
+          xml_rfce?: string | null
+        }
+        Update: {
+          ambiente?: string
+          codigo_seguridad?: string | null
+          contingencia_offline?: boolean
+          created_at?: string
+          documento_id?: string | null
+          documento_tipo?: string
+          encf?: string
+          es_rfce?: boolean
+          estado?: string
+          fecha_hora_firma?: string | null
+          id?: string
+          intentos?: number
+          mensajes?: string[] | null
+          proximo_reintento_at?: string | null
+          respuesta_dgii?: Json | null
+          rnc_emisor?: string
+          secuencia_utilizada?: boolean | null
+          tipo_ecf?: string
+          track_id?: string | null
+          ultimo_intento_at?: string | null
+          updated_at?: string
+          url_qr?: string | null
+          xml_firmado?: string | null
+          xml_rfce?: string | null
+        }
+        Relationships: []
+      }
+      ecf_recibidos: {
+        Row: {
+          codigo_motivo_no_recibido: string | null
+          codigo_seguridad: string | null
+          correo_emisor: string | null
+          created_at: string
+          encf: string
+          estado_acecf: string
+          estado_arecf: string
+          factura_compra_id: string | null
+          fecha_acecf: string | null
+          fecha_emision: string | null
+          firma_valida: boolean
+          id: string
+          items_resumen: Json
+          moneda: string
+          monto_exento: number
+          monto_gravado: number
+          monto_total: number
+          motivo_rechazo: string | null
+          origen: string
+          razon_social_emisor: string
+          recibido_at: string
+          rnc_emisor: string
+          rnc_receptor: string
+          tipo_ecf: string
+          total_itbis: number
+          updated_at: string
+          xml_acecf: string | null
+          xml_arecf: string | null
+          xml_original: string
+        }
+        Insert: {
+          codigo_motivo_no_recibido?: string | null
+          codigo_seguridad?: string | null
+          correo_emisor?: string | null
+          created_at?: string
+          encf: string
+          estado_acecf?: string
+          estado_arecf?: string
+          factura_compra_id?: string | null
+          fecha_acecf?: string | null
+          fecha_emision?: string | null
+          firma_valida?: boolean
+          id?: string
+          items_resumen?: Json
+          moneda?: string
+          monto_exento?: number
+          monto_gravado?: number
+          monto_total?: number
+          motivo_rechazo?: string | null
+          origen?: string
+          razon_social_emisor: string
+          recibido_at?: string
+          rnc_emisor: string
+          rnc_receptor: string
+          tipo_ecf: string
+          total_itbis?: number
+          updated_at?: string
+          xml_acecf?: string | null
+          xml_arecf?: string | null
+          xml_original: string
+        }
+        Update: {
+          codigo_motivo_no_recibido?: string | null
+          codigo_seguridad?: string | null
+          correo_emisor?: string | null
+          created_at?: string
+          encf?: string
+          estado_acecf?: string
+          estado_arecf?: string
+          factura_compra_id?: string | null
+          fecha_acecf?: string | null
+          fecha_emision?: string | null
+          firma_valida?: boolean
+          id?: string
+          items_resumen?: Json
+          moneda?: string
+          monto_exento?: number
+          monto_gravado?: number
+          monto_total?: number
+          motivo_rechazo?: string | null
+          origen?: string
+          razon_social_emisor?: string
+          recibido_at?: string
+          rnc_emisor?: string
+          rnc_receptor?: string
+          tipo_ecf?: string
+          total_itbis?: number
+          updated_at?: string
+          xml_acecf?: string | null
+          xml_arecf?: string | null
+          xml_original?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ecf_recibidos_factura_compra_id_fkey"
+            columns: ["factura_compra_id"]
+            isOneToOne: false
+            referencedRelation: "facturas_proveedor"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empleado_novedades_recurrentes: {
         Row: {
           activa: boolean
@@ -2289,6 +2525,103 @@ export type Database = {
           nombre?: string
         }
         Relationships: []
+      }
+      movimientos_inventario: {
+        Row: {
+          almacen_id: string | null
+          asiento_id: string | null
+          cantidad: number
+          cantidad_antes: number
+          cantidad_despues: number
+          costo_promedio_antes: number
+          costo_promedio_despues: number
+          costo_unitario: number
+          creado_en: string
+          creado_por: string | null
+          descripcion: string | null
+          documento_ref: string | null
+          es_recosteo: boolean
+          fecha: string
+          id: string
+          origen_id: string | null
+          origen_tipo: string
+          producto_id: string
+          tipo: string
+          valor_antes: number
+          valor_despues: number
+          valor_movimiento: number
+        }
+        Insert: {
+          almacen_id?: string | null
+          asiento_id?: string | null
+          cantidad?: number
+          cantidad_antes: number
+          cantidad_despues: number
+          costo_promedio_antes?: number
+          costo_promedio_despues?: number
+          costo_unitario?: number
+          creado_en?: string
+          creado_por?: string | null
+          descripcion?: string | null
+          documento_ref?: string | null
+          es_recosteo?: boolean
+          fecha: string
+          id?: string
+          origen_id?: string | null
+          origen_tipo: string
+          producto_id: string
+          tipo: string
+          valor_antes?: number
+          valor_despues?: number
+          valor_movimiento?: number
+        }
+        Update: {
+          almacen_id?: string | null
+          asiento_id?: string | null
+          cantidad?: number
+          cantidad_antes?: number
+          cantidad_despues?: number
+          costo_promedio_antes?: number
+          costo_promedio_despues?: number
+          costo_unitario?: number
+          creado_en?: string
+          creado_por?: string | null
+          descripcion?: string | null
+          documento_ref?: string | null
+          es_recosteo?: boolean
+          fecha?: string
+          id?: string
+          origen_id?: string | null
+          origen_tipo?: string
+          producto_id?: string
+          tipo?: string
+          valor_antes?: number
+          valor_despues?: number
+          valor_movimiento?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimientos_inventario_almacen_id_fkey"
+            columns: ["almacen_id"]
+            isOneToOne: false
+            referencedRelation: "almacenes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_inventario_asiento_id_fkey"
+            columns: ["asiento_id"]
+            isOneToOne: false
+            referencedRelation: "asientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_inventario_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       nomina_conceptos: {
         Row: {
@@ -4577,6 +4910,7 @@ export type Database = {
           cantidad: number
           categoria_id: string | null
           costo: number
+          costo_promedio: number
           creado_en: string
           cuenta_costo_id: string | null
           cuenta_ingreso_id: string | null
@@ -4595,6 +4929,7 @@ export type Database = {
           tipo: string
           ubicacion: string | null
           unidad_medida: string
+          valor_inventario: number
           vende_negativo: boolean
         }
         Insert: {
@@ -4603,6 +4938,7 @@ export type Database = {
           cantidad?: number
           categoria_id?: string | null
           costo?: number
+          costo_promedio?: number
           creado_en?: string
           cuenta_costo_id?: string | null
           cuenta_ingreso_id?: string | null
@@ -4621,6 +4957,7 @@ export type Database = {
           tipo?: string
           ubicacion?: string | null
           unidad_medida?: string
+          valor_inventario?: number
           vende_negativo?: boolean
         }
         Update: {
@@ -4629,6 +4966,7 @@ export type Database = {
           cantidad?: number
           categoria_id?: string | null
           costo?: number
+          costo_promedio?: number
           creado_en?: string
           cuenta_costo_id?: string | null
           cuenta_ingreso_id?: string | null
@@ -4647,6 +4985,7 @@ export type Database = {
           tipo?: string
           ubicacion?: string | null
           unidad_medida?: string
+          valor_inventario?: number
           vende_negativo?: boolean
         }
         Relationships: [
@@ -5145,6 +5484,82 @@ export type Database = {
         Args: { p_id: string; p_tipo: string }
         Returns: string
       }
+      _aplicar_entrada_combo_inventario: {
+        Args: {
+          p_almacen_id: string
+          p_asiento_id?: string
+          p_cantidad_base: number
+          p_centro_costo_id?: string
+          p_combo_id: string
+          p_descripcion: string
+          p_documento_ref: string
+          p_fecha: string
+          p_origen_id: string
+          p_origen_tipo: string
+        }
+        Returns: number
+      }
+      _aplicar_entrada_inventario: {
+        Args: {
+          p_almacen_id: string
+          p_asiento_id?: string
+          p_cantidad_base: number
+          p_centro_costo_id?: string
+          p_descripcion: string
+          p_documento_ref: string
+          p_fecha: string
+          p_origen_id: string
+          p_origen_tipo: string
+          p_producto_id: string
+          p_valor_entrada: number
+        }
+        Returns: number
+      }
+      _aplicar_retiro_inventario_exacto: {
+        Args: {
+          p_almacen_id: string
+          p_asiento_id?: string
+          p_cantidad_base: number
+          p_centro_costo_id?: string
+          p_descripcion: string
+          p_documento_ref: string
+          p_fecha: string
+          p_origen_id: string
+          p_origen_tipo: string
+          p_producto_id: string
+          p_valor_retiro: number
+        }
+        Returns: number
+      }
+      _aplicar_salida_combo_inventario: {
+        Args: {
+          p_almacen_id: string
+          p_asiento_id?: string
+          p_cantidad_base: number
+          p_combo_id: string
+          p_descripcion: string
+          p_documento_ref: string
+          p_fecha: string
+          p_origen_id: string
+          p_origen_tipo: string
+        }
+        Returns: number
+      }
+      _aplicar_salida_inventario: {
+        Args: {
+          p_almacen_id: string
+          p_asiento_id?: string
+          p_cantidad_base: number
+          p_costo_unitario?: number
+          p_descripcion: string
+          p_documento_ref: string
+          p_fecha: string
+          p_origen_id: string
+          p_origen_tipo: string
+          p_producto_id: string
+        }
+        Returns: number
+      }
       _conciliacion_lineas: { Args: { p_lineas: Json }; Returns: string[] }
       _costo_combo: {
         Args: { p_cantidad_base: number; p_combo_id: string }
@@ -5158,6 +5573,19 @@ export type Database = {
           p_lineas: Json
           p_origen_id: string
           p_origen_tipo: string
+        }
+        Returns: string
+      }
+      _crear_asiento_recosteo: {
+        Args: {
+          p_centro_costo_id?: string
+          p_cuenta_costo: string
+          p_cuenta_inventario: string
+          p_delta_cogs: number
+          p_descripcion: string
+          p_fecha: string
+          p_origen_id: string
+          p_producto_id: string
         }
         Returns: string
       }
@@ -5388,6 +5816,43 @@ export type Database = {
       }
       _producto_guardar_minimos: {
         Args: { p: Json; p_almacen_id: string; p_producto_id: string }
+        Returns: undefined
+      }
+      _registrar_movimiento_inventario: {
+        Args: {
+          p_almacen_id: string
+          p_asiento_id: string
+          p_cantidad: number
+          p_cantidad_antes: number
+          p_cantidad_despues: number
+          p_costo_promedio_antes: number
+          p_costo_promedio_despues: number
+          p_costo_unitario: number
+          p_descripcion: string
+          p_documento_ref: string
+          p_es_recosteo?: boolean
+          p_fecha: string
+          p_origen_id: string
+          p_origen_tipo: string
+          p_producto_id: string
+          p_tipo: string
+          p_valor_antes: number
+          p_valor_despues: number
+          p_valor_movimiento: number
+        }
+        Returns: string
+      }
+      _registrar_transferencia_inventario: {
+        Args: {
+          p_almacen_destino_id: string
+          p_almacen_origen_id: string
+          p_cantidad: number
+          p_descripcion: string
+          p_documento_id: string
+          p_fecha: string
+          p_origen_tipo: string
+          p_producto_id: string
+        }
         Returns: undefined
       }
       _resolver_impuesto: {
@@ -5799,6 +6264,42 @@ export type Database = {
           tipo: string
         }[]
       }
+      reporte_kardex_producto: {
+        Args: {
+          p_almacen_id?: string
+          p_desde?: string
+          p_hasta?: string
+          p_producto_id: string
+        }
+        Returns: {
+          almacen_id: string
+          almacen_nombre: string
+          asiento_codigo: string
+          asiento_id: string
+          asiento_numero: number
+          cantidad: number
+          cantidad_antes: number
+          cantidad_despues: number
+          costo_promedio_antes: number
+          costo_promedio_despues: number
+          costo_unitario: number
+          creado_en: string
+          descripcion: string
+          documento_ref: string
+          es_recosteo: boolean
+          fecha: string
+          id: string
+          origen_id: string
+          origen_tipo: string
+          producto_id: string
+          producto_nombre: string
+          referencia: string
+          tipo: string
+          valor_antes: number
+          valor_despues: number
+          valor_movimiento: number
+        }[]
+      }
       reporte_libro_diario: {
         Args: { p_desde: string; p_hasta: string }
         Returns: {
@@ -5835,6 +6336,26 @@ export type Database = {
           fecha: string
           origen_tipo: string
           tercero: string
+        }[]
+      }
+      reporte_recosteos: {
+        Args: { p_desde: string; p_hasta: string; p_producto_id?: string }
+        Returns: {
+          asiento_id: string
+          asiento_numero: number
+          cantidad_despues: number
+          costo_promedio_antes: number
+          costo_promedio_despues: number
+          delta_cogs: number
+          descripcion: string
+          documento_ref: string
+          fecha: string
+          origen_id: string
+          origen_tipo: string
+          producto_id: string
+          producto_nombre: string
+          referencia: string
+          valor_movimiento: number
         }[]
       }
       reporte_saldos_cuentas: {
@@ -5877,6 +6398,7 @@ export type Database = {
           tercero: string
         }[]
       }
+      reporte_salud_inventario: { Args: { p_fecha?: string }; Returns: Json }
       reporte_stock_bajo: {
         Args: { p_almacen_id?: string }
         Returns: {
@@ -5891,6 +6413,19 @@ export type Database = {
           referencia: string
           sugerido: number
           ubicacion: string
+        }[]
+      }
+      reporte_valor_inventario_corte: {
+        Args: { p_almacen_id?: string; p_fecha?: string }
+        Returns: {
+          activo: boolean
+          cantidad: number
+          costo_promedio: number
+          descripcion: string
+          nombre: string
+          producto_id: string
+          referencia: string
+          valor_inventario: number
         }[]
       }
       rol_actual: { Args: never; Returns: string }
