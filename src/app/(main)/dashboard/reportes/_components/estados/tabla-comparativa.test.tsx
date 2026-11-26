@@ -1,15 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { FilaReporte } from "@/lib/reportes/estados/tipos";
 
-import { readFileSync } from "node:fs";
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn() }),
-}));
-
-const { TablaComparativa } = await import("./tabla-comparativa");
+import { alternarTodasLasCuentas, formatoVariacion, TablaComparativa } from "./tabla-comparativa";
 
 function fila(cambios: Partial<FilaReporte> & Pick<FilaReporte, "clave" | "clase" | "nombre">): FilaReporte {
   return {
@@ -30,49 +24,80 @@ const FILAS: FilaReporte[] = [
     clave: "ingresos",
     clase: "grupo",
     nombre: "Ingresos de actividades ordinarias",
-    actual: 1_760_000,
+    nivel: 0,
+    actual: 1_165_577_73,
+    anterior: 1_769_880_49,
     porcentajeActual: 100,
-    variacionAbsoluta: 1_760_000,
+    porcentajeAnterior: 100,
+    variacionAbsoluta: -604_302_76,
+    variacionRelativa: -41.64,
   }),
   fila({
     clave: "4101",
     clase: "detalle",
     codigo: "4101",
     nombre: "Ventas",
-    actual: 1_980_000,
-    porcentajeActual: 112.5,
-    variacionAbsoluta: 1_980_000,
+    nivel: 1,
+    actual: 1_165_577_73,
+    anterior: 1_769_880_49,
+    porcentajeActual: 100,
+    porcentajeAnterior: 100,
+    variacionAbsoluta: -604_302_76,
+    variacionRelativa: -41.76,
   }),
   fila({
     clave: "4102",
     clase: "detalle",
     codigo: "4102",
     nombre: "Devoluciones en ventas",
-    actual: -220_000,
-    porcentajeActual: 12.5,
-    variacionAbsoluta: -220_000,
+    nivel: 1,
+    contra: true,
+    actual: 0,
+    anterior: -50_778_50,
+    porcentajeActual: 0,
+    porcentajeAnterior: 0.2,
+    variacionAbsoluta: 50_778_50,
+    variacionRelativa: -100,
   }),
   fila({
     clave: "utilidad-bruta",
     clase: "total",
     nombre: "Utilidad bruta",
-    actual: 623_615,
-    porcentajeActual: 35.43,
-    variacionAbsoluta: 623_615,
+    nivel: 0,
+    actual: 263_925_26,
+    anterior: 426_030_90,
+    porcentajeActual: 22.64,
+    porcentajeAnterior: 24.07,
+    variacionAbsoluta: -162_105_64,
+    variacionRelativa: -54.24,
   }),
 ];
 
-function tabla(expandible?: boolean) {
+function tabla(expandible?: boolean, rotuloCuenta = "Cuenta contable", conEncabezado = false) {
   return renderToStaticMarkup(
     <TablaComparativa
       filas={FILAS}
-      rotuloCuenta="Cuenta contable"
-      rotuloActual="Nov, 2026"
-      rotuloAnterior="Nov, 2025"
+      rotuloCuenta={rotuloCuenta}
+      rotuloActual="Ene - Dic, 2026"
+      rotuloAnterior="Ene - Dic, 2025"
       rotuloPorcentaje="% de Ingresos"
       expandible={expandible}
+      encabezado={
+        conEncabezado
+          ? {
+              accion: "/dashboard/reportes/estado-resultados",
+              etiquetaRango: "Del 1 de enero al 31 de diciembre: Comparativo 2026 - 2025",
+              busqueda: "",
+              parametros: [],
+            }
+          : undefined
+      }
     />,
   );
+}
+
+function htmlDeFila(html: string, nombre: string): string {
+  return html.split("<tr").find((parte) => parte.includes(nombre)) ?? "";
 }
 
 describe("TablaComparativa", () => {
@@ -81,9 +106,9 @@ describe("TablaComparativa", () => {
 
     for (const rotulo of [
       "Cuenta contable",
-      "Nov, 2026",
+      "Ene - Dic, 2026",
       "% de Ingresos",
-      "Nov, 2025",
+      "Ene - Dic, 2025",
       "Var. Absoluta",
       "Var. Relativa (%)",
     ]) {
@@ -91,34 +116,53 @@ describe("TablaComparativa", () => {
     }
   });
 
-  it("muestra los montos con texto plano y el prefijo -RD$, sin color por signo", () => {
-    const html = tabla();
+  it("permite la primera cabecera vacía del estado de resultados y conserva divisores verticales", () => {
+    const html = tabla(true, "", true);
 
-    expect(html).toContain("RD$17,600.00");
-    expect(html).toContain("-RD$2,200.00");
-
-    for (const celda of [...html.matchAll(/<td[^>]*class="([^"]*)"[^>]*>-?RD\$[\d,.]+<\/td>/g)]) {
-      expect(celda[1]).not.toContain("text-destructive");
-      expect(celda[1]).not.toContain("text-emerald");
-    }
+    expect(html).not.toContain("Cuenta contable");
+    expect(html).toContain("Buscar cuenta contable");
+    expect(html).toContain("Del 1 de enero al 31 de diciembre: Comparativo 2026 - 2025");
+    expect(html.match(/absolute top-2 right-0 bottom-2 w-px/g)?.length).toBe(6);
   });
 
-  it("candado: la tabla comparativa no vuelve a colorear montos por signo", () => {
-    // Decisión de Waldy (20-11-2026): Alegra no usa rojo/verde en los montos de
-    // ningún reporte; el comparativo va con texto plano y el prefijo -RD$.
-    const fuente = readFileSync(new URL("./tabla-comparativa.tsx", import.meta.url), "utf8");
-    expect(fuente).not.toMatch(/text-emerald|text-destructive|colorPorSigno/);
+  it("formatea Var. Relativa con hasta 2 decimales, como Alegra", () => {
+    expect(formatoVariacion(-41.64)).toBe("-41.64%");
+    expect(formatoVariacion(-54.24)).toBe("-54.24%");
+    expect(formatoVariacion(-100)).toBe("-100%");
+    expect(formatoVariacion(0)).toBe("0%");
+    expect(formatoVariacion(7.5)).toBe("7.5%");
   });
 
-  it("con expandible, los grupos llevan chevron abierto por defecto", () => {
+  it("colorea Var. Absoluta y Var. Relativa según el signo", () => {
     const html = tabla(true);
+
+    expect(html).toMatch(/text-rose-600 dark:text-rose-400[^>]*>-RD\$604,302\.76/);
+    expect(html).toMatch(/text-rose-600 dark:text-rose-400[^>]*>-41\.64%/);
+    expect(html).toMatch(/text-emerald-600 dark:text-emerald-400[^>]*>RD\$50,778\.50/);
+    expect(html).toMatch(/text-rose-600 dark:text-rose-400[^>]*>-100%/);
+  });
+
+  it("pinta en rojo los periodos de las cuentas contra, sin colorear montos normales por signo", () => {
+    const html = tabla(true);
+    const devoluciones = htmlDeFila(html, "Devoluciones en ventas");
+    const ventas = htmlDeFila(html, "Ventas");
+
+    expect(devoluciones).toMatch(/text-rose-600 dark:text-rose-400[^>]*>RD\$0\.00/);
+    expect(devoluciones).toMatch(/text-rose-600 dark:text-rose-400[^>]*>-RD\$50,778\.50/);
+    expect(ventas).not.toMatch(/<td[^>]*text-(rose|emerald)-600[^>]*>RD\$1,165,577\.73/);
+  });
+
+  it("con expandible, los grupos llevan chevron abierto por defecto sin caja ni fondo gris", () => {
+    const html = tabla(true);
+    const grupo = htmlDeFila(html, "Ingresos de actividades ordinarias");
 
     expect(html).toContain('aria-expanded="true"');
     expect(html).toContain("Contraer Ingresos de actividades ordinarias");
-    // Las cuentas hijas siguen visibles mientras el grupo está abierto.
     expect(html).toContain("Devoluciones en ventas");
-    // Sin zebra: el grupo no pinta fondo propio.
-    expect(html).not.toContain("bg-muted/30");
+    expect(grupo).toContain("bg-card");
+    expect(grupo).toContain("hover:bg-transparent");
+    expect(grupo).toContain("aria-expanded:bg-transparent");
+    expect(grupo).not.toMatch(/bg-slate-50|bg-muted(?:\/|\s|")/);
   });
 
   it("sin expandible no hay chevrones (los otros reportes no cambian)", () => {
@@ -128,11 +172,33 @@ describe("TablaComparativa", () => {
     expect(html).not.toContain("Contraer");
   });
 
-  it("los totales van en semibold sobre fondo slate-50", () => {
+  it("los totales son las únicas filas con fondo muted suave y texto semibold", () => {
     const html = tabla(true);
-    const filaTotal = html.split("<tr").find((fila) => fila.includes("Utilidad bruta"));
+    const filaTotal = htmlDeFila(html, "Utilidad bruta");
 
-    expect(filaTotal).toContain("bg-slate-50");
+    expect(filaTotal).toContain("bg-muted/35");
+    expect(filaTotal).toContain("dark:bg-muted/25");
     expect(filaTotal).toContain("font-semibold");
+    expect(filaTotal).toContain("text-sm");
+  });
+
+  it("el encabezado expandible muestra el botón de contraer todas las cuentas", () => {
+    const html = tabla(true, "", true);
+
+    expect(html).toContain('aria-label="Contraer todas las cuentas"');
+    expect(html).toContain('title="Contraer todas las cuentas"');
+  });
+
+  it("el estado del botón contrae todo si queda una abierta y expande cuando todas están contraídas", () => {
+    const claves = ["ingresos", "ventas"];
+
+    const contraidasDesdeAbierto = alternarTodasLasCuentas(new Set(), claves);
+    expect([...contraidasDesdeAbierto]).toEqual(claves);
+
+    const contraidasDesdeParcial = alternarTodasLasCuentas(new Set(["ingresos"]), claves);
+    expect([...contraidasDesdeParcial]).toEqual(claves);
+
+    const expandidas = alternarTodasLasCuentas(new Set(claves), claves);
+    expect(expandidas.size).toBe(0);
   });
 });
