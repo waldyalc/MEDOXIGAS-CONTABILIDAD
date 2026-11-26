@@ -15,15 +15,18 @@
 | Tema | Decisión |
 |---|---|
 | Estructura / layout / comportamiento | **La de Alegra**, copiada de sus capturas HTML |
-| Color de marca | **Azul Medoxigas `#1e56c7`**, nunca el teal `#0a9e9a`/`#00b19d` de Alegra |
+| Color de marca | **`--brand-primary`** (Medoxigas `#1e56c7`; oscuro `#4d7fd6`) en ERP, POS y PWA; nunca el teal `#0a9e9a`/`#00b19d` de Alegra |
 | Logo | Siempre **Medoxigas**, nunca el de Alegra |
 | Fuente | **Inter** (misma que Alegra), `--font-inter` |
 | Iconos | **Tabler Icons** (`@tabler/icons-react`) — la misma librería que Alegra usa |
 | Moneda | `RD$` con separador de miles, negativos `-RD$1,234.00` |
 | Idioma | Español dominicano |
 
-Excepción: el **POS** (`/pos`) sí usa el teal `#00b19d` por decisión anterior
-(tokens `--pos-*`); ahí se mantiene porque su copia es literal y ya fue aprobada.
+Desde el 26-11-2026 **no hay excepción para el POS**: copia la estructura de
+Alegra, pero sus tokens `--pos-*` derivan de `--primary` / `--brand-primary`.
+La PWA (`theme_color`), los iconos y las preferencias salen de `src/lib/marca.ts`;
+al clonar el sistema basta cambiar esa fuente y `--brand-primary` / `--brand-primary-dark`
+para rebrandear ERP, POS y PWA.
 
 ### Mapa de color obligatorio
 
@@ -31,17 +34,18 @@ Cuando una captura de Alegra muestra teal, se traduce así **siempre**:
 
 | Alegra (teal) | Medoxigas | Uso |
 |---|---|---|
-| `#0a9e9a` / `#00b19d` | **`--primary` `#1e56c7`** | Botón filled, chips activos, links de acción, píldora del menú, iconos de acento |
+| `#0a9e9a` / `#00b19d` | **`--primary` (= `--brand-primary`)** | Botón filled, chips activos, links de acción, píldora del menú, iconos de acento |
 | `#00535e` / `#004a52` (hover oscuro) | **`#123c8c`** | Hover de botones primarios |
 | `#005452` (texto sobre tinte) | **`--secondary-foreground` `#0a2352`** | Texto dentro de chips/píldoras tintadas |
 | `#ebfafa` / `#d4f2f1` (tinte fondo) | **`--secondary` `#eaf0fc`** y hover `#dbe6fa` | Fondo de chips seleccionados, hover de píldoras |
 | `--sm-color-primary-*` (su paleta) | preset `medoxigas.css` | No copiar nunca |
 
-Los tokens viven en `src/styles/presets/medoxigas.css` (`--primary`,
-`--secondary`, `--accent`, `--ring`, `--sidebar-primary`, `--chart-*`).
-**Prohibido** escribir hex teal en componentes nuevos; usar las clases
-semánticas (`bg-primary`, `text-primary`, `bg-secondary`,
-`text-secondary-foreground`, `border-primary/50`, `before:bg-sidebar-primary`).
+La raíz vive en `--brand-primary` / `--brand-primary-dark` de `src/app/globals.css`;
+`src/styles/presets/medoxigas.css` deriva `--primary`, `--secondary`, `--accent`,
+`--ring`, `--sidebar-primary` y `--chart-1`. En el ERP se usan las clases semánticas
+(`bg-primary`, `text-primary`, `bg-secondary`, `text-secondary-foreground`,
+`border-primary/50`, `before:bg-sidebar-primary`); en el POS, los aliases `--pos-*`.
+**Prohibido** escribir hex teal o hex de marca en componentes nuevos.
 
 ---
 
@@ -81,7 +85,7 @@ semánticas (`bg-primary`, `text-primary`, `bg-secondary`,
 | Categoría | Icono | Fondo pastel del chip |
 |---|---|---|
 | Ventas | `#16A34A` | `#DCFCE7` |
-| Administrativos | `#30ABA9` | `#D8F4F2` |
+| Administrativos | `#1E56C7` | `#EAF0FC` |
 | Financieros | `#F54A00` | `#FFEDD5` |
 | Contables | `#FBBF24` | `#FEF3C7` |
 | Fiscales | `#E11D48` | `#FFE4E6` |
@@ -211,7 +215,7 @@ Otros de su UI: `chevron-down`/`chevron-right`/`chevron-up` (árbol y acordeones
 
 1. Buscar la pantalla equivalente en Alegra (en `/root/alegra-refs/` o pidiendo
    captura a Waldy) y **copiar su estructura y clases**, no inventar el diseño.
-2. Traducir cada teal al azul Medoxigas con el mapa de §1.
+2. Traducir cada teal al color global de marca con el mapa de §1.
 3. Iconos: buscar el `tabler-icon-*` equivalente y envolverlo `Tabler*` en
    `icons.tsx` si no existe.
 4. Logo y textos de marca: Medoxigas; textos de UI: los de Alegra cuando
@@ -221,7 +225,7 @@ Otros de su UI: `chevron-down`/`chevron-right`/`chevron-up` (árbol y acordeones
 
 ## 10. Lo que nunca va al repo ni a la UI
 
-- El teal de Alegra fuera de `/pos` (tokens `--pos-*` quedan intactos).
+- El teal de Alegra en cualquier parte del sistema, incluidos `/pos` y la PWA.
 - El logo de Alegra ni enlaces a `app.alegra.com`.
 - Exports crudos de Alegra (`*.html`, capturas con datos de su cuenta) — viven
   en `/root/alegra-refs/` y hay un test-candado que lo vigila.
