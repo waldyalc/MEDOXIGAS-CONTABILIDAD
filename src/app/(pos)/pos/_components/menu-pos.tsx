@@ -109,7 +109,7 @@ export function MenuPos({ empresa, terminales, terminal, turno, usuario }: MenuP
           // biome-ignore lint/performance/noImgElement: logo configurable de la empresa
           <img src={empresa.logo_url} alt={nombre} className="size-8 shrink-0 rounded object-contain" />
         ) : (
-          <Store className="text-primary size-6 shrink-0" aria-hidden="true" />
+          <Store className="text-pos-primario size-6 shrink-0" aria-hidden="true" />
         )}
         <span className="min-w-0 flex-1 truncate text-sm font-semibold" title={nombre}>
           {nombre}
@@ -212,7 +212,7 @@ function ContenidoMenuPos({
           // biome-ignore lint/performance/noImgElement: logo configurable de la empresa
           <img src={empresa.logo_url} alt={nombre} className="size-8 shrink-0 rounded object-contain" />
         ) : (
-          <Store className="text-primary size-6 shrink-0" aria-hidden="true" />
+          <Store className="text-pos-primario size-6 shrink-0" aria-hidden="true" />
         )}
         <span className={cn("min-w-0 flex-1 truncate text-sm font-semibold", !expandido && "hidden")} title={nombre}>
           {nombre}

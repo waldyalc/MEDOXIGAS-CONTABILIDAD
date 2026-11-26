@@ -284,7 +284,7 @@ export function WizardDevolucion({
                       aria-current={paso === numero ? "step" : undefined}
                       className={cn(
                         "flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm",
-                        paso === numero ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground",
+                        paso === numero ? "bg-pos-primario/10 text-pos-primario font-medium" : "text-muted-foreground",
                       )}
                     >
                       <span className="border-border flex size-5 items-center justify-center rounded-full border text-xs">
@@ -351,7 +351,7 @@ export function WizardDevolucion({
                         aria-pressed={tipo === opcion.value}
                         className={cn(
                           "border-border hover:bg-muted flex min-h-24 flex-col items-start gap-1 rounded-lg border p-3 text-left",
-                          tipo === opcion.value && "border-primary bg-primary/5",
+                          tipo === opcion.value && "border-pos-primario bg-pos-primario/5",
                         )}
                         onClick={() => setTipo(opcion.value)}
                       >
@@ -360,10 +360,10 @@ export function WizardDevolucion({
                           <span
                             className={cn(
                               "border-border flex size-4 shrink-0 items-center justify-center rounded-full border",
-                              tipo === opcion.value && "border-primary",
+                              tipo === opcion.value && "border-pos-primario",
                             )}
                           >
-                            {tipo === opcion.value ? <span className="bg-primary size-2 rounded-full" /> : null}
+                            {tipo === opcion.value ? <span className="bg-pos-primario size-2 rounded-full" /> : null}
                           </span>
                         </span>
                         <span className="text-muted-foreground text-xs">{opcion.descripcion}</span>
@@ -507,7 +507,7 @@ export function WizardDevolucion({
                             disabled={bloqueado}
                             className={cn(
                               "border-border hover:bg-muted flex items-center gap-3 rounded-lg border p-3 text-left",
-                              tipo === opcion.value && "border-primary bg-primary/5",
+                              tipo === opcion.value && "border-pos-primario bg-pos-primario/5",
                               bloqueado && "cursor-not-allowed opacity-50",
                             )}
                             onClick={() => setTipo(opcion.value)}
@@ -515,10 +515,10 @@ export function WizardDevolucion({
                             <span
                               className={cn(
                                 "border-border flex size-4 shrink-0 items-center justify-center rounded-full border",
-                                tipo === opcion.value && "border-primary",
+                                tipo === opcion.value && "border-pos-primario",
                               )}
                             >
-                              {tipo === opcion.value ? <span className="bg-primary size-2 rounded-full" /> : null}
+                              {tipo === opcion.value ? <span className="bg-pos-primario size-2 rounded-full" /> : null}
                             </span>
                             <span className="flex min-w-0 flex-col gap-0.5">
                               <span className="text-sm font-medium">{opcion.titulo}</span>

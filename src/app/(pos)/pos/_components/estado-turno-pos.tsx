@@ -22,7 +22,7 @@ function tituloDe(turno: TurnoBadge, largo: string): string {
 
 function PuntoEstado({ turno, abierto }: { turno: TurnoBadge; abierto: boolean }) {
   let clase = "bg-muted-foreground";
-  if (turno) clase = abierto ? "bg-primary" : "bg-destructive";
+  if (turno) clase = abierto ? "bg-pos-primario" : "bg-destructive";
   return <span aria-hidden="true" className={cn("size-2 shrink-0 rounded-full", clase)} />;
 }
 
@@ -31,7 +31,7 @@ function PillEstado({ abierto }: { abierto: boolean }) {
     <span
       className={cn(
         "shrink-0 rounded-full px-1.5 py-0.5 text-[10px] leading-none font-semibold tracking-wide uppercase",
-        abierto ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive",
+        abierto ? "bg-pos-primario/10 text-pos-primario" : "bg-destructive/10 text-destructive",
       )}
     >
       {abierto ? "Abierto" : "Cerrado"}
