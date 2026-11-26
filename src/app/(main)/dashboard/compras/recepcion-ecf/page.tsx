@@ -17,20 +17,22 @@ interface EmpresaRecepcion {
 
 interface EcfRecibidoDb {
   id: string;
+  rnc_receptor: string;
   rnc_emisor: string;
-  razon_social_emisor: string | null;
-  rnc_comprador: string | null;
+  razon_social_emisor: string;
+  correo_emisor: string | null;
   tipo_ecf: string;
   encf: string;
   fecha_emision: string | null;
-  monto_total: number | string | null;
+  monto_gravado: number | string | null;
+  monto_exento: number | string | null;
   total_itbis: number | string | null;
-  estado_aprobacion: "pendiente" | "aceptado" | "rechazado" | null;
-  detalle_motivo_rechazo: string | null;
-  factura_proveedor_id: string | null;
-  factura_compra_id?: string | null;
-  estado_registro: string | null;
-  xml_recibido: string | null;
+  monto_total: number | string | null;
+  codigo_seguridad: string | null;
+  estado_acecf: "pendiente" | "aprobado" | "rechazado";
+  motivo_rechazo: string | null;
+  factura_compra_id: string | null;
+  xml_original: string;
 }
 
 interface LecturaRecibidos {
@@ -47,53 +49,35 @@ function numeroDb(valor: number | string | null): number | null {
   return null;
 }
 
-function textoXmlDesdeBytea(valor: string | null): string | null {
-  if (valor == null || valor === "") return null;
-  if (!valor.startsWith("\\x")) return valor;
-  const hexadecimal = valor.slice(2);
-  if (!/^([0-9a-f]{2})+$/i.test(hexadecimal)) return null;
-  return Buffer.from(hexadecimal, "hex").toString("utf8");
-}
-
-function eventoDgiiDesde(estadoAprobacion: EcfRecibidoDb["estado_aprobacion"]): EcfRecibidoBandeja["eventoDgii"] {
-  if (estadoAprobacion === "aceptado") return "aprobado";
-  if (estadoAprobacion === "rechazado") return "rechazado";
+function eventoDgiiDesde(estadoAcecf: EcfRecibidoDb["estado_acecf"]): EcfRecibidoBandeja["eventoDgii"] {
+  if (estadoAcecf === "aprobado") return "aprobado";
+  if (estadoAcecf === "rechazado") return "rechazado";
   return "acusado";
 }
 
-function facturaCompraIdDesde(fila: EcfRecibidoDb): string | null {
-  return fila.factura_proveedor_id ?? fila.factura_compra_id ?? null;
-}
-
-function estadoRegistroDesde(fila: EcfRecibidoDb): EcfRecibidoBandeja["estadoRegistro"] {
-  if (facturaCompraIdDesde(fila) || fila.estado_registro === "registrado") return "registrada";
-  return "pendiente";
-}
-
 function convertirFilaRecibida(fila: EcfRecibidoDb): EcfRecibidoBandeja {
-  const xml = textoXmlDesdeBytea(fila.xml_recibido);
-  const parseado = xml ? parsearXmlEcfRecibido(xml) : null;
+  const parseado = fila.xml_original ? parsearXmlEcfRecibido(fila.xml_original) : null;
   const ecf = parseado?.ok ? parseado.ecf : null;
 
   return {
     id: fila.id,
     rncEmisor: fila.rnc_emisor,
-    razonSocialEmisor: fila.razon_social_emisor ?? ecf?.razonSocialEmisor ?? "",
-    correoEmisor: ecf?.correoEmisor ?? null,
-    rncComprador: fila.rnc_comprador ?? ecf?.rncComprador ?? null,
+    razonSocialEmisor: fila.razon_social_emisor !== "" ? fila.razon_social_emisor : (ecf?.razonSocialEmisor ?? ""),
+    correoEmisor: fila.correo_emisor ?? ecf?.correoEmisor ?? null,
+    rncComprador: fila.rnc_receptor !== "" ? fila.rnc_receptor : (ecf?.rncComprador ?? null),
     tipoEcf: fila.tipo_ecf,
     encf: fila.encf,
     fechaEmision: fila.fecha_emision ?? ecf?.fechaEmision ?? null,
-    montoGravado: ecf?.montoGravado ?? null,
-    montoExento: ecf?.montoExento ?? null,
+    montoGravado: numeroDb(fila.monto_gravado) ?? ecf?.montoGravado ?? null,
+    montoExento: numeroDb(fila.monto_exento) ?? ecf?.montoExento ?? null,
     totalItbis: numeroDb(fila.total_itbis) ?? ecf?.totalItbis ?? null,
     montoTotal: numeroDb(fila.monto_total) ?? ecf?.montoTotal ?? null,
-    codigoSeguridad: ecf?.codigoSeguridad ?? null,
-    eventoDgii: eventoDgiiDesde(fila.estado_aprobacion),
-    estadoRegistro: estadoRegistroDesde(fila),
-    facturaCompraId: facturaCompraIdDesde(fila),
-    motivoRechazo: fila.detalle_motivo_rechazo,
-    xml,
+    codigoSeguridad: fila.codigo_seguridad ?? ecf?.codigoSeguridad ?? null,
+    eventoDgii: eventoDgiiDesde(fila.estado_acecf),
+    estadoRegistro: fila.factura_compra_id ? "registrada" : "pendiente",
+    facturaCompraId: fila.factura_compra_id,
+    motivoRechazo: fila.motivo_rechazo,
+    xml: fila.xml_original,
     items: ecf?.items ?? [],
   };
 }
@@ -101,12 +85,11 @@ function convertirFilaRecibida(fila: EcfRecibidoDb): EcfRecibidoBandeja {
 async function leerRecibidosTolerante(supabase: ClienteSupabase): Promise<LecturaRecibidos> {
   try {
     const resultado = await supabase
-      // @ts-expect-error — ecf_recibidos aún no existe en los tipos generados porque su migración no se aplicó; la pantalla debe tolerarlo.
       .from("ecf_recibidos")
       .select(
-        "id, rnc_emisor, razon_social_emisor, rnc_comprador, tipo_ecf, encf, fecha_emision, monto_total, total_itbis, estado_aprobacion, detalle_motivo_rechazo, factura_proveedor_id, estado_registro, xml_recibido",
+        "id, rnc_receptor, rnc_emisor, razon_social_emisor, correo_emisor, tipo_ecf, encf, fecha_emision, monto_gravado, monto_exento, total_itbis, monto_total, codigo_seguridad, estado_acecf, motivo_rechazo, factura_compra_id, xml_original",
       )
-      .order("recibido_en", { ascending: false })
+      .order("recibido_at", { ascending: false })
       .limit(100)
       .returns<EcfRecibidoDb[]>();
 
