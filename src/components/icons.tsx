@@ -46,6 +46,7 @@ import {
   IconChevronsLeft,
   IconChevronsRight,
   IconChevronUp,
+  IconCircle,
   IconCircleArrowDown,
   IconCircleArrowDownLeft,
   IconCircleArrowUp,
@@ -302,6 +303,10 @@ export function ChevronUpIcon(props: PropsIcono) {
   return <IconChevronUp stroke={1.5} {...props} />;
 }
 
+export function ChevronUp(props: PropsIcono) {
+  return <IconChevronUp stroke={1.5} {...props} />;
+}
+
 export function ChevronsLeft(props: PropsIcono) {
   return <IconChevronsLeft stroke={1.5} {...props} />;
 }
@@ -312,6 +317,10 @@ export function ChevronsRight(props: PropsIcono) {
 
 export function CircleAlert(props: PropsIcono) {
   return <IconAlertCircle stroke={1.5} {...props} />;
+}
+
+export function Circle(props: PropsIcono) {
+  return <IconCircle stroke={1.5} {...props} />;
 }
 
 export function CircleArrowDown(props: PropsIcono) {
@@ -340,6 +349,10 @@ export function CirclePlusIcon(props: PropsIcono) {
 
 export function CircleSlash(props: PropsIcono) {
   return <IconBan stroke={1.5} {...props} />;
+}
+
+export function CircleX(props: PropsIcono) {
+  return <IconCircleX stroke={1.5} {...props} />;
 }
 
 export function ClipboardList(props: PropsIcono) {

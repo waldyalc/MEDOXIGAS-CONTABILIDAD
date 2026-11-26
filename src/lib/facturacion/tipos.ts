@@ -1,6 +1,8 @@
 import type { AdjuntoItem } from "@/lib/adjuntos/adjuntos";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 
+import type { EnvioEcfFactura } from "./emision-ecf";
+
 export type EstadoFactura = "abierta" | "pagada" | "anulada";
 export type EstadoDocumento = "activo" | "anulado";
 
@@ -159,4 +161,5 @@ export interface FacturaVista {
   notasDebito: NotaVentaResumen[];
   adjuntos: AdjuntoItem[];
   cotizacionOrigen: CotizacionOrigenVista | null;
+  envio: EnvioEcfFactura | null;
 }

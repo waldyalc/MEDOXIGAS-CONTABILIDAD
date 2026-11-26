@@ -12,12 +12,28 @@ import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRol } from "@/lib/auth/rol";
-import { getFacturasLista } from "@/lib/facturacion/consultas";
-import { leerOpcionesLista, type OpcionesLista, type ParametrosLista, TAMANOS_PAGINA } from "@/lib/listas/parametros";
+import type { OpcionesFacturasLista } from "@/lib/facturacion/consultas";
+import { getFacturasLista, getResumenEmisionFacturas } from "@/lib/facturacion/consultas";
+import { normalizarFiltroEmision } from "@/lib/facturacion/emision-ecf";
+import { leerOpcionesLista, leerTexto, type ParametrosLista, TAMANOS_PAGINA } from "@/lib/listas/parametros";
 
 import { FacturasTabla } from "./_components/facturas-tabla";
+import { TarjetasEmision } from "./_components/tarjetas-emision";
 
 const RUTA = "/dashboard/facturacion";
+
+async function TarjetasEmisionContadas({
+  params,
+  activa,
+}: {
+  params: ParametrosLista;
+  activa?: "sin_emision" | "en_proceso";
+}) {
+  const resumen = await getResumenEmisionFacturas();
+  return (
+    <TarjetasEmision params={params} activa={activa} sinEmision={resumen.sinEmision} enProceso={resumen.enProceso} />
+  );
+}
 
 function BotonNuevaFactura() {
   return (
@@ -40,7 +56,7 @@ async function TablaFacturas({
   opciones,
   params,
 }: {
-  readonly opciones: OpcionesLista;
+  readonly opciones: OpcionesFacturasLista;
   readonly params: ParametrosLista;
 }) {
   const [lista, rol] = await Promise.all([getFacturasLista(opciones), getRol()]);
@@ -70,7 +86,7 @@ async function TablaFacturas({
 
 export default async function Page({ searchParams }: { searchParams: Promise<ParametrosLista> }) {
   const params = await searchParams;
-  const opciones = leerOpcionesLista(params);
+  const opciones = { ...leerOpcionesLista(params), emision: normalizarFiltroEmision(leerTexto(params, "emision")) };
 
   return (
     <ContenedorLista>
@@ -84,6 +100,17 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           </Suspense>
         }
       />
+
+      <Suspense
+        fallback={
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Skeleton className="h-[68px] w-full rounded-2xl sm:w-[250px]" />
+            <Skeleton className="h-[68px] w-full rounded-2xl sm:w-[250px]" />
+          </div>
+        }
+      >
+        <TarjetasEmisionContadas params={params} activa={opciones.emision} />
+      </Suspense>
 
       <TarjetaLista data-lista="facturas">
         <BarraLista>

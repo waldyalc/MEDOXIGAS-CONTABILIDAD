@@ -18,6 +18,7 @@ import { consultarEnLotes } from "@/lib/supabase/lotes";
 import { paginarConsulta } from "@/lib/supabase/paginar";
 import { createClient } from "@/lib/supabase/server";
 
+import { derivarEstadoEmisionFactura, type EnvioEcfFactura, type FiltroEmisionFactura } from "./emision-ecf";
 import type {
   AsientoResumen,
   AsientoVista,
@@ -39,10 +40,22 @@ import type {
 
 export interface FacturaFila extends FacturaLista {
   cliente_nombre: string;
+  envio: EnvioEcfFactura | null;
 }
 
 interface FacturaListaConContacto extends FacturaLista {
   contactos: { nombre: string } | null;
+}
+
+type ClienteSupabase = Awaited<ReturnType<typeof createClient>>;
+
+export interface OpcionesFacturasLista extends OpcionesLista {
+  emision?: FiltroEmisionFactura;
+}
+
+export interface ResumenEmisionFacturas {
+  sinEmision: number;
+  enProceso: number;
 }
 
 // cache() dedupe la consulta de la empresa dentro de la misma petición.
@@ -152,8 +165,91 @@ const CAMPOS_FACTURA_LISTA =
 
 const OPCIONES_LISTA_DEFECTO: OpcionesLista = { pagina: 1, tamano: TAMANO_PAGINA_DEFECTO, q: "" };
 
+const TAMANO_LOTE_ELECTRONICAS = 500;
+
+const CAMPOS_ENVIO_ECF =
+  "id, rnc_emisor, documento_tipo, documento_id, tipo_ecf, encf, es_rfce, ambiente, estado, track_id, codigo_seguridad, url_qr, fecha_hora_firma, mensajes, intentos, ultimo_intento_at, updated_at";
+
+function agruparEnviosRecientes(filas: readonly EnvioEcfFactura[]): Map<string, EnvioEcfFactura> {
+  const envios = new Map<string, EnvioEcfFactura>();
+  for (const envio of filas) {
+    if (!envio.documento_id) continue;
+    const actual = envios.get(envio.documento_id);
+    if (!actual || envio.updated_at >= actual.updated_at) envios.set(envio.documento_id, envio);
+  }
+  return envios;
+}
+
+async function getEnviosFacturas(
+  supabase: ClienteSupabase,
+  ids: readonly string[],
+): Promise<Map<string, EnvioEcfFactura>> {
+  if (ids.length === 0) return new Map();
+  const resultado = await consultarEnLotes(ids, (lote) =>
+    supabase
+      .from("ecf_envios")
+      .select(CAMPOS_ENVIO_ECF)
+      .eq("documento_tipo", "factura")
+      .in("documento_id", lote)
+      .order("updated_at", { ascending: false })
+      .returns<EnvioEcfFactura[]>(),
+  );
+  if (resultado.error) throw new Error(resultado.error.message);
+  return agruparEnviosRecientes(resultado.data ?? []);
+}
+
+function serializarFilas(
+  filas: readonly FacturaListaConContacto[],
+  envios: Map<string, EnvioEcfFactura>,
+): FacturaFila[] {
+  return filas.map(({ contactos, ...factura }) => ({
+    ...factura,
+    cliente_nombre: contactos?.nombre ?? "—",
+    envio: envios.get(factura.id) ?? null,
+  }));
+}
+
+function paginarFilasFacturas(
+  filas: readonly FacturaListaConContacto[],
+  envios: Map<string, EnvioEcfFactura>,
+  opciones: OpcionesFacturasLista,
+): ResultadoPagina<FacturaFila> {
+  const resumen = resumirPagina(opciones.pagina, opciones.tamano, filas.length);
+  const inicio = (resumen.pagina - 1) * opciones.tamano;
+  return { filas: serializarFilas(filas.slice(inicio, inicio + opciones.tamano), envios), resumen };
+}
+
+export async function getResumenEmisionFacturas(): Promise<ResumenEmisionFacturas> {
+  const supabase = await createClient();
+  const [electronicas, activos, procesos] = await Promise.all([
+    supabase.from("facturas").select("id", { count: "exact", head: true }).ilike("ncf", "E%"),
+    supabase
+      .from("ecf_envios")
+      .select("id", { count: "exact", head: true })
+      .eq("documento_tipo", "factura")
+      .not("documento_id", "is", null)
+      .in("estado", ["pendiente", "en_proceso", "aceptado", "aceptado_condicional"]),
+    supabase
+      .from("ecf_envios")
+      .select("id", { count: "exact", head: true })
+      .eq("documento_tipo", "factura")
+      .not("documento_id", "is", null)
+      .in("estado", ["pendiente", "en_proceso"]),
+  ]);
+
+  if (electronicas.error) throw new Error(electronicas.error.message);
+  if (activos.error) throw new Error(activos.error.message);
+  if (procesos.error) throw new Error(procesos.error.message);
+
+  return {
+    sinEmision: Math.max(0, (electronicas.count ?? 0) - (activos.count ?? 0)),
+    enProceso: procesos.count ?? 0,
+  };
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: La lista aplica búsqueda, paginación y los dos filtros operativos de emisión sin consultas N+1; los caminos deben compartir el mismo mapeo de filas.
 export async function getFacturasLista(
-  opciones: OpcionesLista = OPCIONES_LISTA_DEFECTO,
+  opciones: OpcionesFacturasLista = OPCIONES_LISTA_DEFECTO,
 ): Promise<ResultadoPagina<FacturaFila>> {
   const supabase = await createClient();
   const q = limpiarBusqueda(opciones.q);
@@ -178,20 +274,88 @@ export async function getFacturasLista(
     return { filas: data ?? [], total: count ?? 0 };
   };
 
+  if (opciones.emision === "en_proceso") {
+    const enviosRes = await paginarConsulta((inicio, fin) =>
+      supabase
+        .from("ecf_envios")
+        .select(CAMPOS_ENVIO_ECF)
+        .eq("documento_tipo", "factura")
+        .not("documento_id", "is", null)
+        .in("estado", ["pendiente", "en_proceso"])
+        .order("documento_id")
+        .order("id")
+        .range(inicio, fin)
+        .returns<EnvioEcfFactura[]>(),
+    );
+    if (enviosRes.error) throw new Error(enviosRes.error.message);
+
+    const envios = agruparEnviosRecientes(enviosRes.data ?? []);
+    const ids = [...envios.keys()];
+    if (ids.length === 0) return paginarFilasFacturas([], envios, opciones);
+
+    const candidatas = await consultarEnLotes(ids, (lote) => {
+      let consultaLote = supabase.from("facturas").select(CAMPOS_FACTURA_LISTA).in("id", lote);
+      if (filtro) consultaLote = consultaLote.or(filtro);
+      return consultaLote.order("numero", { ascending: false }).returns<FacturaListaConContacto[]>();
+    });
+    if (candidatas.error) throw new Error(candidatas.error.message);
+
+    const filtradas = (candidatas.data ?? [])
+      .filter((factura) => derivarEstadoEmisionFactura(factura.ncf, envios.get(factura.id)) === "en_proceso")
+      .sort((a, b) => b.numero - a.numero);
+    return paginarFilasFacturas(filtradas, envios, opciones);
+  }
+
+  if (opciones.emision === "sin_emision") {
+    const filtradas: FacturaListaConContacto[] = [];
+    const envios = new Map<string, EnvioEcfFactura>();
+    let anterior: number | null = null;
+
+    for (;;) {
+      let consultaLote = supabase
+        .from("facturas")
+        .select(CAMPOS_FACTURA_LISTA)
+        .ilike("ncf", "E%")
+        .order("numero", { ascending: false })
+        .limit(TAMANO_LOTE_ELECTRONICAS);
+      if (filtro) consultaLote = consultaLote.or(filtro);
+      if (anterior !== null) consultaLote = consultaLote.lt("numero", anterior);
+
+      const { data, error } = await consultaLote.returns<FacturaListaConContacto[]>();
+      if (error) throw new Error(error.message);
+      const lote = data ?? [];
+      if (lote.length === 0) break;
+
+      const enviosLote = await getEnviosFacturas(
+        supabase,
+        lote.map((factura) => factura.id),
+      );
+      for (const [id, envio] of enviosLote) envios.set(id, envio);
+      for (const factura of lote) {
+        const estado = derivarEstadoEmisionFactura(factura.ncf, enviosLote.get(factura.id));
+        if (estado === "sin_emision" || estado === "rechazada") filtradas.push(factura);
+      }
+
+      if (lote.length < TAMANO_LOTE_ELECTRONICAS) break;
+      anterior = lote[lote.length - 1]?.numero ?? null;
+      if (anterior === null) break;
+    }
+
+    return paginarFilasFacturas(filtradas, envios, opciones);
+  }
+
   const primera = await consultar(opciones.pagina);
   const resumen = resumirPagina(opciones.pagina, opciones.tamano, primera.total);
   const filas =
     resumen.pagina !== opciones.pagina && primera.filas.length === 0
       ? (await consultar(resumen.pagina)).filas
       : primera.filas;
+  const envios = await getEnviosFacturas(
+    supabase,
+    filas.map((factura) => factura.id),
+  );
 
-  return {
-    filas: filas.map(({ contactos, ...factura }) => ({
-      ...factura,
-      cliente_nombre: contactos?.nombre ?? "—",
-    })),
-    resumen,
-  };
+  return { filas: serializarFilas(filas, envios), resumen };
 }
 
 interface AsientoLineaConCuenta {
@@ -262,6 +426,7 @@ export async function getCotizacionOrigen(facturaId: string): Promise<Cotizacion
   return data;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: El detalle agrega en paralelo las relaciones contables, comerciales, adjuntos y de emisión necesarias para renderizar la factura completa.
 export async function getFacturaVista(id: string): Promise<FacturaVista | null> {
   if (!z.uuid().safeParse(id).success) return null;
 
@@ -293,6 +458,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
     notasDebito,
     adjuntosRes,
     cotizacionOrigen,
+    envioRes,
   ] = await Promise.all([
     supabase
       .from("factura_lineas")
@@ -354,6 +520,15 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
       .returns<NotaVentaResumen[]>(),
     listarAdjuntos(supabase, "factura", id),
     getCotizacionOrigen(id),
+    supabase
+      .from("ecf_envios")
+      .select(`${CAMPOS_ENVIO_ECF}, xml_firmado`)
+      .eq("documento_tipo", "factura")
+      .eq("documento_id", id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .returns<(EnvioEcfFactura & { xml_firmado: string | null }) | null>(),
   ]);
 
   if (lineas.error) throw new Error(lineas.error.message);
@@ -364,6 +539,7 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
   if (notasCredito.error) throw new Error(notasCredito.error.message);
   if (notasDebito.error) throw new Error(notasDebito.error.message);
   if (adjuntosRes.error) throw new Error(adjuntosRes.error.message);
+  if (envioRes.error) throw new Error(envioRes.error.message);
   if (!contacto.data) return null;
 
   const pagosAplicados: PagoFacturaVista[] = (aplicaciones.data ?? []).flatMap((aplicacion) => {
@@ -394,6 +570,13 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
       }) ?? numeraciones.data.find((fila) => ncf.startsWith(fila.prefijo)))
     : undefined;
 
+  const envio = envioRes.data
+    ? (() => {
+        const { xml_firmado: xmlFirmado, ...resto } = envioRes.data;
+        return { ...resto, tiene_xml: Boolean(xmlFirmado?.trim()) };
+      })()
+    : null;
+
   return {
     factura: factura.data,
     lineas: lineas.data,
@@ -407,5 +590,6 @@ export async function getFacturaVista(id: string): Promise<FacturaVista | null> 
     notasDebito: notasDebito.data,
     adjuntos: adjuntosRes.data ?? [],
     cotizacionOrigen,
+    envio,
   };
 }
