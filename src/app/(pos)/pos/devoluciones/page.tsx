@@ -5,9 +5,14 @@ import { getResumenTurno } from "@/lib/pos/consultas";
 
 import { DevolucionesPos } from "../_components/devoluciones/devoluciones-pos";
 import { hoyRD, primerDiaMesRD } from "../_components/formato-pos";
+import { HidratadorSnapshotPos } from "../_components/pos-spa-shell";
 import { getContextoPOS, getCuentasPOS, getDevolucionesPOS } from "../_components/servidor";
 
 const ESTADOS = new Set(["activa", "anulada"]);
+
+function leerEstadoDevolucion(estadoTexto: string): "activa" | "anulada" | undefined {
+  return ESTADOS.has(estadoTexto) ? (estadoTexto as "activa" | "anulada") : undefined;
+}
 
 export default async function Page({
   searchParams,
@@ -26,7 +31,7 @@ export default async function Page({
   const desde = desdeParam || (limpio ? "" : primerDiaMesRD());
   const hasta = hastaParam || (limpio ? "" : hoyRD());
   const estadoTexto = leerTexto(params, "estado");
-  const estado = ESTADOS.has(estadoTexto) ? (estadoTexto as "activa" | "anulada") : undefined;
+  const estado = leerEstadoDevolucion(estadoTexto);
   const q = leerTexto(params, "q");
   const facturaInicial = leerTexto(params, "factura");
 
@@ -56,27 +61,32 @@ export default async function Page({
     cuentas.find((cuenta) => cuenta.id === terminal.cuenta_efectivo_id)?.nombre ?? terminal.nombre;
   const sinCaja = !cuentas.some((cuenta) => cuenta.id === terminal.cuenta_efectivo_id);
 
+  const props = {
+    filas: devoluciones.filas,
+    resumen: devoluciones.resumen,
+    params,
+    desde,
+    hasta,
+    terminal: {
+      id: terminal.id,
+      nombre: terminal.nombre,
+      cuenta_efectivo_id: terminal.cuenta_efectivo_id,
+    },
+    cuentaEfectivoNombre,
+    sinCaja,
+    turno: contexto.turno ? { id: contexto.turno.id, numero: contexto.turno.numero } : null,
+    efectivoEsperado: resumenTurno?.resumen.efectivo.efectivo_esperado ?? "0.00",
+    facturaInicial: facturaInicial || null,
+    plantilla: terminal.plantilla_ticket,
+    puedeEscribir: contexto.perfil.rol !== "lector",
+    hayFiltros: Boolean(q || estadoTexto || desdeParam || hastaParam || limpio),
+    error,
+  };
+
   return (
-    <DevolucionesPos
-      filas={devoluciones.filas}
-      resumen={devoluciones.resumen}
-      params={params}
-      desde={desde}
-      hasta={hasta}
-      terminal={{
-        id: terminal.id,
-        nombre: terminal.nombre,
-        cuenta_efectivo_id: terminal.cuenta_efectivo_id,
-      }}
-      cuentaEfectivoNombre={cuentaEfectivoNombre}
-      sinCaja={sinCaja}
-      turno={contexto.turno ? { id: contexto.turno.id, numero: contexto.turno.numero } : null}
-      efectivoEsperado={resumenTurno?.resumen.efectivo.efectivo_esperado ?? "0.00"}
-      facturaInicial={facturaInicial || null}
-      plantilla={terminal.plantilla_ticket}
-      puedeEscribir={contexto.perfil.rol !== "lector"}
-      hayFiltros={Boolean(q || estadoTexto || desdeParam || hastaParam || limpio)}
-      error={error}
-    />
+    <>
+      <HidratadorSnapshotPos vista="devoluciones" datos={{ ...props, actualizadoEn: Date.now() }} />
+      <DevolucionesPos {...props} />
+    </>
   );
 }

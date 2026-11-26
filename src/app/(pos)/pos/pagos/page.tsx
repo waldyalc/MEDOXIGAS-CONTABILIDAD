@@ -5,6 +5,7 @@ import { getPagosPOS, getResumenTurno, type PagoPOSFila } from "@/lib/pos/consul
 import type { ResumenTurnoVista, TipoMovimientoPOS } from "@/lib/pos/tipos";
 
 import { PagosPos } from "../_components/pagos/pagos-pos";
+import { HidratadorSnapshotPos } from "../_components/pos-spa-shell";
 import { type CuentaPOS, getContextoPOS, getCuentasPOS } from "../_components/servidor";
 
 /**
@@ -54,23 +55,28 @@ export default async function Page({
     error = error ?? "No se pudieron cargar los recibos. Revisa tu conexión e inténtalo de nuevo.";
   }
 
+  const props = {
+    terminal: {
+      id: terminal.id,
+      nombre: terminal.nombre,
+      cuenta_efectivo_id: terminal.cuenta_efectivo_id,
+      plantilla_ticket: terminal.plantilla_ticket,
+    },
+    turnoAbierto: contexto.turno !== null,
+    vista,
+    cuentas,
+    filas: pagos.filas,
+    resumenPagina: pagos.resumen,
+    params,
+    tipo,
+    puedeEscribir: contexto.perfil.rol !== "lector",
+    error,
+  };
+
   return (
-    <PagosPos
-      terminal={{
-        id: terminal.id,
-        nombre: terminal.nombre,
-        cuenta_efectivo_id: terminal.cuenta_efectivo_id,
-        plantilla_ticket: terminal.plantilla_ticket,
-      }}
-      turnoAbierto={contexto.turno !== null}
-      vista={vista}
-      cuentas={cuentas}
-      filas={pagos.filas}
-      resumenPagina={pagos.resumen}
-      params={params}
-      tipo={tipo}
-      puedeEscribir={contexto.perfil.rol !== "lector"}
-      error={error}
-    />
+    <>
+      <HidratadorSnapshotPos vista="pagos" datos={{ ...props, actualizadoEn: Date.now() }} />
+      <PagosPos {...props} />
+    </>
   );
 }

@@ -28,6 +28,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { EnlacePos } from "./enlace-pos";
 import { EstadoTurnoPos } from "./estado-turno-pos";
 import { claseIconoMenu, itemMenuActivo, itemMenuBase, itemMenuColapsado } from "./menu-pos-estilos";
+import { usePosSpaOpcional } from "./pos-spa-provider";
 import { SalirPos } from "./salir-pos";
 import { SelectorTerminal } from "./selector-terminal";
 import { UsuarioPos } from "./usuario-pos";
@@ -195,6 +196,8 @@ function ContenidoMenuPos({
   onNavegar?: () => void;
 }) {
   const pathname = usePathname();
+  const spa = usePosSpaOpcional();
+  const rutaActiva = spa?.rutaActiva ?? pathname;
   const nombre = empresa.nombre?.trim() || "Punto de venta";
 
   return (
@@ -235,7 +238,7 @@ function ContenidoMenuPos({
             <ItemEnlace
               key={item.id}
               item={item}
-              activo={esActivo(pathname, item.href)}
+              activo={esActivo(rutaActiva, item.href)}
               expandido={expandido}
               onNavegar={onNavegar}
             />

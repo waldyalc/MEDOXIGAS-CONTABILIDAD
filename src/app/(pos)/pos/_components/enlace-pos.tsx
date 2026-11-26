@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { limpiarNavegacionInternaPos, marcarNavegacionInternaPos } from "@/lib/pos/navegacion-interna";
 
 import { useOfflinePOS } from "./offline-pos-provider";
+import { usePosSpaOpcional } from "./pos-spa-provider";
 
 type EnlacePosProps = Omit<ComponentProps<"a">, "href"> & {
   href: string;
@@ -20,6 +21,7 @@ function abreEnOtraPestana(evento: MouseEvent<HTMLAnchorElement>): boolean {
 
 export function EnlacePos({ externo = false, href, onClick, ...props }: EnlacePosProps) {
   const { estado } = useOfflinePOS();
+  const spa = usePosSpaOpcional();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -27,7 +29,13 @@ export function EnlacePos({ externo = false, href, onClick, ...props }: EnlacePo
   }, [href, pathname]);
 
   function alHacerClick(evento: MouseEvent<HTMLAnchorElement>) {
-    if (!externo && !abreEnOtraPestana(evento)) marcarNavegacionInternaPos();
+    if (!externo && !abreEnOtraPestana(evento)) {
+      marcarNavegacionInternaPos();
+      if (spa?.navegarPos(href)) {
+        evento.preventDefault();
+        limpiarNavegacionInternaPos();
+      }
+    }
     onClick?.(evento);
   }
 
