@@ -24,6 +24,14 @@ const API_CERTIFICADO = readFileSync(
   join(process.cwd(), "src", "app", "api", "ecf", "config", "certificado", "route.ts"),
   "utf8",
 );
+const API_FIRMAR_XML = readFileSync(
+  join(process.cwd(), "src", "app", "api", "ecf", "config", "firmar-xml", "route.ts"),
+  "utf8",
+);
+const FIRMAR_XML_UI = readFileSync(
+  join(CARPETA, "facturacion-electronica", "_components", "firmar-xml-postulacion.tsx"),
+  "utf8",
+);
 const API_PLANTILLA = readFileSync(
   join(process.cwd(), "src", "app", "api", "ecf", "pruebas", "plantilla", "route.ts"),
   "utf8",
@@ -223,6 +231,11 @@ describe("candados estructurales del portal e-CF", () => {
     expect(API_CERTIFICADO).toContain('rol !== "admin"');
     expect(API_CERTIFICADO).toContain("ECF_ENCRYPTION_KEY");
     expect(API_RUNNER_EXCEL).toContain("cargarCredencialesEcfServidor");
+    expect(PORTAL).toContain("FirmarXmlPostulacion");
+    expect(FIRMAR_XML_UI).toContain('"/api/ecf/config/firmar-xml"');
+    expect(API_FIRMAR_XML).toContain('rol !== "admin"');
+    expect(API_FIRMAR_XML).toContain("cargarCredencialesEcfServidor");
+    expect(API_FIRMAR_XML).toContain("firmarXmlDsig");
   });
 
   it("conecta el Paso 2 con plantilla, validación local y envío real a TesteCF/CerteCF", () => {

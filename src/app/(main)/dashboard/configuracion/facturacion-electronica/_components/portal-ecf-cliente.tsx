@@ -39,6 +39,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 import { ejecutarSimulacionEcfAction, type ResumenSimulacionSerializado } from "../actions";
 import type { ConfiguracionEcfPublica } from "./ecf-portal-tipos";
+import { FirmarXmlPostulacion } from "./firmar-xml-postulacion";
 import {
   type AmbienteEcf,
   CASOS_PRUEBA_DGII,
@@ -539,6 +540,13 @@ function PasoCertificado({
             </div>
           </CardContent>
         </Card>
+
+        <FirmarXmlPostulacion
+          rncEmisor={empresa?.rnc ?? ""}
+          tieneCertificadoGuardado={certificadoServidor}
+          archivoCertificadoLocal={archivoCertificado}
+          contrasenaLocal={contrasena}
+        />
       </div>
 
       <Card size="sm" className="bg-muted/30">

@@ -30,7 +30,7 @@ import {
   TOLERANCIA_LINEA_DGII,
   validarDocumentoEcf,
 } from "./xml";
-import { X509Certificate } from "node:crypto";
+import { createVerify, X509Certificate } from "node:crypto";
 
 function lineaBase(cambios: Partial<LineaEcfInput> = {}): LineaEcfInput {
   return {
@@ -506,6 +506,33 @@ describe("certificados, firma XMLDSig y cifrado", () => {
     const conCrlf = firma.xmlFirmado.replace("?>\n<ECF>", "?>\r\n<ECF>");
     expect(validarXmlContraEsquemaDgii(conCrlf, "ECF").valido).toBe(true);
     expect(verificarFirmaXmlDsig(conCrlf).valida).toBe(true);
+  });
+
+  it("firma y verifica XML de Postulacion DGII propagando xmlns:xsd y xmlns:xsi en SignedInfo (Inclusive C14N 1.0)", () => {
+    const par = generarCertificadoPruebaAutocontenido("131488791", "OXYMAT SRL");
+    const xmlPostulacion =
+      '\uFEFF<?xml version="1.0" encoding="utf-8"?>\r\n' +
+      '<Postulacion xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">' +
+      "<PostulacionID>124437</PostulacionID>" +
+      "<Software><UrlAutenticacion>ferreteria.medoxigas.com/api/ecf/131488791</UrlAutenticacion></Software>" +
+      "</Postulacion>";
+
+    const firma = firmarXmlDsig(xmlPostulacion, par.clavePrivadaPem, par.certificadoPem);
+    expect(firma.xmlFirmado.startsWith('<?xml version="1.0" encoding="utf-8"?>')).toBe(true);
+    expect(firma.xmlFirmado.endsWith("</Postulacion>")).toBe(true);
+    expect(verificarFirmaXmlDsig(firma.xmlFirmado)).toEqual({ valida: true, codigoSeguridad: firma.codigoSeguridad });
+
+    const certificado = new X509Certificate(par.certificadoPem);
+    const signedInfoEsperadoDotNet =
+      '<SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
+      '<CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"></CanonicalizationMethod>' +
+      '<SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"></SignatureMethod>' +
+      '<Reference URI=""><Transforms><Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"></Transform></Transforms>' +
+      `<DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"></DigestMethod><DigestValue>${firma.digestValue}</DigestValue></Reference></SignedInfo>`;
+    const verificador = createVerify("RSA-SHA256");
+    verificador.update(signedInfoEsperadoDotNet, "utf8");
+    verificador.end();
+    expect(verificador.verify(certificado.publicKey, firma.signatureValue, "base64")).toBe(true);
   });
 
   it("detecta cualquier alteración del contenido después de firmar", () => {

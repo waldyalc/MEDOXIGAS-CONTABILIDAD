@@ -141,12 +141,52 @@ function compararNombres(izquierda: string, derecha: string): number {
   return 0;
 }
 
+function compararAtributosCanonicos(izquierda: AtributoXml, derecha: AtributoXml): number {
+  const izqEsNs = izquierda.nombre === "xmlns" || izquierda.nombre.startsWith("xmlns:");
+  const derEsNs = derecha.nombre === "xmlns" || derecha.nombre.startsWith("xmlns:");
+  if (izqEsNs !== derEsNs) return izqEsNs ? -1 : 1;
+  if (izqEsNs && derEsNs) {
+    if (izquierda.nombre === "xmlns") return -1;
+    if (derecha.nombre === "xmlns") return 1;
+  }
+  return compararNombres(izquierda.nombre, derecha.nombre);
+}
+
 function canonizarEtiquetaInicial(etiqueta: EtiquetaInicialXml): string {
-  const atributos = [...etiqueta.atributos].sort((a, b) => compararNombres(a.nombre, b.nombre));
+  const atributos = [...etiqueta.atributos].sort(compararAtributosCanonicos);
   const textoAtributos = atributos
     .map((atributo) => ` ${atributo.nombre}="${escaparAtributoCanonico(decodificarEntidadesXml(atributo.valor))}"`)
     .join("");
   return `<${etiqueta.nombre}${textoAtributos}>`;
+}
+
+function extraerNamespacesPrefijadosRaiz(xml: string): AtributoXml[] {
+  const limpio = xml.replace(/^\uFEFF/, "");
+  let posicion = 0;
+  while (posicion < limpio.length) {
+    const inicio = limpio.indexOf("<", posicion);
+    if (inicio === -1) return [];
+    if (limpio.startsWith("<?", inicio)) {
+      posicion = saltarHasta(limpio, inicio + 2, "?>", "XML mal formado: declaración sin cierre");
+      continue;
+    }
+    if (limpio.startsWith("<!--", inicio)) {
+      posicion = saltarHasta(limpio, inicio + 4, "-->", "XML mal formado: comentario sin cierre");
+      continue;
+    }
+    if (limpio.startsWith("<!", inicio)) {
+      posicion = buscarFinEtiqueta(limpio, inicio + 2) + 1;
+      continue;
+    }
+    const fin = buscarFinEtiqueta(limpio, inicio + 1);
+    const interior = limpio.slice(inicio + 1, fin);
+    if (interior.startsWith("/")) return [];
+    const etiqueta = parsearEtiquetaInicial(interior);
+    return etiqueta.atributos
+      .filter((atributo) => atributo.nombre.startsWith("xmlns:"))
+      .sort(compararAtributosCanonicos);
+  }
+  return [];
 }
 
 function esEtiquetaSignature(nombre: string): boolean {
@@ -249,8 +289,29 @@ export function canonicalizarXmlBasico(xml: string, omitirFirma = false): string
   return estado.salida;
 }
 
-function construirSignedInfo(digestValue: string): string {
-  return `<SignedInfo xmlns="${XMLDSIG_NS}"><CanonicalizationMethod Algorithm="${C14N_ALGORITHM}"></CanonicalizationMethod><SignatureMethod Algorithm="${RSA_SHA256_ALGORITHM}"></SignatureMethod><Reference URI=""><Transforms><Transform Algorithm="${ENVELOPED_ALGORITHM}"></Transform></Transforms><DigestMethod Algorithm="${SHA256_ALGORITHM}"></DigestMethod><DigestValue>${digestValue}</DigestValue></Reference></SignedInfo>`;
+function construirSignedInfo(digestValue: string, namespacesHeredados: readonly AtributoXml[] = []): string {
+  const atributosNs = [...namespacesHeredados]
+    .sort(compararAtributosCanonicos)
+    .map((atributo) => ` ${atributo.nombre}="${escaparAtributoCanonico(decodificarEntidadesXml(atributo.valor))}"`)
+    .join("");
+  return `<SignedInfo xmlns="${XMLDSIG_NS}"${atributosNs}><CanonicalizationMethod Algorithm="${C14N_ALGORITHM}"></CanonicalizationMethod><SignatureMethod Algorithm="${RSA_SHA256_ALGORITHM}"></SignatureMethod><Reference URI=""><Transforms><Transform Algorithm="${ENVELOPED_ALGORITHM}"></Transform></Transforms><DigestMethod Algorithm="${SHA256_ALGORITHM}"></DigestMethod><DigestValue>${digestValue}</DigestValue></Reference></SignedInfo>`;
+}
+
+function canonicalizarSignedInfoConContexto(signedInfo: string, namespacesHeredados: readonly AtributoXml[]): string {
+  const inicio = signedInfo.indexOf("<");
+  if (inicio === -1) return canonicalizarXmlBasico(signedInfo, false);
+  const fin = buscarFinEtiqueta(signedInfo, inicio + 1);
+  const etiqueta = parsearEtiquetaInicial(signedInfo.slice(inicio + 1, fin));
+  const nombresExistentes = new Set(etiqueta.atributos.map((atributo) => atributo.nombre));
+  const atributosCombinados: AtributoXml[] = [...etiqueta.atributos];
+  if (!nombresExistentes.has("xmlns")) {
+    atributosCombinados.push({ nombre: "xmlns", valor: XMLDSIG_NS });
+  }
+  for (const ns of namespacesHeredados) {
+    if (!nombresExistentes.has(ns.nombre)) atributosCombinados.push(ns);
+  }
+  const inicioConContexto = canonizarEtiquetaInicial({ ...etiqueta, atributos: atributosCombinados });
+  return canonicalizarXmlBasico(`${inicioConContexto}${signedInfo.slice(fin + 1)}`, false);
 }
 
 function extraerBloque(xml: string, nombre: string): string | null {
@@ -288,17 +349,20 @@ export function firmarXmlDsig(
   clavePrivadaPem: string,
   certificadoPem: string,
 ): ResultadoFirmaXmlDsig {
-  const canonico = canonicalizarXmlBasico(xmlSinFirma, true);
+  const xmlLimpio = xmlSinFirma.replace(/^\uFEFF/, "");
+  const canonico = canonicalizarXmlBasico(xmlLimpio, true);
   const digestValue = createHash("sha256").update(canonico, "utf8").digest("base64");
-  const signedInfo = construirSignedInfo(digestValue);
+  const namespacesRaiz = extraerNamespacesPrefijadosRaiz(xmlLimpio);
+  const signedInfoCanonico = construirSignedInfo(digestValue, namespacesRaiz);
+  const signedInfoSerializado = construirSignedInfo(digestValue);
   const firmante = createSign("RSA-SHA256");
-  firmante.update(signedInfo, "utf8");
+  firmante.update(signedInfoCanonico, "utf8");
   firmante.end();
   const signatureValue = firmante.sign(clavePrivadaPem, "base64");
   const certificado = certificadoBase64(certificadoPem);
-  const bloqueFirma = `<Signature xmlns="${XMLDSIG_NS}">${signedInfo}<SignatureValue>${signatureValue}</SignatureValue><KeyInfo><X509Data><X509Certificate>${certificado}</X509Certificate></X509Data></KeyInfo></Signature>`;
+  const bloqueFirma = `<Signature xmlns="${XMLDSIG_NS}">${signedInfoSerializado}<SignatureValue>${signatureValue}</SignatureValue><KeyInfo><X509Data><X509Certificate>${certificado}</X509Certificate></X509Data></KeyInfo></Signature>`;
   return {
-    xmlFirmado: insertarAntesDeCierreRaiz(xmlSinFirma, bloqueFirma),
+    xmlFirmado: insertarAntesDeCierreRaiz(xmlLimpio, bloqueFirma),
     signatureValue,
     codigoSeguridad: signatureValue.slice(0, 6),
     digestValue,
@@ -307,7 +371,8 @@ export function firmarXmlDsig(
 
 export function verificarFirmaXmlDsig(xmlFirmado: string): ResultadoVerificacionXmlDsig {
   try {
-    const bloqueFirma = extraerBloque(xmlFirmado, "Signature");
+    const xmlLimpio = xmlFirmado.replace(/^\uFEFF/, "");
+    const bloqueFirma = extraerBloque(xmlLimpio, "Signature");
     if (!bloqueFirma) return { valida: false, motivo: "El XML no contiene una firma XMLDSig" };
     const signatureValue = extraerValorEtiqueta(bloqueFirma, "SignatureValue")?.trim();
     const digestEsperado = extraerValorEtiqueta(bloqueFirma, "DigestValue")?.trim();
@@ -318,7 +383,7 @@ export function verificarFirmaXmlDsig(xmlFirmado: string): ResultadoVerificacion
       return { valida: false, motivo: "La firma XMLDSig está incompleta", codigoSeguridad };
     }
 
-    const canonico = canonicalizarXmlBasico(xmlFirmado, true);
+    const canonico = canonicalizarXmlBasico(xmlLimpio, true);
     const digestCalculado = createHash("sha256").update(canonico, "utf8").digest("base64");
     if (digestCalculado !== digestEsperado) {
       return { valida: false, motivo: "El contenido del XML fue alterado después de la firma", codigoSeguridad };
@@ -326,7 +391,8 @@ export function verificarFirmaXmlDsig(xmlFirmado: string): ResultadoVerificacion
 
     const certificadoPem = `-----BEGIN CERTIFICATE-----\n${certificadoBase64Xml}\n-----END CERTIFICATE-----`;
     const certificado = new X509Certificate(certificadoPem);
-    const signedInfoCanonico = canonicalizarXmlBasico(signedInfo, false);
+    const namespacesRaiz = extraerNamespacesPrefijadosRaiz(xmlLimpio);
+    const signedInfoCanonico = canonicalizarSignedInfoConContexto(signedInfo, namespacesRaiz);
     const verificador = createVerify("RSA-SHA256");
     verificador.update(signedInfoCanonico, "utf8");
     verificador.end();
