@@ -31,6 +31,15 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           ncfVence={datos.ncfVence}
           impuestos={datos.impuestos}
           mostrarLogo={plantilla.mostrarLogo}
+          emisionEcf={
+            datos.envio?.codigo_seguridad && datos.envio.url_qr
+              ? {
+                  codigoSeguridad: datos.envio.codigo_seguridad,
+                  fechaHoraFirma: datos.envio.fecha_hora_firma,
+                  urlQr: datos.envio.url_qr,
+                }
+              : null
+          }
         />
       }
     />

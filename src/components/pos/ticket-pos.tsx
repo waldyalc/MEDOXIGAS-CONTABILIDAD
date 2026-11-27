@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 
 import { cn } from "cn";
 
+import { BloqueFiscalEcf } from "@/components/documento-venta/bloque-fiscal-ecf";
 import type { FilaTicketPOS, LineaTicketPOS, TicketPOSPayload } from "@/lib/pos/impresion";
 
 /**
@@ -55,6 +56,7 @@ const CSS_IMPRESION = `
 
   [data-print-root] .ticket-pos .linea,
   [data-print-root] .ticket-pos .bloque-totales,
+  [data-print-root] .ticket-pos .bloque-ecf,
   [data-print-root] .ticket-pos tr {
     break-inside: avoid;
     page-break-inside: avoid;
@@ -267,6 +269,19 @@ function LineasIzquierda({ filas }: { filas: FilaTicketPOS[] }) {
   );
 }
 
+function BloqueEcfTicket({ ecf, estrecho }: { ecf: TicketPOSPayload["ecf"]; estrecho: boolean }) {
+  if (!ecf) return null;
+  return (
+    <BloqueFiscalEcf
+      codigoSeguridad={ecf.codigoSeguridad}
+      compacto
+      fechaHoraFirma={ecf.fechaHoraFirma}
+      tamanoQrMm={estrecho ? 36 : 46}
+      urlQr={ecf.urlQr}
+    />
+  );
+}
+
 export function TicketPos({
   payload,
   vistaPrevia = false,
@@ -348,6 +363,8 @@ export function TicketPos({
       <LineasIzquierda filas={payload.pagos} />
 
       <LineasIzquierda filas={payload.resumen} />
+
+      <BloqueEcfTicket ecf={payload.ecf} estrecho={estrecho} />
 
       {payload.nota ? (
         <p className={cn("mt-1 text-[9pt]", minimalista ? "text-left" : "text-center")}>{payload.nota}</p>

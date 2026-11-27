@@ -1,8 +1,10 @@
 import { cn } from "cn";
 
 import type { DocumentoVista } from "@/lib/cotizaciones/tipos";
+import { TIPOS_ECF } from "@/lib/ecf/tipos";
 import { subtotalBruto } from "@/lib/facturacion/calculo";
 import { tituloTipoComprobante } from "@/lib/facturacion/comprobantes";
+import { esNcfElectronico, tipoEcfDesdeNcf } from "@/lib/facturacion/emision-ecf";
 import { formatoCantidad, saldoDeFactura } from "@/lib/facturacion/formato";
 import { montoEnLetras } from "@/lib/facturacion/numero-a-letras";
 import type { ContactoResumen, Empresa, FacturaDetalle, FacturaLinea } from "@/lib/facturacion/tipos";
@@ -10,6 +12,7 @@ import { formatoDia } from "@/lib/formato";
 import type { Impuesto } from "@/lib/impuestos/tipos";
 import { resumenImpuestos } from "@/lib/impuestos/tipos";
 
+import { BloqueFiscalEcf } from "./bloque-fiscal-ecf";
 import { formatearMontoPapel, formatearPrecioPapel, totalItemsPapel } from "./papel";
 import { descuentoDeLinea, montoGravadoDeLineas } from "./vista";
 
@@ -23,6 +26,12 @@ interface LineaPapel {
   impuesto_id: string | null;
   subtotal: number;
   itbis: number;
+}
+
+interface EmisionEcfPapel {
+  codigoSeguridad: string;
+  fechaHoraFirma: string | null;
+  urlQr: string;
 }
 
 interface DatosPapel {
@@ -50,6 +59,7 @@ interface DatosPapel {
   ncfVence: string | null;
   saldo: number | null;
   mostrarLogo: boolean;
+  emisionEcf: EmisionEcfPapel | null;
 }
 
 type Props =
@@ -62,6 +72,7 @@ type Props =
       ncfVence: string | null;
       impuestos: Impuesto[];
       mostrarLogo?: boolean;
+      emisionEcf?: EmisionEcfPapel | null;
     }
   | { tipo: "cotizacion" | "conduce"; vista: DocumentoVista; mostrarLogo?: boolean };
 
@@ -83,7 +94,9 @@ function datosDeFactura(
   ncfVence: string | null,
   mostrarLogo: boolean,
   impuestos: Impuesto[],
+  emisionEcf: EmisionEcfPapel | null,
 ): DatosPapel {
+  const tipoEcf = tipoEcfDesdeNcf(factura.ncf);
   return {
     tipo: "factura",
     empresa,
@@ -102,7 +115,7 @@ function datosDeFactura(
     terminos: factura.terminos,
     pie: factura.pie,
     estado: factura.estado,
-    titulo: tituloTipoComprobante(factura.tipo_comprobante),
+    titulo: tipoEcf ? TIPOS_ECF[tipoEcf].nombre : tituloTipoComprobante(factura.tipo_comprobante),
     numero: String(factura.numero),
     ncf: factura.ncf,
     ncfVence,
@@ -111,6 +124,7 @@ function datosDeFactura(
         ? saldoDeFactura(factura.total, factura.pagado, factura.credito, factura.retenido)
         : null,
     mostrarLogo,
+    emisionEcf: esNcfElectronico(factura.ncf) ? emisionEcf : null,
   };
 }
 
@@ -141,6 +155,7 @@ function datosDeDocumento(tipo: "cotizacion" | "conduce", vista: DocumentoVista,
     ncfVence: null,
     saldo: null,
     mostrarLogo,
+    emisionEcf: null,
   };
 }
 
@@ -175,6 +190,7 @@ function DatosEmpresa({ empresa }: { empresa: Empresa | null }) {
 
 function EncabezadoFactura({ datos }: { datos: DatosPapel }) {
   const nombre = nombreEmpresa(datos.empresa);
+  const electronico = esNcfElectronico(datos.ncf);
 
   return (
     <header className="flex items-start justify-between gap-[24pt]">
@@ -192,10 +208,13 @@ function EncabezadoFactura({ datos }: { datos: DatosPapel }) {
 
       <div className="shrink-0 text-right">
         <p className="font-semibold">{datos.titulo}</p>
-        <p className="my-[2pt] text-[14pt] leading-[16pt] font-semibold">No. NCF {datos.ncf ?? "—"}</p>
+        <p className="my-[2pt] text-[14pt] leading-[16pt] font-semibold">
+          {electronico ? "e-NCF" : "No. NCF"} {datos.ncf ?? "—"}
+        </p>
         {datos.ncfVence?.trim() ? (
           <p>
-            <span className="font-semibold">Vencimiento NCF:</span> {formatoDia(datos.ncfVence)}
+            <span className="font-semibold">{electronico ? "Vencimiento e-NCF:" : "Vencimiento NCF:"}</span>{" "}
+            {formatoDia(datos.ncfVence)}
           </p>
         ) : null}
         {datos.estado === "anulada" ? <p className="mt-[4pt] font-bold text-red-600">ANULADA</p> : null}
@@ -553,10 +572,10 @@ function NotasPapel({ datos }: { datos: DatosPapel }) {
   );
 }
 
-function PieFactura() {
+function PieFactura({ mostrarOriginal = true }: { mostrarOriginal?: boolean }) {
   return (
     <footer className="mt-[18pt]">
-      <p className="text-[8pt] font-semibold">Original: Cliente</p>
+      {mostrarOriginal ? <p className="text-[8pt] font-semibold">Original: Cliente</p> : null}
       <p className="mt-[22pt] text-center text-[6pt]">Generado con Medoxigas Contabilidad</p>
       <p className="mt-[8pt] text-[8pt]">Página 1 de 1</p>
     </footer>
@@ -594,7 +613,15 @@ function ContenidoFactura({ datos }: { datos: DatosPapel }) {
       <div className="flex-1" />
       <TotalesFactura datos={datos} />
       <NotasPapel datos={datos} />
-      <PieFactura />
+      {datos.emisionEcf ? (
+        <BloqueFiscalEcf
+          codigoSeguridad={datos.emisionEcf.codigoSeguridad}
+          encf={datos.ncf}
+          fechaHoraFirma={datos.emisionEcf.fechaHoraFirma}
+          urlQr={datos.emisionEcf.urlQr}
+        />
+      ) : null}
+      <PieFactura mostrarOriginal={!datos.emisionEcf} />
     </>
   );
 }
@@ -639,6 +666,7 @@ export function DocumentoPapel(props: Props) {
           props.ncfVence,
           props.mostrarLogo ?? true,
           props.impuestos,
+          props.emisionEcf ?? null,
         )
       : datosDeDocumento(props.tipo, props.vista, props.mostrarLogo ?? true);
 

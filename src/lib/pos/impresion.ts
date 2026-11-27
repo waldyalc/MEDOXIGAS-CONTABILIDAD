@@ -1,5 +1,6 @@
 import type { DocumentoVista } from "@/lib/cotizaciones/tipos";
 import { tituloTipoComprobante } from "@/lib/facturacion/comprobantes";
+import { esNcfElectronico } from "@/lib/facturacion/emision-ecf";
 import { aNumero, formatoCantidad, formatoMoneda } from "@/lib/facturacion/formato";
 import type { ContactoResumen, Empresa, FacturaDetalle, FacturaLinea } from "@/lib/facturacion/tipos";
 import { formatoDia, formatoFechaHora } from "@/lib/formato";
@@ -89,6 +90,12 @@ export interface BloqueTicketPOS {
   filas: FilaTicketPOS[];
 }
 
+export interface EcfTicketPOS {
+  codigoSeguridad: string;
+  fechaHoraFirma: string | null;
+  urlQr: string;
+}
+
 export interface TicketPOSPayload {
   tipo: DocumentoTicketPOS;
   diseno: DisenoTicketPOS;
@@ -100,6 +107,7 @@ export interface TicketPOSPayload {
   pagos: FilaTicketPOS[];
   /** Conteos del pie del documento (líneas y unidades vendidas). */
   resumen: FilaTicketPOS[];
+  ecf?: EcfTicketPOS | null;
   nota: string | null;
   pie: string | null;
   anulada: boolean;
@@ -518,6 +526,30 @@ function cobroFactura(resultado: VentaPOSResultado): FilaTicketPOS[] {
   return filas;
 }
 
+type DatosEcfCrudos = {
+  codigoSeguridad?: string | null;
+  fechaHoraFirma?: string | null;
+  urlQr?: string | null;
+  codigo_seguridad?: string | null;
+  fecha_hora_firma?: string | null;
+  url_qr?: string | null;
+};
+
+type VentaPOSResultadoConEcf = VentaPOSResultado & {
+  ecf?: DatosEcfCrudos | null;
+  envio?: DatosEcfCrudos | null;
+};
+
+function datosEcfVenta(resultado: VentaPOSResultadoConEcf, ncf: string | null): EcfTicketPOS | null {
+  if (!esNcfElectronico(ncf)) return null;
+  const fuente = resultado.ecf ?? resultado.envio;
+  const codigoSeguridad = fuente?.codigoSeguridad?.trim() || fuente?.codigo_seguridad?.trim() || "";
+  const urlQr = fuente?.urlQr?.trim() || fuente?.url_qr?.trim() || "";
+  if (!codigoSeguridad || !urlQr) return null;
+  const fechaHoraFirma = fuente?.fechaHoraFirma?.trim() || fuente?.fecha_hora_firma?.trim() || null;
+  return { codigoSeguridad, fechaHoraFirma, urlQr };
+}
+
 function encabezadoConEmpresa(
   empresa: VentaPOSResultado["empresa"] | CotizacionPOSResultado["empresa"],
   titulo: string,
@@ -532,7 +564,7 @@ function encabezadoConEmpresa(
 // ---------------------------------------------------------------------------
 
 export function armarTicketFactura(
-  resultado: VentaPOSResultado,
+  resultado: VentaPOSResultadoConEcf,
   plantilla?: PlantillaTicket | null,
   opciones: OpcionesTicketPOS = {},
 ): TicketPOSPayload {
@@ -540,6 +572,7 @@ export function armarTicketFactura(
   const factura = resultado.factura;
   const esCredito = compararMontos(factura.saldo, "0") > 0 || compararMontos(factura.credito, "0") > 0;
   const metodo = metodoPago(resultado);
+  const ecf = datosEcfVenta(resultado, factura.ncf);
   const lineas = [
     ...(factura.ncf ? [`NCF ${factura.ncf}`] : []),
     `Fecha: ${fechaConHora(factura.fecha, factura.creado_en ?? opciones.recibido_en)}`,
@@ -565,6 +598,7 @@ export function armarTicketFactura(
     totales: totalesFactura(resultado),
     pagos: cobroFactura(resultado),
     resumen: resumenLineas(resultado.lineas),
+    ...(ecf ? { ecf } : {}),
     nota: null,
     pie: normalizada.pie_ticket,
     anulada: factura.estado === "anulada",
