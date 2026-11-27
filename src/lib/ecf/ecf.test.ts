@@ -508,17 +508,24 @@ describe("certificados, firma XMLDSig y cifrado", () => {
     expect(verificarFirmaXmlDsig(conCrlf).valida).toBe(true);
   });
 
-  it("firma y verifica XML de Postulacion DGII propagando xmlns:xsd y xmlns:xsi en SignedInfo (Inclusive C14N 1.0)", () => {
+  it("firma y verifica XML de Postulacion DGII compactando indentación y propagando xmlns:xsd y xmlns:xsi en SignedInfo", () => {
     const par = generarCertificadoPruebaAutocontenido("131488791", "OXYMAT SRL");
     const xmlPostulacion =
       '\uFEFF<?xml version="1.0" encoding="utf-8"?>\r\n' +
-      '<Postulacion xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">' +
-      "<PostulacionID>124437</PostulacionID>" +
-      "<Software><UrlAutenticacion>ferreteria.medoxigas.com/api/ecf/131488791</UrlAutenticacion></Software>" +
+      '<Postulacion xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">\r\n' +
+      "  <PostulacionID>124437</PostulacionID>\r\n" +
+      "  <Direccion>AVENIDA JACOBO MAJLUTA 101 </Direccion>\r\n" +
+      "  <Software>\r\n" +
+      "    <UrlAutenticacion>ferreteria.medoxigas.com/api/ecf/131488791</UrlAutenticacion>\r\n" +
+      "  </Software>\r\n" +
       "</Postulacion>";
 
     const firma = firmarXmlDsig(xmlPostulacion, par.clavePrivadaPem, par.certificadoPem);
     expect(firma.xmlFirmado.startsWith('<?xml version="1.0" encoding="utf-8"?>')).toBe(true);
+    expect(firma.xmlFirmado).toContain(
+      "<PostulacionID>124437</PostulacionID><Direccion>AVENIDA JACOBO MAJLUTA 101 </Direccion>",
+    );
+    expect(firma.xmlFirmado).not.toContain(">\r\n  <");
     expect(firma.xmlFirmado.endsWith("</Postulacion>")).toBe(true);
     expect(verificarFirmaXmlDsig(firma.xmlFirmado)).toEqual({ valida: true, codigoSeguridad: firma.codigoSeguridad });
 

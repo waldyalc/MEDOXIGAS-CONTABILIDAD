@@ -37,7 +37,7 @@ function archivoForm(form: FormData, nombre: string): File | null {
 function nombreDescargaFirmado(nombreOriginal: string): string {
   const sinExtension = nombreOriginal.replace(/\.xml$/i, "");
   const seguro = sinExtension.replace(/[^A-Za-z0-9._-]/g, "_").replace(/^_+|_+$/g, "") || "postulacion-dgii";
-  return `${seguro}-firmado.xml`;
+  return `${seguro}.xml`;
 }
 
 async function resolverCredencialesFirma(

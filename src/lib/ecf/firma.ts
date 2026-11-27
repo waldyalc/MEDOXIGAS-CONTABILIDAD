@@ -344,12 +344,69 @@ function insertarAntesDeCierreRaiz(xml: string, bloque: string): string {
   return `${xml.slice(0, indice)}${bloque}${xml.slice(indice)}`;
 }
 
+function compactarEspaciosEntreEtiquetas(xml: string): string {
+  const inicioRaiz = buscarInicioElementoRaiz(xml);
+  if (inicioRaiz === -1) return xml;
+  const prefijo = xml.slice(0, inicioRaiz);
+  const cuerpo = xml.slice(inicioRaiz);
+  let salida = "";
+  let posicion = 0;
+  while (posicion < cuerpo.length) {
+    const inicio = cuerpo.indexOf("<", posicion);
+    if (inicio === -1) {
+      salida += cuerpo.slice(posicion);
+      break;
+    }
+    const texto = cuerpo.slice(posicion, inicio);
+    if (texto.trim() !== "") {
+      salida += texto;
+    }
+    if (cuerpo.startsWith("<!--", inicio)) {
+      const fin = saltarHasta(cuerpo, inicio + 4, "-->", "XML mal formado: comentario sin cierre");
+      posicion = fin;
+      continue;
+    }
+    if (cuerpo.startsWith("<![CDATA[", inicio)) {
+      const fin = saltarHasta(cuerpo, inicio + 9, "]]>", "XML mal formado: CDATA sin cierre");
+      salida += cuerpo.slice(inicio, fin);
+      posicion = fin;
+      continue;
+    }
+    const fin = buscarFinEtiqueta(cuerpo, inicio + 1);
+    salida += cuerpo.slice(inicio, fin + 1);
+    posicion = fin + 1;
+  }
+  return `${prefijo}${salida}`;
+}
+
+function buscarInicioElementoRaiz(xml: string): number {
+  let posicion = 0;
+  while (posicion < xml.length) {
+    const inicio = xml.indexOf("<", posicion);
+    if (inicio === -1) return -1;
+    if (xml.startsWith("<?", inicio)) {
+      posicion = saltarHasta(xml, inicio + 2, "?>", "XML mal formado: declaración sin cierre");
+      continue;
+    }
+    if (xml.startsWith("<!--", inicio)) {
+      posicion = saltarHasta(xml, inicio + 4, "-->", "XML mal formado: comentario sin cierre");
+      continue;
+    }
+    if (xml.startsWith("<!", inicio)) {
+      posicion = buscarFinEtiqueta(xml, inicio + 2) + 1;
+      continue;
+    }
+    return inicio;
+  }
+  return -1;
+}
+
 export function firmarXmlDsig(
   xmlSinFirma: string,
   clavePrivadaPem: string,
   certificadoPem: string,
 ): ResultadoFirmaXmlDsig {
-  const xmlLimpio = xmlSinFirma.replace(/^\uFEFF/, "");
+  const xmlLimpio = compactarEspaciosEntreEtiquetas(xmlSinFirma.replace(/^\uFEFF/, ""));
   const canonico = canonicalizarXmlBasico(xmlLimpio, true);
   const digestValue = createHash("sha256").update(canonico, "utf8").digest("base64");
   const namespacesRaiz = extraerNamespacesPrefijadosRaiz(xmlLimpio);
