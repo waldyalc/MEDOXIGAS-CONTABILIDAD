@@ -456,6 +456,15 @@ describe("helpers de idempotencia ACECF", () => {
         RNC_COMPRADOR,
       ),
     ).toBe(false);
+    expect(
+      esRegistroAcecfParaComprador(
+        {
+          xml_firmado: "<ACECF><DetalleAprobacionComercial /></ACECF>",
+          respuesta_dgii: { tipo: "acecf" },
+        },
+        RNC_COMPRADOR,
+      ),
+    ).toBe(false);
   });
 
   it("reutiliza solo envíos aceptados que sí son ACECF del comprador", () => {
@@ -566,7 +575,12 @@ describe("modo enviar_dgii", () => {
     expect(String(supabase.insertos[0]?.xml_firmado)).toContain("<ACECF>");
   });
 
-  it("no pide token ni reenvía cuando todos los casos ya están aceptados como ACECF", async () => {
+  it("no pide token ni credenciales ni reenvía cuando todos los casos ya están aceptados como ACECF", async () => {
+    mocks.cargarCredenciales.mockResolvedValueOnce({
+      ok: false,
+      motivo: "sin_certificado",
+      error: "No hay certificado guardado",
+    });
     usarSupabase([
       envioAcecfExistente({ encf: encfPrueba(1) }),
       envioAcecfExistente({ encf: encfPrueba(2), estado: "aceptado_condicional" }),
@@ -582,6 +596,35 @@ describe("modo enviar_dgii", () => {
     expect(data.reutilizados).toBe(2);
     expect(data.casos.every((caso) => caso.reutilizado && caso.duracionMs === 0)).toBe(true);
     expect(data.casos[0]).toMatchObject({ codigo: "1", estadoOriginal: "Aprobada" });
+    expect(mocks.cargarCredenciales).not.toHaveBeenCalled();
+    expect(mocks.obtenerToken).not.toHaveBeenCalled();
+    expect(mocks.enviarAprobacion).not.toHaveBeenCalled();
+  });
+
+  it("rechaza con 400 un Excel ACECF con llaves emisor+eNCF duplicadas antes de consultar DGII", async () => {
+    const libro = new ExcelJS.Workbook();
+    const hoja = libro.addWorksheet("ACEECF_Generadas");
+    hoja.addRow([
+      "Version",
+      "RNCEmisor",
+      "eNCF",
+      "FechaEmision",
+      "MontoTotal",
+      "RNCComprador",
+      "Estado",
+      "DetalleMotivoRechazo",
+      "FechaHoraAprobacionComercial",
+    ]);
+    hoja.addRow(["1.0", RNC_EMISOR, encfPrueba(1), "01-04-2020", 118, RNC_COMPRADOR, 1, "", "27-11-2026 17:53:01"]);
+    hoja.addRow(["1.0", RNC_EMISOR, encfPrueba(1), "01-04-2020", 118, RNC_COMPRADOR, 1, "", "27-11-2026 17:53:01"]);
+    const buffer = Buffer.from((await libro.xlsx.writeBuffer()) as ArrayBuffer);
+
+    const response = await ejecutarPost(formularioAcecf({ archivo: archivoExcel(buffer), modo: "enviar_dgii" }));
+    const data = await jsonComo<{ ok: false; error: string }>(response);
+
+    expect(response.status).toBe(400);
+    expect(data.ok).toBe(false);
+    expect(data.error).toMatch(/duplicadas/i);
     expect(mocks.obtenerToken).not.toHaveBeenCalled();
     expect(mocks.enviarAprobacion).not.toHaveBeenCalled();
   });

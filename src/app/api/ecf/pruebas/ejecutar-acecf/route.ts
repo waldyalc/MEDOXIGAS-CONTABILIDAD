@@ -195,16 +195,17 @@ export function esRegistroAcecfParaComprador(
   rncCompradorEntrada: string,
 ): boolean {
   const rncComprador = rncCompradorEntrada.replace(/\D/g, "");
-  const rncRespuesta = rncPersistidoDesdeRespuesta(registro.respuesta_dgii);
-  if (rncRespuesta !== null && rncRespuesta !== rncComprador) return false;
-
+  if (rncComprador === "") return false;
   const respuesta = objetoRegistro(registro.respuesta_dgii);
-  if (respuesta?.tipo === "acecf") return true;
-
   const xml = registro.xml_firmado ?? "";
-  if (!xml.includes("<ACECF>")) return false;
+  const esAcecf = respuesta?.tipo === "acecf" || xml.includes("<ACECF>");
+  if (!esAcecf) return false;
+
+  const rncRespuesta = rncPersistidoDesdeRespuesta(registro.respuesta_dgii);
   const rncXml = /<RNCComprador>(\d{9,11})<\/RNCComprador>/.exec(xml)?.[1] ?? null;
-  return rncXml === null || rncXml === rncComprador;
+  if (rncRespuesta !== null && rncRespuesta !== rncComprador) return false;
+  if (rncXml !== null && rncXml !== rncComprador) return false;
+  return rncRespuesta === rncComprador || rncXml === rncComprador;
 }
 
 function textoCampoRespuestaPersistida(respuestaDgii: unknown, campo: "codigo" | "estadoOriginal"): string | null {
@@ -494,11 +495,22 @@ async function procesarCasosEnvio(args: {
   return resultados;
 }
 
+function clavesDuplicadasEnExcel(casos: CasoExcelAcecfDgii[]): string[] {
+  const vistos = new Set<string>();
+  const duplicados: string[] = [];
+  for (const caso of casos) {
+    const clave = claveEnvio(caso.aprobacion.rncEmisor, caso.aprobacion.encf);
+    if (vistos.has(clave)) duplicados.push(`${caso.aprobacion.encf} (fila ${caso.numeroFila})`);
+    else vistos.add(clave);
+  }
+  return duplicados;
+}
+
 function resumenEnvioDesdeResultados(
   resultados: ResultadoEnvioAcecfCaso[],
   ambiente: AmbientePruebas,
   rncComprador: string,
-  fuenteCredenciales: CredencialesResueltas["fuente"],
+  fuenteCredenciales?: CredencialesResueltas["fuente"],
 ) {
   const aceptados = resultados.filter(
     (caso) => caso.estado === "aceptado" || caso.estado === "aceptado_condicional",
@@ -516,7 +528,7 @@ function resumenEnvioDesdeResultados(
     rechazados,
     errores,
     reutilizados,
-    fuenteCredenciales,
+    ...(fuenteCredenciales ? { fuenteCredenciales } : {}),
     casos: resultados,
   });
 }
@@ -535,10 +547,15 @@ async function ejecutarEnvioDgii(args: {
     );
   }
 
-  const supabase = await createClient();
-  const credencialesResueltas = await resolverCredenciales(supabase, args.form, args.rncComprador);
-  if ("error" in credencialesResueltas) return jsonError(credencialesResueltas.error, credencialesResueltas.status);
+  const duplicados = clavesDuplicadasEnExcel(args.casos);
+  if (duplicados.length > 0) {
+    return jsonError(
+      `El Excel ACECF contiene aprobaciones duplicadas para el mismo emisor y e-NCF: ${duplicados.join(", ")}.`,
+      400,
+    );
+  }
 
+  const supabase = await createClient();
   const rncEmisores = [...new Set(args.casos.map((caso) => caso.aprobacion.rncEmisor))];
   const encfs = [...new Set(args.casos.map((caso) => caso.aprobacion.encf))];
   let existentes: Map<string, EnvioAcecfExistente>;
@@ -550,6 +567,16 @@ async function ejecutarEnvioDgii(args: {
       500,
     );
   }
+
+  const resultadosReutilizados = args.casos
+    .map((caso) => resultadoReutilizado(caso, existentes, args.rncComprador))
+    .filter((caso): caso is ResultadoEnvioAcecfCaso => caso !== null);
+  if (resultadosReutilizados.length === args.casos.length) {
+    return resumenEnvioDesdeResultados(resultadosReutilizados, args.ambiente, args.rncComprador);
+  }
+
+  const credencialesResueltas = await resolverCredenciales(supabase, args.form, args.rncComprador);
+  if ("error" in credencialesResueltas) return jsonError(credencialesResueltas.error, credencialesResueltas.status);
 
   const tokenResuelto = await tokenParaCasosPendientes({
     casos: args.casos,
