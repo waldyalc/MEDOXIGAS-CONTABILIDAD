@@ -84,6 +84,13 @@ export type IndicadorMontoGravadoEcf = "0" | "1";
 export type IndicadorFacturacionEcf = "0" | "1" | "2" | "3" | "4";
 export type IndicadorBienoServicioEcf = "1" | "2";
 export type ItbisTasaEcf = 18 | 16 | 0;
+export type IndicadorBinarioEcf = "1";
+export type TipoCuentaPagoEcf = "CT" | "AH" | "OT";
+
+export interface FormaPagoEcfInput {
+  formaPago: string;
+  montoPago?: number;
+}
 
 export interface EmisorEcfInput {
   rnc: string;
@@ -95,27 +102,62 @@ export interface EmisorEcfInput {
   provincia?: string;
   telefonos?: string[];
   correo?: string;
+  webSite?: string;
+  actividadEconomica?: string;
+  codigoVendedor?: string;
+  numeroFacturaInterna?: string;
+  numeroPedidoInterno?: string;
+  zonaVenta?: string;
+  rutaVenta?: string;
+  informacionAdicionalEmisor?: string;
 }
 
 export interface CompradorEcfInput {
   rnc?: string;
+  identificadorExtranjero?: string;
   razonSocial: string;
+  contactoComprador?: string;
   correo?: string;
+  direccionComprador?: string;
+  municipioComprador?: string;
+  provinciaComprador?: string;
+  paisComprador?: string;
+  fechaEntrega?: string;
+  contactoEntrega?: string;
+  direccionEntrega?: string;
+  telefonoAdicional?: string;
+  fechaOrdenCompra?: string;
+  numeroOrdenCompra?: string;
+  codigoInternoComprador?: string;
+  responsablePago?: string;
+  informacionAdicionalComprador?: string;
 }
 
 export interface ComprobanteEcfInput {
   tipo: TipoEcf;
   encf: string;
   fechaEmision: string;
-  fechaVencimientoSecuencia: string;
-  tipoIngresos: TipoIngresosEcf;
-  tipoPago: TipoPagoEcf;
-  fechaLimitePago?: string;
-  indicadorMontoGravado?: IndicadorMontoGravadoEcf;
+  fechaVencimientoSecuencia?: string;
   indicadorNotaCredito?: "0" | "1";
+  indicadorEnvioDiferido?: IndicadorBinarioEcf;
+  indicadorMontoGravado?: IndicadorMontoGravadoEcf;
+  indicadorServicioTodoIncluido?: IndicadorBinarioEcf;
+  tipoIngresos: TipoIngresosEcf;
+  tipoPago?: TipoPagoEcf;
+  fechaLimitePago?: string;
+  terminoPago?: string;
+  formasPago?: FormaPagoEcfInput[];
+  tipoCuentaPago?: TipoCuentaPagoEcf | string;
+  numeroCuentaPago?: string;
+  bancoPago?: string;
+  fechaDesde?: string;
+  fechaHasta?: string;
+  totalPaginas?: number;
   ncfModificado?: string;
+  rncOtroContribuyente?: string;
   fechaNcfModificado?: string;
   codigoModificacion?: string;
+  razonModificacion?: string;
   fechaHoraFirma?: string;
 }
 
@@ -133,21 +175,53 @@ export interface RetencionLineaEcfInput {
   montoIsrRetenido?: number;
 }
 
+export interface CodigoItemEcfInput {
+  tipoCodigo: string;
+  codigoItem: string;
+}
+
+export interface SubcantidadEcfInput {
+  subcantidad?: number;
+  codigoSubcantidad?: string;
+}
+
+export interface ImpuestoAdicionalLineaEcfInput {
+  tipoImpuesto: string;
+}
+
+export interface OtraMonedaDetalleEcfInput {
+  precioOtraMoneda?: number;
+  descuentoOtraMoneda?: number;
+  recargoOtraMoneda?: number;
+  montoItemOtraMoneda?: number;
+}
+
 export interface LineaEcfInput {
   numeroLinea: number;
+  codigosItem?: CodigoItemEcfInput[];
   indicadorFacturacion: IndicadorFacturacionEcf;
+  retencion?: RetencionLineaEcfInput;
   nombreItem: string;
+  indicadorBienoServicio?: IndicadorBienoServicioEcf;
+  descripcionItem?: string;
   cantidad: number;
   unidadMedida?: string;
+  cantidadReferencia?: number;
+  unidadReferencia?: string;
+  subcantidades?: SubcantidadEcfInput[];
+  gradosAlcohol?: number;
+  precioUnitarioReferencia?: number;
+  fechaElaboracion?: string;
+  fechaVencimientoItem?: string;
   precioUnitario: number;
   descuento?: number;
   subDescuentos?: SubAjusteEcfInput[];
   recargo?: number;
   subRecargos?: SubAjusteEcfInput[];
-  retencion?: RetencionLineaEcfInput;
+  impuestosAdicionales?: ImpuestoAdicionalLineaEcfInput[];
+  otraMoneda?: OtraMonedaDetalleEcfInput;
   itbisTasa: ItbisTasaEcf;
   montoItem: number;
-  indicadorBienoServicio?: IndicadorBienoServicioEcf;
 }
 
 export interface ImpuestoAdicionalEcfInput {
@@ -159,6 +233,7 @@ export interface ImpuestoAdicionalEcfInput {
 }
 
 export interface TotalesEcfInput {
+  montoGravadoTotal?: number;
   montoGravadoI1: number;
   montoGravadoI2: number;
   montoGravadoI3?: number;
@@ -170,17 +245,26 @@ export interface TotalesEcfInput {
   montoImpuestoAdicional?: number;
   impuestosAdicionales?: ImpuestoAdicionalEcfInput[];
   montoTotal: number;
+  montoNoFacturable?: number;
+  montoPeriodo?: number;
+  saldoAnterior?: number;
+  montoAvancePago?: number;
+  valorPagar?: number;
   totalItbisRetenido?: number;
   totalIsrRetencion?: number;
+  totalItbisPercepcion?: number;
+  totalIsrPercepcion?: number;
 }
 
 export interface DescuentoORecargoGlobalEcfInput {
   numeroLinea: number;
   tipoAjuste: "D" | "R";
+  indicadorNorma1007?: "0" | "1";
   descripcion?: string;
-  tipoValor: TipoValorAjusteEcf;
+  tipoValor?: TipoValorAjusteEcf;
   valor?: number;
   monto: number;
+  montoOtraMoneda?: number;
   indicadorFacturacion?: IndicadorFacturacionEcf;
 }
 
@@ -188,25 +272,94 @@ export interface OtraMonedaEcfInput {
   tipoMoneda: string;
   tipoCambio: number;
   montoGravadoTotalOtraMoneda?: number;
+  montoGravado1OtraMoneda?: number;
+  montoGravado2OtraMoneda?: number;
+  montoGravado3OtraMoneda?: number;
   montoExentoOtraMoneda?: number;
   totalItbisOtraMoneda?: number;
+  totalItbis1OtraMoneda?: number;
+  totalItbis2OtraMoneda?: number;
+  totalItbis3OtraMoneda?: number;
+  montoImpuestoAdicionalOtraMoneda?: number;
+  impuestosAdicionalesOtraMoneda?: ImpuestoAdicionalEcfInput[];
   montoTotalOtraMoneda: number;
+}
+
+export interface InformacionesAdicionalesEcfInput {
+  fechaEmbarque?: string;
+  numeroEmbarque?: string;
+  numeroContenedor?: string;
+  numeroReferencia?: string;
+  nombrePuertoEmbarque?: string;
+  condicionesEntrega?: string;
+  totalFob?: number;
+  seguro?: number;
+  flete?: number;
+  otrosGastos?: number;
+  totalCif?: number;
+  regimenAduanero?: string;
+  nombrePuertoSalida?: string;
+  nombrePuertoDesembarque?: string;
+  pesoBruto?: number;
+  pesoNeto?: number;
+  unidadPesoBruto?: string;
+  unidadPesoNeto?: string;
+  cantidadBulto?: number;
+  unidadBulto?: string;
+  volumenBulto?: number;
+  unidadVolumen?: string;
+}
+
+export interface TransporteEcfInput {
+  viaTransporte?: string;
+  paisOrigen?: string;
+  direccionDestino?: string;
+  paisDestino?: string;
+  rncIdentificacionCompaniaTransportista?: string;
+  nombreCompaniaTransportista?: string;
+  numeroViaje?: string;
+  conductor?: string;
+  documentoTransporte?: string;
+  ficha?: string;
+  placa?: string;
+  rutaTransporte?: string;
+  zonaTransporte?: string;
+  numeroAlbaran?: string;
 }
 
 export interface DocumentoEcfInput {
   emisor: EmisorEcfInput;
   comprador: CompradorEcfInput;
   comprobante: ComprobanteEcfInput;
+  informacionesAdicionales?: InformacionesAdicionalesEcfInput;
+  transporte?: TransporteEcfInput;
   lineas: LineaEcfInput[];
   totales: TotalesEcfInput;
   descuentosORecargos?: DescuentoORecargoGlobalEcfInput[];
   otraMoneda?: OtraMonedaEcfInput;
 }
 
+export interface ResumenRfceDgii {
+  tipo: "32";
+  encf: string;
+  tipoIngresos: TipoIngresosEcf;
+  tipoPago?: TipoPagoEcf;
+  formasPago?: FormaPagoEcfInput[];
+  rncEmisor: string;
+  razonSocialEmisor: string;
+  fechaEmision: string;
+  rncComprador?: string;
+  identificadorExtranjero?: string;
+  razonSocialComprador?: string;
+  totales: TotalesEcfInput;
+  codigoSeguridadeCF?: string;
+}
+
 export interface CasoExcelDgii {
   casoPrueba: string;
   numeroFila: number;
   documento: DocumentoEcfInput;
+  rfce?: ResumenRfceDgii;
   columnasNoReconocidas: string[];
 }
 

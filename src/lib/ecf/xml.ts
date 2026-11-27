@@ -39,17 +39,32 @@ export function escapeXml(valor: string): string {
     .replace(/®/g, "&#174;");
 }
 
-function pad2(valor: number): string {
-  return String(valor).padStart(2, "0");
-}
-
 function fechaDesdePartes(dia: string, mes: string, anio: string): string {
   return `${dia}-${mes}-${anio}`;
 }
 
+function partesFechaHoraRd(fecha: Date): Record<string, string> {
+  const partes: Record<string, string> = {};
+  const formato = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Santo_Domingo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  for (const parte of formato.formatToParts(fecha)) {
+    if (parte.type !== "literal") partes[parte.type] = parte.value;
+  }
+  return partes;
+}
+
 export function formatearFechaDgii(fecha: string | Date): string {
   if (fecha instanceof Date) {
-    return fechaDesdePartes(pad2(fecha.getDate()), pad2(fecha.getMonth() + 1), String(fecha.getFullYear()));
+    const partes = partesFechaHoraRd(fecha);
+    return fechaDesdePartes(partes.day ?? "01", partes.month ?? "01", partes.year ?? "1970");
   }
   const valor = fecha.trim();
   if (RE_FECHA_DGII.test(valor)) return valor;
@@ -61,7 +76,8 @@ export function formatearFechaDgii(fecha: string | Date): string {
 export function formatearFechaHoraDgii(fecha?: string | Date): string {
   const valor = fecha ?? new Date();
   if (valor instanceof Date) {
-    return `${formatearFechaDgii(valor)} ${pad2(valor.getHours())}:${pad2(valor.getMinutes())}:${pad2(valor.getSeconds())}`;
+    const partes = partesFechaHoraRd(valor);
+    return `${formatearFechaDgii(valor)} ${partes.hour ?? "00"}:${partes.minute ?? "00"}:${partes.second ?? "00"}`;
   }
   const texto = valor.trim();
   if (RE_FECHA_HORA_DGII.test(texto)) return texto;
@@ -215,11 +231,15 @@ function validarCompradorEcf(doc: DocumentoEcfInput, errores: string[]): void {
   if (compradorObligatorio && rncComprador === "") {
     errores.push(`El RNC del comprador es obligatorio para el comprobante ${tipo}`);
   }
+  if (tipo === "47" && rncComprador === "" && !doc.comprador.identificadorExtranjero?.trim()) {
+    errores.push("El comprobante E47 debe indicar el identificador extranjero del comprador");
+  }
   if (rncComprador !== "" && !RE_RNC.test(rncComprador)) errores.push("El RNC del comprador debe tener 9 u 11 dígitos");
   if (tipo !== "43" && doc.comprador.razonSocial.trim() === "")
     errores.push("La razón social del comprador es obligatoria");
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: la matriz fiscal XSD E31-E47 exige ramificar obligatoriedad y orden por tipo de comprobante
 function validarReferenciasYFechas(doc: DocumentoEcfInput, errores: string[]): void {
   const tipo = doc.comprobante.tipo;
   const esNota = tipo === "33" || tipo === "34";
@@ -233,15 +253,22 @@ function validarReferenciasYFechas(doc: DocumentoEcfInput, errores: string[]): v
     errores.push("Las notas de débito y crédito electrónicas deben indicar el código de modificación");
   }
   const fechaEmision = normalizarFechaValidable(doc.comprobante.fechaEmision);
-  const fechaVencimiento = normalizarFechaValidable(doc.comprobante.fechaVencimientoSecuencia);
+  const fechaVencimiento = doc.comprobante.fechaVencimientoSecuencia
+    ? normalizarFechaValidable(doc.comprobante.fechaVencimientoSecuencia)
+    : null;
   const fechaLimitePago = doc.comprobante.fechaLimitePago
     ? normalizarFechaValidable(doc.comprobante.fechaLimitePago)
     : null;
   if (!fechaEmision || !fechaEsValida(fechaEmision)) errores.push("La fecha de emisión no es válida");
-  if (!fechaVencimiento || !fechaEsValida(fechaVencimiento))
+  const vencimientoObligatorio = tipo !== "32" && tipo !== "34";
+  if (vencimientoObligatorio && (!fechaVencimiento || !fechaEsValida(fechaVencimiento)))
+    errores.push("La fecha de vencimiento de la secuencia no es válida");
+  if (!vencimientoObligatorio && fechaVencimiento && !fechaEsValida(fechaVencimiento))
     errores.push("La fecha de vencimiento de la secuencia no es válida");
   if (doc.comprobante.fechaLimitePago && (!fechaLimitePago || !fechaEsValida(fechaLimitePago)))
     errores.push("La fecha límite de pago no es válida");
+  const tipoPagoObligatorio = tipo !== "41" && tipo !== "43" && tipo !== "47";
+  if (tipoPagoObligatorio && !doc.comprobante.tipoPago) errores.push("El tipo de pago es obligatorio");
 }
 
 function validarLineasDocumento(doc: DocumentoEcfInput, errores: string[]): void {
@@ -347,12 +374,16 @@ function validarTotalesDocumento(doc: DocumentoEcfInput, errores: string[]): voi
     errores,
   );
   agregarErrorDescuadre(doc.totales.montoExento, calculados.exento, "El MontoExento no cuadra con las líneas", errores);
-  agregarErrorDescuadre(
-    doc.totales.totalItbis1,
-    calculados.itbis1,
-    "El TotalITBIS1 no cuadra con la base gravada al 18 %",
-    errores,
-  );
+  const itbis1AlternativoIsc =
+    calculados.impuestoAdicional > 0
+      ? Math.round((calculados.gravadoI1 + calculados.impuestoAdicional) * 0.18)
+      : calculados.itbis1;
+  const diferenciaItbis1Estandar = Math.abs(centavos(doc.totales.totalItbis1) - calculados.itbis1);
+  const diferenciaItbis1Isc = Math.abs(centavos(doc.totales.totalItbis1) - itbis1AlternativoIsc);
+  const itbis1Efectivo = diferenciaItbis1Estandar <= 1 ? calculados.itbis1 : itbis1AlternativoIsc;
+  if (diferenciaItbis1Estandar > 1 && diferenciaItbis1Isc > 1) {
+    errores.push("El TotalITBIS1 no cuadra con la base gravada al 18 %");
+  }
   agregarErrorDescuadre(
     doc.totales.totalItbis2,
     calculados.itbis2,
@@ -362,7 +393,7 @@ function validarTotalesDocumento(doc: DocumentoEcfInput, errores: string[]): voi
   agregarErrorDescuadre(doc.totales.totalItbis3 ?? 0, calculados.itbis3, "El TotalITBIS3 no cuadra", errores);
   agregarErrorDescuadre(
     doc.totales.totalItbis,
-    calculados.itbis1 + calculados.itbis2 + calculados.itbis3,
+    itbis1Efectivo + calculados.itbis2 + calculados.itbis3,
     "El TotalITBIS no cuadra con la suma de ITBIS por tasa",
     errores,
   );
@@ -371,7 +402,7 @@ function validarTotalesDocumento(doc: DocumentoEcfInput, errores: string[]): voi
     calculados.gravadoI2 +
     calculados.gravadoI3 +
     calculados.exento +
-    calculados.itbis1 +
+    itbis1Efectivo +
     calculados.itbis2 +
     calculados.itbis3 +
     calculados.impuestoAdicional +
@@ -437,10 +468,6 @@ function declaracionXml(): string {
   return `<?xml version="1.0" encoding="utf-8"?>`;
 }
 
-function tipoUsaGravadosCompletos(tipo: TipoEcf): boolean {
-  return tipo === "31" || tipo === "32" || tipo === "33" || tipo === "34" || tipo === "41" || tipo === "45";
-}
-
 function tipoPermiteImpuestosAdicionales(tipo: TipoEcf): boolean {
   return tipo === "31" || tipo === "32" || tipo === "33" || tipo === "34" || tipo === "44" || tipo === "45";
 }
@@ -453,41 +480,72 @@ function tipoPermiteDescuentos(tipo: TipoEcf): boolean {
   return tipo !== "43" && tipo !== "47";
 }
 
-function xmlImpuestosAdicionales(impuestos: ImpuestoAdicionalEcfInput[] | undefined): string {
+function tipoPermiteReferenciaDeCantidad(tipo: TipoEcf): boolean {
+  return tipo === "31" || tipo === "32" || tipo === "33" || tipo === "34" || tipo === "45";
+}
+
+export function formatearDecimalHasta2Dgii(valor: number): string {
+  if (!Number.isFinite(valor)) throw new Error("Los decimales DGII deben ser números finitos");
+  const redondeado = Math.round((valor + Number.EPSILON) * 100) / 100;
+  return String(redondeado)
+    .replace(/\.0+$/, "")
+    .replace(/(\.\d*[1-9])0+$/, "$1");
+}
+
+export function formatearDecimalHasta3Dgii(valor: number): string {
+  if (!Number.isFinite(valor)) throw new Error("Los decimales DGII deben ser números finitos");
+  const redondeado = Math.round((valor + Number.EPSILON) * 1000) / 1000;
+  return String(redondeado)
+    .replace(/\.0+$/, "")
+    .replace(/(\.\d*[1-9])0+$/, "$1");
+}
+
+function xmlImpuestosAdicionales(
+  impuestos: ImpuestoAdicionalEcfInput[] | undefined,
+  opciones: { rfce?: boolean; otraMoneda?: boolean } = {},
+): string {
   if (!impuestos || impuestos.length === 0) return "";
+  const otra = opciones.otraMoneda === true;
+  const nombreTabla = otra ? "ImpuestosAdicionalesOtraMoneda" : "ImpuestosAdicionales";
+  const nombreItem = otra ? "ImpuestoAdicionalOtraMoneda" : "ImpuestoAdicional";
+  const sufijo = otra ? "OtraMoneda" : "";
   const detalle = impuestos
-    .map(
-      (impuesto) =>
-        `<ImpuestoAdicional>${[
-          tag("TipoImpuesto", impuesto.tipoImpuesto),
+    .map((impuesto) => {
+      const partes = [tag(`TipoImpuesto${sufijo}`, impuesto.tipoImpuesto)];
+      if (!opciones.rfce) {
+        partes.push(
           tagOpcional(
-            "TasaImpuestoAdicional",
+            `TasaImpuestoAdicional${sufijo}`,
             impuesto.tasaImpuestoAdicional === undefined
               ? undefined
-              : formatearMontoDgii(impuesto.tasaImpuestoAdicional),
+              : formatearDecimalHasta2Dgii(impuesto.tasaImpuestoAdicional),
           ),
-          tagOpcional(
-            "MontoImpuestoSelectivoConsumoEspecifico",
-            impuesto.montoImpuestoSelectivoConsumoEspecifico === undefined
-              ? undefined
-              : formatearMontoDgii(impuesto.montoImpuestoSelectivoConsumoEspecifico),
-          ),
-          tagOpcional(
-            "MontoImpuestoSelectivoConsumoAdvalorem",
-            impuesto.montoImpuestoSelectivoConsumoAdvalorem === undefined
-              ? undefined
-              : formatearMontoDgii(impuesto.montoImpuestoSelectivoConsumoAdvalorem),
-          ),
-          tagOpcional(
-            "OtrosImpuestosAdicionales",
-            impuesto.otrosImpuestosAdicionales === undefined
-              ? undefined
-              : formatearMontoDgii(impuesto.otrosImpuestosAdicionales),
-          ),
-        ].join("")}</ImpuestoAdicional>`,
-    )
+        );
+      }
+      partes.push(
+        tagOpcional(
+          `MontoImpuestoSelectivoConsumoEspecifico${sufijo}`,
+          impuesto.montoImpuestoSelectivoConsumoEspecifico === undefined
+            ? undefined
+            : formatearMontoDgii(impuesto.montoImpuestoSelectivoConsumoEspecifico),
+        ),
+        tagOpcional(
+          `MontoImpuestoSelectivoConsumoAdvalorem${sufijo}`,
+          impuesto.montoImpuestoSelectivoConsumoAdvalorem === undefined
+            ? undefined
+            : formatearMontoDgii(impuesto.montoImpuestoSelectivoConsumoAdvalorem),
+        ),
+        tagOpcional(
+          `OtrosImpuestosAdicionales${sufijo}`,
+          impuesto.otrosImpuestosAdicionales === undefined
+            ? undefined
+            : formatearMontoDgii(impuesto.otrosImpuestosAdicionales),
+        ),
+      );
+      return `<${nombreItem}>${partes.join("")}</${nombreItem}>`;
+    })
     .join("");
-  return `<ImpuestosAdicionales>${detalle}</ImpuestosAdicionales>`;
+  return `<${nombreTabla}>${detalle}</${nombreTabla}>`;
 }
 
 interface CondicionesTotalesXml {
@@ -502,7 +560,7 @@ interface CondicionesTotalesXml {
 
 function condicionesTotalesXml(totales: DocumentoEcfInput["totales"]): CondicionesTotalesXml {
   const gravadoI3 = totales.montoGravadoI3 ?? 0;
-  const gravadoTotal = totales.montoGravadoI1 + totales.montoGravadoI2 + gravadoI3;
+  const gravadoTotal = totales.montoGravadoTotal ?? totales.montoGravadoI1 + totales.montoGravadoI2 + gravadoI3;
   const totalItbis3 = totales.totalItbis3 ?? 0;
   return {
     gravadoI3,
@@ -515,97 +573,162 @@ function condicionesTotalesXml(totales: DocumentoEcfInput["totales"]): Condicion
   };
 }
 
-function tagMontoCondicional(nombre: string, valor: number, emitir: boolean): string {
-  return emitir ? tag(nombre, formatearMontoDgii(valor)) : "";
+const ORDEN_TOTALES_BASE_XML = [
+  "MontoGravadoTotal",
+  "MontoGravadoI1",
+  "MontoGravadoI2",
+  "MontoGravadoI3",
+  "MontoExento",
+  "ITBIS1",
+  "ITBIS2",
+  "ITBIS3",
+  "TotalITBIS",
+  "TotalITBIS1",
+  "TotalITBIS2",
+  "TotalITBIS3",
+  "MontoImpuestoAdicional",
+  "ImpuestosAdicionales",
+  "MontoTotal",
+  "MontoNoFacturable",
+  "MontoPeriodo",
+  "SaldoAnterior",
+  "MontoAvancePago",
+  "ValorPagar",
+  "TotalITBISRetenido",
+  "TotalISRRetencion",
+  "TotalITBISPercepcion",
+  "TotalISRPercepcion",
+] as const;
+
+const ORDEN_TOTALES_XML: Record<TipoEcf, readonly string[]> = {
+  "31": ORDEN_TOTALES_BASE_XML,
+  "32": ORDEN_TOTALES_BASE_XML.slice(0, 20),
+  "33": ORDEN_TOTALES_BASE_XML,
+  "34": ORDEN_TOTALES_BASE_XML,
+  "41": [
+    "MontoGravadoTotal",
+    "MontoGravadoI1",
+    "MontoGravadoI2",
+    "MontoGravadoI3",
+    "MontoExento",
+    "ITBIS1",
+    "ITBIS2",
+    "ITBIS3",
+    "TotalITBIS",
+    "TotalITBIS1",
+    "TotalITBIS2",
+    "TotalITBIS3",
+    "MontoTotal",
+    "MontoPeriodo",
+    "SaldoAnterior",
+    "MontoAvancePago",
+    "ValorPagar",
+    "TotalITBISRetenido",
+    "TotalISRRetencion",
+    "TotalITBISPercepcion",
+    "TotalISRPercepcion",
+  ],
+  "43": ["MontoExento", "MontoTotal", "MontoPeriodo", "SaldoAnterior", "MontoAvancePago", "ValorPagar"],
+  "44": [
+    "MontoExento",
+    "MontoImpuestoAdicional",
+    "ImpuestosAdicionales",
+    "MontoTotal",
+    "MontoNoFacturable",
+    "MontoPeriodo",
+    "SaldoAnterior",
+    "MontoAvancePago",
+    "ValorPagar",
+  ],
+  "45": ORDEN_TOTALES_BASE_XML.slice(0, 20),
+  "46": [
+    "MontoGravadoTotal",
+    "MontoGravadoI3",
+    "ITBIS3",
+    "TotalITBIS",
+    "TotalITBIS3",
+    "MontoTotal",
+    "MontoNoFacturable",
+    "MontoPeriodo",
+    "SaldoAnterior",
+    "MontoAvancePago",
+    "ValorPagar",
+  ],
+  "47": [
+    "MontoExento",
+    "MontoTotal",
+    "MontoPeriodo",
+    "SaldoAnterior",
+    "MontoAvancePago",
+    "ValorPagar",
+    "TotalISRRetencion",
+  ],
+};
+
+function valorNumericoOpcional(valor: number | undefined, emitir = true): string | undefined {
+  return emitir && valor !== undefined ? formatearMontoDgii(valor) : undefined;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: la matriz XSD de totales varía por cada tipo e-CF y dividirla ocultaría el orden oficial de las etiquetas
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: la matriz fiscal XSD E31-E47 exige ramificar obligatoriedad y orden por tipo de comprobante
 function xmlTotalesEcf(doc: DocumentoEcfInput): string {
   const totales = doc.totales;
   const tipo = doc.comprobante.tipo;
   const condiciones = condicionesTotalesXml(totales);
-  const completo = tipoUsaGravadosCompletos(tipo);
-  const esExportacion = tipo === "46";
   const tipoExentoTotal = tipo === "43" || tipo === "44" || tipo === "47";
   const debeEmitirExento = totales.montoExento > 0 || (tipoExentoTotal && totales.montoTotal > 0);
+  const valores: Record<string, string | undefined> = {
+    MontoGravadoTotal: valorNumericoOpcional(condiciones.gravadoTotal, condiciones.gravadoTotal > 0),
+    MontoGravadoI1: valorNumericoOpcional(totales.montoGravadoI1, totales.montoGravadoI1 > 0),
+    MontoGravadoI2: valorNumericoOpcional(totales.montoGravadoI2, totales.montoGravadoI2 > 0),
+    MontoGravadoI3: valorNumericoOpcional(condiciones.gravadoI3, condiciones.gravadoI3 > 0),
+    MontoExento: valorNumericoOpcional(totales.montoExento, debeEmitirExento),
+    ITBIS1: condiciones.correspondeItbis1 ? "18" : undefined,
+    ITBIS2: condiciones.correspondeItbis2 ? "16" : undefined,
+    ITBIS3: condiciones.correspondeTasaItbis3 ? "0" : undefined,
+    TotalITBIS: valorNumericoOpcional(totales.totalItbis, condiciones.correspondeTotalItbis),
+    TotalITBIS1: valorNumericoOpcional(totales.totalItbis1, condiciones.correspondeItbis1),
+    TotalITBIS2: valorNumericoOpcional(totales.totalItbis2, condiciones.correspondeItbis2),
+    TotalITBIS3: valorNumericoOpcional(totales.totalItbis3 ?? 0, condiciones.correspondeTotalItbis3),
+    MontoImpuestoAdicional: valorNumericoOpcional(totales.montoImpuestoAdicional),
+    MontoTotal: formatearMontoDgii(totales.montoTotal),
+    MontoNoFacturable: valorNumericoOpcional(totales.montoNoFacturable),
+    MontoPeriodo: valorNumericoOpcional(totales.montoPeriodo),
+    SaldoAnterior: valorNumericoOpcional(totales.saldoAnterior),
+    MontoAvancePago: valorNumericoOpcional(totales.montoAvancePago),
+    ValorPagar: valorNumericoOpcional(totales.valorPagar),
+    TotalITBISRetenido: valorNumericoOpcional(totales.totalItbisRetenido),
+    TotalISRRetencion: valorNumericoOpcional(totales.totalIsrRetencion),
+    TotalITBISPercepcion: valorNumericoOpcional(totales.totalItbisPercepcion),
+    TotalISRPercepcion: valorNumericoOpcional(totales.totalIsrPercepcion),
+  };
   const partes: string[] = [];
-
-  if ((completo || esExportacion) && condiciones.gravadoTotal > 0) {
-    partes.push(tag("MontoGravadoTotal", formatearMontoDgii(condiciones.gravadoTotal)));
-  }
-  if (completo) {
-    partes.push(
-      tagMontoCondicional("MontoGravadoI1", totales.montoGravadoI1, totales.montoGravadoI1 > 0),
-      tagMontoCondicional("MontoGravadoI2", totales.montoGravadoI2, totales.montoGravadoI2 > 0),
-    );
-  }
-  if ((completo || esExportacion) && condiciones.gravadoI3 > 0) {
-    partes.push(tag("MontoGravadoI3", formatearMontoDgii(condiciones.gravadoI3)));
-  }
-  if (!esExportacion) {
-    partes.push(tagMontoCondicional("MontoExento", totales.montoExento, debeEmitirExento));
-  }
-  if (completo) {
-    partes.push(
-      condiciones.correspondeItbis1 ? tag("ITBIS1", "18") : "",
-      condiciones.correspondeItbis2 ? tag("ITBIS2", "16") : "",
-      condiciones.correspondeTasaItbis3 ? tag("ITBIS3", "0") : "",
-      tagMontoCondicional("TotalITBIS", totales.totalItbis, condiciones.correspondeTotalItbis),
-      tagMontoCondicional("TotalITBIS1", totales.totalItbis1, condiciones.correspondeItbis1),
-      tagMontoCondicional("TotalITBIS2", totales.totalItbis2, condiciones.correspondeItbis2),
-      tagMontoCondicional("TotalITBIS3", totales.totalItbis3 ?? 0, condiciones.correspondeTotalItbis3),
-    );
-  }
-  if (esExportacion) {
-    partes.push(
-      condiciones.correspondeTasaItbis3 ? tag("ITBIS3", "0") : "",
-      tagMontoCondicional("TotalITBIS", totales.totalItbis, condiciones.correspondeTotalItbis),
-      tagMontoCondicional("TotalITBIS3", totales.totalItbis3 ?? 0, condiciones.correspondeTotalItbis3),
-    );
-  }
-  if (tipoPermiteImpuestosAdicionales(tipo)) {
-    partes.push(
-      tagOpcional(
-        "MontoImpuestoAdicional",
-        totales.montoImpuestoAdicional === undefined ? undefined : formatearMontoDgii(totales.montoImpuestoAdicional),
-      ),
-      xmlImpuestosAdicionales(totales.impuestosAdicionales),
-    );
-  }
-  partes.push(tag("MontoTotal", formatearMontoDgii(totales.montoTotal)));
-  const admiteRetenciones = tipo === "31" || tipo === "33" || tipo === "34" || tipo === "41";
-  if (admiteRetenciones) {
-    partes.push(
-      tagOpcional(
-        "TotalITBISRetenido",
-        totales.totalItbisRetenido === undefined ? undefined : formatearMontoDgii(totales.totalItbisRetenido),
-      ),
-    );
-  }
-  if (admiteRetenciones || tipo === "47") {
-    partes.push(
-      tagOpcional(
-        "TotalISRRetencion",
-        totales.totalIsrRetencion === undefined ? undefined : formatearMontoDgii(totales.totalIsrRetencion),
-      ),
-    );
+  for (const nombre of ORDEN_TOTALES_XML[tipo]) {
+    if (nombre === "ImpuestosAdicionales") {
+      if (tipoPermiteImpuestosAdicionales(tipo)) partes.push(xmlImpuestosAdicionales(totales.impuestosAdicionales));
+      continue;
+    }
+    const valor = valores[nombre];
+    if (valor !== undefined && valor !== "") partes.push(tag(nombre, valor));
   }
   return partes.join("");
 }
 
 function xmlSubAjustes(nombreTabla: string, nombreItem: string, ajustes: SubAjusteEcfInput[] | undefined): string {
   if (!ajustes || ajustes.length === 0) return "";
-  const prefijo = nombreItem === "SubDescuento" ? "SubDescuento" : "SubRecargo";
+  const esDescuento = nombreItem === "SubDescuento";
   const detalle = ajustes
     .map(
       (ajuste) =>
         `<${nombreItem}>${[
-          tag(nombreItem === "SubDescuento" ? "TipoSubDescuento" : "TipoSubRecargo", ajuste.tipo),
+          tag(esDescuento ? "TipoSubDescuento" : "TipoSubRecargo", ajuste.tipo),
           tagOpcional(
-            `${prefijo}Porcentaje`,
-            ajuste.porcentaje === undefined ? undefined : formatearMontoDgii(ajuste.porcentaje),
+            esDescuento ? "SubDescuentoPorcentaje" : "SubRecargoPorcentaje",
+            ajuste.porcentaje === undefined ? undefined : formatearDecimalHasta2Dgii(ajuste.porcentaje),
           ),
-          tagOpcional(`Monto${prefijo}`, ajuste.monto === undefined ? undefined : formatearMontoDgii(ajuste.monto)),
+          tagOpcional(
+            esDescuento ? "MontoSubDescuento" : "MontoSubRecargo",
+            ajuste.monto === undefined ? undefined : formatearMontoDgii(ajuste.monto),
+          ),
         ].join("")}</${nombreItem}>`,
     )
     .join("");
@@ -625,60 +748,216 @@ function xmlRetencionLinea(linea: LineaEcfInput, tipo: TipoEcf): string {
   if (!retencion) return "";
   return `<Retencion>${[
     tag("IndicadorAgenteRetencionoPercepcion", retencion.indicadorAgenteRetencion),
-    tipo === "47"
-      ? tag("MontoISRRetenido", formatearMontoDgii(retencion.montoIsrRetenido ?? 0))
-      : tagOpcional(
+    tipo !== "47"
+      ? tagOpcional(
           "MontoITBISRetenido",
           retencion.montoItbisRetenido === undefined ? undefined : formatearMontoDgii(retencion.montoItbisRetenido),
-        ) +
-        tagOpcional(
-          "MontoISRRetenido",
-          retencion.montoIsrRetenido === undefined ? undefined : formatearMontoDgii(retencion.montoIsrRetenido),
-        ),
+        )
+      : "",
+    tagOpcional(
+      "MontoISRRetenido",
+      retencion.montoIsrRetenido === undefined && tipo !== "47"
+        ? undefined
+        : formatearMontoDgii(retencion.montoIsrRetenido ?? 0),
+    ),
   ].join("")}</Retencion>`;
 }
 
+function xmlCodigosItem(linea: LineaEcfInput): string {
+  if (!linea.codigosItem?.length) return "";
+  const detalle = linea.codigosItem
+    .slice(0, 5)
+    .map(
+      (codigo) =>
+        `<CodigosItem>${tag("TipoCodigo", codigo.tipoCodigo)}${tag("CodigoItem", codigo.codigoItem)}</CodigosItem>`,
+    )
+    .join("");
+  return `<TablaCodigosItem>${detalle}</TablaCodigosItem>`;
+}
+
+function xmlSubcantidades(linea: LineaEcfInput, tipo: TipoEcf): string {
+  if (!tipoPermiteReferenciaDeCantidad(tipo) || !linea.subcantidades?.length) return "";
+  const detalle = linea.subcantidades
+    .slice(0, 5)
+    .map(
+      (subcantidad) =>
+        `<SubcantidadItem>${[
+          tagOpcional(
+            "Subcantidad",
+            subcantidad.subcantidad === undefined ? undefined : formatearDecimalHasta3Dgii(subcantidad.subcantidad),
+          ),
+          tagOpcional("CodigoSubcantidad", subcantidad.codigoSubcantidad),
+        ].join("")}</SubcantidadItem>`,
+    )
+    .join("");
+  return `<TablaSubcantidad>${detalle}</TablaSubcantidad>`;
+}
+
+function xmlImpuestosAdicionalesLinea(linea: LineaEcfInput, tipo: TipoEcf): string {
+  if (!tipoPermiteImpuestosAdicionales(tipo) || !linea.impuestosAdicionales?.length) return "";
+  const detalle = linea.impuestosAdicionales
+    .slice(0, 2)
+    .map((impuesto) => `<ImpuestoAdicional>${tag("TipoImpuesto", impuesto.tipoImpuesto)}</ImpuestoAdicional>`)
+    .join("");
+  return `<TablaImpuestoAdicional>${detalle}</TablaImpuestoAdicional>`;
+}
+
+function xmlOtraMonedaDetalle(linea: LineaEcfInput): string {
+  const otra = linea.otraMoneda;
+  if (!otra) return "";
+  const partes = [
+    tagOpcional(
+      "PrecioOtraMoneda",
+      otra.precioOtraMoneda === undefined ? undefined : formatearPrecioDgii(otra.precioOtraMoneda),
+    ),
+    tagOpcional(
+      "DescuentoOtraMoneda",
+      otra.descuentoOtraMoneda === undefined ? undefined : formatearMontoDgii(otra.descuentoOtraMoneda),
+    ),
+    tagOpcional(
+      "RecargoOtraMoneda",
+      otra.recargoOtraMoneda === undefined ? undefined : formatearMontoDgii(otra.recargoOtraMoneda),
+    ),
+    tagOpcional(
+      "MontoItemOtraMoneda",
+      otra.montoItemOtraMoneda === undefined ? undefined : formatearMontoDgii(otra.montoItemOtraMoneda),
+    ),
+  ].join("");
+  return partes ? `<OtraMonedaDetalle>${partes}</OtraMonedaDetalle>` : "";
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: la matriz fiscal XSD E31-E47 exige ramificar obligatoriedad y orden por tipo de comprobante
 function xmlItem(linea: LineaEcfInput, tipo: TipoEcf): string {
   const descuento = descuentoLinea(linea);
   const recargo = recargoLinea(linea);
   const permiteDescuentos = tipoPermiteDescuentos(tipo);
+  const permiteReferencia = tipoPermiteReferenciaDeCantidad(tipo);
   return `<Item>${[
     tag("NumeroLinea", linea.numeroLinea),
+    xmlCodigosItem(linea),
     tag("IndicadorFacturacion", linea.indicadorFacturacion),
     xmlRetencionLinea(linea, tipo),
     tag("NombreItem", linea.nombreItem),
     tag("IndicadorBienoServicio", linea.indicadorBienoServicio ?? "1"),
+    tagOpcional("DescripcionItem", linea.descripcionItem),
     tag("CantidadItem", formatearMontoDgii(linea.cantidad)),
     tagOpcional("UnidadMedida", linea.unidadMedida),
+    permiteReferencia && linea.cantidadReferencia !== undefined
+      ? tag("CantidadReferencia", formatearMontoDgii(linea.cantidadReferencia))
+      : "",
+    permiteReferencia ? tagOpcional("UnidadReferencia", linea.unidadReferencia) : "",
+    xmlSubcantidades(linea, tipo),
+    permiteReferencia && linea.gradosAlcohol !== undefined
+      ? tag("GradosAlcohol", formatearDecimalHasta2Dgii(linea.gradosAlcohol))
+      : "",
+    permiteReferencia && linea.precioUnitarioReferencia !== undefined
+      ? tag("PrecioUnitarioReferencia", formatearMontoDgii(linea.precioUnitarioReferencia))
+      : "",
+    tagOpcional("FechaElaboracion", linea.fechaElaboracion ? formatearFechaDgii(linea.fechaElaboracion) : undefined),
+    tagOpcional(
+      "FechaVencimientoItem",
+      linea.fechaVencimientoItem ? formatearFechaDgii(linea.fechaVencimientoItem) : undefined,
+    ),
     tag("PrecioUnitarioItem", formatearPrecioDgii(linea.precioUnitario)),
     permiteDescuentos && descuento > 0 ? tag("DescuentoMonto", formatearMontoDgii(descuento)) : "",
     permiteDescuentos ? xmlSubAjustes("TablaSubDescuento", "SubDescuento", linea.subDescuentos) : "",
     permiteDescuentos && recargo > 0 ? tag("RecargoMonto", formatearMontoDgii(recargo)) : "",
     permiteDescuentos ? xmlSubAjustes("TablaSubRecargo", "SubRecargo", linea.subRecargos) : "",
+    xmlImpuestosAdicionalesLinea(linea, tipo),
+    xmlOtraMonedaDetalle(linea),
     tag("MontoItem", formatearMontoDgii(linea.montoItem)),
   ].join("")}</Item>`;
 }
+
+const ORDEN_OTRA_MONEDA_XML: Record<TipoEcf, readonly string[]> = {
+  "31": [
+    "TipoMoneda",
+    "TipoCambio",
+    "MontoGravadoTotalOtraMoneda",
+    "MontoGravado1OtraMoneda",
+    "MontoGravado2OtraMoneda",
+    "MontoGravado3OtraMoneda",
+    "MontoExentoOtraMoneda",
+    "TotalITBISOtraMoneda",
+    "TotalITBIS1OtraMoneda",
+    "TotalITBIS2OtraMoneda",
+    "TotalITBIS3OtraMoneda",
+    "MontoImpuestoAdicionalOtraMoneda",
+    "ImpuestosAdicionalesOtraMoneda",
+    "MontoTotalOtraMoneda",
+  ],
+  "32": [],
+  "33": [],
+  "34": [],
+  "41": [
+    "TipoMoneda",
+    "TipoCambio",
+    "MontoGravadoTotalOtraMoneda",
+    "MontoGravado1OtraMoneda",
+    "MontoGravado2OtraMoneda",
+    "MontoGravado3OtraMoneda",
+    "MontoExentoOtraMoneda",
+    "TotalITBISOtraMoneda",
+    "TotalITBIS1OtraMoneda",
+    "TotalITBIS2OtraMoneda",
+    "TotalITBIS3OtraMoneda",
+    "MontoTotalOtraMoneda",
+  ],
+  "43": ["TipoMoneda", "TipoCambio", "MontoExentoOtraMoneda", "MontoTotalOtraMoneda"],
+  "44": [
+    "TipoMoneda",
+    "TipoCambio",
+    "MontoExentoOtraMoneda",
+    "MontoImpuestoAdicionalOtraMoneda",
+    "ImpuestosAdicionalesOtraMoneda",
+    "MontoTotalOtraMoneda",
+  ],
+  "45": [],
+  "46": [
+    "TipoMoneda",
+    "TipoCambio",
+    "MontoGravadoTotalOtraMoneda",
+    "MontoGravado3OtraMoneda",
+    "TotalITBISOtraMoneda",
+    "TotalITBIS3OtraMoneda",
+    "MontoTotalOtraMoneda",
+  ],
+  "47": ["TipoMoneda", "TipoCambio", "MontoExentoOtraMoneda", "MontoTotalOtraMoneda"],
+};
+ORDEN_OTRA_MONEDA_XML["32"] = ORDEN_OTRA_MONEDA_XML["31"];
+ORDEN_OTRA_MONEDA_XML["33"] = ORDEN_OTRA_MONEDA_XML["31"];
+ORDEN_OTRA_MONEDA_XML["34"] = ORDEN_OTRA_MONEDA_XML["31"];
+ORDEN_OTRA_MONEDA_XML["45"] = ORDEN_OTRA_MONEDA_XML["31"];
 
 function xmlOtraMoneda(doc: DocumentoEcfInput): string {
   const otra = doc.otraMoneda;
   if (!otra) return "";
   const tipo = doc.comprobante.tipo;
-  const admiteGravados = tipoUsaGravadosCompletos(tipo) || tipo === "46";
-  const admiteItbis = tipoUsaGravadosCompletos(tipo);
-  return `<OtraMoneda>${[
-    tag("TipoMoneda", otra.tipoMoneda),
-    tag("TipoCambio", formatearPrecioDgii(otra.tipoCambio)),
-    admiteGravados && otra.montoGravadoTotalOtraMoneda !== undefined
-      ? tag("MontoGravadoTotalOtraMoneda", formatearMontoDgii(otra.montoGravadoTotalOtraMoneda))
-      : "",
-    otra.montoExentoOtraMoneda !== undefined && tipo !== "46"
-      ? tag("MontoExentoOtraMoneda", formatearMontoDgii(otra.montoExentoOtraMoneda))
-      : "",
-    admiteItbis && otra.totalItbisOtraMoneda !== undefined
-      ? tag("TotalITBISOtraMoneda", formatearMontoDgii(otra.totalItbisOtraMoneda))
-      : "",
-    tag("MontoTotalOtraMoneda", formatearMontoDgii(otra.montoTotalOtraMoneda)),
-  ].join("")}</OtraMoneda>`;
+  const valores: Record<string, string | undefined> = {
+    TipoMoneda: otra.tipoMoneda,
+    TipoCambio: formatearPrecioDgii(otra.tipoCambio),
+    MontoGravadoTotalOtraMoneda: valorNumericoOpcional(otra.montoGravadoTotalOtraMoneda),
+    MontoGravado1OtraMoneda: valorNumericoOpcional(otra.montoGravado1OtraMoneda),
+    MontoGravado2OtraMoneda: valorNumericoOpcional(otra.montoGravado2OtraMoneda),
+    MontoGravado3OtraMoneda: valorNumericoOpcional(otra.montoGravado3OtraMoneda),
+    MontoExentoOtraMoneda: valorNumericoOpcional(otra.montoExentoOtraMoneda),
+    TotalITBISOtraMoneda: valorNumericoOpcional(otra.totalItbisOtraMoneda),
+    TotalITBIS1OtraMoneda: valorNumericoOpcional(otra.totalItbis1OtraMoneda),
+    TotalITBIS2OtraMoneda: valorNumericoOpcional(otra.totalItbis2OtraMoneda),
+    TotalITBIS3OtraMoneda: valorNumericoOpcional(otra.totalItbis3OtraMoneda),
+    MontoImpuestoAdicionalOtraMoneda: valorNumericoOpcional(otra.montoImpuestoAdicionalOtraMoneda),
+    MontoTotalOtraMoneda: formatearMontoDgii(otra.montoTotalOtraMoneda),
+  };
+  const partes: string[] = [];
+  for (const nombre of ORDEN_OTRA_MONEDA_XML[tipo]) {
+    if (nombre === "ImpuestosAdicionalesOtraMoneda") {
+      partes.push(xmlImpuestosAdicionales(otra.impuestosAdicionalesOtraMoneda, { otraMoneda: true }));
+      continue;
+    }
+    const valor = valores[nombre];
+    if (valor !== undefined && valor !== "") partes.push(tag(nombre, valor));
+  }
+  return `<OtraMoneda>${partes.join("")}</OtraMoneda>`;
 }
 
 function xmlDescuentosORecargos(doc: DocumentoEcfInput): string {
@@ -689,13 +968,18 @@ function xmlDescuentosORecargos(doc: DocumentoEcfInput): string {
         `<DescuentoORecargo>${[
           tag("NumeroLinea", ajuste.numeroLinea),
           tag("TipoAjuste", ajuste.tipoAjuste),
+          tagOpcional("IndicadorNorma1007", ajuste.indicadorNorma1007),
           tagOpcional("DescripcionDescuentooRecargo", ajuste.descripcion),
-          tag("TipoValor", ajuste.tipoValor),
+          tagOpcional("TipoValor", ajuste.tipoValor),
           tagOpcional(
             "ValorDescuentooRecargo",
-            ajuste.valor === undefined ? undefined : formatearMontoDgii(ajuste.valor),
+            ajuste.valor === undefined ? undefined : formatearDecimalHasta2Dgii(ajuste.valor),
           ),
           tag("MontoDescuentooRecargo", formatearMontoDgii(ajuste.monto)),
+          tagOpcional(
+            "MontoDescuentooRecargoOtraMoneda",
+            ajuste.montoOtraMoneda === undefined ? undefined : formatearMontoDgii(ajuste.montoOtraMoneda),
+          ),
           tagOpcional("IndicadorFacturacionDescuentooRecargo", ajuste.indicadorFacturacion),
         ].join("")}</DescuentoORecargo>`,
     )
@@ -703,55 +987,79 @@ function xmlDescuentosORecargos(doc: DocumentoEcfInput): string {
   return `<DescuentosORecargos>${detalle}</DescuentosORecargos>`;
 }
 
+function xmlFormasPago(formasPago: DocumentoEcfInput["comprobante"]["formasPago"]): string {
+  const formas = (formasPago ?? []).filter((forma) => forma.formaPago.trim() !== "").slice(0, 7);
+  if (formas.length === 0) return "";
+  const detalle = formas
+    .map(
+      (forma) =>
+        `<FormaDePago>${tag("FormaPago", forma.formaPago)}${tagOpcional(
+          "MontoPago",
+          forma.montoPago === undefined ? undefined : formatearMontoDgii(forma.montoPago),
+        )}</FormaDePago>`,
+    )
+    .join("");
+  return `<TablaFormasPago>${detalle}</TablaFormasPago>`;
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: la matriz fiscal XSD E31-E47 exige ramificar obligatoriedad y orden por tipo de comprobante
 function xmlIdDoc(doc: DocumentoEcfInput): string {
   const comp = doc.comprobante;
   const tipo = comp.tipo;
   const partes = [tag("TipoeCF", tipo), tag("eNCF", comp.encf)];
-  if (tipo !== "32" && tipo !== "34") {
+  if (tipo !== "32" && tipo !== "34" && comp.fechaVencimientoSecuencia) {
     partes.push(tag("FechaVencimientoSecuencia", formatearFechaDgii(comp.fechaVencimientoSecuencia)));
   }
   if (tipo === "34") partes.push(tag("IndicadorNotaCredito", comp.indicadorNotaCredito ?? "0"));
-  if (tipo !== "43" && tipo !== "44" && tipo !== "46" && tipo !== "47") {
+  if (tipo !== "41" && tipo !== "43" && tipo !== "47") {
+    partes.push(tagOpcional("IndicadorEnvioDiferido", comp.indicadorEnvioDiferido));
+  }
+  if (tipo !== "44" && tipo !== "41" && tipo !== "43" && tipo !== "46" && tipo !== "47") {
     partes.push(tagOpcional("IndicadorMontoGravado", comp.indicadorMontoGravado));
   }
-  if (tipo !== "41" && tipo !== "43" && tipo !== "47") partes.push(tag("TipoIngresos", comp.tipoIngresos));
-  partes.push(tag("TipoPago", comp.tipoPago));
+  if (tipo !== "41" && tipo !== "43" && tipo !== "46" && tipo !== "47") {
+    partes.push(tagOpcional("IndicadorServicioTodoIncluido", comp.indicadorServicioTodoIncluido));
+  }
+  if (tipo !== "41" && tipo !== "43" && tipo !== "47") {
+    partes.push(tagOpcional("TipoIngresos", comp.tipoIngresos));
+  }
+  partes.push(tagOpcional("TipoPago", comp.tipoPago));
   partes.push(
     tagOpcional("FechaLimitePago", comp.fechaLimitePago ? formatearFechaDgii(comp.fechaLimitePago) : undefined),
   );
+  if (tipo !== "34" && tipo !== "43") {
+    partes.push(tagOpcional("TerminoPago", comp.terminoPago), xmlFormasPago(comp.formasPago));
+  }
+  if (tipo !== "34" && tipo !== "43") {
+    partes.push(
+      tagOpcional("TipoCuentaPago", comp.tipoCuentaPago),
+      tagOpcional("NumeroCuentaPago", comp.numeroCuentaPago),
+      tagOpcional("BancoPago", comp.bancoPago),
+    );
+  }
+  if (tipo !== "41" && tipo !== "43") {
+    partes.push(
+      tagOpcional("FechaDesde", comp.fechaDesde ? formatearFechaDgii(comp.fechaDesde) : undefined),
+      tagOpcional("FechaHasta", comp.fechaHasta ? formatearFechaDgii(comp.fechaHasta) : undefined),
+    );
+  }
+  partes.push(tagOpcional("TotalPaginas", comp.totalPaginas));
   return `<IdDoc>${partes.join("")}</IdDoc>`;
 }
 
 function xmlTablaTelefonosEmisor(telefonos: string[] | undefined): string {
   const validos = (telefonos ?? []).map((telefono) => telefono.trim()).filter((telefono) => telefono !== "");
   if (validos.length === 0) return "";
-  return `<TablaTelefonoEmisor>${validos.map((telefono) => tag("TelefonoEmisor", telefono)).join("")}</TablaTelefonoEmisor>`;
+  return `<TablaTelefonoEmisor>${validos
+    .slice(0, 3)
+    .map((telefono) => tag("TelefonoEmisor", telefono))
+    .join("")}</TablaTelefonoEmisor>`;
 }
 
-export function generarXmlEcf(doc: DocumentoEcfInput): string {
-  asegurarDocumentoValido(doc);
-  const comp = doc.comprobante;
-  const referencia =
-    comp.ncfModificado || comp.fechaNcfModificado || comp.codigoModificacion
-      ? `<InformacionReferencia>${[
-          tagOpcional("NCFModificado", comp.ncfModificado),
-          tagOpcional(
-            "FechaNCFModificado",
-            comp.fechaNcfModificado ? formatearFechaDgii(comp.fechaNcfModificado) : undefined,
-          ),
-          tagOpcional("CodigoModificacion", comp.codigoModificacion),
-        ].join("")}</InformacionReferencia>`
-      : "";
-  const comprador =
-    comp.tipo === "43"
-      ? ""
-      : `<Comprador>${[
-          tagOpcional("RNCComprador", doc.comprador.rnc),
-          tag("RazonSocialComprador", doc.comprador.razonSocial),
-          tagOpcional("CorreoComprador", doc.comprador.correo),
-        ].join("")}</Comprador>`;
-
-  const xml = `<ECF><Encabezado>${tag("Version", "1.0")}${xmlIdDoc(doc)}<Emisor>${[
+function xmlEmisor(doc: DocumentoEcfInput): string {
+  const tipo = doc.comprobante.tipo;
+  const permiteVenta = tipo !== "41" && tipo !== "43" && tipo !== "47";
+  return `<Emisor>${[
     tag("RNCEmisor", doc.emisor.rnc),
     tag("RazonSocialEmisor", doc.emisor.razonSocial),
     tagOpcional("NombreComercial", doc.emisor.nombreComercial),
@@ -761,12 +1069,171 @@ export function generarXmlEcf(doc: DocumentoEcfInput): string {
     tagOpcional("Provincia", doc.emisor.provincia),
     xmlTablaTelefonosEmisor(doc.emisor.telefonos),
     tagOpcional("CorreoEmisor", doc.emisor.correo),
-    tag("FechaEmision", formatearFechaDgii(comp.fechaEmision)),
-  ].join(
-    "",
-  )}</Emisor>${comprador}<Totales>${xmlTotalesEcf(doc)}</Totales>${xmlOtraMoneda(doc)}</Encabezado><DetallesItems>${doc.lineas
+    tagOpcional("WebSite", doc.emisor.webSite),
+    tagOpcional("ActividadEconomica", doc.emisor.actividadEconomica),
+    permiteVenta ? tagOpcional("CodigoVendedor", doc.emisor.codigoVendedor) : "",
+    tagOpcional("NumeroFacturaInterna", doc.emisor.numeroFacturaInterna),
+    tagOpcional("NumeroPedidoInterno", doc.emisor.numeroPedidoInterno),
+    permiteVenta ? tagOpcional("ZonaVenta", doc.emisor.zonaVenta) : "",
+    permiteVenta ? tagOpcional("RutaVenta", doc.emisor.rutaVenta) : "",
+    tagOpcional("InformacionAdicionalEmisor", doc.emisor.informacionAdicionalEmisor),
+    tag("FechaEmision", formatearFechaDgii(doc.comprobante.fechaEmision)),
+  ].join("")}</Emisor>`;
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: la matriz fiscal XSD E31-E47 exige ramificar obligatoriedad y orden por tipo de comprobante
+function xmlComprador(doc: DocumentoEcfInput): string {
+  const tipo = doc.comprobante.tipo;
+  if (tipo === "43") return "";
+  const comprador = doc.comprador;
+  if (tipo === "47") {
+    return `<Comprador>${[
+      tagOpcional("IdentificadorExtranjero", comprador.identificadorExtranjero),
+      tagOpcional("RazonSocialComprador", comprador.razonSocial),
+    ].join("")}</Comprador>`;
+  }
+  const admiteExtranjero = tipo === "32" || tipo === "33" || tipo === "34" || tipo === "44" || tipo === "46";
+  const admiteEntrega = tipo !== "41";
+  return `<Comprador>${[
+    tagOpcional("RNCComprador", comprador.rnc),
+    admiteExtranjero ? tagOpcional("IdentificadorExtranjero", comprador.identificadorExtranjero) : "",
+    tagOpcional("RazonSocialComprador", comprador.razonSocial),
+    tagOpcional("ContactoComprador", comprador.contactoComprador),
+    tagOpcional("CorreoComprador", comprador.correo),
+    tagOpcional("DireccionComprador", comprador.direccionComprador),
+    tagOpcional("MunicipioComprador", comprador.municipioComprador),
+    tagOpcional("ProvinciaComprador", comprador.provinciaComprador),
+    tipo === "46" ? tagOpcional("PaisComprador", comprador.paisComprador) : "",
+    admiteEntrega
+      ? tagOpcional("FechaEntrega", comprador.fechaEntrega ? formatearFechaDgii(comprador.fechaEntrega) : undefined)
+      : "",
+    admiteEntrega ? tagOpcional("ContactoEntrega", comprador.contactoEntrega) : "",
+    admiteEntrega ? tagOpcional("DireccionEntrega", comprador.direccionEntrega) : "",
+    admiteEntrega ? tagOpcional("TelefonoAdicional", comprador.telefonoAdicional) : "",
+    admiteEntrega
+      ? tagOpcional(
+          "FechaOrdenCompra",
+          comprador.fechaOrdenCompra ? formatearFechaDgii(comprador.fechaOrdenCompra) : undefined,
+        )
+      : "",
+    admiteEntrega ? tagOpcional("NumeroOrdenCompra", comprador.numeroOrdenCompra) : "",
+    tagOpcional("CodigoInternoComprador", comprador.codigoInternoComprador),
+    tagOpcional("ResponsablePago", comprador.responsablePago),
+    tagOpcional("InformacionAdicionalComprador", comprador.informacionAdicionalComprador),
+  ].join("")}</Comprador>`;
+}
+
+function tieneValores(objeto: object | undefined): boolean {
+  return Object.values(objeto ?? {}).some((valor) => {
+    if (Array.isArray(valor)) return valor.length > 0;
+    return valor !== undefined && valor !== "";
+  });
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: la matriz fiscal XSD E31-E47 exige ramificar obligatoriedad y orden por tipo de comprobante
+function xmlInformacionesAdicionales(doc: DocumentoEcfInput): string {
+  const tipo = doc.comprobante.tipo;
+  const info = doc.informacionesAdicionales;
+  const permitido = tipo !== "41" && tipo !== "43" && tipo !== "47";
+  if (!permitido || !info || !tieneValores(info)) return "";
+  const partes = [
+    tagOpcional("FechaEmbarque", info.fechaEmbarque ? formatearFechaDgii(info.fechaEmbarque) : undefined),
+    tagOpcional("NumeroEmbarque", info.numeroEmbarque),
+    tagOpcional("NumeroContenedor", info.numeroContenedor),
+    tagOpcional("NumeroReferencia", info.numeroReferencia),
+  ];
+  if (tipo === "46") {
+    partes.push(
+      tagOpcional("NombrePuertoEmbarque", info.nombrePuertoEmbarque),
+      tagOpcional("CondicionesEntrega", info.condicionesEntrega),
+      tagOpcional("TotalFob", info.totalFob === undefined ? undefined : formatearMontoDgii(info.totalFob)),
+      tagOpcional("Seguro", info.seguro === undefined ? undefined : formatearMontoDgii(info.seguro)),
+      tagOpcional("Flete", info.flete === undefined ? undefined : formatearMontoDgii(info.flete)),
+      tagOpcional("OtrosGastos", info.otrosGastos === undefined ? undefined : formatearMontoDgii(info.otrosGastos)),
+      tagOpcional("TotalCif", info.totalCif === undefined ? undefined : formatearMontoDgii(info.totalCif)),
+      tagOpcional("RegimenAduanero", info.regimenAduanero),
+      tagOpcional("NombrePuertoSalida", info.nombrePuertoSalida),
+      tagOpcional("NombrePuertoDesembarque", info.nombrePuertoDesembarque),
+    );
+  }
+  partes.push(
+    tagOpcional("PesoBruto", info.pesoBruto === undefined ? undefined : formatearMontoDgii(info.pesoBruto)),
+    tagOpcional("PesoNeto", info.pesoNeto === undefined ? undefined : formatearMontoDgii(info.pesoNeto)),
+    tagOpcional("UnidadPesoBruto", info.unidadPesoBruto),
+    tagOpcional("UnidadPesoNeto", info.unidadPesoNeto),
+    tagOpcional("CantidadBulto", info.cantidadBulto === undefined ? undefined : formatearMontoDgii(info.cantidadBulto)),
+    tagOpcional("UnidadBulto", info.unidadBulto),
+    tagOpcional("VolumenBulto", info.volumenBulto === undefined ? undefined : formatearMontoDgii(info.volumenBulto)),
+    tagOpcional("UnidadVolumen", info.unidadVolumen),
+  );
+  return `<InformacionesAdicionales>${partes.join("")}</InformacionesAdicionales>`;
+}
+
+function xmlTransporte(doc: DocumentoEcfInput): string {
+  const tipo = doc.comprobante.tipo;
+  const transporte = doc.transporte;
+  const permitido = tipo !== "41" && tipo !== "43";
+  if (!permitido || !transporte || !tieneValores(transporte)) return "";
+  if (tipo === "47") {
+    const pais = tagOpcional("PaisDestino", transporte.paisDestino);
+    return pais ? `<Transporte>${pais}</Transporte>` : "";
+  }
+  const partes: string[] = [];
+  if (tipo === "46") {
+    partes.push(
+      tagOpcional("ViaTransporte", transporte.viaTransporte),
+      tagOpcional("PaisOrigen", transporte.paisOrigen),
+      tagOpcional("DireccionDestino", transporte.direccionDestino),
+      tagOpcional("PaisDestino", transporte.paisDestino),
+      tagOpcional("RNCIdentificacionCompaniaTransportista", transporte.rncIdentificacionCompaniaTransportista),
+      tagOpcional("NombreCompaniaTransportista", transporte.nombreCompaniaTransportista),
+      tagOpcional("NumeroViaje", transporte.numeroViaje),
+    );
+  }
+  partes.push(
+    tagOpcional("Conductor", transporte.conductor),
+    tagOpcional("DocumentoTransporte", transporte.documentoTransporte),
+    tagOpcional("Ficha", transporte.ficha),
+    tagOpcional("Placa", transporte.placa),
+    tagOpcional("RutaTransporte", transporte.rutaTransporte),
+    tagOpcional("ZonaTransporte", transporte.zonaTransporte),
+    tagOpcional("NumeroAlbaran", transporte.numeroAlbaran),
+  );
+  const contenido = partes.join("");
+  return contenido ? `<Transporte>${contenido}</Transporte>` : "";
+}
+
+function xmlInformacionReferencia(doc: DocumentoEcfInput): string {
+  const comp = doc.comprobante;
+  if (!comp.ncfModificado && !comp.rncOtroContribuyente && !comp.fechaNcfModificado && !comp.codigoModificacion)
+    return "";
+  return `<InformacionReferencia>${[
+    tagOpcional("NCFModificado", comp.ncfModificado),
+    tagOpcional("RNCOtroContribuyente", comp.rncOtroContribuyente),
+    tagOpcional(
+      "FechaNCFModificado",
+      comp.fechaNcfModificado ? formatearFechaDgii(comp.fechaNcfModificado) : undefined,
+    ),
+    tagOpcional("CodigoModificacion", comp.codigoModificacion),
+    comp.tipo === "33" || comp.tipo === "34" ? tagOpcional("RazonModificacion", comp.razonModificacion) : "",
+  ].join("")}</InformacionReferencia>`;
+}
+
+export function generarXmlEcf(doc: DocumentoEcfInput): string {
+  asegurarDocumentoValido(doc);
+  const comp = doc.comprobante;
+  const xml = `<ECF><Encabezado>${[
+    tag("Version", "1.0"),
+    xmlIdDoc(doc),
+    xmlEmisor(doc),
+    xmlComprador(doc),
+    xmlInformacionesAdicionales(doc),
+    xmlTransporte(doc),
+    `<Totales>${xmlTotalesEcf(doc)}</Totales>`,
+    xmlOtraMoneda(doc),
+  ].join("")}</Encabezado><DetallesItems>${doc.lineas
     .map((linea) => xmlItem(linea, comp.tipo))
-    .join("")}</DetallesItems>${xmlDescuentosORecargos(doc)}${referencia}${tag(
+    .join("")}</DetallesItems>${xmlDescuentosORecargos(doc)}${xmlInformacionReferencia(doc)}${tag(
     "FechaHoraFirma",
     formatearFechaHoraDgii(comp.fechaHoraFirma),
   )}</ECF>`;
@@ -778,26 +1245,46 @@ export function esElegibleRfce(doc: DocumentoEcfInput): boolean {
   return doc.comprobante.tipo === "32" && doc.totales.montoTotal < LIMITE_RFCE;
 }
 
+const ORDEN_TOTALES_RFCE_XML = [
+  "MontoGravadoTotal",
+  "MontoGravadoI1",
+  "MontoGravadoI2",
+  "MontoGravadoI3",
+  "MontoExento",
+  "TotalITBIS",
+  "TotalITBIS1",
+  "TotalITBIS2",
+  "TotalITBIS3",
+  "MontoImpuestoAdicional",
+  "ImpuestosAdicionales",
+  "MontoTotal",
+  "MontoNoFacturable",
+  "MontoPeriodo",
+] as const;
+
 function xmlTotalesRfce(doc: DocumentoEcfInput): string {
   const totales = doc.totales;
   const condiciones = condicionesTotalesXml(totales);
-  return [
-    tagMontoCondicional("MontoGravadoTotal", condiciones.gravadoTotal, condiciones.gravadoTotal > 0),
-    tagMontoCondicional("MontoGravadoI1", totales.montoGravadoI1, totales.montoGravadoI1 > 0),
-    tagMontoCondicional("MontoGravadoI2", totales.montoGravadoI2, totales.montoGravadoI2 > 0),
-    tagMontoCondicional("MontoGravadoI3", condiciones.gravadoI3, condiciones.gravadoI3 > 0),
-    tagMontoCondicional("MontoExento", totales.montoExento, totales.montoExento > 0),
-    tagMontoCondicional("TotalITBIS", totales.totalItbis, condiciones.correspondeTotalItbis),
-    tagMontoCondicional("TotalITBIS1", totales.totalItbis1, condiciones.correspondeItbis1),
-    tagMontoCondicional("TotalITBIS2", totales.totalItbis2, condiciones.correspondeItbis2),
-    tagMontoCondicional("TotalITBIS3", totales.totalItbis3 ?? 0, condiciones.correspondeTotalItbis3),
-    tagOpcional(
-      "MontoImpuestoAdicional",
-      totales.montoImpuestoAdicional === undefined ? undefined : formatearMontoDgii(totales.montoImpuestoAdicional),
-    ),
-    xmlImpuestosAdicionales(totales.impuestosAdicionales),
-    tag("MontoTotal", formatearMontoDgii(totales.montoTotal)),
-  ].join("");
+  const valores: Record<string, string | undefined> = {
+    MontoGravadoTotal: valorNumericoOpcional(condiciones.gravadoTotal, condiciones.gravadoTotal > 0),
+    MontoGravadoI1: valorNumericoOpcional(totales.montoGravadoI1, totales.montoGravadoI1 > 0),
+    MontoGravadoI2: valorNumericoOpcional(totales.montoGravadoI2, totales.montoGravadoI2 > 0),
+    MontoGravadoI3: valorNumericoOpcional(condiciones.gravadoI3, condiciones.gravadoI3 > 0),
+    MontoExento: valorNumericoOpcional(totales.montoExento, totales.montoExento > 0),
+    TotalITBIS: valorNumericoOpcional(totales.totalItbis, condiciones.correspondeTotalItbis),
+    TotalITBIS1: valorNumericoOpcional(totales.totalItbis1, condiciones.correspondeItbis1),
+    TotalITBIS2: valorNumericoOpcional(totales.totalItbis2, condiciones.correspondeItbis2),
+    TotalITBIS3: valorNumericoOpcional(totales.totalItbis3 ?? 0, condiciones.correspondeTotalItbis3),
+    MontoImpuestoAdicional: valorNumericoOpcional(totales.montoImpuestoAdicional),
+    MontoTotal: formatearMontoDgii(totales.montoTotal),
+    MontoNoFacturable: valorNumericoOpcional(totales.montoNoFacturable),
+    MontoPeriodo: valorNumericoOpcional(totales.montoPeriodo),
+  };
+  return ORDEN_TOTALES_RFCE_XML.map((nombre) => {
+    if (nombre === "ImpuestosAdicionales") return xmlImpuestosAdicionales(totales.impuestosAdicionales, { rfce: true });
+    const valor = valores[nombre];
+    return valor === undefined || valor === "" ? "" : tag(nombre, valor);
+  }).join("");
 }
 
 export function generarXmlRfce(doc: DocumentoEcfInput, codigoSeguridadEcf: string): string {
@@ -806,18 +1293,22 @@ export function generarXmlRfce(doc: DocumentoEcfInput, codigoSeguridadEcf: strin
     throw new Error("Solo las facturas de consumo E32 menores de RD$250,000 pueden generar RFCE");
   if (!/^.{6}$/.test(codigoSeguridadEcf)) throw new Error("El código de seguridad del e-CF debe tener 6 caracteres");
   const comp = doc.comprobante;
+  if (!comp.tipoPago) throw new Error("El RFCE requiere el tipo de pago de la factura de consumo");
+  const tipoPagoRfce: string = comp.tipoPago;
   const xml = `<RFCE><Encabezado>${tag("Version", "1.0")}<IdDoc>${[
     tag("TipoeCF", comp.tipo),
     tag("eNCF", comp.encf),
     tag("TipoIngresos", comp.tipoIngresos),
-    tag("TipoPago", comp.tipoPago),
+    tag("TipoPago", tipoPagoRfce),
+    xmlFormasPago(comp.formasPago),
   ].join("")}</IdDoc><Emisor>${[
     tag("RNCEmisor", doc.emisor.rnc),
     tag("RazonSocialEmisor", doc.emisor.razonSocial),
     tag("FechaEmision", formatearFechaDgii(comp.fechaEmision)),
   ].join("")}</Emisor><Comprador>${[
     tagOpcional("RNCComprador", doc.comprador.rnc),
-    tag("RazonSocialComprador", doc.comprador.razonSocial),
+    tagOpcional("IdentificadorExtranjero", doc.comprador.identificadorExtranjero),
+    tagOpcional("RazonSocialComprador", doc.comprador.razonSocial),
   ].join("")}</Comprador><Totales>${xmlTotalesRfce(doc)}</Totales>${tag(
     "CodigoSeguridadeCF",
     codigoSeguridadEcf,
