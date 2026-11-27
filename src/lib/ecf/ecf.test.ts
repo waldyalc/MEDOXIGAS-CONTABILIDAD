@@ -821,7 +821,7 @@ describe("campos avanzados XSD nivel 2", () => {
       totalItbis1: 20.42,
       totalItbis: 20.42,
       montoImpuestoAdicional: 11.35,
-      impuestosAdicionales: [{ tipoImpuesto: "001", otrosImpuestosAdicionales: 11.35 }],
+      impuestosAdicionales: [{ tipoImpuesto: "001", tasaImpuestoAdicional: 10, otrosImpuestosAdicionales: 11.35 }],
       montoTotal: 145.23,
       totalItbisRetenido: 5,
       totalIsrRetencion: 10,
