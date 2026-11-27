@@ -2560,7 +2560,7 @@ function validarAnecf(raiz: NodoXml, errores: string[]): void {
   }
   const detalle = hijo(raiz, "DetalleAnulacion");
   if (!detalle) return;
-  validarOrdenHijos(detalle, "DetalleAnulacion", [nodo("Anulacion", 1, 999)], errores);
+  validarOrdenHijos(detalle, "DetalleAnulacion", [nodo("Anulacion", 1, 10)], errores);
   detalle.hijos.forEach((anulacion, indice) => {
     validarOrdenHijos(
       anulacion,
@@ -2574,7 +2574,7 @@ function validarAnecf(raiz: NodoXml, errores: string[]): void {
       errores,
     );
     const tabla = hijo(anulacion, "TablaRangoSecuenciasAnuladaseNCF");
-    if (tabla) validarOrdenHijos(tabla, "TablaRangoSecuenciasAnuladaseNCF", [nodo("Secuencias", 1, 999)], errores);
+    if (tabla) validarOrdenHijos(tabla, "TablaRangoSecuenciasAnuladaseNCF", [nodo("Secuencias", 1, 10000)], errores);
     for (const secuencias of tabla?.hijos ?? []) {
       validarOrdenHijos(
         secuencias,

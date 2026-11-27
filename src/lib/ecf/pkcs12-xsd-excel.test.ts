@@ -631,4 +631,49 @@ describe("Excel oficial DGII OXYMAT real (29/29)", () => {
     expect(monedaLinea?.documento.lineas[0]?.otraMoneda?.precioOtraMoneda).toBe(3.55);
     expect(monedaLinea?.documento.lineas[0]?.otraMoneda?.montoItemOtraMoneda).toBe(81.65);
   }, 60000);
+
+  it("exige MontoPago en FormaDePago de e-CF, aplica variante E44 en ImpuestosAdicionales y tope ANECF", () => {
+    const e31SinMonto = documentoTipo("31");
+    e31SinMonto.comprobante.formasPago = [{ formaPago: "1" }];
+    const valSinMonto = validarDocumentoEcf(e31SinMonto);
+    expect(valSinMonto.ok).toBe(false);
+    expect(() => generarXmlEcf(e31SinMonto)).toThrow(/MontoPago/i);
+
+    const e44Selectivo = documentoTipo("44");
+    e44Selectivo.totales.montoImpuestoAdicional = 10;
+    e44Selectivo.totales.montoTotal = 110;
+    e44Selectivo.totales.impuestosAdicionales = [
+      { tipoImpuesto: "006", tasaImpuestoAdicional: 10, montoImpuestoSelectivoConsumoEspecifico: 10 },
+    ];
+    expect(validarDocumentoEcf(e44Selectivo).ok).toBe(false);
+    expect(() => generarXmlEcf(e44Selectivo)).toThrow(/E44/i);
+
+    const e44Otros = documentoTipo("44");
+    e44Otros.totales.montoImpuestoAdicional = 10;
+    e44Otros.totales.montoTotal = 110;
+    e44Otros.totales.impuestosAdicionales = [
+      { tipoImpuesto: "001", tasaImpuestoAdicional: 10, otrosImpuestosAdicionales: 10 },
+    ];
+    expect(validarDocumentoEcf(e44Otros).ok).toBe(true);
+    const xsdE44 = validarXmlContraEsquemaDgii(generarXmlEcf(e44Otros), "ECF");
+    expect(xsdE44.errores).toEqual([]);
+    expect(xsdE44.valido).toBe(true);
+
+    const onceAnulaciones = Array.from({ length: 11 }, (_, idx) => ({
+      tipo: "31" as const,
+      rangos: [
+        {
+          desde: `E31${String(idx + 1).padStart(10, "0")}`,
+          hasta: `E31${String(idx + 1).padStart(10, "0")}`,
+        },
+      ],
+    }));
+    expect(() =>
+      generarXmlAnecf({
+        rncEmisor: RNC_OXYMAT,
+        fechaHoraAnulacion: "15-01-2026 10:00:00",
+        anulaciones: onceAnulaciones,
+      }),
+    ).toThrow(/10/);
+  });
 });

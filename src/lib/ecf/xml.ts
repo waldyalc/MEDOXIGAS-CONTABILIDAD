@@ -440,11 +440,45 @@ function validarTotalesDocumento(doc: DocumentoEcfInput, errores: string[]): voi
   }
 }
 
+function validarFormasPagoYImpuestosEcf(doc: DocumentoEcfInput, errores: string[]): void {
+  const tipo = doc.comprobante.tipo;
+  if (tipo !== "34" && tipo !== "43") {
+    for (const forma of doc.comprobante.formasPago ?? []) {
+      if (forma.formaPago.trim() === "") continue;
+      if (forma.montoPago === undefined || !montoEsValido(forma.montoPago)) {
+        errores.push("Cada forma de pago de un e-CF debe incluir un MontoPago válido");
+      }
+    }
+  }
+  if (tipo === "44") {
+    const listas = [
+      ...(doc.totales.impuestosAdicionales ?? []),
+      ...(doc.otraMoneda?.impuestosAdicionalesOtraMoneda ?? []),
+    ];
+    for (const impuesto of listas) {
+      if (
+        impuesto.montoImpuestoSelectivoConsumoEspecifico !== undefined ||
+        impuesto.montoImpuestoSelectivoConsumoAdvalorem !== undefined
+      ) {
+        errores.push("El comprobante E44 no admite impuestos selectivos al consumo en ImpuestosAdicionales");
+      }
+      if (
+        impuesto.otrosImpuestosAdicionales === undefined ||
+        !montoEsValido(impuesto.otrosImpuestosAdicionales) ||
+        impuesto.otrosImpuestosAdicionales <= 0
+      ) {
+        errores.push("El comprobante E44 requiere OtrosImpuestosAdicionales mayor que cero en ImpuestosAdicionales");
+      }
+    }
+  }
+}
+
 export function validarDocumentoEcf(doc: DocumentoEcfInput): ValidacionDocumentoEcf {
   const errores: string[] = [];
   validarEncfYEmisor(doc, errores);
   validarCompradorEcf(doc, errores);
   validarReferenciasYFechas(doc, errores);
+  validarFormasPagoYImpuestosEcf(doc, errores);
   validarLineasDocumento(doc, errores);
   validarTotalesDocumento(doc, errores);
   return errores.length === 0 ? { ok: true } : { ok: false, errores };
@@ -502,10 +536,11 @@ export function formatearDecimalHasta3Dgii(valor: number): string {
 
 function xmlImpuestosAdicionales(
   impuestos: ImpuestoAdicionalEcfInput[] | undefined,
-  opciones: { rfce?: boolean; otraMoneda?: boolean } = {},
+  opciones: { rfce?: boolean; otraMoneda?: boolean; tipo?: TipoEcf } = {},
 ): string {
   if (!impuestos || impuestos.length === 0) return "";
   const otra = opciones.otraMoneda === true;
+  const soloOtros = opciones.tipo === "44";
   const nombreTabla = otra ? "ImpuestosAdicionalesOtraMoneda" : "ImpuestosAdicionales";
   const nombreItem = otra ? "ImpuestoAdicionalOtraMoneda" : "ImpuestoAdicional";
   const sufijo = otra ? "OtraMoneda" : "";
@@ -522,19 +557,23 @@ function xmlImpuestosAdicionales(
           ),
         );
       }
+      if (!soloOtros) {
+        partes.push(
+          tagOpcional(
+            `MontoImpuestoSelectivoConsumoEspecifico${sufijo}`,
+            impuesto.montoImpuestoSelectivoConsumoEspecifico === undefined
+              ? undefined
+              : formatearMontoDgii(impuesto.montoImpuestoSelectivoConsumoEspecifico),
+          ),
+          tagOpcional(
+            `MontoImpuestoSelectivoConsumoAdvalorem${sufijo}`,
+            impuesto.montoImpuestoSelectivoConsumoAdvalorem === undefined
+              ? undefined
+              : formatearMontoDgii(impuesto.montoImpuestoSelectivoConsumoAdvalorem),
+          ),
+        );
+      }
       partes.push(
-        tagOpcional(
-          `MontoImpuestoSelectivoConsumoEspecifico${sufijo}`,
-          impuesto.montoImpuestoSelectivoConsumoEspecifico === undefined
-            ? undefined
-            : formatearMontoDgii(impuesto.montoImpuestoSelectivoConsumoEspecifico),
-        ),
-        tagOpcional(
-          `MontoImpuestoSelectivoConsumoAdvalorem${sufijo}`,
-          impuesto.montoImpuestoSelectivoConsumoAdvalorem === undefined
-            ? undefined
-            : formatearMontoDgii(impuesto.montoImpuestoSelectivoConsumoAdvalorem),
-        ),
         tagOpcional(
           `OtrosImpuestosAdicionales${sufijo}`,
           impuesto.otrosImpuestosAdicionales === undefined
@@ -704,7 +743,8 @@ function xmlTotalesEcf(doc: DocumentoEcfInput): string {
   const partes: string[] = [];
   for (const nombre of ORDEN_TOTALES_XML[tipo]) {
     if (nombre === "ImpuestosAdicionales") {
-      if (tipoPermiteImpuestosAdicionales(tipo)) partes.push(xmlImpuestosAdicionales(totales.impuestosAdicionales));
+      if (tipoPermiteImpuestosAdicionales(tipo))
+        partes.push(xmlImpuestosAdicionales(totales.impuestosAdicionales, { tipo }));
       continue;
     }
     const valor = valores[nombre];
@@ -951,7 +991,7 @@ function xmlOtraMoneda(doc: DocumentoEcfInput): string {
   const partes: string[] = [];
   for (const nombre of ORDEN_OTRA_MONEDA_XML[tipo]) {
     if (nombre === "ImpuestosAdicionalesOtraMoneda") {
-      partes.push(xmlImpuestosAdicionales(otra.impuestosAdicionalesOtraMoneda, { otraMoneda: true }));
+      partes.push(xmlImpuestosAdicionales(otra.impuestosAdicionalesOtraMoneda, { otraMoneda: true, tipo }));
       continue;
     }
     const valor = valores[nombre];
@@ -987,17 +1027,22 @@ function xmlDescuentosORecargos(doc: DocumentoEcfInput): string {
   return `<DescuentosORecargos>${detalle}</DescuentosORecargos>`;
 }
 
-function xmlFormasPago(formasPago: DocumentoEcfInput["comprobante"]["formasPago"]): string {
+function xmlFormasPago(
+  formasPago: DocumentoEcfInput["comprobante"]["formasPago"],
+  opciones: { exigirMontoPago?: boolean } = {},
+): string {
   const formas = (formasPago ?? []).filter((forma) => forma.formaPago.trim() !== "").slice(0, 7);
   if (formas.length === 0) return "";
   const detalle = formas
-    .map(
-      (forma) =>
-        `<FormaDePago>${tag("FormaPago", forma.formaPago)}${tagOpcional(
-          "MontoPago",
-          forma.montoPago === undefined ? undefined : formatearMontoDgii(forma.montoPago),
-        )}</FormaDePago>`,
-    )
+    .map((forma) => {
+      if (opciones.exigirMontoPago && forma.montoPago === undefined) {
+        throw new Error("Cada forma de pago de un e-CF debe incluir MontoPago");
+      }
+      return `<FormaDePago>${tag("FormaPago", forma.formaPago)}${tagOpcional(
+        "MontoPago",
+        forma.montoPago === undefined ? undefined : formatearMontoDgii(forma.montoPago),
+      )}</FormaDePago>`;
+    })
     .join("");
   return `<TablaFormasPago>${detalle}</TablaFormasPago>`;
 }
@@ -1028,7 +1073,10 @@ function xmlIdDoc(doc: DocumentoEcfInput): string {
     tagOpcional("FechaLimitePago", comp.fechaLimitePago ? formatearFechaDgii(comp.fechaLimitePago) : undefined),
   );
   if (tipo !== "34" && tipo !== "43") {
-    partes.push(tagOpcional("TerminoPago", comp.terminoPago), xmlFormasPago(comp.formasPago));
+    partes.push(
+      tagOpcional("TerminoPago", comp.terminoPago),
+      xmlFormasPago(comp.formasPago, { exigirMontoPago: true }),
+    );
   }
   if (tipo !== "34" && tipo !== "43") {
     partes.push(
@@ -1375,10 +1423,14 @@ function partesEncf(encf: string): { tipo: TipoEcf; secuencia: number } {
 export function generarXmlAnecf(input: AnulacionEncfInput): string {
   validarRncOError(input.rncEmisor, "emisor");
   if (input.anulaciones.length === 0) throw new Error("La anulación debe tener al menos una línea");
+  if (input.anulaciones.length > 10) throw new Error("La anulación admite máximo 10 líneas según el XSD ANECF");
   let total = 0;
   const detalle = input.anulaciones
     .map((anulacion, indice) => {
       if (anulacion.rangos.length === 0) throw new Error(`La anulación ${indice + 1} no tiene rangos`);
+      if (anulacion.rangos.length > 10000) {
+        throw new Error(`La anulación ${indice + 1} admite máximo 10,000 rangos según el XSD ANECF`);
+      }
       let cantidadLinea = 0;
       const rangos = anulacion.rangos
         .map((rango) => {
