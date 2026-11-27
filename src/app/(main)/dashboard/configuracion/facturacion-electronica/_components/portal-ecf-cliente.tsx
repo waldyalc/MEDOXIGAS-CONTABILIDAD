@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, useState } from "react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 
 import Link from "next/link";
 
@@ -38,6 +38,11 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { ejecutarSimulacionEcfAction, type ResumenSimulacionSerializado } from "../actions";
+import {
+  guardarAmbientePersistidoLocal,
+  leerAmbientePersistidoLocal,
+  resolverAmbienteInicial,
+} from "./ambiente-persistencia";
 import type { ConfiguracionEcfPublica } from "./ecf-portal-tipos";
 import { FirmarXmlPostulacion } from "./firmar-xml-postulacion";
 import {
@@ -63,6 +68,7 @@ import {
   type PasoHabilitacionId,
   urlsServiciosEcf,
 } from "./pasos-habilitacion";
+import { SetExcelAcecf } from "./set-excel-acecf";
 import { SetExcelDgii } from "./set-excel-dgii";
 
 const AMBIENTES: readonly AmbienteEcf[] = ["testecf", "certecf", "produccion"];
@@ -95,6 +101,16 @@ function ambienteUiDesdeServidor(ambiente: ConfiguracionEcfPublica["ambiente"]):
 
 function ambienteServidorDesdeUi(ambiente: AmbienteEcf): ConfiguracionEcfPublica["ambiente"] {
   return ambiente === "produccion" ? "ecf" : ambiente;
+}
+
+function ambienteServidorPersistibleDesdeUi(
+  ambienteVisual: AmbienteEcf,
+  ambienteConfig: ConfiguracionEcfPublica["ambiente"] | null | undefined,
+): ConfiguracionEcfPublica["ambiente"] {
+  if (ambienteVisual !== "produccion") return ambienteServidorDesdeUi(ambienteVisual);
+  if (ambienteConfig === "ecf") return "ecf";
+  if (ambienteConfig === "certecf") return "certecf";
+  return "testecf";
 }
 
 function formatearFechaCertificado(valor: string | null): string {
@@ -826,6 +842,14 @@ function PasoPruebas({
         archivoCertificado={archivoCertificado}
         contrasenaCertificado={contrasenaCertificado}
       />
+
+      <SetExcelAcecf
+        rncComprador={rncEmisor}
+        razonSocial={razonSocial}
+        ambiente={ambiente}
+        archivoCertificado={archivoCertificado}
+        contrasenaCertificado={contrasenaCertificado}
+      />
     </div>
   );
 }
@@ -1458,6 +1482,7 @@ export function PortalEcfCliente({
   const [errorCopiado, setErrorCopiado] = useState<string | null>(null);
   const [ultimoEncf, setUltimoEncf] = useState("");
   const [empresaPilotoId, setEmpresaPilotoId] = useState<EmpresaPilotoEcfId>("oxymat");
+  const secuenciaPersistenciaAmbienteRef = useRef(0);
 
   const pilotoActivo = EMPRESAS_PILOTO_ECF[empresaPilotoId];
   const emisorActivo = emisorParaPiloto(empresa, empresaPilotoId);
@@ -1469,17 +1494,26 @@ export function PortalEcfCliente({
   const pasoSiguiente = indiceActivo >= 0 ? PASOS_HABILITACION[indiceActivo + 1] : undefined;
   const puedeAvanzar = pasoActivo !== "declaracion" || declaracionConfirmada;
 
+  useEffect(() => {
+    const guardadoLocal = leerAmbientePersistidoLocal(pilotoActivo.rnc);
+    setAmbiente(resolverAmbienteInicial(configCertificado?.ambiente, guardadoLocal));
+  }, [configCertificado?.ambiente, pilotoActivo.rnc]);
+
   function registrarConfigCertificado(config: ConfiguracionEcfPublica) {
     setConfigsPorRnc((anteriores) => ({ ...anteriores, [config.rnc]: config }));
   }
 
-  function crearFormularioConfiguracion(activo: boolean): FormData {
+  function crearFormularioConfiguracion(
+    activo: boolean,
+    ambienteObjetivo: AmbienteEcf = ambiente,
+    dominioBaseObjetivo: string | null = dominioBase,
+  ): FormData {
     const form = new FormData();
     form.append("rnc", pilotoActivo.rnc);
     form.append("razonSocial", pilotoActivo.nombre);
-    form.append("ambiente", ambienteServidorDesdeUi(ambiente));
+    form.append("ambiente", ambienteServidorPersistibleDesdeUi(ambienteObjetivo, configCertificado?.ambiente));
     form.append("activo", String(activo));
-    form.append("dominioBase", dominioBase);
+    form.append("dominioBase", dominioBaseObjetivo ?? "");
     return form;
   }
 
@@ -1529,11 +1563,31 @@ export function PortalEcfCliente({
     }
   }
 
+  function persistirAmbienteEnServidor(opcion: "testecf" | "certecf") {
+    if (!configCertificado) return;
+    const secuencia = secuenciaPersistenciaAmbienteRef.current + 1;
+    secuenciaPersistenciaAmbienteRef.current = secuencia;
+    const form = crearFormularioConfiguracion(configCertificado.activo, opcion, configCertificado.dominioBase);
+    void enviarConfiguracionCertificado(form)
+      .then((config) => {
+        if (secuenciaPersistenciaAmbienteRef.current === secuencia) registrarConfigCertificado(config);
+      })
+      .catch(() => undefined);
+  }
+
+  function cambiarAmbiente(opcion: AmbienteEcf) {
+    setAmbiente(opcion);
+    if (opcion === "produccion") return;
+    guardarAmbientePersistidoLocal(pilotoActivo.rnc, opcion);
+    persistirAmbienteEnServidor(opcion);
+  }
+
   function seleccionarPiloto(id: EmpresaPilotoEcfId) {
     const piloto = EMPRESAS_PILOTO_ECF[id];
     const config = configsPorRnc[piloto.rnc] ?? null;
+    const guardadoLocal = leerAmbientePersistidoLocal(piloto.rnc);
     setEmpresaPilotoId(id);
-    setAmbiente(config ? ambienteUiDesdeServidor(config.ambiente) : "testecf");
+    setAmbiente(resolverAmbienteInicial(config?.ambiente, guardadoLocal));
     if (config?.dominioBase) setDominioBase(config.dominioBase);
     setArchivoCertificado(null);
     setContrasenaCertificado("");
@@ -1601,7 +1655,7 @@ export function PortalEcfCliente({
               <OpcionSegmentada
                 key={opcion}
                 activa={ambiente === opcion}
-                onClick={() => setAmbiente(opcion)}
+                onClick={() => cambiarAmbiente(opcion)}
                 className="px-2 text-center"
               >
                 {opcion === "testecf" ? "TesteCF" : null}
