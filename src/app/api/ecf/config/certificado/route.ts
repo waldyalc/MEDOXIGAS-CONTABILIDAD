@@ -4,10 +4,8 @@ import {
   type FilaConfigEcf,
 } from "@/app/(main)/dashboard/configuracion/facturacion-electronica/_components/ecf-portal-tipos";
 import { getRol } from "@/lib/auth/rol";
-import { cifrarSecretoEcf } from "@/lib/ecf/firma";
-import { leerCertificadoPkcs12 } from "@/lib/ecf/pkcs12";
+import { claveCifradoEcf, guardarCertificadoP12EnConfig } from "@/lib/ecf/config-servidor";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/supabase/types";
 
 export const runtime = "nodejs";
 
@@ -60,10 +58,6 @@ async function leerConfigPublica(
   return { config: data ? configuracionEcfPublicaDesdeFila(data) : null, error: null };
 }
 
-function claveMaestraConfigurada(): boolean {
-  return Boolean(process.env.ECF_ENCRYPTION_KEY?.trim());
-}
-
 export async function GET(request: Request) {
   const rol = await getRol();
   if (!rol) return jsonError("Debes iniciar sesión para consultar la configuración e-CF.", 401);
@@ -77,7 +71,7 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   const resultado = await leerConfigPublica(supabase, rnc);
   if (resultado.error) return jsonError(`No se pudo leer la configuración e-CF: ${resultado.error}`, 500);
-  return Response.json({ ok: true, config: resultado.config, claveMaestraConfigurada: claveMaestraConfigurada() });
+  return Response.json({ ok: true, config: resultado.config, claveMaestraConfigurada: claveCifradoEcf() !== null });
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: valida multipart, certificado real, cifrado y persistencia multi-RNC sin exponer secretos
@@ -117,46 +111,24 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
-  const insertar: Database["public"]["Tables"]["ecf_config"]["Insert"] = {
+  const p12Buffer = archivo ? Buffer.from(await archivo.arrayBuffer()) : undefined;
+  const guardado = await guardarCertificadoP12EnConfig(supabase, {
     rnc,
-    razon_social: razonSocial,
+    razonSocial,
     ambiente,
     activo,
-    dominio_base: dominioBaseTexto === "" ? null : dominioBaseTexto,
-  };
-
-  const { data: claimsData } = await supabase.auth.getClaims();
-  if (claimsData?.claims.sub) insertar.updated_by = claimsData.claims.sub;
-
-  if (archivo) {
-    if (!claveMaestraConfigurada()) {
-      return jsonError(
-        "Falta la variable de entorno ECF_ENCRYPTION_KEY en el servidor para cifrar el certificado.",
-        500,
-      );
-    }
-    const claveMaestra = process.env.ECF_ENCRYPTION_KEY?.trim() ?? "";
-    let leido: Awaited<ReturnType<typeof leerCertificadoPkcs12>>;
-    try {
-      const buffer = Buffer.from(await archivo.arrayBuffer());
-      leido = await leerCertificadoPkcs12(buffer, contrasena);
-      insertar.cert_cifrado = cifrarSecretoEcf(buffer.toString("base64"), claveMaestra);
-      insertar.cert_pass_cifrada = cifrarSecretoEcf(contrasena, claveMaestra);
-    } catch (error) {
-      return jsonError(error instanceof Error ? error.message : "El certificado PKCS#12 no pudo validarse.", 400);
-    }
-    insertar.cert_titular = leido.metadatos.titular;
-    insertar.cert_numero_serie = leido.metadatos.numeroSerie;
-    insertar.cert_valido_hasta = leido.metadatos.validoHasta.toISOString();
-    insertar.cert_huella_sha256 = leido.metadatos.huellaSha256;
+    dominioBase: dominioBaseTexto === "" ? null : dominioBaseTexto,
+    p12Buffer,
+    contrasena: archivo ? contrasena : undefined,
+  });
+  if (!guardado.ok) {
+    const status = guardado.error.includes("ECF_ENCRYPTION_KEY") ? 500 : 400;
+    return jsonError(guardado.error, status);
   }
-
-  const { error } = await supabase.from("ecf_config").upsert(insertar, { onConflict: "rnc" });
-  if (error) return jsonError(`No se pudo guardar la configuración e-CF: ${error.message}`, 500);
 
   const resultado = await leerConfigPublica(supabase, rnc);
   if (resultado.error) {
     return jsonError(`El certificado se guardó, pero no se pudieron leer sus metadatos: ${resultado.error}`, 500);
   }
-  return Response.json({ ok: true, config: resultado.config, claveMaestraConfigurada: claveMaestraConfigurada() });
+  return Response.json({ ok: true, config: resultado.config, claveMaestraConfigurada: claveCifradoEcf() !== null });
 }

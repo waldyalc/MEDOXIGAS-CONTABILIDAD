@@ -1,4 +1,4 @@
-import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { Database, Json } from "@/lib/supabase/types";
 
@@ -66,49 +66,6 @@ interface ConfigEcfFila {
   cert_numero_serie: string | null;
   cert_valido_hasta: string | null;
   cert_huella_sha256: string | null;
-}
-
-interface SecretoEcfFirmaRow {
-  rnc: string;
-  razon_social: string;
-  ambiente: string;
-  activo: boolean;
-  cert_cifrado: string | null;
-  cert_pass_cifrada: string | null;
-}
-
-interface RpcEcfCertificadoPendientes {
-  guardar_ecf_certificado: {
-    Args: {
-      p_rnc: string;
-      p_razon_social: string;
-      p_ambiente: AmbienteEcf;
-      p_activo: boolean;
-      p_dominio_base: string | null;
-      p_cert_cifrado: string | null;
-      p_cert_pass_cifrada: string | null;
-      p_cert_titular: string | null;
-      p_cert_numero_serie: string | null;
-      p_cert_valido_hasta: string | null;
-      p_cert_huella_sha256: string | null;
-    };
-    Returns: Json;
-  };
-  obtener_ecf_secreto_firma: {
-    Args: { p_rnc: string };
-    Returns: SecretoEcfFirmaRow[];
-  };
-}
-
-type ClienteEcfCertificado = SupabaseClient<Database> & {
-  rpc<Fn extends keyof RpcEcfCertificadoPendientes>(
-    fn: Fn,
-    args: RpcEcfCertificadoPendientes[Fn]["Args"],
-  ): PromiseLike<{ data: RpcEcfCertificadoPendientes[Fn]["Returns"] | null; error: PostgrestError | null }>;
-};
-
-function clienteEcfCertificado(cliente: SupabaseClient<Database>): ClienteEcfCertificado {
-  return cliente as ClienteEcfCertificado;
 }
 
 function mensajeError(error: unknown, fallback: string): string {
@@ -234,18 +191,18 @@ export async function guardarCertificadoP12EnConfig(
     }
   }
 
-  const { data, error } = await clienteEcfCertificado(supabase).rpc("guardar_ecf_certificado", {
+  const { data, error } = await supabase.rpc("guardar_ecf_certificado", {
     p_rnc: rnc,
     p_razon_social: razonSocial,
     p_ambiente: input.ambiente ?? "testecf",
     p_activo: input.activo ?? false,
-    p_dominio_base: input.dominioBase?.trim() ? input.dominioBase.trim() : null,
-    p_cert_cifrado: certCifrado,
-    p_cert_pass_cifrada: certPassCifrada,
-    p_cert_titular: certTitular,
-    p_cert_numero_serie: certNumeroSerie,
-    p_cert_valido_hasta: certValidoHasta,
-    p_cert_huella_sha256: certHuellaSha256,
+    p_dominio_base: input.dominioBase?.trim() ? input.dominioBase.trim() : undefined,
+    p_cert_cifrado: certCifrado ?? undefined,
+    p_cert_pass_cifrada: certPassCifrada ?? undefined,
+    p_cert_titular: certTitular ?? undefined,
+    p_cert_numero_serie: certNumeroSerie ?? undefined,
+    p_cert_valido_hasta: certValidoHasta ?? undefined,
+    p_cert_huella_sha256: certHuellaSha256 ?? undefined,
   });
   if (error) return { ok: false, error: error.message };
   const estado = estadoDesdeJson(data);
@@ -285,7 +242,7 @@ async function credencialesDesdeBaseDatos(
   config: EstadoConfigEcf,
   claveMaestra: string,
 ): Promise<ResultadoCredencialesEcfServidor> {
-  const { data: filas, error } = await clienteEcfCertificado(supabase).rpc("obtener_ecf_secreto_firma", { p_rnc: rnc });
+  const { data: filas, error } = await supabase.rpc("obtener_ecf_secreto_firma", { p_rnc: rnc });
   if (error) {
     const motivo = error.code === "42501" ? "permiso_denegado" : "error_consulta";
     return errorCredenciales(motivo, error.message);

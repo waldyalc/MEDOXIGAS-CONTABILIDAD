@@ -5998,6 +5998,22 @@ export type Database = {
       }
       generar_pago_recurrente: { Args: { p_id: string }; Returns: string }
       guardar_borrador_conciliacion: { Args: { p: Json }; Returns: string }
+      guardar_ecf_certificado: {
+        Args: {
+          p_activo?: boolean
+          p_ambiente?: string
+          p_cert_cifrado?: string
+          p_cert_huella_sha256?: string
+          p_cert_numero_serie?: string
+          p_cert_pass_cifrada?: string
+          p_cert_titular?: string
+          p_cert_valido_hasta?: string
+          p_dominio_base?: string
+          p_razon_social: string
+          p_rnc: string
+        }
+        Returns: Json
+      }
       guardar_lineas_conteo: {
         Args: { p: Json; p_id: string }
         Returns: string
@@ -6142,6 +6158,17 @@ export type Database = {
       }
       normalizar: { Args: { p_texto: string }; Returns: string }
       obtener_auditoria: { Args: { p: Json }; Returns: Json }
+      obtener_ecf_secreto_firma: {
+        Args: { p_rnc: string }
+        Returns: {
+          activo: boolean
+          ambiente: string
+          cert_cifrado: string
+          cert_pass_cifrada: string
+          razon_social: string
+          rnc: string
+        }[]
+      }
       pos_abrir_turno: { Args: { p: Json }; Returns: Json }
       pos_actualizar_terminal: {
         Args: { p: Json; p_id: string }

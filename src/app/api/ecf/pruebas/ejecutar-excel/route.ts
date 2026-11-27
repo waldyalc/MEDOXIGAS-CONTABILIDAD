@@ -5,6 +5,7 @@ import type {
 } from "@/app/(main)/dashboard/configuracion/facturacion-electronica/_components/ecf-portal-tipos";
 import { getRol } from "@/lib/auth/rol";
 import { consultarResultadoDgii, enviarEcfDgii, obtenerTokenDgii } from "@/lib/ecf/cliente-dgii";
+import { cargarCredencialesEcfServidor } from "@/lib/ecf/config-servidor";
 import { construirUrlQrDgii } from "@/lib/ecf/endpoints";
 import { parsearExcelPruebasDgii } from "@/lib/ecf/excel-pruebas";
 import { firmarXmlDsig } from "@/lib/ecf/firma";
@@ -26,7 +27,7 @@ type ModoEjecucion = "validar_local" | "enviar_testecf";
 
 interface CredencialesResueltas {
   credenciales: ParCertificadoEcf;
-  fuente: "formulario" | "variables_servidor";
+  fuente: "formulario" | "variables_servidor" | "base_datos";
 }
 
 interface EnvioExistente {
@@ -62,8 +63,9 @@ function pemEnv(nombre: string): string | null {
   return valor ? valor.replace(/\\n/g, "\n") : null;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: resuelve de forma explícita y segura las dos custodias permitidas (archivo puntual o PEM de servidor)
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: resuelve de forma explícita y segura las custodias permitidas (archivo puntual, certificado cifrado guardado en BD o PEM de servidor)
 async function resolverCredenciales(
+  supabase: ClienteSupabase,
   form: FormData,
   rnc: string,
 ): Promise<CredencialesResueltas | { error: string; status: number }> {
@@ -93,6 +95,14 @@ async function resolverCredenciales(
     }
   }
 
+  const desdeServidor = await cargarCredencialesEcfServidor(supabase, rnc);
+  if (desdeServidor.ok) {
+    return {
+      credenciales: desdeServidor.credenciales,
+      fuente: desdeServidor.origen === "env" ? "variables_servidor" : "base_datos",
+    };
+  }
+
   const certificadoPem = pemEnv(`ECF_CERT_PEM_${rnc}`);
   const clavePrivadaPem = pemEnv(`ECF_KEY_PEM_${rnc}`);
   if (certificadoPem && clavePrivadaPem) {
@@ -105,8 +115,8 @@ async function resolverCredenciales(
     };
   }
   return {
-    error: `Adjunta el certificado .p12 y su contraseña, o configura ECF_CERT_PEM_${rnc} y ECF_KEY_PEM_${rnc} en el servidor.`,
-    status: 400,
+    error: desdeServidor.error,
+    status: desdeServidor.motivo === "sin_clave_maestra" ? 500 : 400,
   };
 }
 
@@ -407,10 +417,9 @@ export async function POST(request: Request) {
     return jsonError(`El Excel tiene casos cuyo RNCEmisor no coincide con ${rncEmisor} (filas ${filas}).`, 400);
   }
 
-  const credencialesResueltas = await resolverCredenciales(form, rncEmisor);
-  if ("error" in credencialesResueltas) return jsonError(credencialesResueltas.error, credencialesResueltas.status);
-
   const supabase = await createClient();
+  const credencialesResueltas = await resolverCredenciales(supabase, form, rncEmisor);
+  if ("error" in credencialesResueltas) return jsonError(credencialesResueltas.error, credencialesResueltas.status);
   let token: string;
   try {
     const tokenDgii = await obtenerTokenDgii({

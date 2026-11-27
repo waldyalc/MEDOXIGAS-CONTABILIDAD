@@ -219,11 +219,10 @@ describe("candados estructurales del portal e-CF", () => {
     expect(PORTAL).toContain("Activar emisión e-CF");
     expect(PORTAL).not.toContain("todavía no se sube al servidor");
     expect(PORTAL).not.toContain("Solo se valida el nombre y la extensión en esta fase");
-    expect(API_CERTIFICADO).toContain("leerCertificadoPkcs12");
-    expect(API_CERTIFICADO).toContain("cifrarSecretoEcf");
-    expect(API_CERTIFICADO).toContain('.upsert(insertar, { onConflict: "rnc" })');
+    expect(API_CERTIFICADO).toContain("guardarCertificadoP12EnConfig");
     expect(API_CERTIFICADO).toContain('rol !== "admin"');
     expect(API_CERTIFICADO).toContain("ECF_ENCRYPTION_KEY");
+    expect(API_RUNNER_EXCEL).toContain("cargarCredencialesEcfServidor");
   });
 
   it("conecta el Paso 2 con plantilla, validación local y envío real a TesteCF/CerteCF", () => {
