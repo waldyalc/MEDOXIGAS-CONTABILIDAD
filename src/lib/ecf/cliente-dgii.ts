@@ -46,6 +46,22 @@ export interface EnviarEcfDgiiArgs {
   confirmarProduccion?: boolean;
 }
 
+export interface EnviarAprobacionComercialDgiiArgs {
+  ambiente: AmbienteEcf;
+  token: string;
+  nombreArchivo: string;
+  xmlFirmado: string;
+  fetchFn?: FetchEcf;
+  confirmarProduccion?: boolean;
+}
+
+export interface ResultadoAprobacionComercialDgii {
+  codigo: string;
+  estado: EstadoDgii;
+  estadoOriginal: string;
+  mensajes: string[];
+}
+
 export interface ConsultarResultadoDgiiArgs {
   ambiente: AmbienteEcf;
   token: string;
@@ -181,6 +197,53 @@ function normalizarEstadoDgii(estadoOriginal: string, codigo?: string): EstadoDg
   if (texto.includes("proceso") || texto.includes("procesando")) return "en_proceso";
   if (codigo === "1") return "aceptado";
   return "pendiente";
+}
+
+function normalizarEstadoAprobacionComercial(estadoOriginal: string, codigo: string): EstadoDgii {
+  const texto = estadoOriginal
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+  if (codigo === "2" || codigo === "02" || texto.includes("rechazad")) return "rechazado";
+  const textoAprobado =
+    !texto.includes("rechazad") &&
+    (texto.includes("aprobada") || texto.includes("aprobado") || texto.includes("aceptado"));
+  if (codigo === "1" || textoAprobado) return "aceptado";
+  return "pendiente";
+}
+
+function estructuraAprobacionComercialReconocible(
+  cuerpo: Record<string, unknown>,
+  codigo: string,
+  estadoOriginal: string,
+): boolean {
+  if (codigo !== "" || estadoOriginal !== "") return true;
+  return mensajesDesde(cuerpo.mensaje ?? cuerpo.mensajes).length > 0;
+}
+
+export async function enviarAprobacionComercialDgii(
+  args: EnviarAprobacionComercialDgiiArgs,
+): Promise<ResultadoAprobacionComercialDgii> {
+  asegurarAmbientePermitido(args.ambiente, args.confirmarProduccion);
+  const fetchFn = args.fetchFn ?? fetchPorDefecto;
+  const endpoints = endpointsDgii(args.ambiente);
+  const response = await fetchFn(endpoints.aprobacionComercial, {
+    method: "POST",
+    headers: { accept: "application/json", Authorization: `Bearer ${args.token}` },
+    body: formConXml(args.xmlFirmado, args.nombreArchivo),
+  });
+  const cuerpo = await leerCuerpo(response);
+  const codigo = campoTexto(cuerpo, "codigo", "code") ?? "";
+  const estadoOriginal = campoTexto(cuerpo, "estado", "status") ?? "";
+  if (!response.ok && !estructuraAprobacionComercialReconocible(cuerpo, codigo, estadoOriginal)) {
+    throw errorDgii("DGII rechazó la aprobación comercial", response, cuerpo);
+  }
+  return {
+    codigo,
+    estado: normalizarEstadoAprobacionComercial(estadoOriginal, codigo),
+    estadoOriginal,
+    mensajes: mensajesCuerpo(cuerpo),
+  };
 }
 
 export async function consultarResultadoDgii(args: ConsultarResultadoDgiiArgs): Promise<ResultadoConsultaDgii> {

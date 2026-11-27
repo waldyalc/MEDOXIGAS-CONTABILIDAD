@@ -5,6 +5,7 @@ export interface EndpointsDgii {
   validarSemilla: string;
   recepcionEcf: string;
   recepcionRfce: string;
+  aprobacionComercial: string;
   consultaRfce: string;
   consultaResultado: string;
   consultaEstado: string;
@@ -38,6 +39,7 @@ export function endpointsDgii(ambiente: AmbienteEcf): EndpointsDgii {
     validarSemilla: `https://ecf.dgii.gov.do/${ambiente}/autenticacion/api/autenticacion/validarsemilla`,
     recepcionEcf: `https://ecf.dgii.gov.do/${ambiente}/recepcion/api/facturaselectronicas`,
     recepcionRfce: `https://fc.dgii.gov.do/${ambiente}/recepcionfc/api/recepcion/ecf`,
+    aprobacionComercial: `https://ecf.dgii.gov.do/${ambiente}/aprobacioncomercial/api/aprobacioncomercial`,
     consultaRfce: `https://fc.dgii.gov.do/${ambiente}/consultarfce/api/Consultas/Consulta`,
     consultaResultado: `https://ecf.dgii.gov.do/${ambiente}/consultaresultado/api/consultas/estado`,
     consultaEstado: `https://ecf.dgii.gov.do/${ambiente}/consultaestado/api/consultas/estado`,

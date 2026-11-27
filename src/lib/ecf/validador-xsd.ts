@@ -2525,6 +2525,28 @@ function validarArecf(raiz: NodoXml, errores: string[]): void {
   );
 }
 
+function fechaDgiiEsValida(texto: string, exigirAnio20: boolean): boolean {
+  if (!RE_FECHA.test(texto)) return false;
+  const dia = Number(texto.slice(0, 2));
+  const mes = Number(texto.slice(3, 5));
+  const anio = Number(texto.slice(6, 10));
+  if (exigirAnio20 && !/^20\d{2}$/.test(texto.slice(6, 10))) return false;
+  if (mes < 1 || mes > 12 || dia < 1) return false;
+  const esBisiesto = anio % 4 === 0 && (anio % 100 !== 0 || anio % 400 === 0);
+  const diasPorMes = [31, esBisiesto ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return dia <= (diasPorMes[mes - 1] ?? 0);
+}
+
+function fechaHoraDgiiEsValida(texto: string): boolean {
+  if (!RE_FECHA_HORA.test(texto)) return false;
+  if (!fechaDgiiEsValida(texto.slice(0, 10), false)) return false;
+  const hora = Number(texto.slice(11, 13));
+  const minuto = Number(texto.slice(14, 16));
+  const segundo = Number(texto.slice(17, 19));
+  return hora >= 0 && hora <= 23 && minuto >= 0 && minuto <= 59 && segundo >= 0 && segundo <= 59;
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: reproduce las restricciones específicas del XSD ACECF v1.0 en orden de lectura
 function validarAcecf(raiz: NodoXml, errores: string[]): void {
   validarOrdenHijos(raiz, "ACECF", [nodo("DetalleAprobacionComercial", 1), nodo("Signature")], errores);
   const detalle = hijo(raiz, "DetalleAprobacionComercial");
@@ -2545,6 +2567,38 @@ function validarAcecf(raiz: NodoXml, errores: string[]): void {
     ],
     errores,
   );
+
+  const prefijo = "ACECF/DetalleAprobacionComercial";
+  const version = textoHijo(detalle, "Version");
+  if (version !== "" && version !== "1.0") errores.push(`${prefijo}/Version: debe ser exactamente 1.0`);
+
+  const montoTotal = textoHijo(detalle, "MontoTotal");
+  if (montoTotal !== "" && !/^\d+\.\d{2}$/.test(montoTotal)) {
+    errores.push(`${prefijo}/MontoTotal: debe tener exactamente dos decimales según Decimal18D2Validation`);
+  } else if (montoTotal !== "" && montoTotal.replace(".", "").length > 18) {
+    errores.push(`${prefijo}/MontoTotal: no puede exceder 18 dígitos totales según Decimal18D2Validation`);
+  }
+
+  const estado = textoHijo(detalle, "Estado");
+  if (estado !== "" && estado !== "1" && estado !== "2") {
+    errores.push(`${prefijo}/Estado: solo admite 1 (aprobado) o 2 (rechazado)`);
+  }
+
+  const motivo = hijo(detalle, "DetalleMotivoRechazo")?.texto ?? "";
+  if (motivo.length > 250) errores.push(`${prefijo}/DetalleMotivoRechazo: no puede exceder 250 caracteres`);
+  if (estado === "2" && motivo.trim() === "") {
+    errores.push(`${prefijo}/DetalleMotivoRechazo: es obligatorio cuando Estado es 2`);
+  }
+
+  const fechaEmision = textoHijo(detalle, "FechaEmision");
+  if (fechaEmision !== "" && !fechaDgiiEsValida(fechaEmision, true)) {
+    errores.push(`${prefijo}/FechaEmision: debe ser una fecha calendario válida DD-MM-YYYY con año 20xx`);
+  }
+
+  const fechaHora = textoHijo(detalle, "FechaHoraAprobacionComercial");
+  if (fechaHora !== "" && !fechaHoraDgiiEsValida(fechaHora)) {
+    errores.push(`${prefijo}/FechaHoraAprobacionComercial: debe ser una fecha y hora válida DD-MM-YYYY HH:mm:ss`);
+  }
 }
 
 function validarAnecf(raiz: NodoXml, errores: string[]): void {
