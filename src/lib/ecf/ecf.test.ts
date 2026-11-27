@@ -106,6 +106,25 @@ function documentoConsumo(montoBase: number): DocumentoEcfInput {
   return doc;
 }
 
+function documentoGubernamentalE45(): DocumentoEcfInput {
+  const doc = documentoBase();
+  doc.comprobante.tipo = "45";
+  doc.comprobante.encf = "E450000000001";
+  doc.comprobante.fechaLimitePago = "26-12-2026";
+  doc.emisor = {
+    ...doc.emisor,
+    nombreComercial: "COMERCIAL DE PRUEBA",
+    sucursal: "001",
+    telefonos: ["8095550100", "8295550101"],
+  };
+  doc.comprador = { ...doc.comprador, correo: "compras@example.com" };
+  return doc;
+}
+
+function conDeclaracionXmlRealDgii(xml: string): string {
+  return xml.replace('<?xml version="1.0" encoding="utf-8"?>', '<?xml version="1.0" encoding="UTF-8"?>\n');
+}
+
 function erroresDe(doc: DocumentoEcfInput): string[] {
   const validacion = validarDocumentoEcf(doc);
   return validacion.ok ? [] : validacion.errores;
@@ -298,6 +317,32 @@ describe("generación XML DGII", () => {
     expect(xml).not.toContain("<NombreComercial></NombreComercial>");
   });
 
+  it("emite los campos XSD de Alegra en E45 y omite las tasas opcionales en cero", () => {
+    const xml = generarXmlEcf(documentoGubernamentalE45());
+    expect(xml).toContain("<TipoPago>2</TipoPago><FechaLimitePago>26-12-2026</FechaLimitePago>");
+    expect(xml).toContain(
+      "<RazonSocialEmisor>EMPRESA DE PRUEBA SRL</RazonSocialEmisor><NombreComercial>COMERCIAL DE PRUEBA</NombreComercial><Sucursal>001</Sucursal><DireccionEmisor>",
+    );
+    expect(xml).toContain(
+      "<TablaTelefonoEmisor><TelefonoEmisor>8095550100</TelefonoEmisor><TelefonoEmisor>8295550101</TelefonoEmisor></TablaTelefonoEmisor><CorreoEmisor>pruebas@example.com</CorreoEmisor>",
+    );
+    expect(xml).toContain("</RazonSocialComprador><CorreoComprador>compras@example.com</CorreoComprador>");
+    expect(xml).toContain(
+      "<MontoGravadoTotal>100.00</MontoGravadoTotal><MontoGravadoI1>100.00</MontoGravadoI1><ITBIS1>18</ITBIS1><TotalITBIS>18.00</TotalITBIS><TotalITBIS1>18.00</TotalITBIS1><MontoTotal>118.00</MontoTotal>",
+    );
+    expect(xml).not.toContain("<MontoGravadoI2>");
+    expect(xml).not.toContain("<MontoGravadoI3>");
+    expect(xml).not.toContain("<MontoExento>");
+    expect(xml).not.toContain("<ITBIS2>");
+    expect(xml).not.toContain("<ITBIS3>");
+    expect(xml).not.toContain("<TotalITBIS2>");
+    expect(xml).not.toContain("<TotalITBIS3>");
+
+    const xsd = validarXmlContraEsquemaDgii(xml, "ECF");
+    expect(xsd.errores).toEqual([]);
+    expect(xsd.valido).toBe(true);
+  });
+
   it("escapa los cinco caracteres especiales XML en textos", () => {
     expect(escapeXml(`&<>"'`)).toBe("&amp;&lt;&gt;&quot;&apos;");
     const doc = documentoBase();
@@ -348,7 +393,12 @@ describe("generación XML DGII", () => {
     const xml = generarXmlRfce(doc, "ab+/12");
     expect(xml).toContain("<RFCE><Encabezado>");
     expect(xml).toContain("<CodigoSeguridadeCF>ab+/12</CodigoSeguridadeCF>");
-    expect(xml).toContain("<MontoTotal>1180.00</MontoTotal>");
+    expect(xml).toContain(
+      "<MontoGravadoTotal>1000.00</MontoGravadoTotal><MontoGravadoI1>1000.00</MontoGravadoI1><TotalITBIS>180.00</TotalITBIS><TotalITBIS1>180.00</TotalITBIS1><MontoTotal>1180.00</MontoTotal>",
+    );
+    expect(xml).not.toContain("<MontoGravadoI2>");
+    expect(xml).not.toContain("<MontoExento>");
+    expect(xml).not.toContain("<TotalITBIS2>");
     expect(xml).not.toContain("<DetallesItems>");
 
     const grande = documentoConsumo(220000);
@@ -431,6 +481,31 @@ describe("certificados, firma XMLDSig y cifrado", () => {
     expect(firma.codigoSeguridad).toHaveLength(6);
     expect(firma.digestValue).toMatch(/^[A-Za-z0-9+/]+=$/);
     expect(verificarFirmaXmlDsig(firma.xmlFirmado)).toEqual({ valida: true, codigoSeguridad: firma.codigoSeguridad });
+  });
+
+  it("verifica un E45 firmado con salto tras la declaración y estructura real DGII/Alegra", () => {
+    const par = generarCertificadoPruebaAutocontenido("131999999", "EMPRESA DE PRUEBA SRL");
+    const xmlRealista = conDeclaracionXmlRealDgii(generarXmlEcf(documentoGubernamentalE45()));
+    const firma = firmarXmlDsig(xmlRealista, par.clavePrivadaPem, par.certificadoPem);
+
+    expect(firma.xmlFirmado.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<ECF>')).toBe(true);
+    expect(firma.xmlFirmado).toContain("<FechaLimitePago>26-12-2026</FechaLimitePago>");
+    expect(firma.xmlFirmado).toContain("<Sucursal>001</Sucursal>");
+    expect(firma.xmlFirmado).toContain("<TablaTelefonoEmisor>");
+    expect(firma.xmlFirmado).toContain("<CorreoComprador>compras@example.com</CorreoComprador>");
+    expect(firma.xmlFirmado).not.toContain("<MontoGravadoI2>");
+    expect(firma.xmlFirmado).not.toContain("<MontoExento>");
+    expect(firma.xmlFirmado).not.toContain("<TotalITBIS2>");
+
+    const xsd = validarXmlContraEsquemaDgii(firma.xmlFirmado, "ECF");
+    expect(xsd.errores).toEqual([]);
+    expect(xsd.valido).toBe(true);
+    expect(xsd.tipoDetectado).toBe("45");
+    expect(verificarFirmaXmlDsig(firma.xmlFirmado)).toEqual({ valida: true, codigoSeguridad: firma.codigoSeguridad });
+
+    const conCrlf = firma.xmlFirmado.replace("?>\n<ECF>", "?>\r\n<ECF>");
+    expect(validarXmlContraEsquemaDgii(conCrlf, "ECF").valido).toBe(true);
+    expect(verificarFirmaXmlDsig(conCrlf).valida).toBe(true);
   });
 
   it("detecta cualquier alteración del contenido después de firmar", () => {

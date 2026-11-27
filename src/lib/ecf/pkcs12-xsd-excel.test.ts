@@ -155,6 +155,40 @@ describe("validador estricto XSD DGII", () => {
     }
   });
 
+  it("acepta y verifica un E45 firmado con estructura real DGII/Alegra y campos opcionales omitidos", () => {
+    const documento = documentoTipo("45");
+    documento.comprobante.tipoPago = "2";
+    documento.comprobante.fechaLimitePago = "15-02-2026";
+    documento.emisor = {
+      ...documento.emisor,
+      nombreComercial: "COMERCIAL PILOTO",
+      sucursal: "001",
+      telefonos: ["8095550100", "8295550101"],
+    };
+    documento.comprador = { ...documento.comprador, correo: "compras@example.com" };
+
+    const xmlSinFirma = generarXmlEcf(documento);
+    expect(xmlSinFirma).toContain("<TipoPago>2</TipoPago><FechaLimitePago>15-02-2026</FechaLimitePago>");
+    expect(xmlSinFirma).toContain("<Sucursal>001</Sucursal>");
+    expect(xmlSinFirma).toContain("<TablaTelefonoEmisor>");
+    expect(xmlSinFirma).toContain("<CorreoComprador>compras@example.com</CorreoComprador>");
+    expect(xmlSinFirma).not.toContain("<MontoGravadoI2>");
+    expect(xmlSinFirma).not.toContain("<MontoExento>");
+    expect(xmlSinFirma).not.toContain("<TotalITBIS2>");
+
+    const par = generarCertificadoPruebaAutocontenido(RNC_OXYMAT, "OXYMAT SRL");
+    const xmlRealista = xmlSinFirma.replace(
+      '<?xml version="1.0" encoding="utf-8"?>',
+      '<?xml version="1.0" encoding="UTF-8"?>\n',
+    );
+    const firma = firmarXmlDsig(xmlRealista, par.clavePrivadaPem, par.certificadoPem);
+    const xsd = validarXmlContraEsquemaDgii(firma.xmlFirmado, "ECF");
+    expect(xsd.errores).toEqual([]);
+    expect(xsd.valido).toBe(true);
+    expect(xsd.tipoDetectado).toBe("45");
+    expect(verificarFirmaXmlDsig(firma.xmlFirmado)).toEqual({ valida: true, codigoSeguridad: firma.codigoSeguridad });
+  });
+
   it("acepta RFCE, ARECF, ACECF y ANECF con sus estructuras oficiales", () => {
     const documento = documentoTipo("32");
     documento.totales.montoTotal = 118;
