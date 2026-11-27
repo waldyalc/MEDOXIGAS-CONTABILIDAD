@@ -636,12 +636,13 @@ function documentoDesdeFila(lectura: CeldaLectura): DocumentoEcfInput {
     const numeroLineaDoR = lectura.numeroIndizado("NumeroLineaDoR", k);
     if (!tipoAjuste && numeroLineaDoR === undefined) continue;
     const tipoValorTexto = lectura.indizado("TipoValor", k);
+    const tipoValor = tipoValorTexto === "%" || tipoValorTexto === "$" ? tipoValorTexto : undefined;
     descuentosORecargos.push({
       numeroLinea: numeroLineaDoR ?? k,
       tipoAjuste: tipoAjuste === "R" ? "R" : "D",
       indicadorNorma1007: lectura.indizado("IndicadorNorma1007", k) === "1" ? "1" : undefined,
       descripcion: opcional(lectura.indizado("DescripcionDescuentooRecargo", k)),
-      tipoValor: tipoValorTexto === "%" ? "%" : tipoValorTexto === "$" ? "$" : undefined,
+      tipoValor,
       valor: lectura.numeroIndizado("ValorDescuentooRecargo", k),
       monto: lectura.numeroIndizado("MontoDescuentooRecargo", k) ?? 0,
       montoOtraMoneda: lectura.numeroIndizado("MontoDescuentooRecargoOtraMoneda", k),
@@ -650,6 +651,9 @@ function documentoDesdeFila(lectura: CeldaLectura): DocumentoEcfInput {
         | undefined,
     });
   }
+
+  let indicadorNotaCredito: "0" | "1" | undefined;
+  if (tipo === "34") indicadorNotaCredito = lectura.texto("IndicadorNotaCredito") === "1" ? "1" : "0";
 
   return {
     emisor: {
@@ -696,7 +700,7 @@ function documentoDesdeFila(lectura: CeldaLectura): DocumentoEcfInput {
       encf: lectura.texto("ENCF"),
       fechaEmision: lectura.texto("FechaEmision"),
       fechaVencimientoSecuencia: opcional(lectura.texto("FechaVencimientoSecuencia")),
-      indicadorNotaCredito: tipo === "34" ? (lectura.texto("IndicadorNotaCredito") === "1" ? "1" : "0") : undefined,
+      indicadorNotaCredito,
       indicadorEnvioDiferido: lectura.texto("IndicadorEnvioDiferido") === "1" ? "1" : undefined,
       indicadorMontoGravado: indicadorMontoGravado(lectura.texto("IndicadorMontoGravado")),
       indicadorServicioTodoIncluido: lectura.texto("IndicadorServicioTodoIncluido") === "1" ? "1" : undefined,
@@ -950,7 +954,6 @@ function lineaDesdePlantilla(linea: LineaPlantilla, numeroLinea: number): LineaE
   };
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: el parser reproduce las 360 columnas activas del Excel oficial DGII con índices simples y dobles
 function documentoPiloto(caso: CasoPlantilla, rncEmisor: string, razonSocial: string): DocumentoEcfInput {
   const lineas = caso.lineas.map(lineaDesdePlantilla);
   const totales = calcularTotales(lineas);

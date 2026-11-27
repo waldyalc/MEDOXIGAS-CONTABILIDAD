@@ -307,6 +307,7 @@ describe("bloques XSD nivel oficial DGII", () => {
 
   it("emite TablaFormasPago con FormaPago y MontoPago en la posición exacta del IdDoc", () => {
     const doc = base31();
+    doc.comprobante.terminoPago = "30 dias";
     doc.comprobante.formasPago = [
       { formaPago: "1", montoPago: 100 },
       { formaPago: "2", montoPago: 18 },
@@ -315,7 +316,10 @@ describe("bloques XSD nivel oficial DGII", () => {
     expect(xml).toContain(
       "<TablaFormasPago><FormaDePago><FormaPago>1</FormaPago><MontoPago>100.00</MontoPago></FormaDePago><FormaDePago><FormaPago>2</FormaPago><MontoPago>18.00</MontoPago></FormaDePago></TablaFormasPago>",
     );
-    expect(xml.indexOf("<TerminoPago>")).toBeLessThan(xml.indexOf("<TablaFormasPago>") === -1 ? 0 : 0);
+    const posTermino = xml.indexOf("<TerminoPago>30 dias</TerminoPago>");
+    const posFormas = xml.indexOf("<TablaFormasPago>");
+    expect(posTermino).toBeGreaterThan(0);
+    expect(posFormas).toBeGreaterThan(posTermino);
     const xsd = validarXmlContraEsquemaDgii(xml, "ECF");
     expect(xsd.errores).toEqual([]);
   });
