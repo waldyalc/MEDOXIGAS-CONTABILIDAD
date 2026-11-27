@@ -98,6 +98,7 @@ function posicionesAlineacion(version: number, tamano: number): number[] {
   return posiciones;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: El decodificador de prueba reproduce todos los patrones funcionales y sus excepciones por versión.
 function mapaFuncionales(version: number): boolean[][] {
   const tamano = version * 4 + 17;
   const funcionales = Array.from({ length: tamano }, () => Array.from({ length: tamano }, () => false));
@@ -192,6 +193,7 @@ function bytesDesdeBits(bits: readonly number[], cantidadBytes: number): number[
   return bytes;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: La prueba debe invertir exactamente bloques cortos/largos y padding del entrelazado QR.
 function desentrelazarDatos(codewords: readonly number[], version: number, nivelBits: number): number[] {
   const { eccPorBloque, bloques: cantidadBloques } = parametrosCorreccionPrueba(version, nivelBits);
   const crudos = Math.floor(modulosCrudos(version) / 8);
@@ -223,6 +225,7 @@ function desentrelazarDatos(codewords: readonly number[], version: number, nivel
   return datos;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: La lectura zig-zag de prueba reproduce la excepción de la columna 6 y la dirección vertical de ISO/IEC 18004.
 function bitsDeDatos(matriz: boolean[][]): number[] {
   const tamano = matriz.length;
   const version = (tamano - 17) / 4;

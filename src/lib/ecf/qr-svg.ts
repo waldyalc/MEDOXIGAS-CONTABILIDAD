@@ -189,6 +189,7 @@ function restoReedSolomon(datos: readonly number[], divisor: readonly number[]):
   return resultado;
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: El entrelazado Reed-Solomon exige validar bloques cortos/largos y padding en el orden exacto de ISO/IEC 18004.
 function agregarCorreccionEntrelazada(datos: readonly number[], version: number, nivel: NivelCorreccion): number[] {
   const { eccPorBloque, bloques: cantidadBloques } = parametrosCorreccion(version, nivel);
   if (datos.length !== codewordsDatos(version, nivel)) throw new Error("Cantidad de codewords de datos QR inválida");
@@ -349,6 +350,7 @@ function dibujarPatronesFuncion(
   dibujarVersion(modulos, funcionales, version, tamano);
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: La colocación en zig-zag de ISO/IEC 18004 requiere controlar dirección, timing pattern y excepción de la columna 6.
 function dibujarCodewords(
   modulos: MatrizQr,
   funcionales: MatrizQr,
