@@ -25,6 +25,6 @@ description: Cómo partir de origin/main, hacer commits chicos en la rama del wo
 
 ## Dónde está cada cosa
 
-- Worktree de T3: `C:\Users\wardy\.t3\worktrees\MEDOXIGAS-CONTABILIDAD\<rama>`.
-- Copia principal de Waldy: `C:\Users\wardy\proyectos\MEDOXIGAS-CONTABILIDAD` (él la usa con localhost en el puerto 3000). No hagas checkout ni limpies esa carpeta.
-- `main` → https://medoxigas-contabilidad.vercel.app (producción). No hay otro ambiente.
+- Worktrees de T3: `/root/.t3/worktrees/MEDOXIGAS-CONTABILIDAD/<rama>`.
+- Copia principal del VPS (sirve el preview en `feat/pos-alegra-exacto`, puerto `3010`): `/root/MEDOXIGAS-CONTABILIDAD`. No hagas checkout ni reinicies `medoxigas-preview.service` desde un subagente.
+- `main` → https://medoxigas-contabilidad.vercel.app (producción). Preview único del VPS → https://medoxigas-agentes.tail25e53a.ts.net.

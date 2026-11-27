@@ -10,209 +10,110 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # AGENTS.md — Medoxigas Contabilidad
 
-Sistema de **contabilidad y facturación** propio de **MEDOXIGAS ALC, SRL** (y Oxymat), República Dominicana. Dueño: Waldy Alcántara. **Copia exacta de Alegra** (alegra.com) en diseño y comportamiento, en **todo** el sistema (decisión de Waldy, 23-11-2026 — amplía la del 22-11, que solo cubría el POS; desde el 26-11-2026 el color de Alegra no se copia: todo el acento sale del color global de marca): vale copiar su HTML, CSS, estructura y selectores de las capturas y adaptarlos a nuestro código (Next.js + Tailwind + shadcn). Lo que siempre es nuestro: el **logo Medoxigas**, la marca y los datos. El estudio de cómo trabaja Waldy en Alegra vive en `docs/alegra/`.
+Sistema de **contabilidad, POS y facturación** propio de **MEDOXIGAS ALC, SRL** (y piloto **OXYMAT, SRL**), República Dominicana. Dueño: Waldy Alcántara.
 
-- **Exports crudos de Alegra (HTML/CSS SingleFile capturados de la cuenta de Waldy):** son la **plantilla y regla de medición** — se les copia estructura, clases, medidas, colores y comportamiento adaptándolos al código propio — pero **nunca se commitean al repo** (es público y llevan datos de la cuenta): viven fuera del repo (hoy `/root/alegra-refs/`).
+- **Diseño (ley):** **copia exacta de Alegra** (`docs/alegra/ALEGRA.md`, `docs/DESIGN.md`, `docs/plantilla-diseno.md`) en estructura, ritmo y comportamiento — pero **sin copiar el verde teal ni la marca de Alegra**: todo acento sale del color global de marca (`--brand-primary: #1e56c7` en `src/lib/marca.ts` / `globals.css`; `--pos-*` derivados en POS; iconos Tabler; logo siempre Medoxigas). Exports crudos SingleFile viven **fuera del repo** en `/root/alegra-refs/` (nunca se commitean).
+- **Stack:** Next.js 16, React 19, Supabase (`@supabase/ssr`), shadcn/ui + Base UI + Tailwind 4, Biome, Vitest, Playwright, pnpm, Vercel.
+- **Base de datos:** Supabase `ljfdhrnvlsfaweuvnqxz` (`ca-central-1`, **producción**). Roles en `perfiles`: `admin`, `contador`, `lector`. Fiscal RD: DGII (e-CF / NCF, 606, 607, 608).
+- **Repo y ramas:** `waldyalc/MEDOXIGAS-CONTABILIDAD`.
+  - `main` → producción en Vercel (`https://medoxigas-contabilidad.vercel.app`). **Nada entra a `main` sin OK de Waldy + auditoría pre-`main`.**
+  - `feat/pos-alegra-exacto` → rama consolidada del **único preview oficial del VPS**: `https://medoxigas-agentes.tail25e53a.ts.net` (`medoxigas-preview.service`, puerto `3010`).
 
-- **Fuente de la verdad funcional:** `docs/alegra/ALEGRA.md` (con sus capturas y las guías `css-*`). Todo se construye copiando el comportamiento y el orden de Alegra Contabilidad documentados ahí; si hay dudas, manda ese archivo.
-- **Repositorio:** `waldyalc/MEDOXIGAS-CONTABILIDAD`. **Solo existe `main`** → https://medoxigas-contabilidad.vercel.app (producción). Cada push a `main` despliega.
-- **Base de datos:** Supabase, proyecto **MEDOXIGAS-CONTABILIDAD** (`ljfdhrnvlsfaweuvnqxz`, ca-central-1, plan gratis). **Única fuente de la verdad.** Roles en `perfiles`: `admin`, `contador`, `lector`.
-- **Stack:** Next.js 16, React 19, Supabase (`@supabase/ssr`), shadcn/ui + Base UI + Tailwind 4, Biome, Vitest, Playwright, pnpm, Vercel. Diseño: **`docs/DESIGN.md` es la ley** (estructura de Alegra + color global `--brand-primary` `#1e56c7` en ERP, POS y PWA — cero teal de Alegra; iconos Tabler); plantilla base → `docs/plantilla-diseno.md`.
-- **Fiscal RD:** la facturación debe cumplir con la DGII (e-CF / NCF, reportes 606 y 607). Se diseña con Contable antes de programar.
+---
 
-## Rol según cómo fuiste invocado
+## Rol según cómo fuiste invocado (agnóstico de modelo)
 
-**Lee esto primero. Orquestador y subagente nunca se confunden.**
+Estas reglas aplican por igual sin importar qué IA esté corriendo (Gemini 4 Neon, Claude Fable 5.2, Claude Opus 5.5, SWE-2.1, DeepSeek, Codex, OpenCode, etc.).
 
-### Sesión principal (Orquestador / Tech Lead)
+### 1. Sesión principal (Orquestador / Tech Lead)
+Si hablas **directamente con Waldy** en el hilo principal:
+- Lee **`docs/ORQUESTADOR.md`** (tu playbook obligatorio: **Olas de máx. 3–4 agentes + Cola automática + Gate de Verifier**).
+- Casting por defecto (Waldy, 27-11-2026):
+  - **Workers (implementación en worktree):** `SWE-2.1 Max` (`acpRegistry_devin` / `swe-2-1-medium`, `{ "thought_level": "max" }`).
+  - **Verifier de ola (solo lectura, contexto fresco antes de integrar):** `SWE-2.1 Max` (`role: "review"`).
+  - **Auditor pre-`main` (solo lectura, antes de pedir merge a `main`):** `Gemini 4 Neon High` (`antigravity` / `gemini-4-neon`, `{ "thought_level": "high" }`, `role: "review"`).
+- Nunca hagas `git merge` ciego: toda rama pasa primero por `.agents/agents/verifier.md` (`[accepted]`).
+- Waldy aprueba todo lo irreversible: deploy/`main`, migraciones que borran o cambian datos, borrar datos reales y planes pagos.
 
-Si estás hablando **directamente con Waldy en el hilo principal de T3 Code**, eres el **Orquestador**:
+### 2. Subagente / tarea delegada (Ejecutor o Verificador)
+Si llegaste por un brief de `delegate_task`:
+- **No leas `docs/ORQUESTADOR.md`** ni lances subagentes.
+- Ejecuta solo tu brief en tu worktree sobre los archivos de tu lista cerrada de ownership.
+- Verifica con `pnpm typecheck`, `pnpm check` y `pnpm test` (y `scripts/pgtap-local.sh` si hay SQL).
+- **Prueba visual SIEMPRE (regla de Waldy):** si tocaste UI/diseño y el brief lo pide, entrega capturas claro/oscuro/móvil tomadas con `pnpm captura` (ZZTEST, sin imprimir claves ni commitear `.env*`). Sin evidencia, no está terminado.
+- Haz commits chicos en tu rama. **No hagas push ni merge a `main`** salvo orden explícita.
 
-- Analizas el pedido, diseñas el plan y lo divides en tareas con **archivos disjuntos** (dos subagentes nunca escriben el mismo archivo).
-- Delegas con `delegate_task` e `isolation: "worktree"`. Modelo por defecto: **DeepSeek V4.1 Flash 1017** → `providerInstanceId: "opencode"`, `model: "opencode-go/deepseek-v4.1-flash"`, `options: { variant: "max" }`; usa otro solo si Waldy lo pide.
-- **Modelo único (Waldy, 23-11-2026 8:59 PM):** todos los hijos usan **DeepSeek V4.1 Flash 1017** (`providerInstanceId: "opencode"`, `model: "opencode-go/deepseek-v4.1-flash"`, `options: { variant: "max" }`). Devin, SWE-2 Max y Adaptive quedan cancelados (MSG-26 y MSG-27); no se usan salvo que Waldy lo pida explícitamente.
-- **Cuota agotada:** si un hijo devuelve «Your daily usage quota has been exhausted», avisa a Waldy en el hilo de inmediato y espera su decisión; no lo relances en otro modelo sin preguntar.
-- Revisas el diff real, verificas los checks de CI y luego integras a `main`.
-- **Solo tú lees `docs/ORQUESTADOR.md`**: es tu playbook obligatorio.
-- Waldy aprueba lo irreversible: deploy a producción, migraciones que borran o cambian datos, borrar datos y planes pagos.
+---
 
-### Subagente / tarea delegada (Ejecutor o Revisor)
+## Comandos (verificados)
 
-Si llegaste por un brief de `delegate_task`, eres **Ejecutor** (o Revisor), no el orquestador:
+| Acción | Comando |
+| --- | --- |
+| Instalar (hooks) | `pnpm install` |
+| Desarrollo | `pnpm dev` → `http://localhost:3000` (en worktree usa puerto `3011+`) |
+| Tipos | `pnpm typecheck` |
+| Formato + lint | `pnpm check` (`pnpm check:fix`) |
+| Tests unitarios | `pnpm test` |
+| Ticket 80 mm (PDF) | `pnpm test:pdf` (Chromium + Poppler; fuera de `pnpm test`) |
+| Humo E2E | `pnpm test:e2e` |
+| Build prod | `pnpm build` |
+| Tipos Supabase | `pnpm db:types` (tras cada migración) |
+| pgTAP local | `bash scripts/pgtap-local.sh` (Postgres local del VPS; **nunca** contra producción) |
+| Capturas UI | `pnpm captura --ruta /pos --salida /root/referencias/capturas-terminadas/<fecha>-<tema> [--base http://localhost:3010]` |
 
-- **Prueba visual SIEMPRE (regla de Waldy, 20-11-2026):** tu reporte entrega evidencia de lo que hiciste. Si tocaste UI o diseño: **capturas de pantalla del resultado funcionando** desde el preview oficial con Playwright (ver «Preview y capturas al terminar»; para UI, además claro/oscuro y móvil si aplica). El Orquestador te pasa las credenciales por archivo temporal fuera del repo — nunca las imprimas ni las commitees. Las capturas se le muestran a **Waldy para que las verifique con sus ojos**; sin captura, tu trabajo no está terminado. Si tu tarea es backend/motor, la evidencia es la verificación (tests, pgTAP en CI, logs).
+## Skills y subagentes (`.agents/`, enlazados en `.opencode/` y `.claude/`)
 
-- **No leas `docs/ORQUESTADOR.md`** ni asumas el rol de orquestador.
-- Ejecuta el brief **tú mismo** en tu worktree: código, tests y docs de tu tarea.
-- Verifica en local con `pnpm typecheck`, `pnpm check` y `pnpm test`.
-- Haz commits chicos en tu rama y **no hagas push ni merge a `main`** salvo que el brief lo pida explícitamente.
-- **Nunca lances subagentes.**
-- Reporta al Orquestador: archivos cambiados, verificación y cualquier bloqueo.
+Fuente canónica en **`.agents/skills/<nombre>/SKILL.md`** (disponible para Antigravity/Gemini, Claude/Fable, Devin y OpenCode):
+- `diseno-ui` — shadcn (`InputGroup`, `Select`, `DatePicker`), color global Medoxigas y copia exacta de Alegra.
+- `flujo-git` — worktrees, commits chicos y reporte al Orquestador sin tocar `main`.
+- `probar-cambios` — typecheck, check, test, build y husky (nunca `--no-verify`).
+- `motor-contable` — doble partida, cuentas por defecto e invariantes.
+- `supabase-migraciones` — migraciones aditivas, timestamp UTC real, RLS y pgTAP.
+- `ticket-80mm` — medidas exactas pt/mm y carril `pnpm test:pdf`.
+- `biome` — convertir cada corrección de Waldy en candado.
+- `localhost` — dev server en worktree (`3011+`).
+- `pedir-ayuda` — preguntar cuando haya bloqueo en lugar de inventar atajos.
 
-## Ir rápido
+Subagentes reutilizables en **`.agents/agents/`**: `verifier.md` (solo lectura) y `planner.md` (solo lectura).
 
-- Lee solo lo que pide el brief (y la skill que aplique). No explores el repo ni `node_modules` por curiosidad.
-- No leas tipos en `node_modules` para copiar una API: copia un uso real del repo (ver skill `diseno-ui`).
-- No hagas verificación visual, no levantes el dev server ni abras el preview, salvo que el brief lo pida (lo hace el Orquestador).
-- ¿Atascado? Usa la skill `pedir-ayuda`: pregunta, no des vueltas.
+> Si `gemini-api` está disponible en el `PATH` del VPS, cualquier agente puede usarlo para Deep Research (`gemini-api agent run --background`) o análisis multimodal de PDFs/capturas (`gemini-api analyze -i ...`); inspecciona `--help` / `--dry-run` antes de llamar.
 
-## Antes de empezar
+---
 
-- [ ] Lee este `AGENTS.md` y el `HANDOFF.md`.
-- [ ] Carga la skill de `.opencode/skills/` que aplique (ver abajo).
-- [ ] Si el cambio es de UI, lee también `docs/plantilla-diseno.md` y, si toca factura o fechas, `docs/alegra/css-factura/`.
+## Estructura y Ownership
 
-## Skills
+- Rutas ERP: `src/app/(main)/dashboard/<modulo>/page.tsx` (Server Component chico) + `_components/` + `src/lib/<modulo>/`.
+- POS: `src/app/(pos)/pos/` (shell propio con `menu-pos.tsx`, 5 rutas).
+- Menú lateral: `src/navigation/sidebar/sidebar-items.ts`. Auth/proxy: `src/proxy.ts` + `src/lib/supabase/`. Backend/RLS: `supabase/AGENTS.md`.
+- **Archivos compartidos de alto riesgo** (nunca dos workers a la vez): `package.json`, `pnpm-lock.yaml`, `AGENTS.md`, `src/app/globals.css`, `src/components/listas/tabla-lista.tsx`, `src/navigation/sidebar/sidebar-items.ts`, `src/lib/supabase/types.ts`.
+- **Generados (no editar a mano):** `src/lib/supabase/types.ts` (`pnpm db:types`), `pnpm-lock.yaml`, `.next/`, `next-env.d.ts`.
 
-Viven en `.opencode/skills/<nombre>/SKILL.md`. Cárgalas con la herramienta `skill` de OpenCode (el id es el nombre de la carpeta):
+## Calidad de código y Candados
 
-- `localhost` — levantar el dev server en un worktree de T3 (puerto 3001, `.env.local`, login y la misma base de producción).
-- `probar-cambios` — comandos de test, lint, typecheck y build, y los hooks de husky (nunca `--no-verify`).
-- `flujo-git` — rama `feat/*` o `fix/*` desde `origin/main`, commits chicos y reporte al Orquestador; sin merge a `main` ni force-push.
-- `diseno-ui` — shadcn tal cual (`InputGroup`, `Select`, calendario), colores Medoxigas y **copia exacta del diseño de Alegra** (`docs/alegra/` + exports crudos en `/root/alegra-refs/`), adaptada a nuestro código.
-- `motor-contable` — motor de doble partida (archivos, cuentas por defecto, invariantes) y tests antes de cambiar un cálculo.
-- `supabase-migraciones` — cómo escribir una migración; no aplicarla en el remoto ni usar `service_role`; RLS en tablas nuevas.
-- `pedir-ayuda` — si te atascas, pregunta al Orquestador con la herramienta `question`; no des vueltas ni inventes atajos.
-- `biome` — cómo convertir cada corrección de Waldy en un candado (test o regla de Biome) y resumen de la charla de Lauren Tan.
+- TS estricto (`noUncheckedIndexedAccess`). Biome: sin `any` (salvo `src/components/ui`), sin `!`, sin `@ts-ignore`, sin `console` salvo `error`/`warn` (`src/scripts/` exento). Toda supresión lleva motivo en el mismo comentario.
+- Dinero: nunca flotante guardado (`numeric(14,2)` en BD; centavos en TS; cálculos de ITBIS y totales en servidor).
+- Listas desplegables: `Select`/`SelectCampo`/`Combobox` (prohibido `<select>`/`NativeSelect` fuera de `components/ui`). Fechas: `DatePicker`/`DatePickerCampo` (prohibido `<input type="date">`).
+- `supabase.rpc("nombre", args)` siempre directo (nunca extraerlo a variable ni castear con `as`).
+- Sin nuevas dependencias en `package.json` sin justificación y aprobación explícita.
+- Cada corrección de Waldy se vuelve candado (test o regla Biome). Catálogo completo en **`docs/candados.md`**.
 
-- `ticket-80mm` — `.opencode/skills/ticket-80mm/SKILL.md`: contrato MSG-22 de medidas exactas en pt/mm y prueba de cuatro PDFs (`src/lib/pos/ticket-pdf.test.tsx`, carril `pnpm test:pdf`). Obligatoria al tocar factura/prefactura/cotización/cierre: no adivinar tamaños en em ni comparar capturas con dpi distintos.
+## Preview único en el VPS (`feat/pos-alegra-exacto`)
 
-## Módulos (menú lateral)
+- Enlace permanente único para Waldy: **https://medoxigas-agentes.tail25e53a.ts.net** (Tailscale, servicio `medoxigas-preview.service`, puerto `3010`, lectura con usuarios ZZTEST de `.env.pruebas`).
+- Flujo tras integrar una ola en `feat/pos-alegra-exacto`: `pnpm build` → `systemctl restart medoxigas-preview` → verificar HTTP 200 → tomar capturas en `/root/referencias/capturas-terminadas/`.
+- Nunca levantes dev servers en el puerto `3010` ni mates `medoxigas-preview.service`. Puertos `3011+` son solo internos de worktrees y nunca se le pasan a Waldy.
 
-Hechos: Inicio, Ingresos (facturas de venta y recurrentes, pagos recibidos, notas de crédito y débito, cotizaciones, conduces), Compras (facturas de proveedor, pagos, gastos menores, notas de crédito, órdenes de compra, pagos recurrentes), Contactos, Inventario (productos, ajustes, transferencias, listas de precios, almacenes, categorías), Bancos (cuentas y conciliaciones), Contabilidad (catálogo de cuentas, asientos, numeraciones, activos fijos, periodos), Reportes y Configuración.
+## Done means (criterio de terminado)
 
-Punto de venta (`src/app/(pos)/pos/`, shell propio con riel lateral `menu-pos.tsx` de 52 px → 271 px, sin el sidebar de Contabilidad): `/pos` (vender), `/pos/pagos` (registro de pagos), `/pos/turnos`, `/pos/historial` (ventas) y `/pos/devoluciones`. La configuración de terminales vive en `/dashboard/configuracion/pos`.
+- `pnpm typecheck`, `pnpm check` y `pnpm test` en verde (y `scripts/pgtap-local.sh` si tocó SQL).
+- Diff limpio, solo archivos de ownership, sin dependencias no aprobadas.
+- Capturas entregadas en `/root/referencias/capturas-terminadas/` si hubo cambio de UI.
+- Toda afirmación en el reporte respaldada por comando real o `ruta:línea`; lo no comprobado se declara `not measured`.
+- Al cerrar bloque: actualizar **`HANDOFF.md`** (compacto; el histórico vive en `docs/handoff-archivo/`).
 
-Transversales: adjuntos por documento/ficha, auditoría de quién creó/modificó/anuló, búsqueda global, saldos iniciales, tipos de entrada de diario, límite de crédito por contacto y control de `vende_negativo` por producto. El motor contable se resume en `docs/motor-contable.md`; tablas y RPC en `supabase/AGENTS.md`.
+## Never
 
-Próximos: e-CF/DGII (606/607) y lo que marque `HANDOFF.md`. Cada módulo nuevo: `docs/dominio-<modulo>.md` primero, luego migración + RLS + pgTAP, luego pantalla.
-
-## Comandos (verificados, copy-paste)
-
-| Para…                    | Comando                                                        |
-| ------------------------ | -------------------------------------------------------------- |
-| Instalar (activa hooks)  | `pnpm install`                                                 |
-| Desarrollo               | `pnpm dev` → http://localhost:3000 (`/login`, sin sesión)      |
-| Tipos                    | `pnpm typecheck`                                               |
-| Formato + lint + imports | `pnpm check` (`pnpm check:fix` para arreglar)                  |
-| Tests unitarios          | `pnpm test`                                                    |
-| Ticket 80 mm (PDF real)  | `pnpm test:pdf` (Chromium + Poppler; NO entra en `pnpm test`)  |
-| Humo navegador           | `pnpm test:e2e` (sin `E2E_EMAIL`/`E2E_PASSWORD` se salta)      |
-| Build prod               | `pnpm build`                                                   |
-| Regenerar tipos Supabase | `pnpm db:types` (tras cada migración; ver `supabase/AGENTS.md`) |
-| Probar RLS en local      | `supabase start` + `supabase test db` (NUNCA contra producción) |
-| pgTAP sin Docker         | `scripts/pgtap-local.sh` (Postgres 18 + pgtap del VPS; corre como `postgres`) |
-| Capturas claro/oscuro/móvil | `pnpm captura --ruta /pos --salida <carpeta>` (ZZTEST, storageState fuera del repo) |
-
-## Estructura (convención de la plantilla)
-
-- Rutas: `src/app/(main)/dashboard/<modulo>/page.tsx`. `page.tsx` es Server Component chico, sin `"use client"`; lo interactivo va en su propio componente cliente.
-- Componentes: `.../<modulo>/_components/`. Datos y consultas: `src/lib/<modulo>/`.
-- Menú: `src/navigation/sidebar/sidebar-items.ts` (`roles` por ítem). Auth y sesión: `src/proxy.ts` (middleware Next 16) + `src/lib/supabase/{server,client,proxy}.ts`. Rol: `src/lib/auth/rol.ts`.
-- Backend y RLS: ver `supabase/AGENTS.md`.
-
-## Archivos generados (no editar a mano)
-
-- `src/lib/supabase/types.ts` ← `pnpm db:types` (tras cada migración; el job `db` de CI verifica que esté al día).
-- `pnpm-lock.yaml` ← `pnpm install`. `.next/`, `next-env.d.ts` ← `next dev`/`build`.
-
-## Base de datos (regla del VPS)
-
-- Toda operación de base de datos (migraciones, consultas, tipos) se hace con **Supabase CLI desde este VPS**; no se usan claves en scripts ni `service_role` en el cliente.
-- El token de acceso vive en `/root/.supabase.env` (chmod 600, cargado por el shell). **Nunca** se imprime, se pega en el chat o en logs, ni se commitea.
-- Proyecto `ljfdhrnvlsfaweuvnqxz` = **producción**: es la base que usa https://medoxigas-contabilidad.vercel.app, donde Waldy hace su prueba real del mes. Los agentes solo la **leen** con usuarios ZZTEST; **nunca** escriben datos ni aplican migraciones sin el OK de Waldy en el chat. La base de OPP tampoco se toca sin su OK.
-- Para pruebas con escritura los agentes usan Postgres local (`scripts/pgtap-local.sh`), **nunca producción**. Propuesta de staging aparte: `docs/infra/base-staging.md`.
-
-## Calidad de código (la verifica CI; el pre-push también)
-
-- TypeScript estricto extra (`noUncheckedIndexedAccess`, etc.; sin `exactOptionalPropertyTypes`: rompe Base UI). Biome: sin `any` (salvo `src/components/ui`), sin `!`, sin `console` salvo `error`/`warn` (scripts en `src/scripts/` exentos), sin `@ts-ignore`. Toda supresión `biome-ignore` o `@ts-expect-error` lleva el motivo en el mismo comentario.
-- Dinero: nunca `number` flotante para montos guardados; en la base `numeric(14,2)`, cálculos de ITBIS y totales en el servidor.
-- Listas desplegables: siempre `Select`/`SelectCampo` o el `Combobox` de `components/ui`; nunca `<select>` ni `NativeSelect` fuera de `components/ui`.
-- `supabase.rpc("nombre", args)` siempre directo: nunca guardarlo en una variable ni convertirlo con `as` (desvincula `this` y crashea la pantalla).
-- Código simple, poco, sin relleno. Sin nuevas dependencias sin decirlo en el PR y justificarlo.
-
-## Git y despliegue
-
-- **`main` es la única rama de larga vida**; cada push a `main` despliega a producción en Vercel.
-- Toda tarea nace en `feat/*` o `fix/*` **desde `origin/main`**, en su propio worktree de T3.
-- El subagente hace commits chicos en su rama y **reporta al Orquestador**; no empuja ni fusiona a `main` salvo que el brief lo pida.
-- El Orquestador revisa el diff, verifica los checks reales de CI y luego integra a `main`.
-- Nunca force-push, nunca `--no-verify`, nunca reescribir historia publicada. Ver skill `flujo-git`.
-
-## Preview oficial en el VPS — UNO solo (regla de Waldy, 24-11-2026)
-
-- **Hay UN solo enlace de preview y es para siempre:** https://medoxigas-agentes.tail25e53a.ts.net (solo abre desde equipos con Tailscale). Es **el único que Waldy abre y revisa**; no le pases nunca otra URL con otro puerto.
-- **La rama que sirve es `feat/pos-alegra-exacto` = el "main" del preview:** contiene `main` más **TODOS** los cambios hechos en el VPS. Cada vez que una tarea se integra, se mergea su rama a `feat/pos-alegra-exacto` (nunca se le borra trabajo; si falta algo que Waldy ya aprobó — como un menú o una pantalla — es un bug de consolidación y se arregla mergeando lo que falte).
-- Por dentro es el servicio systemd `medoxigas-preview.service`: corre `pnpm start` en el puerto **3010** desde `/root/MEDOXIGAS-CONTABILIDAD` (sirve el último `pnpm build`; hay que rebuild tras cada merge), contra la base de **producción** (solo lectura con usuarios ZZTEST).
-- **Flujo tras integrar:** mergear a `feat/pos-alegra-exacto` → `pnpm build` → `systemctl restart medoxigas-preview` → comprobar que responde 200.
-- **Nunca** levantes otro dev server en el puerto 3010 ni mates ese servicio.
-- Los puertos 3011+ son solo para verificación de desarrollo de un worktree (tests, capturas internas del agente); **nunca se le pasan a Waldy como preview**.
-- El login es con los usuarios **ZZTEST** de `.env.pruebas` (las claves nunca van en el repo ni en prompts).
-
-## Vercel y producción
-
-- Vercel construye SOLO los cambios en `main`. Las ramas y los PR NO generan preview en Vercel; para revisar se usa el preview del VPS (puerto 3010).
-- Vercel tiene un límite de builds seguidos (build-rate-limit). No se unen muchas ramas a `main` de golpe; si un build se rechaza, Vercel no lo reintenta solo y hay que disparar otro.
-- Nada se une a `main`, se publica, se promueve en Vercel ni cambia variables de entorno sin el OK de Waldy en el chat.
-- El trabajo se consolida en `feat/pos-alegra-exacto` (la rama del preview único) y se publica a `main` de una sola vez cuando Waldy lo apruebe.
-
-## Candados: cada corrección se vuelve un test o una regla
-
-- **Regla de Waldy (20-11-2026) — capturas siempre:** todo cambio de UI (diseño nuevo o ajuste) llega con **capturas de pantalla del resultado terminado**: las toma el propio subagente que implementó (Playwright; el brief las exige como criterio de terminado), el Orquestador revisa el diff y los checks estructurales, y **le muestra las capturas a Waldy, que es quien verifica visualmente y decide**. "Listo" sin captura no está listo. Dónde y cómo se toman: «Preview y capturas al terminar».
-
-- **Regla de oro:** cada vez que Waldy te corrija algo, no lo apuntes solo aquí. Crea un **test** (Vitest, pgTAP o Playwright) o una **regla de Biome** que falle si alguien lo vuelve a hacer, con un mensaje que diga cómo arreglarlo de raíz. Después agrega una línea abajo. Cómo hacerlo: skill `biome`.
-- **Por qué:** este archivo es un consejo y la IA a veces no lo lee, se le olvida o busca una excusa. Un test o una regla es un candado: si se rompe, el commit no entra.
-- **Test** = un programa pequeño que revisa que el sistema funcione (ej.: una factura de 1,000 genera un asiento que cuadra). **Regla de Biome** = revisa cómo está escrito el código (ej.: prohibido `<select>` nativo).
-- La IA copia lo que ve en el repo: no dejes parches ni comentarios que justifiquen atajos; limpia los casos viejos cuando crees una regla.
-
-Candados que ya existen:
-
-- `src/lib/selects-nativos.test.ts` — prohíbe `<select>` y `NativeSelect` fuera de `components/ui`.
-- `src/lib/rpc-sin-extraer.test.ts` — prohíbe guardar `supabase.rpc` en una variable o convertirlo con `as`; llamar siempre `supabase.rpc("nombre", args)` directo.
-- `src/lib/numeraciones/acciones.test.ts` — la server action de numeraciones llama la RPC directa con el payload validado y devuelve los errores en español.
-- `src/lib/paginacion.test.ts` — los reportes, bancos, fichas y selectores críticos leen por lotes (`paginarConsulta`/`consultarEnLotes`), sin topes de 300/500/1,000; ventas/rentabilidad por producto no se corta en 20,000 líneas.
-- `src/lib/tablas-listas.test.ts` — las listas migradas usan `TablaLista` (una sola implementación de tabla/paginación), cada `<TableHead>` mide 48 px (`h-12`) y `EsqueletoTabla` conserva 48/56 px sin salto de layout; las listas maestro-detalle del POS (`/pos/pagos`, `/pos/turnos`, `/pos/historial`, `/pos/devoluciones`) usan el kit compartido (`TarjetaLista`/`BarraLista`/`PillEstado`) sin pills locales.
-- `src/lib/bancos/consultas.test.ts` — la gráfica de `/dashboard/bancos` (`getIngresosGastosMensual`) lee `asientos` por índice de fecha y luego sus líneas con `consultarEnLotes`, prohibiendo volver al join `asientos!inner` que agotaba `statement_timeout`.
-- `src/lib/diseno-paginas.test.ts` — las pantallas migradas usan el marco `EncabezadoPagina` + migas, sin `text-3xl` suelto; las pantallas del POS usan `EncabezadoPagina` en su `*-pos.tsx` (sin migas: la navegación es el riel lateral).
-- `src/lib/fichas-sin-datos-ejemplo.test.ts` — prohíbe `*_EJEMPLO` y datos ficticios en las fichas de contacto y producto.
-- `src/lib/fechas-nativas.test.ts` — prohíbe `<input type="date">` fuera de `components/ui`; obliga a usar `DatePicker` / `DatePickerCampo`.
-- `src/lib/reportes-encabezado.test.ts` — todos los reportes usan `EncabezadoReporte` (con migas por defecto) o `EncabezadoPagina`, sin `<h1>` sueltos.
-- `src/lib/supabase/migraciones.test.ts` — exige formato `YYYYMMDDHHMMSS_nombre.sql`, sin duplicados ni archivos vacíos/sueltos, y timestamp UTC real para toda migración nueva posterior a `20261123000000`.
-- `src/lib/supabase/reset-virgen.test.ts` — exige que las 64 tablas `public.*` de las migraciones estén clasificadas una sola vez en `docs/pruebas/reset-base-virgen.sql`, dentro de `BEGIN…COMMIT`, sin tocar `perfiles` ni `auth.users`.
-- `tests/e2e/numeraciones.spec.ts` — guardar B16 sin cambios cierra el diálogo y un nombre en blanco muestra el error en español (requiere `E2E_EMAIL`/`E2E_PASSWORD`, como el humo).
-- `supabase/tests/anular_ajuste_costo_test.sql` — anular un ajuste de inventario de entrada devuelve la cantidad y revierte el costo promedio; anular una compra ya lo hacía (`anular_compra_costo_test.sql`).
-- `supabase/tests/fix_actualizar_cuenta_invariantes_test.sql`, `fix_actualizar_numeracion_gastos_menores_test.sql` y `fix_saldos_iniciales_lock_test.sql` — candados de la auditoría de funciones SQL: `actualizar_cuenta` rechaza `acepta_movimientos = false` con líneas y cambio de tipo con subcuentas de otro tipo; editar una serie `00` (prefijo `B`/`B1`) no cruza con los NCF B13 de gastos menores; `registrar_saldos_iniciales` toma `pg_advisory_xact_lock` antes del chequeo de duplicados.
-- `supabase/tests/fix_nc_residuo_credito_test.sql` — varias NC parciales que agotan la línea cuadran exactas (la última toma subtotal/ITBIS como residuo) y una NC manual sobre factura pagada no puede dejar `credito` mayor que `total - pagado - retenido`; solo el reembolso explícito del POS (`permite_saldo_a_favor`) deja saldo a favor.
-- `src/lib/pos/ticket-pdf-carril.test.ts` — el test del ticket 80 mm (Chromium + Poppler) queda fuera de `pnpm test`: exige que `vitest.config.mts` lo excluya, que `pnpm test:pdf` use `vitest.pdf.config.mts` y que el job `ci` de CI no instale navegador ni Poppler (solo el job `pdf`).
-- `src/lib/pos/diseno-pos.test.ts` — el POS usa los tokens `--pos-*`, derivados del color global de marca; prohíbe `--primary` y hexes de marca directos en `src/app/(pos)/pos/` y exige la derivación en `globals.css`. Además fija el Punto 1: el turno y las pestañas de ventas van en la barra inferior (`barra-inferior-pos.tsx`), no en una línea sobre el buscador ni dentro del panel, y el Sheet móvil termina 44 px antes para no tapar la barra. El cuerpo del panel usa `--pos-panel` (#f8fafc) con encabezado, bloque superior, renglones y pie blancos, y el shell fija `--ring: var(--pos-primario)` para que el foco use la marca.
-- `src/lib/marca.test.ts` — una sola fuente de marca (`src/lib/marca.ts` + `--brand-primary` en `globals.css`) alimenta ERP, POS, PWA, iconos y preferencias; prohíbe el teal de Alegra en `src/` (la excepción temporal de reportes solo puede encoger).
-- `src/lib/contactos/dialogo-nuevo-contacto.test.ts` + `src/components/contactos/dialogo-nuevo-contacto.test.tsx` — el alta de Contactos usa `DialogoNuevoContacto` (el formulario completo queda para editar y para «Formulario avanzado»); en el POS el alta de cliente no ofrece «Proveedor» ni guarda proveedor/ambos (`permitirProveedor={false}` en el panel de venta, su selector y el alta de cliente de pagos).
-- `src/lib/pos/mas-opciones.test.ts` + `tests/e2e/pos-mas-opciones.spec.ts` — el ⋯ del carrito abre el panel «Más opciones» a todo el panel (no un dropdown) con los cuadros «Guardar cotización», «Cargar cotización» e «Historial de ventas» desde un arreglo; X y Esc cierran sin tocar la venta.
-- `src/lib/binarios-grandes.test.ts` (+ `src/lib/binarios-permitidos.txt`) — bloquea binarios nuevos >200 KB e imágenes con «alegra» en el nombre o bajo `docs/diseno/alegra-pos/`; lo ya commiteado quedó abuelado en la lista permitida, que solo encoge.
-- `src/lib/facturacion/totales-factura-ui.test.ts` + `totales-nota.test.ts` — la vista y el papel muestran el Subtotal bruto cuando hay Descuento (`subtotalBruto`), las notas B03/B04 incluyen otros impuestos y propina, no se anula una factura con notas activas, la fecha de anulación no es anterior a la factura, convertir a factura ofrece B14/B15/B16 y la tabla de facturas usa `hoyRd()`.
-- `.github/workflows/supabase.yml` — en PR, toda migración nueva en `supabase/migrations/` exige al menos un archivo tocado en `supabase/tests/`.
-
-## Preview y capturas al terminar (regla de Waldy, 22-11-2026)
-
-«Al terminar una tarea, todo agente debe tomar capturas de pantalla de lo que hizo (en el preview) y entregarlas con su informe; el orquestador, al juntar, actualiza el preview y reporta las capturas».
-
-- **Preview oficial:** http://127.0.0.1:3010 (puerto 3010, el único preview que ve Waldy). Al juntar, el Orquestador mergea a `feat/pos-alegra-exacto` (la rama consolidada con todo el trabajo del VPS), `pnpm build` y `systemctl restart medoxigas-preview`, y comprueba que responde 200.
-- **Cómo se toman:** con el script único **`pnpm captura --ruta /pos --salida <carpeta> [--base http://localhost:3010]`** (`src/scripts/captura.ts`): entra como **ZZTEST** (credenciales de `.env.pruebas`, storageState en `/root/.medoxigas/` fuera del repo, se renueva solo), toma claro 1440 px, oscuro 1440 px y móvil 390 px, y **falla ante errores de consola o HTTP 5xx**. Todos los agentes usan este script; nada de scripts de captura improvisados.
-- **Dónde se guardan:** `/root/referencias/capturas-terminadas/<fecha>-<punto>.png`, fuera del repo (defecto del script: `/root/referencias/capturas-terminadas/<fecha>`). El informe del Orquestador lista la ruta y una línea de qué muestra cada una.
-- **Seguridad:** no se commitean claves ni datos sensibles; las capturas sí pueden incluir datos de prueba de ZZTEST.
-
-## Antes de decir "listo"
-
-- [ ] `pnpm typecheck`, `pnpm check`, `pnpm test` y `pnpm build` en verde.
-- [ ] Un PR = una tarea; diff pequeño (<400 líneas sin contar generados/lockfile).
-- [ ] Si tocaste datos: los números coinciden con Supabase (SQL de solo lectura). Si cambió UI: además de las capturas del preview, en claro/oscuro y móvil.
-- [ ] Capturas de lo que quedó hecho, una por punto, desde el preview oficial (ZZTEST, 1440 px), guardadas en `/root/referencias/capturas-terminadas/` y entregadas con el informe.
-- [ ] Actualiza `HANDOFF.md` (qué se hizo y cómo se resolvió).
-- [ ] Si eres subagente: reporta al Orquestador rama, SHA, archivos y verificación. No empujes ni fusiones a `main`.
-
-## Nunca
-
-- `service_role` en el cliente, en un script o en un prompt; desactivar RLS; editar migraciones aplicadas.
-- Cambiar una política RLS para que un test pase sin el OK de Waldy.
-- Probar Supabase contra producción (`--linked`, `--db-url` o el proyecto real): solo `supabase start` local.
-- Commitear `.env*` o claves (Alegra, Supabase, DGII); `--no-verify`; usar el logo, la marca ni imágenes de Alegra (el logo siempre es Medoxigas); commitear exports crudos de Alegra al repo; escribir en WhatsApp ni contactar a nadie.
+- `service_role` en cliente/scripts/prompts; apagar RLS; editar migraciones aplicadas; correr `supabase test` contra producción (`ljfdhrnvlsfaweuvnqxz`).
+- Commitear `.env*`, claves, tokens (`/root/.supabase.env`) o exports crudos de Alegra (`/root/alegra-refs/`).
+- Usar `--no-verify`, `--force`, push/merge a `main` sin OK de Waldy, ni usar el logo/marca/teal de Alegra.
+- Escribir en WhatsApp ni contactar a terceros.

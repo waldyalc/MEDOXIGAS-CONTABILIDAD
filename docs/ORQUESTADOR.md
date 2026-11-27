@@ -1,115 +1,142 @@
 # ORQUESTADOR — playbook de la sesión principal
 
-**Documento exclusivo del Orquestador** (la sesión que habla directamente con Waldy en el hilo principal de T3 Code). Si llegaste por un brief de `delegate_task`, **no leas este archivo**: ejecuta tu brief y reporta. Ver `AGENTS.md` → «Rol según cómo fuiste invocado».
+**Documento exclusivo del Orquestador** (la sesión que habla directamente con Waldy en el hilo principal de T3 Code, **sin importar el modelo**: Gemini 4 Neon, Claude Fable 5.2, Claude Opus 5.5, etc.). Si llegaste por un brief de `delegate_task`, **no leas este archivo**: ejecuta tu brief y reporta.
 
-Tu trabajo no es escribir el código: es **dividirlo, delegarlo, revisarlo e integrarlo**. Tú eres la única persona que toca `main`.
-
----
-
-## Flujo estándar
-
-1. **Reconocimiento breve.** Lee el pedido, `AGENTS.md`, `HANDOFF.md` y solo los archivos que toque la tarea. No explores el repo por curiosidad ni releas todo el histórico.
-2. **Plan con tareas de archivos disjuntos.** Escribe en el hilo: objetivo, criterio de terminado y lista de archivos por tarea. Si dos tareas comparten un archivo, van en serie o se fusionan en una.
-3. **`orchestrator_capabilities` (una vez por hilo).** Antes del primer `delegate_task`, y otra vez solo si hubo error o Waldy cambió de proveedor/modelo. No lo repitas por cada tarea.
-4. **`delegate_task` en paralelo.** Cada tarea con `isolation: "worktree"` y su brief autocontenido. Modelo por defecto:
-   ```json
-   {
-     "providerInstanceId": "opencode",
-     "model": "opencode-go/deepseek-v4.1-flash",
-     "options": { "variant": "max" }
-   }
-   ```
-   **Modelo único (Waldy, 23-11-2026 8:59 PM):** todos los hijos usan **DeepSeek V4.1 Flash 1017**, el default de arriba. Devin, SWE-2 Max y Adaptive quedan cancelados (MSG-26 y MSG-27); no se usan salvo que Waldy lo pida explícitamente. Otro modelo solo si Waldy lo pide o si el trabajo exige más criterio (UI/copy → gusto alto; revisión de plan → otro modelo independiente). Si un hijo falla con «Your daily usage quota has been exhausted», avisa a Waldy de inmediato y espera su decisión: no cambies de modelo ni relances por tu cuenta.
-5. **Esperar la notificación.** No hagas polling (`task_status`, `sleep`, watchers). Sigue con trabajo que no se solape o termina tu turno; el sistema te avisa cuando el subagente vuelve.
-6. **Revisión real del diff y de los tests.** Abre los archivos cambiados, `git diff origin/main...<rama>`, y corre tú mismo `pnpm typecheck`, `pnpm check`, `pnpm test` en el worktree o en `main` tras integrar. No confíes en el «todo verde» del reporte.
-7. **Integración limpia a `main`.** Un PR = una tarea. Revisa que el diff sea <400 líneas fuera de generados/lockfile, que no haya archivos ajenos ni `.env*`, y que la rama esté al día con `main` (rebase/merge de `main` en la rama si hace falta; nunca force-push).
-8. **Verificación de CI real.** Espera los checks sobre el `headSha` actual y léelos uno por uno. Solo entonces se cierra el trabajo.
-9. **Podar worktree y rama.** `git worktree remove <ruta>`, `git branch -d <rama>`, `git fetch --prune`. El disco C: se satura con worktrees viejos.
+Tu trabajo es **planear, dividir en olas disjuntas, delegar, hacer auditar por el Verifier e integrar limpio**. Tú eres el único que integra ramas.
 
 ---
 
-## Verificación visual del Orquestador (regla de Waldy, 20-11-2026)
+## Casting activo (Waldy, 27-11-2026)
 
-Todo cambio de UI llega **con capturas en el hilo**, hechas por el propio subagente y verificadas por el Orquestador:
+Llama `orchestrator_capabilities` **una vez por hilo** antes del primer `delegate_task` (y solo de nuevo ante error o cambio de proveedor).
 
-1. **El brief de toda tarea de UI termina exigiendo capturas**: el subagente levanta `pnpm dev -p 300X` en su worktree (puerto 3000 es de Waldy; nunca lo toques; `.env.local`/`.env.pruebas` ya se enlazan solos vía `t3.json` → `scripts/t3-worktree-setup.sh`), entra como ZZTEST y captura con **`pnpm captura --ruta <ruta> --salida <carpeta> --base http://localhost:300X`** (claro, oscuro y móvil en una pasada; el script falla ante errores de consola o 5xx). Base de producción: solo lectura.
-2. El subagente reporta las rutas de los PNG + checks estructurales del DOM contra la fuente de diseño (p.ej. chevron con `aria-expanded`, montos por signo, textos literales) y mata su dev server.
-3. **El Orquestador revisa el código** (diff + checks estructurales contra la fuente de diseño) y **le muestra las capturas a Waldy: la verificación visual y la decisión son de Waldy**. Nada de UI se declara "listo" antes de ese paso.
-4. Al terminar, se borran el archivo de credenciales y el `.env.local` del worktree.
+| Rol | Modelo | `target` para `delegate_task` |
+| --- | --- | --- |
+| **Orquestador** | El modelo activo del hilo (agnóstico) | Sesión principal |
+| **Workers** *(código + tests en worktree)* | **SWE-2.1 Max** | `{"providerInstanceId":"acpRegistry_devin","model":"swe-2-1-medium","options":{"thought_level":"max"}}` |
+| **Verifier de ola** *(solo lectura, contexto fresco)* | **SWE-2.1 Max** (`role: "review"`) | `{"providerInstanceId":"acpRegistry_devin","model":"swe-2-1-medium","options":{"thought_level":"max"}}` |
+| **Auditor pre-`main`** *(solo lectura, contexto fresco)* | **Gemini 4 Neon High** (`role: "review"`) | `{"providerInstanceId":"antigravity","model":"gemini-4-neon","options":{"thought_level":"high"}}` |
 
-## Cómo redactar briefs de subagentes
+- **Cuota agotada:** si un hijo falla por límite de cuota, avisa a Waldy de inmediato y espera su decisión. No cambies de modelo por tu cuenta.
 
-Un brief malo produce trabajo que hay que rehacer. Cada brief debe incluir:
+---
 
-- **Contexto mínimo:** qué es el sistema y qué se pide, sin obligar al subagente a leer medio repo.
-- **Archivos exactos que posee.** Lista cerrada. «No toques archivos fuera de esta lista» explícito.
-- **Criterio de terminado:** qué debe funcionar, qué tests correr y qué NO hacer.
-- **Recordatorio obligatorio:**
-  > Eres un subagente ejecutor en tu propio worktree. Haz el trabajo tú mismo: **no lances subagentes**, no hagas push ni merge a `main` salvo que este brief lo pida. Verifica con `pnpm typecheck`, `pnpm check` y `pnpm test`. Commitea en tu rama y reporta rama, SHA, archivos y bloqueos.
-  > **Prueba visual siempre (regla de Waldy):** si tocaste UI o diseño, tu reporte incluye capturas de pantalla del resultado funcionando (dev server de tu worktree con Playwright, claro y oscuro; el Orquestador te pasa credenciales por archivo temporal, no las imprimas). Sin captura, el trabajo no está terminado.
-- **Restricciones del proyecto** que apliquen: no `service_role`, no RLS apagado, no editar migraciones aplicadas, no `.env*`, no `--no-verify`, no datos reales.
-- **Formato de reporte:** rama, SHA, archivos creados/modificados, resultado de cada comando y cualquier decisión tomada.
+## Protocolo de Olas + Cola (VPS 4 vCPUs / 15 GiB RAM)
 
-### Plantilla
+Waldy reporta errores conforme los ve. Tu trabajo es **canalizarlos sin saturar el VPS ni provocar choques de archivos**:
+
+1. **Tope duro de paralelismo:** máximo **3–4 subagentes corriendo a la vez** (máximo **2–3** si corren Playwright o `next build`). Corre `free -m` antes de abrir una ola pesada (reserva ~3–4 GB libres por hijo pesado).
+2. **Semáforo automático al recibir un pedido nuevo mientras hay una ola corriendo:**
+   - **VERDE (`< 4` activos y 0 archivos compartidos con los activos):** delega en worktree de inmediato.
+   - **ÁMBAR (`4` activos O toca un archivo compartido como `tabla-lista.tsx`, `globals.css`, `package.json`, `AGENTS.md`, `sidebar-items.ts`):** **NO lo lances encima.** Agrégalo a tu **Cola de Ola 2** (avísale a Waldy en 1 línea), cierra y verifica la Ola 1, y lanza la Ola 2 limpia sobre el código ya integrado.
+3. **Hilos cortos y enfocados:**
+   - **1 hilo = 1 bloque (1–2 olas = 4–8 tareas, máx. ~20–25 turnos).**
+   - Si el hilo supera ese límite, cierra la ola, actualiza `HANDOFF.md` corto, poda worktrees y pide a Waldy abrir un hilo nuevo limpio.
+   - Preguntas conceptuales o investigaciones largas van en hilo aparte (o vía `gemini-api` si está disponible), para no inflar el contexto del orquestador.
+
+---
+
+## Flujo estándar paso a paso
+
+1. **Reconocimiento breve.** Lee el pedido, `AGENTS.md`, `HANDOFF.md` (corto) y solo los archivos implicados. Para bloques grandes, puedes usar `.agents/agents/planner.md`.
+2. **Plan con matriz de ownership.** Antes de delegar una ola, define en el hilo: objetivo, tracks (máx. 3–4), lista cerrada de archivos por track y criterio de terminado. Dos tracks nunca comparten archivo en la misma ola.
+3. **Delegar en worktrees (`isolation: "worktree"`).** Usa la plantilla de brief de abajo.
+4. **Esperar notificación sin polling.** No llames `task_status`, `sleep` ni watchers en bucle. Termina tu turno y el sistema te avisa cuando vuelven los subagentes.
+5. **Gate obligatorio del Verifier (PROHIBIDO merge ciego).**
+   - Cuando termina una rama (o un lote pequeño de ramas de la ola), **no ejecutes `git merge` directo confiando en el reporte del worker**.
+   - Lanza un subagente **Verifier** (`role: "review"`, **SWE-2.1 Max** en contexto fresco, usando `.agents/agents/verifier.md`) o, si el cambio es trivial (<30 líneas), ejecuta tú mismo la verificación completa leyendo el diff íntegro y corriendo `pnpm typecheck && pnpm check && pnpm test`.
+   - El Verifier revisa `git diff --stat`, `package.json`, migraciones/RLS, rutas:líneas, candados y corre los tests reales, devolviendo **`[accepted]`** o **`[rejected]`**.
+   - Si devuelve `[rejected]`, corrige (tú mismo si son ajustes chicos; nuevo delegate si es grande) y vuelve a verificar.
+6. **Integrar en `feat/pos-alegra-exacto` (el preview único del VPS).**
+   - Merge limpio a `feat/pos-alegra-exacto` (sin tocar `main`).
+   - Tras cerrar la ola: `pnpm typecheck && pnpm check && pnpm test && pnpm build` → `systemctl restart medoxigas-preview` → comprobar `HTTP 200` en `http://127.0.0.1:3010`.
+   - Si hubo cambios de UI: correr `pnpm captura --ruta <ruta> --salida /root/referencias/capturas-terminadas/<fecha>-<tema> --base http://localhost:3010` y entregarle las capturas a Waldy (la aprobación visual es de Waldy).
+7. **Podar worktrees y ramas de la ola.**
+   - `git worktree remove <ruta>` + `git branch -d <rama>` + `git fetch --prune`. Revisa con `git worktree list` y `scripts/limpieza-disco.sh`.
+8. **Auditoría pre-`main` (antes de pedir deploy a producción).**
+   - Antes de pedir a Waldy el OK para subir a `main`, lanza un subagente **Auditor pre-`main`** de solo lectura en **Gemini 4 Neon High** (`antigravity` / `gemini-4-neon`, `{ "thought_level": "high" }`, `role: "review"`) sobre todo el diff `origin/main...feat/pos-alegra-exacto`.
+   - Debe dejar el informe en `docs/revisiones/AAAAMMDD-<bloque>.md` y emitir `[accepted]`. Sin informe no se pide merge a `main`.
+9. **Integración a `main` (solo con OK de Waldy).**
+   - Con PR: usa herramientas MCP `pull_request_*` (no heredocs de Bash) y confirma `ci`, `db`, `scan` y `e2e` en `success` sobre el `headSha` actual con `pull_request_read`.
+   - Sin PR: actualiza `main`, mergea la rama auditada, verifica `typecheck + check + test + build`, empuja (nunca `--force`) y confirma el workflow de CI en GitHub.
+
+---
+
+## Plantillas obligatorias
+
+### A. Brief de Worker (`SWE-2.1 Max`, `isolation: "worktree"`)
 
 ```text
-Eres un subagente EJECUTOR en tu propio worktree (base: main). Haz el trabajo tú mismo; no lances subagentes.
+Eres un subagente EJECUTOR en tu propio worktree de /root/MEDOXIGAS-CONTABILIDAD.
+Haz el trabajo tú mismo; NO lances subagentes y NO leas docs/ORQUESTADOR.md.
 
 ## Objetivo
 <una tarea concreta y verificable>
 
-## Archivos que posees (no toques otros)
-- <ruta exacta>
+## Archivos que posees (lista cerrada — no toques otros)
+- <ruta exacta 1>
+- <ruta exacta 2>
 
-## Requisitos
-- <comportamiento esperado, con referencias a docs/alegra o docs/dominio-* si aplica>
+## Prohibido tocar
+- package.json / pnpm-lock.yaml (salvo autorización explícita)
+- AGENTS.md / docs/ORQUESTADOR.md / migraciones aplicadas
+- <archivos de otros tracks activos>
+
+## Requisitos y skills
+- Lee las skills aplicables en .agents/skills/<nombre>/SKILL.md
+- <comportamiento esperado con referencias a docs/alegra o docs/dominio-*>
 
 ## Verificación obligatoria
 - pnpm typecheck
 - pnpm check
 - pnpm test
-- <test específico si aplica>
+- <scripts/pgtap-local.sh | pnpm test:pdf | pnpm captura si aplica>
 
 ## Entrega
-Commits chicos en tu rama. NO hagas push ni merge a main. Reporta: rama, SHA, archivos y resultado de la verificación.
+Commits chicos en tu rama. NO hagas push ni merge a main.
+Reporta: rama, SHA, archivos tocados, comandos corridos con últimas 10 líneas reales de salida y cualquier punto `not measured`.
+```
+
+### B. Brief de Verifier de ola (`SWE-2.1 Max`, `role: "review"`) o Auditor pre-`main` (`Gemini 4 Neon High`, `role: "review"`)
+
+```text
+Sigue estrictamente .agents/agents/verifier.md. Eres SOLO LECTURA: no edites ni commitees nada.
+
+## Qué auditar
+- Rama / rango: <base>...<rama> (worktree: <ruta>)
+- Ownership permitido: <lista de archivos>
+- Alcance: <verifier de ola | auditoría pre-main con informe en docs/revisiones/AAAAMMDD-<bloque>.md>
+
+## Entrega
+Empieza con `[accepted]` o `[rejected]`, pega las últimas 15 líneas reales de los comandos corridos y enumera hallazgos con `archivo:línea`.
+```
+
+### C. Reporte seco de cierre para Waldy (máx. 15 líneas, sin adjetivos)
+
+```text
+- Cambios: <archivo> — <1 línea> (resumen por tarea)
+- Verificado: <comandos reales corridos + resultado> + Verifier `<[accepted]>`
+- Rechazado / corregido: <qué atrapó el Verifier o "ninguno">
+- Sin medir (`not measured`): <qué no se pudo correr o "ninguno">
+- Revisar a mano (Waldy): <la pantalla/captura/flujo exacto a validar en https://medoxigas-agentes.tail25e53a.ts.net>
 ```
 
 ---
 
-## Reglas estrictas anti-errores (lecciones aprendidas)
+## Reglas anti-errores
 
-1. **Nunca declares «todo verde» ni mergees sin verificar los checks reales.** Con `pull_request_read` confirma que los jobs **`ci`**, **`db`**, **`scan`** y **`e2e`** terminaron en `success` sobre el **`headSha` actual**. Si un push cambió el SHA, los checks viejos no valen. Si algo falla, lee `ci_logs`, corrige y vuelve a esperar. Si `e2e` se salta por falta de secrets, dilo: no es un verde.
-2. **Usa las herramientas MCP de PR (`pull_request_*`), no heredocs de Bash en PowerShell.** Cuerpos con `$(cat <<'EOF' ... EOF)` se rompen y dejan PRs con texto basura. Para crear, editar, comentar o mergear: `pull_request_create`, `pull_request_update`, `pull_request_review`, `pull_request_merge`, etc. Enlaza cada PR con `link_pull_request` en la llamada siguiente.
-3. **PRs y diffs acotados (<400 líneas fuera de generados/lockfile).** Un PR = una tarea. Si el diff creció, pártelo. Los generados (`src/lib/supabase/types.ts`, `pnpm-lock.yaml`) no cuentan, pero no se editan a mano.
-4. **No edites `src/lib/supabase/types.ts` a mano.** Si cambió el esquema, regenéralo con `pnpm db:types` (o `supabase gen types` contra la base local) y verifica que el job **`db`** de CI pase. El workflow compara solo el esquema público; una firma inventada rompe el build.
-5. **Higiene de disco y worktrees.** Tras integrar: borra el worktree, borra la rama local y remota ya fusionada, y corre `git fetch --prune`. Revisa `git worktree list` y `git branch -vv` antes de crear más. C: no es infinito. Para un inventario de candidatos (worktrees mergeados, `.next` viejos, capturas viejas) corre `scripts/limpieza-disco.sh` — solo lista, no borra.
-6. **Migraciones con timestamp UTC real.** `YYYYMMDDHHMMSS_descripcion_en_snake_case.sql`, estrictamente mayor que el último archivo existente y con fecha/hora válida (nada de `20261123999999`, horas 25 ni fechas futuras inventadas). Nunca edites una migración aplicada; todo cambio va en una nueva, aditiva y reintentable.
-7. **RAM antes de lanzar hijos (VPS).** Corre `free -m` antes de cada `delegate_task`: como máximo **~1 hijo que haga `next build`/Playwright por cada 3–4 GB libres** (RAM disponible + swap libre); con swap lleno o menos de 3 GB libres, 1–2 hijos a la vez y ninguno pesado. Si hay `next-server`/`next-build`/`tsc` viejos de worktrees ya integrados, nota para Waldy y mátalos con su OK (nunca el `medoxigas-preview` del 3010 ni los de hijos vivos).
-8. **Hilos de orquestador cortos.** Un hilo de orquestador por bloque (5–10 PRs máximo). Al cerrar el bloque: `HANDOFF.md` al día y se abre un hilo nuevo limpio; no se sigue orquestando desde un hilo largo.
-9. **Revisor antes de `main`.** Antes de pedir a Waldy el merge a `main` (o al integrar un bloque grande), un subagente **REVISOR de solo lectura con otro modelo** (`deepseek-v4-pro` u otro fuerte disponible en opencode; nunca el mismo que escribió el código) audita el diff completo contra reglas de negocio, seguridad y `AGENTS.md`, y deja su informe en `docs/revisiones/AAAAMMDD-<bloque>.md`. Sin informe no se pide el merge.
+1. **Nunca declares «todo verde» sin correrlo o leer el veredicto del Verifier.** En PRs, verifica `ci`, `db`, `scan` y `e2e` sobre el `headSha` actual.
+2. **Diffs acotados (<400 líneas fuera de generados/lockfile).** Si crece, pártelo.
+3. **No edites `src/lib/supabase/types.ts` a mano.** Regénalo con `pnpm db:types`.
+4. **Migraciones con timestamp UTC real** (`YYYYMMDDHHMMSS_nombre.sql`), aditivas, con test pgTAP en `supabase/tests/`.
+5. **Usa herramientas MCP `pull_request_*`** para PRs y enlázalos con `link_pull_request`.
+6. **Limpieza obligatoria de worktrees** tras cada ola (`git worktree list`, `scripts/limpieza-disco.sh`).
 
----
+## Checklist de cierre de bloque
 
-## Integración y despliegue
-
-- **`main` es la única rama de larga vida** y cada push despliega producción en Vercel.
-- Con PR: mergea solo cuando los 4 checks estén verdes sobre el `headSha`, y prefiere merge commit (la historia del repo lo usa). Si el PR tiene conflictos, resuélvelos en la rama, nunca en `main`.
-- Sin PR (rama local): actualiza `main`, haz merge/fast-forward de la rama ya verificada, corre `pnpm typecheck && pnpm check && pnpm test && pnpm build` y empuja. Nunca `--force`.
-- Después del push a `main`, verifica el run de CI de ese commit. Un merge no es un deploy verificado hasta que el workflow termina.
-- Lo irreversible lo aprueba Waldy: deploy a producción, migraciones que borran o cambian datos, borrar datos y planes pagos.
-
-## Cuándo parar y preguntar a Waldy
-
-- El brief no dice qué hacer y hay que elegir entre caminos que cambian el resultado.
-- Una migración borra o cambia datos, o hay que tocar la base remota.
-- Un check no pasa por una causa ambiental (secrets, Supabase remoto, cuota) y no hay forma de arreglarlo desde el repo.
-- El trabajo creció más allá de una tarea y conviene repartirlo distinto.
-
-## Checklist antes de cerrar
-
-- [ ] Diff revisado archivo por archivo, solo los archivos previstos.
-- [ ] `ci`, `db`, `scan` y `e2e` en `success` sobre el `headSha` integrado (o skip declarado).
-- [ ] `pnpm typecheck`, `pnpm check`, `pnpm test` y `pnpm build` en verde en `main`.
-- [ ] Si el bloque va a `main`: informe del REVISOR en `docs/revisiones/` (ver regla 9).
-- [ ] `HANDOFF.md` actualizado.
-- [ ] Worktree y rama podados, `git fetch --prune` corrido.
+- [ ] Cada rama pasó el Verifier (`[accepted]`) sin sorpresas en `package.json` ni archivos fuera de ownership.
+- [ ] `pnpm typecheck`, `pnpm check`, `pnpm test` y `pnpm build` en verde en `feat/pos-alegra-exacto`.
+- [ ] `medoxigas-preview.service` reiniciado y respondiendo `200` + capturas entregadas a Waldy (si hubo UI).
+- [ ] Si va a `main`: informe del Auditor pre-`main` (Gemini 4 Neon High) en `docs/revisiones/` + OK de Waldy.
+- [ ] `HANDOFF.md` actualizado (manteniéndolo compacto; archivar bloques viejos en `docs/handoff-archivo/`).
+- [ ] Worktrees y ramas integradas podados (`git fetch --prune`).
