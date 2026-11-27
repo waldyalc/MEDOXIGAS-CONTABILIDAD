@@ -1585,9 +1585,7 @@ export function PortalEcfCliente({
   function seleccionarPiloto(id: EmpresaPilotoEcfId) {
     const piloto = EMPRESAS_PILOTO_ECF[id];
     const config = configsPorRnc[piloto.rnc] ?? null;
-    const guardadoLocal = leerAmbientePersistidoLocal(piloto.rnc);
     setEmpresaPilotoId(id);
-    setAmbiente(resolverAmbienteInicial(config?.ambiente, guardadoLocal));
     if (config?.dominioBase) setDominioBase(config.dominioBase);
     setArchivoCertificado(null);
     setContrasenaCertificado("");
