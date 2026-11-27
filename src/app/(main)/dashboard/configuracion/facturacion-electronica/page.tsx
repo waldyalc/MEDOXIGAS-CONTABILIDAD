@@ -5,7 +5,8 @@ import { EncabezadoPagina } from "@/components/pagina/encabezado-pagina";
 import { getRol } from "@/lib/auth/rol";
 import { createClient } from "@/lib/supabase/server";
 
-import type { EmisorEcf, NumeracionEcf } from "./_components/pasos-habilitacion";
+import { configuracionEcfPublicaDesdeFila, type FilaConfigEcf } from "./_components/ecf-portal-tipos";
+import { EMPRESAS_PILOTO_ECF, type EmisorEcf, type NumeracionEcf } from "./_components/pasos-habilitacion";
 import { PortalEcfCliente } from "./_components/portal-ecf-cliente";
 
 export default async function Page() {
@@ -14,7 +15,8 @@ export default async function Page() {
   if (rol === "lector") redirect("/dashboard/configuracion");
 
   const supabase = await createClient();
-  const [empresaRes, numeracionesRes] = await Promise.all([
+  const rncsPilotos = Object.values(EMPRESAS_PILOTO_ECF).map((piloto) => piloto.rnc);
+  const [empresaRes, numeracionesRes, configsRes] = await Promise.all([
     supabase
       .from("empresa")
       .select("nombre, rnc, direccion, telefono, correo")
@@ -28,10 +30,20 @@ export default async function Page() {
       .order("tipo_comprobante")
       .order("prefijo")
       .returns<NumeracionEcf[]>(),
+    supabase
+      .from("ecf_config")
+      .select(
+        "rnc, razon_social, ambiente, activo, dominio_base, cert_titular, cert_numero_serie, cert_valido_hasta, cert_huella_sha256",
+      )
+      .in("rnc", rncsPilotos)
+      .returns<FilaConfigEcf[]>(),
   ]);
 
   if (empresaRes.error) throw new Error(empresaRes.error.message);
   if (numeracionesRes.error) throw new Error(numeracionesRes.error.message);
+  if (configsRes.error) throw new Error(configsRes.error.message);
+
+  const configsIniciales = (configsRes.data ?? []).map((fila) => configuracionEcfPublicaDesdeFila(fila));
 
   return (
     <ContenedorLista className="gap-5">
@@ -44,7 +56,12 @@ export default async function Page() {
           { etiqueta: "Facturación electrónica" },
         ]}
       />
-      <PortalEcfCliente empresa={empresaRes.data} numeraciones={numeracionesRes.data ?? []} />
+      <PortalEcfCliente
+        empresa={empresaRes.data}
+        numeraciones={numeracionesRes.data ?? []}
+        configsIniciales={configsIniciales}
+        claveMaestraConfigurada={Boolean(process.env.ECF_ENCRYPTION_KEY?.trim())}
+      />
     </ContenedorLista>
   );
 }
