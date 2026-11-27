@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { configuracionEcfPublicaDesdeFila } from "./ecf-portal-tipos";
 import {
   CASOS_PRUEBA_DGII,
   CHECKLIST_MIGRACION_ALEGRA,
@@ -16,8 +17,21 @@ import { join } from "node:path";
 
 const CARPETA = join(process.cwd(), "src", "app", "(main)", "dashboard", "configuracion");
 const PORTAL = readFileSync(join(CARPETA, "facturacion-electronica", "_components", "portal-ecf-cliente.tsx"), "utf8");
+const SET_EXCEL = readFileSync(join(CARPETA, "facturacion-electronica", "_components", "set-excel-dgii.tsx"), "utf8");
 const PAGINA = readFileSync(join(CARPETA, "facturacion-electronica", "page.tsx"), "utf8");
 const CONFIGURACION = readFileSync(join(CARPETA, "page.tsx"), "utf8");
+const API_CERTIFICADO = readFileSync(
+  join(process.cwd(), "src", "app", "api", "ecf", "config", "certificado", "route.ts"),
+  "utf8",
+);
+const API_PLANTILLA = readFileSync(
+  join(process.cwd(), "src", "app", "api", "ecf", "pruebas", "plantilla", "route.ts"),
+  "utf8",
+);
+const API_RUNNER_EXCEL = readFileSync(
+  join(process.cwd(), "src", "app", "api", "ecf", "pruebas", "ejecutar-excel", "route.ts"),
+  "utf8",
+);
 
 describe("pasos de habilitación e-CF", () => {
   it("mantiene los 6 pasos oficiales en orden", () => {
@@ -128,6 +142,36 @@ describe("pasos de habilitación e-CF", () => {
     expect(calcularProgresoHabilitacion("migracion")).toBe(8);
     expect(calcularProgresoHabilitacion("primera")).toBe(8);
   });
+
+  it("convierte metadatos públicos de ecf_config sin exponer secretos", () => {
+    const config = configuracionEcfPublicaDesdeFila(
+      {
+        rnc: "131488791",
+        razon_social: "OXYMAT SRL",
+        ambiente: "certecf",
+        activo: true,
+        dominio_base: "https://app.medoxigas.com",
+        cert_titular: "OXYMAT SRL",
+        cert_numero_serie: "ABC123",
+        cert_valido_hasta: "2027-01-10T04:00:00.000Z",
+        cert_huella_sha256: "AA:BB",
+      },
+      new Date("2026-11-27T12:00:00.000Z"),
+    );
+    expect(config).toMatchObject({
+      rnc: "131488791",
+      razonSocial: "OXYMAT SRL",
+      ambiente: "certecf",
+      activo: true,
+      certTitular: "OXYMAT SRL",
+      certNumeroSerie: "ABC123",
+      certHuellaSha256: "AA:BB",
+      vigente: true,
+    });
+    expect(config.diasRestantes).toBeGreaterThan(40);
+    expect(config).not.toHaveProperty("cert_cifrado");
+    expect(config).not.toHaveProperty("cert_pass_cifrada");
+  });
 });
 
 describe("candados estructurales del portal e-CF", () => {
@@ -168,10 +212,51 @@ describe("candados estructurales del portal e-CF", () => {
     expect(PORTAL).toContain("DOMINIO_BASE_ECF_PROPIO");
   });
 
+  it("conecta el Paso 1 con la API real del certificado y elimina la simulación de subida", () => {
+    expect(PORTAL).toContain('"/api/ecf/config/certificado"');
+    expect(PORTAL).toContain("Validar y guardar certificado");
+    expect(PORTAL).toContain("Estado real guardado en ecf_config");
+    expect(PORTAL).toContain("Activar emisión e-CF");
+    expect(PORTAL).not.toContain("todavía no se sube al servidor");
+    expect(PORTAL).not.toContain("Solo se valida el nombre y la extensión en esta fase");
+    expect(API_CERTIFICADO).toContain("leerCertificadoPkcs12");
+    expect(API_CERTIFICADO).toContain("cifrarSecretoEcf");
+    expect(API_CERTIFICADO).toContain('.upsert(insertar, { onConflict: "rnc" })');
+    expect(API_CERTIFICADO).toContain('rol !== "admin"');
+    expect(API_CERTIFICADO).toContain("ECF_ENCRYPTION_KEY");
+  });
+
+  it("conecta el Paso 2 con plantilla, validación local y envío real a TesteCF/CerteCF", () => {
+    expect(SET_EXCEL).toContain('"/api/ecf/pruebas/ejecutar-excel"');
+    expect(SET_EXCEL).toContain("Descargar plantilla Excel piloto");
+    expect(SET_EXCEL).toContain("Validar Excel (local)");
+    expect(SET_EXCEL).toContain("Enviar set real");
+    expect(SET_EXCEL).toContain("certificadoP12");
+    expect(API_PLANTILLA).toContain("generarPlantillaExcelPruebasPiloto");
+    expect(API_RUNNER_EXCEL).toContain("parsearExcelPruebasDgii");
+    expect(API_RUNNER_EXCEL).toContain("validarXmlContraEsquemaDgii");
+    expect(API_RUNNER_EXCEL).toContain("obtenerTokenDgii");
+    expect(API_RUNNER_EXCEL).toContain("enviarEcfDgii");
+    expect(API_RUNNER_EXCEL).toContain("consultarResultadoDgii");
+    expect(API_RUNNER_EXCEL).toContain('documento_tipo: "prueba"');
+  });
+
+  it("mantiene el candado absoluto contra Producción en el runner Excel", () => {
+    expect(API_RUNNER_EXCEL).toContain('ambienteTexto === "ecf"');
+    expect(API_RUNNER_EXCEL).toContain('ambienteTexto === "produccion"');
+    expect(API_RUNNER_EXCEL).toContain("nunca puede apuntar a Producción");
+    expect(API_RUNNER_EXCEL).toContain("confirmarProduccion: false");
+    expect(API_RUNNER_EXCEL).not.toContain("confirmarProduccion: true");
+    expect(SET_EXCEL).toContain("Producción bloqueada para el runner");
+  });
+
   it("no usa controles nativos prohibidos ni teal de Alegra", () => {
     expect(PORTAL).not.toMatch(/<select[\s>]|NativeSelect|type=["']date["']/);
-    expect(PORTAL).not.toContain("#00b19d");
-    expect(PORTAL).not.toContain("#0a9e9a");
+    expect(SET_EXCEL).not.toMatch(/<select[\s>]|NativeSelect|type=["']date["']/);
+    for (const contenido of [PORTAL, SET_EXCEL, PAGINA]) {
+      expect(contenido).not.toContain("#00b19d");
+      expect(contenido).not.toContain("#0a9e9a");
+    }
     expect(PAGINA).not.toMatch(/<h1[\s>]|text-3xl/);
   });
 });
