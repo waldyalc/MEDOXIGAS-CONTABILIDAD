@@ -27,6 +27,7 @@ import type {
   ResultadoEnvioExcelCaso,
   ResultadoValidacionExcelCaso,
   ResumenEjecucionExcelEcf,
+  ResumenEnvioExcelEcf,
 } from "./ecf-portal-tipos";
 import type { AmbienteEcf } from "./pasos-habilitacion";
 
@@ -69,6 +70,50 @@ function descargarXml(nombreArchivo: string, xml: string) {
   URL.revokeObjectURL(url);
 }
 
+interface ArchivoXmlConsumo {
+  nombreArchivo: string;
+  xml: string;
+  encf: string;
+  montoTotal: number;
+  casoPrueba: string;
+}
+
+function nombreArchivoEcfOficial(caso: ResultadoEnvioExcelCaso, rncEmisor: string): string {
+  return caso.nombreArchivoEcf ?? `${rncEmisor}${caso.encf}.xml`;
+}
+
+function archivosXmlConsumoMenores(casos: ResultadoEnvioExcelCaso[], rncEmisor: string): ArchivoXmlConsumo[] {
+  const archivos: ArchivoXmlConsumo[] = [];
+  for (const caso of casos) {
+    if (!caso.esRfce || !caso.xmlFirmado) continue;
+    archivos.push({
+      nombreArchivo: nombreArchivoEcfOficial(caso, rncEmisor),
+      xml: caso.xmlFirmado,
+      encf: caso.encf,
+      montoTotal: caso.montoTotal,
+      casoPrueba: caso.casoPrueba,
+    });
+  }
+  return archivos;
+}
+
+async function descargarXmlsConRetraso(archivos: readonly ArchivoXmlConsumo[]): Promise<void> {
+  for (const [indice, archivo] of archivos.entries()) {
+    descargarXml(archivo.nombreArchivo, archivo.xml);
+    if (indice < archivos.length - 1) {
+      await new Promise<void>((resolver) => {
+        window.setTimeout(resolver, 150);
+      });
+    }
+  }
+}
+
+function textoFuenteCredenciales(fuente: NonNullable<ResumenEnvioExcelEcf["fuenteCredenciales"]>): string {
+  if (fuente === "formulario") return "archivo adjunto en esta ejecución";
+  if (fuente === "base_datos") return "certificado .p12 cifrado guardado en ecf_config";
+  return "variables PEM del servidor";
+}
+
 function BotonesXml({ caso, rncEmisor }: { caso: ResultadoEnvioExcelCaso; rncEmisor: string }) {
   return (
     <div className="flex flex-col gap-1">
@@ -78,7 +123,7 @@ function BotonesXml({ caso, rncEmisor }: { caso: ResultadoEnvioExcelCaso; rncEmi
           variant="ghost"
           size="sm"
           className="h-7 px-2 text-xs"
-          onClick={() => descargarXml(`${rncEmisor}${caso.encf}-ecf.xml`, caso.xmlFirmado ?? "")}
+          onClick={() => descargarXml(nombreArchivoEcfOficial(caso, rncEmisor), caso.xmlFirmado ?? "")}
         >
           <Download />
           XML e-CF
@@ -98,6 +143,54 @@ function BotonesXml({ caso, rncEmisor }: { caso: ResultadoEnvioExcelCaso; rncEmi
       ) : null}
       {!caso.xmlFirmado && !caso.xmlRfce ? <span className="text-muted-foreground text-xs">—</span> : null}
     </div>
+  );
+}
+
+function BloqueXmlConsumoMenores({ archivos }: { archivos: ArchivoXmlConsumo[] }) {
+  if (archivos.length === 0) return null;
+  return (
+    <section className="border-primary/30 bg-secondary/40 rounded-xl border p-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-3xl">
+          <p className="text-primary text-sm font-semibold">
+            {"XML íntegros de Facturas de Consumo < RD$250,000 (Paso 2 DGII)"}
+          </p>
+          <p className="text-muted-foreground mt-1 text-xs">
+            Estos e-CF completos ya están firmados y llevan el nombre exacto que valida la caja inferior del portal de
+            certificación DGII: RNCEmisor + eNCF + .xml.
+          </p>
+        </div>
+        <Button type="button" variant="outline" onClick={() => void descargarXmlsConRetraso(archivos)}>
+          <Download />
+          {`Descargar los ${archivos.length} XML (< 250Mil)`}
+        </Button>
+      </div>
+      <ul className="mt-3 grid gap-2 xl:grid-cols-2">
+        {archivos.map((archivo) => (
+          <li
+            key={archivo.nombreArchivo}
+            className="bg-background flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="min-w-0">
+              <p className="font-mono text-xs font-semibold break-all">{archivo.nombreArchivo}</p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                {archivo.encf} · RD$ {formatearMonto(archivo.montoTotal)} · {archivo.casoPrueba}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="shrink-0"
+              onClick={() => descargarXml(archivo.nombreArchivo, archivo.xml)}
+            >
+              <Download />
+              Descargar XML
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -385,14 +478,17 @@ export function SetExcelDgii({
                 Usar el certificado .p12 y la contraseña seleccionados en el Paso 1
               </Label>
               <p className="text-muted-foreground text-xs">
-                Si no lo adjuntas, el servidor intentará usar ECF_CERT_PEM_{rncEmisor} y ECF_KEY_PEM_{rncEmisor}.
+                Opcional: si no adjuntas archivo aquí, el servidor usa automáticamente el certificado .p12 cifrado
+                guardado en ecf_config durante el Paso 1. Si no existe, intenta las variables PEM{" "}
+                <span className="font-mono">{`ECF_CERT_PEM_${rncEmisor}`}</span> y{" "}
+                <span className="font-mono">{`ECF_KEY_PEM_${rncEmisor}`}</span>. No necesitas volver a subirlo.
               </p>
             </div>
           </div>
           {!certificadoDisponible ? (
             <p className="text-muted-foreground text-xs">
-              No hay certificado + contraseña completos en el Paso 1; el envío real dependerá de las variables PEM del
-              servidor.
+              No hay certificado + contraseña completos en el Paso 1 para reenviarlos; el envío real usará el .p12
+              cifrado guardado en ecf_config o las variables PEM del servidor.
             </p>
           ) : null}
         </div>
@@ -458,9 +554,15 @@ export function SetExcelDgii({
                 Ambiente {resumen.ambiente === "certecf" ? "CerteCF" : "TesteCF"} · {resumen.enProceso} casos en
                 proceso. La trazabilidad se guardó en ecf_envios como documento_tipo "prueba" cuando la base lo
                 permitió.
+                {resumen.fuenteCredenciales ? (
+                  <span className="block">
+                    Certificado usado: {textoFuenteCredenciales(resumen.fuenteCredenciales)}.
+                  </span>
+                ) : null}
               </AlertDescription>
             </Alert>
-            <TablaEnvioExcel casos={resumen.casos} rncEmisor={rncEmisor} />
+            <BloqueXmlConsumoMenores archivos={archivosXmlConsumoMenores(resumen.casos, resumen.rncEmisor)} />
+            <TablaEnvioExcel casos={resumen.casos} rncEmisor={resumen.rncEmisor} />
           </>
         ) : null}
       </CardContent>
