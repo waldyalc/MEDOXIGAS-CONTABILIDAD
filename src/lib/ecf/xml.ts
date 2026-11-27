@@ -234,9 +234,14 @@ function validarReferenciasYFechas(doc: DocumentoEcfInput, errores: string[]): v
   }
   const fechaEmision = normalizarFechaValidable(doc.comprobante.fechaEmision);
   const fechaVencimiento = normalizarFechaValidable(doc.comprobante.fechaVencimientoSecuencia);
+  const fechaLimitePago = doc.comprobante.fechaLimitePago
+    ? normalizarFechaValidable(doc.comprobante.fechaLimitePago)
+    : null;
   if (!fechaEmision || !fechaEsValida(fechaEmision)) errores.push("La fecha de emisión no es válida");
   if (!fechaVencimiento || !fechaEsValida(fechaVencimiento))
     errores.push("La fecha de vencimiento de la secuencia no es válida");
+  if (doc.comprobante.fechaLimitePago && (!fechaLimitePago || !fechaEsValida(fechaLimitePago)))
+    errores.push("La fecha límite de pago no es válida");
 }
 
 function validarLineasDocumento(doc: DocumentoEcfInput, errores: string[]): void {
@@ -433,9 +438,7 @@ function declaracionXml(): string {
 }
 
 function tipoUsaGravadosCompletos(tipo: TipoEcf): boolean {
-  return (
-    tipo === "31" || tipo === "32" || tipo === "33" || tipo === "34" || tipo === "41" || tipo === "44" || tipo === "45"
-  );
+  return tipo === "31" || tipo === "32" || tipo === "33" || tipo === "34" || tipo === "41" || tipo === "45";
 }
 
 function tipoPermiteImpuestosAdicionales(tipo: TipoEcf): boolean {
@@ -487,54 +490,77 @@ function xmlImpuestosAdicionales(impuestos: ImpuestoAdicionalEcfInput[] | undefi
   return `<ImpuestosAdicionales>${detalle}</ImpuestosAdicionales>`;
 }
 
+interface CondicionesTotalesXml {
+  gravadoI3: number;
+  gravadoTotal: number;
+  correspondeItbis1: boolean;
+  correspondeItbis2: boolean;
+  correspondeTasaItbis3: boolean;
+  correspondeTotalItbis3: boolean;
+  correspondeTotalItbis: boolean;
+}
+
+function condicionesTotalesXml(totales: DocumentoEcfInput["totales"]): CondicionesTotalesXml {
+  const gravadoI3 = totales.montoGravadoI3 ?? 0;
+  const gravadoTotal = totales.montoGravadoI1 + totales.montoGravadoI2 + gravadoI3;
+  const totalItbis3 = totales.totalItbis3 ?? 0;
+  return {
+    gravadoI3,
+    gravadoTotal,
+    correspondeItbis1: totales.montoGravadoI1 > 0 || totales.totalItbis1 > 0,
+    correspondeItbis2: totales.montoGravadoI2 > 0 || totales.totalItbis2 > 0,
+    correspondeTasaItbis3: gravadoI3 > 0,
+    correspondeTotalItbis3: gravadoI3 > 0 || totalItbis3 > 0,
+    correspondeTotalItbis: totales.totalItbis > 0 || gravadoTotal > 0,
+  };
+}
+
+function tagMontoCondicional(nombre: string, valor: number, emitir: boolean): string {
+  return emitir ? tag(nombre, formatearMontoDgii(valor)) : "";
+}
+
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: la matriz XSD de totales varía por cada tipo e-CF y dividirla ocultaría el orden oficial de las etiquetas
 function xmlTotalesEcf(doc: DocumentoEcfInput): string {
   const totales = doc.totales;
   const tipo = doc.comprobante.tipo;
-  const gravadoTotal = totales.montoGravadoI1 + totales.montoGravadoI2 + (totales.montoGravadoI3 ?? 0);
+  const condiciones = condicionesTotalesXml(totales);
   const completo = tipoUsaGravadosCompletos(tipo);
   const esExportacion = tipo === "46";
-  const usaSoloExento = tipo === "43" || tipo === "47";
+  const tipoExentoTotal = tipo === "43" || tipo === "44" || tipo === "47";
+  const debeEmitirExento = totales.montoExento > 0 || (tipoExentoTotal && totales.montoTotal > 0);
   const partes: string[] = [];
 
-  if (completo || esExportacion) {
-    partes.push(tag("MontoGravadoTotal", formatearMontoDgii(gravadoTotal)));
+  if ((completo || esExportacion) && condiciones.gravadoTotal > 0) {
+    partes.push(tag("MontoGravadoTotal", formatearMontoDgii(condiciones.gravadoTotal)));
   }
   if (completo) {
-    partes.push(tag("MontoGravadoI1", formatearMontoDgii(totales.montoGravadoI1)));
-    partes.push(tag("MontoGravadoI2", formatearMontoDgii(totales.montoGravadoI2)));
-  }
-  if (completo || esExportacion) {
     partes.push(
-      tagOpcional(
-        "MontoGravadoI3",
-        totales.montoGravadoI3 === undefined ? undefined : formatearMontoDgii(totales.montoGravadoI3),
-      ),
+      tagMontoCondicional("MontoGravadoI1", totales.montoGravadoI1, totales.montoGravadoI1 > 0),
+      tagMontoCondicional("MontoGravadoI2", totales.montoGravadoI2, totales.montoGravadoI2 > 0),
     );
   }
-  if (!esExportacion) partes.push(tag("MontoExento", formatearMontoDgii(totales.montoExento)));
+  if ((completo || esExportacion) && condiciones.gravadoI3 > 0) {
+    partes.push(tag("MontoGravadoI3", formatearMontoDgii(condiciones.gravadoI3)));
+  }
+  if (!esExportacion) {
+    partes.push(tagMontoCondicional("MontoExento", totales.montoExento, debeEmitirExento));
+  }
   if (completo) {
     partes.push(
-      totales.montoGravadoI1 > 0 ? tag("ITBIS1", "18") : "",
-      totales.montoGravadoI2 > 0 ? tag("ITBIS2", "16") : "",
-      (totales.montoGravadoI3 ?? 0) > 0 ? tag("ITBIS3", "0") : "",
-      tag("TotalITBIS", formatearMontoDgii(totales.totalItbis)),
-      tag("TotalITBIS1", formatearMontoDgii(totales.totalItbis1)),
-      tag("TotalITBIS2", formatearMontoDgii(totales.totalItbis2)),
-      tagOpcional(
-        "TotalITBIS3",
-        totales.totalItbis3 === undefined ? undefined : formatearMontoDgii(totales.totalItbis3),
-      ),
+      condiciones.correspondeItbis1 ? tag("ITBIS1", "18") : "",
+      condiciones.correspondeItbis2 ? tag("ITBIS2", "16") : "",
+      condiciones.correspondeTasaItbis3 ? tag("ITBIS3", "0") : "",
+      tagMontoCondicional("TotalITBIS", totales.totalItbis, condiciones.correspondeTotalItbis),
+      tagMontoCondicional("TotalITBIS1", totales.totalItbis1, condiciones.correspondeItbis1),
+      tagMontoCondicional("TotalITBIS2", totales.totalItbis2, condiciones.correspondeItbis2),
+      tagMontoCondicional("TotalITBIS3", totales.totalItbis3 ?? 0, condiciones.correspondeTotalItbis3),
     );
   }
   if (esExportacion) {
     partes.push(
-      (totales.montoGravadoI3 ?? 0) > 0 ? tag("ITBIS3", "0") : "",
-      tag("TotalITBIS", formatearMontoDgii(totales.totalItbis)),
-      tagOpcional(
-        "TotalITBIS3",
-        totales.totalItbis3 === undefined ? undefined : formatearMontoDgii(totales.totalItbis3),
-      ),
+      condiciones.correspondeTasaItbis3 ? tag("ITBIS3", "0") : "",
+      tagMontoCondicional("TotalITBIS", totales.totalItbis, condiciones.correspondeTotalItbis),
+      tagMontoCondicional("TotalITBIS3", totales.totalItbis3 ?? 0, condiciones.correspondeTotalItbis3),
     );
   }
   if (tipoPermiteImpuestosAdicionales(tipo)) {
@@ -547,15 +573,16 @@ function xmlTotalesEcf(doc: DocumentoEcfInput): string {
     );
   }
   partes.push(tag("MontoTotal", formatearMontoDgii(totales.montoTotal)));
-  if (!usaSoloExento || tipo === "47") {
-    if (tipo !== "47") {
-      partes.push(
-        tagOpcional(
-          "TotalITBISRetenido",
-          totales.totalItbisRetenido === undefined ? undefined : formatearMontoDgii(totales.totalItbisRetenido),
-        ),
-      );
-    }
+  const admiteRetenciones = tipo === "31" || tipo === "33" || tipo === "34" || tipo === "41";
+  if (admiteRetenciones) {
+    partes.push(
+      tagOpcional(
+        "TotalITBISRetenido",
+        totales.totalItbisRetenido === undefined ? undefined : formatearMontoDgii(totales.totalItbisRetenido),
+      ),
+    );
+  }
+  if (admiteRetenciones || tipo === "47") {
     partes.push(
       tagOpcional(
         "TotalISRRetencion",
@@ -689,7 +716,16 @@ function xmlIdDoc(doc: DocumentoEcfInput): string {
   }
   if (tipo !== "41" && tipo !== "43" && tipo !== "47") partes.push(tag("TipoIngresos", comp.tipoIngresos));
   partes.push(tag("TipoPago", comp.tipoPago));
+  partes.push(
+    tagOpcional("FechaLimitePago", comp.fechaLimitePago ? formatearFechaDgii(comp.fechaLimitePago) : undefined),
+  );
   return `<IdDoc>${partes.join("")}</IdDoc>`;
+}
+
+function xmlTablaTelefonosEmisor(telefonos: string[] | undefined): string {
+  const validos = (telefonos ?? []).map((telefono) => telefono.trim()).filter((telefono) => telefono !== "");
+  if (validos.length === 0) return "";
+  return `<TablaTelefonoEmisor>${validos.map((telefono) => tag("TelefonoEmisor", telefono)).join("")}</TablaTelefonoEmisor>`;
 }
 
 export function generarXmlEcf(doc: DocumentoEcfInput): string {
@@ -712,15 +748,18 @@ export function generarXmlEcf(doc: DocumentoEcfInput): string {
       : `<Comprador>${[
           tagOpcional("RNCComprador", doc.comprador.rnc),
           tag("RazonSocialComprador", doc.comprador.razonSocial),
+          tagOpcional("CorreoComprador", doc.comprador.correo),
         ].join("")}</Comprador>`;
 
   const xml = `<ECF><Encabezado>${tag("Version", "1.0")}${xmlIdDoc(doc)}<Emisor>${[
     tag("RNCEmisor", doc.emisor.rnc),
     tag("RazonSocialEmisor", doc.emisor.razonSocial),
     tagOpcional("NombreComercial", doc.emisor.nombreComercial),
+    tagOpcional("Sucursal", doc.emisor.sucursal),
     tag("DireccionEmisor", doc.emisor.direccion),
     tagOpcional("Municipio", doc.emisor.municipio),
     tagOpcional("Provincia", doc.emisor.provincia),
+    xmlTablaTelefonosEmisor(doc.emisor.telefonos),
     tagOpcional("CorreoEmisor", doc.emisor.correo),
     tag("FechaEmision", formatearFechaDgii(comp.fechaEmision)),
   ].join(
@@ -741,20 +780,17 @@ export function esElegibleRfce(doc: DocumentoEcfInput): boolean {
 
 function xmlTotalesRfce(doc: DocumentoEcfInput): string {
   const totales = doc.totales;
-  const gravadoTotal = totales.montoGravadoI1 + totales.montoGravadoI2 + (totales.montoGravadoI3 ?? 0);
+  const condiciones = condicionesTotalesXml(totales);
   return [
-    tag("MontoGravadoTotal", formatearMontoDgii(gravadoTotal)),
-    tag("MontoGravadoI1", formatearMontoDgii(totales.montoGravadoI1)),
-    tag("MontoGravadoI2", formatearMontoDgii(totales.montoGravadoI2)),
-    tagOpcional(
-      "MontoGravadoI3",
-      totales.montoGravadoI3 === undefined ? undefined : formatearMontoDgii(totales.montoGravadoI3),
-    ),
-    tag("MontoExento", formatearMontoDgii(totales.montoExento)),
-    tag("TotalITBIS", formatearMontoDgii(totales.totalItbis)),
-    tag("TotalITBIS1", formatearMontoDgii(totales.totalItbis1)),
-    tag("TotalITBIS2", formatearMontoDgii(totales.totalItbis2)),
-    tagOpcional("TotalITBIS3", totales.totalItbis3 === undefined ? undefined : formatearMontoDgii(totales.totalItbis3)),
+    tagMontoCondicional("MontoGravadoTotal", condiciones.gravadoTotal, condiciones.gravadoTotal > 0),
+    tagMontoCondicional("MontoGravadoI1", totales.montoGravadoI1, totales.montoGravadoI1 > 0),
+    tagMontoCondicional("MontoGravadoI2", totales.montoGravadoI2, totales.montoGravadoI2 > 0),
+    tagMontoCondicional("MontoGravadoI3", condiciones.gravadoI3, condiciones.gravadoI3 > 0),
+    tagMontoCondicional("MontoExento", totales.montoExento, totales.montoExento > 0),
+    tagMontoCondicional("TotalITBIS", totales.totalItbis, condiciones.correspondeTotalItbis),
+    tagMontoCondicional("TotalITBIS1", totales.totalItbis1, condiciones.correspondeItbis1),
+    tagMontoCondicional("TotalITBIS2", totales.totalItbis2, condiciones.correspondeItbis2),
+    tagMontoCondicional("TotalITBIS3", totales.totalItbis3 ?? 0, condiciones.correspondeTotalItbis3),
     tagOpcional(
       "MontoImpuestoAdicional",
       totales.montoImpuestoAdicional === undefined ? undefined : formatearMontoDgii(totales.montoImpuestoAdicional),

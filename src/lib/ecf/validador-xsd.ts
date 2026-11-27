@@ -222,6 +222,75 @@ const ORDEN_TOTALES_BASE = [
   "TotalISRPercepcion",
 ] as const;
 
+const ORDEN_TOTALES_GRAVADO_SIN_RETENCIONES = ORDEN_TOTALES_BASE.slice(0, 20);
+
+const ORDEN_TOTALES_COMPRAS = [...ORDEN_TOTALES_BASE.slice(0, 12), ...ORDEN_TOTALES_BASE.slice(14)] as const;
+
+const ORDEN_TOTALES_SOLO_EXENTO = [
+  "MontoExento",
+  "MontoTotal",
+  "MontoPeriodo",
+  "SaldoAnterior",
+  "MontoAvancePago",
+  "ValorPagar",
+] as const;
+
+const ORDEN_TOTALES_REGIMENES_ESPECIALES = [
+  "MontoExento",
+  "MontoImpuestoAdicional",
+  "ImpuestosAdicionales",
+  "MontoTotal",
+  "MontoNoFacturable",
+  "MontoPeriodo",
+  "SaldoAnterior",
+  "MontoAvancePago",
+  "ValorPagar",
+] as const;
+
+const ORDEN_TOTALES_EXPORTACIONES = [
+  "MontoGravadoTotal",
+  "MontoGravadoI3",
+  "ITBIS3",
+  "TotalITBIS",
+  "TotalITBIS3",
+  "MontoTotal",
+  "MontoNoFacturable",
+  "MontoPeriodo",
+  "SaldoAnterior",
+  "MontoAvancePago",
+  "ValorPagar",
+] as const;
+
+const ORDEN_TOTALES_POR_TIPO: Record<TipoEcf, readonly string[]> = {
+  "31": ORDEN_TOTALES_BASE,
+  "32": ORDEN_TOTALES_GRAVADO_SIN_RETENCIONES,
+  "33": ORDEN_TOTALES_BASE,
+  "34": ORDEN_TOTALES_BASE,
+  "41": ORDEN_TOTALES_COMPRAS,
+  "43": ORDEN_TOTALES_SOLO_EXENTO,
+  "44": ORDEN_TOTALES_REGIMENES_ESPECIALES,
+  "45": ORDEN_TOTALES_GRAVADO_SIN_RETENCIONES,
+  "46": ORDEN_TOTALES_EXPORTACIONES,
+  "47": [...ORDEN_TOTALES_SOLO_EXENTO, "TotalISRRetencion"],
+};
+
+const ORDEN_TOTALES_RFCE = [
+  "MontoGravadoTotal",
+  "MontoGravadoI1",
+  "MontoGravadoI2",
+  "MontoGravadoI3",
+  "MontoExento",
+  "TotalITBIS",
+  "TotalITBIS1",
+  "TotalITBIS2",
+  "TotalITBIS3",
+  "MontoImpuestoAdicional",
+  "ImpuestosAdicionales",
+  "MontoTotal",
+  "MontoNoFacturable",
+  "MontoPeriodo",
+] as const;
+
 const ORDEN_ITEM = [
   "NumeroLinea",
   "TablaCodigosItem",
@@ -367,14 +436,7 @@ function textoHijo(nodoActual: NodoXml | undefined, nombre: string): string {
 }
 
 function reglasTotalesPorTipo(tipo: TipoEcf): ReglaHijo[] {
-  const obligatorios = ["MontoTotal"];
-  if (tipo === "43" || tipo === "47") obligatorios.push("MontoExento");
-  else {
-    obligatorios.push("MontoGravadoTotal", "TotalITBIS");
-    if (tipo !== "46")
-      obligatorios.push("MontoGravadoI1", "MontoGravadoI2", "MontoExento", "TotalITBIS1", "TotalITBIS2");
-  }
-  return reglasDesdeOrden(ORDEN_TOTALES_BASE, obligatorios);
+  return reglasDesdeOrden(ORDEN_TOTALES_POR_TIPO[tipo], ["MontoTotal"]);
 }
 
 function validarRetencionItem(retencion: NodoXml, errores: string[]): void {
@@ -505,6 +567,10 @@ function validarEstructuraEcf(raiz: NodoXml, errores: string[]): string | null {
       reglasDesdeOrden(ORDEN_EMISOR, ["RNCEmisor", "RazonSocialEmisor", "DireccionEmisor", "FechaEmision"]),
       errores,
     );
+    const tablaTelefonos = hijo(emisor, "TablaTelefonoEmisor");
+    if (tablaTelefonos) {
+      validarOrdenHijos(tablaTelefonos, "TablaTelefonoEmisor", [nodo("TelefonoEmisor", 1, 3)], errores);
+    }
   }
   const comprador = hijo(encabezado, "Comprador");
   if (tipo === "43" && comprador) errores.push("El E43 no debe contener el elemento Comprador según el XSD DGII");
@@ -583,21 +649,7 @@ function validarRfce(raiz: NodoXml, errores: string[]): void {
     validarOrdenHijos(comprador, "RFCE/Comprador", [nodo("RNCComprador"), nodo("RazonSocialComprador", 1)], errores);
   const totales = hijo(encabezado, "Totales");
   if (totales) {
-    validarOrdenHijos(
-      totales,
-      "RFCE/Totales",
-      reglasDesdeOrden(ORDEN_TOTALES_BASE.slice(0, 15), [
-        "MontoGravadoTotal",
-        "MontoGravadoI1",
-        "MontoGravadoI2",
-        "MontoExento",
-        "TotalITBIS",
-        "TotalITBIS1",
-        "TotalITBIS2",
-        "MontoTotal",
-      ]),
-      errores,
-    );
+    validarOrdenHijos(totales, "RFCE/Totales", reglasDesdeOrden(ORDEN_TOTALES_RFCE, ["MontoTotal"]), errores);
   }
 }
 
@@ -811,10 +863,13 @@ function validarEstructuraPorTipo(raiz: NodoXml, errores: string[]): string | nu
 export function validarXmlContraEsquemaDgii(xml: string, tipoEsperado?: TipoEsquemaDgii): ResultadoValidacionXsdDgii {
   const errores: string[] = [];
   if (!RE_DECLARACION.test(xml)) errores.push('La declaración XML debe ser exactamente version="1.0" encoding="utf-8"');
-  if (/(^|>)[\t\n\r ]+</.test(xml.replace(RE_DECLARACION, ""))) {
+  const sinDeclaracion = xml.replace(RE_DECLARACION, "");
+  let cuerpo = sinDeclaracion;
+  if (cuerpo.startsWith("\r\n")) cuerpo = cuerpo.slice(2);
+  else if (cuerpo.startsWith("\n")) cuerpo = cuerpo.slice(1);
+  if (/(^|>)[\t\n\r ]+</.test(cuerpo)) {
     errores.push("El XML debe ser compacto: no puede tener espacios ni saltos de línea entre etiquetas");
   }
-  const cuerpo = xml.replace(RE_DECLARACION, "");
   const raiz = parsearCuerpoXml(cuerpo, errores);
   if (!raiz) {
     errores.push("El XML no tiene un elemento raíz válido");

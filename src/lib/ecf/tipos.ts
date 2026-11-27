@@ -89,15 +89,18 @@ export interface EmisorEcfInput {
   rnc: string;
   razonSocial: string;
   nombreComercial?: string;
+  sucursal?: string;
   direccion: string;
   municipio?: string;
   provincia?: string;
+  telefonos?: string[];
   correo?: string;
 }
 
 export interface CompradorEcfInput {
   rnc?: string;
   razonSocial: string;
+  correo?: string;
 }
 
 export interface ComprobanteEcfInput {
@@ -107,6 +110,7 @@ export interface ComprobanteEcfInput {
   fechaVencimientoSecuencia: string;
   tipoIngresos: TipoIngresosEcf;
   tipoPago: TipoPagoEcf;
+  fechaLimitePago?: string;
   indicadorMontoGravado?: IndicadorMontoGravadoEcf;
   indicadorNotaCredito?: "0" | "1";
   ncfModificado?: string;
