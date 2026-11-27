@@ -81,6 +81,64 @@ export interface ResumenEnvioExcelEcf {
 
 export type ResumenEjecucionExcelEcf = ResumenValidacionExcelEcf | ResumenEnvioExcelEcf;
 
+export type ModoEjecucionExcelAcecf = "validar_local" | "enviar_dgii";
+
+export interface ResultadoAcecfBase {
+  numeroFila: number;
+  rncEmisor: string;
+  rncComprador: string;
+  encf: string;
+  fechaEmision: string;
+  montoTotal: number;
+  montoTotalTexto: string;
+  estadoComercial: "1" | "2";
+  detalleMotivoRechazo: string | null;
+  fechaHoraAprobacionComercial: string;
+  nombreArchivoAcecf: string;
+}
+
+export interface ResultadoValidacionAcecfCaso extends ResultadoAcecfBase {
+  valido: boolean;
+  errores: string[];
+}
+
+export interface ResultadoEnvioAcecfCaso extends ResultadoAcecfBase {
+  codigo: string | null;
+  estado: string;
+  estadoOriginal: string | null;
+  mensajes: string[];
+  duracionMs: number;
+  xmlFirmado: string | null;
+  reutilizado: boolean;
+  persistido: boolean;
+  errorPersistencia: string | null;
+}
+
+export interface ResumenValidacionAcecf {
+  modo: "validar_local";
+  ambiente: Exclude<AmbienteEcfServidor, "ecf">;
+  rncComprador: string;
+  totalCasos: number;
+  validos: number;
+  invalidos: number;
+  casos: ResultadoValidacionAcecfCaso[];
+}
+
+export interface ResumenEnvioAcecf {
+  modo: "enviar_dgii";
+  ambiente: Exclude<AmbienteEcfServidor, "ecf">;
+  rncComprador: string;
+  totalCasos: number;
+  aceptados: number;
+  rechazados: number;
+  errores: number;
+  reutilizados: number;
+  fuenteCredenciales?: "formulario" | "variables_servidor" | "base_datos";
+  casos: ResultadoEnvioAcecfCaso[];
+}
+
+export type ResumenEjecucionExcelAcecf = ResumenValidacionAcecf | ResumenEnvioAcecf;
+
 export function ambienteEcfServidorValido(valor: string): valor is AmbienteEcfServidor {
   return valor === "testecf" || valor === "certecf" || valor === "ecf";
 }
