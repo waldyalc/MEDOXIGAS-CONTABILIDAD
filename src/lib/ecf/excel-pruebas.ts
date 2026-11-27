@@ -9,6 +9,7 @@ import type {
   ItbisTasaEcf,
   LineaEcfInput,
   ResumenRfceDgii,
+  SubAjusteEcfInput,
   TipoEcf,
   TipoIngresosEcf,
   TipoPagoEcf,
@@ -364,6 +365,54 @@ function opcional(valor: string): string | undefined {
   return valor === "" ? undefined : valor;
 }
 
+function montoSubAjuste(
+  lectura: CeldaLectura,
+  basesMonto: readonly string[],
+  indiceLinea: number,
+  indiceAjuste: number,
+): number | undefined {
+  for (const baseMonto of basesMonto) {
+    const monto = lectura.numeroIndizadoDoble(baseMonto, indiceLinea, indiceAjuste);
+    if (monto !== undefined) return monto;
+  }
+  return undefined;
+}
+
+function leerSubAjuste(
+  lectura: CeldaLectura,
+  indiceLinea: number,
+  indiceAjuste: number,
+  baseTipo: string,
+  basePorcentaje: string,
+  basesMonto: readonly string[],
+): SubAjusteEcfInput | undefined {
+  const tipo = lectura.indizadoDoble(baseTipo, indiceLinea, indiceAjuste);
+  const porcentaje = lectura.numeroIndizadoDoble(basePorcentaje, indiceLinea, indiceAjuste);
+  const monto = montoSubAjuste(lectura, basesMonto, indiceLinea, indiceAjuste);
+  if (!tipo && porcentaje === undefined && monto === undefined) return undefined;
+  return {
+    tipo: tipo === "%" ? "%" : "$",
+    porcentaje,
+    porcentajeTexto: opcional(lectura.indizadoDoble(basePorcentaje, indiceLinea, indiceAjuste)),
+    monto,
+  };
+}
+
+function leerSubAjustes(
+  lectura: CeldaLectura,
+  indiceLinea: number,
+  baseTipo: string,
+  basePorcentaje: string,
+  basesMonto: readonly string[],
+): SubAjusteEcfInput[] {
+  const ajustes: SubAjusteEcfInput[] = [];
+  for (let indiceAjuste = 1; indiceAjuste <= 12; indiceAjuste += 1) {
+    const ajuste = leerSubAjuste(lectura, indiceLinea, indiceAjuste, baseTipo, basePorcentaje, basesMonto);
+    if (ajuste) ajustes.push(ajuste);
+  }
+  return ajustes;
+}
+
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: el parser reproduce las 360 columnas activas del Excel oficial DGII con índices simples y dobles
 function leerLineas(lectura: CeldaLectura): LineaEcfInput[] {
   const lineas: LineaEcfInput[] = [];
@@ -399,27 +448,10 @@ function leerLineas(lectura: CeldaLectura): LineaEcfInput[] {
       }
     }
 
-    const leerSubAjustes = (
-      baseTipo: string,
-      basePorcentaje: string,
-      basesMonto: readonly string[],
-    ): NonNullable<LineaEcfInput["subDescuentos"]> => {
-      const ajustes: NonNullable<LineaEcfInput["subDescuentos"]> = [];
-      for (let j = 1; j <= 12; j += 1) {
-        const tipo = lectura.indizadoDoble(baseTipo, i, j);
-        const porcentaje = lectura.numeroIndizadoDoble(basePorcentaje, i, j);
-        let monto: number | undefined;
-        for (const baseMonto of basesMonto) {
-          monto = lectura.numeroIndizadoDoble(baseMonto, i, j);
-          if (monto !== undefined) break;
-        }
-        if (!tipo && porcentaje === undefined && monto === undefined) continue;
-        ajustes.push({ tipo: tipo === "%" ? "%" : "$", porcentaje, monto });
-      }
-      return ajustes;
-    };
-    const subDescuentos = leerSubAjustes("TipoSubDescuento", "SubDescuentoPorcentaje", ["MontoSubDescuento"]);
-    const subRecargos = leerSubAjustes("TipoSubRecargo", "SubRecargoPorcentaje", [
+    const subDescuentos = leerSubAjustes(lectura, i, "TipoSubDescuento", "SubDescuentoPorcentaje", [
+      "MontoSubDescuento",
+    ]);
+    const subRecargos = leerSubAjustes(lectura, i, "TipoSubRecargo", "SubRecargoPorcentaje", [
       "MontoSubRecargo",
       "MontosubRecargo",
     ]);
@@ -458,15 +490,19 @@ function leerLineas(lectura: CeldaLectura): LineaEcfInput[] {
       indicadorBienoServicio: lectura.indizado("IndicadorBienoServicio", i) === "2" ? "2" : "1",
       descripcionItem: opcional(lectura.indizado("DescripcionItem", i)),
       cantidad,
+      cantidadTexto: opcional(lectura.indizado("CantidadItem", i)),
       unidadMedida: opcional(lectura.indizado("UnidadMedida", i)),
       cantidadReferencia: lectura.numeroIndizado("CantidadReferencia", i),
+      cantidadReferenciaTexto: opcional(lectura.indizado("CantidadReferencia", i)),
       unidadReferencia: opcional(lectura.indizado("UnidadReferencia", i)),
       subcantidades: subcantidades.length ? subcantidades : undefined,
       gradosAlcohol: lectura.numeroIndizado("GradosAlcohol", i),
+      gradosAlcoholTexto: opcional(lectura.indizado("GradosAlcohol", i)),
       precioUnitarioReferencia: lectura.numeroIndizado("PrecioUnitarioReferencia", i),
       fechaElaboracion: opcional(lectura.indizado("FechaElaboracion", i)),
       fechaVencimientoItem: opcional(lectura.indizado("FechaVencimientoItem", i)),
       precioUnitario: precio,
+      precioUnitarioTexto: opcional(lectura.indizado("PrecioUnitarioItem", i)),
       descuento,
       subDescuentos: subDescuentos.length ? subDescuentos : undefined,
       recargo,
@@ -756,6 +792,7 @@ function documentoDesdeFila(lectura: CeldaLectura): DocumentoEcfInput {
         ? {
             tipoMoneda: tipoMoneda || "USD",
             tipoCambio: tipoCambio ?? 0,
+            tipoCambioTexto: opcional(lectura.texto("TipoCambio")),
             montoGravadoTotalOtraMoneda: lectura.numero("MontoGravadoTotalOtraMoneda"),
             montoGravado1OtraMoneda: lectura.numero("MontoGravado1OtraMoneda"),
             montoGravado2OtraMoneda: lectura.numero("MontoGravado2OtraMoneda"),

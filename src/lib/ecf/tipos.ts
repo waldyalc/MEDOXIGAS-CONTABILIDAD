@@ -166,6 +166,7 @@ export type TipoValorAjusteEcf = "$" | "%";
 export interface SubAjusteEcfInput {
   tipo: TipoValorAjusteEcf;
   porcentaje?: number;
+  porcentajeTexto?: string;
   monto?: number;
 }
 
@@ -205,15 +206,19 @@ export interface LineaEcfInput {
   indicadorBienoServicio?: IndicadorBienoServicioEcf;
   descripcionItem?: string;
   cantidad: number;
+  cantidadTexto?: string;
   unidadMedida?: string;
   cantidadReferencia?: number;
+  cantidadReferenciaTexto?: string;
   unidadReferencia?: string;
   subcantidades?: SubcantidadEcfInput[];
   gradosAlcohol?: number;
+  gradosAlcoholTexto?: string;
   precioUnitarioReferencia?: number;
   fechaElaboracion?: string;
   fechaVencimientoItem?: string;
   precioUnitario: number;
+  precioUnitarioTexto?: string;
   descuento?: number;
   subDescuentos?: SubAjusteEcfInput[];
   recargo?: number;
@@ -271,6 +276,7 @@ export interface DescuentoORecargoGlobalEcfInput {
 export interface OtraMonedaEcfInput {
   tipoMoneda: string;
   tipoCambio: number;
+  tipoCambioTexto?: string;
   montoGravadoTotalOtraMoneda?: number;
   montoGravado1OtraMoneda?: number;
   montoGravado2OtraMoneda?: number;
