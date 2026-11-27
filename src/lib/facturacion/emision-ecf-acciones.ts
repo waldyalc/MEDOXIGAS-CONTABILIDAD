@@ -6,17 +6,10 @@ import { z } from "zod";
 
 import { getRol } from "@/lib/auth/rol";
 import { consultarResultadoDgii, enviarEcfDgii, obtenerTokenDgii } from "@/lib/ecf/cliente-dgii";
+import { cargarCredencialesEcfServidor } from "@/lib/ecf/config-servidor";
 import { construirUrlQrDgii } from "@/lib/ecf/endpoints";
-import { descifrarSecretoEcf, firmarXmlDsig } from "@/lib/ecf/firma";
-import { leerCertificadoPkcs12 } from "@/lib/ecf/pkcs12";
-import type {
-  AmbienteEcf,
-  DocumentoEcfInput,
-  EstadoDgii,
-  ItbisTasaEcf,
-  ParCertificadoEcf,
-  TipoEcf,
-} from "@/lib/ecf/tipos";
+import { firmarXmlDsig } from "@/lib/ecf/firma";
+import type { AmbienteEcf, DocumentoEcfInput, EstadoDgii, ItbisTasaEcf, TipoEcf } from "@/lib/ecf/tipos";
 import { esElegibleRfce, generarXmlEcf, generarXmlRfce, validarDocumentoEcf } from "@/lib/ecf/xml";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/types";
@@ -63,29 +56,8 @@ function estadoDesdeTexto(valor: string): EstadoDgii {
   return "en_proceso";
 }
 
-function pemEnv(nombre: string): string | null {
-  const valor = process.env[nombre]?.trim();
-  return valor ? valor.replace(/\\n/g, "\n") : null;
-}
-
-async function cargarCredenciales(supabase: ClienteSupabase, rnc: string): Promise<ParCertificadoEcf | null> {
-  const certificadoEnv = pemEnv(`ECF_CERT_PEM_${rnc}`);
-  const claveEnv = pemEnv(`ECF_KEY_PEM_${rnc}`);
-  if (certificadoEnv && claveEnv) return { certificadoPem: certificadoEnv, clavePrivadaPem: claveEnv };
-
-  const claveMaestra = process.env.ECF_ENCRYPTION_KEY?.trim();
-  if (!claveMaestra) return null;
-  const { data, error } = await supabase
-    .from("ecf_config")
-    .select("cert_cifrado, cert_pass_cifrada")
-    .eq("rnc", rnc)
-    .maybeSingle<{ cert_cifrado: string | null; cert_pass_cifrada: string | null }>();
-  if (error || !data?.cert_cifrado || !data.cert_pass_cifrada) return null;
-
-  const blobBase64 = descifrarSecretoEcf(data.cert_cifrado, claveMaestra);
-  const contrasena = descifrarSecretoEcf(data.cert_pass_cifrada, claveMaestra);
-  const leido = await leerCertificadoPkcs12(Buffer.from(blobBase64, "base64"), contrasena);
-  return { certificadoPem: leido.certificadoPem, clavePrivadaPem: leido.clavePrivadaPem };
+async function cargarCredenciales(supabase: ClienteSupabase, rnc: string) {
+  return cargarCredencialesEcfServidor(supabase, rnc);
 }
 
 async function getConfigEcf(supabase: ClienteSupabase, rnc: string): Promise<ConfigEcf | null> {
@@ -323,14 +295,9 @@ export async function emitirFacturaEcfAction(facturaId: string): Promise<Resulta
     const validacion = validarDocumentoEcf(documento);
     if (!validacion.ok) return { ok: false, error: `Documento e-CF inválido: ${validacion.errores.join("; ")}` };
 
-    const credenciales = await cargarCredenciales(supabase, rncEmisor);
-    if (!credenciales) {
-      return {
-        ok: false,
-        error:
-          "El certificado está registrado, pero el servidor no puede leer sus secretos cifrados o las variables PEM del RNC. Revisa la custodia del certificado antes de emitir.",
-      };
-    }
+    const resultadoCredenciales = await cargarCredenciales(supabase, rncEmisor);
+    if (!resultadoCredenciales.ok) return { ok: false, error: resultadoCredenciales.error };
+    const credenciales = resultadoCredenciales.credenciales;
 
     const { data: existente } = await supabase
       .from("ecf_envios")
@@ -481,8 +448,9 @@ export async function consultarEstadoFacturaEcfAction(facturaId: string): Promis
       }>();
     if (error) return { ok: false, error: error.message };
     if (!envio?.track_id) return { ok: false, error: "Este comprobante aún no tiene TrackId de la DGII." };
-    const credenciales = await cargarCredenciales(supabase, envio.rnc_emisor);
-    if (!credenciales) return { ok: false, error: "No hay credenciales de firma disponibles para consultar la DGII." };
+    const resultadoCredenciales = await cargarCredenciales(supabase, envio.rnc_emisor);
+    if (!resultadoCredenciales.ok) return { ok: false, error: resultadoCredenciales.error };
+    const credenciales = resultadoCredenciales.credenciales;
     const token = await obtenerTokenDgii({
       ambiente: envio.ambiente,
       clavePrivadaPem: credenciales.clavePrivadaPem,

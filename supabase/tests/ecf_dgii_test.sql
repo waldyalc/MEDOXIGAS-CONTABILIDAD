@@ -1,5 +1,5 @@
 begin;
-select plan(50);
+select plan(64);
 
 insert into auth.users (id, email) values
   ('11111111-1111-1111-1111-111111111111', 'admin-ecf@prueba.local'),
@@ -408,6 +408,127 @@ select throws_ok(
   '42501',
   null,
   'lector no puede insertar recibidos'
+);
+
+-- ---------------------------------------------------------------------------
+-- RPC de certificado: solo admin guarda; admin/contador leen secreto cifrado
+-- ---------------------------------------------------------------------------
+
+set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
+
+create temp table resultado_ecf_guardado as
+select public.guardar_ecf_certificado(
+  p_rnc := '132000010',
+  p_razon_social := 'CONFIG RPC ECF SRL',
+  p_ambiente := 'testecf',
+  p_activo := true,
+  p_dominio_base := null,
+  p_cert_cifrado := 'cert-cifrado-rpc',
+  p_cert_pass_cifrada := 'pass-cifrada-rpc',
+  p_cert_titular := 'TITULAR PRUEBA ECF',
+  p_cert_numero_serie := '1234567890',
+  p_cert_valido_hasta := '2027-12-31T23:59:59Z'::timestamptz,
+  p_cert_huella_sha256 := 'AA:BB:CC'
+) as datos;
+
+select is(
+  (select datos->>'rnc' from resultado_ecf_guardado),
+  '132000010',
+  'admin puede guardar certificado por RPC y recibe el RNC en metadatos'
+);
+
+select ok(
+  (select not (datos ? 'cert_cifrado') and not (datos ? 'cert_pass_cifrada') from resultado_ecf_guardado),
+  'guardar_ecf_certificado nunca devuelve el certificado ni la contraseña cifrados'
+);
+
+select is(
+  (select (datos->>'tiene_certificado')::boolean from resultado_ecf_guardado),
+  true,
+  'la respuesta de guardar_ecf_certificado marca que el RNC tiene certificado'
+);
+
+create temp table resultado_ecf_actualizado as
+select public.guardar_ecf_certificado(
+  p_rnc := '132000010',
+  p_razon_social := 'CONFIG RPC ECF SRL',
+  p_ambiente := 'certecf',
+  p_activo := false
+) as datos;
+
+select is(
+  (select datos->>'ambiente' from resultado_ecf_actualizado),
+  'certecf',
+  'admin puede actualizar solo el ambiente por RPC'
+);
+
+select is(
+  (select (datos->>'activo')::boolean from resultado_ecf_actualizado),
+  false,
+  'admin puede desactivar el ambiente sin tocar el certificado'
+);
+
+select is(
+  (select cert_cifrado from public.obtener_ecf_secreto_firma('132000010')),
+  'cert-cifrado-rpc',
+  'actualizar solo metadatos conserva el certificado cifrado existente'
+);
+
+select is(
+  (select cert_pass_cifrada from public.obtener_ecf_secreto_firma('132000010')),
+  'pass-cifrada-rpc',
+  'actualizar solo metadatos conserva la contraseña cifrada existente'
+);
+
+select is(
+  (select count(*)::int from public.obtener_ecf_secreto_firma('132000010')),
+  1,
+  'admin puede leer el secreto cifrado de firma por RPC'
+);
+
+set local request.jwt.claims = '{"sub":"22222222-2222-2222-2222-222222222222","role":"authenticated"}';
+
+select throws_ok(
+  $q$select public.guardar_ecf_certificado('132000011', 'CONFIG SIN PERMISO', 'testecf', true, null, 'x', 'y')$q$,
+  '42501',
+  null,
+  'contador es rechazado al guardar certificados e-CF'
+);
+
+select is(
+  (select count(*)::int from public.obtener_ecf_secreto_firma('132000010')),
+  1,
+  'contador puede leer el secreto cifrado de firma por RPC'
+);
+
+select throws_ok(
+  $q$select cert_pass_cifrada from public.ecf_config limit 1$q$,
+  '42501',
+  null,
+  'contador sigue sin SELECT directo sobre la contraseña cifrada'
+);
+
+set local request.jwt.claims = '{"sub":"33333333-3333-3333-3333-333333333333","role":"authenticated"}';
+
+select throws_ok(
+  $q$select public.guardar_ecf_certificado('132000012', 'CONFIG SIN PERMISO', 'testecf', true, null, 'x', 'y')$q$,
+  '42501',
+  null,
+  'lector es rechazado al guardar certificados e-CF'
+);
+
+select throws_ok(
+  $q$select count(*) from public.obtener_ecf_secreto_firma('132000010')$q$,
+  '42501',
+  null,
+  'lector es rechazado al leer el secreto cifrado de firma'
+);
+
+select throws_ok(
+  $q$select cert_cifrado from public.ecf_config limit 1$q$,
+  '42501',
+  null,
+  'lector sigue sin SELECT directo sobre el certificado cifrado'
 );
 
 -- ---------------------------------------------------------------------------
