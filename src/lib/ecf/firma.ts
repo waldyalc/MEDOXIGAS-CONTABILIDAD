@@ -406,10 +406,11 @@ export function firmarXmlDsig(
   clavePrivadaPem: string,
   certificadoPem: string,
 ): ResultadoFirmaXmlDsig {
-  const xmlLimpio = compactarEspaciosEntreEtiquetas(xmlSinFirma.replace(/^\uFEFF/, ""));
-  const canonico = canonicalizarXmlBasico(xmlLimpio, true);
+  const xmlOriginal = xmlSinFirma.replace(/^\uFEFF/, "");
+  const xmlCompacto = compactarEspaciosEntreEtiquetas(xmlOriginal);
+  const canonico = canonicalizarXmlBasico(xmlCompacto, true);
   const digestValue = createHash("sha256").update(canonico, "utf8").digest("base64");
-  const namespacesRaiz = extraerNamespacesPrefijadosRaiz(xmlLimpio);
+  const namespacesRaiz = extraerNamespacesPrefijadosRaiz(xmlOriginal);
   const signedInfoCanonico = construirSignedInfo(digestValue, namespacesRaiz);
   const signedInfoSerializado = construirSignedInfo(digestValue);
   const firmante = createSign("RSA-SHA256");
@@ -419,7 +420,7 @@ export function firmarXmlDsig(
   const certificado = certificadoBase64(certificadoPem);
   const bloqueFirma = `<Signature xmlns="${XMLDSIG_NS}">${signedInfoSerializado}<SignatureValue>${signatureValue}</SignatureValue><KeyInfo><X509Data><X509Certificate>${certificado}</X509Certificate></X509Data></KeyInfo></Signature>`;
   return {
-    xmlFirmado: insertarAntesDeCierreRaiz(xmlLimpio, bloqueFirma),
+    xmlFirmado: insertarAntesDeCierreRaiz(xmlOriginal, bloqueFirma),
     signatureValue,
     codigoSeguridad: signatureValue.slice(0, 6),
     digestValue,
@@ -440,16 +441,21 @@ export function verificarFirmaXmlDsig(xmlFirmado: string): ResultadoVerificacion
       return { valida: false, motivo: "La firma XMLDSig está incompleta", codigoSeguridad };
     }
 
-    const canonico = canonicalizarXmlBasico(xmlLimpio, true);
-    const digestCalculado = createHash("sha256").update(canonico, "utf8").digest("base64");
-    if (digestCalculado !== digestEsperado) {
+    const digestExacto = createHash("sha256").update(canonicalizarXmlBasico(xmlLimpio, true), "utf8").digest("base64");
+    const digestCompacto = createHash("sha256")
+      .update(canonicalizarXmlBasico(compactarEspaciosEntreEtiquetas(xmlLimpio), true), "utf8")
+      .digest("base64");
+    if (digestExacto !== digestEsperado && digestCompacto !== digestEsperado) {
       return { valida: false, motivo: "El contenido del XML fue alterado después de la firma", codigoSeguridad };
     }
 
     const certificadoPem = `-----BEGIN CERTIFICATE-----\n${certificadoBase64Xml}\n-----END CERTIFICATE-----`;
     const certificado = new X509Certificate(certificadoPem);
     const namespacesRaiz = extraerNamespacesPrefijadosRaiz(xmlLimpio);
-    const signedInfoCanonico = canonicalizarSignedInfoConContexto(signedInfo, namespacesRaiz);
+    const signedInfoCanonico = canonicalizarSignedInfoConContexto(
+      compactarEspaciosEntreEtiquetas(signedInfo),
+      namespacesRaiz,
+    );
     const verificador = createVerify("RSA-SHA256");
     verificador.update(signedInfoCanonico, "utf8");
     verificador.end();

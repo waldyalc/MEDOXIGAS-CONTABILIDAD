@@ -118,10 +118,32 @@ function textoOGuion(valor: string | null): string {
   return limpio === "" ? "Sin configurar" : limpio;
 }
 
+const DATOS_FISCALES_PILOTO_DEFECTO: Record<
+  EmpresaPilotoEcfId,
+  Pick<EmisorEcf, "direccion" | "telefono" | "correo">
+> = {
+  oxymat: {
+    direccion: "AVENIDA JACOBO MAJLUTA, No. 101, APTO. 7, DORADO III",
+    telefono: "8297417125",
+    correo: "jardialcantaraspc@gmail.com",
+  },
+  medoxigas: { direccion: null, telefono: null, correo: null },
+};
+
 function emisorParaPiloto(empresa: EmisorEcf | null, pilotoId: EmpresaPilotoEcfId): EmisorEcf {
   const piloto = EMPRESAS_PILOTO_ECF[pilotoId];
-  if (pilotoId === "medoxigas" && empresa) return { ...empresa, nombre: piloto.nombre, rnc: piloto.rnc };
-  return { nombre: piloto.nombre, rnc: piloto.rnc, direccion: null, telefono: null, correo: null };
+  const defecto = DATOS_FISCALES_PILOTO_DEFECTO[pilotoId];
+  const rncEmpresa = empresa?.rnc?.replace(/\D/g, "") ?? "";
+  if (empresa && (rncEmpresa === piloto.rnc || (pilotoId === "medoxigas" && rncEmpresa === ""))) {
+    return {
+      nombre: piloto.nombre,
+      rnc: piloto.rnc,
+      direccion: empresa.direccion?.trim() || defecto.direccion,
+      telefono: empresa.telefono?.trim() || defecto.telefono,
+      correo: empresa.correo?.trim() || defecto.correo,
+    };
+  }
+  return { nombre: piloto.nombre, rnc: piloto.rnc, ...defecto };
 }
 
 function OpcionSegmentada({

@@ -523,9 +523,8 @@ describe("certificados, firma XMLDSig y cifrado", () => {
     const firma = firmarXmlDsig(xmlPostulacion, par.clavePrivadaPem, par.certificadoPem);
     expect(firma.xmlFirmado.startsWith('<?xml version="1.0" encoding="utf-8"?>')).toBe(true);
     expect(firma.xmlFirmado).toContain(
-      "<PostulacionID>124437</PostulacionID><Direccion>AVENIDA JACOBO MAJLUTA 101 </Direccion>",
+      "  <PostulacionID>124437</PostulacionID>\r\n  <Direccion>AVENIDA JACOBO MAJLUTA 101 </Direccion>\r\n",
     );
-    expect(firma.xmlFirmado).not.toContain(">\r\n  <");
     expect(firma.xmlFirmado.endsWith("</Postulacion>")).toBe(true);
     expect(verificarFirmaXmlDsig(firma.xmlFirmado)).toEqual({ valida: true, codigoSeguridad: firma.codigoSeguridad });
 
