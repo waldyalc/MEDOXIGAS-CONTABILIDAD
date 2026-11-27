@@ -4,7 +4,12 @@ import type {
   ResultadoValidacionExcelCaso,
 } from "@/app/(main)/dashboard/configuracion/facturacion-electronica/_components/ecf-portal-tipos";
 import { getRol } from "@/lib/auth/rol";
-import { consultarResultadoDgii, enviarEcfDgii, obtenerTokenDgii } from "@/lib/ecf/cliente-dgii";
+import {
+  consultarResultadoDgii,
+  enviarEcfDgii,
+  obtenerTokenDgii,
+  type ResultadoConsultaDgii,
+} from "@/lib/ecf/cliente-dgii";
 import { cargarCredencialesEcfServidor } from "@/lib/ecf/config-servidor";
 import { construirUrlQrDgii } from "@/lib/ecf/endpoints";
 import { parsearExcelPruebasDgii } from "@/lib/ecf/excel-pruebas";
@@ -12,7 +17,7 @@ import { firmarXmlDsig } from "@/lib/ecf/firma";
 import { leerCertificadoPkcs12 } from "@/lib/ecf/pkcs12";
 import type { CasoExcelDgii, EstadoDgii, ParCertificadoEcf } from "@/lib/ecf/tipos";
 import { validarXmlContraEsquemaDgii } from "@/lib/ecf/validador-xsd";
-import { esElegibleRfce, formatearFechaHoraDgii, generarXmlEcf, generarXmlRfce } from "@/lib/ecf/xml";
+import { esElegibleRfce, generarXmlEcf, generarXmlRfce } from "@/lib/ecf/xml";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/supabase/types";
 
@@ -147,6 +152,166 @@ function baseResultado(caso: CasoExcelDgii): ResultadoExcelBase {
   };
 }
 
+function insertarIndiceOrdenado(listos: number[], indice: number): void {
+  const posicion = listos.findIndex((actual) => actual > indice);
+  if (posicion === -1) listos.push(indice);
+  else listos.splice(posicion, 0, indice);
+}
+
+function construirIndicesPorEncf(casos: CasoExcelDgii[]): Map<string, number[]> {
+  const indicesPorEncf = new Map<string, number[]>();
+  for (const [indice, caso] of casos.entries()) {
+    const encf = caso.documento.comprobante.encf.trim();
+    if (encf === "") continue;
+    const indices = indicesPorEncf.get(encf) ?? [];
+    indices.push(indice);
+    indicesPorEncf.set(encf, indices);
+  }
+  return indicesPorEncf;
+}
+
+function agregarDependencia(
+  dependientesPorBase: Map<number, Set<number>>,
+  dependenciasPendientes: number[],
+  base: number,
+  dependiente: number,
+): void {
+  const dependientes = dependientesPorBase.get(base) ?? new Set<number>();
+  if (dependientes.has(dependiente)) return;
+  dependientes.add(dependiente);
+  dependientesPorBase.set(base, dependientes);
+  dependenciasPendientes[dependiente] = (dependenciasPendientes[dependiente] ?? 0) + 1;
+}
+
+function construirDependencias(casos: CasoExcelDgii[]): {
+  dependientesPorBase: Map<number, Set<number>>;
+  dependenciasPendientes: number[];
+} {
+  const indicesPorEncf = construirIndicesPorEncf(casos);
+  const dependientesPorBase = new Map<number, Set<number>>();
+  const dependenciasPendientes = Array.from({ length: casos.length }, () => 0);
+  for (const [dependiente, caso] of casos.entries()) {
+    const referencia = caso.documento.comprobante.ncfModificado?.trim() ?? "";
+    if (referencia === "") continue;
+    for (const base of indicesPorEncf.get(referencia) ?? []) {
+      agregarDependencia(dependientesPorBase, dependenciasPendientes, base, dependiente);
+    }
+  }
+  return { dependientesPorBase, dependenciasPendientes };
+}
+
+function ordenTopologicoIndices(
+  casos: CasoExcelDgii[],
+  dependientesPorBase: Map<number, Set<number>>,
+  dependenciasPendientes: number[],
+): number[] | null {
+  const listos: number[] = [];
+  for (const [indice, pendientes] of dependenciasPendientes.entries()) {
+    if (pendientes === 0) listos.push(indice);
+  }
+
+  const orden: number[] = [];
+  while (listos.length > 0) {
+    const actual = listos.shift();
+    if (actual === undefined) break;
+    orden.push(actual);
+    for (const dependiente of dependientesPorBase.get(actual) ?? []) {
+      const pendientes = (dependenciasPendientes[dependiente] ?? 0) - 1;
+      dependenciasPendientes[dependiente] = pendientes;
+      if (pendientes === 0) insertarIndiceOrdenado(listos, dependiente);
+    }
+  }
+  return orden.length === casos.length ? orden : null;
+}
+
+function casosEnOrden(casos: CasoExcelDgii[], orden: number[]): CasoExcelDgii[] | null {
+  const ordenados: CasoExcelDgii[] = [];
+  for (const indice of orden) {
+    const caso = casos[indice];
+    if (!caso) return null;
+    ordenados.push(caso);
+  }
+  return ordenados;
+}
+
+export function ordenarCasosPorDependencia(casos: CasoExcelDgii[]): CasoExcelDgii[] {
+  if (casos.length < 2) return [...casos];
+  const { dependientesPorBase, dependenciasPendientes } = construirDependencias(casos);
+  const orden = ordenTopologicoIndices(casos, dependientesPorBase, dependenciasPendientes);
+  if (!orden) return [...casos];
+  return casosEnOrden(casos, orden) ?? [...casos];
+}
+
+function parteFechaHora(partes: Intl.DateTimeFormatPart[], tipo: string): string {
+  const valor = partes.find((parte) => parte.type === tipo)?.value;
+  if (!valor) throw new Error(`Intl.DateTimeFormat no devolvió ${tipo} para America/Santo_Domingo`);
+  return valor;
+}
+
+export function formatearFechaHoraRdActual(fecha: Date = new Date()): string {
+  const partes = new Intl.DateTimeFormat("es-DO", {
+    timeZone: "America/Santo_Domingo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(fecha);
+  return `${parteFechaHora(partes, "day")}-${parteFechaHora(partes, "month")}-${parteFechaHora(partes, "year")} ${parteFechaHora(partes, "hour")}:${parteFechaHora(partes, "minute")}:${parteFechaHora(partes, "second")}`;
+}
+
+function esperarMilisegundos(ms: number): Promise<void> {
+  return new Promise((resolver) => {
+    setTimeout(resolver, ms);
+  });
+}
+
+function esEstadoTerminalDgii(estado: EstadoDgii): boolean {
+  return estado === "aceptado" || estado === "aceptado_condicional" || estado === "rechazado" || estado === "error_red";
+}
+
+export interface ResultadoConsultaFinalDgii {
+  consulta: ResultadoConsultaDgii;
+  intentosConsulta: number;
+  agotado: boolean;
+}
+
+export async function consultarResultadoFinalDgii(args: {
+  ambiente: AmbientePruebas;
+  token: string;
+  trackId: string;
+  maxIntentos?: number;
+  esperaInicialMs?: number;
+  esperarMs?: (ms: number) => Promise<void>;
+  consultarResultado?: typeof consultarResultadoDgii;
+}): Promise<ResultadoConsultaFinalDgii> {
+  const maxIntentos = Math.max(1, Math.floor(args.maxIntentos ?? 8));
+  const esperaInicialMs = Math.max(0, args.esperaInicialMs ?? 1500);
+  const esperarMs = args.esperarMs ?? esperarMilisegundos;
+  const consultarResultado = args.consultarResultado ?? consultarResultadoDgii;
+  let ultimaConsulta: ResultadoConsultaDgii | null = null;
+
+  for (let intento = 1; intento <= maxIntentos; intento += 1) {
+    const consulta = await consultarResultado({
+      ambiente: args.ambiente,
+      token: args.token,
+      trackId: args.trackId,
+      confirmarProduccion: false,
+    });
+    ultimaConsulta = consulta;
+    const terminal = esEstadoTerminalDgii(consulta.estado);
+    if (terminal || intento === maxIntentos) {
+      return { consulta, intentosConsulta: intento, agotado: !terminal };
+    }
+    await esperarMs(esperaInicialMs);
+  }
+
+  if (!ultimaConsulta) throw new Error("La consulta DGII no produjo ningún resultado");
+  return { consulta: ultimaConsulta, intentosConsulta: maxIntentos, agotado: true };
+}
+
 function procesarValidacionLocal(caso: CasoExcelDgii): ResultadoValidacionExcelCaso {
   const errores: string[] = [];
   try {
@@ -216,11 +381,12 @@ async function procesarEnvioCaso(args: {
 }): Promise<ResultadoEnvioExcelCaso> {
   const inicio = Date.now();
   const base = baseResultado(args.caso);
-  const fechaHoraFirma = args.caso.documento.comprobante.fechaHoraFirma ?? formatearFechaHoraDgii();
+  const fechaHoraFirma = formatearFechaHoraRdActual();
   const documento = {
     ...args.caso.documento,
     comprobante: { ...args.caso.documento.comprobante, fechaHoraFirma },
   };
+  const nombreArchivoEcf = `${args.rncEmisor}${documento.comprobante.encf}.xml`;
   let resultado: ResultadoEnvioExcelCaso = {
     ...base,
     trackId: null,
@@ -231,6 +397,7 @@ async function procesarEnvioCaso(args: {
     duracionMs: 0,
     xmlFirmado: null,
     xmlRfce: null,
+    nombreArchivoEcf,
     persistido: false,
     errorPersistencia: null,
   };
@@ -257,7 +424,7 @@ async function procesarEnvioCaso(args: {
     const enviado = await enviarEcfDgii({
       ambiente: args.ambiente,
       token: args.token,
-      nombreArchivo: `${args.rncEmisor}${documento.comprobante.encf}.xml`,
+      nombreArchivo: nombreArchivoEcf,
       xmlFirmado: xmlEnvio,
       esRfce,
       confirmarProduccion: false,
@@ -266,16 +433,21 @@ async function procesarEnvioCaso(args: {
     let mensajes = enviado.mensajes;
     respuesta = { recepcion: enviado };
     if (!esRfce && enviado.trackId) {
-      const consulta = await consultarResultadoDgii({
+      const consultaFinal = await consultarResultadoFinalDgii({
         ambiente: args.ambiente,
         token: args.token,
         trackId: enviado.trackId,
-        confirmarProduccion: false,
       });
+      const consulta = consultaFinal.consulta;
       estado = consulta.estado;
       mensajes = consulta.mensajes.length > 0 ? consulta.mensajes : mensajes;
       secuenciaUtilizada = consulta.secuenciaUtilizada ?? null;
-      respuesta = { recepcion: enviado, consulta };
+      respuesta = {
+        recepcion: enviado,
+        consulta,
+        intentosConsulta: consultaFinal.intentosConsulta,
+        consultaAgotada: consultaFinal.agotado,
+      };
     }
 
     const urlQr =
@@ -434,10 +606,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const encfs = [...new Set(casos.map((caso) => caso.documento.comprobante.encf))];
+    const casosOrdenados = ordenarCasosPorDependencia(casos);
+    const encfs = [...new Set(casosOrdenados.map((caso) => caso.documento.comprobante.encf))];
     const existentes = await cargarEnviosExistentes(supabase, rncEmisor, ambiente, encfs);
     const resultados: ResultadoEnvioExcelCaso[] = [];
-    for (const caso of casos) {
+    for (const caso of casosOrdenados) {
       resultados.push(
         await procesarEnvioCaso({
           caso,

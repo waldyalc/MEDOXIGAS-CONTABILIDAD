@@ -51,6 +51,7 @@ export interface ResultadoEnvioExcelCaso extends ResultadoExcelBase {
   duracionMs: number;
   xmlFirmado: string | null;
   xmlRfce: string | null;
+  nombreArchivoEcf?: string;
   persistido: boolean;
   errorPersistencia: string | null;
 }
@@ -74,6 +75,7 @@ export interface ResumenEnvioExcelEcf {
   rechazados: number;
   errores: number;
   enProceso: number;
+  fuenteCredenciales?: "formulario" | "variables_servidor" | "base_datos";
   casos: ResultadoEnvioExcelCaso[];
 }
 
