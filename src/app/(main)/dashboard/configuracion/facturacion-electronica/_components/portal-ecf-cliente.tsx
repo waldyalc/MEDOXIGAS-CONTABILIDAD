@@ -34,9 +34,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { ejecutarSimulacionEcfAction, type ResumenSimulacionSerializado } from "../actions";
+import type { ConfiguracionEcfPublica } from "./ecf-portal-tipos";
 import {
   type AmbienteEcf,
   CASOS_PRUEBA_DGII,
@@ -60,6 +62,7 @@ import {
   type PasoHabilitacionId,
   urlsServiciosEcf,
 } from "./pasos-habilitacion";
+import { SetExcelDgii } from "./set-excel-dgii";
 
 const AMBIENTES: readonly AmbienteEcf[] = ["testecf", "certecf", "produccion"];
 
@@ -74,7 +77,39 @@ const MUESTRA_IMPRESION = {
 interface PortalEcfClienteProps {
   empresa: EmisorEcf | null;
   numeraciones: readonly NumeracionEcf[];
+  configsIniciales: readonly ConfiguracionEcfPublica[];
+  claveMaestraConfigurada: boolean;
   onEjecutarPruebas?: () => void | Promise<void>;
+}
+
+interface RespuestaCertificadoApi {
+  ok: boolean;
+  config?: ConfiguracionEcfPublica | null;
+  error?: string;
+}
+
+function ambienteUiDesdeServidor(ambiente: ConfiguracionEcfPublica["ambiente"]): AmbienteEcf {
+  return ambiente === "ecf" ? "produccion" : ambiente;
+}
+
+function ambienteServidorDesdeUi(ambiente: AmbienteEcf): ConfiguracionEcfPublica["ambiente"] {
+  return ambiente === "produccion" ? "ecf" : ambiente;
+}
+
+function formatearFechaCertificado(valor: string | null): string {
+  if (!valor) return "Sin configurar";
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return valor;
+  return new Intl.DateTimeFormat("es-DO", { dateStyle: "medium", timeZone: "America/Santo_Domingo" }).format(fecha);
+}
+
+async function enviarConfiguracionCertificado(form: FormData): Promise<ConfiguracionEcfPublica> {
+  const response = await fetch("/api/ecf/config/certificado", { method: "POST", body: form });
+  const data = (await response.json()) as RespuestaCertificadoApi;
+  if (!response.ok || !data.ok || !data.config) {
+    throw new Error(data.error ?? "El servidor no pudo guardar la configuración del certificado e-CF.");
+  }
+  return data.config;
 }
 
 function textoOGuion(valor: string | null): string {
@@ -244,28 +279,61 @@ function FilaDato({ etiqueta, valor }: { etiqueta: string; valor: string | null 
   );
 }
 
+function BadgeCertificadoServidor({ config }: { config: ConfiguracionEcfPublica | null }) {
+  const tieneCertificado = [config?.certHuellaSha256, config?.certNumeroSerie, config?.certTitular].some(
+    (valor) => typeof valor === "string" && valor.trim() !== "",
+  );
+  if (!tieneCertificado) {
+    return (
+      <Badge variant="outline" className="text-muted-foreground">
+        Pendiente
+      </Badge>
+    );
+  }
+  if (config?.vigente) return <Badge className="bg-primary text-primary-foreground">Certificado vigente</Badge>;
+  return <Badge variant="destructive">Certificado vencido</Badge>;
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: el paso agrupa carga, validación y estado real del certificado en una sola vista guiada; la lógica de red vive en el componente principal
 function PasoCertificado({
   empresa,
   modalidad,
-  nombreCertificado,
+  archivoCertificado,
   contrasena,
+  config,
+  claveMaestraConfigurada,
+  guardando,
+  error,
+  mensajeExito,
   onCertificado,
   onContrasena,
+  onGuardar,
+  onCambiarActivo,
 }: {
   empresa: EmisorEcf | null;
   modalidad: ModalidadHabilitacion;
-  nombreCertificado: string;
+  archivoCertificado: File | null;
   contrasena: string;
-  onCertificado: (nombre: string) => void;
+  config: ConfiguracionEcfPublica | null;
+  claveMaestraConfigurada: boolean;
+  guardando: boolean;
+  error: string | null;
+  mensajeExito: string | null;
+  onCertificado: (archivo: File | null) => void;
   onContrasena: (valor: string) => void;
+  onGuardar: () => void;
+  onCambiarActivo: (activo: boolean) => void;
 }) {
-  const nombreLimpio = nombreCertificado.trim();
+  const nombreLimpio = archivoCertificado?.name.trim() ?? "";
   const certificadoValido = nombreLimpio !== "" && nombreCertificadoDigitalValido(nombreLimpio);
   const certificadoInvalido = nombreLimpio !== "" && !certificadoValido;
+  const certificadoServidor = [config?.certHuellaSha256, config?.certNumeroSerie, config?.certTitular].some(
+    (valor) => typeof valor === "string" && valor.trim() !== "",
+  );
+  const puedeGuardar = certificadoValido && contrasena.length > 0 && claveMaestraConfigurada && !guardando;
 
   function manejarArchivo(evento: ChangeEvent<HTMLInputElement>) {
-    const archivo = evento.target.files?.[0];
-    onCertificado(archivo?.name ?? "");
+    onCertificado(evento.target.files?.[0] ?? null);
   }
 
   return (
@@ -277,6 +345,33 @@ function PasoCertificado({
           <AlertDescription>
             Tu certificado digital pertenece a tu RNC, no a Alegra. No necesitas comprar otro mientras siga vigente.
           </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {!claveMaestraConfigurada ? (
+        <Alert className="border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/35 dark:text-amber-100">
+          <TriangleAlert />
+          <AlertTitle>Falta la clave maestra del servidor</AlertTitle>
+          <AlertDescription>
+            El administrador del servidor debe definir ECF_ENCRYPTION_KEY antes de guardar el .p12 en la base de datos.
+            Mientras falte, el portal puede validar el formulario pero no persistirá el certificado.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      {error ? (
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertTitle>No se pudo guardar el certificado</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {mensajeExito ? (
+        <Alert className="border-emerald-200 bg-emerald-50/70 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/35 dark:text-emerald-100">
+          <CheckCircle2 />
+          <AlertTitle>Certificado sincronizado</AlertTitle>
+          <AlertDescription>{mensajeExito}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -317,12 +412,14 @@ function PasoCertificado({
               <CardTitle>Certificado digital</CardTitle>
             </div>
             <CardDescription>
-              Preparación local del archivo .p12 o .pfx; todavía no se sube al servidor.
+              Sube el .p12 o .pfx real; el servidor valida contraseña, titular, serie, vigencia y huella antes de
+              cifrarlo.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div>
               <Input
+                key={`certificado-${empresa?.rnc ?? "sin-rnc"}`}
                 id="certificado-digital"
                 type="file"
                 accept=".p12,.pfx"
@@ -335,15 +432,15 @@ function PasoCertificado({
               >
                 <Upload className="text-primary size-6" />
                 <span className="text-sm font-medium">Seleccionar certificado .p12 o .pfx</span>
-                <span className="text-muted-foreground text-xs">
-                  Solo se valida el nombre y la extensión en esta fase.
-                </span>
+                <span className="text-muted-foreground text-xs">Máximo 2 MB · validación real PKCS#12 en servidor</span>
               </Label>
               {nombreLimpio !== "" ? (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Badge variant={certificadoValido ? "secondary" : "destructive"}>{nombreLimpio}</Badge>
                   {certificadoValido ? (
-                    <span className="text-xs text-emerald-700 dark:text-emerald-400">Extensión válida</span>
+                    <span className="text-xs text-emerald-700 dark:text-emerald-400">
+                      Extensión válida · {((archivoCertificado?.size ?? 0) / 1024).toFixed(1)} KB
+                    </span>
                   ) : null}
                 </div>
               ) : null}
@@ -364,14 +461,82 @@ function PasoCertificado({
               />
             </div>
 
+            <Button type="button" onClick={onGuardar} disabled={!puedeGuardar}>
+              <ShieldCheck />
+              {guardando ? "Validando y guardando…" : "Validar y guardar certificado"}
+            </Button>
+
             <Alert>
               <Lock />
               <AlertTitle>Aviso de seguridad</AlertTitle>
               <AlertDescription>
-                El archivo no se guarda en el navegador. Cuando se active el almacenamiento, se cifrará con AES-256-GCM
-                en el servidor y la contraseña nunca se mostrará ni se registrará en logs.
+                El archivo se transmite solo al servidor de Medoxigas, se valida con OpenSSL y se cifra con AES-256-GCM
+                antes de guardarse. La contraseña nunca se muestra ni se registra en logs.
               </AlertDescription>
             </Alert>
+          </CardContent>
+        </Card>
+
+        <Card size="sm" className="xl:col-span-2">
+          <CardHeader>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <CardTitle>Estado real guardado en ecf_config</CardTitle>
+                <CardDescription>
+                  Metadatos no sensibles del certificado persistido para {empresa?.nombre ?? "este emisor"}.
+                </CardDescription>
+              </div>
+              <BadgeCertificadoServidor config={config} />
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-4 lg:grid-cols-[1fr_280px]">
+            <dl className="divide-border divide-y">
+              <FilaDato etiqueta="Titular" valor={config?.certTitular ?? null} />
+              <FilaDato etiqueta="Número de serie" valor={config?.certNumeroSerie ?? null} />
+              <FilaDato
+                etiqueta="Válido hasta"
+                valor={config ? formatearFechaCertificado(config.certValidoHasta) : null}
+              />
+              <div className="grid gap-1 py-2 sm:grid-cols-[150px_1fr] sm:gap-3">
+                <dt className="text-muted-foreground text-xs font-medium tracking-wide uppercase">Huella SHA-256</dt>
+                <dd className="font-mono text-xs break-all">{config?.certHuellaSha256 ?? "Sin configurar"}</dd>
+              </div>
+              <FilaDato
+                etiqueta="Ambiente guardado"
+                valor={config ? ETIQUETA_AMBIENTE[ambienteUiDesdeServidor(config.ambiente)] : null}
+              />
+            </dl>
+            <div className="flex flex-col justify-between gap-4 rounded-xl border p-4">
+              <div>
+                <p className="text-sm font-medium">Activar emisión e-CF</p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Guarda el switch en ecf_config sin sobrescribir el certificado cifrado.
+                </p>
+                {config?.diasRestantes !== null && config?.diasRestantes !== undefined ? (
+                  <p className="text-muted-foreground mt-2 text-xs">
+                    {config.diasRestantes >= 0
+                      ? `${config.diasRestantes} días restantes de vigencia.`
+                      : `Vencido hace ${Math.abs(config.diasRestantes)} días.`}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="activar-emision-ecf" className="text-sm">
+                  {config?.activo ? "Activo" : "Inactivo"}
+                </Label>
+                <Switch
+                  id="activar-emision-ecf"
+                  checked={config?.activo ?? false}
+                  disabled={guardando || !certificadoServidor}
+                  onCheckedChange={(valor) => onCambiarActivo(valor === true)}
+                />
+              </div>
+              {!certificadoServidor ? (
+                <p className="text-muted-foreground text-xs">
+                  Sube y guarda un certificado antes de activar la emisión.
+                </p>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -500,6 +665,11 @@ function PasoPruebas({
   verRfce,
   ejecutando,
   error,
+  rncEmisor,
+  razonSocial,
+  ambiente,
+  archivoCertificado,
+  contrasenaCertificado,
   onSeleccionarCaso,
   onVerRfce,
   onEjecutar,
@@ -509,6 +679,11 @@ function PasoPruebas({
   verRfce: boolean;
   ejecutando: boolean;
   error: string | null;
+  rncEmisor: string;
+  razonSocial: string;
+  ambiente: AmbienteEcf;
+  archivoCertificado: File | null;
+  contrasenaCertificado: string;
   onSeleccionarCaso: (indice: number) => void;
   onVerRfce: (valor: boolean) => void;
   onEjecutar: () => void;
@@ -613,6 +788,14 @@ function PasoPruebas({
       </div>
 
       <InspectorCasoSimulacion casoActual={casoActual} verRfce={verRfce} onVerRfce={onVerRfce} />
+
+      <SetExcelDgii
+        rncEmisor={rncEmisor}
+        razonSocial={razonSocial}
+        ambiente={ambiente}
+        archivoCertificado={archivoCertificado}
+        contrasenaCertificado={contrasenaCertificado}
+      />
     </div>
   );
 }
@@ -1090,8 +1273,14 @@ function PanelPaso({
   pasoActivo,
   empresa,
   modalidad,
-  nombreCertificado,
+  ambiente,
+  archivoCertificado,
   contrasenaCertificado,
+  configCertificado,
+  claveMaestraConfigurada,
+  guardandoCertificado,
+  errorCertificado,
+  mensajeCertificado,
   resumenSimulacion,
   casoSeleccionadoIndex,
   verRfce,
@@ -1105,6 +1294,8 @@ function PanelPaso({
   ultimoEncf,
   onCertificado,
   onContrasena,
+  onGuardarCertificado,
+  onCambiarActivo,
   onSeleccionarCaso,
   onVerRfce,
   onEjecutarPruebas,
@@ -1116,8 +1307,14 @@ function PanelPaso({
   pasoActivo: PasoHabilitacionId;
   empresa: EmisorEcf | null;
   modalidad: ModalidadHabilitacion;
-  nombreCertificado: string;
+  ambiente: AmbienteEcf;
+  archivoCertificado: File | null;
   contrasenaCertificado: string;
+  configCertificado: ConfiguracionEcfPublica | null;
+  claveMaestraConfigurada: boolean;
+  guardandoCertificado: boolean;
+  errorCertificado: string | null;
+  mensajeCertificado: string | null;
   resumenSimulacion: ResumenSimulacionSerializado | null;
   casoSeleccionadoIndex: number;
   verRfce: boolean;
@@ -1129,8 +1326,10 @@ function PanelPaso({
   errorCopiado: string | null;
   numeraciones: readonly NumeracionEcf[];
   ultimoEncf: string;
-  onCertificado: (nombre: string) => void;
+  onCertificado: (archivo: File | null) => void;
   onContrasena: (valor: string) => void;
+  onGuardarCertificado: () => void;
+  onCambiarActivo: (activo: boolean) => void;
   onSeleccionarCaso: (indice: number) => void;
   onVerRfce: (valor: boolean) => void;
   onEjecutarPruebas: () => void;
@@ -1144,10 +1343,17 @@ function PanelPaso({
       <PasoCertificado
         empresa={empresa}
         modalidad={modalidad}
-        nombreCertificado={nombreCertificado}
+        archivoCertificado={archivoCertificado}
         contrasena={contrasenaCertificado}
+        config={configCertificado}
+        claveMaestraConfigurada={claveMaestraConfigurada}
+        guardando={guardandoCertificado}
+        error={errorCertificado}
+        mensajeExito={mensajeCertificado}
         onCertificado={onCertificado}
         onContrasena={onContrasena}
+        onGuardar={onGuardarCertificado}
+        onCambiarActivo={onCambiarActivo}
       />
     );
   }
@@ -1159,6 +1365,11 @@ function PanelPaso({
         verRfce={verRfce}
         ejecutando={ejecutandoPruebas}
         error={errorPruebas}
+        rncEmisor={empresa?.rnc ?? ""}
+        razonSocial={empresa?.nombre ?? ""}
+        ambiente={ambiente}
+        archivoCertificado={archivoCertificado}
+        contrasenaCertificado={contrasenaCertificado}
         onSeleccionarCaso={onSeleccionarCaso}
         onVerRfce={onVerRfce}
         onEjecutar={onEjecutarPruebas}
@@ -1183,19 +1394,36 @@ function PanelPaso({
   return <PasoRoles numeraciones={numeraciones} ultimoEncf={ultimoEncf} onUltimoEncf={onUltimoEncf} />;
 }
 
-export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: PortalEcfClienteProps) {
-  const [ambiente, setAmbiente] = useState<AmbienteEcf>("testecf");
+export function PortalEcfCliente({
+  empresa,
+  numeraciones,
+  configsIniciales,
+  claveMaestraConfigurada,
+  onEjecutarPruebas,
+}: PortalEcfClienteProps) {
+  const configInicialOxymat = configsIniciales.find((config) => config.rnc === EMPRESAS_PILOTO_ECF.oxymat.rnc) ?? null;
+  const [ambiente, setAmbiente] = useState<AmbienteEcf>(() =>
+    configInicialOxymat ? ambienteUiDesdeServidor(configInicialOxymat.ambiente) : "testecf",
+  );
   const [modalidad, setModalidad] = useState<ModalidadHabilitacion>("migracion");
   const [pasoActivo, setPasoActivo] = useState<PasoHabilitacionId>("certificado");
-  const [nombreCertificado, setNombreCertificado] = useState("");
+  const [archivoCertificado, setArchivoCertificado] = useState<File | null>(null);
   const [contrasenaCertificado, setContrasenaCertificado] = useState("");
+  const [guardandoCertificado, setGuardandoCertificado] = useState(false);
+  const [errorCertificado, setErrorCertificado] = useState<string | null>(null);
+  const [mensajeCertificado, setMensajeCertificado] = useState<string | null>(null);
+  const [configsPorRnc, setConfigsPorRnc] = useState<Record<string, ConfiguracionEcfPublica>>(() => {
+    const iniciales: Record<string, ConfiguracionEcfPublica> = {};
+    for (const config of configsIniciales) iniciales[config.rnc] = config;
+    return iniciales;
+  });
   const [resumenSimulacion, setResumenSimulacion] = useState<ResumenSimulacionSerializado | null>(null);
   const [casoSeleccionadoIndex, setCasoSeleccionadoIndex] = useState(0);
   const [verRfce, setVerRfce] = useState(false);
   const [ejecutandoPruebas, setEjecutandoPruebas] = useState(false);
   const [errorPruebas, setErrorPruebas] = useState<string | null>(null);
   const [declaracionConfirmada, setDeclaracionConfirmada] = useState(false);
-  const [dominioBase, setDominioBase] = useState(DOMINIO_BASE_ECF_DEFECTO);
+  const [dominioBase, setDominioBase] = useState(configInicialOxymat?.dominioBase ?? DOMINIO_BASE_ECF_DEFECTO);
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
   const [errorCopiado, setErrorCopiado] = useState<string | null>(null);
   const [ultimoEncf, setUltimoEncf] = useState("");
@@ -1203,12 +1431,87 @@ export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: P
 
   const pilotoActivo = EMPRESAS_PILOTO_ECF[empresaPilotoId];
   const emisorActivo = emisorParaPiloto(empresa, empresaPilotoId);
+  const configCertificado = configsPorRnc[pilotoActivo.rnc] ?? null;
   const progreso = calcularProgresoHabilitacion(modalidad);
   const pasoSeleccionado = PASOS_HABILITACION.find((paso) => paso.id === pasoActivo);
   const indiceActivo = PASOS_HABILITACION.findIndex((paso) => paso.id === pasoActivo);
   const pasoAnterior = indiceActivo > 0 ? PASOS_HABILITACION[indiceActivo - 1] : undefined;
   const pasoSiguiente = indiceActivo >= 0 ? PASOS_HABILITACION[indiceActivo + 1] : undefined;
   const puedeAvanzar = pasoActivo !== "declaracion" || declaracionConfirmada;
+
+  function registrarConfigCertificado(config: ConfiguracionEcfPublica) {
+    setConfigsPorRnc((anteriores) => ({ ...anteriores, [config.rnc]: config }));
+  }
+
+  function crearFormularioConfiguracion(activo: boolean): FormData {
+    const form = new FormData();
+    form.append("rnc", pilotoActivo.rnc);
+    form.append("razonSocial", pilotoActivo.nombre);
+    form.append("ambiente", ambienteServidorDesdeUi(ambiente));
+    form.append("activo", String(activo));
+    form.append("dominioBase", dominioBase);
+    return form;
+  }
+
+  async function guardarCertificadoServidor() {
+    if (!archivoCertificado) {
+      setErrorCertificado("Selecciona un certificado .p12 o .pfx antes de guardar.");
+      setMensajeCertificado(null);
+      return;
+    }
+    setErrorCertificado(null);
+    setMensajeCertificado(null);
+    setGuardandoCertificado(true);
+    try {
+      const form = crearFormularioConfiguracion(configCertificado?.activo ?? false);
+      form.append("archivo", archivoCertificado);
+      form.append("contrasena", contrasenaCertificado);
+      const config = await enviarConfiguracionCertificado(form);
+      registrarConfigCertificado(config);
+      setMensajeCertificado(
+        `Certificado validado y guardado para ${config.razonSocial} (RNC ${config.rnc}) en ${ETIQUETA_AMBIENTE[ambienteUiDesdeServidor(config.ambiente)]}.`,
+      );
+    } catch (error) {
+      setErrorCertificado(error instanceof Error ? error.message : "No se pudo guardar el certificado e-CF.");
+    } finally {
+      setGuardandoCertificado(false);
+    }
+  }
+
+  async function cambiarActivoCertificado(activo: boolean) {
+    if (!configCertificado) return;
+    setErrorCertificado(null);
+    setMensajeCertificado(null);
+    setGuardandoCertificado(true);
+    try {
+      const form = crearFormularioConfiguracion(activo);
+      const config = await enviarConfiguracionCertificado(form);
+      registrarConfigCertificado(config);
+      setMensajeCertificado(
+        activo
+          ? `Emisión e-CF activada para ${config.razonSocial} en ${ETIQUETA_AMBIENTE[ambienteUiDesdeServidor(config.ambiente)]}.`
+          : `Emisión e-CF desactivada para ${config.razonSocial}. El certificado cifrado se conservó en el servidor.`,
+      );
+    } catch (error) {
+      setErrorCertificado(error instanceof Error ? error.message : "No se pudo actualizar el switch de emisión e-CF.");
+    } finally {
+      setGuardandoCertificado(false);
+    }
+  }
+
+  function seleccionarPiloto(id: EmpresaPilotoEcfId) {
+    const piloto = EMPRESAS_PILOTO_ECF[id];
+    const config = configsPorRnc[piloto.rnc] ?? null;
+    setEmpresaPilotoId(id);
+    setAmbiente(config ? ambienteUiDesdeServidor(config.ambiente) : "testecf");
+    if (config?.dominioBase) setDominioBase(config.dominioBase);
+    setArchivoCertificado(null);
+    setContrasenaCertificado("");
+    setErrorCertificado(null);
+    setMensajeCertificado(null);
+    setResumenSimulacion(null);
+    setErrorPruebas(null);
+  }
 
   async function manejarEjecutarPruebas() {
     setErrorPruebas(null);
@@ -1294,11 +1597,7 @@ export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: P
               <OpcionSegmentada
                 key={piloto.id}
                 activa={empresaPilotoId === piloto.id}
-                onClick={() => {
-                  setEmpresaPilotoId(piloto.id);
-                  setResumenSimulacion(null);
-                  setErrorPruebas(null);
-                }}
+                onClick={() => seleccionarPiloto(piloto.id)}
                 className="px-2 text-center"
               >
                 <span className="block text-[11px]">{piloto.id === "oxymat" ? "OXYMAT" : "MEDOXIGAS"}</span>
@@ -1355,8 +1654,14 @@ export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: P
                 pasoActivo={pasoActivo}
                 empresa={emisorActivo}
                 modalidad={modalidad}
-                nombreCertificado={nombreCertificado}
+                ambiente={ambiente}
+                archivoCertificado={archivoCertificado}
                 contrasenaCertificado={contrasenaCertificado}
+                configCertificado={configCertificado}
+                claveMaestraConfigurada={claveMaestraConfigurada}
+                guardandoCertificado={guardandoCertificado}
+                errorCertificado={errorCertificado}
+                mensajeCertificado={mensajeCertificado}
                 resumenSimulacion={resumenSimulacion}
                 casoSeleccionadoIndex={casoSeleccionadoIndex}
                 verRfce={verRfce}
@@ -1368,8 +1673,14 @@ export function PortalEcfCliente({ empresa, numeraciones, onEjecutarPruebas }: P
                 errorCopiado={errorCopiado}
                 numeraciones={numeraciones}
                 ultimoEncf={ultimoEncf}
-                onCertificado={setNombreCertificado}
+                onCertificado={setArchivoCertificado}
                 onContrasena={setContrasenaCertificado}
+                onGuardarCertificado={() => {
+                  void guardarCertificadoServidor();
+                }}
+                onCambiarActivo={(activo) => {
+                  void cambiarActivoCertificado(activo);
+                }}
                 onSeleccionarCaso={setCasoSeleccionadoIndex}
                 onVerRfce={setVerRfce}
                 onEjecutarPruebas={() => {
