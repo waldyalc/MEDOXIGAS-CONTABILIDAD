@@ -282,6 +282,62 @@ export function nombreArchivoAcecfDgii(rncComprador: string, encf: string): stri
   return `${rncComprador.replace(/\D/g, "")}${encf.trim().toUpperCase()}.xml`;
 }
 
+function textoMontoFila(
+  row: ExcelJS.Row,
+  encabezados: Map<string, EncabezadoHoja>,
+  lexemasNumericos: Map<string, string>,
+): string {
+  const columnaMonto = encabezados.get(canonico("MontoTotal"));
+  const lexemaCrudo = columnaMonto
+    ? lexemasNumericos.get(row.getCell(columnaMonto.columna).address.toUpperCase())
+    : undefined;
+  return lexemaCrudo ?? textoColumna(row, encabezados, "MontoTotal");
+}
+
+function parsearFilaAcecf(
+  row: ExcelJS.Row,
+  numeroFila: number,
+  encabezados: Map<string, EncabezadoHoja>,
+  lexemasNumericos: Map<string, string>,
+  desconocidas: string[],
+): CasoExcelAcecfDgii {
+  const version = versionDgii(textoColumna(row, encabezados, "Version"));
+  const rncEmisor = textoColumna(row, encabezados, "RNCEmisor");
+  const encf = textoColumna(row, encabezados, "eNCF");
+  const fechaEmision = fechaColumna(row, encabezados, "FechaEmision", false);
+  const montoTotalTexto = montoFila(textoMontoFila(row, encabezados, lexemasNumericos), numeroFila);
+  const rncComprador = textoColumna(row, encabezados, "RNCComprador");
+  const estadoTexto = textoColumna(row, encabezados, "Estado");
+  if (estadoTexto !== "1" && estadoTexto !== "2") {
+    throw new Error(`La fila ${numeroFila} del Excel ACECF tiene Estado inválido: ${estadoTexto || "(vacío)"}`);
+  }
+  const motivo = textoColumna(row, encabezados, "DetalleMotivoRechazo");
+  const fechaHora = fechaColumna(row, encabezados, "FechaHoraAprobacionComercial", true);
+
+  const aprobacion: AprobacionComercialInput = {
+    rncEmisor,
+    rncComprador,
+    encf,
+    fechaEmision,
+    montoTotal: Number(montoTotalTexto),
+    montoTotalTexto,
+    estado: estadoTexto,
+  };
+  if (motivo !== "") aprobacion.detalleMotivoRechazo = motivo;
+  if (fechaHora !== "") aprobacion.fechaHoraAprobacionComercial = fechaHora;
+
+  return {
+    numeroFila,
+    version,
+    aprobacion,
+    montoTotalTexto,
+    fechaEmisionLiteral: fechaEmision,
+    fechaHoraAprobacionLiteral: fechaHora,
+    nombreArchivoAcecf: nombreArchivoAcecfDgii(rncComprador, encf),
+    columnasNoReconocidas: [...desconocidas],
+  };
+}
+
 export async function parsearExcelAcecfDgii(buffer: Buffer | ArrayBuffer | Uint8Array): Promise<CasoExcelAcecfDgii[]> {
   const bytes = bufferDesdeEntrada(buffer);
   const libro = new ExcelJS.Workbook();
@@ -290,51 +346,12 @@ export async function parsearExcelAcecfDgii(buffer: Buffer | ArrayBuffer | Uint8
   asegurarEncabezados(encabezados);
   const desconocidas = columnasNoReconocidas(encabezados);
   const lexemasNumericos = extraerLexemasNumericosHoja(bytes, hoja.name);
-  const columnaMonto = encabezados.get(canonico("MontoTotal"));
   const casos: CasoExcelAcecfDgii[] = [];
 
   for (let numeroFila = 2; numeroFila <= hoja.rowCount; numeroFila += 1) {
     const row = hoja.getRow(numeroFila);
     if (filaCompletamenteVacia(row)) continue;
-
-    const version = versionDgii(textoColumna(row, encabezados, "Version"));
-    const rncEmisor = textoColumna(row, encabezados, "RNCEmisor");
-    const encf = textoColumna(row, encabezados, "eNCF");
-    const fechaEmision = fechaColumna(row, encabezados, "FechaEmision", false);
-    const celdaMonto = columnaMonto ? row.getCell(columnaMonto.columna) : null;
-    const lexemaCrudoMonto = celdaMonto ? lexemasNumericos.get(celdaMonto.address.toUpperCase()) : undefined;
-    const textoMonto = lexemaCrudoMonto ?? textoColumna(row, encabezados, "MontoTotal");
-    const montoTotalTexto = montoFila(textoMonto, numeroFila);
-    const rncComprador = textoColumna(row, encabezados, "RNCComprador");
-    const estadoTexto = textoColumna(row, encabezados, "Estado");
-    if (estadoTexto !== "1" && estadoTexto !== "2") {
-      throw new Error(`La fila ${numeroFila} del Excel ACECF tiene Estado inválido: ${estadoTexto || "(vacío)"}`);
-    }
-    const motivo = textoColumna(row, encabezados, "DetalleMotivoRechazo");
-    const fechaHora = fechaColumna(row, encabezados, "FechaHoraAprobacionComercial", true);
-
-    const aprobacion: AprobacionComercialInput = {
-      rncEmisor,
-      rncComprador,
-      encf,
-      fechaEmision,
-      montoTotal: Number(montoTotalTexto),
-      montoTotalTexto,
-      estado: estadoTexto,
-    };
-    if (motivo !== "") aprobacion.detalleMotivoRechazo = motivo;
-    if (fechaHora !== "") aprobacion.fechaHoraAprobacionComercial = fechaHora;
-
-    casos.push({
-      numeroFila,
-      version,
-      aprobacion,
-      montoTotalTexto,
-      fechaEmisionLiteral: fechaEmision,
-      fechaHoraAprobacionLiteral: fechaHora,
-      nombreArchivoAcecf: nombreArchivoAcecfDgii(rncComprador, encf),
-      columnasNoReconocidas: [...desconocidas],
-    });
+    casos.push(parsearFilaAcecf(row, numeroFila, encabezados, lexemasNumericos, desconocidas));
   }
 
   if (casos.length === 0) throw new Error("El Excel ACECF no contiene filas válidas de aprobación comercial");
