@@ -15,7 +15,7 @@ Viven en `supabase/migrations/`. El proyecto es **MEDOXIGAS-CONTABILIDAD** (`ljf
 - `20261113140000_motor_contable.sql`
 - `20261123000000_tipos_entrada_diario.sql`
 
-El timestamp debe ser una fecha y hora válidas: nada de horas 25, minutos 99, ni fechas futuras inventadas. Si dudas, usa la hora UTC actual (`Get-Date -AsUTC` en PowerShell) y asegúrate de que supere a la última migración.
+El timestamp debe ser una fecha y hora válidas: nada de horas 25, minutos 99, ni fechas futuras inventadas. Si dudas, usa la hora UTC actual (`date -u +%Y%m%d%H%M%S`) y asegúrate de que supere a la última migración.
 
 Nunca edites una migración que ya está en el repo o aplicada. Cualquier cambio va en un archivo nuevo, aditivo y reintentable. Nada que borre o reescriba datos sin OK de Waldy.
 

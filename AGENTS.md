@@ -61,22 +61,27 @@ Si llegaste por un brief de `delegate_task`:
 | pgTAP local | `bash scripts/pgtap-local.sh` (Postgres local del VPS; **nunca** contra producción) |
 | Capturas UI | `pnpm captura --ruta /pos --salida /root/referencias/capturas-terminadas/<fecha>-<tema> [--base http://localhost:3010]` |
 
-## Skills y subagentes (`.agents/`, enlazados en `.opencode/` y `.claude/`)
+## Skills y subagentes
 
-Fuente canónica en **`.agents/skills/<nombre>/SKILL.md`** (disponible para Antigravity/Gemini, Claude/Fable, Devin y OpenCode):
-- `diseno-ui` — shadcn (`InputGroup`, `Select`, `DatePicker`), color global Medoxigas y copia exacta de Alegra.
-- `flujo-git` — worktrees, commits chicos y reporte al Orquestador sin tocar `main`.
-- `probar-cambios` — typecheck, check, test, build y husky (nunca `--no-verify`).
-- `motor-contable` — doble partida, cuentas por defecto e invariantes.
-- `supabase-migraciones` — migraciones aditivas, timestamp UTC real, RLS y pgTAP.
-- `ticket-80mm` — medidas exactas pt/mm y carril `pnpm test:pdf`.
-- `biome` — convertir cada corrección de Waldy en candado.
-- `localhost` — dev server en worktree (`3011+`).
-- `pedir-ayuda` — preguntar cuando haya bloqueo en lugar de inventar atajos.
+- **Skills globales del VPS** (`/root/.agents/skills/`, enlazadas en `~/.claude/skills`, `~/.gemini/skills`, `~/.config/opencode/skills`):
+  - `gemini-research` — **cuando tengas dudas técnicas, normativas (DGII), de librerías, PDFs o capturas, investiga con `gemini-api` en vez de adivinar.**
+  - `flujo-git` — worktrees, commits chicos y reporte al Orquestador sin tocar `main`.
+  - `probar-cambios` — `pnpm typecheck`, `pnpm check`, `pnpm test`, `pnpm build` y husky (nunca `--no-verify`).
+  - `biome` — convertir cada corrección de Waldy en un candado automático.
+  - `pedir-ayuda` — parar y preguntar tras 2 intentos fallidos en vez de inventar atajos.
+- **Skills propias del proyecto** (`.agents/skills/`, enlazadas en `.opencode/skills` y `.claude/skills`):
+  - `diseno-ui` — shadcn (`InputGroup`, `Select`, `DatePicker`), color global Medoxigas y copia exacta de Alegra.
+  - `motor-contable` — doble partida, cuentas por defecto e invariantes.
+  - `supabase-migraciones` — migraciones aditivas, timestamp UTC real, RLS y pgTAP.
+  - `ticket-80mm` — medidas exactas pt/mm y carril `pnpm test:pdf`.
+- **Subagentes reutilizables** (`.agents/agents/` y `/root/.agents/agents/`): `verifier.md` (solo lectura) y `planner.md` (solo lectura).
 
-Subagentes reutilizables en **`.agents/agents/`**: `verifier.md` (solo lectura) y `planner.md` (solo lectura).
-
-> Si `gemini-api` está disponible en el `PATH` del VPS, cualquier agente puede usarlo para Deep Research (`gemini-api agent run --background`) o análisis multimodal de PDFs/capturas (`gemini-api analyze -i ...`); inspecciona `--help` / `--dry-run` antes de llamar.
+### Uso obligatorio de `gemini-api` ante dudas externas
+Tienes `gemini-api` instalado en `/usr/local/bin/gemini-api`. Cuando necesites investigar cualquier información externa (DGII, docs recientes de Next.js/React/librerías, PDFs o comparar capturas Alegra vs Medoxigas), úsalo desde la terminal:
+- Consulta rápida: `gemini-api generate "<pregunta>" --stream=false`
+- Deep Research en background: `gemini-api agent run "<tema>" --agent deep-research-preview-04-2026 --background --jq '.id'` → `gemini-api agent status "$ID" --stream=false --output-format json`
+- Analizar PDFs / capturas: `gemini-api analyze -i ref.png -i actual.png "<pregunta>"`
+- Inspecciona `--help` / `--dry-run` antes de llamadas complejas. Nunca imprimas ni commitees `GEMINI_API_KEY`.
 
 ---
 
