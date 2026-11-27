@@ -541,6 +541,29 @@ export function formatearDecimalHasta2Dgii(valor: number): string {
     .replace(/(\.\d*[1-9])0+$/, "$1");
 }
 
+function textoLiteralDgii(texto: string | undefined): string | undefined {
+  const limpio = texto?.trim();
+  return limpio ? limpio : undefined;
+}
+
+function formatearConTextoDgii(
+  texto: string | undefined,
+  valor: number,
+  formateador: (valor: number) => string,
+): string {
+  return textoLiteralDgii(texto) ?? formateador(valor);
+}
+
+function formatearOpcionalConTextoDgii(
+  texto: string | undefined,
+  valor: number | undefined,
+  formateador: (valor: number) => string,
+): string | undefined {
+  const literal = textoLiteralDgii(texto);
+  if (literal) return literal;
+  return valor === undefined ? undefined : formateador(valor);
+}
+
 export function formatearDecimalHasta3Dgii(valor: number): string {
   if (!Number.isFinite(valor)) throw new Error("Los decimales DGII deben ser números finitos");
   const redondeado = Math.round((valor + Number.EPSILON) * 1000) / 1000;
@@ -778,7 +801,7 @@ function xmlSubAjustes(nombreTabla: string, nombreItem: string, ajustes: SubAjus
           tag(esDescuento ? "TipoSubDescuento" : "TipoSubRecargo", ajuste.tipo),
           tagOpcional(
             esDescuento ? "SubDescuentoPorcentaje" : "SubRecargoPorcentaje",
-            ajuste.porcentaje === undefined ? undefined : formatearDecimalHasta2Dgii(ajuste.porcentaje),
+            formatearOpcionalConTextoDgii(ajuste.porcentajeTexto, ajuste.porcentaje, formatearDecimalHasta2Dgii),
           ),
           tagOpcional(
             esDescuento ? "MontoSubDescuento" : "MontoSubRecargo",
@@ -887,6 +910,16 @@ function xmlItem(linea: LineaEcfInput, tipo: TipoEcf): string {
   const recargo = recargoLinea(linea);
   const permiteDescuentos = tipoPermiteDescuentos(tipo);
   const permiteReferencia = tipoPermiteReferenciaDeCantidad(tipo);
+  const cantidadReferenciaXml = formatearOpcionalConTextoDgii(
+    linea.cantidadReferenciaTexto,
+    linea.cantidadReferencia,
+    formatearMontoDgii,
+  );
+  const gradosAlcoholXml = formatearOpcionalConTextoDgii(
+    linea.gradosAlcoholTexto,
+    linea.gradosAlcohol,
+    formatearDecimalHasta2Dgii,
+  );
   return `<Item>${[
     tag("NumeroLinea", linea.numeroLinea),
     xmlCodigosItem(linea),
@@ -895,16 +928,12 @@ function xmlItem(linea: LineaEcfInput, tipo: TipoEcf): string {
     tag("NombreItem", linea.nombreItem),
     tag("IndicadorBienoServicio", linea.indicadorBienoServicio ?? "1"),
     tagOpcional("DescripcionItem", linea.descripcionItem),
-    tag("CantidadItem", formatearMontoDgii(linea.cantidad)),
+    tag("CantidadItem", formatearConTextoDgii(linea.cantidadTexto, linea.cantidad, formatearMontoDgii)),
     tagOpcional("UnidadMedida", linea.unidadMedida),
-    permiteReferencia && linea.cantidadReferencia !== undefined
-      ? tag("CantidadReferencia", formatearMontoDgii(linea.cantidadReferencia))
-      : "",
+    permiteReferencia && cantidadReferenciaXml !== undefined ? tag("CantidadReferencia", cantidadReferenciaXml) : "",
     permiteReferencia ? tagOpcional("UnidadReferencia", linea.unidadReferencia) : "",
     xmlSubcantidades(linea, tipo),
-    permiteReferencia && linea.gradosAlcohol !== undefined
-      ? tag("GradosAlcohol", formatearDecimalHasta2Dgii(linea.gradosAlcohol))
-      : "",
+    permiteReferencia && gradosAlcoholXml !== undefined ? tag("GradosAlcohol", gradosAlcoholXml) : "",
     permiteReferencia && linea.precioUnitarioReferencia !== undefined
       ? tag("PrecioUnitarioReferencia", formatearMontoDgii(linea.precioUnitarioReferencia))
       : "",
@@ -913,7 +942,10 @@ function xmlItem(linea: LineaEcfInput, tipo: TipoEcf): string {
       "FechaVencimientoItem",
       linea.fechaVencimientoItem ? formatearFechaDgii(linea.fechaVencimientoItem) : undefined,
     ),
-    tag("PrecioUnitarioItem", formatearPrecioDgii(linea.precioUnitario)),
+    tag(
+      "PrecioUnitarioItem",
+      formatearConTextoDgii(linea.precioUnitarioTexto, linea.precioUnitario, formatearPrecioDgii),
+    ),
     permiteDescuentos && descuento > 0 ? tag("DescuentoMonto", formatearMontoDgii(descuento)) : "",
     permiteDescuentos ? xmlSubAjustes("TablaSubDescuento", "SubDescuento", linea.subDescuentos) : "",
     permiteDescuentos && recargo > 0 ? tag("RecargoMonto", formatearMontoDgii(recargo)) : "",
@@ -990,7 +1022,7 @@ function xmlOtraMoneda(doc: DocumentoEcfInput): string {
   const tipo = doc.comprobante.tipo;
   const valores: Record<string, string | undefined> = {
     TipoMoneda: otra.tipoMoneda,
-    TipoCambio: formatearPrecioDgii(otra.tipoCambio),
+    TipoCambio: formatearConTextoDgii(otra.tipoCambioTexto, otra.tipoCambio, formatearPrecioDgii),
     MontoGravadoTotalOtraMoneda: valorNumericoOpcional(otra.montoGravadoTotalOtraMoneda),
     MontoGravado1OtraMoneda: valorNumericoOpcional(otra.montoGravado1OtraMoneda),
     MontoGravado2OtraMoneda: valorNumericoOpcional(otra.montoGravado2OtraMoneda),
