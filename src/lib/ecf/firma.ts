@@ -161,6 +161,7 @@ interface EstadoCanonizacionXml {
 }
 
 function agregarTextoCanonico(estado: EstadoCanonizacionXml, texto: string): void {
+  if (estado.pila.length === 0 && texto.trim() === "") return;
   if (estado.omitidas === 0) estado.salida += normalizarTextoXml(texto);
 }
 
