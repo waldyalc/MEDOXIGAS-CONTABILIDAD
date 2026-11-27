@@ -1470,7 +1470,7 @@ export function generarXmlAcecf(input: AprobacionComercialInput): string {
     input.montoTotalTexto === undefined
       ? formatearMontoDgii(input.montoTotal)
       : normalizarMontoAcecfDgii(input.montoTotalTexto);
-  const motivoCrudo = input.detalleMotivoRechazo ?? "";
+  const motivoCrudo = input.estado === "1" ? "" : (input.detalleMotivoRechazo ?? "");
   const motivoRecortado = motivoCrudo.trim();
   const motivoRechazo = motivoRecortado === "" || motivoRecortado.toLowerCase() === "#e" ? "" : motivoCrudo;
   if (motivoRechazo.length > 250) throw new Error("El detalle del motivo de rechazo no puede exceder 250 caracteres");

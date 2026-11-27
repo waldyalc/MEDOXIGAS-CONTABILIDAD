@@ -2,6 +2,115 @@ import ExcelJS from "exceljs";
 
 import type { AprobacionComercialInput, CasoExcelAcecfDgii } from "./tipos";
 import { normalizarMontoAcecfDgii } from "./xml";
+import { inflateRawSync } from "node:zlib";
+
+const FIRMA_EOCD = 0x06054b50;
+const FIRMA_CENTRAL = 0x02014b50;
+const FIRMA_LOCAL = 0x04034b50;
+
+function encontrarEocd(zip: Buffer): number {
+  const minimo = Math.max(0, zip.length - 65557);
+  for (let offset = zip.length - 22; offset >= minimo; offset -= 1) {
+    if (zip.readUInt32LE(offset) === FIRMA_EOCD) return offset;
+  }
+  return -1;
+}
+
+function extraerEntradaZip(
+  zip: Buffer,
+  desplazamientoLocal: number,
+  compresion: number,
+  tamanoComprimido: number,
+): Buffer | null {
+  if (desplazamientoLocal + 30 > zip.length || zip.readUInt32LE(desplazamientoLocal) !== FIRMA_LOCAL) return null;
+  const largoNombre = zip.readUInt16LE(desplazamientoLocal + 26);
+  const largoExtra = zip.readUInt16LE(desplazamientoLocal + 28);
+  const inicioDatos = desplazamientoLocal + 30 + largoNombre + largoExtra;
+  const finDatos = inicioDatos + tamanoComprimido;
+  if (finDatos > zip.length) return null;
+  const datos = zip.subarray(inicioDatos, finDatos);
+  if (compresion === 0) return Buffer.from(datos);
+  if (compresion === 8) return inflateRawSync(datos);
+  return null;
+}
+
+function leerEntradasZip(zip: Buffer): Map<string, Buffer> {
+  const entradas = new Map<string, Buffer>();
+  const eocd = encontrarEocd(zip);
+  if (eocd < 0) return entradas;
+  const cantidad = zip.readUInt16LE(eocd + 10);
+  let cursor = zip.readUInt32LE(eocd + 16);
+  for (let indice = 0; indice < cantidad && cursor + 46 <= zip.length; indice += 1) {
+    if (zip.readUInt32LE(cursor) !== FIRMA_CENTRAL) break;
+    const compresion = zip.readUInt16LE(cursor + 10);
+    const tamanoComprimido = zip.readUInt32LE(cursor + 20);
+    const largoNombre = zip.readUInt16LE(cursor + 28);
+    const largoExtra = zip.readUInt16LE(cursor + 30);
+    const largoComentario = zip.readUInt16LE(cursor + 32);
+    const desplazamientoLocal = zip.readUInt32LE(cursor + 42);
+    const nombre = zip.subarray(cursor + 46, cursor + 46 + largoNombre).toString("utf8");
+    const contenido = extraerEntradaZip(zip, desplazamientoLocal, compresion, tamanoComprimido);
+    if (contenido) entradas.set(nombre, contenido);
+    cursor += 46 + largoNombre + largoExtra + largoComentario;
+  }
+  return entradas;
+}
+
+function atributoXml(etiqueta: string, nombre: string): string | null {
+  const coincidencia = new RegExp(`(?:^|\\s)${nombre}="([^"]*)"`).exec(etiqueta);
+  return coincidencia?.[1] ?? null;
+}
+
+function rutaHojaEnZip(entradas: Map<string, Buffer>, nombreHoja: string): string | null {
+  const workbookXml = entradas.get("xl/workbook.xml")?.toString("utf8");
+  const relsXml = entradas.get("xl/_rels/workbook.xml.rels")?.toString("utf8");
+  if (!workbookXml || !relsXml) return null;
+
+  let relacionId: string | null = null;
+  for (const coincidencia of workbookXml.matchAll(/<sheet\b[^>]*>/g)) {
+    const etiqueta = coincidencia[0];
+    if (atributoXml(etiqueta, "name") === nombreHoja) {
+      relacionId = atributoXml(etiqueta, "r:id");
+      break;
+    }
+  }
+  if (!relacionId) return null;
+
+  for (const coincidencia of relsXml.matchAll(/<Relationship\b[^>]*>/g)) {
+    const etiqueta = coincidencia[0];
+    if (atributoXml(etiqueta, "Id") === relacionId) {
+      const target = atributoXml(etiqueta, "Target");
+      if (!target) return null;
+      const limpio = target.replace(/^\/+/, "");
+      return limpio.startsWith("xl/") ? limpio : `xl/${limpio}`;
+    }
+  }
+  return null;
+}
+
+function extraerLexemasNumericosHoja(zip: Buffer, nombreHoja: string): Map<string, string> {
+  const lexemas = new Map<string, string>();
+  try {
+    const entradas = leerEntradasZip(zip);
+    const rutaHoja = rutaHojaEnZip(entradas, nombreHoja);
+    const hojaXml = rutaHoja ? entradas.get(rutaHoja)?.toString("utf8") : undefined;
+    if (!hojaXml) return lexemas;
+
+    for (const coincidencia of hojaXml.matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>/g)) {
+      const atributos = coincidencia[1] ?? "";
+      const cuerpo = coincidencia[2] ?? "";
+      const referencia = atributoXml(atributos, "r");
+      if (!referencia) continue;
+      const tipo = atributoXml(atributos, "t");
+      if (tipo !== null && tipo !== "n") continue;
+      const valor = /<v>([^<]+)<\/v>/.exec(cuerpo)?.[1]?.trim();
+      if (valor) lexemas.set(referencia.toUpperCase(), valor);
+    }
+  } catch {
+    return lexemas;
+  }
+  return lexemas;
+}
 
 const SENTINEL_VACIO = "#e";
 const ENCABEZADOS_REQUERIDOS = ["RNCEmisor", "eNCF", "RNCComprador", "Estado"] as const;
@@ -174,11 +283,14 @@ export function nombreArchivoAcecfDgii(rncComprador: string, encf: string): stri
 }
 
 export async function parsearExcelAcecfDgii(buffer: Buffer | ArrayBuffer | Uint8Array): Promise<CasoExcelAcecfDgii[]> {
+  const bytes = bufferDesdeEntrada(buffer);
   const libro = new ExcelJS.Workbook();
-  await libro.xlsx.load(bufferDesdeEntrada(buffer) as never);
+  await libro.xlsx.load(bytes as never);
   const { hoja, encabezados } = seleccionarHojaAcecf(libro);
   asegurarEncabezados(encabezados);
   const desconocidas = columnasNoReconocidas(encabezados);
+  const lexemasNumericos = extraerLexemasNumericosHoja(bytes, hoja.name);
+  const columnaMonto = encabezados.get(canonico("MontoTotal"));
   const casos: CasoExcelAcecfDgii[] = [];
 
   for (let numeroFila = 2; numeroFila <= hoja.rowCount; numeroFila += 1) {
@@ -189,7 +301,10 @@ export async function parsearExcelAcecfDgii(buffer: Buffer | ArrayBuffer | Uint8
     const rncEmisor = textoColumna(row, encabezados, "RNCEmisor");
     const encf = textoColumna(row, encabezados, "eNCF");
     const fechaEmision = fechaColumna(row, encabezados, "FechaEmision", false);
-    const montoTotalTexto = montoFila(textoColumna(row, encabezados, "MontoTotal"), numeroFila);
+    const celdaMonto = columnaMonto ? row.getCell(columnaMonto.columna) : null;
+    const lexemaCrudoMonto = celdaMonto ? lexemasNumericos.get(celdaMonto.address.toUpperCase()) : undefined;
+    const textoMonto = lexemaCrudoMonto ?? textoColumna(row, encabezados, "MontoTotal");
+    const montoTotalTexto = montoFila(textoMonto, numeroFila);
     const rncComprador = textoColumna(row, encabezados, "RNCComprador");
     const estadoTexto = textoColumna(row, encabezados, "Estado");
     if (estadoTexto !== "1" && estadoTexto !== "2") {

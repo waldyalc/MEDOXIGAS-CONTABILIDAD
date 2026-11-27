@@ -9,7 +9,9 @@ import type { AprobacionComercialInput } from "./tipos";
 import { validarXmlContraEsquemaDgii } from "./validador-xsd";
 import { generarXmlAcecf, normalizarMontoAcecfDgii } from "./xml";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const RUTA_EXCEL_ACECF = "/root/referencias/ecf-oxymat/131488791-27112026175301.xlsx";
 const RUTA_XSD_ACECF = "/root/referencias/ecf-xsd/ACECF_v.1.0.xsd";
@@ -337,6 +339,88 @@ describe("parser Excel ACECF DGII", () => {
     expect(casos[3]?.fechaEmisionLiteral).toBe("18-01-2026");
     expect(casos[3]?.fechaHoraAprobacionLiteral).toBe("27-11-2026 17:53:04");
     expect(casos[3]?.aprobacion.detalleMotivoRechazo).toBeUndefined();
+  });
+
+  it("omite DetalleMotivoRechazo cuando Estado=1 aunque venga informado en el input", () => {
+    const xml = generarXmlAcecf({
+      rncEmisor: "131880681",
+      rncComprador: "131488791",
+      encf: "E310000000007",
+      fechaEmision: "01-04-2020",
+      montoTotal: 228460.5,
+      montoTotalTexto: "228460.5",
+      estado: "1",
+      detalleMotivoRechazo: "No debe emitirse en estado aprobado",
+      fechaHoraAprobacionComercial: "27-11-2026 17:53:01",
+    });
+    expect(xml).toContain(
+      "<Estado>1</Estado><FechaHoraAprobacionComercial>27-11-2026 17:53:01</FechaHoraAprobacionComercial>",
+    );
+    expect(xml).not.toContain("<DetalleMotivoRechazo>");
+    expect(validarXmlContraEsquemaDgii(xml, "ACECF")).toEqual({ valido: true, tipoDetectado: null, errores: [] });
+  });
+
+  it("preserva los 18 dígitos exactos de una celda numérica OOXML sin deriva IEEE 754", async () => {
+    const libro = new ExcelJS.Workbook();
+    const hoja = libro.addWorksheet("ACEECF_Generadas");
+    hoja.addRow([
+      "Version",
+      "RNCEmisor",
+      "eNCF",
+      "FechaEmision",
+      "MontoTotal",
+      "RNCComprador",
+      "Estado",
+      "DetalleMotivoRechazo",
+      "FechaHoraAprobacionComercial",
+    ]);
+    hoja.addRow([
+      "1.0",
+      "131880681",
+      "E310000000099",
+      "01-04-2020",
+      987654321,
+      "131488791",
+      1,
+      "",
+      "27-11-2026 17:53:01",
+    ]);
+    const zipOriginal = Buffer.from((await libro.xlsx.writeBuffer()) as ArrayBuffer);
+    const dirTemporal = mkdtempSync(join(tmpdir(), "acecf-ooxml-18d-"));
+    try {
+      const rutaOriginal = join(dirTemporal, "original.xlsx");
+      const rutaParcheada = join(dirTemporal, "parcheado.xlsx");
+      writeFileSync(rutaOriginal, zipOriginal);
+      execFileSync(
+        "python3",
+        [
+          "-c",
+          `import zipfile, sys
+with zipfile.ZipFile(sys.argv[1], 'r') as zin, zipfile.ZipFile(sys.argv[2], 'w', zipfile.ZIP_DEFLATED) as zout:
+    for item in zin.infolist():
+        data = zin.read(item.filename)
+        if item.filename == 'xl/worksheets/sheet1.xml':
+            xml = data.decode('utf-8')
+            assert '<v>987654321</v>' in xml
+            data = xml.replace('<v>987654321</v>', '<v>1234567890123456.78</v>').encode('utf-8')
+        zout.writestr(item, data)
+`,
+          rutaOriginal,
+          rutaParcheada,
+        ],
+        { encoding: "utf8" },
+      );
+      const casos = await parsearExcelAcecfDgii(readFileSync(rutaParcheada));
+      expect(casos).toHaveLength(1);
+      const primero = casos[0];
+      expect(primero?.montoTotalTexto).toBe("1234567890123456.78");
+      if (!primero) throw new Error("No se parseó la fila OOXML de 18 dígitos");
+      const xml = generarXmlAcecf(primero.aprobacion);
+      expect(xml).toContain("<MontoTotal>1234567890123456.78</MontoTotal>");
+      expect(validarXmlContraEsquemaDgii(xml, "ACECF").valido).toBe(true);
+    } finally {
+      rmSync(dirTemporal, { recursive: true, force: true });
+    }
   });
 
   it("rechaza libros sin encabezados obligatorios o sin filas válidas", async () => {
