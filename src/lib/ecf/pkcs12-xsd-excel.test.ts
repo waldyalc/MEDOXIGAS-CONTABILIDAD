@@ -1,3 +1,4 @@
+import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
 
 import { generarPlantillaExcelPruebasPiloto, ordenarCasosEnvioDgii, parsearExcelPruebasDgii } from "./excel-pruebas";
@@ -6,6 +7,7 @@ import { leerCertificadoPkcs12 } from "./pkcs12";
 import type { DocumentoEcfInput, TipoEcf } from "./tipos";
 import { validarXmlContraEsquemaDgii } from "./validador-xsd";
 import {
+  escapeXml,
   generarXmlAcecf,
   generarXmlAnecf,
   generarXmlArecf,
@@ -20,6 +22,79 @@ import { join } from "node:path";
 
 const RNC_OXYMAT = "131488791";
 const CLAVE_P12 = "ClavePrueba-Oxymat-123";
+const ALIAS_TAGS_EXCEL_XML: Record<string, string> = {
+  ENCF: "eNCF",
+  MontosubRecargo: "MontoSubRecargo",
+  NumeroLineaDoR: "NumeroLinea",
+};
+
+function tagXmlDesdeColumnaExcel(columna: string): string {
+  const base = columna.replace(/\[\d+\]/g, "");
+  return ALIAS_TAGS_EXCEL_XML[base] ?? base;
+}
+
+interface EncabezadoExcelLiteral {
+  columna: number;
+  nombre: string;
+}
+
+interface AuditoriaFilaLiteral {
+  celdasAuditadas: number;
+  discrepancias: string[];
+}
+
+interface AuditoriaHojaLiteral extends AuditoriaFilaLiteral {
+  filasAuditadas: number;
+}
+
+function encabezadosLiteralesDesdeHoja(hoja: ExcelJS.Worksheet): EncabezadoExcelLiteral[] {
+  const encabezados: EncabezadoExcelLiteral[] = [];
+  hoja.getRow(1).eachCell({ includeEmpty: false }, (celda, columna) => {
+    encabezados.push({ columna, nombre: celda.text.trim() });
+  });
+  return encabezados;
+}
+
+function celdaLiteralEsAuditable(valor: string, nombre: string): boolean {
+  return valor !== "" && valor !== "#e" && nombre !== "CasoPrueba";
+}
+
+function auditarFilaLiteralExcel(
+  row: ExcelJS.Row,
+  numeroFila: number,
+  xml: string,
+  encabezados: EncabezadoExcelLiteral[],
+): AuditoriaFilaLiteral {
+  const discrepancias: string[] = [];
+  let celdasAuditadas = 0;
+  for (const { columna, nombre } of encabezados) {
+    const valor = row.getCell(columna).text.trim();
+    if (!celdaLiteralEsAuditable(valor, nombre)) continue;
+    celdasAuditadas += 1;
+    const tagXml = tagXmlDesdeColumnaExcel(nombre);
+    const esperado = `<${tagXml}>${escapeXml(valor)}</${tagXml}>`;
+    if (!xml.includes(esperado)) {
+      discrepancias.push(`fila ${numeroFila} ${row.getCell(4).text.trim()} ${nombre}: ${esperado}`);
+    }
+  }
+  return { celdasAuditadas, discrepancias };
+}
+
+function auditarHojaLiteralExcel(hoja: ExcelJS.Worksheet, xmlPorFila: Map<number, string>): AuditoriaHojaLiteral {
+  const encabezados = encabezadosLiteralesDesdeHoja(hoja);
+  const discrepancias: string[] = [];
+  const filasAuditadas = new Set<number>();
+  let celdasAuditadas = 0;
+  for (let numeroFila = 2; numeroFila <= hoja.rowCount; numeroFila += 1) {
+    const xml = xmlPorFila.get(numeroFila);
+    if (!xml) continue;
+    filasAuditadas.add(numeroFila);
+    const auditoriaFila = auditarFilaLiteralExcel(hoja.getRow(numeroFila), numeroFila, xml, encabezados);
+    celdasAuditadas += auditoriaFila.celdasAuditadas;
+    discrepancias.push(...auditoriaFila.discrepancias);
+  }
+  return { filasAuditadas: filasAuditadas.size, celdasAuditadas, discrepancias };
+}
 
 function documentoTipo(tipo: TipoEcf): DocumentoEcfInput {
   const exento = tipo === "43" || tipo === "44" || tipo === "47";
@@ -591,6 +666,24 @@ describe("Excel oficial DGII OXYMAT real (29/29)", () => {
     expect(total).toBe(29);
     expect(firmasValidas).toBe(29);
     expect(esquemaValidos).toBe(29);
+  }, 60000);
+
+  it("reproduce literalmente las 2360 celdas útiles de las 25 filas del Excel oficial", async () => {
+    if (!existsSync(RUTA_EXCEL)) return;
+    const buffer = readFileSync(RUTA_EXCEL);
+    const casos = await parsearExcelPruebasDgii(buffer);
+    expect(casos).toHaveLength(25);
+    const xmlPorFila = new Map(casos.map((caso) => [caso.numeroFila, generarXmlEcf(caso.documento)]));
+
+    const libro = new ExcelJS.Workbook();
+    await libro.xlsx.load(Buffer.from(buffer) as never);
+    const hoja = libro.getWorksheet("ECF");
+    if (!hoja) throw new Error("El Excel oficial DGII no contiene la hoja ECF");
+    const auditoria = auditarHojaLiteralExcel(hoja, xmlPorFila);
+
+    expect(auditoria.filasAuditadas).toBe(25);
+    expect(auditoria.celdasAuditadas).toBe(2360);
+    expect(auditoria.discrepancias).toEqual([]);
   }, 60000);
 
   it("respeta los datos literales del Excel: fechas 2020, montos ISC, extranjeros y sentinel #e", async () => {
