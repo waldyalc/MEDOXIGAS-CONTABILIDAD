@@ -428,9 +428,21 @@ export interface AprobacionComercialInput {
   encf: string;
   fechaEmision: string;
   montoTotal: number;
+  montoTotalTexto?: string;
   estado: "1" | "2";
   detalleMotivoRechazo?: string;
   fechaHoraAprobacionComercial?: string;
+}
+
+export interface CasoExcelAcecfDgii {
+  numeroFila: number;
+  version: string;
+  aprobacion: AprobacionComercialInput;
+  montoTotalTexto: string;
+  fechaEmisionLiteral: string;
+  fechaHoraAprobacionLiteral: string;
+  nombreArchivoAcecf: string;
+  columnasNoReconocidas: string[];
 }
 
 export interface RangoAnulacionEcf {

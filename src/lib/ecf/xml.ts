@@ -110,6 +110,29 @@ export function formatearMontoDgii(valor: number): string {
   return valor.toFixed(2);
 }
 
+export function normalizarMontoAcecfDgii(textoONumero: string | number): string {
+  let texto: string;
+  if (typeof textoONumero === "number") {
+    if (!Number.isFinite(textoONumero) || textoONumero < 0) {
+      throw new Error("El monto total ACECF debe ser un número finito no negativo");
+    }
+    texto = String(textoONumero);
+  } else {
+    texto = textoONumero.trim();
+  }
+  if (/[eE]/.test(texto)) throw new Error("El monto total ACECF no admite notación científica");
+  if (!/^\d+(?:\.\d+)?$/.test(texto)) {
+    throw new Error("El monto total ACECF debe ser numérico, no negativo y sin separadores de miles");
+  }
+  const [entera = "", decimales = ""] = texto.split(".");
+  if (decimales.length > 2) throw new Error("El monto total ACECF no puede tener más de dos decimales");
+  const decimalesExactos = decimales.padEnd(2, "0");
+  if (`${entera}${decimalesExactos}`.length > 18) {
+    throw new Error("El monto total ACECF no puede exceder 18 dígitos totales según el XSD DGII");
+  }
+  return `${entera}.${decimalesExactos}`;
+}
+
 export function formatearPrecioDgii(valor: number): string {
   if (!Number.isFinite(valor)) throw new Error("Los precios DGII deben ser números finitos");
   const redondeado4 = Math.round((valor + Number.EPSILON) * 10000) / 10000;
@@ -1443,7 +1466,15 @@ export function generarXmlAcecf(input: AprobacionComercialInput): string {
   validarRncOError(input.rncComprador, "comprador");
   validarEncfOError(input.encf);
   if (!montoEsValido(input.montoTotal)) throw new Error("El monto total de la aprobación comercial es inválido");
-  if (input.estado === "2" && !input.detalleMotivoRechazo?.trim()) {
+  const montoTotalTexto =
+    input.montoTotalTexto === undefined
+      ? formatearMontoDgii(input.montoTotal)
+      : normalizarMontoAcecfDgii(input.montoTotalTexto);
+  const motivoCrudo = input.estado === "1" ? "" : (input.detalleMotivoRechazo ?? "");
+  const motivoRecortado = motivoCrudo.trim();
+  const motivoRechazo = motivoRecortado === "" || motivoRecortado.toLowerCase() === "#e" ? "" : motivoCrudo;
+  if (motivoRechazo.length > 250) throw new Error("El detalle del motivo de rechazo no puede exceder 250 caracteres");
+  if (input.estado === "2" && motivoRechazo === "") {
     throw new Error("El rechazo comercial debe indicar el detalle del motivo");
   }
   const xml = `<ACECF><DetalleAprobacionComercial>${[
@@ -1451,10 +1482,10 @@ export function generarXmlAcecf(input: AprobacionComercialInput): string {
     tag("RNCEmisor", input.rncEmisor),
     tag("eNCF", input.encf),
     tag("FechaEmision", formatearFechaDgii(input.fechaEmision)),
-    tag("MontoTotal", formatearMontoDgii(input.montoTotal)),
+    tag("MontoTotal", montoTotalTexto),
     tag("RNCComprador", input.rncComprador),
     tag("Estado", input.estado),
-    tagOpcional("DetalleMotivoRechazo", input.detalleMotivoRechazo),
+    tagOpcional("DetalleMotivoRechazo", motivoRechazo === "" ? undefined : motivoRechazo),
     tag("FechaHoraAprobacionComercial", formatearFechaHoraDgii(input.fechaHoraAprobacionComercial)),
   ].join("")}</DetalleAprobacionComercial></ACECF>`;
   return `${declaracionXml()}${xml}`;
