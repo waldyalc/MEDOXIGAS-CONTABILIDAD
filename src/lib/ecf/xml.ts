@@ -1074,7 +1074,7 @@ function xmlIdDoc(doc: DocumentoEcfInput): string {
   if (tipo !== "41" && tipo !== "43" && tipo !== "47") {
     partes.push(tagOpcional("IndicadorEnvioDiferido", comp.indicadorEnvioDiferido));
   }
-  if (tipo !== "44" && tipo !== "41" && tipo !== "43" && tipo !== "46" && tipo !== "47") {
+  if (tipo !== "44" && tipo !== "43" && tipo !== "46" && tipo !== "47") {
     partes.push(tagOpcional("IndicadorMontoGravado", comp.indicadorMontoGravado));
   }
   if (tipo !== "41" && tipo !== "43" && tipo !== "46" && tipo !== "47") {

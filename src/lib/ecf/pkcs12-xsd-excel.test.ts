@@ -625,6 +625,19 @@ describe("Excel oficial DGII OXYMAT real (29/29)", () => {
 
     const notaCredito = porEncf.get("E340000000002");
     expect(notaCredito?.documento.comprobante.razonModificacion).toBe("Error en monto");
+    expect(notaCredito?.documento.lineas[0]?.subRecargos?.[0]?.monto).toBe(350);
+    if (notaCredito) {
+      expect(generarXmlEcf(notaCredito.documento)).toContain("<MontoSubRecargo>350.00</MontoSubRecargo>");
+    }
+
+    const comprasE41 = porEncf.get("E410000000007");
+    expect(comprasE41?.documento.comprobante.indicadorMontoGravado).toBe("0");
+    expect(comprasE41?.documento.lineas[0]?.subRecargos?.[0]?.monto).toBe(57.75);
+    if (comprasE41) {
+      const xmlE41 = generarXmlEcf(comprasE41.documento);
+      expect(xmlE41).toContain("<IndicadorMontoGravado>0</IndicadorMontoGravado>");
+      expect(xmlE41).toContain("<MontoSubRecargo>57.75</MontoSubRecargo>");
+    }
 
     const descuentoGlobal = porEncf.get("E310000000011");
     expect(descuentoGlobal?.documento.descuentosORecargos?.[0]?.tipoAjuste).toBe("D");

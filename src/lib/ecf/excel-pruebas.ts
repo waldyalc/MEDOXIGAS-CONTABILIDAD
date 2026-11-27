@@ -402,24 +402,27 @@ function leerLineas(lectura: CeldaLectura): LineaEcfInput[] {
     const leerSubAjustes = (
       baseTipo: string,
       basePorcentaje: string,
-      baseMonto: string,
+      basesMonto: readonly string[],
     ): NonNullable<LineaEcfInput["subDescuentos"]> => {
       const ajustes: NonNullable<LineaEcfInput["subDescuentos"]> = [];
       for (let j = 1; j <= 12; j += 1) {
         const tipo = lectura.indizadoDoble(baseTipo, i, j);
         const porcentaje = lectura.numeroIndizadoDoble(basePorcentaje, i, j);
-        const monto = lectura.numeroIndizadoDoble(baseMonto, i, j);
+        let monto: number | undefined;
+        for (const baseMonto of basesMonto) {
+          monto = lectura.numeroIndizadoDoble(baseMonto, i, j);
+          if (monto !== undefined) break;
+        }
         if (!tipo && porcentaje === undefined && monto === undefined) continue;
         ajustes.push({ tipo: tipo === "%" ? "%" : "$", porcentaje, monto });
       }
       return ajustes;
     };
-    const subDescuentos = leerSubAjustes("TipoSubDescuento", "SubDescuentoPorcentaje", "MontoSubDescuento");
-    const subRecargos = leerSubAjustes("TipoSubRecargo", "SubRecargoPorcentaje", "MontoSubRecargo");
-    if (subRecargos.length === 0) {
-      const alterno = leerSubAjustes("TipoSubRecargo", "SubRecargoPorcentaje", "MontosubRecargo");
-      subRecargos.push(...alterno);
-    }
+    const subDescuentos = leerSubAjustes("TipoSubDescuento", "SubDescuentoPorcentaje", ["MontoSubDescuento"]);
+    const subRecargos = leerSubAjustes("TipoSubRecargo", "SubRecargoPorcentaje", [
+      "MontoSubRecargo",
+      "MontosubRecargo",
+    ]);
 
     const impuestosAdicionales: LineaEcfInput["impuestosAdicionales"] = [];
     for (let j = 1; j <= 2; j += 1) {
