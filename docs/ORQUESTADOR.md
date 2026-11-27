@@ -29,9 +29,12 @@ Waldy reporta errores conforme los ve. Tu trabajo es **canalizarlos sin saturar 
 2. **Semáforo automático al recibir un pedido nuevo mientras hay una ola corriendo:**
    - **VERDE (`< 4` activos y 0 archivos compartidos con los activos):** delega en worktree de inmediato.
    - **ÁMBAR (`4` activos O toca un archivo compartido como `tabla-lista.tsx`, `globals.css`, `package.json`, `AGENTS.md`, `sidebar-items.ts`):** **NO lo lances encima.** Agrégalo a tu **Cola de Ola 2** (avísale a Waldy en 1 línea), cierra y verifica la Ola 1, y lanza la Ola 2 limpia sobre el código ya integrado.
-3. **Hilos cortos y enfocados:**
+3. **Hilos cortos + auto-aviso obligatorio de cierre:**
    - **1 hilo = 1 bloque (1–2 olas = 4–8 tareas, máx. ~20–25 turnos).**
-   - Si el hilo supera ese límite, cierra la ola, actualiza `HANDOFF.md` corto, poda worktrees y pide a Waldy abrir un hilo nuevo limpio.
+   - Al cerrar cada avance u ola, incluye una línea fija: `Estado del hilo: Ola X/2 · Tareas Y/8`.
+   - En cuanto se cumplan **2 olas**, **6–8 tareas integradas**, **~20 turnos** o el pedido cambie a otra épica, **avisa proactivamente a Waldy sin esperar a que él lo note**:
+     > *«⚠️ **Momento de cerrar este bloque** (llevamos X olas / Y tareas). ¿Actualizo `HANDOFF.md`, podo los worktrees y cerramos este hilo para que abras uno nuevo limpio?»*
+   - No lances una Ola 3 en el mismo hilo salvo instrucción explícita de Waldy.
    - Preguntas conceptuales o investigaciones largas van en hilo aparte (o vía `gemini-api` si está disponible), para no inflar el contexto del orquestador.
 
 ---
