@@ -3,7 +3,12 @@ import { describe, expect, it } from "vitest";
 import type { ConsultarResultadoDgiiArgs, ResultadoConsultaDgii } from "@/lib/ecf/cliente-dgii";
 import type { CasoExcelDgii, DocumentoEcfInput, EstadoDgii, TipoEcf } from "@/lib/ecf/tipos";
 
-import { consultarResultadoFinalDgii, formatearFechaHoraRdActual, ordenarCasosPorDependencia } from "./route";
+import {
+  consultarResultadoFinalDgii,
+  formatearFechaHoraRdActual,
+  ordenarCasosPorDependencia,
+  resultadoDesdeEnvioAceptado,
+} from "./route";
 
 function documentoCaso(tipo: TipoEcf, encf: string, ncfModificado?: string): DocumentoEcfInput {
   return {
@@ -89,6 +94,21 @@ function crearEsperarMs(): { esperarMs: (ms: number) => Promise<void>; esperas: 
   };
 }
 
+function envioExistente(estado: EstadoDgii, mensajes: string[] | null = ["Aceptado por DGII"]) {
+  return {
+    id: "envio-existente-1",
+    encf: "E320000000011",
+    intentos: 1,
+    estado,
+    track_id: "track-guardado",
+    codigo_seguridad: "SEGURIDAD123",
+    url_qr: "https://dgii.example.test/qr",
+    xml_firmado: "<ECF>firmado</ECF>",
+    xml_rfce: "<RFCE>firmado</RFCE>",
+    mensajes,
+  };
+}
+
 describe("ordenarCasosPorDependencia", () => {
   it("adelanta las facturas base del patrón oficial E33->E32, E34->E31 y E34->E44", () => {
     const casos = [
@@ -124,6 +144,49 @@ describe("ordenarCasosPorDependencia", () => {
     const casos = [caso("33", "E330000000021", 2, "E320000000011"), caso("32", "E320000000011", 3, "E330000000021")];
 
     expect(encfs(ordenarCasosPorDependencia(casos))).toEqual(encfs(casos));
+  });
+});
+
+describe("resultadoDesdeEnvioAceptado", () => {
+  it("devuelve null para estados no aceptados", () => {
+    const casoBase = caso("32", "E320000000011", 5);
+
+    for (const estado of ["rechazado", "pendiente", "en_proceso", "error_red"] as const) {
+      expect(resultadoDesdeEnvioAceptado(casoBase, "131488791", envioExistente(estado))).toBeNull();
+    }
+  });
+
+  it("preserva XML, código de seguridad, trackId y URL QR de envíos aceptados", () => {
+    const casoBase = caso("32", "E320000000011", 5);
+
+    for (const estado of ["aceptado", "aceptado_condicional"] as const) {
+      const resultado = resultadoDesdeEnvioAceptado(casoBase, "131488791", envioExistente(estado));
+
+      expect(resultado).toMatchObject({
+        encf: "E320000000011",
+        estado,
+        trackId: "track-guardado",
+        codigoSeguridad: "SEGURIDAD123",
+        urlQr: "https://dgii.example.test/qr",
+        xmlFirmado: "<ECF>firmado</ECF>",
+        xmlRfce: "<RFCE>firmado</RFCE>",
+        nombreArchivoEcf: "131488791E320000000011.xml",
+        mensajes: ["Aceptado por DGII"],
+        duracionMs: 0,
+        persistido: true,
+        errorPersistencia: null,
+      });
+    }
+  });
+
+  it("agrega un mensaje explícito cuando el envío aceptado no tenía mensajes guardados", () => {
+    const resultado = resultadoDesdeEnvioAceptado(
+      caso("32", "E320000000011", 5),
+      "131488791",
+      envioExistente("aceptado", null),
+    );
+
+    expect(resultado?.mensajes).toEqual(["Ya aceptado previamente en DGII (conservado sin reenviar)"]);
   });
 });
 

@@ -39,6 +39,13 @@ interface EnvioExistente {
   id: string;
   encf: string;
   intentos: number;
+  estado: string;
+  track_id: string | null;
+  codigo_seguridad: string | null;
+  url_qr: string | null;
+  xml_firmado: string | null;
+  xml_rfce: string | null;
+  mensajes: string[] | null;
 }
 
 function jsonError(mensaje: string, status: number) {
@@ -510,7 +517,7 @@ async function cargarEnviosExistentes(
   if (encfs.length === 0) return mapa;
   const { data, error } = await supabase
     .from("ecf_envios")
-    .select("id, encf, intentos")
+    .select("id, encf, intentos, estado, track_id, codigo_seguridad, url_qr, xml_firmado, xml_rfce, mensajes")
     .eq("rnc_emisor", rncEmisor)
     .eq("ambiente", ambiente)
     .eq("documento_tipo", "prueba")
@@ -519,6 +526,31 @@ async function cargarEnviosExistentes(
   if (error) throw new Error(`No se pudo leer la trazabilidad previa de pruebas: ${error.message}`);
   for (const fila of data ?? []) mapa.set(fila.encf, fila);
   return mapa;
+}
+
+export function resultadoDesdeEnvioAceptado(
+  caso: CasoExcelDgii,
+  rncEmisor: string,
+  existente: EnvioExistente,
+): ResultadoEnvioExcelCaso | null {
+  if (existente.estado !== "aceptado" && existente.estado !== "aceptado_condicional") return null;
+  return {
+    ...baseResultado(caso),
+    trackId: existente.track_id,
+    estado: existente.estado,
+    codigoSeguridad: existente.codigo_seguridad,
+    mensajes:
+      existente.mensajes && existente.mensajes.length > 0
+        ? existente.mensajes
+        : ["Ya aceptado previamente en DGII (conservado sin reenviar)"],
+    urlQr: existente.url_qr,
+    duracionMs: 0,
+    xmlFirmado: existente.xml_firmado,
+    xmlRfce: existente.xml_rfce,
+    nombreArchivoEcf: `${rncEmisor}${caso.documento.comprobante.encf}.xml`,
+    persistido: true,
+    errorPersistencia: null,
+  };
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: el runner valida multipart, bloquea producción, parsea Excel, firma, envía y persiste trazabilidad fiscal por caso
@@ -592,25 +624,48 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const credencialesResueltas = await resolverCredenciales(supabase, form, rncEmisor);
   if ("error" in credencialesResueltas) return jsonError(credencialesResueltas.error, credencialesResueltas.status);
-  let token: string;
+
+  const casosOrdenados = ordenarCasosPorDependencia(casos);
+  const encfs = [...new Set(casosOrdenados.map((caso) => caso.documento.comprobante.encf))];
+  let existentes: Map<string, EnvioExistente>;
   try {
-    const tokenDgii = await obtenerTokenDgii({
-      ambiente,
-      clavePrivadaPem: credencialesResueltas.credenciales.clavePrivadaPem,
-      certificadoPem: credencialesResueltas.credenciales.certificadoPem,
-      confirmarProduccion: false,
-    });
-    token = tokenDgii.token;
+    existentes = await cargarEnviosExistentes(supabase, rncEmisor, ambiente, encfs);
   } catch (error) {
-    return jsonError(error instanceof Error ? error.message : "La DGII no pudo autenticar el certificado.", 502);
+    return jsonError(
+      error instanceof Error ? error.message : "No se pudo leer la trazabilidad previa de pruebas.",
+      500,
+    );
+  }
+
+  const resultadoReutilizado = (caso: CasoExcelDgii): ResultadoEnvioExcelCaso | null => {
+    const existente = existentes.get(caso.documento.comprobante.encf);
+    return existente ? resultadoDesdeEnvioAceptado(caso, rncEmisor, existente) : null;
+  };
+  const hayCasosPendientes = casosOrdenados.some((caso) => resultadoReutilizado(caso) === null);
+  let token: string | null = null;
+  if (hayCasosPendientes) {
+    try {
+      const tokenDgii = await obtenerTokenDgii({
+        ambiente,
+        clavePrivadaPem: credencialesResueltas.credenciales.clavePrivadaPem,
+        certificadoPem: credencialesResueltas.credenciales.certificadoPem,
+        confirmarProduccion: false,
+      });
+      token = tokenDgii.token;
+    } catch (error) {
+      return jsonError(error instanceof Error ? error.message : "La DGII no pudo autenticar el certificado.", 502);
+    }
   }
 
   try {
-    const casosOrdenados = ordenarCasosPorDependencia(casos);
-    const encfs = [...new Set(casosOrdenados.map((caso) => caso.documento.comprobante.encf))];
-    const existentes = await cargarEnviosExistentes(supabase, rncEmisor, ambiente, encfs);
     const resultados: ResultadoEnvioExcelCaso[] = [];
     for (const caso of casosOrdenados) {
+      const reutilizado = resultadoReutilizado(caso);
+      if (reutilizado) {
+        resultados.push(reutilizado);
+        continue;
+      }
+      if (token === null) throw new Error("No se obtuvo token DGII para los casos pendientes.");
       resultados.push(
         await procesarEnvioCaso({
           caso,
