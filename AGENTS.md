@@ -77,10 +77,9 @@ Si llegaste por un brief de `delegate_task`:
 - **Subagentes reutilizables** (`.agents/agents/` y `/root/.agents/agents/`): `verifier.md` (solo lectura) y `planner.md` (solo lectura).
 
 ### Uso obligatorio de `gemini-api` ante dudas externas
-Tienes `gemini-api` instalado en `/usr/local/bin/gemini-api`. Cuando necesites investigar cualquier información externa (DGII, docs recientes de Next.js/React/librerías, PDFs o comparar capturas Alegra vs Medoxigas), úsalo desde la terminal:
-- Consulta rápida: `gemini-api generate "<pregunta>" --stream=false`
-- Deep Research en background: `gemini-api agent run "<tema>" --agent deep-research-preview-04-2026 --background --jq '.id'` → `gemini-api agent status "$ID" --stream=false --output-format json`
-- Analizar PDFs / capturas: `gemini-api analyze -i ref.png -i actual.png "<pregunta>"`
+Tienes `gemini-api` instalado en `/usr/local/bin/gemini-api` (autenticado por API Key, modelo por defecto **`gemini-3.1-flash-lite`**). Cuando necesites investigar cualquier información externa (DGII, docs recientes de Next.js/React/librerías, PDFs o comparar capturas Alegra vs Medoxigas), úsalo desde la terminal:
+- Consulta rápida: `gemini-api generate -m gemini-3.1-flash-lite "<pregunta>" --stream=false`
+- Analizar PDFs / capturas: `gemini-api analyze -m gemini-3.1-flash-lite -i ref.png -i actual.png "<pregunta>"`
 - Inspecciona `--help` / `--dry-run` antes de llamadas complejas. Nunca imprimas ni commitees `GEMINI_API_KEY`.
 
 ---
