@@ -43,8 +43,17 @@ function fechaDesdePartes(dia: string, mes: string, anio: string): string {
   return `${dia}-${mes}-${anio}`;
 }
 
-function partesFechaHoraRd(fecha: Date): Record<string, string> {
-  const partes: Record<string, string> = {};
+interface PartesFechaHoraRd {
+  year: string;
+  month: string;
+  day: string;
+  hour: string;
+  minute: string;
+  second: string;
+}
+
+function partesFechaHoraRd(fecha: Date): PartesFechaHoraRd {
+  const mapa = new Map<string, string>();
   const formato = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Santo_Domingo",
     year: "numeric",
@@ -56,15 +65,22 @@ function partesFechaHoraRd(fecha: Date): Record<string, string> {
     hour12: false,
   });
   for (const parte of formato.formatToParts(fecha)) {
-    if (parte.type !== "literal") partes[parte.type] = parte.value;
+    if (parte.type !== "literal") mapa.set(parte.type, parte.value);
   }
-  return partes;
+  return {
+    year: mapa.get("year") ?? "1970",
+    month: mapa.get("month") ?? "01",
+    day: mapa.get("day") ?? "01",
+    hour: mapa.get("hour") ?? "00",
+    minute: mapa.get("minute") ?? "00",
+    second: mapa.get("second") ?? "00",
+  };
 }
 
 export function formatearFechaDgii(fecha: string | Date): string {
   if (fecha instanceof Date) {
     const partes = partesFechaHoraRd(fecha);
-    return fechaDesdePartes(partes.day ?? "01", partes.month ?? "01", partes.year ?? "1970");
+    return fechaDesdePartes(partes.day, partes.month, partes.year);
   }
   const valor = fecha.trim();
   if (RE_FECHA_DGII.test(valor)) return valor;
@@ -77,7 +93,7 @@ export function formatearFechaHoraDgii(fecha?: string | Date): string {
   const valor = fecha ?? new Date();
   if (valor instanceof Date) {
     const partes = partesFechaHoraRd(valor);
-    return `${formatearFechaDgii(valor)} ${partes.hour ?? "00"}:${partes.minute ?? "00"}:${partes.second ?? "00"}`;
+    return `${formatearFechaDgii(valor)} ${partes.hour}:${partes.minute}:${partes.second}`;
   }
   const texto = valor.trim();
   if (RE_FECHA_HORA_DGII.test(texto)) return texto;
@@ -440,35 +456,33 @@ function validarTotalesDocumento(doc: DocumentoEcfInput, errores: string[]): voi
   }
 }
 
-function validarFormasPagoYImpuestosEcf(doc: DocumentoEcfInput, errores: string[]): void {
+function validarFormasPagoEcf(doc: DocumentoEcfInput, errores: string[]): void {
   const tipo = doc.comprobante.tipo;
-  if (tipo !== "34" && tipo !== "43") {
-    for (const forma of doc.comprobante.formasPago ?? []) {
-      if (forma.formaPago.trim() === "") continue;
-      if (forma.montoPago === undefined || !montoEsValido(forma.montoPago)) {
-        errores.push("Cada forma de pago de un e-CF debe incluir un MontoPago válido");
-      }
+  if (tipo === "34" || tipo === "43") return;
+  for (const forma of doc.comprobante.formasPago ?? []) {
+    if (forma.formaPago.trim() === "") continue;
+    if (forma.montoPago === undefined || !montoEsValido(forma.montoPago)) {
+      errores.push("Cada forma de pago de un e-CF debe incluir un MontoPago válido");
     }
   }
-  if (tipo === "44") {
-    const listas = [
-      ...(doc.totales.impuestosAdicionales ?? []),
-      ...(doc.otraMoneda?.impuestosAdicionalesOtraMoneda ?? []),
-    ];
-    for (const impuesto of listas) {
-      if (
-        impuesto.montoImpuestoSelectivoConsumoEspecifico !== undefined ||
-        impuesto.montoImpuestoSelectivoConsumoAdvalorem !== undefined
-      ) {
-        errores.push("El comprobante E44 no admite impuestos selectivos al consumo en ImpuestosAdicionales");
-      }
-      if (
-        impuesto.otrosImpuestosAdicionales === undefined ||
-        !montoEsValido(impuesto.otrosImpuestosAdicionales) ||
-        impuesto.otrosImpuestosAdicionales <= 0
-      ) {
-        errores.push("El comprobante E44 requiere OtrosImpuestosAdicionales mayor que cero en ImpuestosAdicionales");
-      }
+}
+
+function validarImpuestosE44(doc: DocumentoEcfInput, errores: string[]): void {
+  if (doc.comprobante.tipo !== "44") return;
+  const listas = [
+    ...(doc.totales.impuestosAdicionales ?? []),
+    ...(doc.otraMoneda?.impuestosAdicionalesOtraMoneda ?? []),
+  ];
+  for (const impuesto of listas) {
+    const tieneSelectivo =
+      impuesto.montoImpuestoSelectivoConsumoEspecifico !== undefined ||
+      impuesto.montoImpuestoSelectivoConsumoAdvalorem !== undefined;
+    if (tieneSelectivo) {
+      errores.push("El comprobante E44 no admite impuestos selectivos al consumo en ImpuestosAdicionales");
+    }
+    const otros = impuesto.otrosImpuestosAdicionales;
+    if (otros === undefined || !montoEsValido(otros) || otros <= 0) {
+      errores.push("El comprobante E44 requiere OtrosImpuestosAdicionales mayor que cero en ImpuestosAdicionales");
     }
   }
 }
@@ -478,7 +492,8 @@ export function validarDocumentoEcf(doc: DocumentoEcfInput): ValidacionDocumento
   validarEncfYEmisor(doc, errores);
   validarCompradorEcf(doc, errores);
   validarReferenciasYFechas(doc, errores);
-  validarFormasPagoYImpuestosEcf(doc, errores);
+  validarFormasPagoEcf(doc, errores);
+  validarImpuestosE44(doc, errores);
   validarLineasDocumento(doc, errores);
   validarTotalesDocumento(doc, errores);
   return errores.length === 0 ? { ok: true } : { ok: false, errores };
@@ -1129,7 +1144,6 @@ function xmlEmisor(doc: DocumentoEcfInput): string {
   ].join("")}</Emisor>`;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: la matriz fiscal XSD E31-E47 exige ramificar obligatoriedad y orden por tipo de comprobante
 function xmlComprador(doc: DocumentoEcfInput): string {
   const tipo = doc.comprobante.tipo;
   if (tipo === "43") return "";
