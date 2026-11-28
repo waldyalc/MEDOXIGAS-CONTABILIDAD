@@ -13,8 +13,8 @@ tags:
   - errores-y-soluciones
 created: 2026-11-27
 updated: 2026-11-28
-estado_actual: "Paso 1 Aprobado ✅ · Paso 2 Aprobado ✅ · Paso 3 (ACECF) Aprobado ✅ · Listo para Paso 4"
-piloto: "OXYMAT SRL (RNC 131488791)"
+estado_actual: "Paso 1 Aprobado ✅ · Paso 2 Aprobado ✅ · Paso 3 (ACECF) Aprobado ✅ · Paso 4 (Simulación 25/25) Aprobado ✅ · Listo para Paso 5 (RI PDF)"
+piloto: "OXYMAT, SRL (RNC 131488791)"
 empresa_principal: "MEDOXIGAS ALC, SRL (RNC 130893489)"
 ---
 
@@ -66,6 +66,7 @@ empresa_principal: "MEDOXIGAS ALC, SRL (RNC 130893489)"
   - Excel oficial Paso 2 (25 `ECF` + 4 `RFCE`): `/root/referencias/ecf-oxymat/131488791-27112026113533.xlsx`
   - 4 XML íntegros `< RD$250,000` aprobados en Paso 2: `/root/referencias/ecf-oxymat/xml-menor-250mil/`
   - Excel oficial Paso 3 (11 `ACECF`): `/root/referencias/ecf-oxymat/131488791-27112026175301.xlsx`
+  - 25 XML firmados + 4 RFCE + manifiesto QR aprobados en Paso 4 (`secuenciaBase=1201`): `/root/referencias/ecf-oxymat/paso4-simulacion-1201/`
 
 ---
 
@@ -76,6 +77,7 @@ empresa_principal: "MEDOXIGAS ALC, SRL (RNC 130893489)"
 | 1 | 26–27 Nov 2026 | `o` (`6d30d5e1-7db8-4812-97bb-3931c8c38b65`) | Investigación DGII 2026, arquitectura multi-RNC, migraciones Supabase + RPC custodia `.p12`, motor XML/XMLDSig, portal `/dashboard/configuracion/facturacion-electronica`, firma de postulación y **Paso 1 DGII APROBADO EN VERDE**. | `ab5076e`, `66a2ba1`, `9cb3d62`, `1d4310f`, `1f449d4`, `40338cb`, `89d34b9`, `a33e9a0`, `4a80f94`, `5eb1c17` |
 | 2 | 27 Nov 2026 | `Start OXYMAT CerteCF Step 2` (`b64e804c-7332-43b2-8ff1-c17831a3988f`) | Alineación 1:1 con los 15 XSD oficiales y 127 columnas del Excel DGII, orden topológico, polling `ConsultaResultado`, preservación literal de 2,360/2,360 celdas, idempotencia de casos ya aceptados y **Paso 2 DGII APROBADO EN VERDE (`21/21` + `4/4` + `4/4`)**. | `19f44ff`, `c8933cd`, `f625ead`, `6150e91`, `ce32c91`, `e6ab7db`, `4423cce`, `e138094`, `2f50643`, `19a8296`, `45fa8e1` |
 | 3 | 27–28 Nov 2026 | `DGII Step 3 ACECF Approval Tests` (`b1be4e35-00a5-43d3-b81b-21fc541cc508`) | Alineación `ACECF` contra `ACECF_v.1.0.xsd`, parser OOXML sin deriva de 18 dígitos, runner API idempotente + UI Paso 3, persistencia de ambiente (`CerteCF` vs `TesteCF`), bitácora Obsidian y **Paso 3 DGII APROBADO EN VERDE A LA PRIMERA (11/11)**. | `5114166`, `4b06891`, `9eb0c69`, `cd29eaa`, `80e5c42` |
+| 4 | 28 Nov 2026 | `Paso 4: Pruebas de Simulación e-CF` (`fee79d45-73b6-421c-9b04-c99238584166`) | Generador oficial 25 casos (orden 18/3/4), runner API idempotente con candado `detenidoPorRechazo`, calco `<Emisor>` 1:1 con XML Alegra (`ERR-012`), reintentos red RFCE + candado descarga `<250Mil` (`ERR-013`), respaldo 25 XML+QR en `/root/referencias/ecf-oxymat/paso4-simulacion-1201/` y **Paso 4 DGII APROBADO EN VERDE (`25/25` + `4/4` `< 250Mil`)**. | `10c0763`, `53cd47a`, `c666558`, `25de738`, `5c86962` |
 
 ---
 
@@ -270,7 +272,9 @@ empresa_principal: "MEDOXIGAS ALC, SRL (RNC 130893489)"
 - [x] **Paso 1 — Postulación Desarrollo Propio (`CerteCF`)** — Aprobado en verde (`27-11-2026`).
 - [x] **Paso 2 — Pruebas de Datos e-CF (`CerteCF`)** — Aprobado en verde: `21/21` Comprobantes + `4/4` Resúmenes `RFCE` + `4/4` XML `< 250Mil` (`27-11-2026`).
 - [x] **Paso 3 — Pruebas de Datos Aprobación Comercial (`ACECF`, 11 filas)** — Aprobado en verde a la primera (`28-11-2026`, `80e5c42`).
-- [ ] **Paso 4 y siguientes — Simulación e-CF, Representaciones Impresas PDF (RI + QR), Pruebas de Comunicación (Receptor `ARECF`/`ACECF`) y URLs de Producción** — *Siguiente bloque.*
+- [x] **Paso 4 — Pruebas de Simulación e-CF (`25/25` en orden 18/3/4 + `4/4` `< 250Mil`, `secuenciaBase=1201`)** — Aprobado en verde (`28-11-2026`, `5c86962`). Respaldo completo en `/root/referencias/ecf-oxymat/paso4-simulacion-1201/`.
+- [ ] **Paso 5 — Pruebas de Simulación Representación Impresa (11 PDFs con QR oficial, <= 10 MB)** — *Siguiente bloque.*
+- [ ] **Pasos 6–13 — Validación RI, URL Servicios Prueba, Recepción e-CF (`ARECF`), Recepción Aprobación Comercial (`ACECF`), URL Servicios Producción** — *Pendiente.*
 - [ ] **Paso 14 — Declaración Jurada y Corte desde Alegra (`último_eNCF + 1`)** — *Pendiente.*
 - [ ] **Requisito técnico obligatorio antes de `main` / Vercel Producción:** agregar `node-forge` (+ `@types/node-forge`) en `src/lib/ecf/pkcs12.ts` (con aprobación explícita de Waldy) y correr **Auditoría pre-`main` (Gemini 4 Neon High)** en `docs/revisiones/`.
 - [ ] **Repetición limpia para MEDOXIGAS ALC, SRL (`130893489`)** — *Solo después de cerrar OXYMAT 100 % en verde.*
