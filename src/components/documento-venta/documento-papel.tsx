@@ -34,6 +34,34 @@ interface EmisionEcfPapel {
   urlQr: string;
 }
 
+/**
+ * Retenciones fiscales del comprobante electrónico (TotalITBISRetenido y
+ * TotalISRRetencion del XML e-CF). Solo se renderizan cuando el documento
+ * las trae; una factura sin este dato imprime exactamente lo mismo de siempre.
+ */
+export interface RetencionesFiscalesPapel {
+  itbisRetenido?: number | null;
+  isrRetenido?: number | null;
+}
+
+/**
+ * Subtotales y totales de impuestos EXACTOS del XML e-CF. La representación
+ * impresa es fiel al XML: estos montos se PASAN, nunca se recomputan con la
+ * lógica de facturas normales. IndicadorFacturacion: 1 = gravado 18 %,
+ * 2 = gravado 16 %, 3 = gravado 0 %, 4 = exento.
+ */
+export interface MontosFiscalesEcf {
+  gravadoTotal?: number | null;
+  gravadoI1?: number | null;
+  gravadoI2?: number | null;
+  gravadoI3?: number | null;
+  exento?: number | null;
+  itbisTotal?: number | null;
+  itbis1?: number | null;
+  itbis2?: number | null;
+  itbis3?: number | null;
+}
+
 interface DatosPapel {
   tipo: "factura" | "cotizacion" | "conduce";
   empresa: Empresa | null;
@@ -60,6 +88,11 @@ interface DatosPapel {
   saldo: number | null;
   mostrarLogo: boolean;
   emisionEcf: EmisionEcfPapel | null;
+  retencionesFiscales: RetencionesFiscalesPapel | null;
+  margenFiscalMm: number | null;
+  montosFiscalesEcf: MontosFiscalesEcf | null;
+  identificadorExtranjeroCliente: string | null;
+  mostrarSucursal: boolean;
 }
 
 type Props =
@@ -73,6 +106,19 @@ type Props =
       impuestos: Impuesto[];
       mostrarLogo?: boolean;
       emisionEcf?: EmisionEcfPapel | null;
+      retencionesFiscales?: RetencionesFiscalesPapel | null;
+      /**
+       * Margen izquierdo extra del bloque fiscal e-CF en milímetros. La DGII
+       * exige el QR a ≥ 2 cm del borde del papel en la representación impresa;
+       * sin el prop el bloque queda exactamente donde siempre (producción).
+       */
+      margenFiscalMm?: number;
+      /** Totales fiscales exactos del XML e-CF; cuando vienen, sustituyen el monto gravado recomputado. */
+      montosFiscalesEcf?: MontosFiscalesEcf | null;
+      /** Identificador extranjero del comprador (E47 sin RNC); se imprime con su etiqueta fiscal correcta. */
+      identificadorExtranjeroCliente?: string | null;
+      /** Muestra la sucursal de la empresa en el encabezado; apagada por defecto, solo la enciende la RI e-CF. */
+      mostrarSucursal?: boolean;
     }
   | { tipo: "cotizacion" | "conduce"; vista: DocumentoVista; mostrarLogo?: boolean };
 
@@ -95,6 +141,11 @@ function datosDeFactura(
   mostrarLogo: boolean,
   impuestos: Impuesto[],
   emisionEcf: EmisionEcfPapel | null,
+  retencionesFiscales: RetencionesFiscalesPapel | null = null,
+  margenFiscalMm: number | null = null,
+  montosFiscalesEcf: MontosFiscalesEcf | null = null,
+  identificadorExtranjeroCliente: string | null = null,
+  mostrarSucursal = false,
 ): DatosPapel {
   const tipoEcf = tipoEcfDesdeNcf(factura.ncf);
   return {
@@ -125,6 +176,11 @@ function datosDeFactura(
         : null,
     mostrarLogo,
     emisionEcf: esNcfElectronico(factura.ncf) ? emisionEcf : null,
+    retencionesFiscales,
+    margenFiscalMm,
+    montosFiscalesEcf,
+    identificadorExtranjeroCliente,
+    mostrarSucursal,
   };
 }
 
@@ -156,6 +212,11 @@ function datosDeDocumento(tipo: "cotizacion" | "conduce", vista: DocumentoVista,
     saldo: null,
     mostrarLogo,
     emisionEcf: null,
+    retencionesFiscales: null,
+    margenFiscalMm: null,
+    montosFiscalesEcf: null,
+    identificadorExtranjeroCliente: null,
+    mostrarSucursal: false,
   };
 }
 
@@ -169,7 +230,7 @@ function Logo({ empresa, nombre, mostrar }: { empresa: Empresa | null; nombre: s
   );
 }
 
-function DatosEmpresa({ empresa }: { empresa: Empresa | null }) {
+function DatosEmpresa({ empresa, mostrarSucursal }: { empresa: Empresa | null; mostrarSucursal: boolean }) {
   return (
     <>
       {empresa?.rnc?.trim() ? (
@@ -178,6 +239,11 @@ function DatosEmpresa({ empresa }: { empresa: Empresa | null }) {
         </p>
       ) : null}
       {empresa?.direccion?.trim() ? <p>{empresa.direccion}</p> : null}
+      {mostrarSucursal && empresa?.sucursal?.trim() ? (
+        <p>
+          <span className="font-semibold">Sucursal:</span> {empresa.sucursal}
+        </p>
+      ) : null}
       {empresa?.correo?.trim() ? <p>{empresa.correo}</p> : null}
       {empresa?.telefono?.trim() ? (
         <p>
@@ -197,7 +263,7 @@ function EncabezadoFactura({ datos }: { datos: DatosPapel }) {
       <div className="flex min-w-0 flex-col">
         <Logo empresa={datos.empresa} nombre={nombre} mostrar={datos.mostrarLogo} />
         <p className="mt-[3pt] text-[13pt] leading-[13.5pt]">{nombre}</p>
-        <DatosEmpresa empresa={datos.empresa} />
+        <DatosEmpresa empresa={datos.empresa} mostrarSucursal={datos.mostrarSucursal} />
         <p className="mt-[2pt]">
           <span className="font-semibold">Fecha de creación:</span> {formatoDia(datos.fecha)}
         </p>
@@ -281,6 +347,11 @@ function BloqueClienteFactura({ datos }: { datos: DatosPapel }) {
         {datos.contacto.rnc_cedula?.trim() ? (
           <p>
             <span className="font-semibold">RNC:</span> {datos.contacto.rnc_cedula}
+          </p>
+        ) : null}
+        {datos.identificadorExtranjeroCliente?.trim() ? (
+          <p>
+            <span className="font-semibold">Identificador extranjero:</span> {datos.identificadorExtranjeroCliente}
           </p>
         ) : null}
         {datos.contacto.telefono?.trim() ? (
@@ -500,18 +571,69 @@ function FilasImpuestos({ datos }: { datos: DatosPapel }) {
   );
 }
 
+function FilasMontosFiscalesEcf({ montos }: { montos: MontosFiscalesEcf }) {
+  const tasasGravado: Array<{ monto: number | null | undefined; itbis: number | null | undefined; tasa: number }> = [
+    { monto: montos.gravadoI1, itbis: montos.itbis1, tasa: 18 },
+    { monto: montos.gravadoI2, itbis: montos.itbis2, tasa: 16 },
+    { monto: montos.gravadoI3, itbis: montos.itbis3, tasa: 0 },
+  ];
+  const presentes = tasasGravado.filter((fila) => fila.monto != null);
+  return (
+    <>
+      {montos.gravadoTotal != null ? (
+        <FilaTotal etiqueta="MONTO GRAVADO" valor={formatearMontoPapel(montos.gravadoTotal)} />
+      ) : null}
+      {(montos.exento ?? 0) > 0 ? (
+        <FilaTotal etiqueta="SUBTOTAL EXENTO" valor={formatearMontoPapel(montos.exento)} />
+      ) : null}
+      {presentes.length > 1
+        ? presentes.map((fila) => (
+            <FilaTotal
+              key={`gravado-${fila.tasa}`}
+              etiqueta={`GRAVADO ITBIS ${fila.tasa}%`}
+              valor={formatearMontoPapel(fila.monto)}
+            />
+          ))
+        : null}
+      {presentes.length > 0
+        ? presentes.map((fila) => (
+            <FilaTotal
+              key={`itbis-${fila.tasa}`}
+              etiqueta={`ITBIS (${fila.tasa.toFixed(2)}%)`}
+              valor={formatearMontoPapel(fila.itbis ?? 0)}
+            />
+          ))
+        : montos.itbisTotal != null && montos.itbisTotal > 0
+          ? [<FilaTotal key="itbis-total" etiqueta="ITBIS" valor={formatearMontoPapel(montos.itbisTotal)} />]
+          : null}
+    </>
+  );
+}
+
 function TotalesFactura({ datos }: { datos: DatosPapel }) {
   return (
     <div className="flex justify-end">
       <div className="w-[210pt] text-[8pt] leading-[13.6pt]">
         <FilaTotal etiqueta="SUBTOTAL" valor={formatearMontoPapel(subtotalBruto(datos.subtotal, datos.descuento))} />
         {datos.descuento > 0 ? <FilaTotal etiqueta="DESCUENTO" valor={formatearMontoPapel(datos.descuento)} /> : null}
-        <FilaTotal etiqueta="MONTO GRAVADO" valor={formatearMontoPapel(montoGravadoDeLineas(datos.lineas))} />
-        <FilasImpuestos datos={datos} />
+        {datos.montosFiscalesEcf ? (
+          <FilasMontosFiscalesEcf montos={datos.montosFiscalesEcf} />
+        ) : (
+          <>
+            <FilaTotal etiqueta="MONTO GRAVADO" valor={formatearMontoPapel(montoGravadoDeLineas(datos.lineas))} />
+            <FilasImpuestos datos={datos} />
+          </>
+        )}
         <div className="mt-[3pt] flex justify-between gap-[12pt] border-t border-[#0a2352] pt-[2pt] text-[10pt] font-semibold">
           <span>Total</span>
           <span className="tabular-nums">{formatearMontoPapel(datos.total)}</span>
         </div>
+        {(datos.retencionesFiscales?.itbisRetenido ?? 0) > 0 ? (
+          <FilaTotal etiqueta="ITBIS RETENIDO" valor={formatearMontoPapel(datos.retencionesFiscales?.itbisRetenido)} />
+        ) : null}
+        {(datos.retencionesFiscales?.isrRetenido ?? 0) > 0 ? (
+          <FilaTotal etiqueta="ISR RETENIDO" valor={formatearMontoPapel(datos.retencionesFiscales?.isrRetenido)} />
+        ) : null}
         <p className="mt-[2pt] text-right text-[10pt] font-semibold">
           Total de items: {formatoCantidad(totalItemsPapel(datos.lineas))}
         </p>
@@ -598,6 +720,26 @@ function PieConduce() {
   );
 }
 
+/**
+ * Bloque fiscal e-CF del pie de la factura: sin `margenFiscalMm` renderiza
+ * exactamente el subárbol de siempre (producción); el contenedor con margen
+ * solo existe cuando la RI e-CF lo pide (DGII exige el QR a ≥ 2 cm del borde).
+ */
+function BloqueFiscalPapel({ datos }: { datos: DatosPapel }) {
+  const emision = datos.emisionEcf;
+  if (!emision) return null;
+  const bloque = (
+    <BloqueFiscalEcf
+      codigoSeguridad={emision.codigoSeguridad}
+      encf={datos.ncf}
+      fechaHoraFirma={emision.fechaHoraFirma}
+      urlQr={emision.urlQr}
+    />
+  );
+  if (datos.margenFiscalMm == null) return bloque;
+  return <div style={{ marginLeft: `${datos.margenFiscalMm}mm` }}>{bloque}</div>;
+}
+
 function ContenidoFactura({ datos }: { datos: DatosPapel }) {
   return (
     <>
@@ -613,14 +755,7 @@ function ContenidoFactura({ datos }: { datos: DatosPapel }) {
       <div className="flex-1" />
       <TotalesFactura datos={datos} />
       <NotasPapel datos={datos} />
-      {datos.emisionEcf ? (
-        <BloqueFiscalEcf
-          codigoSeguridad={datos.emisionEcf.codigoSeguridad}
-          encf={datos.ncf}
-          fechaHoraFirma={datos.emisionEcf.fechaHoraFirma}
-          urlQr={datos.emisionEcf.urlQr}
-        />
-      ) : null}
+      <BloqueFiscalPapel datos={datos} />
       <PieFactura mostrarOriginal={!datos.emisionEcf} />
     </>
   );
@@ -667,6 +802,11 @@ export function DocumentoPapel(props: Props) {
           props.mostrarLogo ?? true,
           props.impuestos,
           props.emisionEcf ?? null,
+          props.retencionesFiscales ?? null,
+          props.margenFiscalMm ?? null,
+          props.montosFiscalesEcf ?? null,
+          props.identificadorExtranjeroCliente ?? null,
+          props.mostrarSucursal ?? false,
         )
       : datosDeDocumento(props.tipo, props.vista, props.mostrarLogo ?? true);
 
