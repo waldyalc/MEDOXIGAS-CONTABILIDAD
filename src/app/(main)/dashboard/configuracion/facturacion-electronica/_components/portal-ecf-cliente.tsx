@@ -70,6 +70,7 @@ import {
 } from "./pasos-habilitacion";
 import { SetExcelAcecf } from "./set-excel-acecf";
 import { SetExcelDgii } from "./set-excel-dgii";
+import { SetSimulacionPaso4 } from "./set-simulacion-paso4";
 
 const AMBIENTES: readonly AmbienteEcf[] = ["testecf", "certecf", "produccion"];
 
@@ -713,6 +714,9 @@ function PasoPruebas({
   error,
   rncEmisor,
   razonSocial,
+  direccionEmisor,
+  telefonoEmisor,
+  correoEmisor,
   ambiente,
   archivoCertificado,
   contrasenaCertificado,
@@ -727,6 +731,9 @@ function PasoPruebas({
   error: string | null;
   rncEmisor: string;
   razonSocial: string;
+  direccionEmisor: string | null;
+  telefonoEmisor: string | null;
+  correoEmisor: string | null;
   ambiente: AmbienteEcf;
   archivoCertificado: File | null;
   contrasenaCertificado: string;
@@ -846,6 +853,17 @@ function PasoPruebas({
       <SetExcelAcecf
         rncComprador={rncEmisor}
         razonSocial={razonSocial}
+        ambiente={ambiente}
+        archivoCertificado={archivoCertificado}
+        contrasenaCertificado={contrasenaCertificado}
+      />
+
+      <SetSimulacionPaso4
+        rncEmisor={rncEmisor}
+        razonSocial={razonSocial}
+        direccionEmisor={direccionEmisor}
+        telefonoEmisor={telefonoEmisor}
+        correoEmisor={correoEmisor}
         ambiente={ambiente}
         archivoCertificado={archivoCertificado}
         contrasenaCertificado={contrasenaCertificado}
@@ -1421,6 +1439,9 @@ function PanelPaso({
         error={errorPruebas}
         rncEmisor={empresa?.rnc ?? ""}
         razonSocial={empresa?.nombre ?? ""}
+        direccionEmisor={empresa?.direccion ?? null}
+        telefonoEmisor={empresa?.telefono ?? null}
+        correoEmisor={empresa?.correo ?? null}
         ambiente={ambiente}
         archivoCertificado={archivoCertificado}
         contrasenaCertificado={contrasenaCertificado}
