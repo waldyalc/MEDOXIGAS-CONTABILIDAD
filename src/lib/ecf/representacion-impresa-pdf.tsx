@@ -1,7 +1,11 @@
-import { Document, Page, Path, pdf, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
+import { Document, Font, Page, Path, pdf, StyleSheet, Svg, Text, View } from "@react-pdf/renderer";
 
 import { generarVectorQr } from "./qr-svg";
 import type { DatosRi, ItemRi, TotalesRi } from "./representacion-impresa";
+
+// La RI debe reproducir los textos del XML de forma exacta y contigua:
+// sin guiones de división silábica que rompan las palabras en el PDF.
+Font.registerHyphenationCallback((palabra) => [palabra]);
 
 const formatoMonto = new Intl.NumberFormat("es-DO", {
   minimumFractionDigits: 2,
@@ -46,8 +50,8 @@ const estilos = StyleSheet.create({
     alignItems: "flex-start",
   },
   emisor: {
-    width: 300,
-    paddingRight: 14,
+    width: 270,
+    paddingRight: 12,
   },
   razonSocial: {
     marginBottom: 4,
@@ -63,7 +67,7 @@ const estilos = StyleSheet.create({
     fontWeight: "bold",
   },
   cuadroFiscal: {
-    width: 218,
+    width: 254,
     borderWidth: 1,
     borderColor: "#0a2352",
     padding: 8,
@@ -144,15 +148,15 @@ const estilos = StyleSheet.create({
   centro: {
     textAlign: "center",
   },
-  colLinea: { width: 23 },
-  colDescripcion: { width: 137 },
-  colTipo: { width: 38 },
-  colCantidad: { width: 38 },
-  colUm: { width: 43 },
+  colLinea: { width: 20 },
+  colDescripcion: { width: 202 },
+  colTipo: { width: 34 },
+  colCantidad: { width: 32 },
+  colUm: { width: 38 },
   colPrecio: { width: 58 },
-  colDescuento: { width: 54 },
-  colItbis: { width: 38 },
-  colMonto: { width: 63 },
+  colDescuento: { width: 48 },
+  colItbis: { width: 34 },
+  colMonto: { width: 64 },
   seccionInferior: {
     marginTop: 10,
     flexDirection: "row",
