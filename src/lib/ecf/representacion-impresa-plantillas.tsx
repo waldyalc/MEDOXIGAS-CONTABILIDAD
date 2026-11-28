@@ -278,6 +278,7 @@ function elementoFacturaRi(datos: DatosRi): ReactElement {
         itbis3: datos.totales.totalItbis3,
       }}
       identificadorExtranjeroCliente={datos.comprador?.rnc ? null : (datos.comprador?.identificadorExtranjero ?? null)}
+      mostrarSucursal
     />
   );
 }
@@ -299,6 +300,7 @@ export function elementoRepresentacionImpresa(datos: DatosRi): ReactElement {
         empresa={empresa}
         emisionEcf={emision}
         rncCliente={rncCliente}
+        mostrarSucursal
       />
     );
   }
@@ -309,6 +311,7 @@ export function elementoRepresentacionImpresa(datos: DatosRi): ReactElement {
         empresa={empresa}
         emisionEcf={emision}
         rncCliente={rncCliente}
+        mostrarSucursal
       />
     );
   }

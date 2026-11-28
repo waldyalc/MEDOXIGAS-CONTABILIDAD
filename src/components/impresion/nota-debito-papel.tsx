@@ -36,6 +36,8 @@ interface PropsNotaDebito {
   emisionEcf?: EmisionEcfNota | null;
   /** RNC o identificador del comprador del XML e-CF (hoy no llega en la vista). */
   rncCliente?: string | null;
+  /** Muestra la sucursal de la empresa; apagada por defecto, solo la enciende la RI e-CF. */
+  mostrarSucursal?: boolean;
 }
 
 function encabezadoNota(nota: NotaDebitoVista, emisionEcf: EmisionEcfNota | null | undefined) {
@@ -170,6 +172,7 @@ export function NotaDebitoPapel({
   classNameBoton,
   emisionEcf,
   rncCliente,
+  mostrarSucursal,
 }: PropsNotaDebito & { classNameBoton?: string }) {
   const encabezado = encabezadoNota(nota, emisionEcf);
 
@@ -181,6 +184,7 @@ export function NotaDebitoPapel({
       fecha={nota.fecha}
       leyendaAnulacion={nota.estado === "anulada" ? "ANULADA" : undefined}
       classNameBoton={classNameBoton}
+      mostrarSucursal={mostrarSucursal}
     >
       <ContenidoNotaDebito nota={nota} emisionEcf={emisionEcf} rncCliente={rncCliente} />
     </HojaImpresion>
@@ -191,7 +195,7 @@ export function NotaDebitoPapel({
  * Documento Carta completo de la nota de débito, server-renderable (sin el
  * botón ni el portal): lo usa la tubería de PDF con `renderToStaticMarkup`.
  */
-export function NotaDebitoDocumento({ nota, empresa, emisionEcf, rncCliente }: PropsNotaDebito) {
+export function NotaDebitoDocumento({ nota, empresa, emisionEcf, rncCliente, mostrarSucursal }: PropsNotaDebito) {
   const encabezado = encabezadoNota(nota, emisionEcf);
 
   return (
@@ -201,6 +205,7 @@ export function NotaDebitoDocumento({ nota, empresa, emisionEcf, rncCliente }: P
       numero={encabezado.numero}
       fecha={nota.fecha}
       leyendaAnulacion={nota.estado === "anulada" ? "ANULADA" : undefined}
+      mostrarSucursal={mostrarSucursal}
     >
       <ContenidoNotaDebito nota={nota} emisionEcf={emisionEcf} rncCliente={rncCliente} />
     </PapelImpresion>

@@ -32,6 +32,8 @@ interface PropsHojaImpresion {
   leyendaAnulacion?: string;
   /** Clases extra del botón, para que combine con los botones de la página. */
   classNameBoton?: string;
+  /** Muestra la sucursal de la empresa en el encabezado; apagada por defecto, solo la enciende la RI e-CF. */
+  mostrarSucursal?: boolean;
   /** Cuerpo del documento. */
   children: ReactNode;
 }
@@ -73,7 +75,7 @@ export function PapelImpresion(props: PropsPapelImpresion) {
             </p>
           ) : null}
           {props.empresa?.direccion?.trim() ? <p>{props.empresa.direccion}</p> : null}
-          {props.empresa?.sucursal?.trim() ? (
+          {props.mostrarSucursal && props.empresa?.sucursal?.trim() ? (
             <p>
               <span className="font-semibold">Sucursal:</span> {props.empresa.sucursal}
             </p>
