@@ -21,6 +21,12 @@ export interface EmisionEcfNota {
   codigoSeguridad: string;
   fechaHoraFirma: string | null;
   urlQr: string;
+  /** Vencimiento de la secuencia e-NCF en ISO (aaaa-mm-dd), exacto del XML; solo representación impresa. */
+  vencimientoSecuencia?: string | null;
+  /** Monto gravado total exacto del XML; la RI lo pasa, nunca lo recomputa. */
+  montoGravado?: number | null;
+  /** Monto exento exacto del XML. */
+  montoExento?: number | null;
 }
 
 interface PropsNotaDebito {
@@ -63,9 +69,16 @@ function ContenidoNotaDebito({
         <div className="flex shrink-0 flex-col items-end text-right">
           <FilaDato
             etiqueta="Factura"
-            valor={`${nota.factura_numero > 0 ? `#${nota.factura_numero}` : ""}${nota.factura_numero > 0 && nota.factura_ncf ? " · " : ""}${nota.factura_ncf ?? ""}`}
+            valor={
+              emisionEcf
+                ? `${nota.factura_numero > 0 ? `#${nota.factura_numero}` : ""}${nota.factura_numero > 0 && nota.factura_ncf ? " · " : ""}${nota.factura_ncf ?? ""}`
+                : `#${nota.factura_numero}${nota.factura_ncf ? ` · ${nota.factura_ncf}` : ""}`
+            }
           />
           <FilaDato etiqueta="Fecha" valor={formatoDia(nota.fecha)} />
+          {emisionEcf?.vencimientoSecuencia ? (
+            <FilaDato etiqueta="Vencimiento e-NCF" valor={formatoDia(emisionEcf.vencimientoSecuencia)} />
+          ) : null}
         </div>
       </section>
 
@@ -119,6 +132,12 @@ function ContenidoNotaDebito({
           {filasTotalesNota(nota).map((fila) => (
             <FilaTotal key={fila.etiqueta} etiqueta={fila.etiqueta.toUpperCase()} valor={formatoMoneda(fila.valor)} />
           ))}
+          {emisionEcf?.montoGravado != null ? (
+            <FilaTotal etiqueta="MONTO GRAVADO" valor={formatoMoneda(emisionEcf.montoGravado)} />
+          ) : null}
+          {(emisionEcf?.montoExento ?? 0) > 0 ? (
+            <FilaTotal etiqueta="SUBTOTAL EXENTO" valor={formatoMoneda(emisionEcf?.montoExento)} />
+          ) : null}
           <div className="mt-[3pt] flex justify-between gap-[12pt] border-t border-[#0a2352] pt-[2pt] text-[10pt] font-semibold">
             <span>Total</span>
             <span className="tabular-nums">{formatoMoneda(nota.total)}</span>

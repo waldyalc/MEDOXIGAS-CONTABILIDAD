@@ -73,6 +73,11 @@ export function PapelImpresion(props: PropsPapelImpresion) {
             </p>
           ) : null}
           {props.empresa?.direccion?.trim() ? <p>{props.empresa.direccion}</p> : null}
+          {props.empresa?.sucursal?.trim() ? (
+            <p>
+              <span className="font-semibold">Sucursal:</span> {props.empresa.sucursal}
+            </p>
+          ) : null}
           {props.empresa?.telefono?.trim() ? (
             <p>
               <span className="font-semibold">Teléfono:</span> {props.empresa.telefono}

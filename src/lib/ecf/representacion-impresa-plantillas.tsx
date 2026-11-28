@@ -78,7 +78,9 @@ export function contactoDesdeRi(datos: DatosRi): ContactoResumen {
   return {
     id: "comprador-ri",
     nombre: comprador?.razonSocial ?? "—",
-    rnc_cedula: comprador?.rnc ?? comprador?.identificadorExtranjero ?? null,
+    // Solo el RNC real va en rnc_cedula: el IdentificadorExtranjero (E47) se
+    // imprime con su propia etiqueta fiscal, nunca como RNC.
+    rnc_cedula: comprador?.rnc ?? null,
     direccion: null,
     telefono: null,
   };
@@ -101,7 +103,9 @@ export function lineasDesdeRi(datos: DatosRi): FacturaLinea[] {
     return {
       id: `linea-${item.numeroLinea}`,
       producto_id: null,
-      descripcion: item.nombreItem,
+      // Los ítems exentos (IndicadorFacturacion 4) llevan la marca «(E)» que la
+      // DGII recomienda para identificar la condición de exento en la RI.
+      descripcion: item.indicadorFacturacion === "4" ? `(E) ${item.nombreItem}` : item.nombreItem,
       cantidad: item.cantidadItem,
       precio: item.precioUnitarioItem,
       descuento_pct: descuentoPct,
@@ -146,6 +150,15 @@ function motivoModificacion(datos: DatosRi): string | null {
 function emisionDesdeRi(datos: DatosRi): { codigoSeguridad: string; fechaHoraFirma: string; urlQr: string } {
   if (!datos.urlQr) throw new Error(`${datos.encf}: la representación impresa requiere urlQr`);
   return { codigoSeguridad: datos.codigoSeguridad, fechaHoraFirma: datos.fechaHoraFirma, urlQr: datos.urlQr };
+}
+
+function emisionNotaDesdeRi(datos: DatosRi) {
+  return {
+    ...emisionDesdeRi(datos),
+    vencimientoSecuencia: fechaDgiiAIso(datos.fechaVencimientoSecuencia),
+    montoGravado: datos.totales.montoGravadoTotal,
+    montoExento: datos.totales.montoExento,
+  };
 }
 
 /** Factura de las plantillas fabricada con los totales e ítems del XML. */
@@ -253,6 +266,18 @@ function elementoFacturaRi(datos: DatosRi): ReactElement {
         isrRetenido: datos.totales.totalIsrRetencion,
       }}
       margenFiscalMm={15}
+      montosFiscalesEcf={{
+        gravadoTotal: datos.totales.montoGravadoTotal,
+        gravadoI1: datos.totales.montoGravadoI1,
+        gravadoI2: datos.totales.montoGravadoI2,
+        gravadoI3: datos.totales.montoGravadoI3,
+        exento: datos.totales.montoExento,
+        itbisTotal: datos.totales.totalItbis,
+        itbis1: datos.totales.totalItbis1,
+        itbis2: datos.totales.totalItbis2,
+        itbis3: datos.totales.totalItbis3,
+      }}
+      identificadorExtranjeroCliente={datos.comprador?.rnc ? null : (datos.comprador?.identificadorExtranjero ?? null)}
     />
   );
 }
@@ -264,8 +289,8 @@ function elementoFacturaRi(datos: DatosRi): ReactElement {
  */
 export function elementoRepresentacionImpresa(datos: DatosRi): ReactElement {
   const empresa = empresaDesdeRi(datos);
-  const emision = emisionDesdeRi(datos);
-  const rncCliente = datos.comprador?.rnc ?? datos.comprador?.identificadorExtranjero ?? null;
+  const emision = emisionNotaDesdeRi(datos);
+  const rncCliente = datos.comprador?.rnc ?? null;
 
   if (datos.tipoEcf === "33") {
     return (

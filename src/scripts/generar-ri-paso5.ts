@@ -95,6 +95,7 @@ interface ResultadoPaso5 {
 
 interface VerificacionPdf {
   qrDecodificado: string | null;
+  xMinQrPx: number | null;
   paginas: number | null;
   bytes: number;
   fallas: string[];
@@ -240,6 +241,31 @@ function verificarTextoPdf(datos: DatosRi, rutaPdf: string, fallas: string[]): v
   agregarEsperadoTexto(esperados, datos.informacionReferencia?.ncfModificado);
   for (const item of datos.items) agregarEsperadoTexto(esperados, item.nombreItem);
 
+  // Candados fiscales extendidos: los subtotales/totales exactos del XML deben
+  // imprimirse (la RI los pasa, no los recomputa), con sus marcas normativas.
+  const totales = datos.totales;
+  const esperarMonto = (monto: number | null) => {
+    if (monto != null) esperados.push(formatoMontoRd.format(monto));
+  };
+  esperarMonto(totales.montoGravadoTotal);
+  esperarMonto(totales.montoGravadoI1);
+  esperarMonto(totales.montoGravadoI2);
+  esperarMonto(totales.montoGravadoI3);
+  esperarMonto(totales.totalItbis);
+  esperarMonto(totales.totalItbisRetenido && totales.totalItbisRetenido > 0 ? totales.totalItbisRetenido : null);
+  esperarMonto(totales.totalIsrRetencion && totales.totalIsrRetencion > 0 ? totales.totalIsrRetencion : null);
+  if ((totales.montoExento ?? 0) > 0) {
+    esperados.push(formatoMontoRd.format(totales.montoExento ?? 0));
+    esperados.push("SUBTOTAL EXENTO");
+  }
+  if (datos.items.some((item) => item.indicadorFacturacion === "4")) esperados.push("(E)");
+  agregarEsperadoTexto(esperados, datos.emisor.sucursal);
+  if (datos.fechaVencimientoSecuencia) {
+    const partes = datos.fechaVencimientoSecuencia.match(/^(\d{2})-(\d{2})-(\d{4})/);
+    if (partes) esperados.push(`${partes[1]}/${partes[2]}/${partes[3]}`);
+  }
+  if (datos.comprador?.identificadorExtranjero && !datos.comprador.rnc) esperados.push("Identificador extranjero");
+
   for (const esperado of esperados) {
     if (!textoNormalizado.includes(compactarTexto(esperado))) {
       fallas.push(`texto PDF no contiene literal esperado: ${esperado}`);
@@ -271,20 +297,56 @@ function verificarQpdf(rutaPdf: string, fallas: string[]): void {
   }
 }
 
-function verificarQrPdf(rutaPdf: string, urlQr: string, temporal: string, fallas: string[]): string | null {
+interface LecturaQr {
+  decodificado: string | null;
+  xMinPx: number | null;
+}
+
+/**
+ * Lee el QR con `zbarimg --xml` sobre el PNG a 300 dpi: además del contenido
+ * decodificado entrega el polígono detectado, cuya x mínima acredita la
+ * posición real del QR (los módulos arrancan dentro de la zona silenciosa, así
+ * que si incluso ellos están a ≥ 2 cm del borde, el QR cumple de sobra).
+ */
+function leerQrXml(rutaPng: string): LecturaQr | null {
+  try {
+    const salida = ejecutar("zbarimg", ["--xml", rutaPng]);
+    const decodificado = salida.match(/<data><!\[CDATA\[([\s\S]*?)\]\]><\/data>/)?.[1] ?? null;
+    const poligono = salida.match(/<polygon points='([^']+)'/)?.[1];
+    let xMinPx: number | null = null;
+    if (poligono) {
+      const xs = [...poligono.matchAll(/\+(\d+),\+\d+/g)].map((m) => Number(m[1]));
+      if (xs.length > 0) xMinPx = Math.min(...xs);
+    }
+    return { decodificado, xMinPx };
+  } catch {
+    return null;
+  }
+}
+
+function verificarQrPdf(
+  rutaPdf: string,
+  urlQr: string,
+  temporal: string,
+  fallas: string[],
+): { qrDecodificado: string | null; xMinQrPx: number | null } {
+  const vacio = { qrDecodificado: null, xMinQrPx: null };
   const prefijo = join(temporal, "pagina-qr");
   const conversion = intentar(fallas, "pdftoppm -png -r 300", () =>
     ejecutar("pdftoppm", ["-png", "-r", "300", "-f", "1", "-singlefile", rutaPdf, prefijo]),
   );
-  if (conversion == null) return null;
+  if (conversion == null) return vacio;
 
-  const salida = intentar(fallas, "zbarimg --raw", () => ejecutar("zbarimg", ["--raw", `${prefijo}.png`]));
-  if (salida == null) return null;
-  const decodificado = salida.endsWith("\n") ? salida.slice(0, -1) : salida;
+  const lectura = leerQrXml(`${prefijo}.png`);
+  if (!lectura?.decodificado) {
+    fallas.push("zbarimg no decodificó ningún QR en la página 1");
+    return vacio;
+  }
+  const decodificado = lectura.decodificado;
   if (decodificado !== urlQr) {
     fallas.push(`QR decodificado distinto del url_qr del manifiesto\nQR: ${decodificado}\nEsperado: ${urlQr}`);
   }
-  return decodificado;
+  return { qrDecodificado: decodificado, xMinQrPx: lectura.xMinPx };
 }
 
 function atributoNumerico(atributos: string, nombre: string): number | null {
@@ -316,8 +378,21 @@ function extraerPalabrasBBox(xml: string): PalabraBBox[] {
   return palabras;
 }
 
-/** Candado 4 — el bloque fiscal queda abajo-izquierda a ≥ 50 pt del borde (DGII: ≥ 2 cm). */
-function verificarBloqueFiscalInferiorIzquierdo(rutaPdf: string, temporal: string, fallas: string[]): void {
+/** Candado 4 — el QR queda abajo-izquierda y arranca a ≥ 2 cm (56.69 pt) del borde, medido en su polígono real detectado por zbarimg. */
+function verificarBloqueFiscalInferiorIzquierdo(
+  rutaPdf: string,
+  temporal: string,
+  fallas: string[],
+  xMinQrPx: number | null,
+): void {
+  if (xMinQrPx == null) {
+    fallas.push("zbarimg no reportó el polígono del QR para medir su posición");
+  } else {
+    const inicioQrPt = (xMinQrPx * 72) / 300;
+    if (inicioQrPt < 56.69) {
+      fallas.push(`el QR arranca a menos de 2cm del borde izquierdo (${inicioQrPt.toFixed(2)}pt < 56.69pt)`);
+    }
+  }
   const salidaXml = join(temporal, "bbox-layout.xml");
   const conversion = intentar(fallas, "pdftotext -bbox-layout", () =>
     ejecutar("pdftotext", ["-bbox-layout", rutaPdf, salidaXml]),
@@ -345,9 +420,6 @@ function verificarBloqueFiscalInferiorIzquierdo(rutaPdf: string, temporal: strin
     fallas.push("bbox-layout no encontró el texto 'Código de seguridad'");
     return;
   }
-  if (inicioCodigo.xMin < 50) {
-    fallas.push(`bloque fiscal queda a menos de 2cm del borde izquierdo (xMin=${inicioCodigo.xMin.toFixed(2)})`);
-  }
   if (inicioCodigo.xMin >= 306) {
     fallas.push(`bloque fiscal no está en el cuadrante izquierdo (xMin=${inicioCodigo.xMin.toFixed(2)})`);
   }
@@ -369,10 +441,10 @@ function verificarPdf(datos: DatosRi, rutaPdf: string, urlQr: string): Verificac
     const paginas = verificarPdfInfo(rutaPdf, fallas);
     verificarQpdf(rutaPdf, fallas);
     verificarTextoPdf(datos, rutaPdf, fallas);
-    const qrDecodificado = verificarQrPdf(rutaPdf, urlQr, temporal, fallas);
-    verificarBloqueFiscalInferiorIzquierdo(rutaPdf, temporal, fallas);
+    const lecturaQr = verificarQrPdf(rutaPdf, urlQr, temporal, fallas);
+    verificarBloqueFiscalInferiorIzquierdo(rutaPdf, temporal, fallas, lecturaQr.xMinQrPx);
 
-    return { qrDecodificado, paginas, bytes, fallas };
+    return { qrDecodificado: lecturaQr.qrDecodificado, xMinQrPx: lecturaQr.xMinQrPx, paginas, bytes, fallas };
   } finally {
     rmSync(temporal, { recursive: true, force: true });
   }
