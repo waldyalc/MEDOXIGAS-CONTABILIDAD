@@ -30,9 +30,9 @@ empresa_principal: "MEDOXIGAS ALC, SRL (RNC 130893489)"
 ## 1. Mapa de empresas, entornos y arquitectura
 
 ### Empresas del grupo (Desarrollo Propio compartido)
-- **Empresa piloto (certificando primero):** `OXYMAT SRL` — RNC `131488791`
-  - Dirección fiscal registrada: `AVENIDA JACOBO MAJLUTA, No. 101, APTO. 7, DORADO III`
-  - Teléfono: `8297417125` · Correo: `jardialcantaraspc@gmail.com`
+- **Empresa piloto (certificando primero):** `OXYMAT, SRL` — RNC `131488791`
+  - Sucursal: `PRINCIPAL` · Dirección fiscal oficial (Alegra / DGII): `APTO, No. 101, APTO. RES DORADO III, DORADO II, Santo Domingo Norte, Santo Domingo` (`Municipio: 320301`, `Provincia: 320000`)
+  - Correo emisor oficial: `oxymatsrl@gmail.com` · Sin `<TablaTelefonoEmisor>` (opcional en XSD, idéntico al XML real de Alegra).
   - Certificado digital: `.p12` real (Viafirma, persona física representante autorizado en OFV, vigente hasta `23 abr 2027`), almacenado **cifrado con AES-256-GCM** en `public.ecf_config` de Supabase.
 - **Empresa principal (certificará al terminar OXYMAT 100 % en verde):** `MEDOXIGAS ALC, SRL` — RNC `130893489`.
 - **Operación actual (Alegra):** sigue facturando en producción **sin interrupción** mientras completamos la certificación en `CerteCF`. Ninguna prueba en `TesteCF` o `CerteCF` toca secuencias reales ni la producción en Alegra.
@@ -233,6 +233,21 @@ empresa_principal: "MEDOXIGAS ALC, SRL (RNC 130893489)"
     - Campo multipart: `xml`, nombre de archivo **`<RNCComprador><eNCF>.xml`** (ej. `131488791E310000000007.xml`).
     - Respuesta JSON síncrona: `{ "codigo": "1" | "2" | "02", "estado": "Aprobacion Comercial Aprobada" | "Rechazada", "mensaje": string[] }`.
 - **Solución aplicada (Hilo 3):** Normalización exacta sin pérdida flotante a 2 decimales obligatorios en `generarXmlAcecf` + `parsearExcelAcecfDgii`, refuerzo de `validarAcecf` en `validador-xsd.ts`, y test candado 11/11 contra el Excel real y `ACECF_v.1.0.xsd`.
+
+---
+
+### ERR-012 — `El campo TelefonoEmisor del área Emisor de la sección Encabezado de la línea 1 no es válido` (Paso 4 `CerteCF`)
+- **Fecha / Hilo:** 28-11-2026 · Hilo 4 (`Paso 4: Pruebas de Simulación e-CF`)
+- **Mensaje exacto DGII:**
+  > `El campo TelefonoEmisor del área Emisor de la sección Encabezado de la línea 1 no es válido` (`E310000001001`, `secuenciaUtilizada: true`, detenido automáticamente en el caso #1 por el candado `detenidoPorRechazo`)
+- **Causa raíz:**
+  1. El XSD oficial DGII (`e-CF_31_v.1.0.xsd:551-556`, `TelefonoValidationType`) exige estrictamente `\d{3}-\d{3}-\d{4}` (máx. 12 caracteres, sin `+1` ni espacios).
+  2. La configuración de empresa en BD traía `"+1 809-604-6949"` (y el fallback local de OXYMAT en `portal-ecf-cliente.tsx:144` traía `"8297417125"` sin guiones). `xmlTablaTelefonosEmisor` en `src/lib/ecf/xml.ts` emitía el teléfono crudo sin normalizar y `validarFormatosEnNodo` en `src/lib/ecf/validador-xsd.ts` no verificaba `TelefonoValidationType`.
+- **Solución aplicada:**
+  - `normalizarTelefonoDgii` en `src/lib/ecf/xml.ts` convierte automáticamente `"+1 809-604-6949"` o `"8297417125"` a `"809-604-6949"` / `"829-741-7125"`, y omite cualquier valor no normalizable a 10 dígitos en lugar de emitir un `<TelefonoEmisor>` / `<TelefonoAdicional>` inválido.
+  - Validación estricta `RE_TELEFONO = /^\d{3}-\d{3}-\d{4}$/` agregada en `validarFormatosEnNodo` (`src/lib/ecf/validador-xsd.ts`).
+  - Fallback de OXYMAT en `portal-ecf-cliente.tsx` corregido a `"829-741-7125"`.
+- **Candado:** Test automatizado `ERR-012` en `src/lib/ecf/simulacion-paso4.test.ts` que verifica normalización (`+1`, sin guiones, inválido omitido) y rechazo explícito de `<TelefonoEmisor>+1 809-604-6949</TelefonoEmisor>` por `validarXmlContraEsquemaDgii`.
 
 ---
 

@@ -1165,8 +1165,21 @@ function xmlIdDoc(doc: DocumentoEcfInput): string {
   return `<IdDoc>${partes.join("")}</IdDoc>`;
 }
 
+export function normalizarTelefonoDgii(valor: string | undefined): string | undefined {
+  if (!valor) return undefined;
+  const limpio = valor.trim();
+  if (limpio === "") return undefined;
+  if (/^\d{3}-\d{3}-\d{4}$/.test(limpio)) return limpio;
+  const digitos = limpio.replace(/\D/g, "");
+  const diezDigitos = digitos.length === 11 && digitos.startsWith("1") ? digitos.slice(1) : digitos;
+  if (diezDigitos.length !== 10) return undefined;
+  return `${diezDigitos.slice(0, 3)}-${diezDigitos.slice(3, 6)}-${diezDigitos.slice(6)}`;
+}
+
 function xmlTablaTelefonosEmisor(telefonos: string[] | undefined): string {
-  const validos = (telefonos ?? []).map((telefono) => telefono.trim()).filter((telefono) => telefono !== "");
+  const validos = (telefonos ?? [])
+    .map((telefono) => normalizarTelefonoDgii(telefono))
+    .filter((telefono): telefono is string => telefono !== undefined);
   if (validos.length === 0) return "";
   return `<TablaTelefonoEmisor>${validos
     .slice(0, 3)
@@ -1226,7 +1239,7 @@ function xmlComprador(doc: DocumentoEcfInput): string {
       : "",
     admiteEntrega ? tagOpcional("ContactoEntrega", comprador.contactoEntrega) : "",
     admiteEntrega ? tagOpcional("DireccionEntrega", comprador.direccionEntrega) : "",
-    admiteEntrega ? tagOpcional("TelefonoAdicional", comprador.telefonoAdicional) : "",
+    admiteEntrega ? tagOpcional("TelefonoAdicional", normalizarTelefonoDgii(comprador.telefonoAdicional)) : "",
     admiteEntrega
       ? tagOpcional(
           "FechaOrdenCompra",

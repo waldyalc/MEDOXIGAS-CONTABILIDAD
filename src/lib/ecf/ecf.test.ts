@@ -324,7 +324,7 @@ describe("generación XML DGII", () => {
       "<RazonSocialEmisor>EMPRESA DE PRUEBA SRL</RazonSocialEmisor><NombreComercial>COMERCIAL DE PRUEBA</NombreComercial><Sucursal>001</Sucursal><DireccionEmisor>",
     );
     expect(xml).toContain(
-      "<TablaTelefonoEmisor><TelefonoEmisor>8095550100</TelefonoEmisor><TelefonoEmisor>8295550101</TelefonoEmisor></TablaTelefonoEmisor><CorreoEmisor>pruebas@example.com</CorreoEmisor>",
+      "<TablaTelefonoEmisor><TelefonoEmisor>809-555-0100</TelefonoEmisor><TelefonoEmisor>829-555-0101</TelefonoEmisor></TablaTelefonoEmisor><CorreoEmisor>pruebas@example.com</CorreoEmisor>",
     );
     expect(xml).toContain("</RazonSocialComprador><CorreoComprador>compras@example.com</CorreoComprador>");
     expect(xml).toContain(

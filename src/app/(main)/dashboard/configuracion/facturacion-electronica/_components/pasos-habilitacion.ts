@@ -57,7 +57,7 @@ export const DOMINIO_BASE_ECF_DEFECTO = "https://medoxigas-contabilidad.vercel.a
 export const DOMINIO_BASE_ECF_PROPIO = "https://app.medoxigas.com";
 
 export const EMPRESAS_PILOTO_ECF = {
-  oxymat: { id: "oxymat", nombre: "OXYMAT SRL", alias: "Ferretería (Piloto DGII)", rnc: "131488791" },
+  oxymat: { id: "oxymat", nombre: "OXYMAT, SRL", alias: "Ferretería (Piloto DGII)", rnc: "131488791" },
   medoxigas: { id: "medoxigas", nombre: "MEDOXIGAS ALC, SRL", alias: "Operación principal", rnc: "130893489" },
 } as const;
 

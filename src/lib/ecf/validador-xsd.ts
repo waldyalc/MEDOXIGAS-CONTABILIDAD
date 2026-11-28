@@ -29,6 +29,7 @@ const RE_FECHA_HORA = /^\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}$/;
 const RE_MONTO = /^\d+(\.\d{2})?$/;
 const RE_PRECIO = /^\d+(\.\d{1,4})?$/;
 const RE_ENTERO = /^\d+$/;
+const RE_TELEFONO = /^\d{3}-\d{3}-\d{4}$/;
 const TIPOS_ECF_VALIDOS = new Set(["31", "32", "33", "34", "41", "43", "44", "45", "46", "47"]);
 
 function nodo(nombre: string, min = 0, max = 1): ReglaHijo {
@@ -2746,6 +2747,9 @@ function validarFormatosEnNodo(nodoActual: NodoXml, ruta: string, errores: strin
     !RE_ENTERO.test(texto)
   ) {
     poner("el valor debe ser entero positivo");
+  }
+  if ((nombre === "TelefonoEmisor" || nombre === "TelefonoAdicional") && !RE_TELEFONO.test(texto)) {
+    poner("el teléfono debe cumplir el formato DGII DDD-DDD-DDDD (12 caracteres sin prefijo internacional)");
   }
 }
 

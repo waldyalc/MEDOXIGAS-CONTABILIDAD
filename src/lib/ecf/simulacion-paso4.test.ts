@@ -385,4 +385,59 @@ describe("construirSetSimulacionPaso4", () => {
     ).toThrow(/secuencia base/);
     expect(() => construirSetSimulacionPaso4({ ...OPCIONES_BASE, secuenciaBase: 1000.5 })).toThrow(/secuencia base/);
   });
+
+  it("normaliza TelefonoEmisor al patrón DGII DDD-DDD-DDDD y el validador XSD rechaza teléfonos con +1 o sin guiones (ERR-012)", () => {
+    const casoConPrefijo = construirSetSimulacionPaso4({
+      ...OPCIONES_BASE,
+      telefonoEmisor: "+1 809-604-6949",
+    })[0];
+    const casoSinGuion = construirSetSimulacionPaso4({
+      ...OPCIONES_BASE,
+      telefonoEmisor: "8297417125",
+    })[0];
+    const casoTelefonoInvalido = construirSetSimulacionPaso4({
+      ...OPCIONES_BASE,
+      telefonoEmisor: "123",
+    })[0];
+    if (!casoConPrefijo || !casoSinGuion || !casoTelefonoInvalido) {
+      throw new Error("El generador no devolvió el primer caso esperado");
+    }
+
+    const xmlConPrefijo = generarXmlEcf(casoConPrefijo.documento);
+    expect(xmlConPrefijo).toContain("<TelefonoEmisor>809-604-6949</TelefonoEmisor>");
+    expect(validarXmlContraEsquemaDgii(xmlConPrefijo, "ECF").errores).toEqual([]);
+
+    const xmlSinGuion = generarXmlEcf(casoSinGuion.documento);
+    expect(xmlSinGuion).toContain("<TelefonoEmisor>829-741-7125</TelefonoEmisor>");
+    expect(validarXmlContraEsquemaDgii(xmlSinGuion, "ECF").errores).toEqual([]);
+
+    const xmlTelefonoOmitido = generarXmlEcf(casoTelefonoInvalido.documento);
+    expect(xmlTelefonoOmitido).not.toContain("<TablaTelefonoEmisor>");
+    expect(validarXmlContraEsquemaDgii(xmlTelefonoOmitido, "ECF").errores).toEqual([]);
+
+    const xmlMalFormado = xmlConPrefijo.replace(
+      "<TelefonoEmisor>809-604-6949</TelefonoEmisor>",
+      "<TelefonoEmisor>+1 809-604-6949</TelefonoEmisor>",
+    );
+    const validacionInvalida = validarXmlContraEsquemaDgii(xmlMalFormado, "ECF");
+    expect(validacionInvalida.valido).toBe(false);
+    expect(validacionInvalida.errores.some((error) => error.includes("TelefonoEmisor"))).toBe(true);
+
+    const casoDefault = construirSetSimulacionPaso4({
+      rncEmisor: "131488791",
+      razonSocial: "OXYMAT, SRL",
+      fechaEmision: "28-11-2026",
+      fechaHoraFirma: "28-11-2026 08:30:00",
+    })[0];
+    if (!casoDefault) throw new Error("El generador no devolvió el caso por defecto");
+    const xmlDefault = generarXmlEcf(casoDefault.documento);
+    expect(xmlDefault).toContain("<Sucursal>PRINCIPAL</Sucursal>");
+    expect(xmlDefault).toContain(
+      "<DireccionEmisor>APTO, No. 101, APTO. RES DORADO III, DORADO II, Santo Domingo Norte, Santo Domingo</DireccionEmisor>",
+    );
+    expect(xmlDefault).toContain("<Municipio>320301</Municipio><Provincia>320000</Provincia>");
+    expect(xmlDefault).toContain("<CorreoEmisor>oxymatsrl@gmail.com</CorreoEmisor>");
+    expect(xmlDefault).not.toContain("<TablaTelefonoEmisor>");
+    expect(validarXmlContraEsquemaDgii(xmlDefault, "ECF").errores).toEqual([]);
+  });
 });

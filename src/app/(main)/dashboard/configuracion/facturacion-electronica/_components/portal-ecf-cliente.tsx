@@ -140,9 +140,9 @@ const DATOS_FISCALES_PILOTO_DEFECTO: Record<
   Pick<EmisorEcf, "direccion" | "telefono" | "correo">
 > = {
   oxymat: {
-    direccion: "AVENIDA JACOBO MAJLUTA, No. 101, APTO. 7, DORADO III",
-    telefono: "8297417125",
-    correo: "jardialcantaraspc@gmail.com",
+    direccion: "APTO, No. 101, APTO. RES DORADO III, DORADO II, Santo Domingo Norte, Santo Domingo",
+    telefono: null,
+    correo: "oxymatsrl@gmail.com",
   },
   medoxigas: { direccion: null, telefono: null, correo: null },
 };
@@ -150,8 +150,11 @@ const DATOS_FISCALES_PILOTO_DEFECTO: Record<
 function emisorParaPiloto(empresa: EmisorEcf | null, pilotoId: EmpresaPilotoEcfId): EmisorEcf {
   const piloto = EMPRESAS_PILOTO_ECF[pilotoId];
   const defecto = DATOS_FISCALES_PILOTO_DEFECTO[pilotoId];
+  if (pilotoId === "oxymat") {
+    return { nombre: piloto.nombre, rnc: piloto.rnc, ...defecto };
+  }
   const rncEmpresa = empresa?.rnc?.replace(/\D/g, "") ?? "";
-  if (empresa && (rncEmpresa === piloto.rnc || (pilotoId === "medoxigas" && rncEmpresa === ""))) {
+  if (empresa && (rncEmpresa === piloto.rnc || rncEmpresa === "")) {
     return {
       nombre: piloto.nombre,
       rnc: piloto.rnc,

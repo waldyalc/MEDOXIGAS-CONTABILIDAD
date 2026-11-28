@@ -80,7 +80,7 @@ describe("pasos de habilitación e-CF", () => {
   it("incluye OXYMAT como piloto DGII y Medoxigas como operación principal", () => {
     expect(EMPRESAS_PILOTO_ECF.oxymat).toEqual({
       id: "oxymat",
-      nombre: "OXYMAT SRL",
+      nombre: "OXYMAT, SRL",
       alias: "Ferretería (Piloto DGII)",
       rnc: "131488791",
     });

@@ -92,11 +92,11 @@ export interface ResultadoSetValidacionPaso4Local {
 }
 
 const LIMITE_RFCE_CENTAVOS = 25_000_000;
-const DIRECCION_OXYMAT_DEFECTO = "AVENIDA JACOBO MAJLUTA, No. 101, APTO. 7, DORADO III";
-const MUNICIPIO_OXYMAT_DEFECTO = "010100";
-const PROVINCIA_OXYMAT_DEFECTO = "010000";
-const TELEFONO_OXYMAT_DEFECTO = "829-741-7125";
-const CORREO_OXYMAT_DEFECTO = "jardialcantaraspc@gmail.com";
+const DIRECCION_OXYMAT_DEFECTO = "APTO, No. 101, APTO. RES DORADO III, DORADO II, Santo Domingo Norte, Santo Domingo";
+const SUCURSAL_OXYMAT_DEFECTO = "PRINCIPAL";
+const MUNICIPIO_OXYMAT_DEFECTO = "320301";
+const PROVINCIA_OXYMAT_DEFECTO = "320000";
+const CORREO_OXYMAT_DEFECTO = "oxymatsrl@gmail.com";
 const FECHA_VENCIMIENTO_DEFECTO = "31-12-2028";
 const RNC_COMPRADOR_DEFECTO = "131880681";
 const RAZON_COMPRADOR_DEFECTO = "DOCUMENTOS ELECTRONICOS DE 03";
@@ -367,13 +367,12 @@ function crearEmisor(contexto: ContextoPaso4): EmisorEcfInput {
   return {
     rnc: contexto.rncEmisor,
     razonSocial: contexto.razonSocial,
-    nombreComercial: contexto.razonSocial,
+    sucursal: SUCURSAL_OXYMAT_DEFECTO,
     direccion: contexto.direccionEmisor,
     municipio: MUNICIPIO_OXYMAT_DEFECTO,
     provincia: PROVINCIA_OXYMAT_DEFECTO,
     telefonos: contexto.telefonoEmisor ? [contexto.telefonoEmisor] : undefined,
     correo: contexto.correoEmisor,
-    actividadEconomica: "SUMINISTRO DE GASES MEDICINALES E INDUSTRIALES",
   };
 }
 
@@ -513,7 +512,7 @@ function construirContexto(opciones: OpcionesSimulacionPaso4): ContextoPaso4 {
     rncEmisor: entrada.rncEmisor,
     razonSocial: entrada.razonSocial,
     direccionEmisor: textoNoVacio(opciones.direccionEmisor) ?? DIRECCION_OXYMAT_DEFECTO,
-    telefonoEmisor: textoNoVacio(opciones.telefonoEmisor) ?? TELEFONO_OXYMAT_DEFECTO,
+    telefonoEmisor: textoNoVacio(opciones.telefonoEmisor),
     correoEmisor: textoNoVacio(opciones.correoEmisor) ?? CORREO_OXYMAT_DEFECTO,
     fechaEmision: opciones.fechaEmision ?? formatearFechaRdActual(),
     fechaVencimientoSecuencia: opciones.fechaVencimientoSecuencia ?? FECHA_VENCIMIENTO_DEFECTO,
