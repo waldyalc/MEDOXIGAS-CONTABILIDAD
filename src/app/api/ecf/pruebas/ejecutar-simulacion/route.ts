@@ -303,8 +303,8 @@ export function resultadoDesdeEnvioSimulacionAceptado(
 ): ResultadoEnvioSimulacionPaso4Caso | null {
   if (existente.estado !== "aceptado" && existente.estado !== "aceptado_condicional") return null;
   if (existente.secuencia_utilizada === false) return null;
-  if (existente.xml_firmado === null) return null;
-  if (caso.esRfce && existente.xml_rfce === null) return null;
+  if (existente.xml_firmado === null || existente.xml_firmado.trim() === "") return null;
+  if (caso.esRfce && (existente.xml_rfce === null || existente.xml_rfce.trim() === "")) return null;
   return {
     ...baseResultado(caso, rncEmisor),
     trackId: existente.track_id,

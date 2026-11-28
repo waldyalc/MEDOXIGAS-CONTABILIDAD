@@ -554,6 +554,36 @@ describe("modo enviar_dgii", () => {
     });
   });
 
+  it("reenvía selectivamente si un caso aceptado tiene xml_firmado o xml_rfce vacío/solo espacios", async () => {
+    const casos = casosEsperados();
+    const rows = casos.map((caso) => envioExistenteParaCaso(caso));
+    const filaEcfVacio = rows[0];
+    const filaRfceVacio = rows[21];
+    const casoEcf = casos[0];
+    const casoRfce = casos[21];
+    if (!filaEcfVacio || !filaRfceVacio || !casoEcf || !casoRfce) {
+      throw new Error("El fixture no generó los casos esperados");
+    }
+    filaEcfVacio.xml_firmado = "   ";
+    filaRfceVacio.xml_rfce = "";
+    const supabase = usarSupabase(rows);
+
+    const response = await ejecutarPost(formularioSimulacion({ modo: "enviar_dgii", ambiente: "testecf" }));
+    const data = await jsonComo<RespuestaEnvioApi>(response);
+
+    expect(response.status).toBe(200);
+    if (!data.ok || data.modo !== "enviar_dgii") throw new Error("El reenvío por XML vacío no respondió ok");
+    expect(data).toMatchObject({ totalCasos: 25, aceptados: 25, reutilizados: 23, detenidoPorRechazo: false });
+    expect(mocks.enviarEcf).toHaveBeenCalledTimes(2);
+    expect(llamadasEnvio().map((args) => args.nombreArchivo)).toEqual([
+      `${RNC_EMISOR}${casoEcf.documento.comprobante.encf}.xml`,
+      `${RNC_EMISOR}${casoRfce.documento.comprobante.encf}.xml`,
+    ]);
+    expect(data.casos[0]?.reutilizado).toBe(false);
+    expect(data.casos[21]?.reutilizado).toBe(false);
+    expect(supabase.actualizaciones).toHaveLength(2);
+  });
+
   it("detiene CerteCF inmediatamente después del primer rechazo para no quemar secuencias", async () => {
     configurarConsultaConRechazoEnSegundoCaso();
     const supabase = usarSupabase([]);
