@@ -1,3 +1,4 @@
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { generarVectorQr } from "./qr-svg";
@@ -7,7 +8,7 @@ import {
   extraerCodigoSeguridadXml,
   parsearRepresentacionImpresaXml,
 } from "./representacion-impresa";
-import { generarPdfRepresentacionImpresa } from "./representacion-impresa-pdf";
+import { elementoRepresentacionImpresa } from "./representacion-impresa-plantillas";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -81,16 +82,50 @@ describe("representación impresa e-CF", () => {
     expect(conDescuento?.subDescuentos[0]?.montoSubDescuento).toBe(3500);
   });
 
-  it("genera PDF Carta en buffer mayor a 2KB para los tipos 31, 33 y 47", async () => {
+  it("renderiza la RI con las plantillas reales del sistema para los tipos 31, 33, 34 y 47", () => {
     if (omitirSiNoHayXml()) return;
-    for (const encf of ["E310000001201", "E330000001201", "E470000001201"]) {
+    for (const encf of ["E310000001201", "E330000001201", "E340000001201", "E470000001201"]) {
       const datos = parsearRepresentacionImpresaXml(leerXmlReal(`${RNC_OXYMAT}${encf}.xml`));
       datos.urlQr = construirUrlQrDesdeRi(datos, { ambiente: "certecf", esRfce: false });
-      const buffer = await generarPdfRepresentacionImpresa(datos);
-      expect(buffer.length).toBeGreaterThan(2000);
-      expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
+      const html = renderToStaticMarkup(elementoRepresentacionImpresa(datos));
+
+      expect(html).toContain(datos.encf);
+      expect(html).toContain(datos.tipoEcfNombre);
+      expect(html).toContain(datos.emisor.rnc);
+      expect(html).toContain(datos.codigoSeguridad);
+      expect(html).toContain(`Fecha de firma digital: ${datos.fechaHoraFirma}`);
+      expect(html).toContain("Original: Cliente");
+      for (const item of datos.items) expect(html).toContain(item.nombreItem);
     }
-  }, 30000);
+
+    const debito = parsearRepresentacionImpresaXml(leerXmlReal(`${RNC_OXYMAT}E330000001201.xml`));
+    debito.urlQr = construirUrlQrDesdeRi(debito, { ambiente: "certecf", esRfce: false });
+    const htmlDebito = renderToStaticMarkup(elementoRepresentacionImpresa(debito));
+    expect(htmlDebito).toContain("Nota de Débito Electrónica");
+    expect(htmlDebito).toContain("e-NCF E330000001201");
+    expect(htmlDebito).toContain("E310000001201");
+    expect(htmlDebito).toContain("Corrección de montos");
+    expect(htmlDebito).toContain("131880681");
+
+    const credito = parsearRepresentacionImpresaXml(leerXmlReal(`${RNC_OXYMAT}E340000001201.xml`));
+    credito.urlQr = construirUrlQrDesdeRi(credito, { ambiente: "certecf", esRfce: false });
+    const htmlCredito = renderToStaticMarkup(elementoRepresentacionImpresa(credito));
+    expect(htmlCredito).toContain("Nota de Crédito Electrónica");
+    expect(htmlCredito).toContain("E310000001202");
+
+    const exterior = parsearRepresentacionImpresaXml(leerXmlReal(`${RNC_OXYMAT}E470000001201.xml`));
+    exterior.urlQr = construirUrlQrDesdeRi(exterior, { ambiente: "certecf", esRfce: false });
+    const htmlExterior = renderToStaticMarkup(elementoRepresentacionImpresa(exterior));
+    expect(htmlExterior).toContain("350555123");
+    expect(htmlExterior).toContain("País destino: ESTADOS UNIDOS");
+    expect(htmlExterior).toContain("ISR RETENIDO");
+
+    const compras = parsearRepresentacionImpresaXml(leerXmlReal(`${RNC_OXYMAT}E410000001201.xml`));
+    compras.urlQr = construirUrlQrDesdeRi(compras, { ambiente: "certecf", esRfce: false });
+    const htmlCompras = renderToStaticMarkup(elementoRepresentacionImpresa(compras));
+    expect(htmlCompras).toContain("ITBIS RETENIDO");
+    expect(htmlCompras).toContain("ISR RETENIDO");
+  });
 
   it("genera la matriz vectorial QR de una URL DGII real sin errores", () => {
     const vector = generarVectorQr(URL_QR_REAL_E31);

@@ -1,20 +1,45 @@
 /**
  * Genera y verifica las 11 representaciones impresas PDF del Paso 5 CerteCF.
  *
+ * Las RI se renderizan con las plantillas reales del sistema (DocumentoPapel
+ * de ventas y los documentos de nota de débito/crédito, copiados de Alegra)
+ * impresas a PDF vía Chromium — no hay ningún PDF inventado.
+ *
  * Corre solo con archivos locales:
  *   pnpm ts-node -P tsconfig.scripts.json src/scripts/generar-ri-paso5.ts
  */
 
-import {
-  construirUrlQrDesdeRi,
-  type DatosRi,
-  parsearRepresentacionImpresaXml,
-} from "../lib/ecf/representacion-impresa";
-import { formatearMontoRi, generarPdfRepresentacionImpresa } from "../lib/ecf/representacion-impresa-pdf";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import Module from "node:module";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import path, { join } from "node:path";
+
+/**
+ * Las plantillas y la tubería de impresión importan con el alias `@/` (como
+ * todo el código de la app). ts-node no resuelve paths de tsconfig en runtime,
+ * así que instalamos un resolvedor mínimo `@/ → src/` ANTES de cargarlas; los
+ * requires de la app quedan diferidos a continuación, ya con el alias activo.
+ */
+type ResolverNombre = (request: string, parent: unknown, isMain: boolean, options?: unknown) => string;
+const moduloInterno = Module as unknown as { _resolveFilename: ResolverNombre };
+const resolverOriginal = moduloInterno._resolveFilename.bind(Module);
+moduloInterno._resolveFilename = (request, parent, isMain, options) => {
+  const ajustado = request.startsWith("@/") ? path.resolve("src", request.slice(2)) : request;
+  return resolverOriginal(ajustado, parent, isMain, options);
+};
+
+const { construirUrlQrDesdeRi, parsearRepresentacionImpresaXml } =
+  // biome-ignore lint/style/noCommonJs: carga diferida obligatoria — el alias @/ debe parchearse antes de importar las plantillas
+  require("../lib/ecf/representacion-impresa") as typeof import("../lib/ecf/representacion-impresa");
+const { elementoRepresentacionImpresa } =
+  // biome-ignore lint/style/noCommonJs: carga diferida obligatoria — el alias @/ debe parchearse antes de importar las plantillas
+  require("../lib/ecf/representacion-impresa-plantillas") as typeof import("../lib/ecf/representacion-impresa-plantillas");
+const { cerrarNavegadorPapel, renderizarPapelPdf } =
+  // biome-ignore lint/style/noCommonJs: carga diferida obligatoria — el alias @/ debe parchearse antes de importar las plantillas
+  require("../lib/impresion/renderizar-papel-pdf") as typeof import("../lib/impresion/renderizar-papel-pdf");
+
+type DatosRi = import("../lib/ecf/representacion-impresa").DatosRi;
 
 const DIRECTORIO_PASO4 = "/root/referencias/ecf-oxymat/paso4-simulacion-1201";
 const DIRECTORIO_SALIDA = "/root/referencias/ecf-oxymat/paso5-ri-pdf";
@@ -23,6 +48,8 @@ const ARCHIVO_MANIFIESTO_PASO5 = join(DIRECTORIO_SALIDA, "manifiesto-paso5.json"
 const RNC_OXYMAT = "131488791";
 const TAMANO_MINIMO_PDF = 2 * 1024;
 const LIMITE_TOTAL_BYTES = 10 * 1024 * 1024;
+
+const formatoMontoRd = new Intl.NumberFormat("es-DO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 interface SlotPaso5 {
   slot: string;
@@ -103,6 +130,17 @@ function normalizarTextoPdf(texto: string): string {
   return texto.normalize("NFC").replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Texto sin ningún espacio en blanco. El texto tipográfico del PDF no codifica
+ * los espacios de forma semántica: poppler los infiere por posición y a veces
+ * los pierde o inserta saltos dentro de un token cuando la celda envuelve
+ * ("0-15" cortado al final de línea). Comparar sin espacios verifica los
+ * caracteres exactos del literal en orden, que es lo que acredita la DGII.
+ */
+function compactarTexto(texto: string): string {
+  return texto.normalize("NFC").replace(/\s+/g, "");
+}
+
 function textoCampo(registro: Record<string, unknown>, campo: string): string | null {
   const valor = registro[campo];
   return typeof valor === "string" ? valor : null;
@@ -173,15 +211,25 @@ function agregarEsperadoTexto(esperados: string[], valor: string | null | undefi
   if (valor != null && valor.trim() !== "") esperados.push(valor);
 }
 
+/**
+ * Candado 1 — literales del XML en el texto del PDF. Se extrae con
+ * `pdftotext -raw` (orden del flujo de contenido): las plantillas reales
+ * envuelven las descripciones largas dentro de su celda y el flujo las
+ * mantiene contiguas, mientras que `-layout` las intercala con las demás
+ * columnas. `-raw` además no inventa ni borra caracteres — el modo por
+ * defecto de poppler trata el "-" al final de línea como guion blando de
+ * división y lo elimina ("0-15" → "015"); sus únicos artefactos son los
+ * espacios, que la comparación sin espacios neutraliza.
+ */
 function verificarTextoPdf(datos: DatosRi, rutaPdf: string, fallas: string[]): void {
-  const texto = intentar(fallas, "pdftotext -layout", () => ejecutar("pdftotext", ["-layout", rutaPdf, "-"]));
+  const texto = intentar(fallas, "pdftotext -raw", () => ejecutar("pdftotext", ["-raw", rutaPdf, "-"]));
   if (texto == null) return;
-  const textoNormalizado = normalizarTextoPdf(texto);
+  const textoNormalizado = compactarTexto(texto);
   const esperados: string[] = [
     datos.encf,
     datos.tipoEcfNombre,
     datos.emisor.rnc,
-    formatearMontoRi(datos.totales.montoTotal),
+    formatoMontoRd.format(datos.totales.montoTotal),
     datos.codigoSeguridad,
     datos.fechaHoraFirma,
   ];
@@ -193,7 +241,7 @@ function verificarTextoPdf(datos: DatosRi, rutaPdf: string, fallas: string[]): v
   for (const item of datos.items) agregarEsperadoTexto(esperados, item.nombreItem);
 
   for (const esperado of esperados) {
-    if (!textoNormalizado.includes(normalizarTextoPdf(esperado))) {
+    if (!textoNormalizado.includes(compactarTexto(esperado))) {
       fallas.push(`texto PDF no contiene literal esperado: ${esperado}`);
     }
   }
@@ -268,6 +316,7 @@ function extraerPalabrasBBox(xml: string): PalabraBBox[] {
   return palabras;
 }
 
+/** Candado 4 — el bloque fiscal queda abajo-izquierda a ≥ 50 pt del borde (DGII: ≥ 2 cm). */
 function verificarBloqueFiscalInferiorIzquierdo(rutaPdf: string, temporal: string, fallas: string[]): void {
   const salidaXml = join(temporal, "bbox-layout.xml");
   const conversion = intentar(fallas, "pdftotext -bbox-layout", () =>
@@ -358,7 +407,7 @@ async function procesarSlot(slot: SlotPaso5, manifiesto: Map<string, EntradaMani
     datos.urlQr = urlQr;
     resultado.urlQr = urlQr;
 
-    const pdf = await generarPdfRepresentacionImpresa(datos);
+    const pdf = await renderizarPapelPdf(elementoRepresentacionImpresa(datos));
     const rutaPdf = join(DIRECTORIO_SALIDA, resultado.archivo);
     writeFileSync(rutaPdf, pdf);
 
@@ -415,8 +464,12 @@ async function main(): Promise<void> {
   const manifiesto = leerManifiestoPaso4();
   const resultados: ResultadoPaso5[] = [];
 
-  for (const slot of SLOTS_PASO5) {
-    resultados.push(await procesarSlot(slot, manifiesto));
+  try {
+    for (const slot of SLOTS_PASO5) {
+      resultados.push(await procesarSlot(slot, manifiesto));
+    }
+  } finally {
+    await cerrarNavegadorPapel();
   }
 
   const totalBytes = resultados.reduce((total, resultado) => total + resultado.bytes, 0);
