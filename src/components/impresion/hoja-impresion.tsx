@@ -130,6 +130,7 @@ export function HojaImpresion(props: PropsHojaImpresion) {
                   numero={props.numero}
                   fecha={props.fecha}
                   leyendaAnulacion={props.leyendaAnulacion}
+                  mostrarSucursal={props.mostrarSucursal}
                 >
                   {props.children}
                 </PapelImpresion>
