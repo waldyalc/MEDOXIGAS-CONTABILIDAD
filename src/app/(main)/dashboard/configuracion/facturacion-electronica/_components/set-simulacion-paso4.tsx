@@ -533,6 +533,8 @@ interface ArchivoRfcePaso4 {
   codigoSeguridad: string | null;
   montoTotal: number;
   numeroCaso: number;
+  estado: string;
+  aceptado: boolean;
 }
 
 function archivosRfcePaso4(casos: readonly ResultadoEnvioSimulacionPaso4Caso[], rncEmisor: string): ArchivoRfcePaso4[] {
@@ -546,6 +548,8 @@ function archivosRfcePaso4(casos: readonly ResultadoEnvioSimulacionPaso4Caso[], 
       codigoSeguridad: caso.codigoSeguridad,
       montoTotal: caso.montoTotal,
       numeroCaso: caso.numeroCaso,
+      estado: caso.estado,
+      aceptado: estadoEsAceptado(caso.estado),
     });
   }
   return archivos;
@@ -553,20 +557,33 @@ function archivosRfcePaso4(casos: readonly ResultadoEnvioSimulacionPaso4Caso[], 
 
 function BloqueCuartoPasoDgii({ archivos }: { archivos: readonly ArchivoRfcePaso4[] }) {
   if (archivos.length === 0) return null;
+  const aceptados = archivos.filter((archivo) => archivo.aceptado).length;
+  const todosAceptados = aceptados === 4 && archivos.length === 4;
   return (
     <section className="border-primary/30 bg-secondary/40 rounded-xl border p-4">
       <div className="flex items-start gap-2">
         <FileText className="text-primary mt-0.5 size-5 shrink-0" />
         <div>
           <p className="text-primary text-sm font-semibold">
-            Cuarto paso DGII — 4 XML íntegros de Facturas de Consumo &lt; RD$250,000
+            Cuarto paso DGII — 4 XML íntegros de Facturas de Consumo &lt; RD$250,000 ({aceptados}/4 RFCE aceptados)
           </p>
           <p className="text-muted-foreground mt-1 text-xs">
-            Descarga cada archivo y súbelo en la caja inferior del portal DGII. Se recomienda descargarlos uno a uno
-            (ERR-010) para evitar que Chrome bloquee descargas múltiples.
+            Descarga cada archivo y súbelo en la caja inferior del portal DGII solo cuando los 4 RFCE estén aceptados.
+            Se recomienda descargarlos uno a uno (ERR-010) para evitar que Chrome bloquee descargas múltiples.
           </p>
         </div>
       </div>
+      {!todosAceptados ? (
+        <Alert variant="destructive" className="mt-3">
+          <TriangleAlert />
+          <AlertTitle>NO subas ningún XML &lt; 250Mil todavía ({aceptados}/4 RFCE aceptados)</AlertTitle>
+          <AlertDescription>
+            Si subes una Factura de Consumo cuyo resumen RFCE no fue aceptado por la DGII, el portal reiniciará todo el
+            Paso 4 (ERR-013). Vuelve a pulsar «Ejecutar Paso 4» con la MISMA secuencia base para reintentar solo los
+            casos pendientes sin reenviar los ya aceptados.
+          </AlertDescription>
+        </Alert>
+      ) : null}
       <ul className="mt-3 grid gap-2 xl:grid-cols-2">
         {archivos.map((archivo) => (
           <li
@@ -574,7 +591,10 @@ function BloqueCuartoPasoDgii({ archivos }: { archivos: readonly ArchivoRfcePaso
             className="bg-background flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="min-w-0">
-              <p className="font-mono text-xs font-semibold break-all">{archivo.nombreArchivo}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-mono text-xs font-semibold break-all">{archivo.nombreArchivo}</p>
+                <BadgeEstadoDgii estado={archivo.estado} />
+              </div>
               <p className="text-muted-foreground mt-1 text-xs">
                 Caso {archivo.numeroCaso} · {archivo.encf} · Código seguridad{" "}
                 <span className="font-mono">{archivo.codigoSeguridad ?? "—"}</span> · RD${" "}
@@ -586,10 +606,11 @@ function BloqueCuartoPasoDgii({ archivos }: { archivos: readonly ArchivoRfcePaso
               variant="ghost"
               size="sm"
               className="shrink-0"
+              disabled={!todosAceptados || !archivo.aceptado}
               onClick={() => descargarXml(archivo.nombreArchivo, archivo.xml)}
             >
               <Download />
-              Descargar XML
+              {archivo.aceptado ? "Descargar XML" : "RFCE pendiente"}
             </Button>
           </li>
         ))}

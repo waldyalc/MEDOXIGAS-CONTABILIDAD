@@ -631,4 +631,33 @@ describe("modo enviar_dgii", () => {
     expect(mocks.enviarEcf).toHaveBeenCalledTimes(25);
     expect(mocks.consultarResultado).toHaveBeenCalledTimes(21);
   });
+
+  it("reintenta automáticamente errores transitorios fetch failed sin re-firmar el XML (ERR-013)", async () => {
+    const casos = casosEsperados();
+    const rows = casos.slice(0, 24).map((caso) => envioExistenteParaCaso(caso));
+    usarSupabase(rows);
+    let intentosRfce = 0;
+    const xmlsEnviados: string[] = [];
+    mocks.enviarEcf.mockImplementation(async (args: LlamadaEnvioMock) => {
+      intentosRfce += 1;
+      xmlsEnviados.push(args.xmlFirmado);
+      if (intentosRfce <= 2) throw new TypeError("fetch failed");
+      return {
+        codigo: "1",
+        estado: "Aceptado",
+        mensajes: [],
+        respuestaCruda: { ok: true },
+      };
+    });
+
+    const response = await ejecutarPost(formularioSimulacion({ modo: "enviar_dgii", ambiente: "certecf" }));
+    const data = await jsonComo<RespuestaEnvioApi>(response);
+
+    expect(response.status).toBe(200);
+    if (!data.ok || data.modo !== "enviar_dgii") throw new Error("El reintento de red no respondió ok");
+    expect(data).toMatchObject({ totalCasos: 25, aceptados: 25, errores: 0, reutilizados: 24 });
+    expect(intentosRfce).toBe(3);
+    expect(xmlsEnviados[0]).toBe(xmlsEnviados[1]);
+    expect(xmlsEnviados[1]).toBe(xmlsEnviados[2]);
+  }, 10_000);
 });

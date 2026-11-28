@@ -251,6 +251,20 @@ empresa_principal: "MEDOXIGAS ALC, SRL (RNC 130893489)"
 
 ---
 
+### ERR-013 — `fetch failed` en 3/4 `RFCE` + descarga prematura de XML `< 250Mil` reinició Paso 4 (`CerteCF`)
+- **Fecha / Hilo:** 28-11-2026 · Hilo 4 (`Paso 4: Pruebas de Simulación e-CF`)
+- **Mensaje exacto DGII:**
+  > `Las pruebas de simulación de eCF han sido reiniciadas debido a que se han rechazado comprobantes. - No se ha encontrado el Resumen de Factura de Consumo Electrónica asociada a la Factura de Consumo Electrónica recibida, o en su defecto, no se encuentra en un estado válido. Antes de enviar la factura, procurar enviar su Resumen Electrónico y que este haya sido aceptado.`
+- **Causa raíz:**
+  1. Tras aceptar `21/21` comprobantes base/notas y `1/4` `RFCE` (`E320000001104`), `fc.dgii.gov.do/certecf/recepcionfc` tuvo 3 cortes transitorios de red (`TypeError: fetch failed`) en `E320000001103`, `1105` y `1106`. El runner `ejecutar-simulacion/route.ts` no reintentaba errores de red transitorios antes de marcar `error_red`.
+  2. `BloqueCuartoPasoDgii` en `set-simulacion-paso4.tsx` habilitaba los 4 botones «Descargar XML» incluso cuando solo `1/4` `RFCE` estaba `aceptado`, permitiendo subir al portal DGII un XML íntegro cuyo `RFCE` nunca había sido recibido.
+- **Solución aplicada:**
+  - `enviarEcfDgiiConReintentoRed` en `src/app/api/ecf/pruebas/ejecutar-simulacion/route.ts` reintenta automáticamente hasta 3 veces con backoff (`1.2s`, `2.4s`) ante errores transitorios de red (`fetch failed`, `ECONNRESET`, `ETIMEDOUT`, `socket`), enviando exactamente el mismo XML ya firmado sin cambiar el `CodigoSeguridad`.
+  - `BloqueCuartoPasoDgii` en `set-simulacion-paso4.tsx` bloquea los botones de descarga y muestra alerta roja explícita mientras los `4/4` `RFCE` no estén en estado `aceptado`/`aceptado_condicional`, indicando re-ejecutar con la misma secuencia base para reintentar solo los pendientes.
+- **Candado:** Test `ERR-013` en `src/app/api/ecf/pruebas/ejecutar-simulacion/ejecutar-simulacion.test.ts` que simula dos `fetch failed` seguidos y valida 3 intentos con el mismo XML firmado hasta lograr `aceptado`.
+
+---
+
 ## 5. Progreso de los 14 pasos de certificación DGII — OXYMAT SRL (`131488791`)
 
 - [x] **Paso 1 — Postulación Desarrollo Propio (`CerteCF`)** — Aprobado en verde (`27-11-2026`).

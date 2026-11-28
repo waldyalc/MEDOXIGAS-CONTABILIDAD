@@ -380,6 +380,42 @@ async function guardarTrazabilidad(args: {
   }
 }
 
+function esperarReintentoRed(ms: number): Promise<void> {
+  return new Promise((resolver) => {
+    setTimeout(resolver, ms);
+  });
+}
+
+function esErrorRedTransitorio(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const texto = error.message.toLowerCase();
+  return (
+    texto.includes("fetch failed") ||
+    texto.includes("econnreset") ||
+    texto.includes("etimedout") ||
+    texto.includes("socket") ||
+    texto.includes("network") ||
+    texto.includes("und_err")
+  );
+}
+
+async function enviarEcfDgiiConReintentoRed(
+  args: Parameters<typeof enviarEcfDgii>[0],
+  maxIntentos = 3,
+): Promise<Awaited<ReturnType<typeof enviarEcfDgii>>> {
+  let ultimoError: unknown;
+  for (let intento = 1; intento <= maxIntentos; intento += 1) {
+    try {
+      return await enviarEcfDgii(args);
+    } catch (error) {
+      ultimoError = error;
+      if (!esErrorRedTransitorio(error) || intento === maxIntentos) throw error;
+      await esperarReintentoRed(intento * 1200);
+    }
+  }
+  throw ultimoError;
+}
+
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: coordina XSD, firma, RFCE, envío DGII, consulta y trazabilidad por cada caso sin ocultar errores
 async function procesarEnvioCaso(args: {
   caso: CasoSimulacionPaso4;
@@ -439,7 +475,7 @@ async function procesarEnvioCaso(args: {
       xmlRfce = firmaRfce.xmlFirmado;
     }
 
-    const enviado = await enviarEcfDgii({
+    const enviado = await enviarEcfDgiiConReintentoRed({
       ambiente: args.ambiente,
       token: args.token,
       nombreArchivo: base.nombreArchivoEcf,
