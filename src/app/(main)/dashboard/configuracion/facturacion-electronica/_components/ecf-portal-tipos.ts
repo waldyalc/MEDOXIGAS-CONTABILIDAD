@@ -81,6 +81,87 @@ export interface ResumenEnvioExcelEcf {
 
 export type ResumenEjecucionExcelEcf = ResumenValidacionExcelEcf | ResumenEnvioExcelEcf;
 
+export type ModoEjecucionSimulacionPaso4 = "validar_local" | "enviar_dgii";
+
+export type FaseOrdenPaso4 = 1 | 2 | 3;
+
+export type CategoriaSimulacionPaso4 =
+  | "31"
+  | "32_mayor_250k"
+  | "32_rfce"
+  | "33"
+  | "34"
+  | "41"
+  | "43"
+  | "44"
+  | "45"
+  | "46"
+  | "47";
+
+export interface ResultadoSimulacionPaso4Base {
+  numeroCaso: number;
+  faseOrden: FaseOrdenPaso4;
+  categoria: CategoriaSimulacionPaso4;
+  descripcion: string;
+  encf: string;
+  tipo: string;
+  montoTotal: number;
+  esRfce: boolean;
+  ncfModificado: string | null;
+  nombreArchivoEcf: string;
+}
+
+export interface ResultadoValidacionSimulacionPaso4Caso extends ResultadoSimulacionPaso4Base {
+  valido: boolean;
+  errores: string[];
+}
+
+export interface ResultadoEnvioSimulacionPaso4Caso extends ResultadoSimulacionPaso4Base {
+  trackId: string | null;
+  estado: string;
+  codigoSeguridad: string | null;
+  fechaHoraFirma: string | null;
+  mensajes: string[];
+  urlQr: string | null;
+  duracionMs: number;
+  xmlFirmado: string | null;
+  xmlRfce: string | null;
+  reutilizado: boolean;
+  secuenciaUtilizada: boolean | null;
+  persistido: boolean;
+  errorPersistencia: string | null;
+}
+
+export interface ResumenValidacionSimulacionPaso4 {
+  modo: "validar_local";
+  ambiente: Exclude<AmbienteEcfServidor, "ecf">;
+  rncEmisor: string;
+  secuenciaBase: number;
+  totalCasos: number;
+  validos: number;
+  invalidos: number;
+  erroresGlobales: string[];
+  casos: ResultadoValidacionSimulacionPaso4Caso[];
+}
+
+export interface ResumenEnvioSimulacionPaso4 {
+  modo: "enviar_dgii";
+  ambiente: Exclude<AmbienteEcfServidor, "ecf">;
+  rncEmisor: string;
+  secuenciaBase: number;
+  totalCasos: number;
+  aceptados: number;
+  rechazados: number;
+  errores: number;
+  enProceso: number;
+  reutilizados: number;
+  detenidoPorRechazo: boolean;
+  fuenteCredenciales?: "formulario" | "variables_servidor" | "base_datos";
+  casos: ResultadoEnvioSimulacionPaso4Caso[];
+}
+
+export type ResumenEjecucionSimulacionPaso4 = ResumenValidacionSimulacionPaso4 | ResumenEnvioSimulacionPaso4;
+
 export type ModoEjecucionExcelAcecf = "validar_local" | "enviar_dgii";
 
 export interface ResultadoAcecfBase {
