@@ -74,6 +74,10 @@ Si llegaste por un brief de `delegate_task`:
   - `motor-contable` — doble partida, cuentas por defecto e invariantes.
   - `supabase-migraciones` — migraciones aditivas, timestamp UTC real, RLS y pgTAP.
   - `ticket-80mm` — medidas exactas pt/mm y carril `pnpm test:pdf`.
+- **Skills vendorizadas de Anthropic** (`.agents/skills/`, licencia Apache-2.0 en cada `LICENSE.txt`, origen `github.com/anthropics/skills`):
+  - `pdf` — leer/crear/validar PDFs: `pdftotext -bbox-layout` (coordenadas exactas), `qpdf --check`, `pdftoppm`+scan QR, pdfplumber/pypdf/reportlab.
+  - `docx` — documentos Word (.docx/.dotx) con validación OOXML.
+  - `xlsx` — hojas de cálculo (.xlsx/.csv) con `recalc.py` y validación OOXML.
 - **Subagentes reutilizables** (`.agents/agents/` y `/root/.agents/agents/`): `verifier.md` (solo lectura) y `planner.md` (solo lectura).
 
 ### Uso obligatorio de `gemini-api` ante dudas externas
