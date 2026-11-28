@@ -34,6 +34,16 @@ interface EmisionEcfPapel {
   urlQr: string;
 }
 
+/**
+ * Retenciones fiscales del comprobante electrónico (TotalITBISRetenido y
+ * TotalISRRetencion del XML e-CF). Solo se renderizan cuando el documento
+ * las trae; una factura sin este dato imprime exactamente lo mismo de siempre.
+ */
+export interface RetencionesFiscalesPapel {
+  itbisRetenido?: number | null;
+  isrRetenido?: number | null;
+}
+
 interface DatosPapel {
   tipo: "factura" | "cotizacion" | "conduce";
   empresa: Empresa | null;
@@ -60,6 +70,8 @@ interface DatosPapel {
   saldo: number | null;
   mostrarLogo: boolean;
   emisionEcf: EmisionEcfPapel | null;
+  retencionesFiscales: RetencionesFiscalesPapel | null;
+  margenFiscalMm: number | null;
 }
 
 type Props =
@@ -73,6 +85,13 @@ type Props =
       impuestos: Impuesto[];
       mostrarLogo?: boolean;
       emisionEcf?: EmisionEcfPapel | null;
+      retencionesFiscales?: RetencionesFiscalesPapel | null;
+      /**
+       * Margen izquierdo extra del bloque fiscal e-CF en milímetros. La DGII
+       * exige el QR a ≥ 2 cm del borde del papel en la representación impresa;
+       * sin el prop el bloque queda exactamente donde siempre (producción).
+       */
+      margenFiscalMm?: number;
     }
   | { tipo: "cotizacion" | "conduce"; vista: DocumentoVista; mostrarLogo?: boolean };
 
@@ -95,6 +114,8 @@ function datosDeFactura(
   mostrarLogo: boolean,
   impuestos: Impuesto[],
   emisionEcf: EmisionEcfPapel | null,
+  retencionesFiscales: RetencionesFiscalesPapel | null = null,
+  margenFiscalMm: number | null = null,
 ): DatosPapel {
   const tipoEcf = tipoEcfDesdeNcf(factura.ncf);
   return {
@@ -125,6 +146,8 @@ function datosDeFactura(
         : null,
     mostrarLogo,
     emisionEcf: esNcfElectronico(factura.ncf) ? emisionEcf : null,
+    retencionesFiscales,
+    margenFiscalMm,
   };
 }
 
@@ -156,6 +179,8 @@ function datosDeDocumento(tipo: "cotizacion" | "conduce", vista: DocumentoVista,
     saldo: null,
     mostrarLogo,
     emisionEcf: null,
+    retencionesFiscales: null,
+    margenFiscalMm: null,
   };
 }
 
@@ -512,6 +537,12 @@ function TotalesFactura({ datos }: { datos: DatosPapel }) {
           <span>Total</span>
           <span className="tabular-nums">{formatearMontoPapel(datos.total)}</span>
         </div>
+        {(datos.retencionesFiscales?.itbisRetenido ?? 0) > 0 ? (
+          <FilaTotal etiqueta="ITBIS RETENIDO" valor={formatearMontoPapel(datos.retencionesFiscales?.itbisRetenido)} />
+        ) : null}
+        {(datos.retencionesFiscales?.isrRetenido ?? 0) > 0 ? (
+          <FilaTotal etiqueta="ISR RETENIDO" valor={formatearMontoPapel(datos.retencionesFiscales?.isrRetenido)} />
+        ) : null}
         <p className="mt-[2pt] text-right text-[10pt] font-semibold">
           Total de items: {formatoCantidad(totalItemsPapel(datos.lineas))}
         </p>
@@ -614,12 +645,14 @@ function ContenidoFactura({ datos }: { datos: DatosPapel }) {
       <TotalesFactura datos={datos} />
       <NotasPapel datos={datos} />
       {datos.emisionEcf ? (
-        <BloqueFiscalEcf
-          codigoSeguridad={datos.emisionEcf.codigoSeguridad}
-          encf={datos.ncf}
-          fechaHoraFirma={datos.emisionEcf.fechaHoraFirma}
-          urlQr={datos.emisionEcf.urlQr}
-        />
+        <div style={datos.margenFiscalMm != null ? { marginLeft: `${datos.margenFiscalMm}mm` } : undefined}>
+          <BloqueFiscalEcf
+            codigoSeguridad={datos.emisionEcf.codigoSeguridad}
+            encf={datos.ncf}
+            fechaHoraFirma={datos.emisionEcf.fechaHoraFirma}
+            urlQr={datos.emisionEcf.urlQr}
+          />
+        </div>
       ) : null}
       <PieFactura mostrarOriginal={!datos.emisionEcf} />
     </>
@@ -667,6 +700,8 @@ export function DocumentoPapel(props: Props) {
           props.mostrarLogo ?? true,
           props.impuestos,
           props.emisionEcf ?? null,
+          props.retencionesFiscales ?? null,
+          props.margenFiscalMm ?? null,
         )
       : datosDeDocumento(props.tipo, props.vista, props.mostrarLogo ?? true);
 

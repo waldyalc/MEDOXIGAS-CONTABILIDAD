@@ -36,6 +36,9 @@ interface PropsHojaImpresion {
   children: ReactNode;
 }
 
+/** Props del papel puro, sin el botón de imprimir (server-renderable). */
+export type PropsPapelImpresion = Omit<PropsHojaImpresion, "classNameBoton">;
+
 function LogoEmpresa({ empresa, nombre }: { empresa: Empresa | null; nombre: string }) {
   const logo = empresa?.logo_url?.trim() || "/marca/logo-medoxigas.png";
 
@@ -45,14 +48,63 @@ function LogoEmpresa({ empresa, nombre }: { empresa: Empresa | null; nombre: str
   );
 }
 
+/**
+ * Papel puro de la hoja de impresión, sin botón ni portal: server-renderable
+ * (lo usa la tubería de PDF con `renderToStaticMarkup`). `HojaImpresion` lo
+ * monta dentro del portal de impresión con el mismo HTML de siempre.
+ */
+export function PapelImpresion(props: PropsPapelImpresion) {
+  const nombre = props.empresa?.nombre?.trim() || "MEDOXIGAS ALC, SRL";
+
+  return (
+    <article
+      className={cn(
+        "documento-papel mx-auto flex min-h-[279mm] w-full flex-col bg-white p-[15mm]",
+        "[font-family:var(--font-inter)] text-[10pt] leading-[12.1pt] text-[#0a2352]",
+      )}
+    >
+      <header className="flex items-start justify-between gap-[24pt]">
+        <div className="flex min-w-0 flex-col">
+          <LogoEmpresa empresa={props.empresa} nombre={nombre} />
+          <p className="mt-[3pt] text-[13pt] leading-[13.5pt] font-semibold">{nombre}</p>
+          {props.empresa?.rnc?.trim() ? (
+            <p>
+              <span className="font-semibold">RNC:</span> {props.empresa.rnc}
+            </p>
+          ) : null}
+          {props.empresa?.direccion?.trim() ? <p>{props.empresa.direccion}</p> : null}
+          {props.empresa?.telefono?.trim() ? (
+            <p>
+              <span className="font-semibold">Teléfono:</span> {props.empresa.telefono}
+            </p>
+          ) : null}
+          {props.empresa?.correo?.trim() ? <p>{props.empresa.correo}</p> : null}
+        </div>
+
+        <div className="shrink-0 text-right">
+          <p className="font-semibold">{props.titulo}</p>
+          <p className="my-[2pt] text-[14pt] leading-[16pt] font-semibold">{props.numero}</p>
+          <p>{formatoDia(props.fecha)}</p>
+          {props.leyendaAnulacion ? <p className="mt-[4pt] font-bold text-red-600">{props.leyendaAnulacion}</p> : null}
+        </div>
+      </header>
+
+      {props.children}
+
+      <footer className="mt-[18pt] text-center text-[6pt]">
+        <p>Generado por Medoxigas Contabilidad</p>
+        <p className="mt-[2pt]">{formatoFechaHora(new Date().toISOString())}</p>
+      </footer>
+    </article>
+  );
+}
+
 export function HojaImpresion(props: PropsHojaImpresion) {
   const [montado, setMontado] = useState(false);
 
   useEffect(() => {
     setMontado(true);
   }, []);
-
-  const nombre = props.empresa?.nombre?.trim() || "MEDOXIGAS ALC, SRL";
 
   return (
     <>
@@ -65,47 +117,15 @@ export function HojaImpresion(props: PropsHojaImpresion) {
         ? createPortal(
             <div data-print-root>
               <div data-print-paper>
-                <article
-                  className={cn(
-                    "documento-papel mx-auto flex min-h-[279mm] w-full flex-col bg-white p-[15mm]",
-                    "[font-family:var(--font-inter)] text-[10pt] leading-[12.1pt] text-[#0a2352]",
-                  )}
+                <PapelImpresion
+                  titulo={props.titulo}
+                  empresa={props.empresa}
+                  numero={props.numero}
+                  fecha={props.fecha}
+                  leyendaAnulacion={props.leyendaAnulacion}
                 >
-                  <header className="flex items-start justify-between gap-[24pt]">
-                    <div className="flex min-w-0 flex-col">
-                      <LogoEmpresa empresa={props.empresa} nombre={nombre} />
-                      <p className="mt-[3pt] text-[13pt] leading-[13.5pt] font-semibold">{nombre}</p>
-                      {props.empresa?.rnc?.trim() ? (
-                        <p>
-                          <span className="font-semibold">RNC:</span> {props.empresa.rnc}
-                        </p>
-                      ) : null}
-                      {props.empresa?.direccion?.trim() ? <p>{props.empresa.direccion}</p> : null}
-                      {props.empresa?.telefono?.trim() ? (
-                        <p>
-                          <span className="font-semibold">Teléfono:</span> {props.empresa.telefono}
-                        </p>
-                      ) : null}
-                      {props.empresa?.correo?.trim() ? <p>{props.empresa.correo}</p> : null}
-                    </div>
-
-                    <div className="shrink-0 text-right">
-                      <p className="font-semibold">{props.titulo}</p>
-                      <p className="my-[2pt] text-[14pt] leading-[16pt] font-semibold">{props.numero}</p>
-                      <p>{formatoDia(props.fecha)}</p>
-                      {props.leyendaAnulacion ? (
-                        <p className="mt-[4pt] font-bold text-red-600">{props.leyendaAnulacion}</p>
-                      ) : null}
-                    </div>
-                  </header>
-
                   {props.children}
-
-                  <footer className="mt-[18pt] text-center text-[6pt]">
-                    <p>Generado por Medoxigas Contabilidad</p>
-                    <p className="mt-[2pt]">{formatoFechaHora(new Date().toISOString())}</p>
-                  </footer>
-                </article>
+                </PapelImpresion>
               </div>
             </div>,
             document.body,
